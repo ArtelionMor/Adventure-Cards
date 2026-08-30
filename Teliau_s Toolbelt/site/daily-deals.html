@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Daily Deals Intention — Explainer</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --bg-2: #161922;
+    --bg-3: #1d2230;
+    --line: #2a3142;
+    --text: #e7eaf0;
+    --muted: #9aa3b2;
+    --accent: #7aa2ff;
+    --accent-2: #79e3c5;
+    --warn: #ffb86b;
+    --bad: #ff7a90;
+    --good: #79e3c5;
+    --chip-bg: #232a3b;
+    --shadow: 0 8px 24px rgba(0,0,0,.35);
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); }
+  body {
+    margin: 0;
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Layout */
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+  header.top {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  header.top h1 { font-size: 28px; margin: 0; letter-spacing: -.01em; }
+  header.top p { color: var(--muted); margin: 4px 0 0; }
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    background: var(--chip-bg); color: var(--muted); font-size: 12px;
+    border: 1px solid var(--line);
+  }
+
+  /* Tabs */
+  nav.tabs {
+    display: flex; gap: 6px; flex-wrap: wrap; margin: 18px 0 22px;
+    border-bottom: 1px solid var(--line); padding-bottom: 8px;
+  }
+  nav.tabs button {
+    background: transparent; color: var(--muted); border: 1px solid transparent;
+    padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: 14px;
+  }
+  nav.tabs button:hover { color: var(--text); background: var(--bg-2); }
+  nav.tabs button.active {
+    color: var(--text); background: var(--bg-2);
+    border-color: var(--line); box-shadow: var(--shadow);
+  }
+
+  section.tab { display: none; }
+  section.tab.active { display: block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  h2 { font-size: 20px; margin: 28px 0 10px; }
+  h3 { font-size: 16px; margin: 18px 0 8px; color: var(--text); }
+  p.lead { color: var(--muted); max-width: 75ch; }
+
+  /* Cards / pipeline */
+  .grid {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+  .card {
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
+  }
+  .card h4 { margin: 0 0 6px; font-size: 14px; letter-spacing: .02em;
+    color: var(--accent); text-transform: uppercase; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  /* Pipeline */
+  .pipeline {
+    display: grid; gap: 10px;
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .pipeline .step {
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px; position: relative;
+  }
+  .pipeline .step b { display: block; font-size: 13px; color: var(--accent-2); margin-bottom: 6px; }
+  .pipeline .step span { color: var(--muted); font-size: 13px; }
+  .pipeline .step::after {
+    content: "→"; position: absolute; right: -12px; top: 50%;
+    transform: translateY(-50%); color: var(--muted); font-weight: bold;
+  }
+  .pipeline .step:last-child::after { content: ""; }
+  @media (max-width: 800px) {
+    .pipeline { grid-template-columns: 1fr; }
+    .pipeline .step::after { content: ""; }
+  }
+
+  /* Slot table */
+  table.slots {
+    width: 100%; border-collapse: collapse; margin-top: 10px;
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  table.slots th, table.slots td {
+    padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line);
+    font-size: 14px;
+  }
+  table.slots th { background: var(--bg-3); color: var(--muted); font-weight: 600; }
+  table.slots tr:last-child td { border-bottom: none; }
+  table.slots td.num { font-variant-numeric: tabular-nums; color: var(--accent-2); }
+
+  /* Column reference */
+  .toolbar {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    margin: 8px 0 14px; align-items: center;
+  }
+  .toolbar input[type="search"] {
+    flex: 1; min-width: 220px; background: var(--bg-2);
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; color: var(--text); font-size: 14px;
+  }
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    background: var(--chip-bg); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 12px; cursor: pointer;
+    font-size: 13px; color: var(--muted); user-select: none;
+  }
+  .chip.active { color: var(--text); border-color: var(--accent); background: rgba(122,162,255,.12); }
+
+  .col-list { display: flex; flex-direction: column; gap: 8px; }
+  .col {
+    display: grid; grid-template-columns: minmax(200px, 260px) 1fr auto;
+    gap: 14px; align-items: start;
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px 14px;
+  }
+  .col code {
+    font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--accent-2);
+  }
+  .col .desc { color: var(--text); font-size: 14px; }
+  .col .group {
+    color: var(--muted); font-size: 12px; text-transform: uppercase;
+    letter-spacing: .04em; white-space: nowrap;
+  }
+  .col.hidden { display: none; }
+
+  /* Worked example */
+  .example {
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px;
+  }
+  .example .row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    margin-bottom: 12px;
+  }
+  @media (max-width: 700px) { .example .row { grid-template-columns: 1fr; } }
+  .kv {
+    background: var(--bg-3); border-radius: 10px; padding: 10px 12px;
+    font-size: 14px;
+  }
+  .kv b { color: var(--accent); display: block; font-size: 12px;
+    text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px;
+    background: var(--chip-bg); border: 1px solid var(--line);
+    font-size: 12px; color: var(--muted); margin-right: 4px;
+  }
+  .pill.ok { color: var(--good); border-color: rgba(121,227,197,.35); background: rgba(121,227,197,.08); }
+  .pill.bad { color: var(--bad); border-color: rgba(255,122,144,.35); background: rgba(255,122,144,.08); }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(122,162,255,.06); padding: 10px 14px;
+    border-radius: 10px; margin: 12px 0; color: var(--text);
+  }
+  .callout.warn { border-left-color: var(--warn); background: rgba(255,184,107,.07); }
+  footer.foot { color: var(--muted); font-size: 12px; margin-top: 36px; text-align: center; }
+
+  details.faq {
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px 14px; margin-bottom: 8px;
+  }
+  details.faq summary { cursor: pointer; font-weight: 600; }
+  details.faq[open] { background: var(--bg-3); }
+</style>
+</head>
+<body>
+<!-- Teliau's Toolbelt — shared navigation (injected) -->
+<style>
+  :root { --tb-nav-h: 52px; }
+  .tb-nav {
+    position: sticky; top: 0; z-index: 9999;
+    display: flex; align-items: center; gap: 18px;
+    height: var(--tb-nav-h); padding: 0 18px;
+    background: rgba(13,15,20,.86);
+    backdrop-filter: saturate(140%) blur(10px);
+    -webkit-backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid #2a3142;
+    font: 14px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  }
+  .tb-nav__brand {
+    display: flex; align-items: center; gap: 8px;
+    color: #e7eaf0; font-weight: 700; letter-spacing: -.01em;
+    text-decoration: none; font-size: 14px; white-space: nowrap;
+  }
+  .tb-nav__brand .tb-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: linear-gradient(135deg, #7aa2ff, #79e3c5);
+    box-shadow: 0 0 10px rgba(122,162,255,.7);
+  }
+  .tb-nav__links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .tb-nav__link {
+    color: #9aa3b2; text-decoration: none; padding: 7px 12px;
+    border-radius: 8px; border: 1px solid transparent; white-space: nowrap;
+    transition: background .15s, color .15s;
+  }
+  .tb-nav__link:hover { color: #e7eaf0; background: #1d2230; text-decoration: none; }
+  .tb-nav__link--active { color: #e7eaf0; background: #1d2230; border-color: #2a3142; }
+  @media (max-width: 640px) {
+    .tb-nav { height: auto; padding: 8px 12px; flex-wrap: wrap; gap: 10px; }
+  }
+</style>
+<nav class="tb-nav">
+  <a class="tb-nav__brand" href="index.html"><span class="tb-dot"></span>Teliau's Toolbelt</a>
+  <div class="tb-nav__links">
+      <a class="tb-nav__link" href="index.html">Home</a>
+      <a class="tb-nav__link" href="tle-intention.html">TLE Intention</a>
+      <a class="tb-nav__link tb-nav__link--active" href="daily-deals.html">Daily Deals</a>
+      <a class="tb-nav__link" href="diff-viewer.html">JSON Diff</a>
+    <a class="tb-nav__link" href="pet-builds.html">Pet Builds</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Daily Deals Intention <span class="badge">v3.2 SA</span></h1>
+      <p>How the Daily Deals tab is structured, what each column does, and how an offer ends up in front of the player.</p>
+    </div>
+    <span class="badge">Read in ~5 min</span>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="active" data-tab="overview">Overview</button>
+    <button data-tab="slots">Slots</button>
+    <button data-tab="columns">Column reference</button>
+    <button data-tab="example">Worked example</button>
+    <button data-tab="faq">FAQ</button>
+  </nav>
+
+  <!-- OVERVIEW -->
+  <section class="tab active" id="overview">
+    <h2>What is the Daily Deals tab?</h2>
+    <p class="lead">
+      The Daily Deals tab is a configuration sheet that defines the <b>6 daily offers</b>
+      shown to the player every day. Each row is one candidate offer. Together they form
+      the loot pool the game draws from to fill the 6 slots, with weighted randomness
+      and a budget check per slot.
+    </p>
+
+    <h3>The 5 column groups</h3>
+    <div class="grid">
+      <div class="card">
+        <h4>High Level Items Logic</h4>
+        <p>Defines each <b>item</b> that can be offered: discount, gem price, and which slots it's allowed to appear in.</p>
+      </div>
+      <div class="card">
+        <h4>High Level Slot Logic</h4>
+        <p>Defines each of the <b>6 slots</b>: gem-price min/max budget, target % of pet upgrades, and shard auto-weighting.</p>
+      </div>
+      <div class="card">
+        <h4>Offer Specifics</h4>
+        <p>One row per <b>concrete offer</b> in a slot's loot pool: quantity, currency type, weight, and the price the player pays.</p>
+      </div>
+      <div class="card">
+        <h4>Helpers</h4>
+        <p>Computed columns that <b>validate</b> each offer (gem-equivalent value, range check ✅/❌, % share inside the slot).</p>
+      </div>
+      <div class="card">
+        <h4>Lootpool Options Generator</h4>
+        <p>The <b>final output</b> consumed by the game: pool id, item, weight, probability %, and unlock requirement.</p>
+      </div>
+    </div>
+
+    <h3>From config to player</h3>
+    <div class="pipeline">
+      <div class="step"><b>1. Items</b><span>Each item has a base price + which slots it's allowed in.</span></div>
+      <div class="step"><b>2. Slots</b><span>Each of the 6 slots defines a price range &amp; pet ratio.</span></div>
+      <div class="step"><b>3. Offers</b><span>Item × quantity × currency = a concrete offer with a weight.</span></div>
+      <div class="step"><b>4. Helpers</b><span>Formulas validate the offer fits the slot's budget.</span></div>
+      <div class="step"><b>5. Pool</b><span>Game draws from the slot pool using the final probabilities.</span></div>
+    </div>
+
+    <div class="callout">
+      <b>Mental model:</b> the tab is a <i>weighted lottery per slot</i>. The slot defines
+      the rules of the lottery; the rows define the tickets and how many copies of each
+      ticket are in the box.
+    </div>
+  </section>
+
+  <!-- SLOTS -->
+  <section class="tab" id="slots">
+    <h2>The 6 slots at a glance</h2>
+    <p class="lead">
+      Slots get progressively more expensive. Lower slots favour cheap utility items;
+      higher slots are dominated by pet upgrades (<code>dynamic_owned_pet</code>) which
+      become the main sink of value once the player has unlocked them.
+    </p>
+
+    <table class="slots">
+      <thead>
+        <tr>
+          <th>Slot</th>
+          <th>Gem range (min — max)</th>
+          <th>Pet share %</th>
+          <th>Typical content</th>
+        </tr>
+      </thead>
+      <tbody id="slot-tbody"></tbody>
+    </table>
+
+    <div class="callout warn">
+      <b>Out-of-range warning:</b> if an offer's gem-equivalent value falls outside its
+      slot's min–max, the <code>~Price in Range</code> helper turns to <span class="pill bad">FALSE</span>
+      and the offer must be re-priced or removed. One such case exists today on
+      slot 6 (a 300-shard pet pack at 1350 gems).
+    </div>
+  </section>
+
+  <!-- COLUMN REFERENCE -->
+  <section class="tab" id="columns">
+    <h2>Column reference</h2>
+    <p class="lead">Every column from the spreadsheet, grouped by section. Search or filter to find one.</p>
+
+    <div class="toolbar">
+      <input type="search" id="col-search" placeholder="Search columns (e.g. 'weight', 'pet', 'price')…" />
+      <div class="filter-chips" id="filter-chips"></div>
+    </div>
+
+    <div class="col-list" id="col-list"></div>
+  </section>
+
+  <!-- WORKED EXAMPLE -->
+  <section class="tab" id="example">
+    <h2>Worked example: a single row</h2>
+    <p class="lead">
+      Reading the row <code>dailyDeals_slot_4_base · dynamic_random_candy · 2 candies @ 160 gems</code>
+      end-to-end:
+    </p>
+
+    <div class="example">
+      <div class="row">
+        <div class="kv"><b>Pool (slot)</b>dailyDeals_slot_4_base</div>
+        <div class="kv"><b>Item</b>dynamic_random_candy</div>
+      </div>
+      <div class="row">
+        <div class="kv"><b>Quantity</b>2</div>
+        <div class="kv"><b>Price</b>160 gems</div>
+      </div>
+      <div class="row">
+        <div class="kv"><b>Slot budget (gems)</b>8 — 180</div>
+        <div class="kv"><b>Gem-equivalent value</b>21.0 (item value) × 2 / 160 = ratio used by helper</div>
+      </div>
+      <div class="row">
+        <div class="kv"><b>In range?</b><span class="pill ok">TRUE</span> 160 fits within 8–180.</div>
+        <div class="kv"><b>Weight</b>21.0 → ~16.28% chance to be drawn in slot 4.</div>
+      </div>
+      <div class="row">
+        <div class="kv"><b>Unlock</b>requires <code>reach_world_5</code> — hidden before that.</div>
+        <div class="kv"><b>Result</b>Eligible offer; ~1 in 6 daily refreshes for slot 4.</div>
+      </div>
+    </div>
+
+    <h3>How probability is computed</h3>
+    <div class="callout">
+      <code>probability % = weight ÷ Σ(weights of all eligible offers in the slot)</code><br />
+      Eligible = passes the <code>reach_world_X</code> requirement and has
+      <code>~Price in Range = TRUE</code>.
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="tab" id="faq">
+    <h2>FAQ</h2>
+
+    <details class="faq">
+      <summary>Why are some rows empty in the left columns?</summary>
+      <p>The left block (<i>High Level Items / Slot Logic</i>) only needs one row per
+      item / per slot. The right block (<i>Offer Specifics + Generator</i>) repeats one
+      row per concrete offer, so it is much taller — that's why the left columns
+      look empty further down.</p>
+    </details>
+
+    <details class="faq">
+      <summary>What is the Shard Weight Calculator?</summary>
+      <p>An optional auto-weight helper for shard offers (<code>dynamic_owned_pet</code>).
+      When activated it distributes weights using a normal-like curve around a
+      <b>Center</b> (0 = lowest, 1 = highest) with a configurable <b>Deviation</b>
+      (0 = all on the center value, 1000 = uniform). When off, the manual
+      <code>~Weight</code> column wins.</p>
+    </details>
+
+    <details class="faq">
+      <summary>What does REWARDED vs CURRENCY mean?</summary>
+      <p><b>REWARDED</b> = the player gets the item for free after watching a rewarded
+      ad (<code>ad_rewarded</code>). <b>CURRENCY</b> = the player pays with an in-game
+      currency, usually <code>currency.gems</code> or <code>currency.coins</code>.</p>
+    </details>
+
+    <details class="faq">
+      <summary>How do I add a new offer?</summary>
+      <p>Add a row in the <i>Offer Specifics</i> block: pick the slot id (<code>~poolId</code>),
+      the item (<code>~Selected Item</code>), the quantity, the price, and a weight.
+      The helpers will tell you immediately if the price is out of the slot's range.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Why do high slots show so many <code>dynamic_owned_pet</code> rows?</summary>
+      <p>Pet upgrades scale linearly with shard count, so each shard quantity is its
+      own row. To cover the wide gem range of slots 5 &amp; 6 the sheet enumerates many
+      shard amounts (10, 15, 20… 150) so the helper can place each at the right
+      probability.</p>
+    </details>
+  </section>
+
+  <footer class="foot">
+    Static page — open the file directly in a browser. Source data: <code>V3.2 SA - Daily Deals Intention.csv</code>.
+  </footer>
+</div>
+
+<script>
+  // ----- Tab switching -----
+  const tabs = document.querySelectorAll("nav.tabs button");
+  const sections = document.querySelectorAll("section.tab");
+  tabs.forEach(btn => btn.addEventListener("click", () => {
+    tabs.forEach(b => b.classList.remove("active"));
+    sections.forEach(s => s.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  }));
+
+  // ----- Slot table -----
+  const slots = [
+    { n: 1, min: 12,  max: 20,  pet: 0,  desc: "Cheap entry — common eggs, small coin/gem packs, tickets." },
+    { n: 2, min: 30,  max: 50,  pet: 0,  desc: "Free rewarded-ad slot — eggs, potions, tickets after an ad." },
+    { n: 3, min: 5,   max: 50,  pet: 71, desc: "Mostly small pet upgrades + one common egg / potion / ticket." },
+    { n: 4, min: 8,   max: 180, pet: 42, desc: "Mid-range mix: candies, rare eggs, coin packs, mid-size pet shards." },
+    { n: 5, min: 10,  max: 360, pet: 42, desc: "Pet-heavy slot, larger candy and egg packs, big coin bundles." },
+    { n: 6, min: 12,  max: 720, pet: 84, desc: "Top slot — almost exclusively large pet upgrades and legendary eggs." },
+  ];
+  const tbody = document.getElementById("slot-tbody");
+  slots.forEach(s => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><b>Slot ${s.n}</b></td>
+      <td class="num">${s.min} — ${s.max} gems</td>
+      <td class="num">${s.pet}%</td>
+      <td>${s.desc}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // ----- Column reference -----
+  // Pulled and tightened from row 2 of the CSV.
+  const COLS = [
+    // High Level Items Logic
+    { g: "Items",   k: "~Items",            d: "The item offered in the deal (e.g. egg, coins, potion)." },
+    { g: "Items",   k: "~Discount",         d: "How much cheaper the item is vs its normal shop price." },
+    { g: "Items",   k: "~Price in HC",      d: "What the player pays in gems (hard currency) to buy this deal." },
+    { g: "Items",   k: "~Slot Availability",d: "List of slot numbers (1–6) where this item is permitted to appear." },
+
+    // High Level Slot Logic
+    { g: "Slot",    k: "~Number of pet offers", d: "Count of pet-upgrade offers configured in this slot." },
+    { g: "Slot",    k: "~Slot",             d: "Internal name of the slot being configured (dailyDeals_slot_X_base)." },
+    { g: "Slot",    k: "~HC Value Min",     d: "Minimum gem price for an item to be eligible for this slot." },
+    { g: "Slot",    k: "~HC Value Max",     d: "Maximum gem price — above this, the item is too expensive for the slot." },
+    { g: "Slot",    k: "~Percentage of shards in the offer slot", d: "Target % of pet upgrade offers in this slot (0 = none, 100 = only pets)." },
+    { g: "Slot",    k: "Shard Weight Calculator", d: "Optional auto-weighter for shard offers — when on, the ~Weight column is replaced by a curve centered on a target value." },
+    { g: "Slot",    k: "Center",            d: "Where the most frequent shard value sits on the slot's range (0 = lowest, 1 = highest)." },
+    { g: "Slot",    k: "Deviation",         d: "How spread out the shard weights are (0 = all on the center, 1000 = uniform across the range)." },
+
+    // Offer Specifics
+    { g: "Offer",   k: "~Weight",           d: "Selection frequency: higher = this offer appears more often than others in the same slot." },
+    { g: "Offer",   k: "&reward.quantity",  d: "How many units the player receives (e.g. 300 coins, 2 potions)." },
+    { g: "Offer",   k: "priceType",         d: "REWARDED (free after a rewarded ad) or CURRENCY (paid with an in-game currency)." },
+    { g: "Offer",   k: "&price.resourceId", d: "How the player pays: currency.gems, currency.coins, or ad_rewarded." },
+
+    // Helpers
+    { g: "Helpers", k: "~HC Range in slot (Helper)", d: "The slot's allowed gem range, copied next to the offer for an easy eyeball check." },
+    { g: "Helpers", k: "~Price in HC (Helper)", d: "The calculated gem-equivalent of this specific offer (used for the range check)." },
+    { g: "Helpers", k: "~Price in Range (Helper)", d: "TRUE = the offer's price fits the slot's budget. FALSE = it must be re-priced." },
+    { g: "Helpers", k: "Amount of kind of item", d: "Intended share of this item type within the slot (e.g. 33% = 1 in 3 picks of that flavour)." },
+    { g: "Helpers", k: "~Number of offers", d: "Total number of offer entries competing in this slot's random draw." },
+
+    // Lootpool Generator
+    { g: "Generator", k: "~poolId",         d: "The slot this row belongs to (output value used by the game)." },
+    { g: "Generator", k: "DO NOT FILL",     d: "Computed by formulas — do not hand-edit." },
+    { g: "Generator", k: "~Selected Item",  d: "The item the player will see when this entry is drawn." },
+    { g: "Generator", k: "~weight",         d: "Final weight used in the draw (may be overridden by the shard calculator)." },
+    { g: "Generator", k: "~probability %",  d: "Real probability that this exact offer is picked in its slot." },
+    { g: "Generator", k: "Price (mix)",     d: "The final price string combining quantity and currency, as it appears in the UI." },
+    { g: "Generator", k: "~requirementId",  d: "Unlock condition — the offer is only eligible once the player has met it (e.g. reach_world_5)." },
+  ];
+
+  const groups = ["All", "Items", "Slot", "Offer", "Helpers", "Generator"];
+  const chipBox = document.getElementById("filter-chips");
+  groups.forEach((g, i) => {
+    const b = document.createElement("span");
+    b.className = "chip" + (i === 0 ? " active" : "");
+    b.textContent = g;
+    b.dataset.group = g;
+    b.addEventListener("click", () => {
+      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+      b.classList.add("active");
+      filterCols();
+    });
+    chipBox.appendChild(b);
+  });
+
+  const list = document.getElementById("col-list");
+  COLS.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "col";
+    div.dataset.group = c.g;
+    div.innerHTML = `
+      <div><code>${c.k}</code></div>
+      <div class="desc">${c.d}</div>
+      <div class="group">${c.g}</div>`;
+    list.appendChild(div);
+  });
+
+  const search = document.getElementById("col-search");
+  search.addEventListener("input", filterCols);
+  function filterCols() {
+    const q = search.value.trim().toLowerCase();
+    const g = document.querySelector(".chip.active").dataset.group;
+    document.querySelectorAll(".col").forEach(el => {
+      const txt = el.textContent.toLowerCase();
+      const groupOk = g === "All" || el.dataset.group === g;
+      const queryOk = !q || txt.includes(q);
+      el.classList.toggle("hidden", !(groupOk && queryOk));
+    });
+  }
+</script>
+</body>
+</html>

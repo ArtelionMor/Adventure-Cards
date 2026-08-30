@@ -1,0 +1,1379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>JSON 3.1 vs 3.2 — Diff Viewer</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --border: #232a36;
+    --text: #e6e9ef;
+    --muted: #8a93a6;
+    --add: #1f6f3d;
+    --add-bg: rgba(46, 160, 67, 0.18);
+    --rem: #7a2530;
+    --rem-bg: rgba(248, 81, 73, 0.18);
+    --chg: #8a5a00;
+    --chg-bg: rgba(255, 184, 0, 0.18);
+    --key: #79c0ff;
+    --str: #a5d6ff;
+    --num: #ffb86b;
+    --bool: #d2a8ff;
+    --null: #ff7b72;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  }
+  header h1 { font-size: 14px; margin: 0 12px 0 0; font-family: system-ui, sans-serif; font-weight: 600; }
+  .stats { display: flex; gap: 8px; flex-wrap: wrap; font-family: system-ui, sans-serif; font-size: 12px; }
+  .badge { padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); }
+  .badge.add { background: var(--add-bg); color: #7ee2a0; }
+  .badge.rem { background: var(--rem-bg); color: #ff9aa2; }
+  .badge.chg { background: var(--chg-bg); color: #ffd479; }
+  .badge.same { color: var(--muted); }
+  .controls { margin-left: auto; display: flex; gap: 8px; align-items: center; font-family: system-ui, sans-serif; font-size: 12px; }
+  .controls input[type="search"] { background: #0b0d12; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; width: 220px; }
+  .controls button, .controls label.btn {
+    background: #1f2532; color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 10px; cursor: pointer;
+  }
+  .controls button:hover, .controls label.btn:hover { background: #2a3142; }
+  .controls label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  main { padding: 16px; }
+  .legend { font-family: system-ui, sans-serif; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .legend span { display: inline-block; padding: 2px 6px; border-radius: 4px; margin-right: 8px; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pane { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; min-height: 60vh; max-height: calc(100vh - 140px); }
+  .pane h2 { margin: 0; padding: 8px 12px; font: 600 12px system-ui, sans-serif; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .tree { padding: 8px 6px; overflow: auto; flex: 1; }
+  .node { padding-left: 16px; position: relative; }
+  .row { display: flex; align-items: flex-start; padding: 1px 6px; border-radius: 4px; gap: 6px; white-space: pre-wrap; word-break: break-word; }
+  .row.add { background: var(--add-bg); }
+  .row.rem { background: var(--rem-bg); }
+  .row.chg { background: var(--chg-bg); }
+  .toggle { width: 14px; flex: 0 0 14px; color: var(--muted); cursor: pointer; user-select: none; text-align: center; }
+  .toggle.empty { visibility: hidden; }
+  .marker { width: 14px; flex: 0 0 14px; text-align: center; font-weight: 700; }
+  .marker.add { color: #7ee2a0; }
+  .marker.rem { color: #ff9aa2; }
+  .marker.chg { color: #ffd479; }
+  .marker.same { color: transparent; }
+  .key { color: var(--key); }
+  .path { color: var(--muted); font-size: 11px; }
+  .val { }
+  .val.str { color: var(--str); }
+  .val.num { color: var(--num); }
+  .val.bool { color: var(--bool); }
+  .val.null { color: var(--null); }
+  .arrow { color: var(--muted); margin: 0 6px; }
+  .old { text-decoration: line-through; opacity: 0.7; }
+  .count { color: var(--muted); font-size: 11px; margin-left: 6px; }
+  .children { border-left: 1px dashed var(--border); margin-left: 6px; padding-left: 6px; }
+  .hidden { display: none; }
+  .placeholder-row { background: repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(255,255,255,0.03) 6px, rgba(255,255,255,0.03) 12px); min-height: 1.6em; }
+  .loader { padding: 24px; color: var(--muted); font-family: system-ui, sans-serif; }
+  .file-pick { display: flex; gap: 8px; align-items: center; font-family: system-ui, sans-serif; font-size: 12px; }
+  details summary { cursor: pointer; }
+
+  /* Selection checkboxes */
+  .sel { width: 14px; flex: 0 0 14px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+  .sel input { margin: 0; cursor: pointer; accent-color: #79c0ff; }
+  .sel.empty { visibility: hidden; }
+  .row.selected { outline: 2px solid #79c0ff; outline-offset: -2px; }
+  .row.committed { opacity: 0.55; }
+  .committed-badge { font-family: system-ui, sans-serif; font-size: 10px; padding: 1px 6px; border-radius: 999px; background: #2a3142; color: var(--muted); margin-left: 6px; }
+
+  /* Tabs */
+  .tabs { display: inline-flex; gap: 4px; border: 1px solid var(--border); border-radius: 8px; padding: 2px; background: #0b0d12; font-family: system-ui, sans-serif; font-size: 12px; }
+  .tab { padding: 4px 10px; border-radius: 6px; cursor: pointer; color: var(--muted); }
+  .tab.active { background: #1f2532; color: var(--text); }
+
+  /* Action bar */
+  .actionbar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px; display: none; gap: 10px; align-items: center; box-shadow: 0 12px 32px rgba(0,0,0,0.5); font-family: system-ui, sans-serif; font-size: 13px; z-index: 20; }
+  .actionbar.visible { display: flex; }
+  .actionbar .count { color: #79c0ff; font-weight: 600; margin-left: 0; }
+  .actionbar button { background: #1f2532; color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: 12px; }
+  .actionbar button.primary { background: #1f6f3d; border-color: #1f6f3d; }
+  .actionbar button:hover { filter: brightness(1.15); }
+
+  /* Modal */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 50; }
+  .modal-bg.visible { display: flex; }
+  .modal { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; width: min(560px, 92vw); padding: 16px; font-family: system-ui, sans-serif; }
+  .modal h3 { margin: 0 0 10px; font-size: 14px; }
+  .modal textarea { width: 100%; min-height: 100px; background: #0b0d12; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px; font: 13px/1.5 ui-monospace, Menlo, monospace; resize: vertical; }
+  .modal .changes-preview { max-height: 200px; overflow: auto; margin: 10px 0; font: 11px/1.5 ui-monospace, Menlo, monospace; background: #0b0d12; border: 1px solid var(--border); border-radius: 6px; padding: 8px; color: var(--muted); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+  .modal-actions button { background: #1f2532; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
+  .modal-actions button.primary { background: #1f6f3d; border-color: #1f6f3d; }
+
+  /* Commits view */
+  #commitsView { display: none; }
+  #commitsView.visible { display: block; }
+  .commits-empty { padding: 30px; text-align: center; color: var(--muted); font-family: system-ui, sans-serif; }
+  .commit-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .commit-head { display: flex; gap: 10px; align-items: baseline; font-family: system-ui, sans-serif; font-size: 12px; }
+  .commit-msg { font-size: 14px; font-weight: 600; color: var(--text); flex: 1; white-space: pre-wrap; word-break: break-word; font-family: system-ui, sans-serif; }
+  .commit-meta { color: var(--muted); font-size: 11px; }
+  .commit-actions { display: flex; gap: 6px; }
+  .commit-actions button { background: #1f2532; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: 11px; }
+  .commit-actions button:hover { background: #2a3142; }
+  .commit-changes { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+  .commit-change { padding: 2px 4px; font-size: 11px; display: flex; gap: 8px; align-items: baseline; }
+  .commit-change .ck { font-weight: 700; flex: 0 0 14px; text-align: center; }
+  .commit-change .ck.add { color: #7ee2a0; }
+  .commit-change .ck.rem { color: #ff9aa2; }
+  .commit-change .ck.chg { color: #ffd479; }
+  .commit-change .cp { color: var(--muted); }
+  .cc-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  .cc-col { min-width: 0; overflow-x: auto; }
+  @media (max-width: 720px) { .cc-split { grid-template-columns: 1fr; } }
+  .commit-label-badge { display: inline-block; font-family: system-ui, sans-serif; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #2a3142; color: #79c0ff; border: 1px solid var(--border); margin-right: 6px; }
+  .commit-group { margin-bottom: 14px; border: 1px solid var(--border); border-radius: 10px; background: #12161d; overflow: hidden; }
+  .commit-group > summary { list-style: none; cursor: pointer; padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-family: system-ui, sans-serif; font-size: 13px; font-weight: 600; color: var(--text); background: #1a1f2a; border-bottom: 1px solid var(--border); user-select: none; }
+  .commit-group > summary::-webkit-details-marker { display: none; }
+  .commit-group > summary::before { content: "▸"; color: var(--muted); transition: transform .15s; display: inline-block; width: 12px; }
+  .commit-group[open] > summary::before { transform: rotate(90deg); }
+  .commit-group[open] > summary { border-bottom: 1px solid var(--border); }
+  .commit-group .group-count { color: var(--muted); font-weight: 400; font-size: 11px; margin-left: auto; }
+  .commit-group .group-body { padding: 10px 12px; }
+  .commit-group .group-body .commit-card:last-child { margin-bottom: 0; }
+  .modal .label-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; font-size: 12px; }
+  .modal .label-row label { color: var(--muted); flex: 0 0 auto; }
+  .modal .label-row input { flex: 1; background: #0b0d12; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font: 12px system-ui, sans-serif; }
+  mark.search-hit { background: #ffd479; color: #1a1300; border-radius: 3px; padding: 0 2px; }
+  /* View-mode visibility */
+  body.view-commits #expandAll,
+  body.view-commits #collapseAll,
+  body.view-commits .file-pick { display: none !important; }
+  body.view-diff #exportCommits,
+  body.view-diff #importCommitsLabel,
+  body.view-diff #clearCommits { display: none !important; }
+  #clearCommits { border-color: #5a2733; color: #ff9aa2; }
+  #clearCommits:hover { background: #3a1f27; }
+  #clearCommits:disabled { opacity: .4; color: var(--muted); border-color: var(--border); cursor: default; background: transparent; }
+  .toast { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%); background: #1f2532; color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 999px; font: 12px system-ui, sans-serif; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 60; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body class="view-diff">
+<header>
+  <h1>JSON Diff</h1>
+  <div class="tabs" role="tablist">
+    <div class="tab active" id="tabDiff" role="tab">Diff</div>
+    <div class="tab" id="tabCommits" role="tab">Commits <span id="commitsCount" style="opacity:.7"></span></div>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="controls">
+    <label><input type="checkbox" id="onlyDiff" checked /> Only changes</label>
+    <label><input type="checkbox" id="hideCommitted" checked /> Hide committed</label>
+    <label title="When checked, hide rows that don’t match the search bar"><input type="checkbox" id="onlyMatches" checked /> Only matches</label>
+    <input type="search" id="search" placeholder="Filter by key/path/value…" />
+    <button id="expandAll">Expand all</button>
+    <button id="collapseAll">Collapse changes</button>
+    <button id="exportCommits" title="Download commits.json">Export Commits</button>
+    <label id="importCommitsLabel" class="btn" title="Import commits.json">Import Commits<input id="importCommits" type="file" accept=".json,application/json" hidden /></label>
+    <button id="clearCommits" title="Delete all commits (undo with ⌘Z/Ctrl+Z)">Clear Commits</button>
+    <span class="file-pick">
+      <label class="btn">Load A<input id="fileA" type="file" accept=".json,application/json" hidden /></label>
+      <label class="btn">Load B<input id="fileB" type="file" accept=".json,application/json" hidden /></label>
+    </span>
+  </div>
+</header>
+<main>
+  <div id="diffView">
+    <div class="legend">
+      <span style="background:var(--add-bg);color:#7ee2a0">+ added</span>
+      <span style="background:var(--rem-bg);color:#ff9aa2">− removed</span>
+      <span style="background:var(--chg-bg);color:#ffd479">~ changed</span>
+      <span style="color:var(--muted)">Tick rows to select changes. Then click <b>Comment &amp; Commit</b> to save them. Use ⌘Z / Ctrl+Z to undo.</span>
+    </div>
+    <div class="split">
+      <div class="pane"><h2 id="titleA">JSON A</h2><div id="treeA" class="tree"><div class="loader">Loading…</div></div></div>
+      <div class="pane"><h2 id="titleB">JSON B</h2><div id="treeB" class="tree"><div class="loader">Loading…</div></div></div>
+    </div>
+  </div>
+  <div id="commitsView">
+    <div id="commitsList"></div>
+  </div>
+</main>
+
+<div class="actionbar" id="actionbar">
+  <span><span class="count" id="selCount">0</span> selected</span>
+  <button id="clearSel">Clear</button>
+  <button class="primary" id="openCommit">Comment &amp; Commit</button>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">Commit changes</h3>
+    <div class="label-row">
+      <label for="modalLabel">Label</label>
+      <input id="modalLabel" list="labelOptions" placeholder="Category (e.g. Currencies, UI, Balance)…" autocomplete="off" />
+      <datalist id="labelOptions"></datalist>
+    </div>
+    <textarea id="modalMsg" placeholder="Describe these changes… (Cmd/Ctrl+Enter to save)"></textarea>
+    <div class="changes-preview" id="modalPreview"></div>
+    <div class="modal-actions">
+      <button id="modalCancel">Cancel</button>
+      <button class="primary" id="modalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+// ---------- Diff engine ----------
+const ADD = "add", REM = "rem", CHG = "chg", SAME = "same";
+
+function typeOf(v) {
+  if (v === null) return "null";
+  if (Array.isArray(v)) return "array";
+  return typeof v;
+}
+
+// Heuristic: pick a key field to align array items by identity.
+// Auto-detects any key whose values across all objects are scalar and (mostly) unique.
+// Names that "look like" identifiers get a small score bonus.
+const ID_NAME_RE = /(^|_)id$|^id|id$|_id_|key$|^key|name$|^name|type$|^type|slug|code|placement|requirement/i;
+function isScalar(v) {
+  const t = typeof v;
+  return t === "string" || t === "number" || t === "boolean";
+}
+function pickIdKey(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) return null;
+  const objs = arr.filter(x => x && typeof x === "object" && !Array.isArray(x));
+  if (objs.length !== arr.length) return null;
+  // Collect keys present in every object whose values are scalar everywhere.
+  const keyCounts = new Map();
+  for (const o of objs) for (const k of Object.keys(o)) keyCounts.set(k, (keyCounts.get(k) || 0) + 1);
+  const candidates = [];
+  for (const [k, c] of keyCounts) {
+    if (c !== objs.length) continue;
+    if (!objs.every(o => isScalar(o[k]))) continue;
+    const vals = objs.map(o => String(o[k]));
+    const unique = new Set(vals).size;
+    const ratio = unique / objs.length;
+    // Need near-uniqueness; require at least 2 distinct values when more than 1 item.
+    if (objs.length > 1 && unique < 2) continue;
+    if (ratio < 0.9) continue;
+    let score = ratio * 100;
+    if (ID_NAME_RE.test(k)) score += 25; // id-like name bonus
+    if (k === "id" || k === "Id" || k === "ID") score += 15; // strong preference
+    // shorter names slightly preferred to break ties
+    score -= k.length * 0.1;
+    candidates.push({ k, score, ratio });
+  }
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0].k;
+}
+
+let diffStats = { add: 0, rem: 0, chg: 0 };
+
+function diff(a, b, path) {
+  const ta = typeOf(a), tb = typeOf(b);
+  if (ta !== tb) {
+    diffStats.chg++;
+    return { kind: CHG, path, a, b, ta, tb };
+  }
+  if (ta === "object") {
+    const keysA = Object.keys(a), keysB = Object.keys(b);
+    const keySet = new Set([...keysA, ...keysB]);
+    const children = [];
+    let status = SAME;
+    for (const k of keySet) {
+      const inA = k in a, inB = k in b;
+      const childPath = path.concat([k]);
+      if (inA && !inB) {
+        diffStats.rem++;
+        children.push({ kind: REM, key: k, path: childPath, a: a[k], ta: typeOf(a[k]) });
+        status = CHG;
+      } else if (!inA && inB) {
+        diffStats.add++;
+        children.push({ kind: ADD, key: k, path: childPath, b: b[k], tb: typeOf(b[k]) });
+        status = CHG;
+      } else {
+        const sub = diff(a[k], b[k], childPath);
+        sub.key = k;
+        children.push(sub);
+        if (sub.kind !== SAME) status = CHG;
+      }
+    }
+    return { kind: status, path, container: "object", children, a, b };
+  }
+  if (ta === "array") {
+    const idKey = pickIdKey(a) || pickIdKey(b);
+    const children = [];
+    let status = SAME;
+    if (idKey) {
+      const mapA = new Map(), mapB = new Map();
+      a.forEach((x, i) => mapA.set(String(x[idKey]), { v: x, i }));
+      b.forEach((x, i) => mapB.set(String(x[idKey]), { v: x, i }));
+      const order = [];
+      const seen = new Set();
+      // preserve order from B then any leftover from A
+      b.forEach(x => { const k = String(x[idKey]); if (!seen.has(k)) { order.push(k); seen.add(k); } });
+      a.forEach(x => { const k = String(x[idKey]); if (!seen.has(k)) { order.push(k); seen.add(k); } });
+      for (const k of order) {
+        const A = mapA.get(k), B = mapB.get(k);
+        const label = `${idKey}=${k}`;
+        const cp = path.concat([label]);
+        if (A && !B) {
+          diffStats.rem++;
+          children.push({ kind: REM, key: label, path: cp, a: A.v, ta: typeOf(A.v) });
+          status = CHG;
+        } else if (!A && B) {
+          diffStats.add++;
+          children.push({ kind: ADD, key: label, path: cp, b: B.v, tb: typeOf(B.v) });
+          status = CHG;
+        } else {
+          const sub = diff(A.v, B.v, cp);
+          sub.key = label;
+          children.push(sub);
+          if (sub.kind !== SAME) status = CHG;
+        }
+      }
+    } else {
+      const max = Math.max(a.length, b.length);
+      for (let i = 0; i < max; i++) {
+        const inA = i < a.length, inB = i < b.length;
+        const cp = path.concat([`[${i}]`]);
+        if (inA && !inB) {
+          diffStats.rem++;
+          children.push({ kind: REM, key: `[${i}]`, path: cp, a: a[i], ta: typeOf(a[i]) });
+          status = CHG;
+        } else if (!inA && inB) {
+          diffStats.add++;
+          children.push({ kind: ADD, key: `[${i}]`, path: cp, b: b[i], tb: typeOf(b[i]) });
+          status = CHG;
+        } else {
+          const sub = diff(a[i], b[i], cp);
+          sub.key = `[${i}]`;
+          children.push(sub);
+          if (sub.kind !== SAME) status = CHG;
+        }
+      }
+    }
+    return { kind: status, path, container: "array", children, a, b };
+  }
+  // primitives
+  if (a === b) return { kind: SAME, path, a, b, ta };
+  diffStats.chg++;
+  return { kind: CHG, path, a, b, ta, tb };
+}
+
+// ---------- Rendering ----------
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+function fmtVal(v) {
+  const t = typeOf(v);
+  if (t === "string") return `<span class="val str">"${esc(v)}"</span>`;
+  if (t === "number") return `<span class="val num">${v}</span>`;
+  if (t === "boolean") return `<span class="val bool">${v}</span>`;
+  if (t === "null") return `<span class="val null">null</span>`;
+  if (t === "array") return `<span class="val">[${v.length} items]</span>`;
+  if (t === "object") return `<span class="val">{${Object.keys(v).length} keys}</span>`;
+  return esc(String(v));
+}
+function fullVal(v) {
+  try { return `<span class="val">${esc(JSON.stringify(v))}</span>`; } catch { return esc(String(v)); }
+}
+
+function nodeMatchesQuery(node, q) {
+  if (!q) return true;
+  // Only consider this node's own key + its own value(s). Do NOT include node.path,
+  // otherwise non-matching siblings inherit a match from any ancestor key containing q.
+  const ownKey = String(node.key ?? "");
+  if (ownKey.includes(q)) return true;
+  if (node.container) {
+    // Container: matches only if some child matches.
+    if (node.children && node.children.some(c => nodeMatchesQuery(c, q))) return true;
+    return false;
+  }
+  // Leaf: include its before/after values (recursively via JSON.stringify).
+  try { if (node.a !== undefined && JSON.stringify(node.a).includes(q)) return true; } catch {}
+  try { if (node.b !== undefined && JSON.stringify(node.b).includes(q)) return true; } catch {}
+  return false;
+}
+
+function pathKey(p) { return JSON.stringify(p); }
+function attrEsc(s) { return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
+
+// Is this path covered by a commit (itself or any ancestor)?
+function isPathCommitted(path) {
+  for (const c of state.commits) {
+    for (const ch of c.changes) {
+      const cp = ch.path;
+      if (cp.length > path.length) continue;
+      let ok = true;
+      for (let i = 0; i < cp.length; i++) { if (cp[i] !== path[i]) { ok = false; break; } }
+      if (ok) return true;
+    }
+  }
+  return false;
+}
+
+// side = "A" (old) or "B" (new)
+function render(node, opts, side) {
+  if (opts.onlyDiff && node.kind === SAME) return "";
+  if (opts.query && !nodeMatchesQuery(node, opts.query)) return "";
+  if (opts.hideCommitted && node.kind !== SAME && isPathCommitted(node.path)) return "";
+
+  const onlyA = node.kind === REM;
+  const onlyB = node.kind === ADD;
+  const showHere = side === "A" ? !onlyB : !onlyA;
+
+  const pk = pathKey(node.path);
+  const selected = state.selection.has(pk);
+  const committed = node.kind !== SAME && isPathCommitted(node.path);
+  const rowExtra = (selected ? " selected" : "") + (committed ? " committed" : "");
+
+  const keyLabel = node.key !== undefined ? `<span class="key">${esc(node.key)}</span>: ` : "";
+  const markerCh = node.kind === ADD ? "+" : node.kind === REM ? "−" : node.kind === CHG ? "~" : " ";
+  const marker = `<span class="marker ${node.kind}">${markerCh}</span>`;
+  const selBox = node.kind === SAME
+    ? `<span class="sel empty"></span>`
+    : `<span class="sel"><input type="checkbox" data-pk="${attrEsc(pk)}" ${selected ? "checked" : ""} ${committed ? "disabled" : ""} /></span>`;
+  const committedBadge = committed ? `<span class="committed-badge">committed</span>` : "";
+
+  if (node.container) {
+    const visibleChildren = node.children
+      .map(c => render(c, opts, side))
+      .filter(Boolean);
+    if (opts.onlyDiff && visibleChildren.length === 0 && node.kind === SAME) return "";
+    // If this container is interesting only because of committed descendants and Hide-committed is on,
+    // drop it entirely so we don't show empty parent rows.
+    if (opts.hideCommitted && visibleChildren.length === 0 && node.kind !== SAME) return "";
+    // If query filter is active and no children matched, drop the container entirely.
+    if (opts.query && visibleChildren.length === 0) return "";
+    if (!showHere) {
+      return `<div class="node placeholder"><div class="row placeholder-row">&nbsp;</div></div>`;
+    }
+    const open = node.kind !== SAME;
+    const toggle = `<span class="toggle" data-action="toggle">${open ? "▾" : "▸"}</span>`;
+    const src = side === "A" ? node.a : node.b;
+    const count = src && typeof src === "object" ? (Array.isArray(src) ? src.length : Object.keys(src).length) : node.children.length;
+    const summary = (Array.isArray(src) || node.container === "array")
+      ? `<span class="val">[${count}]</span>`
+      : `<span class="val">{${count}}</span>`;
+    const counts = node.kind !== SAME
+      ? `<span class="count">${countChanges(node)}</span>` : "";
+    const childrenHtml = `<div class="children ${open ? "" : "hidden"}">${visibleChildren.join("")}</div>`;
+    return `
+      <div class="node" data-pathkey="${attrEsc(pk)}">
+        <div class="row ${node.kind}${rowExtra}" data-pathkey="${attrEsc(pk)}">${toggle}${selBox}${marker}<div>${keyLabel}${summary}${counts}${committedBadge}</div></div>
+        ${childrenHtml}
+      </div>`;
+  }
+
+  if (!showHere) {
+    return `<div class="node placeholder"><div class="row placeholder-row">&nbsp;</div></div>`;
+  }
+  const val = side === "A" ? node.a : node.b;
+
+  // Expand ADD / REM objects & arrays so the user can see their content.
+  if ((node.kind === ADD || node.kind === REM) && val && typeof val === "object") {
+    const isArr = Array.isArray(val);
+    const count = isArr ? val.length : Object.keys(val).length;
+    const summary = isArr ? `<span class="val">[${count}]</span>` : `<span class="val">{${count} keys}</span>`;
+    const toggle = `<span class="toggle" data-action="toggle">▾</span>`;
+    const inner = renderRawValue(val, node.kind, opts.query);
+    if (opts.query && !inner) return "";
+    return `
+      <div class="node" data-pathkey="${attrEsc(pk)}">
+        <div class="row ${node.kind}${rowExtra}" data-pathkey="${attrEsc(pk)}">${toggle}${selBox}${marker}<div>${keyLabel}${summary}${committedBadge}</div></div>
+        <div class="children">${inner}</div>
+      </div>`;
+  }
+
+  const body = `${keyLabel}${fmtVal(val)}${committedBadge}`;
+  return `<div class="node" data-pathkey="${attrEsc(pk)}"><div class="row ${node.kind}${rowExtra}" data-pathkey="${attrEsc(pk)}"><span class="toggle empty"></span>${selBox}${marker}<div>${body}</div></div></div>`;
+}
+
+// Returns true if key or any descendant value (stringified) contains the query.
+function rawEntryMatches(k, v, q) {
+  if (!q) return true;
+  if (String(k).includes(q)) return true;
+  try { if (JSON.stringify(v).includes(q)) return true; } catch {}
+  return false;
+}
+
+// Render an entire raw value (object/array/scalar) as a nested tree, all marked with the given kind.
+// Used to display the contents of an ADD or REM node.
+function renderRawValue(val, kind, query) {
+  const q = query || "";
+  const markerCh = kind === ADD ? "+" : kind === REM ? "−" : " ";
+  if (val === null || typeof val !== "object") {
+    return `<div class="node"><div class="row ${kind}"><span class="toggle empty"></span><span class="sel empty"></span><span class="marker ${kind}">${markerCh}</span><div>${fmtVal(val)}</div></div></div>`;
+  }
+  const isArr = Array.isArray(val);
+  const entries = isArr ? val.map((v, i) => [`[${i}]`, v]) : Object.entries(val);
+  return entries.map(([k, v]) => {
+    if (q && !rawEntryMatches(k, v, q)) return "";
+    const isObj = v && typeof v === "object";
+    if (isObj) {
+      const subIsArr = Array.isArray(v);
+      const count = subIsArr ? v.length : Object.keys(v).length;
+      const summary = subIsArr ? `<span class="val">[${count}]</span>` : `<span class="val">{${count} keys}</span>`;
+      const inner = renderRawValue(v, kind, q);
+      return `
+        <div class="node">
+          <div class="row ${kind}"><span class="toggle" data-action="toggle">▾</span><span class="sel empty"></span><span class="marker ${kind}">${markerCh}</span><div><span class="key">${esc(k)}</span>: ${summary}</div></div>
+          <div class="children">${inner}</div>
+        </div>`;
+    }
+    return `<div class="node"><div class="row ${kind}"><span class="toggle empty"></span><span class="sel empty"></span><span class="marker ${kind}">${markerCh}</span><div><span class="key">${esc(k)}</span>: ${fmtVal(v)}</div></div></div>`;
+  }).join("");
+}
+
+function countChanges(node) {
+  let a=0,r=0,c=0;
+  (function walk(n) {
+    if (!n) return;
+    if (!n.container) {
+      if (n.kind === ADD) a++;
+      else if (n.kind === REM) r++;
+      else if (n.kind === CHG) c++;
+      return;
+    }
+    n.children.forEach(walk);
+  })(node);
+  const parts = [];
+  if (a) parts.push(`+${a}`);
+  if (r) parts.push(`−${r}`);
+  if (c) parts.push(`~${c}`);
+  return parts.join(" ");
+}
+
+// ---------- App ----------
+let rootDiff = null;
+let nodeByPathKey = new Map(); // pk -> diff node
+
+function indexNodes(node) {
+  nodeByPathKey.clear();
+  (function walk(n) {
+    nodeByPathKey.set(pathKey(n.path), n);
+    if (n.children) n.children.forEach(walk);
+  })(node);
+}
+
+// ---------- Commit state ----------
+const LS_KEY = "jsonDiffCommits_v1";
+const state = {
+  commits: [],
+  selection: new Set(),
+  undo: [],
+  redo: [],
+};
+
+function loadCommits() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) state.commits = JSON.parse(raw) || [];
+  } catch {}
+}
+function saveCommits() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state.commits)); } catch {}
+  document.getElementById("commitsCount").textContent = state.commits.length ? `(${state.commits.length})` : "";
+  const clearBtn = document.getElementById("clearCommits");
+  if (clearBtn) clearBtn.disabled = state.commits.length === 0;
+}
+function uid() { return "c_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
+
+// Build a commit payload from selection
+function buildCommitFromSelection(message, label) {
+  const changes = [];
+  // sort by path for stable order
+  const pks = Array.from(state.selection);
+  pks.sort();
+  for (const pk of pks) {
+    const n = nodeByPathKey.get(pk);
+    if (!n || n.kind === SAME) continue;
+    changes.push({
+      path: n.path.slice(),
+      kind: n.kind,
+      key: n.key,
+      a: n.a,
+      b: n.b,
+      container: !!n.container,
+    });
+  }
+  return { id: uid(), createdAt: new Date().toISOString(), message, label: label || "", changes };
+}
+
+// Collect distinct labels used so far (for autocomplete)
+function getKnownLabels() {
+  const set = new Set();
+  for (const c of state.commits) {
+    if (c.label && c.label.trim()) set.add(c.label.trim());
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b));
+}
+function populateLabelDatalist() {
+  const dl = document.getElementById("labelOptions");
+  if (!dl) return;
+  dl.innerHTML = getKnownLabels().map(l => `<option value="${attrEsc(l)}"></option>`).join("");
+}
+
+// ---------- Operations (with undo) ----------
+function doOp(op) {
+  applyOp(op);
+  state.undo.push(op);
+  state.redo.length = 0;
+}
+function applyOp(op) {
+  switch (op.type) {
+    case "commit":
+      state.commits.push(op.commit);
+      // clear selection paths that are now committed
+      for (const ch of op.commit.changes) state.selection.delete(pathKey(ch.path));
+      break;
+    case "restore": {
+      // remove commit by id
+      const i = state.commits.findIndex(c => c.id === op.commit.id);
+      if (i >= 0) { op.index = i; state.commits.splice(i, 1); }
+      break;
+    }
+    case "delete": {
+      const i = state.commits.findIndex(c => c.id === op.commit.id);
+      if (i >= 0) { op.index = i; state.commits.splice(i, 1); }
+      break;
+    }
+    case "clearAll": {
+      op.cleared = state.commits.slice();
+      state.commits = [];
+      break;
+    }
+    case "edit": {
+      const c = state.commits.find(c => c.id === op.id);
+      if (c) {
+        op.oldMsg = c.message;
+        op.oldLabel = c.label || "";
+        c.message = op.newMsg;
+        if (typeof op.newLabel === "string") c.label = op.newLabel;
+      }
+      break;
+    }
+  }
+  saveCommits();
+  rebuild();
+  renderCommits();
+}
+function invertOp(op) {
+  switch (op.type) {
+    case "commit": return { type: "uncommit_internal", id: op.commit.id };
+    case "restore": return { type: "reinsert_internal", commit: op.commit, index: op.index ?? state.commits.length };
+    case "delete":  return { type: "reinsert_internal", commit: op.commit, index: op.index ?? state.commits.length };
+    case "clearAll": return { type: "reinsert_all_internal", commits: op.cleared || [] };
+    case "edit":   return { type: "edit_internal", id: op.id, msg: op.oldMsg, label: op.oldLabel };
+  }
+}
+function applyInverse(inv) {
+  switch (inv.type) {
+    case "uncommit_internal": {
+      const i = state.commits.findIndex(c => c.id === inv.id);
+      if (i >= 0) state.commits.splice(i, 1);
+      break;
+    }
+    case "reinsert_internal": {
+      const i = Math.min(inv.index, state.commits.length);
+      state.commits.splice(i, 0, inv.commit);
+      break;
+    }
+    case "reinsert_all_internal": {
+      state.commits = inv.commits.slice();
+      break;
+    }
+    case "edit_internal": {
+      const c = state.commits.find(c => c.id === inv.id);
+      if (c) { c.message = inv.msg; if (typeof inv.label === "string") c.label = inv.label; }
+      break;
+    }
+  }
+  saveCommits();
+  rebuild();
+  renderCommits();
+}
+function undo() {
+  const op = state.undo.pop();
+  if (!op) return toast("Nothing to undo");
+  applyInverse(invertOp(op));
+  state.redo.push(op);
+  toast("Undone: " + op.type);
+}
+function redo() {
+  const op = state.redo.pop();
+  if (!op) return toast("Nothing to redo");
+  applyOp(op);
+  state.undo.push(op);
+  toast("Redone: " + op.type);
+}
+
+// ---------- Selection ----------
+function toggleSelect(pk, on) {
+  // do not allow selecting committed paths
+  const node = nodeByPathKey.get(pk);
+  if (!node || node.kind === SAME) return;
+  if (isPathCommitted(node.path)) return;
+  if (on) state.selection.add(pk); else state.selection.delete(pk);
+  // update DOM
+  document.querySelectorAll(`.row[data-pathkey='${pk.replace(/'/g, "\\'")}']`).forEach(r => r.classList.toggle("selected", on));
+  document.querySelectorAll(`input[type=checkbox][data-pk='${pk.replace(/'/g, "\\'")}']`).forEach(cb => cb.checked = on);
+  refreshActionbar();
+}
+function clearSelection() {
+  state.selection.clear();
+  document.querySelectorAll(".row.selected").forEach(r => r.classList.remove("selected"));
+  document.querySelectorAll(".sel input[type=checkbox]:checked").forEach(cb => { cb.checked = false; });
+  refreshActionbar();
+}
+function refreshActionbar() {
+  const n = state.selection.size;
+  document.getElementById("selCount").textContent = n;
+  document.getElementById("actionbar").classList.toggle("visible", n > 0);
+}
+
+// ---------- Modal ----------
+let modalContext = null; // { mode: "commit" | "edit", commitId?: string }
+function openCommitModal() {
+  if (state.selection.size === 0) return;
+  modalContext = { mode: "commit" };
+  populateLabelDatalist();
+  document.getElementById("modalTitle").textContent = `Commit ${state.selection.size} change(s)`;
+  document.getElementById("modalMsg").value = "";
+  document.getElementById("modalLabel").value = state.lastLabel || "";
+  document.getElementById("modalPreview").innerHTML = buildPreview(Array.from(state.selection));
+  document.getElementById("modalBg").classList.add("visible");
+  setTimeout(() => document.getElementById("modalMsg").focus(), 30);
+}
+function openEditModal(commit) {
+  modalContext = { mode: "edit", commitId: commit.id };
+  populateLabelDatalist();
+  document.getElementById("modalTitle").textContent = `Edit commit`;
+  document.getElementById("modalMsg").value = commit.message;
+  document.getElementById("modalLabel").value = commit.label || "";
+  document.getElementById("modalPreview").innerHTML = buildPreviewFromCommit(commit);
+  document.getElementById("modalBg").classList.add("visible");
+  setTimeout(() => document.getElementById("modalMsg").focus(), 30);
+}
+function closeModal() {
+  document.getElementById("modalBg").classList.remove("visible");
+  modalContext = null;
+}
+function buildPreview(pks) {
+  const items = pks.map(pk => nodeByPathKey.get(pk)).filter(Boolean);
+  return items.map(n => previewLine(n.kind, n.path, n.a, n.b)).join("") || "<i>(empty)</i>";
+}
+function buildPreviewFromCommit(c) {
+  return c.changes.map(ch => previewLine(ch.kind, ch.path, ch.a, ch.b)).join("") || "<i>(empty)</i>";
+}
+function previewLine(kind, path, a, b) {
+  const ch = kind === ADD ? "+" : kind === REM ? "−" : "~";
+  let val = "";
+  if (kind === ADD) val = ` = ${shortJson(b)}`;
+  else if (kind === REM) val = ` = ${shortJson(a)}`;
+  else if (kind === CHG) val = ` ${shortJson(a)} → ${shortJson(b)}`;
+  return `<div class="commit-change"><span class="ck ${kind}">${ch}</span><span class="cp">${esc(path.join(".") || "(root)")}</span><span>${esc(val)}</span></div>`;
+}
+function shortJson(v) {
+  if (v === undefined) return "";
+  try {
+    const s = JSON.stringify(v);
+    return s.length > 120 ? s.slice(0, 117) + "…" : s;
+  } catch { return String(v); }
+}
+
+function saveModal() {
+  const msg = document.getElementById("modalMsg").value.trim();
+  const label = document.getElementById("modalLabel").value.trim();
+  if (!modalContext) return;
+  if (modalContext.mode === "commit") {
+    const commit = buildCommitFromSelection(msg || "(no message)", label);
+    if (commit.changes.length === 0) { toast("Nothing to commit"); return; }
+    state.lastLabel = label;
+    doOp({ type: "commit", commit });
+    toast(`Committed ${commit.changes.length} change(s)`);
+  } else if (modalContext.mode === "edit") {
+    const c = state.commits.find(c => c.id === modalContext.commitId);
+    if (!c) return;
+    const newMsg = msg || "(no message)";
+    const newLabel = label;
+    if (newMsg === c.message && newLabel === (c.label || "")) { closeModal(); return; }
+    doOp({ type: "edit", id: c.id, newMsg, newLabel });
+  }
+  closeModal();
+}
+
+// ---------- Commits view ----------
+function renderCommits() {
+  const wrap = document.getElementById("commitsList");
+  document.getElementById("commitsCount").textContent = state.commits.length ? `(${state.commits.length})` : "";
+  if (!state.commits.length) {
+    wrap.innerHTML = `<div class="commits-empty">No commits yet. Select changes in the Diff view and click <b>Comment &amp; Commit</b>.</div>`;
+    return;
+  }
+  const rawQuery = (document.getElementById("search").value || "").trim();
+  const onlyMatches = document.getElementById("onlyMatches").checked;
+  const query = onlyMatches ? rawQuery : "";
+  const matchesQuery = (c) => {
+    if (!query) return true;
+    if ((c.message || "").includes(query)) return true;
+    if ((c.label || "").includes(query)) return true;
+    for (const ch of c.changes) {
+      if ((ch.path || []).join(".").includes(query)) return true;
+      try {
+        if (ch.a !== undefined && JSON.stringify(ch.a).includes(query)) return true;
+        if (ch.b !== undefined && JSON.stringify(ch.b).includes(query)) return true;
+      } catch {}
+    }
+    return false;
+  };
+  // Group commits by label (newest first within each group)
+  const items = state.commits.slice().reverse().filter(matchesQuery);
+  if (!items.length) {
+    wrap.innerHTML = `<div class="commits-empty">No commits match <b>${esc(query)}</b>.</div>`;
+    return;
+  }
+  const UNCAT = "Uncategorized";
+  const groups = new Map();
+  for (const c of items) {
+    const key = (c.label && c.label.trim()) ? c.label.trim() : UNCAT;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(c);
+  }
+  // Sort group keys: named labels alphabetically, Uncategorized last
+  const keys = Array.from(groups.keys()).sort((a, b) => {
+    if (a === UNCAT) return 1;
+    if (b === UNCAT) return -1;
+    return a.localeCompare(b);
+  });
+
+  const matchesChange = (ch) => {
+    if (!query) return true;
+    if ((ch.path || []).join(".").includes(query)) return true;
+    try {
+      if (ch.a !== undefined && JSON.stringify(ch.a).includes(query)) return true;
+      if (ch.b !== undefined && JSON.stringify(ch.b).includes(query)) return true;
+    } catch {}
+    return false;
+  };
+  const renderCard = (c) => {
+    const visibleChanges = query ? c.changes.filter(matchesChange) : c.changes;
+    const counts = { add: 0, rem: 0, chg: 0 };
+    visibleChanges.forEach(ch => counts[ch.kind]++);
+    const hiddenCount = c.changes.length - visibleChanges.length;
+    const badges = [
+      counts.add ? `<span class="badge add">+${counts.add}</span>` : "",
+      counts.rem ? `<span class="badge rem">−${counts.rem}</span>` : "",
+      counts.chg ? `<span class="badge chg">~${counts.chg}</span>` : "",
+    ].join(" ");
+    const list = visibleChanges.map(ch => renderCommitChange(ch, query)).join("");
+    const labelBadge = (c.label && c.label.trim())
+      ? `<span class="commit-label-badge">${esc(c.label.trim())}</span>` : "";
+    return `
+      <div class="commit-card" data-id="${attrEsc(c.id)}">
+        <div class="commit-head">
+          <div class="commit-msg">${labelBadge}${esc(c.message)}</div>
+          <div class="commit-meta">${esc(new Date(c.createdAt).toLocaleString())} · ${badges}</div>
+          <div class="commit-actions">
+            <button data-act="edit">Edit</button>
+            <button data-act="restore" title="Restore changes back into the Diff view">Restore</button>
+            <button data-act="delete">Delete</button>
+          </div>
+        </div>
+        <details class="commit-changes"><summary style="color:var(--muted);font-family:system-ui,sans-serif;font-size:11px">${visibleChanges.length}${hiddenCount ? ` of ${c.changes.length}` : ""} change(s) — click to expand${hiddenCount ? ` <span style="opacity:.6">(${hiddenCount} hidden by filter)</span>` : ""}</summary>${list}</details>
+      </div>`;
+  };
+
+  wrap.innerHTML = keys.map(k => {
+    const list = groups.get(k);
+    const cards = list.map(renderCard).join("");
+    return `
+      <details class="commit-group" open data-label="${attrEsc(k)}">
+        <summary><span>${esc(k)}</span><span class="group-count">${list.length} commit${list.length === 1 ? "" : "s"}</span></summary>
+        <div class="group-body">${cards}</div>
+      </details>`;
+  }).join("");
+  highlightMatches(wrap, rawQuery);
+}
+
+// Render a single change inside a commit card as a full before/after tree.
+// When `query` is set, deep object/array values are pruned to only matching entries.
+function renderCommitChange(ch, query) {
+  const q = query || "";
+  const pathStr = esc(ch.path.join(".") || "(root)");
+  const kindLabel = ch.kind === ADD ? "added" : ch.kind === REM ? "removed" : "changed";
+  const ckCol = ch.kind === ADD ? "#7ee2a0" : ch.kind === REM ? "#ff9aa2" : "#ffd479";
+  const ck = ch.kind === ADD ? "+" : ch.kind === REM ? "−" : "~";
+
+  const valTree = (val, kind) => {
+    if (val === undefined) return "";
+    if (val && typeof val === "object") {
+      const inner = renderRawValue(val, kind, q);
+      if (q && !inner) return "";
+      return `<div class="tree" style="padding:4px 0">${inner}</div>`;
+    }
+    const m = kind === ADD ? "+" : kind === REM ? "−" : "~";
+    return `<div class="node"><div class="row ${kind}"><span class="toggle empty"></span><span class="sel empty"></span><span class="marker ${kind}">${m}</span><div>${fmtVal(val)}</div></div></div>`;
+  };
+
+  let body = "";
+  if (ch.kind === ADD) {
+    body = valTree(ch.b, ADD);
+  } else if (ch.kind === REM) {
+    body = valTree(ch.a, REM);
+  } else {
+    const beforeTree = valTree(ch.a, REM);
+    const afterTree = valTree(ch.b, ADD);
+    const beforeCol = `
+      <div class="cc-col">
+        <div style="color:#ff9aa2;font:600 11px system-ui,sans-serif;margin:6px 0 2px">Before</div>
+        ${beforeTree || `<div style="color:var(--muted);font:11px system-ui,sans-serif;padding:4px 0">—</div>`}
+      </div>`;
+    const afterCol = `
+      <div class="cc-col">
+        <div style="color:#7ee2a0;font:600 11px system-ui,sans-serif;margin:6px 0 2px">After</div>
+        ${afterTree || `<div style="color:var(--muted);font:11px system-ui,sans-serif;padding:4px 0">—</div>`}
+      </div>`;
+    body = `<div class="cc-split">${beforeCol}${afterCol}</div>`;
+  }
+
+  return `
+    <div class="commit-detail" style="padding:8px 4px;border-top:1px dashed var(--border);margin-top:6px">
+      <div style="font-family:system-ui,sans-serif;font-size:12px;margin-bottom:4px">
+        <span style="font-weight:700;color:${ckCol};margin-right:6px">${ck}</span>
+        <span style="color:var(--muted)">${pathStr}</span>
+        <span style="color:var(--muted);font-size:11px;margin-left:6px">(${kindLabel})</span>
+      </div>
+      ${body}
+    </div>`;
+}
+
+// ---------- View switch ----------
+function showView(which) {
+  const isDiff = which === "diff";
+  document.getElementById("diffView").style.display = isDiff ? "" : "none";
+  document.getElementById("commitsView").classList.toggle("visible", !isDiff);
+  document.getElementById("tabDiff").classList.toggle("active", isDiff);
+  document.getElementById("tabCommits").classList.toggle("active", !isDiff);
+  document.body.classList.toggle("view-diff", isDiff);
+  document.body.classList.toggle("view-commits", !isDiff);
+  if (!isDiff) renderCommits();
+}
+
+// ---------- Search highlighting ----------
+function highlightMatches(rootEl, query) {
+  if (!rootEl) return;
+  if (!query) return;
+  const q = query;
+  const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!node.nodeValue || !node.nodeValue.includes(q)) return NodeFilter.FILTER_REJECT;
+      const p = node.parentNode;
+      if (!p) return NodeFilter.FILTER_REJECT;
+      const tag = p.nodeName;
+      if (tag === "SCRIPT" || tag === "STYLE" || tag === "MARK" || tag === "INPUT" || tag === "TEXTAREA") return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  const targets = [];
+  let n; while ((n = walker.nextNode())) targets.push(n);
+  for (const tn of targets) {
+    const text = tn.nodeValue;
+    const frag = document.createDocumentFragment();
+    let i = 0;
+    while (i < text.length) {
+      const idx = text.indexOf(q, i);
+      if (idx < 0) { frag.appendChild(document.createTextNode(text.slice(i))); break; }
+      if (idx > i) frag.appendChild(document.createTextNode(text.slice(i, idx)));
+      const mark = document.createElement("mark");
+      mark.className = "search-hit";
+      mark.textContent = text.slice(idx, idx + q.length);
+      frag.appendChild(mark);
+      i = idx + q.length;
+    }
+    tn.parentNode.replaceChild(frag, tn);
+  }
+}
+function applySearchHighlights() {
+  const q = (document.getElementById("search").value || "").trim();
+  if (!q) return;
+  highlightMatches(document.getElementById("treeA"), q);
+  highlightMatches(document.getElementById("treeB"), q);
+  highlightMatches(document.getElementById("commitsList"), q);
+}
+
+// ---------- Toast ----------
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1600);
+}
+
+function rebuild() {
+  if (!rootDiff) return;
+  const onlyDiff = document.getElementById("onlyDiff").checked;
+  const hideCommitted = document.getElementById("hideCommitted").checked;
+  const onlyMatches = document.getElementById("onlyMatches").checked;
+  const rawQuery = document.getElementById("search").value.trim();
+  const query = onlyMatches ? rawQuery : "";
+  const opts = { onlyDiff, hideCommitted, query };
+  const htmlA = render(rootDiff, opts, "A");
+  const htmlB = render(rootDiff, opts, "B");
+  const treeA = document.getElementById("treeA");
+  const treeB = document.getElementById("treeB");
+  treeA.innerHTML = htmlA || `<div class="loader">No differences match.</div>`;
+  treeB.innerHTML = htmlB || `<div class="loader">No differences match.</div>`;
+  refreshActionbar();
+  // Strict visible-text filter: when "Only matches" + a query is set, hide any
+  // node whose own row text doesn't contain the query AND whose descendants
+  // don't contain it either. This guarantees only rows actually showing the
+  // searched text (or their ancestors-on-the-way-to-a-match) remain visible.
+  if (onlyMatches && rawQuery) {
+    applyOnlyMatchesFilter(treeA, rawQuery);
+    applyOnlyMatchesFilter(treeB, rawQuery);
+    // If after filtering nothing remains visible, show the empty-state.
+    if (!hasVisibleNode(treeA)) treeA.innerHTML = `<div class="loader">No differences match.</div>`;
+    if (!hasVisibleNode(treeB)) treeB.innerHTML = `<div class="loader">No differences match.</div>`;
+  }
+  highlightMatches(treeA, rawQuery);
+  highlightMatches(treeB, rawQuery);
+}
+
+// Hide every `.node` whose own row text doesn't include `query` and whose
+// descendants don't include it either. Returns true if any visible node remains.
+function applyOnlyMatchesFilter(rootEl, query) {
+  if (!rootEl || !query) return false;
+  const q = String(query);
+  function visit(node) {
+    const row = node.querySelector(":scope > .row");
+    const ownText = row ? (row.textContent || "") : "";
+    const ownMatch = ownText.includes(q);
+    let anyDescendantMatch = false;
+    const childrenContainer = node.querySelector(":scope > .children");
+    if (childrenContainer) {
+      const kids = Array.from(childrenContainer.children).filter(c => c.classList && c.classList.contains("node"));
+      for (const c of kids) {
+        if (visit(c)) anyDescendantMatch = true;
+      }
+    }
+    const keep = ownMatch || anyDescendantMatch;
+    node.style.display = keep ? "" : "none";
+    return keep;
+  }
+  let any = false;
+  Array.from(rootEl.children)
+    .filter(c => c.classList && c.classList.contains("node"))
+    .forEach(n => { if (visit(n)) any = true; });
+  return any;
+}
+
+function hasVisibleNode(rootEl) {
+  if (!rootEl) return false;
+  return Array.from(rootEl.querySelectorAll(".node"))
+    .some(n => n.style.display !== "none");
+}
+
+function setStats() {
+  const el = document.getElementById("stats");
+  el.innerHTML =
+    `<span class="badge add">+${diffStats.add} added</span>` +
+    `<span class="badge rem">−${diffStats.rem} removed</span>` +
+    `<span class="badge chg">~${diffStats.chg} changed</span>`;
+}
+
+function runDiff(a, b) {
+  diffStats = { add: 0, rem: 0, chg: 0 };
+  rootDiff = diff(a, b, []);
+  rootDiff.key = "(root)";
+  indexNodes(rootDiff);
+  // drop selections that no longer exist
+  for (const pk of Array.from(state.selection)) if (!nodeByPathKey.has(pk)) state.selection.delete(pk);
+  setStats();
+  rebuild();
+  renderCommits();
+}
+
+function wireTreeToggle(rootId, otherId) {
+  const root = document.getElementById(rootId);
+  // checkbox selection delegation
+  root.addEventListener("change", (e) => {
+    const t = e.target;
+    if (t && t.matches && t.matches("input[type=checkbox][data-pk]")) {
+      toggleSelect(t.getAttribute("data-pk"), t.checked);
+    }
+  });
+  root.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t.classList && t.classList.contains("toggle") && !t.classList.contains("empty"))) return;
+    const node = t.closest(".node");
+    const children = node.querySelector(":scope > .children");
+    if (!children) return;
+    const willHide = !children.classList.contains("hidden");
+    children.classList.toggle("hidden");
+    t.textContent = willHide ? "▸" : "▾";
+    // Re-apply search filter on newly-expanded content
+    if (!willHide) {
+      const onlyMatches = document.getElementById("onlyMatches").checked;
+      const rawQuery = document.getElementById("search").value.trim();
+      if (onlyMatches && rawQuery) applyOnlyMatchesFilter(children, rawQuery);
+    }
+    // mirror to the other pane using the same node path
+    const path = nodePath(node, root);
+    const other = document.getElementById(otherId);
+    const mirror = nodeAtPath(other, path);
+    if (mirror) {
+      const mc = mirror.querySelector(":scope > .children");
+      const mt = mirror.querySelector(":scope > .row > .toggle");
+      if (mc && mt && !mt.classList.contains("empty")) {
+        mc.classList.toggle("hidden", willHide);
+        mt.textContent = willHide ? "▸" : "▾";
+      }
+    }
+  });
+}
+function nodePath(node, root) {
+  const path = [];
+  while (node && node !== root) {
+    const parent = node.parentElement;
+    const siblings = Array.from(parent.children).filter(el => el.classList.contains("node"));
+    path.unshift(siblings.indexOf(node));
+    node = parent.closest(".node");
+    if (!node) break;
+  }
+  return path;
+}
+function nodeAtPath(root, path) {
+  let cur = root;
+  for (const idx of path) {
+    const container = cur === root ? cur : cur.querySelector(":scope > .children");
+    if (!container) return null;
+    const siblings = Array.from(container.children).filter(el => el.classList.contains("node"));
+    cur = siblings[idx];
+    if (!cur) return null;
+  }
+  return cur;
+}
+wireTreeToggle("treeA", "treeB");
+wireTreeToggle("treeB", "treeA");
+
+// Sync scroll between the two panes
+(function syncScroll() {
+  const a = document.getElementById("treeA");
+  const b = document.getElementById("treeB");
+  let lock = false;
+  function bind(src, dst) {
+    src.addEventListener("scroll", () => {
+      if (lock) return; lock = true;
+      dst.scrollTop = src.scrollTop;
+      dst.scrollLeft = src.scrollLeft;
+      requestAnimationFrame(() => { lock = false; });
+    });
+  }
+  bind(a, b); bind(b, a);
+})();
+document.getElementById("onlyDiff").addEventListener("change", rebuild);
+document.getElementById("hideCommitted").addEventListener("change", rebuild);
+document.getElementById("onlyMatches").addEventListener("change", () => { rebuild(); renderCommits(); });
+
+// Tabs
+document.getElementById("tabDiff").addEventListener("click", () => showView("diff"));
+document.getElementById("tabCommits").addEventListener("click", () => showView("commits"));
+
+// Action bar
+document.getElementById("clearSel").addEventListener("click", clearSelection);
+document.getElementById("openCommit").addEventListener("click", openCommitModal);
+
+// Modal
+document.getElementById("modalCancel").addEventListener("click", closeModal);
+document.getElementById("modalSave").addEventListener("click", saveModal);
+document.getElementById("modalBg").addEventListener("click", (e) => {
+  if (e.target.id === "modalBg") closeModal();
+});
+document.getElementById("modalMsg").addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); saveModal(); }
+  else if (e.key === "Escape") { e.preventDefault(); closeModal(); }
+});
+
+// Commits view actions (event delegation): handle expand toggles and action buttons
+document.getElementById("commitsList").addEventListener("click", (e) => {
+  const tt = e.target;
+  if (tt && tt.classList && tt.classList.contains("toggle") && !tt.classList.contains("empty")) {
+    const node = tt.closest(".node");
+    const children = node && node.querySelector(":scope > .children");
+    if (children) {
+      const hidden = !children.classList.contains("hidden");
+      children.classList.toggle("hidden", hidden);
+      tt.textContent = hidden ? "▸" : "▾";
+    }
+    return;
+  }
+  const btn = e.target.closest("button[data-act]");
+  if (!btn) return;
+  const card = btn.closest(".commit-card");
+  const id = card && card.getAttribute("data-id");
+  const commit = state.commits.find(c => c.id === id);
+  if (!commit) return;
+  const act = btn.getAttribute("data-act");
+  if (act === "edit") {
+    openEditModal(commit);
+  } else if (act === "restore") {
+    doOp({ type: "restore", commit: JSON.parse(JSON.stringify(commit)) });
+    toast("Restored to Diff view");
+  } else if (act === "delete") {
+    if (!confirm("Delete this commit? (You can undo with ⌘Z/Ctrl+Z)")) return;
+    doOp({ type: "delete", commit: JSON.parse(JSON.stringify(commit)) });
+    toast("Deleted");
+  }
+});
+
+// Export / Import
+document.getElementById("exportCommits").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state.commits, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  a.download = `commits-${stamp}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+  toast(`Exported ${state.commits.length} commit(s)`);
+});
+document.getElementById("clearCommits").addEventListener("click", () => {
+  const n = state.commits.length;
+  if (n === 0) return toast("No commits to clear");
+  if (!confirm(`Clear all ${n} commit(s)? (You can undo with ⌘Z/Ctrl+Z)`)) return;
+  doOp({ type: "clearAll" });
+  toast(`Cleared ${n} commit(s)`);
+});
+document.getElementById("importCommits").addEventListener("change", (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const data = JSON.parse(r.result);
+      if (!Array.isArray(data)) throw new Error("Not a Commit file");
+      const looksLikeCommit = (c) => c && typeof c === "object" && typeof c.id === "string" && Array.isArray(c.changes);
+      if (data.length === 0 || !data.some(looksLikeCommit)) throw new Error("Not a Commit file");
+      // merge: avoid duplicate ids
+      const existing = new Set(state.commits.map(c => c.id));
+      let added = 0;
+      for (const c of data) {
+        if (!looksLikeCommit(c)) continue;
+        if (existing.has(c.id)) continue;
+        state.commits.push(c); added++;
+      }
+      saveCommits(); rebuild(); renderCommits();
+      showView("commits");
+      toast(`Imported ${added} commit(s)`);
+    } catch (err) {
+      const msg = (err && err.message === "Not a Commit file") ? "Not a Commit file" : ("Import failed: " + (err && err.message));
+      toast(msg);
+    } finally {
+      e.target.value = "";
+    }
+  };
+  r.readAsText(f);
+});
+
+// Keyboard: undo / redo
+window.addEventListener("keydown", (e) => {
+  const mod = e.metaKey || e.ctrlKey;
+  if (!mod) return;
+  // Ignore when typing in text inputs/textareas (let native undo work there)
+  const tag = (e.target && e.target.tagName) || "";
+  if (tag === "INPUT" || tag === "TEXTAREA") return;
+  if (e.key === "z" || e.key === "Z") {
+    e.preventDefault();
+    if (e.shiftKey) redo(); else undo();
+  } else if (e.key === "y" || e.key === "Y") {
+    e.preventDefault(); redo();
+  }
+});
+document.getElementById("search").addEventListener("input", () => {
+  clearTimeout(window.__t);
+  window.__t = setTimeout(() => { rebuild(); renderCommits(); }, 150);
+});
+document.getElementById("expandAll").addEventListener("click", () => {
+  document.querySelectorAll("#treeA .children.hidden, #treeB .children.hidden").forEach(c => c.classList.remove("hidden"));
+  document.querySelectorAll("#treeA .toggle, #treeB .toggle").forEach(t => { if (!t.classList.contains("empty")) t.textContent = "▾"; });
+});
+document.getElementById("collapseAll").addEventListener("click", () => {
+  document.querySelectorAll("#treeA .children, #treeB .children").forEach(c => c.classList.add("hidden"));
+  document.querySelectorAll("#treeA .toggle, #treeB .toggle").forEach(t => { if (!t.classList.contains("empty")) t.textContent = "▸"; });
+});
+
+// File pickers (fallback when fetch fails under file://)
+let loadedA = null, loadedB = null;
+function tryRun() {
+  if (loadedA && loadedB) runDiff(loadedA, loadedB);
+}
+function wireFile(inputId, slot) {
+  document.getElementById(inputId).addEventListener("change", (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    document.getElementById(slot === "A" ? "titleA" : "titleB").textContent = f.name;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const parsed = JSON.parse(r.result);
+        if (slot === "A") loadedA = parsed; else loadedB = parsed;
+        const msg = `<div class="loader">Loaded ${slot}. ${loadedA && loadedB ? "Computing diff…" : "Waiting for the other file…"}</div>`;
+        document.getElementById("treeA").innerHTML = msg;
+        document.getElementById("treeB").innerHTML = msg;
+        tryRun();
+      } catch (err) {
+        const err1 = `<div class="loader">Failed to parse ${f.name}: ${esc(err.message)}</div>`;
+        document.getElementById("treeA").innerHTML = err1;
+        document.getElementById("treeB").innerHTML = err1;
+      }
+    };
+    r.readAsText(f);
+  });
+}
+wireFile("fileA", "A");
+wireFile("fileB", "B");
+
+// Load persisted commits before computing diff
+loadCommits();
+saveCommits(); // updates the count badge
+
+// Auto-load (works when served via http://; under file:// browsers usually block fetch)
+(async () => {
+  try {
+    const nameA = "JSON 3.1.json", nameB = "JSON 3.2.json";
+    const [a, b] = await Promise.all([
+      fetch(encodeURIComponent(nameA).replace(/%2F/g, "/")).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(encodeURIComponent(nameB).replace(/%2F/g, "/")).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+    ]);
+    document.getElementById("titleA").textContent = nameA;
+    document.getElementById("titleB").textContent = nameB;
+    loadedA = a; loadedB = b;
+    runDiff(a, b);
+  } catch (e) {
+    const msg = `<div class="loader">Could not auto-load the files (likely because the page was opened via <code>file://</code>).<br><br>
+        Either:<br>
+        • Use the <b>Load A</b> and <b>Load B</b> buttons above, or<br>
+        • Serve this folder with a tiny HTTP server, e.g.:<br>
+        <code style="display:inline-block;margin-top:6px;background:#0b0d12;padding:4px 8px;border-radius:4px">python3 -m http.server</code><br>
+        then open <code>http://localhost:8000/diff.html</code>.
+      </div>`;
+    document.getElementById("treeA").innerHTML = msg;
+    document.getElementById("treeB").innerHTML = msg;
+  }
+})();
+</script>
+</body>
+</html>

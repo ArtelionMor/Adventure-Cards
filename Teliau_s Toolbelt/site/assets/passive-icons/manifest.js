@@ -1,0 +1,20 @@
+// Liste des icônes du dossier — régénère avec: sh _regen-manifest.sh
+window.PASSIVE_ICON_FILES = [
+  "IconAppleLover.png",
+  "IconBananaLover.png",
+  "IconBlueberryLover.png",
+  "IconButternutLover.png",
+  "IconCarrotLover.png",
+  "IconChestnutLover.png",
+  "IconCoconutLover.png",
+  "IconCrystalBerryLover.png",
+  "IconGojiBerryLover.png",
+  "IconHoleDigger.png",
+  "IconLogChewer.png",
+  "IconMangoLover.png",
+  "IconPlumLover.png",
+  "IconRockBreaker.png",
+  "IconSquashLover.png",
+  "IconWatermelonLover.png",
+  "PotionIcon.png",
+];

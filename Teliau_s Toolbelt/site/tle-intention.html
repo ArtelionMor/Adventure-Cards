@@ -1,0 +1,1578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TLE Intention — Explainer</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --bg-2: #161922;
+    --bg-3: #1d2230;
+    --line: #2a3142;
+    --text: #e7eaf0;
+    --muted: #9aa3b2;
+    --accent: #7aa2ff;
+    --accent-2: #79e3c5;
+    --accent-3: #c69bff;
+    --warn: #ffb86b;
+    --bad: #ff7a90;
+    --good: #79e3c5;
+    --chip-bg: #232a3b;
+    --shadow: 0 8px 24px rgba(0,0,0,.35);
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); }
+  body {
+    margin: 0;
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+  header.top {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  header.top h1 { font-size: 28px; margin: 0; letter-spacing: -.01em; }
+  header.top p { color: var(--muted); margin: 4px 0 0; }
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    background: var(--chip-bg); color: var(--muted); font-size: 12px;
+    border: 1px solid var(--line);
+  }
+
+  nav.tabs {
+    display: flex; gap: 6px; flex-wrap: wrap; margin: 18px 0 22px;
+    border-bottom: 1px solid var(--line); padding-bottom: 8px;
+  }
+  nav.tabs button {
+    background: transparent; color: var(--muted); border: 1px solid transparent;
+    padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: 14px;
+  }
+  nav.tabs button:hover { color: var(--text); background: var(--bg-2); }
+  nav.tabs button.active {
+    color: var(--text); background: var(--bg-2);
+    border-color: var(--line); box-shadow: var(--shadow);
+  }
+  section.tab { display: none; }
+  section.tab.active { display: block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  h2 { font-size: 20px; margin: 28px 0 10px; }
+  h3 { font-size: 16px; margin: 18px 0 8px; }
+  p.lead { color: var(--muted); max-width: 75ch; }
+
+  .grid {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+  .card {
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
+  }
+  .card h4 { margin: 0 0 6px; font-size: 14px; letter-spacing: .02em;
+    color: var(--accent); text-transform: uppercase; }
+  .card.alt h4 { color: var(--accent-2); }
+  .card.alt2 h4 { color: var(--accent-3); }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  .pipeline {
+    display: grid; gap: 10px;
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .pipeline .step {
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px; position: relative;
+  }
+  .pipeline .step b { display: block; font-size: 13px; color: var(--accent-2); margin-bottom: 6px; }
+  .pipeline .step span { color: var(--muted); font-size: 13px; }
+  .pipeline .step::after {
+    content: "→"; position: absolute; right: -12px; top: 50%;
+    transform: translateY(-50%); color: var(--muted); font-weight: bold;
+  }
+  .pipeline .step:last-child::after { content: ""; }
+  @media (max-width: 800px) {
+    .pipeline { grid-template-columns: 1fr; }
+    .pipeline .step::after { content: ""; }
+  }
+
+  table.data {
+    width: 100%; border-collapse: collapse; margin-top: 10px;
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  table.data th, table.data td {
+    padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line);
+    font-size: 14px;
+  }
+  table.data th { background: var(--bg-3); color: var(--muted); font-weight: 600; }
+  table.data tr:last-child td { border-bottom: none; }
+  table.data td.num { font-variant-numeric: tabular-nums; color: var(--accent-2); }
+
+  .toolbar {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    margin: 8px 0 14px; align-items: center;
+  }
+  .toolbar input[type="search"] {
+    flex: 1; min-width: 220px; background: var(--bg-2);
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; color: var(--text); font-size: 14px;
+  }
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    background: var(--chip-bg); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 12px; cursor: pointer;
+    font-size: 13px; color: var(--muted); user-select: none;
+  }
+  .chip.active { color: var(--text); border-color: var(--accent); background: rgba(122,162,255,.12); }
+
+  .col-list { display: flex; flex-direction: column; gap: 8px; }
+  .col {
+    display: grid; grid-template-columns: minmax(220px, 280px) 1fr auto;
+    gap: 14px; align-items: start;
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px 14px;
+  }
+  .col code {
+    font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--accent-2);
+  }
+  .col .desc { color: var(--text); font-size: 14px; }
+  .col .group {
+    color: var(--muted); font-size: 12px; text-transform: uppercase;
+    letter-spacing: .04em; white-space: nowrap;
+  }
+  .col.hidden { display: none; }
+
+  .example {
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px;
+  }
+  .example .row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    margin-bottom: 12px;
+  }
+  @media (max-width: 700px) { .example .row { grid-template-columns: 1fr; } }
+  .kv {
+    background: var(--bg-3); border-radius: 10px; padding: 10px 12px;
+    font-size: 14px;
+  }
+  .kv b { color: var(--accent); display: block; font-size: 12px;
+    text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px;
+    background: var(--chip-bg); border: 1px solid var(--line);
+    font-size: 12px; color: var(--muted); margin-right: 4px;
+  }
+  .pill.ok { color: var(--good); border-color: rgba(121,227,197,.35); background: rgba(121,227,197,.08); }
+  .pill.bad { color: var(--bad); border-color: rgba(255,122,144,.35); background: rgba(255,122,144,.08); }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(122,162,255,.06); padding: 10px 14px;
+    border-radius: 10px; margin: 12px 0; color: var(--text);
+  }
+  .callout.warn { border-left-color: var(--warn); background: rgba(255,184,107,.07); }
+  .callout.alt  { border-left-color: var(--accent-3); background: rgba(198,155,255,.07); }
+  footer.foot { color: var(--muted); font-size: 12px; margin-top: 36px; text-align: center; }
+
+  details.faq {
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px 14px; margin-bottom: 8px;
+  }
+  details.faq summary { cursor: pointer; font-weight: 600; }
+  details.faq[open] { background: var(--bg-3); }
+
+  /* Curve playground */
+  .playground { background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px; }
+  .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 700px) { .controls { grid-template-columns: 1fr; } }
+  .controls label { font-size: 13px; color: var(--muted); display: block; }
+  .controls input[type="range"] { width: 100%; }
+  .controls .val { color: var(--accent-2); font-variant-numeric: tabular-nums; }
+  canvas { width: 100%; height: 280px; display: block; margin-top: 12px;
+    background: var(--bg-3); border-radius: 10px; }
+</style>
+</head>
+<body>
+<!-- Teliau's Toolbelt — shared navigation (injected) -->
+<style>
+  :root { --tb-nav-h: 52px; }
+  .tb-nav {
+    position: sticky; top: 0; z-index: 9999;
+    display: flex; align-items: center; gap: 18px;
+    height: var(--tb-nav-h); padding: 0 18px;
+    background: rgba(13,15,20,.86);
+    backdrop-filter: saturate(140%) blur(10px);
+    -webkit-backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid #2a3142;
+    font: 14px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  }
+  .tb-nav__brand {
+    display: flex; align-items: center; gap: 8px;
+    color: #e7eaf0; font-weight: 700; letter-spacing: -.01em;
+    text-decoration: none; font-size: 14px; white-space: nowrap;
+  }
+  .tb-nav__brand .tb-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: linear-gradient(135deg, #7aa2ff, #79e3c5);
+    box-shadow: 0 0 10px rgba(122,162,255,.7);
+  }
+  .tb-nav__links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .tb-nav__link {
+    color: #9aa3b2; text-decoration: none; padding: 7px 12px;
+    border-radius: 8px; border: 1px solid transparent; white-space: nowrap;
+    transition: background .15s, color .15s;
+  }
+  .tb-nav__link:hover { color: #e7eaf0; background: #1d2230; text-decoration: none; }
+  .tb-nav__link--active { color: #e7eaf0; background: #1d2230; border-color: #2a3142; }
+  @media (max-width: 640px) {
+    .tb-nav { height: auto; padding: 8px 12px; flex-wrap: wrap; gap: 10px; }
+  }
+</style>
+<nav class="tb-nav">
+  <a class="tb-nav__brand" href="index.html"><span class="tb-dot"></span>Teliau's Toolbelt</a>
+  <div class="tb-nav__links">
+      <a class="tb-nav__link" href="index.html">Home</a>
+      <a class="tb-nav__link tb-nav__link--active" href="tle-intention.html">TLE Intention</a>
+      <a class="tb-nav__link" href="daily-deals.html">Daily Deals</a>
+      <a class="tb-nav__link" href="diff-viewer.html">JSON Diff</a>
+    <a class="tb-nav__link" href="pet-builds.html">Pet Builds</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>TLE Intention <span class="badge">v3.2 SA</span></h1>
+      <p>What a Time-Limited Event is, how it is configured, and how the sheet drives the live event.</p>
+    </div>
+    <span class="badge">Read in ~10 min</span>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="active" data-tab="concept">What is a TLE?</button>
+    <button data-tab="deconstruction">Deconstruction</button>
+    <button data-tab="events">Events &amp; Calendar</button>
+    <button data-tab="personas">Player personas</button>
+    <button data-tab="overview">Sheet structure</button>
+    <button data-tab="gauge">Gauge &amp; Curves</button>
+    <button data-tab="difficulty">Difficulty</button>
+    <button data-tab="generator">Generator</button>
+    <button data-tab="columns">Column reference</button>
+    <button data-tab="example">Worked example</button>
+    <button data-tab="faq">FAQ</button>
+  </nav>
+
+  <!-- CONCEPT -->
+  <section class="tab active" id="concept">
+    <h2>What is a Time-Limited Event?</h2>
+    <p class="lead">
+      A <b>Time-Limited Event (TLE)</b> is a temporary, self-contained <b>world</b> the player can
+      visit on top of the main game. It runs on a schedule, has its own difficulty,
+      its own reward gauge, and (sometimes) a leaderboard. When the timer ends, the
+      world disappears — along with any progress not collected.
+    </p>
+
+    <h3>Feature scorecard (vs other event slots)</h3>
+    <p class="lead">From the design <i>Event list</i> table, each event slot is rated on five intention axes (1 = low, 5 = high). The TLE slot scores:</p>
+    <table class="data">
+      <thead>
+        <tr><th>Axis</th><th class="num">TLE</th><th class="num">Boss Challenge</th><th class="num">Arena</th><th>What it means</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>Reward targetting</b></td><td class="num"><span class="pill ok">5</span></td><td class="num">3</td><td class="num">1</td><td>Players can aim at a specific reward they need (biome egg, pet shard, candies).</td></tr>
+        <tr><td><b>Engagement depth</b></td><td class="num"><span class="pill ok">4</span></td><td class="num">2</td><td class="num">2</td><td>Multi-day, multi-world progression — strong reason to come back daily.</td></tr>
+        <tr><td><b>Power challenge</b></td><td class="num"><span class="pill ok">5</span></td><td class="num">4</td><td class="num">5</td><td>Worlds are tuned just above the player's current team power.</td></tr>
+        <tr><td><b>New gameplay</b></td><td class="num">2</td><td class="num">4</td><td class="num">3</td><td>Reuses main-world mechanics with modifiers — not a new mode.</td></tr>
+        <tr><td><b>Accessible challenge</b></td><td class="num">2</td><td class="num">5</td><td class="num">3</td><td>Deliberately steep — Odysseys are not for Light personas.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <b>Positioning:</b> TLE is the "reward-targetted, engagement-heavy, power-challenging" slot. It is <i>not</i> meant to introduce new mechanics or be accessible to all players — those are roles the Boss Challenge and Arena occupy.
+    </div>
+
+    <h3>Why we ship TLEs</h3>
+    <div class="grid">
+      <div class="card">
+        <h4>As a player</h4>
+        <p>I want to <b>engage more to earn more rewards</b>, and I want to <b>target specific rewards</b> I need (a missing biome egg, a specific pet shard, candies).</p>
+      </div>
+      <div class="card alt">
+        <h4>As a game maker</h4>
+        <p>We want to <b>challenge players on their collection variety</b> (biome restrictions, specific pet boosts) and on their <b>team power</b> (dynamic-power worlds tuned just above the player baseline).</p>
+      </div>
+      <div class="card alt2">
+        <h4>KPI targets</h4>
+        <p>Primary: <b>D14 / D7 retention</b>. Secondary: <b>D7 / D1</b>, redeposit, LTV D7. The event is a recurring reason to come back during the week.</p>
+      </div>
+    </div>
+
+    <h3>Anatomy of a TLE</h3>
+    <div class="pipeline">
+      <div class="step"><b>World(s)</b><span>1 world (Trial) or 5 worlds in a row (Odyssey).</span></div>
+      <div class="step"><b>Gauge</b><span>XP / HC bar the player fills, with rewards along the way.</span></div>
+      <div class="step"><b>Modifier</b><span>Pet rarity boost, biome restriction, specific pet boost…</span></div>
+      <div class="step"><b>Leaderboard</b><span>Optional competitive layer (Bronze / Silver / Gold).</span></div>
+      <div class="step"><b>Timer</b><span>24 h or 72 h — unclaimed rewards are lost.</span></div>
+    </div>
+
+    <div class="callout">
+      <b>Mental model:</b> a TLE is a <i>scheduled mini-world</i> with its own difficulty
+      knob (Power), its own pacing (α curve), its own collection challenge (modifier),
+      and its own payoff (gauge rewards + optional leaderboard). The sheet is the
+      generator that produces all of these from a single row.
+    </div>
+  </section>
+
+  <!-- DECONSTRUCTION -->
+  <section class="tab" id="deconstruction">
+    <h2>Deconstruction</h2>
+    <p class="lead">
+      From the <i>[3.2] Time-limited worlds Balancing Intentions</i> doc. Two
+      deconstructions feed the design: (1) what other games taught us about TLE-style
+      events, and (2) how each main-world reward element converts into <code>event_xp</code>.
+    </p>
+
+    <h3>1. Reference deconstruction (competitor games)</h3>
+    <p class="lead">
+      Each row is a learning lifted from a specific game, with the takeaway we ported into
+      the TLE design.
+    </p>
+    <table class="data">
+      <thead>
+        <tr><th>Game</th><th>Mode / event</th><th>What they do</th><th>What we take from it</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td rowspan="1"><b>Pocket Champs</b></td>
+          <td>Events (off-the-Trophy-Road races)</td>
+          <td>Events are <i>solutions to problems</i> — when you're stuck on the <b>Trophy Road</b>, you run an event to unblock yourself. First 3 races are easy to clear; after that it ramps. <b>Restrictions</b> force a different strategy ("can't use the overboard → try the jetpack"). <b>Modifiers</b> offer strategic decisions on which character / gear to bring.</td>
+          <td><b>"We challenge players on similar difficulties, but we only reward them when they succeed."</b> Side activities are part of the core loop, not a parallel track. Rewards are better than the Trophy Road on victory — but not <i>insanely</i> better, because the goal is a strategic split, not pure addition.</td>
+        </tr>
+        <tr>
+          <td rowspan="1"><b>Golds &amp; Gobelins</b></td>
+          <td>Second-world event</td>
+          <td>The "second world" duplicates everything (potions, coins, cards, upgrades) and the player <b>restarts from zero</b> inside the event. This works because the core loop is idle — relaunching is fine, you fast-forward through the adventure and get blocked faster. The event has its own store with different chests.</td>
+          <td>Restarting from zero in a TLE is acceptable when the core loop is fun. It lets the player try different strategies / upgrade paths. The event <i>store</i> as a separate cosmetic surface is a strong idea.</td>
+        </tr>
+        <tr>
+          <td rowspan="3" style="vertical-align: top;"><b>AFK Journey</b></td>
+          <td style="font-style: italic; color: #9aa3b2;">— overall caveat on the game —</td>
+          <td>Small-scale game. Team-building leans aesthetic rather than strategic; power-driven players flee when the game becomes grindy.</td>
+          <td>Used as a <i>caution</i>, not a pattern: nothing in AFK Journey at the macro level is something we are copying. The two sub-modes below are what we actually borrow from.</td>
+        </tr>
+        <tr>
+          <td>Raid Treasure</td>
+          <td>Combat mode restricted to characters of a given <b>role</b>. Rewards craft gear usable only by that role. Daily rotation (Mon: tank, Tue: wizard, …) shifted by 1 day each week.</td>
+          <td><b>"We challenge on A and reward on A."</b> The daily rotation pattern is exactly what the Island Trial Mon / Wed cadence borrows.</td>
+        </tr>
+        <tr>
+          <td>Season Legend Trial</td>
+          <td>Combat mode restricted to characters of a given <b>race</b>. Rewards are exclusive resources used to max-level your characters. Daily rotation (Mon: blues, Tue: reds, …) with combo days at the end of the week.</td>
+          <td><b>"We challenge on Collection, we reward on Power."</b> Ported to Scroll: <i>challenge the player on biomes</i> (Island Odyssey biome restriction) <i>and reward them with specific rewards they want</i> (biome eggs, candies, new pets).</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <b>Net synthesis ported into Scroll TLEs:</b>
+      <ul>
+        <li><b>Island Trial</b> = the Raid Treasure pattern → challenge on Power, reward on Power-relevant items, daily rotation.</li>
+        <li><b>Island Odyssey</b> = the Season Legend Trial pattern → challenge on Collection (biome restriction), reward on biome-targeted items + leaderboard for Elite.</li>
+        <li><b>Reward ceiling</b> follows the Pocket-Champs rule: better than the main world, but not <i>so much</i> better that the main world becomes pointless.</li>
+      </ul>
+    </div>
+
+    <h3>2. Element deconstruction (what becomes <code>event_xp</code>?)</h3>
+    <p class="lead">
+      Every reward source in the main world is <b>converted</b> into <code>event_xp</code>
+      inside a TLE. The conversion uses the same HC value as the main world, multiplied
+      by the world's XP multiplier.
+    </p>
+    <div class="callout alt">
+      <b>Conversion rate (working assumption):</b>
+      <code>1 point of event_xp ≈ value of main_world_xp × 0.1</code>.
+      To be iterated as we observe real player behaviour.
+    </div>
+
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Element</th>
+          <th>In the main world</th>
+          <th>In the TLE</th>
+          <th>Avg HC value (main world)</th>
+          <th>event_xp (TLE)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Quest</b></td>
+          <td>Eggs · Coins · XP</td>
+          <td><code>event_xp</code> (straight conversion with the world multiplier)</td>
+          <td class="num">≈ 144 HC</td>
+          <td class="num">1440 × multiplier</td>
+        </tr>
+        <tr>
+          <td><b>Resources</b></td>
+          <td>Coins · XP</td>
+          <td><code>event_xp</code> (XP becomes event_xp via the multiplier)</td>
+          <td class="num">main_world value</td>
+          <td class="num">main_world × multiplier</td>
+        </tr>
+        <tr>
+          <td><b>Treasure</b></td>
+          <td>Potions · Eggs · Coins · Gems</td>
+          <td>Potions · <code>event_xp</code> · Gems (straight conversion)</td>
+          <td class="num">≈ 50 HC</td>
+          <td class="num">500 × multiplier</td>
+        </tr>
+        <tr>
+          <td><b>Wheel of fortune</b></td>
+          <td>Eggs · Potions · Coins · Gems</td>
+          <td>Potions · <code>event_xp</code> · Gems (straight conversion)</td>
+          <td class="num">≈ 32.8 HC</td>
+          <td class="num">328 × multiplier</td>
+        </tr>
+        <tr>
+          <td><b>GPE</b></td>
+          <td>Potions · Eggs · Coins · XP</td>
+          <td><code>event_xp</code> (straight conversion)</td>
+          <td class="num">≈ 33 HC</td>
+          <td class="num">330 × multiplier</td>
+        </tr>
+        <tr>
+          <td><b>Golden apple</b></td>
+          <td>Eggs · Coins · XP · Potions</td>
+          <td>Potions · <code>event_xp</code> (straight conversion)</td>
+          <td class="num">≈ 18.5 HC</td>
+          <td class="num">185 × multiplier</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="lead">
+      "Multiplier" here is the <b>per-world XP multiplier</b> (W1 = ×1, W2 = ×2, W3 = ×4,
+      W4 = ×8, W5 = ×16 in the canonical Odyssey ramp). Quests and resources are the
+      backbone of the TLE economy; the rest are smaller opportunistic boosts.
+    </p>
+
+    <h3>3. Reward calibration (62 HC / minute)</h3>
+    <p class="lead">
+      From the simulator, the average rentability of the game converges to
+      <b>≈ 62 HC per minute</b> of play. The TLE rewards are calibrated against this
+      baseline: a Light persona who plays 15 min/day gets the equivalent of
+      <code>62 × 15 × event_days</code> HC of value out of the event, plus a small
+      leaderboard bonus.
+    </p>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Persona</th>
+          <th>Daily event time</th>
+          <th>Leaderboard tier</th>
+          <th>LB reward bonus</th>
+          <th>Total reward share</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Light</td><td class="num">15 min</td><td>Top 75%</td><td class="num">+5%</td><td class="num">≈ 105% of base</td></tr>
+        <tr><td>Regular</td><td class="num">45 min</td><td>Top 50%</td><td class="num">+25%</td><td class="num">≈ 125%</td></tr>
+        <tr><td>Invested</td><td class="num">75 min</td><td>Top 25%</td><td class="num">+30%</td><td class="num">≈ 178%</td></tr>
+        <tr><td>Elite</td><td class="num">120 min</td><td>Top 15%</td><td class="num">+60%</td><td class="num">≈ 202%</td></tr>
+        <tr><td>Bronze (top 8%)</td><td class="num">—</td><td>3rd place pool</td><td class="num">+70%</td><td class="num">≈ 116%</td></tr>
+        <tr><td>Silver (top 4%)</td><td class="num">—</td><td>2nd place pool</td><td class="num">+80%</td><td class="num">≈ 140%</td></tr>
+        <tr><td>Gold (top 1%)</td><td class="num">—</td><td>1st place</td><td class="num">+90%</td><td class="num">≈ 168%</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4. Quest split per persona</h3>
+    <p class="lead">
+      The Progression tab assumes a Regular player does 12 quests per day. Respecting
+      playtime ratios, the deconstruction lands on this quest budget — and on the
+      observation that <i>quests are the dominant XP source</i> for Light personas
+      (because they only have time to do the quests), and progressively less so for the
+      higher tiers.
+    </p>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Persona</th>
+          <th>Quests / day in event</th>
+          <th>Share of event_xp from quests</th>
+          <th>Buys rebloom?</th>
+          <th>Expected progression</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Light</td><td class="num">6</td><td class="num">90%</td><td><span class="pill">No</span></td><td>First reward of the gauge (or first world rewards on an Odyssey)</td></tr>
+        <tr><td>Regular</td><td class="num">12</td><td class="num">75%</td><td><span class="pill">No</span></td><td>Mid-gauge, or a few worlds on an Odyssey</td></tr>
+        <tr><td>Invested</td><td class="num">16</td><td class="num">60%</td><td><span class="pill warn">Sometimes</span></td><td>Final gauge reward / final world of an Odyssey</td></tr>
+        <tr><td>Elite</td><td class="num">24</td><td class="num">45%</td><td><span class="pill ok">Yes</span></td><td>Final leaderboard reward</td></tr>
+      </tbody>
+    </table>
+    <p class="lead">
+      As engagement goes up, the share of XP from quests goes <i>down</i> — because
+      Elites have time to also clear resources, fortune wheels, GPE, etc. on top.
+    </p>
+
+    <h3>5. Open questions from the doc</h3>
+    <div class="callout">
+      <ul>
+        <li><b>Should ~20% of main-world rewards be redistributed toward events?</b> Strategic discussion still open — it would change the overall economy balance.</li>
+        <li><b>First reward must be cheap</b> — clearing the first quest should deliver the first gauge reward, so the rewards progression <i>cannot be linear</i>.</li>
+        <li><b>Conversion rate of 0.1</b> between <code>main_world_xp</code> HC value and <code>event_xp</code> is a starting assumption; it will be iterated.</li>
+        <li><b>Bots on the leaderboard</b> — TLE leaderboards are populated by bots calibrated so a player who logs in 12 times during the event takes 1st place by the deadline.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- EVENTS -->
+  <section class="tab" id="events">
+    <h2>The two event formats</h2>
+    <p class="lead">v3.2 ships two flavours of TLE, repeated each week across 5 biomes.</p>
+
+    <div class="grid">
+      <div class="card">
+        <h4>Island Trial</h4>
+        <p><b>24 h</b> · <b>1 world</b> · Power challenge · Medium difficulty · modifier <i>Pet rarity boost</i> · reward type <i>Biome egg</i> · no leaderboard. Plays on <b>Monday</b> and <b>Wednesday</b>.</p>
+      </div>
+      <div class="card alt">
+        <h4>Island Odyssey</h4>
+        <p><b>72 h</b> · <b>5 worlds in a row</b> · Collection + Power challenge · High difficulty · modifiers <i>Biome restriction</i> + <i>Specific pet boost</i> · rewards: <i>Biome egg, candies, new pets</i> · <b>leaderboard</b>. Plays on <b>Friday</b> through Sunday.</p>
+      </div>
+    </div>
+
+    <h3>Weekly calendar</h3>
+    <table class="data">
+      <thead>
+        <tr><th>Day</th><th>Event</th><th>Duration</th><th>Levels</th><th>Leaderboard</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Mon</td><td>Island Trial</td><td class="num">24 h</td><td class="num">1</td><td><span class="pill">no</span></td></tr>
+        <tr><td>Wed</td><td>Island Trial</td><td class="num">24 h</td><td class="num">1</td><td><span class="pill">no</span></td></tr>
+        <tr><td>Fri–Sun</td><td>Island Odyssey</td><td class="num">72 h</td><td class="num">5</td><td><span class="pill ok">yes</span></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Biome &times; event matrix</h3>
+    <table class="data">
+      <thead>
+        <tr><th>Biome</th><th>Island Trial</th><th>Island Odyssey</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Meadow</td><td>1 World</td><td>5 Worlds</td></tr>
+        <tr><td>Sea</td><td>1 World</td><td>5 Worlds</td></tr>
+        <tr><td>Savanna</td><td>1 World</td><td>5 Worlds</td></tr>
+        <tr><td>Forest</td><td>1 World</td><td>5 Worlds</td></tr>
+        <tr><td>Jungle</td><td>1 World</td><td>5 Worlds</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout alt">
+      <b>Rebloom mechanic:</b> resources inside a TLE world do not respawn naturally.
+      The player must <b>rebloom</b> (pay HC) to regenerate them. This is intentional:
+      we want players to <i>come back multiple times during the event</i> instead of
+      grinding one long session. Rebloom cost is configured in <code>WorldRulesConfig</code>.
+    </div>
+  </section>
+
+  <!-- PERSONAS -->
+  <section class="tab" id="personas">
+    <h2>Player personas &amp; expected engagement</h2>
+    <p class="lead">
+      From the <i>Balancing Intentions</i> Notion doc. The TLE sheet tunes rewards so
+      each persona has a <i>target</i> they can realistically reach: a Light player
+      collects the first gauge reward, an Elite competes for the leaderboard top.
+      In the v(4) layout the <code>Light / Normal / Engaged / Elite</code> columns
+      hold the <b>comma-separated list of rewards</b> we expect each persona to
+      actually claim — that list is the design target the sheet is balanced against.
+    </p>
+
+    <h3>Engagement &amp; quest budget</h3>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Persona</th>
+          <th>Base daily playtime</th>
+          <th>Target time in event</th>
+          <th>Quests / day in event</th>
+          <th>Share of event_xp from quests</th>
+          <th>Buys rebloom?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Light</b><br /><span class="pill">sheet: “Light”</span></td>
+          <td class="num">30 min</td>
+          <td class="num">15 min</td>
+          <td class="num">6</td>
+          <td class="num">90%</td>
+          <td><span class="pill">No</span></td>
+        </tr>
+        <tr>
+          <td><b>Regular</b><br /><span class="pill">sheet: “Normal”</span></td>
+          <td class="num">60 min</td>
+          <td class="num">45 min</td>
+          <td class="num">12</td>
+          <td class="num">75%</td>
+          <td><span class="pill">No</span></td>
+        </tr>
+        <tr>
+          <td><b>Invested</b><br /><span class="pill">sheet: “Engaged”</span></td>
+          <td class="num">100 min</td>
+          <td class="num">75 min</td>
+          <td class="num">16</td>
+          <td class="num">60%</td>
+          <td><span class="pill warn">Sometimes</span></td>
+        </tr>
+        <tr>
+          <td><b>Elite</b><br /><span class="pill">sheet: “Elite”</span></td>
+          <td class="num">180 min</td>
+          <td class="num">120 min</td>
+          <td class="num">24</td>
+          <td class="num">45%</td>
+          <td><span class="pill ok">Yes</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      The sheet's column names are <code>Light / Normal / Engaged / Elite</code>; the
+      Notion docs say <i>Light / Regular / Invested / Elite</i>. Same buckets, different
+      wording. As engagement rises, the <i>share</i> of XP coming from quests goes <b>down</b> —
+      Elites have time to clear resources, fortune wheels and GPE on top.
+    </div>
+
+    <h3>Behaviour inside the event</h3>
+    <p class="lead">
+      The Balancing doc describes how each persona is expected to play the event — useful
+      for sanity-checking that the rebloom cost and the gauge shape are tuned right.
+    </p>
+    <div class="grid">
+      <div class="card">
+        <h4>Light</h4>
+        <p>Clears <b>half the map</b> and doesn't come back. Picks up the first gauge
+        reward and moves on. Treats the event as a treasure opportunity, not a goal.</p>
+      </div>
+      <div class="card alt">
+        <h4>Regular</h4>
+        <p>Clears the map, occasionally returns to re-clear it <i>waiting for the
+        auto-rebloom</i>. <b>Won't pay</b> for a sold rebloom — opportunistic gameplay.
+        Mid-gauge target on a Trial, a couple of worlds on an Odyssey.</p>
+      </div>
+      <div class="card alt2">
+        <h4>Invested</h4>
+        <p>Clears the map and is <b>serious about refreshes</b> ("I know I need to come back
+        in a few hours"). Willing to <b>spend a few reblooms</b> to catch up after missing
+        a cycle, because they still want the final gauge reward.</p>
+      </div>
+      <div class="card">
+        <h4>Elite</h4>
+        <p>Clears <b>everything, often</b>. Pays whatever it takes for leaderboard rewards
+        — within the time budget set out in the engagement table.</p>
+      </div>
+    </div>
+
+    <h3>Reward calibration &amp; leaderboard tier</h3>
+    <p class="lead">
+      Base reward value is calibrated against the simulator's <b>62 HC / minute</b>
+      rentability baseline (see <a href="#" data-tab-link="deconstruction">Deconstruction</a>).
+      Each persona is expected to land in a specific leaderboard tier; a tier-dependent
+      reward bonus is added on top of the base value.
+    </p>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Persona</th>
+          <th>Expected progression</th>
+          <th>Leaderboard tier</th>
+          <th>Leaderboard reward bonus</th>
+          <th>Total share of base</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Light</b></td>
+          <td>1st reward of the gauge (or 1st world reward on an Odyssey).</td>
+          <td>Top 75%</td>
+          <td class="num">+5%</td>
+          <td class="num">≈ 105%</td>
+        </tr>
+        <tr>
+          <td><b>Regular</b></td>
+          <td>Good middle of the gauge / a few world rewards.</td>
+          <td>Top 50%</td>
+          <td class="num">+25%</td>
+          <td class="num">≈ 125%</td>
+        </tr>
+        <tr>
+          <td><b>Invested</b></td>
+          <td>Final gauge reward / final world of an Odyssey.</td>
+          <td>Top 25%</td>
+          <td class="num">+30%</td>
+          <td class="num">≈ 178%</td>
+        </tr>
+        <tr>
+          <td><b>Elite</b></td>
+          <td>Final leaderboard reward.</td>
+          <td>Top 15%</td>
+          <td class="num">+60%</td>
+          <td class="num">≈ 202%</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Main monetisation driver per persona</h3>
+    <table class="data">
+      <thead>
+        <tr><th>Persona</th><th>What they pay for during the event</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>Light</b></td><td>Treasure opportunity in the event.</td></tr>
+        <tr><td><b>Regular</b></td><td>Treasure opportunity + daily deals + small opportunistic offers (potion, shards, coins).</td></tr>
+        <tr><td><b>Invested</b></td><td>Medium-price offers (potion, pet upgrades, event-gating currency). Occasional rebloom purchases.</td></tr>
+        <tr><td><b>Elite</b></td><td>Big-price offers (potion, pet upgrade, event-gating currency). Routine rebloom purchases to chase the leaderboard.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Bronze / Silver / Gold leaderboard tiers</h3>
+    <p class="lead">
+      Three additional columns hold the <b>list of rewards expected for each
+      leaderboard placement tier</b> on top of the persona tiers above. They size the
+      leaderboard payout block (cols 41–60) and validate that the curve set by
+      <code>alpha reward</code> &amp; <code>alpha xp</code> delivers the intended payouts.
+    </p>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Placement tier</th>
+          <th>Slice of player base</th>
+          <th>Leaderboard reward bonus</th>
+          <th>Total share of base</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><b>Bronze</b> — 3rd-place pool</td><td>Top 8%</td><td class="num">+70%</td><td class="num">≈ 116%</td></tr>
+        <tr><td><b>Silver</b> — 2nd-place pool</td><td>Top 4%</td><td class="num">+80%</td><td class="num">≈ 140%</td></tr>
+        <tr><td><b>Gold</b> — 1st place</td><td>Top 1%</td><td class="num">+90%</td><td class="num">≈ 168%</td></tr>
+      </tbody>
+    </table>
+    <div class="callout alt">
+      <b>How the personas and tiers connect:</b> the persona tiers are <i>population
+      buckets</i> (every player belongs to one); the Bronze / Silver / Gold tiers are
+      <i>leaderboard placements</i> within an event. An Invested player can land in
+      Bronze; an Elite player typically lands in Silver or Gold. The reward bonus is
+      cumulative: an Elite who hits Gold gets the Elite bonus pool <i>and</i> the Gold
+      placement bonus.
+    </div>
+  </section>
+
+  <!-- OVERVIEW -->
+  <section class="tab" id="overview">
+    <h2>What is the TLE Intention tab?</h2>
+    <p class="lead">
+      The TLE tab is the design sheet that fully describes a Time-Limited Event:
+      its <b>5 worlds</b>, the <b>XP gauge</b> the player fills, the <b>rewards</b>
+      handed out at each milestone, the optional <b>leaderboard</b>, the
+      <b>difficulty</b> curve, and the <b>generator</b> output the game actually consumes.
+      One row = one event configuration.
+    </p>
+
+    <h3>The 4 functional blocks</h3>
+    <div class="grid">
+      <div class="card">
+        <h4>Parameters</h4>
+        <p>Top-left global knobs (target play time, leaderboard alpha, difficulty growth…) shared by all events.</p>
+      </div>
+      <div class="card alt">
+        <h4>Gauge</h4>
+        <p>Per-world α curves &amp; total HC / XP, plus the XP multiplier and the list of rewards + targets (1st…20th).</p>
+      </div>
+      <div class="card alt2">
+        <h4>Difficulty</h4>
+        <p>Per-world Power offset, modifier config, expected player-behaviour split (Light / Normal / Engaged / Elite + Bronze / Silver / Gold).</p>
+      </div>
+      <div class="card">
+        <h4>Generator</h4>
+        <p>The structured output the game reads: <code>WorldProgressConfig</code>, <code>WorldConfig</code>, <code>WorldEvent</code>, <code>eventContentList</code>.</p>
+      </div>
+    </div>
+
+    <h3>From sheet to live event</h3>
+    <div class="pipeline">
+      <div class="step"><b>1. Parameters</b><span>Set the global play-time &amp; difficulty knobs.</span></div>
+      <div class="step"><b>2. Gauge</b><span>Define XP / HC totals and reward milestones per world.</span></div>
+      <div class="step"><b>3. Difficulty</b><span>Set Power offsets and modifier per world.</span></div>
+      <div class="step"><b>4. Generator</b><span>Sheet writes the WorldProgress + WorldEvent configs.</span></div>
+      <div class="step"><b>5. In-game</b><span>Players fill the gauge, climb the leaderboard, claim rewards.</span></div>
+    </div>
+
+    <div class="callout">
+      <b>Mental model:</b> the sheet is a <i>generator</i>, not just a description.
+      The left columns are the design intent; the right columns (GENERATOR section)
+      are the artefact the engine consumes — they should never be hand-edited.
+    </div>
+  </section>
+
+  <!-- GAUGE -->
+  <section class="tab" id="gauge">
+    <h2>Gauge &amp; reward curves</h2>
+    <p class="lead">
+      Every TLE has a gauge the player fills with XP. The shape of the gauge is
+      controlled by an <b>α (alpha)</b> curve, the total <b>XP / HC</b> per world,
+      and an <b>XP multiplier</b>. Rewards are dropped at 4 to 20 milestones along
+      the gauge; if a leaderboard is enabled, additional reward tiers are stacked
+      on top.
+    </p>
+
+    <h3>Per-world curve parameters</h3>
+    <table class="data">
+      <thead>
+        <tr><th>Block</th><th>Columns</th><th>What it controls</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>α HC curve</td><td class="num">W1 → W5</td><td>Front / back tilt knob for how HC is split across the milestones. <b>The cumulative target stays strictly increasing for every α.</b> <b>0.1–1 = back-loaded</b> (convex: slow then steep; α = 1 → linear 10–20–30–40 over 4 milestones). <b>1–5 = front-loaded</b> (concave: steep then plateau; larger α → first milestone dominates).</td></tr>
+        <tr><td>HC amount</td><td class="num">W1 → W5</td><td>Total HC distributed by the gauge in that world.</td></tr>
+        <tr><td>α XP curve</td><td class="num">W1 → W5</td><td>Same role as HC α but applied to the XP curve.</td></tr>
+        <tr><td>XP amount</td><td class="num">W1 → W5</td><td>Total XP needed to fully fill the gauge in that world.</td></tr>
+        <tr><td>XP multiplier</td><td class="num">W1 → W5</td><td>Boost applied on top of base XP rewards (1, 2, 4, 8, 16…).</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Two separate reward blocks</h3>
+    <p class="lead">
+      Since the v(4) sheet, gauge rewards and leaderboard rewards live in
+      <b>two distinct blocks of 20 cells each</b>:
+    </p>
+    <ul>
+      <li><b>Leaderboard rewards (cols 41–60)</b> + <b>Leaderboard targets (cols 62–81)</b>. Tier targets are computed from <code>XP Total</code>, <code>alpha xp</code> and <code>alpha reward</code> using the same <code>t<sup>1/α</sup></code> curve. Filled only when <code>Leaderboard ? = TRUE</code>.</li>
+      <li><b>Gauge rewards (cols 83–102)</b> + <b>Gauge targets (cols 104–123)</b>. For an Odyssey, the 20 cells are read as <b>4 milestones × 5 worlds</b> (slots 1–4 belong to W1, 5–8 to W2, … 17–20 to W5) and the cumulative XP/HC target <b>resets at the start of each world</b>.</li>
+    </ul>
+
+    <h3>Two layers of α, with two roles</h3>
+    <table class="data">
+      <thead>
+        <tr><th>Where</th><th>Columns</th><th>What it shapes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>Per-world gauge</b></td><td><code>α HC W1…W5</code>, <code>α XP W1…W5</code></td><td>How the HC and XP totals of a single world are split across that world's gauge milestones.</td></tr>
+        <tr><td><b>Leaderboard</b></td><td><code>alpha reward</code>, <code>alpha xp</code></td><td>How the leaderboard reward VALUE and the cumulative XP TARGETS are distributed across the 20 leaderboard tiers (with <code>XP Total</code> as the upper bound of the curve).</td></tr>
+      </tbody>
+    </table>
+
+    <h3>α curve playground</h3>
+    <p class="lead">
+      Each bar shows the <b>cumulative XP target at that milestone</b>
+      (<code>Σᵢ = Δ₁ + Δ₂ + … + Δᵢ</code>). The last bar always equals Total XP.
+      The smaller <code>+Δ</code> label inside each bar is what
+      <i>this</i> milestone added on top of the previous one — and you'll see
+      it shrink over time when α &gt; 1 (front-loaded), even though the
+      cumulative bars keep climbing toward T.
+    </p>
+    <div class="playground">
+      <div class="controls">
+        <label>α (curve) <span class="val" id="alphaVal">1.00</span><input id="alpha" type="range" min="0.1" max="5.0" step="0.05" value="1.0" /></label>
+        <label>Milestones <span class="val" id="nVal">4</span><input id="n" type="range" min="3" max="20" step="1" value="4" /></label>
+        <label>Total XP <span class="val" id="totalVal">2000</span><input id="total" type="range" min="500" max="10000" step="100" value="2000" /></label>
+      </div>
+      <canvas id="curve" width="900" height="280"></canvas>
+    </div>
+    <div class="callout alt">
+      The <b>cumulative target is strictly increasing for every α</b> (each
+      milestone delivers strictly positive XP, so the running total never
+      dips). α only changes the <i>shape</i> of the climb — convex vs concave —
+      not its monotonicity.<br /><br />
+      <b>α ∈ [0.1, 1] → back-loaded</b> (convex cumulative — slow at first,
+      steep at the end):<br />
+      <code>Δ<sub>i</sub> = T × i<sup>1/α</sup> / Σ<sub>k</sub> k<sup>1/α</sup></code>
+      &nbsp; anchor: <code>α = 1, N = 4, T = 100 → 10, 20, 30, 40</code>.
+      Smaller α pushes more of T onto the last milestone.<br /><br />
+      <b>α ∈ (1, 5] → front-loaded</b> (concave cumulative — steep climb up
+      front, plateau near T):<br />
+      <code>Δ<sub>i</sub> = T × (N+1−i)<sup>α</sup> / Σ<sub>k</sub> k<sup>α</sup></code>
+      (mirror of the back-loaded formula). Larger α concentrates T on the
+      first few milestones.<br /><br />
+      In both regimes <code>Σ Δ<sub>i</sub> = T</code> by construction.
+      <b>N</b> controls how finely T is sliced — more milestones = thinner
+      bars, same total.
+    </div>
+  </section>
+
+  <!-- DIFFICULTY -->
+  <section class="tab" id="difficulty">
+    <h2>Difficulty &amp; player behaviour</h2>
+    <p class="lead">
+      Difficulty is a small block but it drives whether a player <i>can</i> finish
+      the gauge in time. Each world receives a <b>Power offset</b> on top of the
+      player's current power, optionally a <b>modifier</b> (e.g. <code>modifier_meadow_low</code>),
+      and assumed shares of player profiles.
+    </p>
+
+    <table class="data">
+      <thead>
+        <tr><th>Field</th><th>What it does</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>Power W1…W5</code></td><td>Power offset applied per world. <b>Positive = easier for the player</b>, negative = harder. Feeds the difficulty / recommended-power formulas.</td></tr>
+        <tr><td><code>id</code> (modifier)</td><td>World modifier config applied to the event.</td></tr>
+        <tr><td><code>value</code> (modifier)</td><td>Multiplier exposed by that modifier (or <code>#N/A</code> if none).</td></tr>
+        <tr><td><code>Light / Normal / Engaged / Elite</code></td><td>Comma-separated list of rewards we expect each persona to actually claim during the event. Detailed in the <b>Player personas</b> tab.</td></tr>
+        <tr><td><code>Bronze / Silver / Gold</code></td><td>Comma-separated list of rewards we expect a player finishing in each leaderboard tier to claim.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Dynamic Power, the heart of TLE difficulty</h3>
+    <p class="lead">
+      Each TLE is balanced <b>relative to the player</b>, not against a fixed power.
+      That is the role of <code>use_dynamic_power</code> in the Generator block.
+    </p>
+    <ul>
+      <li><b><code>use_dynamic_power = TRUE</code></b> — the world's effective power is computed from the player at event start:
+        <code>maxPlayerPower = bonus + sum(top pets at max upgrade)</code>, then
+        <code>world_recommended_power = bonus + teamPower + (additional_power × 6)</code>.
+      </li>
+      <li><b><code>use_dynamic_power = FALSE</code></b> — the world uses the fixed <code>world_power</code> value from the row.</li>
+      <li><b><code>additional_power</code></b> is the per-world offset that shifts the dynamic baseline (matches the Difficulty <code>Power W1…W5</code> columns).</li>
+      <li>Dynamic power is <b>locked at event start</b> (when the event first becomes playable for the player) — catching up later in the week doesn't make the event easier.</li>
+    </ul>
+
+    <div class="callout warn">
+      The persona / leaderboard-tier reward lists are <b>design targets</b>, not
+      in-game caps. They feed the spreadsheet's expected-value formulas and let the
+      designer verify, at a glance, that each persona reaches the intended payout.
+    </div>
+  </section>
+
+  <!-- GENERATOR -->
+  <section class="tab" id="generator">
+    <h2>Generator output</h2>
+    <p class="lead">
+      The right side of the sheet is the artefact the game consumes. It's split into
+      4 sub-blocks. Each row of the sheet emits one entry per block (a milestone for
+      the WorldProgressConfig, one WorldEvent, one entry in the eventContentList).
+    </p>
+
+    <div class="grid">
+      <div class="card">
+        <h4>WorldProgressConfig</h4>
+        <p>The reward gauge: <code>id</code>, <code>final_currency_target</code>, <code>currency_id</code>, <code>rewards</code>, <code>reward_currency_target</code>.</p>
+      </div>
+      <div class="card alt">
+        <h4>World Config</h4>
+        <p>The world used by the event: tile / spawner / resource / landmark / enviro / drop / biomes / tile_count / modifier configs.</p>
+      </div>
+      <div class="card alt2">
+        <h4>WorldEvent</h4>
+        <p>Glues a world to a progression: dynamic flags, multipliers, durations, power, behaviour and the 3 view ids (card / rules / popup).</p>
+      </div>
+      <div class="card">
+        <h4>eventContentList</h4>
+        <p>Group of WorldEvents played in order: <code>id</code>, <code>content_id</code>, <code>progression_order</code>.</p>
+      </div>
+    </div>
+
+    <h3>Dynamic vs fixed scaling</h3>
+    <p class="lead">Three pairs of columns govern how the event scales with the player. Each pair is a boolean + a multiplier / offset.</p>
+    <table class="data">
+      <thead>
+        <tr><th>Flag</th><th>If TRUE</th><th>If FALSE</th><th>Companion field</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>use_dynamic_power</code></td>
+          <td>World power is computed from the player's max power at event start.</td>
+          <td>Uses the fixed <code>world_power</code> as-is.</td>
+          <td><code>additional_power</code> (offset added on top)</td>
+        </tr>
+        <tr>
+          <td><code>use_dynamic_world_coins</code></td>
+          <td>Reuses the player's current MainWorld coin multiplier.</td>
+          <td>Uses the fixed <code>world_coins_multiplier</code>.</td>
+          <td><code>world_coins_multiplier</code> (offset added when dynamic)</td>
+        </tr>
+        <tr>
+          <td><code>use_dynamic_world_progress_currency</code></td>
+          <td>Reuses the player's current MainWorld progress currency multiplier.</td>
+          <td>Uses the fixed <code>world_progress_currency_multiplier</code>.</td>
+          <td><code>world_progress_currency_multiplier</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>eventContentList — grouping &amp; ordering</h3>
+    <p class="lead">
+      An Odyssey is <b>5 WorldEvents played in order</b>. The <code>eventContentList</code>
+      block declares that grouping: same <code>id</code> for all 5 entries, one
+      <code>content_id</code> per WorldEvent, and a <code>progression_order</code>
+      (1…5). A leaderboard, when present, is added to the same list with
+      <code>progression_order = 0</code>.
+    </p>
+
+    <div class="callout">
+      Treat the GENERATOR columns as <b>read-only output</b>. If you need to change
+      something, change the design intent on the left — the right side will be
+      regenerated.
+    </div>
+
+    <h3>What changed in remote settings for 3.2</h3>
+    <p class="lead">TLEs introduced a handful of renamings and new fields on the live-ops side. Worth knowing if you're hooking up the data pipeline:</p>
+    <table class="data">
+      <thead>
+        <tr><th>Area</th><th>Before</th><th>After (3.2)</th><th>Why</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Random spawners</td>
+          <td><code>RandomSpawners</code></td>
+          <td><code>WorldRandomSpawners</code></td>
+          <td rowspan="3">Generalised the naming so spawner configs can live <i>per-world</i> instead of being a global cycle.</td>
+        </tr>
+        <tr>
+          <td>Spawner cycle</td>
+          <td><code>RandomSpawnersCycle</code></td>
+          <td><code>WorldRandomSpawnersConfig</code> (new <code>id</code> field)</td>
+        </tr>
+        <tr>
+          <td>World config</td>
+          <td>(no spawner reference)</td>
+          <td><code>WorldConfig.WorldRandomSpawnersConfig</code> — per-world spawner config</td>
+        </tr>
+        <tr>
+          <td>Rebloom rules</td>
+          <td>(hardcoded / inexistent)</td>
+          <td><code>WorldRulesConfig</code> with <code>type = "rebloom"</code>, <code>value =</code> HC cost</td>
+          <td>Lets us tune the rebloom cost per world without a code change.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>New player-state requirements (3.2)</h3>
+    <p class="lead">The remote-settings <i>requirement</i> system was extended to support TLE lifecycle and biome-aware checks:</p>
+    <table class="data">
+      <thead>
+        <tr><th>Requirement</th><th>Key</th><th>Used for</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>event_in-progress</code></td><td>event_id</td><td>Replaces the old <code>tournament_inprogress</code>. Generalised so it works for any event (not just tournaments). Note: <code>event_id</code> moved from <code>value</code> to <code>key</code> for consistency with the other requirements.</td></tr>
+        <tr><td><code>event_ended</code></td><td>event_id</td><td>New. Used to trigger post-event behaviour (e.g. claim windows, follow-up offers, retention pushes).</td></tr>
+        <tr><td><code>minion_biome_own</code></td><td>biome name</td><td>New. True when the player owns ≥ 1 pet of the given biome. Useful for gating biome-specific events or offers.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Open design questions</h3>
+    <div class="callout alt">
+      <b>Still being debated</b> (Notion comments on the Island Trial doc):
+      <ul>
+        <li><b>Should the challenge type adapt to the player's profile?</b> Teliau's proposal: target what the player lacks (collection-light players get a collection challenge, power-light players get a power challenge). Arthur's counter: this can feel like the game is punishing your progression — challenge type should be fixed per event slot. <i>Current resolution: fixed challenge type per event, but the main challenge does not preclude secondary challenge dimensions.</i></li>
+        <li><b>Is difficulty coupled to challenge type?</b> Agreed: <b>no</b> — challenge type (Power vs Collection) and difficulty (Medium / High) are independent axes.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- COLUMN REFERENCE -->
+  <section class="tab" id="columns">
+    <h2>Column reference</h2>
+    <p class="lead">All 184 columns of the TLE tab (v(4) layout), grouped. Use the search and filters to find one fast.</p>
+
+    <div class="toolbar">
+      <input type="search" id="col-search" placeholder="Search columns (e.g. 'alpha', 'power', 'leaderboard', 'world_event')…" />
+      <div class="filter-chips" id="filter-chips"></div>
+    </div>
+
+    <div class="col-list" id="col-list"></div>
+  </section>
+
+  <!-- WORKED EXAMPLE -->
+  <section class="tab" id="example">
+    <h2>Worked example: <code>TLE 2 Meadow</code></h2>
+    <p class="lead">
+      Reading one full row of the v(4) sheet end-to-end. This is the <i>second</i>
+      Meadow event — an Island Odyssey with 5 worlds, a leaderboard, and 20
+      leaderboard tiers shaped by <code>alpha reward</code> &amp; <code>alpha xp</code>.
+    </p>
+
+    <div class="example">
+      <div class="row">
+        <div class="kv"><b>Event</b>TLE 2 Meadow</div>
+        <div class="kv"><b>Leaderboard?</b><span class="pill ok">TRUE</span></div>
+      </div>
+      <div class="row">
+        <div class="kv"><b>Reward repartition</b>4 (4 gauge milestones per world)</div>
+        <div class="kv"><b>Generate WorldProgress?</b><span class="pill ok">TRUE</span></div>
+      </div>
+      <div class="row">
+        <div class="kv"><b>Gauge total reward value</b>10 000</div>
+        <div class="kv"><b>Leaderboard total reward value</b>3 296</div>
+      </div>
+      <div class="row">
+        <div class="kv"><b>XP Total (leaderboard cap)</b>1 000 000</div>
+        <div class="kv"><b>alpha reward / alpha xp</b>0.4 / 0.5 — leaderboard payouts and targets are back-loaded, so top tiers concentrate the value</div>
+      </div>
+      <div class="row">
+        <div class="kv"><b>α XP curves W1…W5</b>1.25, 1.1, 1.0, 0.75, 0.5</div>
+        <div class="kv"><b>XP totals W1…W5</b>1572, 1111, 1572, 590, 1989</div>
+      </div>
+      <div class="row">
+        <div class="kv"><b>XP multipliers W1…W5</b>1, 2, 4, 8, 16 (doubles each world)</div>
+        <div class="kv"><b>Power offsets W1…W5</b>10, -24, -57, -90, -124 (positive = easier, negative = harder — so W1 is slightly eased and difficulty ramps up across the Odyssey)</div>
+      </div>
+      <div class="row">
+        <div class="kv"><b>Modifier W1</b>wmc_boost_meadow_small (Pet rarity boost on common pets)</div>
+        <div class="kv"><b>Behaviour</b>WorldRushBehavior</div>
+      </div>
+      <div class="row">
+        <div class="kv"><b>Persona target (Light)</b>candy_meadow, egg_epic, random_candy_big — 3 first gauge rewards</div>
+        <div class="kv"><b>Persona target (Normal+)</b>full gauge clear + leaderboard rewards (egg_legendary, big_coins, …)</div>
+      </div>
+      <div class="row">
+        <div class="kv"><b>Generator emits</b>4 milestones × 5 worlds = 20 WorldProgressConfig rows, 5 WorldEvents, 5 entries in eventContentList <code>TLE_2_Meadow</code> (orders 1…5) + leaderboard entry at order 0.</div>
+        <div class="kv"><b>Result</b>A 5-world Meadow Odyssey with a back-loaded leaderboard, ramping XP rewards, easing power curve.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="tab" id="faq">
+    <h2>FAQ</h2>
+
+    <details class="faq">
+      <summary>Why is the right side of the sheet so much taller than the left?</summary>
+      <p>The left side has one row per event (design intent). The right side has
+      one row per generated artefact (a milestone, a WorldEvent, an
+      eventContentList entry). One event can emit dozens of generator rows.</p>
+    </details>
+
+    <details class="faq">
+      <summary>What does the <code>World Gauge Rewards Repartition</code> string mean?</summary>
+      <p>A single number (e.g. <code>4</code>) = that many equal gauge milestones,
+      no leaderboard. A dash list (e.g. <code>4 - 2 - 4 - 3 - 5</code>) = the
+      first number is the count of gauge milestones; the following numbers split
+      the leaderboard tiers across worlds (or sub-events).</p>
+    </details>
+
+    <details class="faq">
+      <summary>What is α (alpha)?</summary>
+      <p>A front / back tilt knob for the shape of the cumulative-target curve.
+      Every Δ<sub>i</sub> stays strictly positive, so the cumulative target is
+      <b>strictly increasing for every α</b> — only its <i>shape</i> changes.
+      Two regimes:</p>
+      <ul>
+        <li><b>α ∈ [0.1, 1] → back-loaded</b> (convex cumulative; slow at first, steep at the end):
+        <code>Δ<sub>i</sub> = T · i<sup>1/α</sup> / Σ<sub>k</sub> k<sup>1/α</sup></code>.
+        Anchor: α = 1, N = 4, T = 100 → <code>10, 20, 30, 40</code>. Smaller α → last milestone dominates.</li>
+        <li><b>α ∈ (1, 5] → front-loaded</b> (concave cumulative; steep climb early, plateau near T):
+        <code>Δ<sub>i</sub> = T · (N+1−i)<sup>α</sup> / Σ<sub>k</sub> k<sup>α</sup></code>.
+        Larger α → first milestone dominates.</li>
+      </ul>
+      <p>In both regimes the bars sum to T. See the playground in the Gauge tab.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Why are there two sets of α columns?</summary>
+      <p>The <b>per-world</b> <code>α HC W1…W5</code> and <code>α XP W1…W5</code> columns shape
+      the milestone progression <i>inside</i> a single world's gauge. The
+      <b>event-wide</b> <code>alpha reward</code> and <code>alpha xp</code> columns
+      shape the 20 leaderboard tiers (combined with <code>XP Total</code> as the
+      curve's upper bound). One pair tunes the gauge, the other tunes the
+      leaderboard.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Which sign of Power offset means “easier”?</summary>
+      <p><b>Positive = easier for the player</b>, negative = harder. So in an Odyssey
+      that ramps up across worlds you typically see W1 slightly positive and the
+      later worlds going more and more negative. Spike challenges or boss rushes
+      use strongly negative values.</p>
+    </details>
+
+    <details class="faq">
+      <summary>What's the difference between <code>use_dynamic_*</code> flags?</summary>
+      <p><code>use_dynamic_world_coins</code> / <code>use_dynamic_world_progress_currency</code> /
+      <code>use_dynamic_power</code> = TRUE means the engine scales these values
+      dynamically with the player; FALSE means the fixed value next to them is
+      used as-is.</p>
+    </details>
+
+    <details class="faq">
+      <summary>How do I add a new TLE?</summary>
+      <p>Duplicate an existing row, change the <i>Event</i> name, set the
+      reward repartition, decide on the leaderboard, fill in the per-world α / XP /
+      Power values. The GENERATOR columns will populate automatically — verify
+      they make sense before shipping.</p>
+    </details>
+
+    <details class="faq">
+      <summary>What is the rebloom mechanic?</summary>
+      <p>Inside a TLE world, resources don't respawn on their own. The player must
+      pay HC to <i>rebloom</i> the world and regenerate them. This is deliberate:
+      we want <b>short repeated sessions</b> rather than one long grind. The cost is
+      defined in <code>WorldRulesConfig</code> (type = <code>rebloom</code>, value =
+      HC cost).</p>
+      <p><b>Generation rules</b> (live-ops contract):</p>
+      <ul>
+        <li>On first generation, resources are placed at fixed positions with fixed types — the same layout greets the player every time they enter.</li>
+        <li>Resource <i>progress</i> is preserved across re-entry when possible (nice-to-have: a 50%-eaten resource still shows 50% after leaving and coming back).</li>
+        <li>A rebloom is the <b>only</b> way to respawn resources. Each rebloom is a new random generation; existing resources are deleted before new ones spawn.</li>
+        <li><b>Random spawner cycles</b> (wheel of fortune, gifts, …) <i>reset</i> on rebloom — but previously spawned random items already on the map are kept.</li>
+      </ul>
+    </details>
+
+    <details class="faq">
+      <summary>What's the difference between a modifier and a restriction?</summary>
+      <p>A <b>modifier</b> changes the rules in the player's favour (e.g. <i>Pet rarity
+      boost</i>, <i>Specific pet boost</i>). A <b>restriction</b> limits what the
+      player can bring (e.g. <i>Biome restriction</i> = only pets from a given biome).
+      Both are referenced via <code>world_modifier_config_id</code>.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Why are personas in the doc named differently from the sheet?</summary>
+      <p>The product docs sometimes use <i>Light / Regular / Invested / Elite</i>;
+      the sheet uses <code>Light / Normal / Engaged / Elite</code>. Same buckets,
+      different wording. The Player personas tab spells out the mapping.</p>
+    </details>
+  </section>
+
+  <footer class="foot">
+    Static page — open the file directly in a browser. Source data: <code>V3.2 SA - TLE intention(4).csv</code> (v(4) layout, 184 columns).
+  </footer>
+</div>
+
+<script>
+  // ----- Tab switching -----
+  const tabs = document.querySelectorAll("nav.tabs button");
+  const sections = document.querySelectorAll("section.tab");
+  tabs.forEach(btn => btn.addEventListener("click", () => {
+    tabs.forEach(b => b.classList.remove("active"));
+    sections.forEach(s => s.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+    if (btn.dataset.tab === "gauge") drawCurve();
+  }));
+
+  // ----- Column reference -----
+  // Mirrors the inline explanations inserted at row 4 of the CSV.
+  const COLS = [
+    // Parameters
+    { g: "Parameters", k: "Tuning parameter (col A)", d: "Left-hand list of global knobs that drive the Gauge / Difficulty / Reward formulas for every TLE." },
+    { g: "Parameters", k: "Parameter value (col B)", d: "The value used by the formulas — only this column is read by the generator." },
+
+    // Event
+    { g: "Event", k: "Event", d: "Display name of the TLE configured by this row (e.g. 'TLE 1 Meadow' for an Island Trial, 'TLE 2 Meadow' for an Island Odyssey)." },
+    { g: "Event", k: "Generate new WorldProgress ?", d: "TRUE = (re)generate the WorldProgress / reward gauge; FALSE = reuse the existing one." },
+    { g: "Event", k: "World Gauge Rewards Repartition", d: "How the gauge total reward is split across milestones. Single number = N equal milestones per world. Dash list (e.g. 4-2-4-3-5) = gauge + leaderboard split." },
+    { g: "Event", k: "Leaderboard ?", d: "TRUE = competitive leaderboard on top of the gauge (Island Odyssey); FALSE = gauge only (Island Trial)." },
+
+    // Gauge curves (per-world)
+    { g: "Gauge", k: "α HC curve W1…W5", d: "Front / back tilt for how the per-world HC pie is sliced across the milestones. Cumulative target stays strictly increasing for every α. 0.1–1 = back-loaded (convex; α = 1 → linear 10–20–30–40; smaller α → last milestone dominates). 1–5 = front-loaded (concave; first milestones dominate; larger α → stronger plateau near T)." },
+    { g: "Gauge", k: "Amount of HC W1…W5", d: "Total HC handed out by the gauge in each world." },
+    { g: "Gauge", k: "α XP curve W1…W5", d: "Alpha profile applied to the XP gauge in each world — same role as the HC α." },
+    { g: "Gauge", k: "Amount of XP W1…W5", d: "Total XP required to fill the gauge in each world." },
+    { g: "Gauge", k: "XP_Multiplier W1…W5", d: "Multiplier applied on top of base XP rewards per world (1, 2, 4, 8, 16…)." },
+
+    // Totals & leaderboard curve inputs
+    { g: "Reward", k: "Gauge total Reward Value", d: "Sum of gem-equivalent value of all gauge rewards on this row (sanity check vs gauge HC budget)." },
+    { g: "Reward", k: "Leaderboard total rewards value", d: "Sum of gem-equivalent value of all leaderboard rewards (only filled when Leaderboard ? = TRUE)." },
+    { g: "Reward", k: "XP Total", d: "Total XP cap used as the upper bound (y_end) of the leaderboard XP curve when computing the cumulative target of each tier." },
+    { g: "Reward", k: "alpha reward", d: "Front / back tilt for the reward VALUE split across the 20 leaderboard tiers. 0.1–1 = back-loaded (top tiers concentrate the payout). 1–5 = front-loaded (mid / lower tiers carry more value; concave payout curve)." },
+    { g: "Reward", k: "alpha xp", d: "Front / back tilt for the per-tier XP increments across the 20 leaderboard tiers. 0.1–1 = back-loaded (huge XP gap at the top). 1–5 = front-loaded (climb is steep early, flatter at the top)." },
+
+    // Leaderboard reward block
+    { g: "Leaderboard", k: "1st…20th Leaderboard Reward", d: "Reward item id awarded at each of the 20 leaderboard tiers (cols 41–60). Filled only when Leaderboard ? = TRUE." },
+    { g: "Leaderboard", k: "1st…20th Leaderboard Target", d: "Cumulative XP needed to reach each leaderboard tier (cols 62–81). Computed from XP Total and alpha xp." },
+
+    // Gauge reward block
+    { g: "Reward", k: "1st…20th Gauge Reward", d: "Reward item id at each gauge milestone (cols 83–102). For an Odyssey: 4 milestones × 5 worlds = slots 1–4 belong to W1, 5–8 to W2, … 17–20 to W5." },
+    { g: "Reward", k: "1st…20th Gauge Target", d: "Cumulative XP / HC target to unlock each gauge reward (cols 104–123). Targets reset at the start of each world." },
+
+    // Difficulty
+    { g: "Difficulty", k: "Power 1st…5th World", d: "Power offset applied per world (cols DV–DZ). Positive = easier for the player, negative = harder. Feeds the difficulty / recommended-power formulas." },
+    { g: "Difficulty", k: "Modifier id", d: "World modifier config id (e.g. wmc_boost_meadow_small, wmc_allow_common_boost_common). Modifiers are buffs (Pet rarity boost) or restrictions (Biome restriction)." },
+    { g: "Difficulty", k: "Modifier value", d: "Value / multiplier exposed by the modifier (e.g. 120%) or #N/A if none." },
+    { g: "Difficulty", k: "Light / Normal / Engaged / Elite", d: "Comma-separated list of rewards we expect each persona to actually claim (design target, not an in-game cap)." },
+    { g: "Difficulty", k: "Bronze / Silver / Gold", d: "Comma-separated list of rewards we expect a player finishing in each leaderboard tier to claim." },
+
+    // Quests (placeholder)
+    { g: "Quests", k: "Quests block", d: "Reserved columns for quests; currently unused placeholders." },
+
+    // Generator: WorldProgressConfig
+    { g: "Generator", k: "WorldProgressConfig.id", d: "Unique id of the progression_reward_gauge entry produced for this event." },
+    { g: "Generator", k: "final_currency_target", d: "Total currency required to fully fill the gauge (last milestone target)." },
+    { g: "Generator", k: "currency_id", d: "Which currency the gauge tracks (typically currency.xp)." },
+    { g: "Generator", k: "rewards", d: "Reward item id granted at this milestone row." },
+    { g: "Generator", k: "reward_currency_target", d: "Currency value at which this specific milestone unlocks." },
+
+    // Generator: World Config
+    { g: "Generator", k: "World Config.id", d: "Reference of the world used by this event." },
+    { g: "Generator", k: "world_tile_config_id", d: "Tile layout config to use." },
+    { g: "Generator", k: "world_random_spawners_config_id", d: "Random spawner config." },
+    { g: "Generator", k: "world_resource_config_id", d: "Resource availability config." },
+    { g: "Generator", k: "landmark_config_id", d: "Landmarks placement config." },
+    { g: "Generator", k: "world_enviro_config_id", d: "Environment / visual config." },
+    { g: "Generator", k: "world_resource_drop_config_id", d: "Resource drop rates config." },
+    { g: "Generator", k: "biome_ids", d: "Biome ids the world is built from." },
+    { g: "Generator", k: "tile_count", d: "Number of tiles in the generated world." },
+    { g: "Generator", k: "world_modifier_config_id", d: "Modifier config applied to the world." },
+
+    // Generator: WorldEvent
+    { g: "Generator", k: "WorldEvent.id", d: "Unique id of the generated WorldEvent (e.g. TLE_1_Meadow_1)." },
+    { g: "Generator", k: "world_config_id", d: "Reference to the World Config block above." },
+    { g: "Generator", k: "progression_config_id", d: "Reference to the WorldProgressConfig (gauge) used by this WorldEvent." },
+    { g: "Generator", k: "use_dynamic_world_coins", d: "TRUE = scale coin rewards dynamically with the player; FALSE = fixed values." },
+    { g: "Generator", k: "world_coins_multiplier", d: "Multiplier applied to coin rewards (used only when use_dynamic_world_coins = TRUE)." },
+    { g: "Generator", k: "use_dynamic_world_progress_currency", d: "TRUE = scale gauge currency dynamically; FALSE = fixed values." },
+    { g: "Generator", k: "world_progress_currency_multiplier", d: "Multiplier applied to gauge currency (only when use_dynamic_world_progress_currency = TRUE)." },
+    { g: "Generator", k: "game_page", d: "Screen the event is hosted on (e.g. EventPage)." },
+    { g: "Generator", k: "event_duration", d: "Duration in seconds (-1 = no automatic end)." },
+    { g: "Generator", k: "use_dynamic_power", d: "TRUE = compute world power from the player level; FALSE = fixed world_power." },
+    { g: "Generator", k: "additional_power", d: "Extra power offset added on top (matches the Difficulty Power columns)." },
+    { g: "Generator", k: "world_power", d: "Baseline world power used when use_dynamic_power = FALSE." },
+    { g: "Generator", k: "world_recommended_power", d: "Recommended power displayed to the player." },
+    { g: "Generator", k: "behavior", d: "Event behavior class (e.g. WorldRushBehavior)." },
+    { g: "Generator", k: "eventCardViewId", d: "View id of the card shown in the events list." },
+    { g: "Generator", k: "eventRulesViewId", d: "View id of the rules popup." },
+    { g: "Generator", k: "eventPopupViewId", d: "View id of the start / end popup." },
+
+    // Generator: eventContentList
+    { g: "Generator", k: "eventContentList.id", d: "Id of the parent event group this WorldEvent belongs to (e.g. TLE_1_Meadow)." },
+    { g: "Generator", k: "content_id", d: "Id of the WorldEvent included in the group (matches the WorldEvent.id column)." },
+    { g: "Generator", k: "progression_order", d: "Order in which this WorldEvent is played within the group (1, 2, 3…)." },
+  ];
+
+  const groups = ["All", "Parameters", "Event", "Gauge", "Reward", "Leaderboard", "Difficulty", "Quests", "Generator"];
+  const chipBox = document.getElementById("filter-chips");
+  groups.forEach((g, i) => {
+    const b = document.createElement("span");
+    b.className = "chip" + (i === 0 ? " active" : "");
+    b.textContent = g;
+    b.dataset.group = g;
+    b.addEventListener("click", () => {
+      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+      b.classList.add("active");
+      filterCols();
+    });
+    chipBox.appendChild(b);
+  });
+
+  const list = document.getElementById("col-list");
+  COLS.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "col";
+    div.dataset.group = c.g;
+    div.innerHTML = `
+      <div><code>${c.k}</code></div>
+      <div class="desc">${c.d}</div>
+      <div class="group">${c.g}</div>`;
+    list.appendChild(div);
+  });
+
+  const search = document.getElementById("col-search");
+  search.addEventListener("input", filterCols);
+  function filterCols() {
+    const q = search.value.trim().toLowerCase();
+    const g = document.querySelector(".chip.active").dataset.group;
+    document.querySelectorAll(".col").forEach(el => {
+      const txt = el.textContent.toLowerCase();
+      const groupOk = g === "All" || el.dataset.group === g;
+      const queryOk = !q || txt.includes(q);
+      el.classList.toggle("hidden", !(groupOk && queryOk));
+    });
+  }
+
+  // ----- Curve playground -----
+  const cv = document.getElementById("curve");
+  const ctx = cv.getContext("2d");
+  const aIn = document.getElementById("alpha");
+  const nIn = document.getElementById("n");
+  const tIn = document.getElementById("total");
+  const aOut = document.getElementById("alphaVal");
+  const nOut = document.getElementById("nVal");
+  const tOut = document.getElementById("totalVal");
+  [aIn, nIn, tIn].forEach(el => el.addEventListener("input", drawCurve));
+
+  function drawCurve() {
+    const a = parseFloat(aIn.value);
+    const N = parseInt(nIn.value, 10);
+    const T = parseInt(tIn.value, 10);
+    aOut.textContent = a.toFixed(2);
+    nOut.textContent = N;
+    tOut.textContent = T;
+
+    // resize for crispness
+    const dpr = window.devicePixelRatio || 1;
+    const W = cv.clientWidth, H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    const padL = 48, padR = 12, padT = 16, padB = 32;
+    const w = W - padL - padR, h = H - padT - padB;
+
+    // Fixed Y scale = slider max, so changing Total XP *visibly* grows the bars/curve
+    // (instead of just rescaling the axis).
+    const Ymax = parseInt(tIn.max, 10);
+
+    // Per-milestone XP deltas — α as a front/back tilt knob. Every Δ_i is
+    // strictly positive, so the cumulative target is strictly increasing for
+    // every α (the curve never dips). α controls the shape of the cumulative
+    // curve, not its monotonicity.
+    //   α ∈ [0.1, 1]  → back-loaded  → cumulative is convex (slow then steep).
+    //                   Δ_i = T · i^(1/α) / Σ k^(1/α)
+    //                   anchor: α = 1, N = 4, T = 100 → Δ = 10, 20, 30, 40
+    //   α ∈ (1, 5]    → front-loaded → cumulative is concave (steep then flat).
+    //                   Δ_i = T · (N+1−i)^α / Σ k^α
+    let denom = 0;
+    const weights = [];
+    if (a <= 1) {
+      const p = 1 / a;
+      for (let i = 1; i <= N; i++) {
+        const w = Math.pow(i, p);
+        weights.push(w);
+        denom += w;
+      }
+    } else {
+      for (let i = 1; i <= N; i++) {
+        const w = Math.pow(N + 1 - i, a);
+        weights.push(w);
+        denom += w;
+      }
+    }
+    const deltas = [];
+    const targets = []; // cumulative running total
+    let cum = 0;
+    for (let i = 0; i < N; i++) {
+      const d = T * weights[i] / denom;
+      deltas.push(d);
+      cum += d;
+      targets.push(cum);
+    }
+    const sumDelta = targets[N - 1]; // = T by construction
+
+    // axes
+    ctx.strokeStyle = "#2a3142";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + h);
+    ctx.lineTo(padL + w, padT + h); ctx.stroke();
+
+    // y-axis ticks against the FIXED max
+    ctx.fillStyle = "#9aa3b2";
+    ctx.font = "11px ui-monospace, Menlo, monospace";
+    for (let i = 0; i <= 4; i++) {
+      const y = padT + h - (i / 4) * h;
+      const v = Math.round((i / 4) * Ymax);
+      ctx.fillText(String(v), 4, y + 3);
+      ctx.strokeStyle = "#1d2230";
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + w, y); ctx.stroke();
+    }
+
+    // Bars = cumulative target Σ_i at each milestone. Each bar rises from the
+    // x-axis up to the running cumulative total, so the bar TOPS trace the
+    // cumulative curve and the last bar always equals T.
+    // The per-milestone Δ_i is shown as a smaller inner label (it shrinks over
+    // time in the front-loaded regime, even though the bars keep growing).
+    const slotW = w / N;
+    const gap = Math.min(6, slotW * 0.15);
+    for (let i = 0; i < N; i++) {
+      const d = deltas[i];
+      const cum = targets[i];
+      const yTop = padT + h - (cum / Ymax) * h;
+      const yBot = padT + h;
+      const barH = yBot - yTop;
+      const x0 = padL + i * slotW + gap / 2;
+      const bw = slotW - gap;
+      // gradient fill
+      const grad = ctx.createLinearGradient(0, yTop, 0, yBot);
+      grad.addColorStop(0, "rgba(122, 162, 255, 0.85)");
+      grad.addColorStop(1, "rgba(122, 162, 255, 0.20)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(x0, yTop, bw, barH);
+      ctx.strokeStyle = "rgba(122, 162, 255, 0.9)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x0 + 0.5, yTop + 0.5, bw - 1, barH - 1);
+
+      // Σ label just above the bar (bold) - cumulative target at milestone i.
+      if (slotW > 30) {
+        ctx.fillStyle = "rgba(121, 227, 197, 0.95)";
+        ctx.font = "bold 11px ui-monospace, Menlo, monospace";
+        const clabel = "Σ=" + Math.round(cum);
+        const ctw = ctx.measureText(clabel).width;
+        const ly = yTop - 4;
+        if (ly > padT + 10) {
+          ctx.fillText(clabel, x0 + bw / 2 - ctw / 2, ly);
+        } else {
+          // Bar too tall to fit label above; put it just below the top inside the bar.
+          ctx.fillText(clabel, x0 + bw / 2 - ctw / 2, yTop + 12);
+        }
+      }
+      // Δ label inside the bar (smaller, muted) - what THIS milestone added.
+      if (slotW > 28 && barH > 28) {
+        ctx.fillStyle = "rgba(229, 231, 235, 0.85)";
+        ctx.font = "11px ui-monospace, Menlo, monospace";
+        const dlabel = "+" + Math.round(d);
+        const dtw = ctx.measureText(dlabel).width;
+        ctx.fillText(dlabel, x0 + bw / 2 - dtw / 2, yTop + barH / 2 + 4);
+      }
+      // x-axis index
+      ctx.fillStyle = "#9aa3b2";
+      ctx.font = "10px ui-monospace, Menlo, monospace";
+      const idxLabel = String(i + 1);
+      const itw = ctx.measureText(idxLabel).width;
+      ctx.fillText(idxLabel, x0 + bw / 2 - itw / 2, padT + h + 14);
+    }
+
+    // Overlay: cumulative target polyline through the actual milestone totals.
+    // Goes (0,0) → (1/N, target_1) → (2/N, target_2) → … → (1, T).
+    ctx.strokeStyle = "#79e3c5";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT + h); // (0, 0)
+    for (let i = 1; i <= N; i++) {
+      const x = i / N;
+      const y = targets[i - 1];
+      const cx = padL + x * w;
+      const cy = padT + h - (y / Ymax) * h;
+      ctx.lineTo(cx, cy);
+    }
+    ctx.stroke();
+
+    // Milestone dots on the curve
+    for (let i = 1; i <= N; i++) {
+      const x = i / N;
+      const y = targets[i - 1];
+      const cx = padL + x * w;
+      const cy = padT + h - (y / Ymax) * h;
+      ctx.fillStyle = "#79e3c5";
+      ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // x-axis label
+    ctx.fillStyle = "#9aa3b2";
+    ctx.font = "11px ui-monospace, Menlo, monospace";
+    ctx.fillText("Milestone (1 → " + N + ")", padL, H - 8);
+
+    // Legend + Σ annotation (top-right)
+    const legendX = padL + w - 200;
+    const legendY = padT + 4;
+    ctx.fillStyle = "rgba(122, 162, 255, 0.85)";
+    ctx.fillRect(legendX, legendY, 12, 10);
+    ctx.fillStyle = "#e5e7eb";
+    ctx.fillText("Cumulative Σᵢ (bars)", legendX + 18, legendY + 9);
+    ctx.strokeStyle = "#79e3c5";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(legendX, legendY + 24); ctx.lineTo(legendX + 12, legendY + 24); ctx.stroke();
+    ctx.fillStyle = "#e5e7eb";
+    ctx.fillText("Cumulative target", legendX + 18, legendY + 28);
+    ctx.fillStyle = "#9aa3b2";
+    ctx.fillText("Σ Δ = " + Math.round(sumDelta) + "  (= T)", legendX, legendY + 46);
+  }
+  drawCurve();
+  window.addEventListener("resize", drawCurve);
+</script>
+</body>
+</html>

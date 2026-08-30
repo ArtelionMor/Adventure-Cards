@@ -1,0 +1,1013 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pet Builds — Teliau's Toolbelt</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --bg-2: #161922;
+    --bg-3: #1d2230;
+    --line: #2a3142;
+    --text: #e7eaf0;
+    --muted: #9aa3b2;
+    --accent: #7aa2ff;
+    --accent-2: #79e3c5;
+    --accent-3: #c69bff;
+    --shadow: 0 8px 24px rgba(0,0,0,.35);
+    --radius: 16px;
+    --r-common: #8a93a3;
+    --r-rare: #4a90d9;
+    --r-epic: #a855f7;
+    --r-legendary: #f5a623;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; }
+  body {
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+
+  /* shared nav */
+  .tb-nav {
+    position: sticky; top: 0; z-index: 9999;
+    display: flex; align-items: center; gap: 18px;
+    height: 52px; padding: 0 18px;
+    background: rgba(13,15,20,.86);
+    backdrop-filter: saturate(140%) blur(10px);
+    -webkit-backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .tb-nav__brand { display: flex; align-items: center; gap: 8px; color: var(--text); font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+  .tb-nav__brand .tb-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 10px rgba(122,162,255,.7); }
+  .tb-nav__links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .tb-nav__link { color: var(--muted); padding: 7px 12px; border-radius: 8px; border: 1px solid transparent; white-space: nowrap; transition: background .15s, color .15s; font-size: 14px; }
+  .tb-nav__link:hover { color: var(--text); background: var(--bg-3); }
+  .tb-nav__link--active { color: var(--text); background: var(--bg-3); border-color: var(--line); }
+  @media (max-width: 640px) { .tb-nav { height: auto; padding: 8px 12px; flex-wrap: wrap; gap: 10px; } }
+
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 32px 24px 90px; }
+  .hero { margin-bottom: 26px; }
+  .hero .eyebrow { display: inline-block; padding: 4px 12px; border-radius: 999px; background: var(--bg-3); color: var(--muted); font-size: 12px; border: 1px solid var(--line); margin-bottom: 14px; letter-spacing: .04em; text-transform: uppercase; }
+  .hero h1 { font-size: 34px; margin: 0 0 10px; letter-spacing: -.02em; line-height: 1.1; background: linear-gradient(120deg, #fff 0%, var(--accent) 60%, var(--accent-2) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { color: var(--muted); max-width: 70ch; font-size: 15px; margin: 0; }
+
+  .layout { display: grid; grid-template-columns: 260px 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .panel__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .panel__head h2 { font-size: 14px; margin: 0; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .panel__body { padding: 16px; }
+
+  .btn { font: inherit; font-size: 13px; cursor: pointer; border-radius: 9px; border: 1px solid var(--line); background: var(--bg-3); color: var(--text); padding: 7px 12px; transition: border-color .15s, background .15s, transform .05s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn:hover { border-color: var(--accent); }
+  .btn:active { transform: translateY(1px); }
+  .btn--primary { background: linear-gradient(135deg, var(--accent), #5f86ef); border-color: transparent; color: #0b1020; font-weight: 600; }
+  .btn--ghost { background: transparent; }
+  .btn--danger:hover { border-color: #ff6b6b; color: #ff9b9b; }
+  .btn--sm { padding: 5px 9px; font-size: 12px; }
+
+  /* sidebar build list */
+  .buildlist { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow:auto; }
+  .buildlist__item { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-3); cursor: pointer; transition: border-color .15s; }
+  .buildlist__item:hover { border-color: var(--accent); }
+  .buildlist__item.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .buildlist__name { flex: 1; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cat-pill { font-size: 10px; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: .04em; border: 1px solid var(--line); color: var(--muted); }
+  .cat-pill[data-cat="biome"] { color: var(--accent-2); border-color: rgba(121,227,197,.4); }
+  .cat-pill[data-cat="family"] { color: var(--accent-3); border-color: rgba(198,155,255,.4); }
+  .cat-pill[data-cat="custom"] { color: var(--accent); border-color: rgba(122,162,255,.4); }
+
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
+  .input, .select, .textarea { width: 100%; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; }
+  .input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--accent); }
+  .textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+
+  /* build editor */
+  .editor { display: grid; grid-template-columns: minmax(320px, 460px) 1fr; gap: 18px; }
+  @media (max-width: 760px) { .editor { grid-template-columns: 1fr; } }
+
+  /* alternatives bench */
+  .alts { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; }
+  .alts__head label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .04em; }
+  .alts__zone { display: flex; flex-wrap: wrap; gap: 10px; min-height: 84px; border: 2px dashed var(--line); border-radius: 12px; padding: 10px; align-content: flex-start; }
+  .alts__zone.dragover { border-color: var(--accent); background: rgba(122,162,255,.08); }
+  .alts__empty { color: var(--muted); font-size: 13px; margin: auto; text-align: center; }
+  .alt-tile { width: 82px; height: 82px; border-radius: 12px; overflow: hidden; position: relative; border: 1px solid var(--line); cursor: grab; transition: border-color .12s, transform .12s; }
+  .alt-tile:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .alt-tile:active { cursor: grabbing; }
+  .alt-tile:hover .tile__rm { display: grid; }
+
+  .slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .slot { position: relative; aspect-ratio: 1; border-radius: 14px; border: 2px dashed var(--line); background: var(--bg-3); display: grid; place-items: center; transition: border-color .15s, background .15s; overflow: hidden; }
+  .slot.dragover { border-color: var(--accent); background: rgba(122,162,255,.12); }
+  .slot.filled { border-style: solid; cursor: pointer; }
+  .slot__empty { color: var(--muted); font-size: 26px; opacity: .5; }
+  .slot__idx { position: absolute; top: 6px; left: 8px; font-size: 11px; color: var(--muted); opacity: .6; }
+
+  /* a pet tile (shared by slots + roster) */
+  .tile { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; }
+  .tile__bg { position: absolute; inset: 0; }
+  .tile__img { position: relative; flex: 1; display: grid; place-items: center; padding: 8px; }
+  .tile__img img { max-width: 86%; max-height: 86%; image-rendering: -webkit-optimize-contrast; filter: drop-shadow(0 3px 6px rgba(0,0,0,.4)); }
+  .tile__name { position: relative; text-align: center; font-size: 12px; font-weight: 700; padding: 4px 4px 6px; background: linear-gradient(transparent, rgba(0,0,0,.55)); text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+  .tile__biomes { position: absolute; top: 5px; right: 5px; display: flex; flex-direction: column; gap: 3px; }
+  .tile__biome { width: 26px; height: 26px; border-radius: 7px; background: rgba(0,0,0,.45); display: grid; place-items: center; backdrop-filter: blur(2px); }
+  .tile__biome img { width: 18px; height: 18px; }
+  .badge-x { border: none; background: none; color: inherit; cursor: pointer; font-size: 13px; line-height: 1; margin-left: 3px; padding: 0; opacity: .65; }
+  .badge-x:hover { opacity: 1; color: #ff9b9b; }
+  .tile__rar { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .tile__rm { position: absolute; top: 5px; left: 5px; width: 22px; height: 22px; border-radius: 6px; border: none; background: rgba(0,0,0,.55); color: #fff; font-size: 13px; cursor: pointer; display: none; place-items: center; }
+  .slot.filled:hover .tile__rm { display: grid; }
+  .tile__passives { position: absolute; bottom: 22px; left: 5px; display: flex; gap: 3px; }
+  .tile__passive { width: 18px; height: 18px; border-radius: 5px; background: rgba(0,0,0,.5); display: grid; place-items: center; }
+  .tile__passive img { width: 13px; height: 13px; object-fit: contain; }
+
+  /* rarity backgrounds */
+  .rar-common .tile__bg { background: radial-gradient(120% 120% at 50% 0%, #3a4150, #232834); }
+  .rar-rare .tile__bg { background: radial-gradient(120% 120% at 50% 0%, #1d4e8a, #14233a); }
+  .rar-epic .tile__bg { background: radial-gradient(120% 120% at 50% 0%, #5b2a93, #2a1742); }
+  .rar-legendary .tile__bg { background: radial-gradient(120% 120% at 50% 0%, #9a6410, #3a2a10); }
+  .rar-common .tile__rar { background: var(--r-common); }
+  .rar-rare .tile__rar { background: var(--r-rare); }
+  .rar-epic .tile__rar { background: var(--r-epic); }
+  .rar-legendary .tile__rar { background: var(--r-legendary); }
+
+  /* detail panel */
+  .detail h3 { margin: 0 0 4px; font-size: 18px; }
+  .detail .meta-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .badge { font-size: 11px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); display:inline-flex; align-items:center; gap:5px; }
+  .badge img { width: 14px; height: 14px; }
+  .badge.rar-common { color: var(--r-common); border-color: rgba(138,147,163,.5); }
+  .badge.rar-rare { color: var(--r-rare); border-color: rgba(74,144,217,.5); }
+  .badge.rar-epic { color: var(--r-epic); border-color: rgba(168,85,247,.5); }
+  .badge.rar-legendary { color: var(--r-legendary); border-color: rgba(245,166,35,.5); }
+  .detail .lore { color: var(--muted); font-style: italic; font-size: 13.5px; margin: 0 0 14px; padding-left: 10px; border-left: 2px solid var(--line); }
+  .detail .empty-hint { color: var(--muted); }
+
+  /* roster */
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+  .chip { font-size: 12px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg-3); color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: border-color .15s, color .15s; }
+  .chip:hover { color: var(--text); }
+  .chip.active { color: var(--text); border-color: var(--accent); background: rgba(122,162,255,.12); }
+  .chip img { width: 16px; height: 16px; }
+  .roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 12px; align-items: start; }
+  .roster-cell { display: flex; flex-direction: column; gap: 5px; }
+  .pet-tags { display: flex; flex-wrap: wrap; gap: 3px; }
+  .pet-tag { font-size: 9px; line-height: 1.4; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .pet-tag[data-cat="biome"] { color: var(--accent-2); border-color: rgba(121,227,197,.4); }
+  .pet-tag[data-cat="family"] { color: var(--accent-3); border-color: rgba(198,155,255,.4); }
+  .pet-tag[data-cat="custom"] { color: var(--accent); border-color: rgba(122,162,255,.4); }
+  .roster .slot-like { aspect-ratio: 1; border-radius: 14px; border: 1px solid var(--line); overflow: hidden; cursor: grab; position: relative; transition: transform .12s, border-color .12s; }
+  .roster .slot-like:hover { transform: translateY(-3px); border-color: var(--accent); }
+  .roster .slot-like.in-build { opacity: .35; filter: grayscale(.4); }
+  .roster .slot-like.in-build::after { content: "✓ dans le build"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; font-weight: 700; background: rgba(0,0,0,.45); }
+
+  .count { font-size: 12px; color: var(--muted); }
+  .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--bg-3); border: 1px solid var(--accent); color: var(--text); padding: 10px 18px; border-radius: 10px; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 10000; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+  .spacer { flex: 1; }
+  .stat { font-size: 12px; color: var(--muted); }
+  hr.sep { border: none; border-top: 1px solid var(--line); margin: 16px 0; }
+
+  /* sidebar column holding several panels */
+  .sidecol { display: flex; flex-direction: column; gap: 22px; }
+
+  /* keyword editor */
+  .kw-add { display: flex; gap: 6px; align-items: center; margin-bottom: 12px; }
+  .kw-add .input { flex: 1; }
+  input[type=color] { -webkit-appearance: none; appearance: none; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); cursor: pointer; padding: 2px; width: 34px; height: 34px; flex: none; }
+  input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+  input[type=color]::-webkit-color-swatch { border: none; border-radius: 5px; }
+  .kwlist { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow: auto; }
+  .kw { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg-3); cursor: grab; }
+  .kw:hover { border-color: var(--accent); }
+  .kw:active { cursor: grabbing; }
+  .kw__color { width: 22px; height: 22px; }
+  .kw__text { flex: 1; font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kw__del { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 17px; line-height: 1; padding: 2px 5px; border-radius: 6px; }
+  .kw__del:hover { color: #ff9b9b; }
+
+  /* rich-text editors (description + passive notes) */
+  .rich { width: 100%; min-height: 70px; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; line-height: 1.7; overflow: auto; }
+  .rich:focus { outline: none; border-color: var(--accent); }
+  .rich.dragover { border-color: var(--accent); background: rgba(122,162,255,.08); }
+  .rich:empty::before { content: attr(data-ph); color: var(--muted); }
+  .kw-chip { display: inline-block; padding: 0 9px; border-radius: 999px; font-size: 12.5px; font-weight: 700; line-height: 1.7; margin: 0 2px; white-space: nowrap; }
+
+  /* multiple passives per pet */
+  .passive-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .passive-block { margin-bottom: 10px; }
+  .passive-block__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .passive-block__label { font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+  .passive-title { flex: 1; min-width: 0; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; background: none; border: none; border-bottom: 1px dashed transparent; padding: 2px 0; margin-right: 8px; }
+  .passive-title:hover { border-bottom-color: var(--line); }
+  .passive-title:focus { outline: none; border-bottom-color: var(--accent); }
+  .passive-title::placeholder { color: var(--muted); opacity: .7; }
+  .passive-block__del { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 6px; border-radius: 6px; }
+  .passive-block__del:hover { color: #ff9b9b; }
+  .passive-block__tools { display: flex; align-items: center; gap: 6px; }
+  .icon-pick { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg-3); cursor: pointer; padding: 0; color: var(--muted); font-size: 14px; }
+  .icon-pick:hover { border-color: var(--accent); }
+  .icon-pick img { width: 18px; height: 18px; object-fit: contain; }
+
+  /* icon picker popover */
+  .icon-pop { width: 264px; background: var(--bg-2); border: 1px solid var(--accent); border-radius: 12px; box-shadow: var(--shadow); z-index: 10001; overflow: hidden; }
+  .icon-pop__head { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .icon-pop__refresh { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 15px; border-radius: 6px; padding: 2px 6px; }
+  .icon-pop__refresh:hover { color: var(--text); }
+  .icon-pop__grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 10px; max-height: 200px; overflow: auto; }
+  .icon-cell { aspect-ratio: 1; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--line); background: var(--bg-3); cursor: pointer; color: var(--muted); font-size: 16px; padding: 0; }
+  .icon-cell:hover { border-color: var(--accent); }
+  .icon-cell.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .icon-cell img { width: 80%; height: 80%; object-fit: contain; }
+  .icon-pop__foot { display: flex; gap: 6px; padding: 10px; border-top: 1px solid var(--line); }
+  .icon-pop__foot .input { flex: 1; font-size: 12px; padding: 6px 8px; }
+</style>
+</head>
+<body>
+<nav class="tb-nav">
+  <a class="tb-nav__brand" href="index.html"><span class="tb-dot"></span>Teliau's Toolbelt</a>
+  <div class="tb-nav__links">
+    <a class="tb-nav__link" href="index.html">Home</a>
+    <a class="tb-nav__link" href="tle-intention.html">TLE Intention</a>
+    <a class="tb-nav__link" href="daily-deals.html">Daily Deals</a>
+    <a class="tb-nav__link" href="diff-viewer.html">JSON Diff</a>
+    <a class="tb-nav__link tb-nav__link--active" href="pet-builds.html">Pet Builds</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hero">
+    <span class="eyebrow">Pet Passives Project</span>
+    <h1>Pet Builds</h1>
+    <p>Compose des builds de 6 pets (2 lignes de 3), remplis la description et les passifs, puis pioche dans le roster complet en dessous — chaque pet est teinté selon sa rareté et badgé de son biome. Tout se sauvegarde en JSON (Exporter / Importer).</p>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar: builds + keywords -->
+    <aside class="sidecol">
+    <section class="panel">
+      <div class="panel__head"><h2>Builds</h2><span class="count" id="buildCount"></span></div>
+      <div class="panel__body">
+        <div class="toolbar" style="margin-bottom:12px;">
+          <button class="btn btn--primary btn--sm" id="newBuild">+ Nouveau</button>
+          <button class="btn btn--sm" id="dupBuild">Dupliquer</button>
+          <button class="btn btn--sm btn--danger" id="delBuild">Supprimer</button>
+        </div>
+        <div class="buildlist" id="buildList"></div>
+        <hr class="sep">
+        <div class="toolbar">
+          <button class="btn btn--sm" id="exportBtn">⬇ Exporter JSON</button>
+          <button class="btn btn--sm" id="importBtn">⬆ Importer JSON</button>
+          <input type="file" id="importFile" accept="application/json" hidden>
+        </div>
+        <p class="stat" id="saveStatus" style="margin:10px 0 0;"></p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel__head"><h2>Mots-clés</h2><span class="count" id="kwCount"></span></div>
+      <div class="panel__body">
+        <div class="kw-add">
+          <input type="color" id="kwColor" value="#7aa2ff" title="Couleur du mot-clé">
+          <input class="input" id="kwText" placeholder="Nouveau mot-clé…" maxlength="40">
+          <button class="btn btn--sm btn--primary" id="kwAdd" title="Ajouter">+</button>
+        </div>
+        <div class="kwlist" id="kwList"></div>
+        <p class="stat" style="margin:10px 0 0;">Glisse un mot-clé dans une description ou un passif pour l'insérer.</p>
+      </div>
+    </section>
+    </aside>
+
+    <!-- Main editor + roster -->
+    <main style="display:flex; flex-direction:column; gap:22px;">
+      <section class="panel" id="editorPanel">
+        <div class="panel__head">
+          <h2>Éditeur de build</h2>
+          <span class="count" id="slotCount"></span>
+        </div>
+        <div class="panel__body">
+          <div class="field" style="display:grid; grid-template-columns: 1fr 200px; gap:12px;">
+            <div>
+              <label for="buildName">Nom du build</label>
+              <input class="input" id="buildName" placeholder="ex. Forest — focus Encornés">
+            </div>
+            <div>
+              <label for="buildCat">Catégorie</label>
+              <select class="select" id="buildCat">
+                <option value="biome">Biome</option>
+                <option value="family">Famille</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input class="input" id="customTag" placeholder="Ton tag…" style="margin-top:8px; display:none;">
+            </div>
+          </div>
+
+          <div class="editor">
+            <div>
+              <div class="slots" id="slots"></div>
+              <div class="field" style="margin-top:14px;">
+                <label for="buildDesc">Description du build</label>
+                <div class="rich" id="buildDesc" contenteditable="true" data-ph="Logique du build, synergies, intention de design…"></div>
+              </div>
+            </div>
+            <div class="detail" id="detail"></div>
+          </div>
+
+          <div class="alts">
+            <div class="alts__head"><label>Alternatives — swap rapide <span style="text-transform:none;letter-spacing:0;color:var(--muted);">(glisse une alternative dans un slot pour échanger, ou sélectionne un slot puis clique une alternative)</span></label></div>
+            <div class="alts__zone" id="altZone"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__head">
+          <h2>Roster des pets</h2>
+          <span class="count" id="rosterCount"></span>
+        </div>
+        <div class="panel__body">
+          <div class="filters" id="biomeFilters"></div>
+          <div class="filters">
+            <select class="select" id="rarFilter" style="width:auto;">
+              <option value="">Toutes raretés</option>
+              <option value="common">Common</option>
+              <option value="rare">Rare</option>
+              <option value="epic">Epic</option>
+              <option value="legendary">Legendary</option>
+            </select>
+            <input class="input" id="searchFilter" placeholder="Rechercher…" style="width:200px;">
+            <label class="chip" style="cursor:pointer;"><input type="checkbox" id="hideInBuild" style="margin-right:4px;">Masquer ceux du build</label>
+            <span class="spacer"></span>
+            <button class="btn btn--ghost btn--sm" id="resetFilters">Réinitialiser</button>
+          </div>
+          <div class="roster" id="roster"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/passive-icons/manifest.js"></script>
+<script>
+// ---------- DATA ----------
+const ASSET = { pet: n => `assets/pets/Icon${n}.png`, biome: b => `assets/biomes/${BIOME_ICON[b]}`, passive: p => `assets/passives/Icon${p}.png`, icon: f => `assets/passive-icons/${encodeURIComponent(f)}` };
+
+const BIOME_ICON = {
+  meadow:'MeadowIcon.png', forest:'ForestIcon.png', jungle:'JungleIcon.png', sea:'SeaIcon.png',
+  cave:'CaveIcon.png', snow:'SnowIcon.png', savanna:'SavannaIcon.png', fire:'FireIcon.png', space:'SpaceIcon.png'
+};
+const BIOME_LABEL = { meadow:'Meadow', forest:'Forest', jungle:'Jungle', sea:'Sea', cave:'Cave', snow:'Snow', savanna:'Savanna', fire:'Fire', space:'Space' };
+
+// passive_id -> passive icon file (when one exists)
+const PASSIVE_ICON = {
+  apple_lover:'AppleLover', banana_lover:'BananaLover', blueberry_lover:'BlueberryLover',
+  carrot_lover:'CarrotLover', chestnut_lover:'ChestnutLover', crystalberry_lover:'CrystalBerryLover',
+  gojiberry_lover:'GojiBerryLover', mango_lover:'MangoLover', plum_lover:'PlumLover',
+  squash_lover:'SquashLover', watermelon_lover:'WatermelonLover',
+  rock_breaker:'RockBreaker', hole_digger:'HoleDigger', log_chewer:'LogChewer'
+};
+
+// id, name, icon(file stem), rarity, biome, family, type, passiveId, lore
+const PETS = [
+  ['pet.bear','Bear','Bear','legendary','forest','Ursidés','Mammal_Large','', "Big, cuddly, but don’t steal its snacks!"],
+  ['pet.cat','Cat','Cat','common','meadow','Félins','Mammal_Small','', "Self-proclaimed ruler of the game. You serve it now."],
+  ['pet.goat','Goat','Goat','epic','meadow','Encornés','Mammal_Medium','rock_breaker', "Climbs anything, eats everything, fears nothing!"],
+  ['pet.cow','Cow','Cow','legendary','meadow','Encornés','Mammal_Large','squash_lover', "Chill, chunky, and full of charm. Loves naps, snacks, and stampedes."],
+  ['pet.deer','Deer','Deer','rare','forest','Encornés','Mammal_Medium','blueberry_lover', "Graceful, speedy… scared of literally everything."],
+  ['pet.dog','Dog','Dog','common','meadow','Canidés','Mammal_Medium','hole_digger', "Loyal, goofy, always chasing things he’ll never catch."],
+  ['pet.frog','Frog','Frog','epic','jungle','Reptiles & Amphibiens','Amphibian','', "Bright, bouncy, and possibly poisonous! Ribbit!"],
+  ['pet.jaguar','Jaguar','Jaguar','legendary','jungle','Félins','Mammal_Large','', "Silent, sleek, and faster than your Wi-Fi!"],
+  ['pet.rabbit','Rabbit','Rabbit','rare','meadow','Rongeurs & petits mammifères','Mammal_Small','carrot_lover', "Hops around like it drank five energy drinks."],
+  ['pet.beaver','Beaver','Beaver','epic','forest','Rongeurs & petits mammifères','Mammal_Medium','log_chewer', "Thinks everything is a dam project."],
+  ['pet.badger','Badger','Badger','common','forest','Rongeurs & petits mammifères','Mammal_Medium','', "Nature’s grumpy garden gnome."],
+  ['pet.caiman','Caiman','Croco','rare','jungle','Reptiles & Amphibiens','Reptile','', "A crocodile’s sneaky cousin who lurks like it’s always planning a prank."],
+  ['pet.capybara','Capybara','Capibara','legendary','jungle','Rongeurs & petits mammifères','Mammal_Medium','', "The chillest creature alive. A furry potato that vibes with everyone."],
+  ['pet.crab','Crab','Crab','common','sea','Aquatiques','Invertebrate','', "Tiny sideways tank. Pinches first, asks questions never."],
+  ['pet.dolphin','Dolphin','Dolphin','legendary','sea','Aquatiques','Aquatic_Mammal','damage_aoe', "A smiley ocean genius who surfs waves and judges your intelligence."],
+  ['pet.duck','Duck','Duck','common','meadow','Oiseaux','Bird_Large','plum_lover', "Quack-powered chaos in a feathery tuxedo."],
+  ['pet.iguana','Iguana','Iguana','rare','sea','Reptiles & Amphibiens','Reptile','watermelon_lover', "Lounge lizard with a mohawk. Too cool to move fast."],
+  ['pet.moose','Moose','Moose','rare','forest','Encornés','Mammal_Large','apple_lover', "A majestic forest horse with tree-branch antlers."],
+  ['pet.otter','Otter','Otter','epic','meadow','Aquatiques','Mammal_Medium','', "Floating fuzzballs who hold hands and crack shellfish."],
+  ['pet.owl','Owl','Owl','epic','forest','Oiseaux','Bird_Large','blueberry_lover', "Feathered librarian of the woods. Might judge your grammar."],
+  ['pet.raccoon','Raccoon','Racoon','rare','forest','Rongeurs & petits mammifères','Mammal_Medium','', "Trash panda extraordinaire. Masked like a bandit."],
+  ['pet.seagull','Seagull','Seagull','common','sea','Oiseaux','Bird_Large','gojiberry_lover', "Loud beach hooligan with a hunger for fries."],
+  ['pet.shark','Shark','Shark','epic','sea','Aquatiques','Aquatic_Predator','instant_kill', "Toothy sea missile. Not evil, just really into cardio."],
+  ['pet.toucan','Toucan','Toucan','rare','jungle','Oiseaux','Bird_Large','watermelon_lover', "Flying rainbow with a fruit slicer for a face."],
+  ['pet.bat','Bat','Bat','rare','cave','Rongeurs & petits mammifères','Mammal_Small','crystalberry_lover', "Tiny night goblin with built-in sonar and a flair for the dramatic."],
+  ['pet.axolotl','Axolotl','Axolotl','legendary','cave','Reptiles & Amphibiens','Amphibian','', "Smiling water gremlin that refuses to grow up, literally."],
+  ['pet.squirrel','Squirrel','Squirrel','common','snow','Rongeurs & petits mammifères','Mammal_Small','chestnut_lover', "Hyperactive tree ninja with acorn hoarding issues."],
+  ['pet.redfox','Red Fox','RedFox','epic','snow','Canidés','Mammal_Medium','', "Ginger floof who’s sure a dramatic tail swish can solve anything."],
+  ['pet.flamingo','Flamingo','Flamingo','legendary','savanna','Oiseaux','Bird_Large','', "Standing on one leg because drama is a lifestyle."],
+  ['pet.monkey','Monkey','Monkey','rare','jungle','Rongeurs & petits mammifères','Mammal_Medium','banana_lover', "Pocket rocket in a fur coat, buzzing from vine to vine."],
+  ['pet.horse','Horse','Horse','epic','meadow','Équidés','Mammal_Large','apple_lover', "Mane-whipping wind machine posing for epic photos."],
+  ['pet.zebra','Zebra','Zebra','rare','savanna','Équidés','Mammal_Large','mango_lover', "Stripey horse with commitment issues."],
+  ['pet.giraffe','Giraffe','Giraffe','epic','savanna','Encornés','Mammal_Large','gojiberry_lover', "Walking skyscraper with spots, sass, and zero neck control."],
+  ['pet.lion','Lion','Lion','legendary','savanna','Félins','Mammal_Large','damage_buff', "Savanna’s drama king. Big hair, big roar, bigger ego."],
+].map(a => ({ id:a[0], name:a[1], icon:a[2], rarity:a[3], biome:a[4], family:a[5], type:a[6], passiveId:a[7], lore:a[8] }));
+
+const PET_BY_ID = Object.fromEntries(PETS.map(p => [p.id, p]));
+const BIOME_ORDER = ['meadow','forest','jungle','sea','savanna','cave','snow','fire','space'];
+
+// ---------- STATE / STORAGE ----------
+const LS_KEY = 'petBuildsDB.v1';
+let DB = { builds: [], activeId: null };
+let selectedSlot = null; // index of slot whose detail is shown
+
+function uid(){ return 'b' + Math.random().toString(36).slice(2,9); }
+function emptyBuild(){ return { id: uid(), name: 'Nouveau build', category:'biome', customTag:'', slots:[null,null,null,null,null,null], alternatives:[], description:'' }; }
+function activeBuild(){ return DB.builds.find(b => b.id === DB.activeId) || null; }
+const CAT_LABEL = { biome:'Biome', family:'Famille', custom:'Custom' };
+function buildTag(b){ return (b.category==='custom' && b.customTag) ? b.customTag : CAT_LABEL[b.category]; }
+
+function load(){
+  try { const raw = localStorage.getItem(LS_KEY); if(raw){ DB = JSON.parse(raw); } } catch(e){}
+  normalizeDB();
+}
+// fills missing fields + migrates legacy per-build passives into the global per-pet store
+function normalizeDB(){
+  if(!DB.builds || !DB.builds.length){ const b = emptyBuild(); DB.builds = [b]; }
+  if(!DB.keywords) DB.keywords = [];
+  if(!DB.petBiomes) DB.petBiomes = {};
+  if(!DB.petPassives) DB.petPassives = {};
+  if(!DB.uploadedIcons) DB.uploadedIcons = [];
+  DB.builds.forEach(b => { if(!Array.isArray(b.alternatives)) b.alternatives = []; });
+  DB.builds.forEach(b => {
+    if(!b.passives) return;
+    for(const [petId, val] of Object.entries(b.passives)){
+      if(DB.petPassives[petId] && DB.petPassives[petId].length) continue;
+      let arr;
+      if(typeof val === 'string') arr = val.trim() ? [{ id: uid(), html: val }] : [];
+      else if(Array.isArray(val)) arr = val;
+      else arr = [];
+      if(arr.length) DB.petPassives[petId] = arr;
+    }
+    delete b.passives;
+  });
+  if(!DB.activeId || !activeBuild()){ DB.activeId = DB.builds[0].id; }
+}
+function escapeHTML(s){ return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function save(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(DB)); setSaveStatus('Sauvegardé localement · ' + new Date().toLocaleTimeString()); }
+  catch(e){ setSaveStatus('⚠ localStorage indisponible'); }
+}
+function setSaveStatus(t){ document.getElementById('saveStatus').textContent = t; }
+
+// ---------- RENDER HELPERS ----------
+function tileHTML(pet, { removable=false } = {}){
+  const biomes = petBiomes(pet).map(bk => `<div class="tile__biome"><img src="${ASSET.biome(bk)}" alt="${BIOME_LABEL[bk]}" title="${BIOME_LABEL[bk]}"></div>`).join('');
+  const pass = petPassiveIcons(pet).map(src => `<div class="tile__passive"><img src="${src}" alt=""></div>`).join('');
+  const rm = removable ? `<button class="tile__rm" title="Retirer">✕</button>` : '';
+  return `<div class="tile rar-${pet.rarity}">
+    <div class="tile__bg"></div><div class="tile__rar"></div>
+    <div class="tile__img"><img src="${ASSET.pet(pet.icon)}" alt="${pet.name}"></div>
+    <div class="tile__biomes">${biomes}</div><div class="tile__passives">${pass}</div>${rm}
+    <div class="tile__name">${pet.name}</div>
+  </div>`;
+}
+// icons shown on a pet tile: user-assigned passive icons first, else fall back to the CSV passive icon
+function petPassiveIcons(pet){
+  const arr = (DB.petPassives && DB.petPassives[pet.id]) || [];
+  const icons = arr.map(e => e && e.icon).filter(Boolean);
+  if(icons.length) return icons.map(f => iconSrc(f)).filter(Boolean);
+  if(pet.passiveId && PASSIVE_ICON[pet.passiveId]) return [ASSET.passive(PASSIVE_ICON[pet.passiveId])];
+  return [];
+}
+// resolves a stored icon value to a usable src: uploaded image (u:<id>), data/URL/path, or folder filename
+function iconSrc(icon){
+  if(!icon) return '';
+  if(icon.slice(0,2) === 'u:'){ const u = (DB.uploadedIcons||[]).find(x => x.id === icon.slice(2)); return u ? u.data : ''; }
+  if(/^(data:|https?:)/.test(icon) || icon.indexOf('/') >= 0) return icon;
+  return 'assets/passive-icons/' + encodeURIComponent(icon);
+}
+
+// ---------- ICON LIBRARY (folder: assets/passive-icons/) ----------
+let ICON_LIB = [];
+async function loadIconLibrary(){
+  const set = new Set();
+  // 1) manifest (chargé via <script src>, fiable même en file://)
+  if(Array.isArray(window.PASSIVE_ICON_FILES)) window.PASSIVE_ICON_FILES.forEach(f => set.add(f));
+  // 2) icônes déjà utilisées dans les données sauvegardées
+  Object.values(DB.petPassives || {}).forEach(arr => (arr||[]).forEach(e => { if(e && e.icon) set.add(e.icon); }));
+  ICON_LIB = [...set].sort(); // dispo immédiatement, sans attendre le réseau
+  // 3) bonus : listing live du dossier (marche sur un vrai serveur statique)
+  try {
+    const res = await fetch('assets/passive-icons/');
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    [...doc.querySelectorAll('a')].map(a => a.getAttribute('href')).filter(Boolean)
+      .map(h => decodeURIComponent(h.split('/').pop().split('?')[0]))
+      .filter(n => /\.(png|jpe?g|svg|gif|webp)$/i.test(n))
+      .forEach(n => set.add(n));
+    ICON_LIB = [...set].sort();
+  } catch(e) { /* file:// ou serveur sans index : on garde manifeste + saisie manuelle */ }
+}
+
+let iconPickerEl = null;
+function closeIconPicker(){ if(iconPickerEl){ iconPickerEl.remove(); iconPickerEl = null; document.removeEventListener('mousedown', onDocDownForPicker, true); } }
+function onDocDownForPicker(e){ if(iconPickerEl && !iconPickerEl.contains(e.target)) closeIconPicker(); }
+function openIconPicker(anchor, current, onSelect){
+  closeIconPicker();
+  const pop = document.createElement('div'); pop.className = 'icon-pop';
+  pop.innerHTML = `<div class="icon-pop__head"><span>Choisir une icône</span><button class="icon-pop__refresh" title="Rafraîchir le dossier">↻</button></div>
+    <div class="icon-pop__grid"></div>
+    <div class="icon-pop__foot" style="flex-direction:column; align-items:stretch; gap:6px;">
+      <button class="btn btn--sm" data-imp>＋ Importer une image (instantané)</button>
+      <div style="display:flex; gap:6px;"><input class="input" placeholder="ou tape un nom de fichier du dossier…"><button class="btn btn--sm" data-ok>OK</button></div>
+      <input type="file" accept="image/*" hidden>
+    </div>`;
+  document.body.appendChild(pop); iconPickerEl = pop;
+  const r = anchor.getBoundingClientRect();
+  pop.style.position = 'fixed';
+  pop.style.top = Math.min(r.bottom + 6, window.innerHeight - 360) + 'px';
+  pop.style.left = Math.min(r.left, window.innerWidth - 276) + 'px';
+  const grid = pop.querySelector('.icon-pop__grid');
+  function fillGrid(){
+    grid.innerHTML = '';
+    const none = document.createElement('button'); none.className = 'icon-cell' + (!current ? ' sel' : ''); none.title = 'Aucune'; none.textContent = '∅';
+    none.onclick = () => { onSelect(''); closeIconPicker(); };
+    grid.appendChild(none);
+    const items = [
+      ...ICON_LIB.map(f => ({ value: f, label: f })),
+      ...((DB.uploadedIcons||[]).map(u => ({ value: 'u:' + u.id, label: u.name || 'image importée' })))
+    ];
+    items.forEach(it => {
+      const c = document.createElement('button'); c.className = 'icon-cell' + (it.value === current ? ' sel' : ''); c.title = it.label;
+      c.innerHTML = `<img src="${iconSrc(it.value)}" alt="">`;
+      c.onclick = () => { onSelect(it.value); closeIconPicker(); };
+      grid.appendChild(c);
+    });
+    if(!items.length){
+      const e = document.createElement('div'); e.className = 'empty-hint'; e.style.gridColumn = '1/-1'; e.style.fontSize = '12px';
+      e.textContent = 'Aucune icône — importe une image ci-dessous, ou ajoute des fichiers au dossier puis régénère le manifeste.';
+      grid.appendChild(e);
+    }
+  }
+  fillGrid();
+  pop.querySelector('.icon-pop__refresh').onclick = async () => { await loadIconLibrary(); fillGrid(); };
+  // import an image as a reusable, persisted icon (data URL — no folder/server needed)
+  const fileInput = pop.querySelector('input[type=file]');
+  pop.querySelector('[data-imp]').onclick = () => fileInput.click();
+  fileInput.onchange = () => {
+    const f = fileInput.files[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      if(!DB.uploadedIcons) DB.uploadedIcons = [];
+      const id = uid(); DB.uploadedIcons.push({ id, name: f.name, data: rd.result });
+      save(); onSelect('u:' + id); closeIconPicker();
+    };
+    rd.readAsDataURL(f);
+  };
+  const ti = pop.querySelector('.input'), ok = pop.querySelector('[data-ok]');
+  const submit = () => { const v = ti.value.trim(); if(v) onSelect(v); closeIconPicker(); };
+  ok.onclick = submit; ti.addEventListener('keydown', e => { if(e.key === 'Enter') submit(); });
+  setTimeout(() => document.addEventListener('mousedown', onDocDownForPicker, true), 0);
+}
+// effective biomes for a pet: primary (CSV) + any extra biomes added by the user
+function petBiomes(pet){ const ex = (DB.petBiomes && DB.petBiomes[pet.id]) || []; return [pet.biome, ...ex.filter(b => b !== pet.biome)]; }
+
+function renderBiomeEditor(p){
+  const row = document.getElementById('biomeRow'); if(!row) return; row.innerHTML = '';
+  const list = petBiomes(p);
+  list.forEach((bk, i) => {
+    const badge = document.createElement('span'); badge.className = 'badge';
+    badge.innerHTML = `<img src="${ASSET.biome(bk)}">${BIOME_LABEL[bk]}`;
+    if(i === 0){ badge.title = 'Biome principal (CSV)'; }
+    else {
+      const x = document.createElement('button'); x.className = 'badge-x'; x.textContent = '×'; x.title = 'Retirer ce biome';
+      x.onclick = () => {
+        DB.petBiomes[p.id] = (DB.petBiomes[p.id] || []).filter(b => b !== bk);
+        if(!DB.petBiomes[p.id].length) delete DB.petBiomes[p.id];
+        save(); afterBiomeChange(p);
+      };
+      badge.appendChild(x);
+    }
+    row.appendChild(badge);
+  });
+  const avail = BIOME_ORDER.filter(bk => !list.includes(bk));
+  if(avail.length){
+    const sel = document.createElement('select'); sel.className = 'select';
+    sel.style.width = 'auto'; sel.style.fontSize = '12px'; sel.style.padding = '3px 8px';
+    sel.innerHTML = '<option value="">+ biome…</option>' + avail.map(bk => `<option value="${bk}">${BIOME_LABEL[bk]}</option>`).join('');
+    sel.onchange = () => {
+      if(!sel.value) return;
+      if(!DB.petBiomes) DB.petBiomes = {};
+      (DB.petBiomes[p.id] = DB.petBiomes[p.id] || []).push(sel.value);
+      save(); afterBiomeChange(p);
+    };
+    row.appendChild(sel);
+  }
+}
+function afterBiomeChange(p){ renderBiomeEditor(p); renderBiomeFilters(); renderRoster(); }
+
+// ---------- BUILD LIST ----------
+function renderBuildList(){
+  const el = document.getElementById('buildList'); el.innerHTML = '';
+  DB.builds.forEach(b => {
+    const filled = b.slots.filter(Boolean).length;
+    const item = document.createElement('div');
+    item.className = 'buildlist__item' + (b.id===DB.activeId ? ' active':'');
+    const catLabel = (b.category==='custom' && b.customTag) ? b.customTag : b.category;
+    item.innerHTML = `<span class="buildlist__name">${b.name||'(sans nom)'}</span>
+      <span class="cat-pill" data-cat="${b.category}">${catLabel}</span>
+      <span class="count">${filled}/6</span>`;
+    item.onclick = () => { DB.activeId = b.id; selectedSlot = null; renderAll(); save(); };
+    el.appendChild(item);
+  });
+  document.getElementById('buildCount').textContent = DB.builds.length + ' build' + (DB.builds.length>1?'s':'');
+}
+
+// ---------- EDITOR ----------
+function renderEditor(){
+  const b = activeBuild();
+  document.getElementById('buildName').value = b.name;
+  document.getElementById('buildCat').value = b.category;
+  const customTagEl = document.getElementById('customTag');
+  customTagEl.value = b.customTag || '';
+  customTagEl.style.display = b.category==='custom' ? 'block' : 'none';
+  document.getElementById('buildDesc').innerHTML = b.description || '';
+  const filled = b.slots.filter(Boolean).length;
+  document.getElementById('slotCount').textContent = filled + '/6 pets';
+
+  const slots = document.getElementById('slots'); slots.innerHTML = '';
+  b.slots.forEach((petId, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'slot' + (petId ? ' filled':'') + (selectedSlot===i ? ' is-sel':'');
+    slot.dataset.idx = i;
+    if(petId && PET_BY_ID[petId]){
+      slot.innerHTML = tileHTML(PET_BY_ID[petId], { removable:true });
+      slot.onclick = (e) => {
+        if(e.target.classList.contains('tile__rm')){ b.slots[i] = null; if(selectedSlot===i) selectedSlot=null; commit(); return; }
+        selectedSlot = i; renderDetail(); renderEditor();
+      };
+    } else {
+      slot.innerHTML = `<span class="slot__idx">${i+1}</span><span class="slot__empty">+</span>`;
+      slot.onclick = () => { selectedSlot = i; renderDetail(); renderEditor(); };
+    }
+    // drag & drop
+    slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('dragover'); });
+    slot.addEventListener('dragleave', () => slot.classList.remove('dragover'));
+    slot.addEventListener('drop', e => {
+      e.preventDefault(); slot.classList.remove('dragover');
+      const data = e.dataTransfer.getData('text/plain');
+      if(data.startsWith('pet:')){ placePet(data.slice(4), i); }
+      else if(data.startsWith('slot:')){ const from = +data.slice(5); const tmp=b.slots[i]; b.slots[i]=b.slots[from]; b.slots[from]=tmp; commit(); }
+      else if(data.startsWith('alt:')){ swapAltIntoSlot(data.slice(4), i); }
+    });
+    if(petId){
+      slot.setAttribute('draggable','true');
+      slot.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain','slot:'+i));
+    }
+    slots.appendChild(slot);
+  });
+  renderDetail();
+  renderAlternatives();
+}
+
+function renderDetail(){
+  const b = activeBuild();
+  const el = document.getElementById('detail');
+  const petId = selectedSlot!=null ? b.slots[selectedSlot] : null;
+  if(selectedSlot==null){
+    el.innerHTML = `<p class="empty-hint">Clique un slot pour éditer le passif du pet, ou clique un pet du roster pour l'ajouter.</p>`;
+    return;
+  }
+  if(!petId){
+    el.innerHTML = `<p class="empty-hint">Slot ${selectedSlot+1} vide. Clique un pet du roster (ou glisse-le) pour le placer ici.</p>`;
+    return;
+  }
+  const p = PET_BY_ID[petId];
+  const passBadge = p.passiveId ? `<span class="badge">passif: ${p.passiveId}</span>` : `<span class="badge" style="color:#ff9b9b;border-color:rgba(255,107,107,.4)">passif à définir</span>`;
+  el.innerHTML = `
+    <h3>${p.name}</h3>
+    <div class="meta-row">
+      <span class="badge rar-${p.rarity}">${p.rarity}</span>
+      <span class="badge">${p.type}</span>
+      ${passBadge}
+    </div>
+    <div class="meta-row" id="biomeRow"></div>
+    <p class="lore">${p.lore}</p>
+    <div class="field">
+      <div class="passive-head">
+        <label style="margin:0;">Passifs de ce pet <span style="text-transform:none;letter-spacing:0;color:var(--muted);">(communs à tous les builds)</span></label>
+        <button class="btn btn--sm" id="addPassive">+ Ajouter un passif</button>
+      </div>
+      <div id="passiveList"></div>
+    </div>`;
+  renderBiomeEditor(p);
+  renderPassiveList(petId);
+  document.getElementById('addPassive').onclick = () => {
+    getPassives(petId).push({ id: uid(), html: '' }); save();
+    renderPassiveList(petId);
+    const eds = document.querySelectorAll('#passiveList .rich');
+    if(eds.length) eds[eds.length-1].focus();
+  };
+}
+
+// returns the global passive list for a pet (shared across all builds)
+function getPassives(petId){
+  if(!DB.petPassives) DB.petPassives = {};
+  let v = DB.petPassives[petId];
+  if(typeof v === 'string'){ v = v.trim() ? [{ id: uid(), html: v }] : []; DB.petPassives[petId] = v; }
+  if(!Array.isArray(v)){ v = []; DB.petPassives[petId] = v; }
+  return v;
+}
+
+function renderPassiveList(petId){
+  const wrap = document.getElementById('passiveList'); wrap.innerHTML = '';
+  const arr = getPassives(petId);
+  if(!arr.length){ wrap.innerHTML = `<p class="empty-hint" style="margin:2px 0 0;">Aucun passif pour l'instant — clique « + Ajouter un passif ».</p>`; return; }
+  arr.forEach((entry, i) => {
+    const block = document.createElement('div'); block.className = 'passive-block';
+    block.innerHTML = `<div class="passive-block__head">
+        <input class="passive-title" placeholder="Passif ${i+1}">
+        <div class="passive-block__tools">
+          <button class="icon-pick" title="Icône du passif"></button>
+          <button class="passive-block__del" title="Supprimer ce passif">×</button>
+        </div>
+      </div>
+      <div class="rich" contenteditable="true" data-ph="Décris le passif, l'effet chiffré, la synergie…"></div>`;
+    const titleEl = block.querySelector('.passive-title');
+    titleEl.value = entry.title || '';
+    titleEl.addEventListener('input', () => { entry.title = titleEl.value; save(); });
+    const ed = block.querySelector('.rich');
+    ed.innerHTML = entry.html || '';
+    const saveThis = () => { entry.html = ed.innerHTML; save(); };
+    ed.addEventListener('input', saveThis);
+    enableKeywordDrop(ed, saveThis);
+    const pick = block.querySelector('.icon-pick');
+    const refreshPick = () => { pick.innerHTML = entry.icon ? `<img src="${iconSrc(entry.icon)}" alt="">` : '◇'; pick.title = entry.icon || 'Choisir une icône'; };
+    refreshPick();
+    pick.onclick = () => openIconPicker(pick, entry.icon || '', sel => {
+      if(sel) entry.icon = sel; else delete entry.icon;
+      save(); renderRoster(); renderEditor();
+    });
+    block.querySelector('.passive-block__del').onclick = () => { arr.splice(i, 1); save(); renderPassiveList(petId); renderRoster(); };
+    wrap.appendChild(block);
+  });
+}
+
+function placePet(petId, slotIdx){
+  const b = activeBuild();
+  if(b.slots.includes(petId)){ toast('Déjà dans le build'); return; }
+  let idx = slotIdx;
+  if(idx==null || b.slots[idx]!=null){ idx = b.slots.findIndex(s => s==null); }
+  if(idx === -1){ toast('Build plein (6/6)'); return; }
+  if(Array.isArray(b.alternatives)){ const ai = b.alternatives.indexOf(petId); if(ai >= 0) b.alternatives.splice(ai, 1); }
+  b.slots[idx] = petId; selectedSlot = idx; commit();
+}
+
+// ---------- ALTERNATIVES (bench) ----------
+function renderAlternatives(){
+  const zone = document.getElementById('altZone'); if(!zone) return;
+  const b = activeBuild(); if(!Array.isArray(b.alternatives)) b.alternatives = [];
+  zone.innerHTML = '';
+  if(!b.alternatives.length){
+    zone.innerHTML = `<div class="alts__empty">Glisse ici des pets du roster qui peuvent remplacer un membre de ce build.</div>`;
+    return;
+  }
+  b.alternatives.forEach((petId, i) => {
+    const p = PET_BY_ID[petId]; if(!p) return;
+    const cell = document.createElement('div'); cell.className = 'alt-tile'; cell.setAttribute('draggable', 'true');
+    cell.innerHTML = tileHTML(p) + `<button class="tile__rm" title="Retirer des alternatives">✕</button>`;
+    cell.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', 'alt:' + petId));
+    cell.querySelector('.tile__rm').onclick = e => { e.stopPropagation(); b.alternatives.splice(i, 1); commit(); };
+    cell.onclick = e => { if(e.target.classList.contains('tile__rm')) return; clickAlternative(petId, i); };
+    cell.title = selectedSlot != null ? `Échanger avec le slot ${selectedSlot + 1}` : 'Sélectionne un slot, puis clique pour échanger';
+    zone.appendChild(cell);
+  });
+}
+function swapAltIntoSlot(petId, i){
+  const b = activeBuild();
+  const altIdx = b.alternatives.indexOf(petId); if(altIdx === -1) return;
+  if(b.slots.includes(petId)){ toast('Déjà dans le build'); return; }
+  const slotPet = b.slots[i];
+  b.slots[i] = petId;
+  if(slotPet) b.alternatives[altIdx] = slotPet; else b.alternatives.splice(altIdx, 1);
+  selectedSlot = i; commit();
+}
+function clickAlternative(petId, idx){
+  const b = activeBuild();
+  if(selectedSlot != null){
+    const slotPet = b.slots[selectedSlot];
+    if(slotPet === petId) return;
+    if(b.slots.includes(petId)){ toast('Déjà dans le build'); return; }
+    b.slots[selectedSlot] = petId;
+    if(slotPet) b.alternatives[idx] = slotPet; else b.alternatives.splice(idx, 1);
+    commit();
+  } else {
+    const empty = b.slots.findIndex(s => s == null);
+    if(empty === -1){ toast('Sélectionne un slot à remplacer'); return; }
+    b.slots[empty] = petId; b.alternatives.splice(idx, 1); selectedSlot = empty; commit();
+  }
+}
+
+// ---------- KEYWORDS ----------
+function renderKeywords(){
+  const list = document.getElementById('kwList'); list.innerHTML = '';
+  (DB.keywords||[]).forEach(kw => {
+    const el = document.createElement('div'); el.className = 'kw'; el.draggable = true;
+    el.innerHTML = `<input type="color" class="kw__color" value="${kw.color}" title="Couleur">
+      <span class="kw__text" style="color:${kw.color}">${escapeHTML(kw.text)}</span>
+      <button class="kw__del" title="Supprimer">×</button>`;
+    const colorInput = el.querySelector('.kw__color');
+    colorInput.addEventListener('input', e => { kw.color = e.target.value; el.querySelector('.kw__text').style.color = kw.color; save(); });
+    colorInput.addEventListener('mousedown', e => e.stopPropagation());
+    el.querySelector('.kw__del').addEventListener('click', () => { DB.keywords = DB.keywords.filter(k => k.id !== kw.id); save(); renderKeywords(); });
+    el.addEventListener('dragstart', e => { e.dataTransfer.setData('application/x-keyword', JSON.stringify(kw)); e.dataTransfer.setData('text/plain', kw.text); });
+    list.appendChild(el);
+  });
+  const n = (DB.keywords||[]).length;
+  document.getElementById('kwCount').textContent = n + ' mot' + (n>1?'s':'');
+}
+function addKeyword(){
+  const t = document.getElementById('kwText'), c = document.getElementById('kwColor');
+  const text = t.value.trim(); if(!text) return;
+  if(!DB.keywords) DB.keywords = [];
+  DB.keywords.push({ id: uid(), text, color: c.value });
+  t.value = ''; save(); renderKeywords(); t.focus();
+}
+function makeChip(kw){
+  const chip = document.createElement('span');
+  chip.className = 'kw-chip'; chip.setAttribute('contenteditable','false');
+  chip.textContent = kw.text;
+  chip.style.color = kw.color; chip.style.background = kw.color + '22'; chip.style.border = '1px solid ' + kw.color;
+  return chip;
+}
+function enableKeywordDrop(editor, onChange){
+  editor.addEventListener('dragover', e => { if([...e.dataTransfer.types].includes('application/x-keyword')){ e.preventDefault(); editor.classList.add('dragover'); } });
+  editor.addEventListener('dragleave', () => editor.classList.remove('dragover'));
+  editor.addEventListener('drop', e => {
+    const raw = e.dataTransfer.getData('application/x-keyword'); if(!raw) return;
+    e.preventDefault(); editor.classList.remove('dragover');
+    let kw; try { kw = JSON.parse(raw); } catch(_) { return; }
+    editor.focus();
+    let range = null;
+    if(document.caretRangeFromPoint) range = document.caretRangeFromPoint(e.clientX, e.clientY);
+    else if(document.caretPositionFromPoint){ const p = document.caretPositionFromPoint(e.clientX, e.clientY); if(p){ range = document.createRange(); range.setStart(p.offsetNode, p.offset); range.collapse(true); } }
+    if(!range || !editor.contains(range.startContainer)){ range = document.createRange(); range.selectNodeContents(editor); range.collapse(false); }
+    const chip = makeChip(kw); range.insertNode(chip);
+    const sp = document.createTextNode(' '); chip.after(sp);
+    const sel = window.getSelection(); const r2 = document.createRange(); r2.setStartAfter(sp); r2.collapse(true); sel.removeAllRanges(); sel.addRange(r2);
+    onChange();
+  });
+}
+
+// ---------- ROSTER ----------
+let filters = { biome:'', rarity:'', search:'', hide:false };
+
+function renderBiomeFilters(){
+  const el = document.getElementById('biomeFilters'); el.innerHTML='';
+  const all = document.createElement('div'); all.className='chip'+(filters.biome===''?' active':''); all.textContent='Tous biomes';
+  all.onclick=()=>{ filters.biome=''; renderRoster(); renderBiomeFilters(); }; el.appendChild(all);
+  BIOME_ORDER.forEach(bk => {
+    const n = PETS.filter(p=>petBiomes(p).includes(bk)).length;
+    const c = document.createElement('div'); c.className='chip'+(filters.biome===bk?' active':'');
+    c.innerHTML = `<img src="${ASSET.biome(bk)}">${BIOME_LABEL[bk]} <span class="count">${n}</span>`;
+    c.onclick=()=>{ filters.biome = filters.biome===bk?'':bk; renderRoster(); renderBiomeFilters(); };
+    el.appendChild(c);
+  });
+}
+
+function renderRoster(){
+  const b = activeBuild();
+  const el = document.getElementById('roster'); el.innerHTML='';
+  const list = PETS.filter(p => {
+    if(filters.biome && !petBiomes(p).includes(filters.biome)) return false;
+    if(filters.rarity && p.rarity!==filters.rarity) return false;
+    if(filters.search && !p.name.toLowerCase().includes(filters.search)) return false;
+    if(filters.hide && b.slots.includes(p.id)) return false;
+    return true;
+  });
+  const rarOrder = { common:0, rare:1, epic:2, legendary:3 };
+  list.sort((a,b2)=> BIOME_ORDER.indexOf(a.biome)-BIOME_ORDER.indexOf(b2.biome) || rarOrder[a.rarity]-rarOrder[b2.rarity] || a.name.localeCompare(b2.name));
+  list.forEach(p => {
+    const inActive = b.slots.includes(p.id);
+    const inBuilds = DB.builds.filter(bd => bd.slots.includes(p.id));
+    const wrap = document.createElement('div');
+    wrap.className = 'roster-cell';
+    const cell = document.createElement('div');
+    cell.className = 'slot-like rar-'+p.rarity + (inActive?' in-build':'');
+    cell.innerHTML = tileHTML(p);
+    cell.title = inActive ? p.name+' (déjà dans ce build)' : 'Ajouter '+p.name+' au build';
+    cell.setAttribute('draggable', inActive?'false':'true');
+    cell.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain','pet:'+p.id));
+    cell.onclick = () => { if(!inActive) placePet(p.id, null); };
+    wrap.appendChild(cell);
+    if(inBuilds.length){
+      const tags = document.createElement('div'); tags.className = 'pet-tags';
+      const seen = new Set();
+      inBuilds.forEach(bd => {
+        const label = buildTag(bd);
+        const key = bd.category + '|' + label;
+        if(seen.has(key)) return; seen.add(key);
+        const chip = document.createElement('span');
+        chip.className = 'pet-tag'; chip.dataset.cat = bd.category; chip.textContent = label;
+        chip.title = inBuilds.filter(x => buildTag(x)===label).map(x => x.name || '(sans nom)').join(' · ');
+        tags.appendChild(chip);
+      });
+      wrap.appendChild(tags);
+    }
+    el.appendChild(wrap);
+  });
+  document.getElementById('rosterCount').textContent = list.length + ' / ' + PETS.length + ' pets';
+}
+
+// ---------- COMMIT / RENDER ALL ----------
+function commit(){ save(); renderBuildList(); renderEditor(); renderRoster(); }
+function renderAll(){ renderBuildList(); renderKeywords(); renderEditor(); renderBiomeFilters(); renderRoster(); }
+
+// ---------- TOAST ----------
+let toastTimer;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1800); }
+
+// ---------- EVENTS ----------
+function bind(){
+  document.getElementById('newBuild').onclick = () => { const b=emptyBuild(); DB.builds.push(b); DB.activeId=b.id; selectedSlot=null; commit(); toast('Build créé'); };
+  document.getElementById('dupBuild').onclick = () => { const a=activeBuild(); const c=JSON.parse(JSON.stringify(a)); c.id=uid(); c.name=a.name+' (copie)'; DB.builds.push(c); DB.activeId=c.id; commit(); toast('Build dupliqué'); };
+  document.getElementById('delBuild').onclick = () => {
+    if(DB.builds.length<=1){ toast('Impossible de supprimer le dernier build'); return; }
+    if(!confirm('Supprimer ce build ?')) return;
+    DB.builds = DB.builds.filter(x=>x.id!==DB.activeId); DB.activeId=DB.builds[0].id; selectedSlot=null; commit();
+  };
+  document.getElementById('buildName').addEventListener('input', e => { activeBuild().name=e.target.value; save(); renderBuildList(); renderRoster(); });
+  document.getElementById('buildCat').addEventListener('change', e => {
+    const b=activeBuild(); b.category=e.target.value;
+    document.getElementById('customTag').style.display = b.category==='custom' ? 'block' : 'none';
+    save(); renderBuildList(); renderRoster();
+  });
+  document.getElementById('customTag').addEventListener('input', e => { activeBuild().customTag=e.target.value; save(); renderBuildList(); renderRoster(); });
+  const bdEl = document.getElementById('buildDesc');
+  const saveDesc = () => { activeBuild().description = bdEl.innerHTML; save(); };
+  bdEl.addEventListener('input', saveDesc);
+  enableKeywordDrop(bdEl, saveDesc);
+
+  // keyword editor
+  document.getElementById('kwAdd').onclick = addKeyword;
+  document.getElementById('kwText').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); addKeyword(); } });
+
+  // alternatives bench (drop target)
+  const altZone = document.getElementById('altZone');
+  altZone.addEventListener('dragover', e => { e.preventDefault(); altZone.classList.add('dragover'); });
+  altZone.addEventListener('dragleave', () => altZone.classList.remove('dragover'));
+  altZone.addEventListener('drop', e => {
+    e.preventDefault(); altZone.classList.remove('dragover');
+    const data = e.dataTransfer.getData('text/plain'); const b = activeBuild();
+    if(data.startsWith('pet:')){
+      const id = data.slice(4);
+      if(b.slots.includes(id) || b.alternatives.includes(id)){ toast('Déjà dans ce build'); return; }
+      b.alternatives.push(id); commit();
+    } else if(data.startsWith('slot:')){
+      const idx = +data.slice(5); const id = b.slots[idx]; if(!id) return;
+      if(!b.alternatives.includes(id)) b.alternatives.push(id);
+      b.slots[idx] = null; if(selectedSlot === idx) selectedSlot = null; commit();
+    }
+  });
+
+  // filters
+  document.getElementById('rarFilter').onchange = e => { filters.rarity=e.target.value; renderRoster(); };
+  document.getElementById('searchFilter').addEventListener('input', e => { filters.search=e.target.value.toLowerCase().trim(); renderRoster(); });
+  document.getElementById('hideInBuild').onchange = e => { filters.hide=e.target.checked; renderRoster(); };
+  document.getElementById('resetFilters').onclick = () => {
+    filters={biome:'',rarity:'',search:'',hide:false};
+    document.getElementById('rarFilter').value='';
+    document.getElementById('searchFilter').value=''; document.getElementById('hideInBuild').checked=false;
+    renderBiomeFilters(); renderRoster();
+  };
+
+  // export / import
+  document.getElementById('exportBtn').onclick = () => {
+    const blob = new Blob([JSON.stringify(DB,null,2)], {type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='pet-builds.json'; a.click(); URL.revokeObjectURL(a.href); toast('Exporté en JSON');
+  };
+  document.getElementById('importBtn').onclick = () => document.getElementById('importFile').click();
+  document.getElementById('importFile').onchange = e => {
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload = () => {
+      try {
+        const data=JSON.parse(r.result);
+        if(!data.builds || !Array.isArray(data.builds)) throw 0;
+        DB=data; normalizeDB();
+        selectedSlot=null; renderAll(); save(); toast('Importé ('+DB.builds.length+' builds)');
+      } catch(err){ toast('Fichier JSON invalide'); }
+    };
+    r.readAsText(f); e.target.value='';
+  };
+}
+
+// ---------- INIT ----------
+load(); bind(); renderAll(); save();
+loadIconLibrary();
+</script>
+</body>
+</html>

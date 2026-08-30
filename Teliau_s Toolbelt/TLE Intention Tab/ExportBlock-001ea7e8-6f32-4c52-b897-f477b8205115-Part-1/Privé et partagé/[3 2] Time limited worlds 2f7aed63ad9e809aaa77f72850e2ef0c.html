@@ -1,0 +1,747 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>[3.2] Time limited worlds</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+/* Override strong tags inside headings to maintain consistent weight */
+h1 strong,
+h2 strong,
+h3 strong {
+	font-weight: 600;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 10px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+
+	table.collection-content {
+		width: 100%;
+		table-layout: fixed;
+	}
+
+	table.collection-content th,
+	table.collection-content td {
+		overflow-wrap: anywhere;
+	}
+
+	table.collection-content td > .user,
+	table.collection-content td > time {
+		white-space: pre-wrap;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content-wrapper {
+	overflow-x: auto;
+}
+
+@media only print {
+	.collection-content-wrapper {
+		overflow-x: visible;
+	}
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.collection-content td {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.column-list {
+	display: flex;
+	gap: 46px;
+}
+
+.column {
+	min-width: 0;
+	overflow: hidden;
+}
+
+.column > *:first-child {
+	margin-top: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+table {
+	border-collapse: collapse;
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	padding-inline-start: 0;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol.numbered-list.numbered-list-digits-2 {
+	padding-inline-start: 2em;
+}
+
+ol.numbered-list.numbered-list-digits-3plus {
+	padding-inline-start: 2.4em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+.page-description {
+	margin-bottom: 2em;
+}
+
+.simple-table {
+	margin-top: 1em;
+	font-size: 0.875rem;
+	empty-cells: show;
+}
+.simple-table td {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table th {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table-header-color {
+	background: rgb(247, 246, 243);
+	color: black;
+}
+.simple-table-header {
+	font-weight: 500;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.callout img.notion-static-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.callout p {
+	margin: 0;
+}
+
+.callout h1,
+.callout h2,
+.callout h3 {
+	margin: 0 0 0.6rem;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	max-height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+blockquote.quote-large {
+	font-size: 1.25em;
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP'; }
+.pdf:lang(zh-CN) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC'; }
+.pdf:lang(zh-TW) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC'; }
+.pdf:lang(ko-KR) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR'; }
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP'; }
+.pdf:lang(zh-CN) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC'; }
+.pdf:lang(zh-TW) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC'; }
+.pdf:lang(ko-KR) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR'; }
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.highlight-default {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.highlight-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.highlight-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.highlight-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.highlight-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.highlight-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.highlight-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.highlight-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.highlight-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.highlight-default_background {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray_background {
+	background: rgba(42, 28, 0, 0.07);
+}
+.highlight-brown_background {
+	background: rgba(139, 46, 0, 0.086);
+}
+.highlight-orange_background {
+	background: rgba(224, 101, 1, 0.129);
+}
+.highlight-yellow_background {
+	background: rgba(211, 168, 0, 0.137);
+}
+.highlight-teal_background {
+	background: rgba(0, 100, 45, 0.09);
+}
+.highlight-blue_background {
+	background: rgba(0, 124, 215, 0.094);
+}
+.highlight-purple_background {
+	background: rgba(102, 0, 178, 0.078);
+}
+.highlight-pink_background {
+	background: rgba(197, 0, 93, 0.086);
+}
+.highlight-red_background {
+	background: rgba(223, 22, 0, 0.094);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.block-color-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.block-color-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.block-color-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.block-color-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.block-color-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.block-color-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.block-color-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.block-color-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.block-color-default_background {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray_background {
+	background: rgba(240, 239, 237, 1);
+}
+.block-color-brown_background {
+	background: rgba(245, 237, 233, 1);
+}
+.block-color-orange_background {
+	background: rgba(251, 235, 222, 1);
+}
+.block-color-yellow_background {
+	background: rgba(249, 243, 220, 1);
+}
+.block-color-teal_background {
+	background: rgba(232, 241, 236, 1);
+}
+.block-color-blue_background {
+	background: rgba(229, 242, 252, 1);
+}
+.block-color-purple_background {
+	background: rgba(243, 235, 249, 1);
+}
+.block-color-pink_background {
+	background: rgba(250, 233, 241, 1);
+}
+.block-color-red_background {
+	background: rgba(252, 233, 231, 1);
+}
+.select-value-color-default { background-color: rgba(42, 28, 0, 0.07); }
+.select-value-color-gray { background-color: rgba(28, 19, 1, 0.11); }
+.select-value-color-brown { background-color: rgba(127, 51, 0, 0.156); }
+.select-value-color-orange { background-color: rgba(196, 88, 0, 0.203); }
+.select-value-color-yellow { background-color: rgba(209, 156, 0, 0.282); }
+.select-value-color-green { background-color: rgba(0, 96, 38, 0.156); }
+.select-value-color-blue { background-color: rgba(0, 118, 217, 0.203); }
+.select-value-color-purple { background-color: rgba(92, 0, 163, 0.141); }
+.select-value-color-pink { background-color: rgba(183, 0, 78, 0.152); }
+.select-value-color-red { background-color: rgba(206, 24, 0, 0.164); }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="2f7aed63-ad9e-809a-aa77-f72850e2ef0c" class="page sans"><header><div class="page-header-icon undefined"><span class="icon">🌎</span></div><h1 class="page-title" dir="auto">[3.2] Time limited worlds</h1><p class="page-description" dir="auto"></p><table class="properties"><tbody><tr class="property-row property-row-select"><th><span class="icon property-icon"><img src="https://app.notion.com/icons/arrow-circle-down_gray.svg" style="width:14px;height:14px;display:block"/></span>Slot</th><td><span class="selected-value select-value-color-purple">TLE</span></td></tr><tr class="property-row property-row-number"><th><span class="icon property-icon"><img src="https://app.notion.com/icons/hashtag_gray.svg" style="width:14px;height:14px;display:block"/></span>Reward targetting</th><td>5</td></tr><tr class="property-row property-row-number"><th><span class="icon property-icon"><img src="https://app.notion.com/icons/hashtag_gray.svg" style="width:14px;height:14px;display:block"/></span>Engagement depth</th><td>4</td></tr><tr class="property-row property-row-number"><th><span class="icon property-icon"><img src="https://app.notion.com/icons/hashtag_gray.svg" style="width:14px;height:14px;display:block"/></span>New gameplay</th><td>2</td></tr><tr class="property-row property-row-number"><th><span class="icon property-icon"><img src="https://app.notion.com/icons/hashtag_gray.svg" style="width:14px;height:14px;display:block"/></span>Power challenge</th><td>5</td></tr><tr class="property-row property-row-number"><th><span class="icon property-icon"><img src="https://app.notion.com/icons/hashtag_gray.svg" style="width:14px;height:14px;display:block"/></span>Accessible challenge</th><td>2</td></tr><tr class="property-row property-row-checkbox"><th><span class="icon property-icon"><img src="https://app.notion.com/icons/checkmark-square_gray.svg" style="width:14px;height:14px;display:block"/></span>Do?</th><td><div class="checkbox checkbox-on"></div></td></tr></tbody></table></header><div class="page-body"><div style="display:contents" dir="ltr"><nav id="366aed63-ad9e-80e2-afbe-eb8ea58a0af0" class="block-color-gray table_of_contents"><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#349aed63-ad9e-80d5-8f28-d6f80f51fc37">Intentions</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#366aed63-ad9e-802e-a944-fe8d23b40ad1">References</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#366aed63-ad9e-80d4-8d8c-d84bd2baa690">Feature</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#368aed63-ad9e-802a-ad41-fcdd1dd6296d">Engagement expectations</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#366aed63-ad9e-804e-b23c-d0146736d4eb">UI/UX</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#366aed63-ad9e-8001-a362-e827b965cb3f">Remote settings</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#372aed63-ad9e-80e5-b780-d3fd543f3179">Rebloom world resource logic</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#36daed63-ad9e-80f1-8dd4-e178b6b70faf">New requirements</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#366aed63-ad9e-80ad-8aa0-e35e2b60bb24">FTUE</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#367aed63-ad9e-80a7-8000-e0843795958d">Balancing</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#366aed63-ad9e-8095-8fdb-d193794724e5">Related docs</a></div></nav></div><div style="display:contents" dir="auto"><h1 id="349aed63-ad9e-80d5-8f28-d6f80f51fc37" class="block-color-blue_background">Intentions</h1></div><div style="display:contents" dir="ltr"><div id="349aed63-ad9e-80e1-8d46-e4cf027d3e3d" class="collection-content"><h4 class="collection-title">Event list</h4><div class="collection-content-wrapper"><table class="collection-content"><colgroup><col style="width:17%"/><col style="width:16.7%"/><col style="width:17.8%"/><col style="width:15.4%"/><col style="width:15.6%"/><col style="width:17.5%"/></colgroup><thead><tr><th><span class="icon property-icon"><img src="https://app.notion.com/icons/font_gray.svg" style="width:14px;height:14px;display:block"/></span>Name</th><th><span class="icon property-icon"><img src="https://app.notion.com/icons/hashtag_gray.svg" style="width:14px;height:14px;display:block"/></span>Reward targetting</th><th><span class="icon property-icon"><img src="https://app.notion.com/icons/hashtag_gray.svg" style="width:14px;height:14px;display:block"/></span>Engagement depth</th><th><span class="icon property-icon"><img src="https://app.notion.com/icons/hashtag_gray.svg" style="width:14px;height:14px;display:block"/></span>New gameplay</th><th><span class="icon property-icon"><img src="https://app.notion.com/icons/hashtag_gray.svg" style="width:14px;height:14px;display:block"/></span>Power challenge</th><th><span class="icon property-icon"><img src="https://app.notion.com/icons/hashtag_gray.svg" style="width:14px;height:14px;display:block"/></span>Accessible challenge</th></tr></thead><tbody><tr id="2f7aed63-ad9e-809a-aa77-f72850e2ef0c"><td class="cell-title">[3.2] Time limited worlds</td><td class="cell-b@it">5</td><td class="cell-yWRM">4</td><td class="cell-Co&lt;V">2</td><td class="cell-qSRg">5</td><td class="cell-X_Gz">2</td></tr></tbody></table></div><br/><br/></div></div><div style="display:contents" dir="auto"><p id="366aed63-ad9e-80d2-82fe-fe945200f777" class="">A. As a player,</p></div><div style="display:contents" dir="auto"><ol type="1" id="366aed63-ad9e-8002-8130-c2a81c79b475" class="numbered-list" start="1"><li>I want to be able to engage more to get more rewards</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="366aed63-ad9e-80c9-b1f8-c49e7a2edcbf" class="numbered-list" start="2"><li>I want to be able to target specific reward I need</li></ol></div><div style="display:contents" dir="auto"><p id="366aed63-ad9e-8047-85a4-d874ee269642" class="">B. As a game maker,</p></div><div style="display:contents" dir="auto"><ol type="1" id="366aed63-ad9e-80b8-9563-c2ff25f68edc" class="numbered-list" start="1"><li>We want to challenge players on their collection variety</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="366aed63-ad9e-8060-8867-fa8a007fef37" class="numbered-list" start="2"><li>We want to challenge players on their team power</li></ol></div><div style="display:contents" dir="auto"><h1 id="366aed63-ad9e-802e-a944-fe8d23b40ad1" class="block-color-blue_background">References</h1></div><div style="display:contents" dir="auto"><ul id="366aed63-ad9e-80c6-a55f-ff9320d5a5bd" class="toggle"><li><details open=""><summary>Game 1</summary><div style="display:contents" dir="auto"><ul id="366aed63-ad9e-80d4-9258-f8093f1ee921" class="bulleted-list"><li style="list-style-type:disc">[…]</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="366aed63-ad9e-80a1-b2e6-f7d248749319" class="toggle"><li><details open=""><summary>Learnings game 1</summary><div style="display:contents" dir="auto"><ul id="366aed63-ad9e-804c-a8d0-ca95905e2a91" class="bulleted-list"><li style="list-style-type:disc">[…]</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><h1 id="366aed63-ad9e-80d4-8d8c-d84bd2baa690" class="block-color-blue_background">Feature</h1></div><div style="display:contents" dir="auto"><h2 id="368aed63-ad9e-802a-ad41-fcdd1dd6296d" class="">Engagement expectations</h2></div><div style="display:contents" dir="auto"><p id="368aed63-ad9e-80b7-a0ba-e02e2619d455" class="">The time-limited world feature offers players a new area of engagement that we expect players to use depending of their investment in the game and their needs for the reward. The following table describe how we expect different categories of players to use these events from an intention standpoint.</p></div><div style="display:contents" dir="auto"><ul id="368aed63-ad9e-80c9-b164-c23f4cea494d" class="toggle"><li><details open=""><summary>Expected engagement per player engagement type</summary><div style="display:contents" dir="ltr"><table id="368aed63-ad9e-80b0-bef4-ef4848ca226d" class="simple-table"><tbody><div style="display:contents" dir="ltr"><tr id="368aed63-ad9e-80ca-9573-ee89ebbc47ba"><td id="Agt:" class="block-color-blue_background" style="width:149.66146850585938px">Engagement behavior</td><td id="@TfC" class="block-color-blue_background">Base daily playtime</td><td id="H&lt;fa" class="block-color-blue_background" style="width:150.6640625px">Expected daily time in event</td><td id="EZK_" class="block-color-blue_background" style="width:171.6640625px">Example of expected progression</td><td id="eZzE" class="block-color-blue_background" style="width:314px">Expected main monetization driver</td></tr></div><div style="display:contents" dir="ltr"><tr id="368aed63-ad9e-80df-b3fd-ee3837732b02"><td id="Agt:" class="" style="width:149.66146850585938px">Light</td><td id="@TfC" class="">30</td><td id="H&lt;fa" class="" style="width:150.6640625px">5</td><td id="EZK_" class="" style="width:171.6640625px">First reward of the gauge or first world rewards if multiple worlds</td><td id="eZzE" class="" style="width:314px">Treasure opportunity in the event</td></tr></div><div style="display:contents" dir="ltr"><tr id="368aed63-ad9e-8095-b22e-df406e3010ad"><td id="Agt:" class="" style="width:149.66146850585938px">Regular</td><td id="@TfC" class="">60</td><td id="H&lt;fa" class="" style="width:150.6640625px">20</td><td id="EZK_" class="" style="width:171.6640625px">Good medium of the gauge or few worlds rewards if multiple worlds</td><td id="eZzE" class="" style="width:314px">Treasure opportunity in the event + daily deals + small opportunistic offer (potion, shards, coins)</td></tr></div><div style="display:contents" dir="ltr"><tr id="368aed63-ad9e-805e-9684-f41f1a8fa0dc"><td id="Agt:" class="" style="width:149.66146850585938px">Invested</td><td id="@TfC" class="">100</td><td id="H&lt;fa" class="" style="width:150.6640625px">60</td><td id="EZK_" class="" style="width:171.6640625px">Final gauge reward or final world reward if multiple worlds </td><td id="eZzE" class="" style="width:314px">Medium price offer (potion, pet upgrades, event gating currency)</td></tr></div><div style="display:contents" dir="ltr"><tr id="368aed63-ad9e-80d2-bdb0-e0b9152fbf9f"><td id="Agt:" class="" style="width:149.66146850585938px">Elite</td><td id="@TfC" class="">180</td><td id="H&lt;fa" class="" style="width:150.6640625px">120</td><td id="EZK_" class="" style="width:171.6640625px">Final leaderboard reward</td><td id="eZzE" class="" style="width:314px">Big price offer (potion, pet upgrade, event gating currency)</td></tr></div></tbody></table></div></details></li></ul></div><div style="display:contents" dir="auto"><p id="368aed63-ad9e-8045-872f-cd2464efa810" class="">
+</p></div><div style="display:contents" dir="ltr"><div id="367aed63-ad9e-80b9-9911-ee4d76d565fd" class="collection-content"><h4 class="collection-title">Time limited world events</h4><div class="collection-content-wrapper"><table class="collection-content"><colgroup><col style="width:13.137114142139266%"/><col style="width:10.193826274228284%"/><col style="width:9.188801148600144%"/><col style="width:8.90165111270639%"/><col style="width:11.342426417803301%"/><col style="width:9.045226130653267%"/><col style="width:14.357501794687725%"/><col style="width:14.357501794687725%"/><col style="width:9.475951184493894%"/></colgroup><thead><tr><th><span class="icon property-icon"><img src="https://app.notion.com/icons/font_gray.svg" style="width:14px;height:14px;display:block"/></span>Name</th><th><span class="icon property-icon"><img src="https://app.notion.com/icons/arrow-circle-down_gray.svg" style="width:14px;height:14px;display:block"/></span>Day of the week</th><th><span class="icon property-icon"><img src="https://app.notion.com/icons/hashtag_gray.svg" style="width:14px;height:14px;display:block"/></span>Duration (h)</th><th><span class="icon property-icon"><img src="https://app.notion.com/icons/hashtag_gray.svg" style="width:14px;height:14px;display:block"/></span>Nb of level</th><th><span class="icon property-icon"><img src="https://app.notion.com/icons/list_gray.svg" style="width:14px;height:14px;display:block"/></span>Challenge type</th><th><span class="icon property-icon"><img src="https://app.notion.com/icons/arrow-circle-down_gray.svg" style="width:14px;height:14px;display:block"/></span>Difficulty</th><th><span class="icon property-icon"><img src="https://app.notion.com/icons/list_gray.svg" style="width:14px;height:14px;display:block"/></span>Modifier / restriction</th><th><span class="icon property-icon"><img src="https://app.notion.com/icons/list_gray.svg" style="width:14px;height:14px;display:block"/></span>Reward type</th><th><span class="icon property-icon"><img src="https://app.notion.com/icons/checkmark-square_gray.svg" style="width:14px;height:14px;display:block"/></span>Leaderboard</th></tr></thead><tbody><tr id="367aed63-ad9e-8094-b45f-c22b2dd19ba0"><td class="cell-title"><a href="%5B3%202%5D%20Time%20limited%20worlds/Time%20limited%20world%20events/Island%20Trial%20367aed63ad9e8094b45fc22b2dd19ba0.html">Island Trial</a></td><td class="cell-Egf}"><span class="selected-value select-value-color-gray">Monday</span></td><td class="cell-ZbSw">24</td><td class="cell-`D]h">1</td><td class="cell-lLAg"><span class="selected-value select-value-color-yellow">Power</span></td><td class="cell-a]rM"><span class="selected-value select-value-color-yellow">Medium</span></td><td class="cell-M}iV"><span class="selected-value select-value-color-default">Pet rarity boost</span></td><td class="cell-fNUG"><span class="selected-value select-value-color-blue">Biome egg</span></td><td class="cell-t]~]"><div class="checkbox checkbox-off"></div></td></tr><tr id="367aed63-ad9e-80a6-a20d-d0a0a11083f8"><td class="cell-title"><a href="%5B3%202%5D%20Time%20limited%20worlds/Time%20limited%20world%20events/Island%20Trial%20367aed63ad9e80a6a20dd0a0a11083f8.html">Island Trial</a></td><td class="cell-Egf}"><span class="selected-value select-value-color-default">Wednesday</span></td><td class="cell-ZbSw">24</td><td class="cell-`D]h">1</td><td class="cell-lLAg"><span class="selected-value select-value-color-yellow">Power</span></td><td class="cell-a]rM"><span class="selected-value select-value-color-yellow">Medium</span></td><td class="cell-M}iV"><span class="selected-value select-value-color-default">Pet rarity boost</span></td><td class="cell-fNUG"><span class="selected-value select-value-color-blue">Biome egg</span></td><td class="cell-t]~]"><div class="checkbox checkbox-off"></div></td></tr><tr id="367aed63-ad9e-8039-81b6-f78ad9588203"><td class="cell-title"><a href="%5B3%202%5D%20Time%20limited%20worlds/Time%20limited%20world%20events/Island%20Odyssey%20367aed63ad9e803981b6f78ad9588203.html">Island Odyssey</a></td><td class="cell-Egf}"><span class="selected-value select-value-color-blue">Friday</span></td><td class="cell-ZbSw">72</td><td class="cell-`D]h">5</td><td class="cell-lLAg"><span class="selected-value select-value-color-blue">Collection</span><span class="selected-value select-value-color-yellow">Power</span></td><td class="cell-a]rM"><span class="selected-value select-value-color-red">High</span></td><td class="cell-M}iV"><span class="selected-value select-value-color-brown">Biome restriction</span><span class="selected-value select-value-color-gray">Specific pet boost</span></td><td class="cell-fNUG"><span class="selected-value select-value-color-blue">Biome egg</span><span class="selected-value select-value-color-green">Candies</span><span class="selected-value select-value-color-yellow">New pets</span></td><td class="cell-t]~]"><div class="checkbox checkbox-on"></div></td></tr></tbody></table></div><br/><br/></div></div><div style="display:contents" dir="auto"><p id="373aed63-ad9e-808f-8148-db379fda446e" class="">For this version, we are going to make those events:</p></div><div style="display:contents" dir="ltr"><table id="373aed63-ad9e-8035-9939-d0fc17636d85" class="simple-table"><tbody><div style="display:contents" dir="ltr"><tr id="373aed63-ad9e-80d1-afe8-d2d3a4e1bef3"><td id="ZFlN" class="block-color-teal_background"><strong>Biome</strong></td><td id="{I;a" class="block-color-yellow_background"><strong>Island Trials</strong></td><td id=";vXi" class="block-color-red_background"><strong>Island Odysseys</strong></td></tr></div><div style="display:contents" dir="ltr"><tr id="373aed63-ad9e-80f4-9cf6-dfbcb44367c2"><td id="ZFlN" class="block-color-teal_background">Meadow</td><td id="{I;a" class="block-color-yellow_background">1 World</td><td id=";vXi" class="block-color-red_background">5 Worlds</td></tr></div><div style="display:contents" dir="ltr"><tr id="373aed63-ad9e-80c2-b3f0-c96de84d29a3"><td id="ZFlN" class="block-color-teal_background">Sea</td><td id="{I;a" class="block-color-yellow_background">1 World</td><td id=";vXi" class="block-color-red_background">5 Worlds</td></tr></div><div style="display:contents" dir="ltr"><tr id="373aed63-ad9e-8065-b999-c8bc00822a0a"><td id="ZFlN" class="block-color-teal_background">Savana</td><td id="{I;a" class="block-color-yellow_background">1 World</td><td id=";vXi" class="block-color-red_background">5 Worlds</td></tr></div><div style="display:contents" dir="ltr"><tr id="373aed63-ad9e-804e-9a25-e9014bd3c959"><td id="ZFlN" class="block-color-teal_background">Forest</td><td id="{I;a" class="block-color-yellow_background">1 World</td><td id=";vXi" class="block-color-red_background">5 Worlds</td></tr></div><div style="display:contents" dir="ltr"><tr id="373aed63-ad9e-803d-8978-ef68c39a0267"><td id="ZFlN" class="block-color-teal_background">Jungle</td><td id="{I;a" class="block-color-yellow_background">1 World</td><td id=";vXi" class="block-color-red_background">5 Worlds</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h2 id="366aed63-ad9e-804e-b23c-d0146736d4eb" class="">UI/UX</h2></div><div style="display:contents" dir="auto"><p id="368aed63-ad9e-80e5-a483-fa01f18f05a0" class="">Pre-prod flow: <a href="https://www.figma.com/design/42Gg64c6wP2rk8Hs9XZ6pP/v3.2?node-id=4007-2&amp;t=zKXSzpwvmrv5LEQu-1">https://www.figma.com/design/42Gg64c6wP2rk8Hs9XZ6pP/v3.2?node-id=4007-2&amp;t=zKXSzpwvmrv5LEQu-1</a></p></div><div style="display:contents" dir="auto"><h2 id="366aed63-ad9e-8001-a362-e827b965cb3f" class="">Remote settings</h2></div><div style="display:contents" dir="auto"><p id="367aed63-ad9e-8076-be49-d7ed8dd353f5" class=""><span style="border-bottom:0.05em solid">WorldEvent should have new fields to handle the dynamic difficulty of time limited world events</span></p></div><div style="display:contents" dir="auto"><ul id="367aed63-ad9e-80a6-846a-c41024baefbf" class="bulleted-list"><li style="list-style-type:disc">DynamicPower: true or false depending if this world uses a dynamic power. Dynamic power makes it so the world_power is based on the player current maximum power<div style="display:contents" dir="auto"><ul id="367aed63-ad9e-806e-8a94-cc73ea357f54" class="bulleted-list"><li style="list-style-type:circle">Maximum power is computed as the player bonus power + the sum of all pets potential max power (if all upgrades are made) for the highest level pets of the player</li></ul></div><div style="display:contents" dir="auto"><ul id="367aed63-ad9e-800b-8000-fc77489efccf" class="bulleted-list"><li style="list-style-type:circle">If a world has DynamicPower to true, the world_recommended_power is computed as bonuspower + teampower + (world additionalPower *6)</li></ul></div><div style="display:contents" dir="auto"><ul id="372aed63-ad9e-80a3-af71-ff3025059a3a" class="bulleted-list"><li style="list-style-type:circle">The DynamicPower is computed once at event start (when the event is playable for the first time)</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="367aed63-ad9e-8051-9fde-e617b259d420" class="bulleted-list"><li style="list-style-type:disc">AdditionalPower: the power to add or remove on top of the world_power</li></ul></div><div style="display:contents" dir="auto"><ul id="367aed63-ad9e-80e1-b722-cff008d7f369" class="bulleted-list"><li style="list-style-type:disc">DynamicWorldCoinMultiplier: true or false. If true the world uses the current MainWorld coin multiplier. If false it uses the world_coins_multiplier (set at event start and doesn’t update with player progress in MainWorld)<div style="display:contents" dir="auto"><ul id="372aed63-ad9e-801d-9172-ffe7a731fe7c" class="bulleted-list"><li style="list-style-type:circle">In case of DynamicWorldCoinMultiplier = true the world_coins_multiplier field is the offset to add or remove to the DynamicWorldCoinMultiplier (e.g. DynamicWorldCoinMultiplier = true and the player current world has 8 as WorldCoinMultiplier, if world_coins_multiplier = 1 then the event has 9 as world_coins_multiplier)</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="367aed63-ad9e-80c4-994c-c903a134ce12" class="bulleted-list"><li style="list-style-type:disc">DynamicWorldProgressCurrencyMultiplier: true or false. If true the world uses the current MainWorld progress currency multiplier. If false, it uses the world_progress_currency_multiplier<div style="display:contents" dir="auto"><ul id="372aed63-ad9e-80e7-b727-f7a01a973ee5" class="bulleted-list"><li style="list-style-type:circle">Similar to DynamicWorldCoinMultiplier in terms of offset if true</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><p id="368aed63-ad9e-8005-8204-c515e37d5196" class=""><span style="border-bottom:0.05em solid">We’ll need to be able to define RandomSpawners in WorldConfig</span></p></div><div style="display:contents" dir="auto"><ul id="368aed63-ad9e-8009-ab93-eec57d8cf1fe" class="bulleted-list"><li style="list-style-type:disc">RandomSpawners to rename WorldRandomSpawners</li></ul></div><div style="display:contents" dir="auto"><ul id="368aed63-ad9e-801d-8342-fdc63ea7c14d" class="bulleted-list"><li style="list-style-type:disc">RandomSpawnersCycle to rename WorldRandomSpawnersConfig</li></ul></div><div style="display:contents" dir="auto"><ul id="368aed63-ad9e-806c-8e07-d7f627c70a67" class="bulleted-list"><li style="list-style-type:disc">WorldRandomSpawnersConfig should have a new field “id” that is the id of this WorldRandomSpawnerCycle definition</li></ul></div><div style="display:contents" dir="auto"><ul id="368aed63-ad9e-8032-8ed7-f8da4f7c5270" class="bulleted-list"><li style="list-style-type:disc">WorldConfig should have a new field WorldRandomSpawnersConfig that allows to set the random spawner config per world</li></ul></div><div style="display:contents" dir="auto"><p id="368aed63-ad9e-8053-8965-e2f1d93a6d88" class=""><span style="border-bottom:0.05em solid">A new tab eventContentList should allow to list all event content</span></p></div><div style="display:contents" dir="auto"><ul id="372aed63-ad9e-8023-8ed6-d762f49d2c89" class="bulleted-list"><li style="list-style-type:disc">id: id of the eventContentList</li></ul></div><div style="display:contents" dir="auto"><ul id="36faed63-ad9e-8088-b1c9-ec5040e6a3b5" class="bulleted-list"><li style="list-style-type:disc">Content.id: today either WorldEvent or Leaderboard</li></ul></div><div style="display:contents" dir="auto"><ul id="372aed63-ad9e-8013-91bd-e04af0c80496" class="bulleted-list"><li style="list-style-type:disc">ProgressionOrder: int used to order the different levels for WorldEvent</li></ul></div><div style="display:contents" dir="auto"><p id="36faed63-ad9e-803f-9753-c40a1f8a3282" class="">Example:</p></div><div style="display:contents" dir="ltr"><table id="36faed63-ad9e-8021-893a-d3578f34144a" class="simple-table"><tbody><div style="display:contents" dir="ltr"><tr id="36faed63-ad9e-806a-9977-ed56f5704d02"><td id="k}LJ" class="block-color-blue_background" style="width:208.65625px">ID</td><td id="ux\^" class="block-color-blue_background" style="width:197.6640625px">ContentId</td><td id="edqA" class="block-color-blue_background">ProgressionOrder</td></tr></div><div style="display:contents" dir="ltr"><tr id="36faed63-ad9e-800a-8f49-c7dff048c3f9"><td id="k}LJ" class="" style="width:208.65625px">TLE_savanna_1</td><td id="ux\^" class="" style="width:197.6640625px">world_event_savanna_1</td><td id="edqA" class="">1</td></tr></div><div style="display:contents" dir="ltr"><tr id="36faed63-ad9e-8055-918f-fc75d52de412"><td id="k}LJ" class="" style="width:208.65625px">TLE_savanna_1</td><td id="ux\^" class="" style="width:197.6640625px">world_event_savanna_2</td><td id="edqA" class="">2</td></tr></div><div style="display:contents" dir="ltr"><tr id="36faed63-ad9e-8049-a374-d2d529fc6df5"><td id="k}LJ" class="" style="width:208.65625px">TLE_savanna_1</td><td id="ux\^" class="" style="width:197.6640625px">leaderboard_world_event</td><td id="edqA" class="">0</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><p id="372aed63-ad9e-8092-85ec-e4f688e7a943" class=""><span style="border-bottom:0.05em solid">We need to make sure events cycle properly inside the same group</span></p></div><div style="display:contents" dir="auto"><ul id="372aed63-ad9e-80eb-8b88-ef5e0247c358" class="bulleted-list"><li style="list-style-type:disc">For events with the same &amp;grouping.group with similar &amp;schedule.loopStartTimestamp the events are picked by &amp;grouping.priority for available events (events that finished their &amp;schedule.timeToRevive)</li></ul></div><div style="display:contents" dir="auto"><p id="372aed63-ad9e-80da-b196-fe230a444e7b" class=""><span style="border-bottom:0.05em solid">We should introduce a WorldRulesConfig to define the cost of the rebloom</span></p></div><div style="display:contents" dir="auto"><ul id="373aed63-ad9e-804e-8f73-cd701b703e35" class="bulleted-list"><li style="list-style-type:disc">WorldConfig have a new column for WorldRuleConfig</li></ul></div><div style="display:contents" dir="auto"><ul id="373aed63-ad9e-8042-92c9-f16de3b76721" class="bulleted-list"><li style="list-style-type:disc">WorldRuleConfig is a new tab with<div style="display:contents" dir="auto"><ul id="373aed63-ad9e-80c2-bef9-ff04e70bb634" class="bulleted-list"><li style="list-style-type:circle">Id</li></ul></div><div style="display:contents" dir="auto"><ul id="373aed63-ad9e-800b-a20b-d9cded731abb" class="bulleted-list"><li style="list-style-type:circle">Type: in 3.2 we only have “rebloom”</li></ul></div><div style="display:contents" dir="auto"><ul id="373aed63-ad9e-808a-8544-f285a36cbd1e" class="bulleted-list"><li style="list-style-type:circle">Value: the value can be used to set a variable of the type, for “rebloom” it is the cost to rebloom in HC</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><p id="372aed63-ad9e-80e9-b4ca-dc0c260e49c9" class="">
+</p></div><div style="display:contents" dir="auto"><h2 id="372aed63-ad9e-80e5-b780-d3fd543f3179" class="">Rebloom world resource logic</h2></div><div style="display:contents" dir="auto"><p id="372aed63-ad9e-8030-ac76-f11c92544604" class="">If a world has the rebloom mechanic it means it doesn’t respawn its resources. To handle this properly for players we want the following logic:</p></div><div style="display:contents" dir="auto"><ul id="372aed63-ad9e-807a-8610-dd9e98cdb55b" class="bulleted-list"><li style="list-style-type:disc">When generated, resources of a world should be displayed at the same place and of the same type (for each generation)<div style="display:contents" dir="auto"><ul id="372aed63-ad9e-8013-8781-d2b2e4d5754f" class="bulleted-list"><li style="list-style-type:circle">If possible we can also keep the resource progress but it’s a nice to have (e.g. I eat 50% of the resource as a player, I move and come back and I still see it at 50%)</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="372aed63-ad9e-80a7-aeda-def33869b453" class="bulleted-list"><li style="list-style-type:disc">Each time the resources are re-spawned through the rebloom (which is the only way to respawn resources) it should be a new random generation<div style="display:contents" dir="auto"><ul id="372aed63-ad9e-80b9-a32b-ee23c43b9e80" class="bulleted-list"><li style="list-style-type:circle">This means if players rebloom with resources on their tile these resources are deleted to let the new respawned resource spawn</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="372aed63-ad9e-80d3-9686-fdb34733a0ff" class="bulleted-list"><li style="list-style-type:disc">RandomSpawners (wheel, gift…) cycle should be reset when the rebloom happens<div style="display:contents" dir="auto"><ul id="372aed63-ad9e-80d8-986d-c93a50575a7d" class="bulleted-list"><li style="list-style-type:circle">Previous RandomSpawners spawned should be kept on the map</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><h2 id="36daed63-ad9e-80f1-8dd4-e178b6b70faf" class="">New requirements</h2></div><div style="display:contents" dir="auto"><p id="36daed63-ad9e-804d-9810-c5ffae9bb3a6" class="">In 3.0.0 we introduced a requirement “tournament_inprogress” used to make stuff available when a Tournament is running. The main use case is to distribute the tournament currency only when the Tournament is live.</p></div><div style="display:contents" dir="auto"><p id="36daed63-ad9e-80d3-84c1-d944a9384a04" class="">In 3.2, we should make this more generic and add more requirements to be able to have a wider range of behavior:</p></div><div style="display:contents" dir="auto"><ul id="36daed63-ad9e-8074-9d68-f6e184e7d519" class="bulleted-list"><li style="list-style-type:disc">tournament_inprogress becomes event_in-progress to make the naming more generic and ensure it works for all events<div style="display:contents" dir="auto"><ul id="36daed63-ad9e-80f7-95b1-cb30c23198e7" class="bulleted-list"><li style="list-style-type:circle">We could also make it so the event_id is put in “key” and not in “value” to be more consistent with the following requirements</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="36daed63-ad9e-8021-a389-c1122b5b55e0" class="bulleted-list"><li style="list-style-type:disc">event_ended: this requirement will be used to trigger elements after an event ended<div style="display:contents" dir="auto"><ul id="36daed63-ad9e-80a6-a467-dc48afed9e26" class="bulleted-list"><li style="list-style-type:circle">key: event_id</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><p id="373aed63-ad9e-8063-903f-eb02f2d2de4c" class="">
+</p></div><div style="display:contents" dir="auto"><p id="373aed63-ad9e-8028-aa16-e42dfd81a454" class="">Additional unrelated requirement for 3.2:</p></div><div style="display:contents" dir="auto"><ul id="373aed63-ad9e-80a8-ba0c-caef4cf8a15f" class="bulleted-list"><li style="list-style-type:disc">minion_biome_own with key being the biome name to check if the player has at least one pet of this biome</li></ul></div><div style="display:contents" dir="auto"><p id="36daed63-ad9e-8070-b86e-e025effd3c60" class="">
+</p></div><div style="display:contents" dir="auto"><h2 id="366aed63-ad9e-80ad-8aa0-e35e2b60bb24" class="">FTUE</h2></div><div style="display:contents" dir="auto"><p id="366aed63-ad9e-8041-ae22-f57e0f13f663" class="">[…]</p></div><div style="display:contents" dir="auto"><h2 id="367aed63-ad9e-80a7-8000-e0843795958d" class="">Balancing</h2></div><div style="display:contents" dir="auto"><p id="371aed63-ad9e-80ac-b4a6-d165e7d5b058" class=""><a href="https://app.notion.com/p/3-2-WIP-Time-limited-worlds-balancing-Intentions-367aed63ad9e80c89c4cfe980b4aa911?pvs=21"><span class="icon">🕘</span>[3.2] WIP - Time limited worlds balancing Intentions.</a> </p></div><div style="display:contents" dir="auto"><ul id="367aed63-ad9e-80a6-8ee2-c190a8a18da3" class="toggle"><li><details open=""><summary>Arthur’s suggestion for balancing</summary><div style="display:contents" dir="auto"><p id="367aed63-ad9e-8065-b367-e7b6859fb9c2" class="">We will probably need a “Time limited world intention” tab in order to balance correctly the events. We’ll need tools to manage:</p></div><div style="display:contents" dir="auto"><ul id="367aed63-ad9e-8092-8872-f499b5481fbd" class="bulleted-list"><li style="list-style-type:disc">The difficulty: <div style="display:contents" dir="auto"><ul id="367aed63-ad9e-8018-ade6-fa9abbd5149a" class="bulleted-list"><li style="list-style-type:circle">We should be able to compute how long it takes to complete each world depending on its power (same thing for the leaderboard)<div style="display:contents" dir="auto"><ul id="367aed63-ad9e-80aa-a6c7-c0078827effd" class="bulleted-list"><li style="list-style-type:square">This should be broken down per player engagement in other features to low, medium, high and high-payer</li></ul></div><div style="display:contents" dir="auto"><ul id="367aed63-ad9e-8004-88bc-d97b0986910b" class="bulleted-list"><li style="list-style-type:square">This should allow us to set the expected difficulty for each event (e.g. low engaged players are able to collect the mid reward of the Island expedition)</li></ul></div><div style="display:contents" dir="auto"><ul id="367aed63-ad9e-80ee-879e-ef98638cae35" class="bulleted-list"><li style="list-style-type:square">It should be clear what type of player is able to collet what reward</li></ul></div></li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="367aed63-ad9e-80b3-9260-c45eb70868a9" class="bulleted-list"><li style="list-style-type:disc">The rewards:<div style="display:contents" dir="auto"><ul id="367aed63-ad9e-80f1-96eb-fb610fcd9bca" class="bulleted-list"><li style="list-style-type:circle">We should be able to scale reward value according to the difficulty</li></ul></div><div style="display:contents" dir="auto"><ul id="367aed63-ad9e-8067-b0d1-e5da15e70b3f" class="bulleted-list"><li style="list-style-type:circle">To do so I recommend to set a value of reward per “effort”. Effort should be defined from the length of completing an event (the amount of currency to collect) and the difficulty (the world power). Those two are of course related but we can play on those to generate different type of difficulty</li></ul></div></li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><h1 id="366aed63-ad9e-8095-8fdb-d193794724e5" class="block-color-blue_background">Related docs</h1></div><div style="display:contents" dir="ltr"><figure id="367aed63-ad9e-8004-ac1a-e73c5dc58dda" class="link-to-page"><a href="%5B3%202%5D%20Time%20limited%20worlds/%5BGroundwork%5D%20First%20round%20of%20question%20367aed63ad9e8004ac1ae73c5dc58dda.html">[Groundwork] First round of question</a></figure></div><div style="display:contents" dir="ltr"><figure id="36daed63-ad9e-807e-8e86-f745c826b6e6" class="link-to-page"><a href="%5B3%202%5D%20Time%20limited%20worlds/Second%20round%20of%20question%20(groundwork,%20pre-prod,%20pr%2036daed63ad9e807e8e86f745c826b6e6.html">Second round of question (groundwork, pre-prod, prod)</a></figure></div><div style="display:contents" dir="ltr"><figure id="367aed63-ad9e-80ae-a2de-d80d054e1f78" class="link-to-page"><a href="%5B3%202%5D%20Time%20limited%20worlds/V1%20-%20Time%20limited%20world%20battle-plan%20367aed63ad9e80aea2ded80d054e1f78.html">V1 - Time limited world battle-plan</a></figure></div><div style="display:contents" dir="ltr"><figure id="372aed63-ad9e-80de-b8b0-dd1a31aea735" class="link-to-page"><a href="%5B3%202%5D%20Time%20limited%20worlds/Question%20pre-prod%20doc%20372aed63ad9e80deb8b0dd1a31aea735.html">Question pre-prod doc</a></figure></div><div style="display:contents" dir="ltr"><figure id="36daed63-ad9e-801c-8152-c40cfb6e84eb" class="link-to-page"><a href="%5B3%202%5D%20Time%20limited%20worlds/Main%20world%20re-balancing%20intentions%2036daed63ad9e801c8152c40cfb6e84eb.html">Main world re-balancing intentions</a></figure></div><div style="display:contents" dir="auto"><div style="display:contents" dir="ltr"><figure id="367aed63-ad9e-80c8-9c4c-fe980b4aa911" class="link-to-page"><a href="https://app.notion.com/p/3-2-WIP-Time-limited-worlds-balancing-Intentions-367aed63ad9e80c89c4cfe980b4aa911?pvs=21"><span class="icon">🕘</span>[3.2] WIP - Time limited worlds balancing Intentions.</a></figure></div></div></div></article><span class="sans" style="font-size:14px;padding-top:2em"><hr/><details open="" style="padding-top:1em"><summary style="font-weight:600;font-size:1.25em;line-height:1.3;margin:0">Commentaires de bloc résolus</summary><div class="indented"><div><p style="padding:0.2em"><b>Texte des blocs</b>: <mark class="highlight-yellow_background">We want to challenge players on their collection variety</mark></p><ul class="toggle"><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/f0c4dfc4-fa9e-49a9-9617-3fffa9d5d7ac/Boxer.png" class="icon user-icon"/><span><b>Hugues Barlet</b> <time style="font-size:0.8em">May 22, 2026, 11:45 AM</time></span></span></div><div style="padding:0.2em">This one could come first maybe? </div><div style="padding:0.3em"></div></li></ul></div><hr/></div><div class="indented"><div><p style="padding:0.2em"><b>Texte des blocs</b>: <mark class="highlight-yellow_background">DynamicPower: true or false depending if this world uses a dynamic power. Dynamic power makes it so the world_power is based on the player current maximum power</mark></p><ul class="toggle"><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/f0c4dfc4-fa9e-49a9-9617-3fffa9d5d7ac/Boxer.png" class="icon user-icon"/><span><b>Hugues Barlet</b> <time style="font-size:0.8em">May 22, 2026, 2:02 PM</time></span></span></div><div style="padding:0.2em">Does the maximum power is check before entering the event? or at the connexion of the session?</div><div style="padding:0.3em"></div></li><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/f0c4dfc4-fa9e-49a9-9617-3fffa9d5d7ac/Boxer.png" class="icon user-icon"/><span><b>Hugues Barlet</b> <time style="font-size:0.8em">May 22, 2026, 2:02 PM</time></span></span></div><div style="padding:0.2em">I’m trying to think about potential edge cases</div><div style="padding:0.3em"></div></li><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/9c3154c6-0bbd-47a7-b2ff-975e724f1fad/Capture_decran_2021-01-07_a_15.03.34.png" class="icon user-icon"/><span><b>Arthur MICHEL</b> <time style="font-size:0.8em">May 22, 2026, 2:03 PM</time></span></span></div><div style="padding:0.2em">Good point! To me it should be set at event start in the sense of the moment the event is available for the player (not the moment the player enter it) to avoid strange behavior where u enter only what it make sense or you’re punished for entering too late in your session. Wdyt?</div><div style="padding:0.3em"></div></li></ul></div><hr/></div><div class="indented"><div><p style="padding:0.2em"><b>Texte des blocs</b>: <mark class="highlight-yellow_background">DynamicWorldCoinMultiplier: true or false. If true the world uses the current MainWorld coin multiplier. If false it uses the world_coins_multiplier<br/>DynamicWorldProgressCurrencyMultiplier: true or false. If true the world uses the current MainWorld progress currency multiplier. If false, it uses the world_progress_currency_multiplier</mark></p><ul class="toggle"><li><div><span class="user" style="padding:0.2em"><span class="icon text-icon user-icon"><span class="user-icon-inner">C</span></span><span><b>Clement Auvray</b> <time style="font-size:0.8em">May 28, 2026, 11:28 AM</time></span></span></div><div style="padding:0.2em">do we need to have these 2 booleans we could maybe just set world_coin_multiplier to -1 instead no ?</div><div style="padding:0.3em"></div></li><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/9c3154c6-0bbd-47a7-b2ff-975e724f1fad/Capture_decran_2021-01-07_a_15.03.34.png" class="icon user-icon"/><span><b>Arthur MICHEL</b> <time style="font-size:0.8em">May 29, 2026, 10:27 AM</time></span></span></div><div style="padding:0.2em">We keep the current multiplier and these boolean but we use the current flied also when “true” to set the offset value on the dhynamicMulitplier</div><div style="padding:0.3em"></div></li></ul></div><hr/></div><div class="indented"><div><p style="padding:0.2em"><b>Texte des blocs</b>: <mark class="highlight-yellow_background">DynamicWorldCoinMultiplier: true or false. If true the world uses the current MainWorld coin multiplier. If false it uses the world_coins_multiplier<br/>DynamicWorldProgressCurrencyMultiplier: true or false. If true the world uses the current MainWorld progress currency multiplier. If false, it uses the world_progress_currency_multiplier</mark></p><ul class="toggle"><li><div><span class="user" style="padding:0.2em"><span class="icon text-icon user-icon"><span class="user-icon-inner">C</span></span><span><b>Clement Auvray</b> <time style="font-size:0.8em">May 28, 2026, 11:28 AM</time></span></span></div><div style="padding:0.2em">do we need to have these 2 booleans we could maybe just set world_coin_multiplier to -1 instead no ?</div><div style="padding:0.3em"></div></li><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/9c3154c6-0bbd-47a7-b2ff-975e724f1fad/Capture_decran_2021-01-07_a_15.03.34.png" class="icon user-icon"/><span><b>Arthur MICHEL</b> <time style="font-size:0.8em">May 29, 2026, 10:27 AM</time></span></span></div><div style="padding:0.2em">We keep the current multiplier and these boolean but we use the current flied also when “true” to set the offset value on the dhynamicMulitplier</div><div style="padding:0.3em"></div></li></ul></div><hr/></div><div class="indented"><div><p style="padding:0.2em"><b>Texte des blocs</b>: <mark class="highlight-yellow_background">We should be able to compute how long it takes to complete each world depending on its power (same thing for the leaderboard)</mark></p><ul class="toggle"><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/1ffffe13-de68-4d52-88fe-66a341b8ccc6/Profile_Picture_Modified_Reduced_Replaced.png" class="icon user-icon"/><span><b>Teliau</b> <time style="font-size:0.8em">May 22, 2026, 1:38 PM</time></span></span></div><div style="padding:0.2em">Just to be sure, when you talk about computation, do you want something like on the Progress tab ?</div><div style="padding:0.3em"><a href="%5B3%202%5D%20Time%20limited%20worlds/Capture_decran_2026-05-22_a_13.37.44.png" class="url-value">Capture d’écran 2026-05-22 à 13.37.44.png</a></div></li><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/9c3154c6-0bbd-47a7-b2ff-975e724f1fad/Capture_decran_2021-01-07_a_15.03.34.png" class="icon user-icon"/><span><b>Arthur MICHEL</b> <time style="font-size:0.8em">May 22, 2026, 1:49 PM</time></span></span></div><div style="padding:0.2em">Exactly but more micro / more adapted to the event</div><div style="padding:0.3em"></div></li></ul></div><hr/></div><div class="indented"><div><p style="padding:0.2em"><b>Texte des blocs</b>: <mark class="highlight-yellow_background">To do so I recommend to set a value of reward per “effort”. Effort should be defined from the length of completing an event (the amount of currency to collect) and the difficulty (the world power). Those to are of course related but we can play on those to generate different type of difficulty</mark></p><ul class="toggle"><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/1ffffe13-de68-4d52-88fe-66a341b8ccc6/Profile_Picture_Modified_Reduced_Replaced.png" class="icon user-icon"/><span><b>Teliau</b> <time style="font-size:0.8em">May 22, 2026, 1:39 PM</time></span></span></div><div style="padding:0.2em">Very aligned on that</div><div style="padding:0.3em"></div></li></ul></div><hr/></div></details></span></body></html>

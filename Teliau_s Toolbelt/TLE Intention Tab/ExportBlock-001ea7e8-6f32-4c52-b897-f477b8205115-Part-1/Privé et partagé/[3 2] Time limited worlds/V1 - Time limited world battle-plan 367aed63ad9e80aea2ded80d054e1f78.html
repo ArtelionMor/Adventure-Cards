@@ -1,0 +1,749 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>V1 - Time limited world battle-plan</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+/* Override strong tags inside headings to maintain consistent weight */
+h1 strong,
+h2 strong,
+h3 strong {
+	font-weight: 600;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 10px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+
+	table.collection-content {
+		width: 100%;
+		table-layout: fixed;
+	}
+
+	table.collection-content th,
+	table.collection-content td {
+		overflow-wrap: anywhere;
+	}
+
+	table.collection-content td > .user,
+	table.collection-content td > time {
+		white-space: pre-wrap;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content-wrapper {
+	overflow-x: auto;
+}
+
+@media only print {
+	.collection-content-wrapper {
+		overflow-x: visible;
+	}
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.collection-content td {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.column-list {
+	display: flex;
+	gap: 46px;
+}
+
+.column {
+	min-width: 0;
+	overflow: hidden;
+}
+
+.column > *:first-child {
+	margin-top: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+table {
+	border-collapse: collapse;
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	padding-inline-start: 0;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol.numbered-list.numbered-list-digits-2 {
+	padding-inline-start: 2em;
+}
+
+ol.numbered-list.numbered-list-digits-3plus {
+	padding-inline-start: 2.4em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+.page-description {
+	margin-bottom: 2em;
+}
+
+.simple-table {
+	margin-top: 1em;
+	font-size: 0.875rem;
+	empty-cells: show;
+}
+.simple-table td {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table th {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table-header-color {
+	background: rgb(247, 246, 243);
+	color: black;
+}
+.simple-table-header {
+	font-weight: 500;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.callout img.notion-static-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.callout p {
+	margin: 0;
+}
+
+.callout h1,
+.callout h2,
+.callout h3 {
+	margin: 0 0 0.6rem;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	max-height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+blockquote.quote-large {
+	font-size: 1.25em;
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP'; }
+.pdf:lang(zh-CN) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC'; }
+.pdf:lang(zh-TW) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC'; }
+.pdf:lang(ko-KR) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR'; }
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP'; }
+.pdf:lang(zh-CN) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC'; }
+.pdf:lang(zh-TW) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC'; }
+.pdf:lang(ko-KR) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR'; }
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.highlight-default {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.highlight-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.highlight-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.highlight-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.highlight-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.highlight-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.highlight-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.highlight-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.highlight-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.highlight-default_background {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray_background {
+	background: rgba(42, 28, 0, 0.07);
+}
+.highlight-brown_background {
+	background: rgba(139, 46, 0, 0.086);
+}
+.highlight-orange_background {
+	background: rgba(224, 101, 1, 0.129);
+}
+.highlight-yellow_background {
+	background: rgba(211, 168, 0, 0.137);
+}
+.highlight-teal_background {
+	background: rgba(0, 100, 45, 0.09);
+}
+.highlight-blue_background {
+	background: rgba(0, 124, 215, 0.094);
+}
+.highlight-purple_background {
+	background: rgba(102, 0, 178, 0.078);
+}
+.highlight-pink_background {
+	background: rgba(197, 0, 93, 0.086);
+}
+.highlight-red_background {
+	background: rgba(223, 22, 0, 0.094);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.block-color-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.block-color-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.block-color-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.block-color-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.block-color-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.block-color-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.block-color-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.block-color-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.block-color-default_background {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray_background {
+	background: rgba(240, 239, 237, 1);
+}
+.block-color-brown_background {
+	background: rgba(245, 237, 233, 1);
+}
+.block-color-orange_background {
+	background: rgba(251, 235, 222, 1);
+}
+.block-color-yellow_background {
+	background: rgba(249, 243, 220, 1);
+}
+.block-color-teal_background {
+	background: rgba(232, 241, 236, 1);
+}
+.block-color-blue_background {
+	background: rgba(229, 242, 252, 1);
+}
+.block-color-purple_background {
+	background: rgba(243, 235, 249, 1);
+}
+.block-color-pink_background {
+	background: rgba(250, 233, 241, 1);
+}
+.block-color-red_background {
+	background: rgba(252, 233, 231, 1);
+}
+.select-value-color-default { background-color: rgba(42, 28, 0, 0.07); }
+.select-value-color-gray { background-color: rgba(28, 19, 1, 0.11); }
+.select-value-color-brown { background-color: rgba(127, 51, 0, 0.156); }
+.select-value-color-orange { background-color: rgba(196, 88, 0, 0.203); }
+.select-value-color-yellow { background-color: rgba(209, 156, 0, 0.282); }
+.select-value-color-green { background-color: rgba(0, 96, 38, 0.156); }
+.select-value-color-blue { background-color: rgba(0, 118, 217, 0.203); }
+.select-value-color-purple { background-color: rgba(92, 0, 163, 0.141); }
+.select-value-color-pink { background-color: rgba(183, 0, 78, 0.152); }
+.select-value-color-red { background-color: rgba(206, 24, 0, 0.164); }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="367aed63-ad9e-80ae-a2de-d80d054e1f78" class="page sans"><header><h1 class="page-title" dir="auto">V1 - Time limited world battle-plan</h1><p class="page-description" dir="auto"></p></header><div class="page-body"><div style="display:contents" dir="auto"><p id="36aaed63-ad9e-80c3-8422-d86c334626d1" class="">Questions: </p></div><div style="display:contents" dir="auto"><p id="36baed63-ad9e-80ee-a4db-df628bb72c5d" class="">What&#x27;s the intent behind:</p></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80d4-8e1d-d0fee204b7b0" class="bulleted-list"><li style="list-style-type:disc">Golden apples (Fortune wheel, pacing),</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80d1-a7cc-ea161f914a93" class="bulleted-list"><li style="list-style-type:disc">Treasures (monet + breaking repetitiveness...),</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80f5-8bea-e4e7a98c2f3a" class="bulleted-list"><li style="list-style-type:disc">Fortune wheels (breaking repetitiveness, rewardded for discovery),</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8054-a8da-fc0194d1f80f" class="bulleted-list"><li style="list-style-type:disc">Quests (changing the pacing of the game, gating the worlds ~50% of xp comes from quests),</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8097-b354-ce4c980d5203" class="bulleted-list"><li style="list-style-type:disc">GPE (12% of xp in GPE, valorizating pets)</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8024-bfe0-d8d967f5479e" class="bulleted-list"><li style="list-style-type:disc">How much impact do we want this event to have on the game economy ?<div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8077-8793-c637e924138b" class="bulleted-list"><li style="list-style-type:circle">(As rewarding to play in the time limited than in the main world, rewards are better, better rentability) (having a second world for farming is still interesting since having a second world to farm when you are blocked on the main one is always cool).</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8097-b2a6-dd4b78f76275" class="bulleted-list"><li style="list-style-type:circle">Maybe, an idea is to not have coins in the limited time worlds, but having better rewards.</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-809f-a919-e150aa13107f" class="bulleted-list"><li style="list-style-type:disc">How does this event integrates regarding content distribution ?<div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8000-8cb3-d65153f52f7b" class="bulleted-list"><li style="list-style-type:circle">Do this event canibalize some of the main game ? (not sure) (check with Arthur)<div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80b7-9d39-f74d87cb5fed" class="bulleted-list"><li style="list-style-type:square">If so, how much ? (if yes, a little)</li></ul></div></li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80ed-b3e5-f37858004181" class="bulleted-list"><li style="list-style-type:disc">Do we want to have echoe of this event in the main game ? <div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80c7-b5de-fb9ce66b9a4b" class="bulleted-list"><li style="list-style-type:circle">Do we sell rebloom tokens in the daily deals ? (no)</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><p id="36baed63-ad9e-8016-b3fa-ed758d699e9b" class=""><strong>Not answered</strong></p></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-808e-b07b-f004c71970d3" class="bulleted-list"><li style="list-style-type:disc"><mark class="highlight-red">World Gauge reward balancing (Arthur)</mark><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80d3-b850-df653966b0db" class="bulleted-list"><li style="list-style-type:circle"><mark class="highlight-red">Does the rewards follows the difficulty of the world ?</mark><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8045-b362-d6b08c247343" class="bulleted-list"><li style="list-style-type:square"><mark class="highlight-red">If so, how?</mark></li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80ca-80c0-ea0ebba1945c" class="bulleted-list"><li style="list-style-type:square"><mark class="highlight-red">What are inside those rewards ?</mark></li></ul></div></li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8028-bd83-fbddf55123f9" class="bulleted-list"><li style="list-style-type:disc"><mark class="highlight-red">How important do we want the modifiers to be in the events ?</mark></li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-802f-a5b7-dc687f9f4833" class="bulleted-list"><li style="list-style-type:disc"><mark class="highlight-red">Les quêtes sont le vrai coeur des worlds.</mark><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80e4-8b93-eb10b8c6d0e1" class="bulleted-list"><li style="list-style-type:circle"><mark class="highlight-red">Les quêtes reset avant le rebloom ?</mark></li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80b1-83c4-d1b64149830e" class="bulleted-list"><li style="list-style-type:circle"><mark class="highlight-red">Les quêtes special ? (non ?)</mark></li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8012-89ed-c0f0312debf3" class="bulleted-list"><li style="list-style-type:circle"><mark class="highlight-red">Les quêtes timées ? (non ?)</mark></li></ul></div></li></ul></div><div style="display:contents" dir="auto"><hr id="36baed63-ad9e-8032-b941-f716a4d290f8"/></div><div style="display:contents" dir="auto"><p id="36baed63-ad9e-801e-b829-fc70a1a3ff30" class="">During the pre-prod, I think that I will need some time to:</p></div><div style="display:contents" dir="auto"><ol type="1" id="36baed63-ad9e-8047-acec-cc620b518b67" class="numbered-list" start="1"><li>Finish the <a href="https://www.notion.so/achieved-mustang-b84/3-2-WIP-Time-limited-worlds-balancing-Intentions-367aed63ad9e80c89c4cfe980b4aa911?source=copy_link">balancing intention of time limited event document</a><div style="display:contents" dir="auto"><ol type="a" id="36baed63-ad9e-80b7-8cb0-cb3f39ee0e5b" class="numbered-list" start="1"><li>the deconstruction (notion doc)</li></ol></div><div style="display:contents" dir="auto"><ol type="a" id="36baed63-ad9e-8048-a064-e2d3fd6276fc" class="numbered-list" start="2"><li>the intentions (As player, as game maker)<div style="display:contents" dir="auto"><ol type="i" id="36baed63-ad9e-80f0-9636-c5ff4ccdbfe4" class="numbered-list" start="1"><li>iterative process with you</li></ol></div></li></ol></div><div style="display:contents" dir="auto"><ol type="a" id="36baed63-ad9e-807b-93e7-c84c0dcb25d9" class="numbered-list" start="3"><li>the document itself (notion page)</li></ol></div></li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="36baed63-ad9e-806d-a726-dd865d26fda6" class="numbered-list" start="2"><li>Learn how to create new world like the boss event (game config)</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="36baed63-ad9e-80f5-bf7f-fe1ad8dd2ba4" class="numbered-list" start="3"><li>Understand the logic on how to set world power (game config)</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="36baed63-ad9e-8097-9aa3-e66a795e48bc" class="numbered-list" start="4"><li>Learn how use the “Progress” tab (game config)</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="36baed63-ad9e-8015-b5c3-fab38156ff9a" class="numbered-list" start="5"><li>Add an intention tab for Biome Egg balancing (game config)<div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8081-a912-ee1fe2204741" class="bulleted-list"><li style="list-style-type:disc">Biome Egg balancing.<div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80b0-b2f7-c2c854d9eae9" class="bulleted-list"><li style="list-style-type:circle">Determining their value.</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-804c-bde5-cce971a1e0a6" class="bulleted-list"><li style="list-style-type:circle">Determining their price.</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-800e-a9fd-ca04657541de" class="bulleted-list"><li style="list-style-type:circle">Determine their places in the game (content distribution).</li></ul></div></li></ul></div></li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="36baed63-ad9e-8075-8e14-dd74c571b96c" class="numbered-list" start="6"><li>Add an intention tab for World Gauge balancing (game config).<div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80d1-9e2f-ec3018d10897" class="bulleted-list"><li style="list-style-type:disc">Content.</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8006-b858-db196ea0a2f1" class="bulleted-list"><li style="list-style-type:disc">Making sure that it doesn’t break the FTUE.</li></ul></div></li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="36baed63-ad9e-807e-9724-cdff22f119b4" class="numbered-list" start="7"><li>Add an intention tab for Modifier/Restriction Balancing (game config).<div style="display:contents" dir="auto"><ul id="36baed63-ad9e-803b-8336-f84c48d8c6a9" class="bulleted-list"><li style="list-style-type:disc">Modifiers / restrictions balancing.</li></ul></div></li></ol></div><div style="display:contents" dir="auto"><hr id="36baed63-ad9e-800d-8a39-e15446577e46"/></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-803f-801b-db2fe0920ac8" class="toggle"><li><details open=""><summary>Biome eggs</summary><div style="display:contents" dir="auto"><p id="36baed63-ad9e-80d5-af15-fa7c44644740" class="">For that, I have to check each biome on how much value does an egg deliver (for example, cave eggs are going to be very valuable because the “bad” side of not knowing what’s inside the eggs is almost non existant so, you buy bat and axolt shard for a lower price than cow shards in meadow for example)</p></div><div style="display:contents" dir="auto"><p id="36baed63-ad9e-800f-a6a5-e2ce05b96f9d" class="">I don’t think we will ever want eggs to have different prices dependently on the biome so, I’ll probably have to find an average price for all.</p></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="369aed63-ad9e-8094-a07d-ccbd0385c35b" class="toggle"><li><details open=""><summary>Dynamic worlds</summary><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80d4-889e-e0f3eb279a0e" class="toggle"><li><details open=""><summary>I set them as “when you start it, it is at the level of your current world”.</summary><div style="display:contents" dir="auto"><p id="36baed63-ad9e-80a9-9305-dd9496ba8afd" class="">That means that the rewards needs to be balanced as well in the same fashion (harder the challenge, better the reward)</p></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80b9-bbe7-fbdbd3b6e51f" class="toggle"><li><details open=""><summary>For the case of multiple worlds.</summary><div style="display:contents" dir="ltr"><figure id="36baed63-ad9e-8092-91ed-e3589d3d6cb1" class="image"><a href="V1%20-%20Time%20limited%20world%20battle-plan/image.png"><img style="width:720px" src="V1%20-%20Time%20limited%20world%20battle-plan/image.png"/></a></figure></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8042-a7eb-c64107153f62" class="bulleted-list"><li style="list-style-type:disc">I need to determine how far the player is able to progress in a given situation, if we base the balancing on the &quot;Expected engagement per player type.&quot; (How much ressources do I need to put and what type to have a X minutes experience in the event)<div style="display:contents" dir="auto"><ul id="36baed63-ad9e-806b-b02a-d057c4b02f0d" class="toggle"><li><details open=""><summary>Modifier</summary><div style="display:contents" dir="auto"><p id="36baed63-ad9e-80ad-b200-daf7946e98ba" class="">To solve this, I have to determine the question above and factor the modifier</p></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80ff-aeb6-f25066d15438" class="toggle"><li><details open=""><summary>Restriction</summary><div style="display:contents" dir="auto"><p id="36baed63-ad9e-8069-9d6d-f0053eed9b76" class="">To solve this, I have to test the different possibilities (no average here, things have to be really computed)</p></div></details></li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80f6-9779-c294584d5d9c" class="bulleted-list"><li style="list-style-type:disc">Rebloom mechanic:<div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80e1-8c8d-dd4815f4dbec" class="bulleted-list"><li style="list-style-type:circle">I understood that the intent behind the &quot;rebloom&quot; mechanic is to limit how long players engage with the feature in a single session. </li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80c8-a65e-d8b4660ef557" class="bulleted-list"><li style="list-style-type:circle">The reboot happens every X amount of time (the example given is 2 hours). <div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80aa-bc52-c899d35cb421" class="bulleted-list"><li style="list-style-type:square">I interpret that as: &quot;We want the player to come back multiple times rather than play one long session.&quot; </li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ol type="1" id="36baed63-ad9e-80c5-9041-daf5cb963c08" class="numbered-list" start="1"><li>Maybe what we can do is have different difficulty levels within the biome (small, medium, large), with the idea that less engaged players will only clear the small resources while the most engaged ones will take the time to do the big ones.</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="36baed63-ad9e-80c6-8986-cc0ac92dd9df" class="numbered-list" start="2"><li>We can also have the approach of “players are going to clear one biome entierly and maybe come back for the rebloom”</li></ol></div></li></ul></div><div style="display:contents" dir="auto"><ul id="369aed63-ad9e-8090-9621-e97d7a2be829" class="toggle"><li><details open=""><summary>Expected engagement per player engagement type</summary><div style="display:contents" dir="ltr"><table id="369aed63-ad9e-802d-8d8b-cec799773143" class="simple-table"><tbody><div style="display:contents" dir="ltr"><tr id="369aed63-ad9e-8023-a820-f1f99ea73e77"><td id="Agt:" class="block-color-blue_background" style="width:149.66146850585938px">Engagement behavior</td><td id="@TfC" class="block-color-blue_background">Base daily playtime</td><td id="H&lt;fa" class="block-color-blue_background" style="width:150.6640625px">Expected daily time in event</td><td id="EZK_" class="block-color-blue_background" style="width:171.6640625px">Ressources clearance </td><td id="JPih" class="block-color-blue_background">Buy the “<strong>rebloom</strong>” ?</td><td id="QF\q" class="block-color-blue_background">Example of expected progression</td></tr></div><div style="display:contents" dir="ltr"><tr id="369aed63-ad9e-80f4-ac34-cdc7d8b977d1"><td id="Agt:" class="" style="width:149.66146850585938px"><mark class="highlight-teal"><strong>Light</strong></mark></td><td id="@TfC" class="">30</td><td id="H&lt;fa" class="" style="width:150.6640625px">5</td><td id="EZK_" class="" style="width:171.6640625px"><mark class="highlight-teal"><strong>Small</strong></mark></td><td id="JPih" class=""><strong>No</strong></td><td id="QF\q" class="">First reward of the gauge or first world rewards if multiple worlds</td></tr></div><div style="display:contents" dir="ltr"><tr id="369aed63-ad9e-8040-8a96-c97afe9dfcf1"><td id="Agt:" class="" style="width:149.66146850585938px"><mark class="highlight-blue"><strong>Regular</strong></mark></td><td id="@TfC" class="">60</td><td id="H&lt;fa" class="" style="width:150.6640625px">20</td><td id="EZK_" class="" style="width:171.6640625px"><mark class="highlight-teal"><strong>Small</strong></mark> - <mark class="highlight-blue"><strong>Medium</strong></mark></td><td id="JPih" class=""><strong>No</strong></td><td id="QF\q" class="">Good medium of the gauge or few worlds rewards if multiple worlds</td></tr></div><div style="display:contents" dir="ltr"><tr id="369aed63-ad9e-80b3-bd52-c7560239453a"><td id="Agt:" class="" style="width:149.66146850585938px"><mark class="highlight-orange"><strong>Invested</strong></mark></td><td id="@TfC" class="">100</td><td id="H&lt;fa" class="" style="width:150.6640625px">60</td><td id="EZK_" class="" style="width:171.6640625px"><mark class="highlight-teal"><strong>Small</strong></mark> - <mark class="highlight-blue"><strong>Medium</strong></mark> - <mark class="highlight-red"><strong>Big</strong></mark></td><td id="JPih" class=""><strong>Sometimes</strong></td><td id="QF\q" class="">Final gauge reward or final world reward if multiple worlds </td></tr></div><div style="display:contents" dir="ltr"><tr id="369aed63-ad9e-8051-808b-c451e6e834d2"><td id="Agt:" class="" style="width:149.66146850585938px"><mark class="highlight-red"><strong>Elite</strong></mark></td><td id="@TfC" class="">180</td><td id="H&lt;fa" class="" style="width:150.6640625px">120</td><td id="EZK_" class="" style="width:171.6640625px"><mark class="highlight-teal"><strong>Small</strong></mark> - <mark class="highlight-blue"><strong>Medium</strong></mark> - <mark class="highlight-red"><strong>Big</strong></mark></td><td id="JPih" class=""><strong>Yes</strong></td><td id="QF\q" class="">Final leaderboard reward</td></tr></div></tbody></table></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="36aaed63-ad9e-8024-a52d-ccb14556793a" class="toggle"><li><details open=""><summary><strong>Rebloom</strong> Limitation</summary><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80a2-9dd3-df812e431cb8" class="bulleted-list"><li style="list-style-type:disc"><mark class="highlight-teal"><strong>Light</strong></mark> players will clear half the map and not come back.</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-808d-b487-f9b8ff15ea31" class="bulleted-list"><li style="list-style-type:disc"><mark class="highlight-blue"><strong>Regular</strong></mark> players will clear the map, and occasionally come back to reclear it, but won&#x27;t use <strong>rebloom</strong> (opportunistic gameplay).</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80ea-988a-c472a313ea42" class="bulleted-list"><li style="list-style-type:disc"><mark class="highlight-orange"><strong>Invested</strong></mark> players will clear the map and be serious about refreshes (&quot;I know I need to come back in a few hours&quot;). They&#x27;ll also be willing to spend a few <strong>rebloom</strong>s to catch up from time to time (I missed a cycle, but I still want the final reward).</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8074-bb9c-db97173c9b6f" class="bulleted-list"><li style="list-style-type:disc"><mark class="highlight-red"><strong>Elite</strong></mark> players will clear everything, often, and will pay whatever it takes to get the leaderboard rewards (within the limits set out in the table above).</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="36aaed63-ad9e-804b-9204-c0a53b5ce5b7" class="toggle"><li><details open=""><summary><strong>Ressource</strong> Clearance</summary><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-804d-93f1-f9004b10213e" class="bulleted-list"><li style="list-style-type:disc"><mark class="highlight-teal"><strong>Light</strong></mark> players will only clear the <mark class="highlight-teal"><strong>Small</strong></mark> ones,</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-807d-bd3e-d111df4d26cf" class="bulleted-list"><li style="list-style-type:disc"><mark class="highlight-blue"><strong>Regular</strong></mark> players will clear the <mark class="highlight-teal"><strong>Small</strong></mark> and <mark class="highlight-blue"><strong>Medium</strong></mark> ones,</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80b3-8b95-d55b73a4efdd" class="bulleted-list"><li style="list-style-type:disc"><mark class="highlight-orange"><strong>Invested</strong></mark> players will clear the <mark class="highlight-teal"><strong>Small</strong></mark>, <mark class="highlight-blue"><strong>Medium</strong></mark>, and <mark class="highlight-orange"><strong>Big</strong></mark> ones,</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80f2-a457-db2cf7ee9b19" class="bulleted-list"><li style="list-style-type:disc"><mark class="highlight-red"><strong>Elite</strong></mark> players will clear the <mark class="highlight-teal"><strong>Small</strong></mark>, <mark class="highlight-blue"><strong>Medium</strong></mark>, and <mark class="highlight-orange"><strong>Big</strong></mark> ones, and spam the <mark class="highlight-red"><strong>Reblooms</strong></mark><strong>.</strong></li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8094-886b-f6451d301cd7" class="toggle"><li><details open=""><summary>Based on those two ways to approaching the problem, we can thing about few first great ideas for this problem:</summary><div style="display:contents" dir="auto"><ol type="1" id="36baed63-ad9e-80d5-8b29-e99b413f9ede" class="numbered-list" start="1"><li>Ideally, clearing the map should grant one to two tiers of reward (never less than one, and probably the only times it&#x27;s just one are in the first events). The portion of that tier should be reachable through <strong>small</strong> resources.</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="36baed63-ad9e-80d1-b34d-d4acb2169e9e" class="numbered-list" start="2"><li>So I can set it up so that clearing half the map once brings in enough event_xp to unlock the first threshold (first reward), and the portion that clears half the map could be <strong>small</strong> + <strong>medium</strong> resources.</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="36baed63-ad9e-804e-8de3-ca0566b93c78" class="numbered-list" start="3"><li>Then, I can set it up so that every time you come back to the event after a rebloom and clear the entire map, you gain one threshold.</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="36baed63-ad9e-8072-92c1-f0fefbe6e6f9" class="numbered-list" start="4"><li>Then, I can set it up so that the further you progress in event levels, the more the number of rewards increases. Up to a limit for UX reasons, and from that point on, the difficulty of clearing the map starts to increase.</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="36aaed63-ad9e-8080-b380-e17037d8d480" class="numbered-list" start="5"><li>Then, I can set things up to create bots to simulate a leaderboard.<div style="display:contents" dir="auto"><ul id="36aaed63-ad9e-803e-b759-ca3aee248e59" class="bulleted-list"><li style="list-style-type:disc">The leaderboard will need to be set up in such a way that the bots challenge the player so that they become first on the leaderboard once the full number of hours planned for an event has elapsed (in this case 2h, equivalent to logging in 12 times).</li></ul></div></li></ol></div></details></li></ul></div><div style="display:contents" dir="auto"><h4 id="36aaed63-ad9e-8021-b96b-c0c5e37a8dad" class="">About other elements (treasures, fortune wheels, quests, golden apples…)</h4></div><div style="display:contents" dir="auto"><p id="36baed63-ad9e-80f8-ad02-e92d2cf68368" class="">These random elements change the balancing and don&#x27;t allow us to be perfectly precise.<br/>The thing to compute is &quot;How long does it take to clear all the tiles?&quot; and “How those elements have impact over the progress of the player?”</p></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-807d-8365-fdde229fbcb1" class="toggle"><li><details open=""><summary>The World Gauge balancing</summary><div style="display:contents" dir="ltr"><figure class="block-color-gray_background callout" style="white-space:pre-wrap;display:flex" id="36baed63-ad9e-80d1-a094-f818730cc379"><div style="font-size:1.5em"><span class="icon">💡</span></div><div style="width:100%"><div style="display:contents" dir="auto"><p id="36baed63-ad9e-80ac-be41-f1f69021c1ef" class="">In my opinion, this should canibalize the elements like the Fortune wheel, quests, golden apples…</p></div><div style="display:contents" dir="auto"><p id="36baed63-ad9e-80c7-998b-ee039325ba29" class="">I should determine how much currency we give by those systems, and take a percentage to put in the gauge.</p></div></div></figure></div></details></li></ul></div><div style="display:contents" dir="auto"><div style="display:contents" dir="ltr"><figure id="2f7aed63-ad9e-809a-aa77-f72850e2ef0c" class="link-to-page"><a href="../%5B3%202%5D%20Time%20limited%20worlds%202f7aed63ad9e809aaa77f72850e2ef0c.html"><span class="icon">🌎</span>[3.2] Time limited worlds</a></figure></div></div></details></li></ul></div><div style="display:contents" dir="auto"><p id="36daed63-ad9e-8059-aebb-fc9633ec7bb1" class="">
+</p></div><div style="display:contents" dir="auto"><h4 id="36baed63-ad9e-8037-a896-fcae49f413af" class="">Crazy ideas</h4></div><div style="display:contents" dir="auto"><ul id="369aed63-ad9e-80ee-86a4-cea9e86eae13" class="toggle"><li><details open=""><summary>Biomes world</summary><div style="display:contents" dir="auto"><div id="36baed63-ad9e-8086-a4dc-cdc6f4b5fde1" class="column-list"><div style="display:contents" dir="auto"><div id="36baed63-ad9e-8043-afeb-cce9880b282e" style="width:100%" class="column"><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80b6-97c8-c7801e0bfa01" class="bulleted-list"><li style="list-style-type:disc">Pure power test.</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-803b-9e84-ffb3fc170e39" class="bulleted-list"><li style="list-style-type:disc">You choose your team, you can change it just like in the main world, the goal is to show your progress in a very blunt and direct way.</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80b5-a6da-fcf35f08b619" class="bulleted-list"><li style="list-style-type:disc">The world is infinite.</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-805c-94e1-f74c247dc67b" class="bulleted-list"><li style="list-style-type:disc">The biomes are all there.</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-809a-8c29-fa13187da653" class="bulleted-list"><li style="list-style-type:disc">Each biome have only 1 patch of ressources of that biome type of ressources.</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-8098-b506-c3f6c3871779" class="bulleted-list"><li style="list-style-type:disc">No other elements.</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-805e-8a2d-d8934a220dbd" class="bulleted-list"><li style="list-style-type:disc">Each time you fully collect the ressources of a biome, you gain the ressources of that biome.</li></ul></div><div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80d9-b95c-e3d6ae6041a2" class="bulleted-list"><li style="list-style-type:disc">The progress is saved from one event to another. When finish the event, the game saves at what biome you are, and the next time this event is proposed, you start at that biome.<div style="display:contents" dir="auto"><ul id="36baed63-ad9e-80d4-9623-cad6316a5449" class="bulleted-list"><li style="list-style-type:circle"><em>(i think it will help our dev friends because that means that they don’t have to memorize world 1 to world n, only world n to world m, where n is the starting world and m is the limit for the player)</em></li></ul></div></li></ul></div><div style="display:contents" dir="auto"><p id="36baed63-ad9e-805f-8981-c42519eff7f4" class="">I don’t know if it is technically possible though</p></div><div style="display:contents" dir="auto"><p id="36baed63-ad9e-8097-b262-f7262b58daf6" class="">
+</p></div></div></div><div style="display:contents" dir="auto"><div id="36baed63-ad9e-80c4-bb96-dc2513aeda90" style="width:43.74999999999997%" class="column"><div style="display:contents" dir="ltr"><figure id="36baed63-ad9e-8016-8b7d-f5e00fd37455" class="image"><a href="V1%20-%20Time%20limited%20world%20battle-plan/Frame_484542.png"><img style="width:240px" src="V1%20-%20Time%20limited%20world%20battle-plan/Frame_484542.png"/></a><figcaption>All the biome are there, the game generates them. They loop at a certain moment.</figcaption></figure></div></div></div><div style="display:contents" dir="auto"><div id="36baed63-ad9e-8016-9d80-c9ab067ad656" style="width:68.75%" class="column"><div style="display:contents" dir="ltr"><figure id="36baed63-ad9e-8008-8cb7-ddaa1ac93ea7" class="image"><a href="V1%20-%20Time%20limited%20world%20battle-plan/Frame_484543.png"><img style="width:384px" src="V1%20-%20Time%20limited%20world%20battle-plan/Frame_484543.png"/></a><figcaption>The difficulty of the biomes evolves, in a way that allows the player to do multiple biomes with the progress of one world.</figcaption></figure></div><div style="display:contents" dir="ltr"><figure id="36baed63-ad9e-80d3-8e17-d30038c262eb" class="image"><a href="V1%20-%20Time%20limited%20world%20battle-plan/Frame_484544.png"><img style="width:384px" src="V1%20-%20Time%20limited%20world%20battle-plan/Frame_484544.png"/></a><figcaption>You have multiple biome type in a row</figcaption></figure></div><div style="display:contents" dir="ltr"><figure id="36baed63-ad9e-8020-8b00-cfaf19b489a1" class="image"><a href="V1%20-%20Time%20limited%20world%20battle-plan/image%201.png"><img style="width:254.609375px" src="V1%20-%20Time%20limited%20world%20battle-plan/image%201.png"/></a></figure></div><div style="display:contents" dir="auto"><p id="36baed63-ad9e-8000-a68a-c33ed76ec899" class="">
+</p></div></div></div><div style="display:contents" dir="auto"><div id="36baed63-ad9e-8096-987d-cd166811d66f" style="width:78.125%" class="column"><div style="display:contents" dir="ltr"><figure id="36baed63-ad9e-8090-8385-c1fbb4db6055" class="image"><a href="V1%20-%20Time%20limited%20world%20battle-plan/Level_1.png"><img style="width:384px" src="V1%20-%20Time%20limited%20world%20battle-plan/Level_1.png"/></a><figcaption>You cannot go bellow world 1</figcaption></figure></div><div style="display:contents" dir="ltr"><figure id="36baed63-ad9e-80d9-a107-f1454fce8d50" class="image"><a href="V1%20-%20Time%20limited%20world%20battle-plan/Frame_484545.png"><img style="width:384px" src="V1%20-%20Time%20limited%20world%20battle-plan/Frame_484545.png"/></a><figcaption>Each time you collect all the ressources of a biome, you gain the reward. It’s always the same, some hard currency and coins multiplied by the world multiplier</figcaption></figure></div></div></div></div></div><div style="display:contents" dir="auto"><p id="36baed63-ad9e-8010-a285-dfc012c0c0c4" class="">
+</p></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="369aed63-ad9e-80aa-82ca-eca2fcf25a8e" class="toggle"><li><details open=""><summary>Restrictive World</summary><div style="display:contents" dir="auto"><div id="36baed63-ad9e-80d2-8ebb-c0dd3bfcf34e" class="column-list"><div style="display:contents" dir="auto"><div id="36baed63-ad9e-80e4-abee-ea9493511f9f" style="width:25%" class="column"><div style="display:contents" dir="auto"><p id="36baed63-ad9e-80ce-81b1-fba79299f0ec" class="">Like in AFK Journey, we can have a daily challenge that rotates with the days of the week. Monday is meadow, Tuesday is savanna… You progress through progression trees that differ depending on the biome. Clearing a world means passing a level — the worlds get harder and harder but always require pets from the same biome.</p></div><div style="display:contents" dir="auto"><p id="36baed63-ad9e-805d-9249-f92f05f6408c" class="">
+</p></div></div></div><div style="display:contents" dir="auto"><div id="36baed63-ad9e-8086-bc68-cf98694cfcb1" style="width:21.875%" class="column"><div style="display:contents" dir="ltr"><figure id="36baed63-ad9e-8031-8c75-e49943542926" class="image"><a href="V1%20-%20Time%20limited%20world%20battle-plan/Screenshot_(25_May_2026_09_23_35).png"><img style="width:381.453125px" src="V1%20-%20Time%20limited%20world%20battle-plan/Screenshot_(25_May_2026_09_23_35).png"/></a></figure></div><div style="display:contents" dir="auto"><p id="36baed63-ad9e-8058-b65f-c1db77abc1ae" class="">
+</p></div></div></div><div style="display:contents" dir="auto"><div id="36baed63-ad9e-8056-b457-ca99a1aef804" style="width:21.875%" class="column"><div style="display:contents" dir="ltr"><figure id="36baed63-ad9e-8072-a0a5-e17eab57bb35" class="image"><a href="V1%20-%20Time%20limited%20world%20battle-plan/Screenshot_20260525-092326.png"><img style="width:432px" src="V1%20-%20Time%20limited%20world%20battle-plan/Screenshot_20260525-092326.png"/></a></figure></div></div></div><div style="display:contents" dir="auto"><div id="36baed63-ad9e-8037-b1bb-f3cc00626fb8" style="width:31.25%" class="column"><div style="display:contents" dir="ltr"><figure id="36baed63-ad9e-801f-9004-c70c1da13a9a" class="image"><a href="V1%20-%20Time%20limited%20world%20battle-plan/image%202.png"><img style="width:288px" src="V1%20-%20Time%20limited%20world%20battle-plan/image%202.png"/></a></figure></div></div></div></div></div></details></li></ul></div></div></article><span class="sans" style="font-size:14px;padding-top:2em"><hr/><details open="" style="padding-top:1em"><summary style="font-weight:600;font-size:1.25em;line-height:1.3;margin:0">Commentaires laissés dans les blocs</summary><div class="indented"><div><p style="padding:0.2em"><b>Texte des blocs</b>: <mark class="highlight-yellow_background">Expected engagement per player engagement type</mark></p><ul class="toggle"><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/9c3154c6-0bbd-47a7-b2ff-975e724f1fad/Capture_decran_2021-01-07_a_15.03.34.png" class="icon user-icon"/><span><b>Arthur MICHEL</b> <time style="font-size:0.8em">May 27, 2026, 10:45 AM</time></span></span></div><div style="padding:0.2em">As discussed yesterday, I recommend to base yourself more on the time to complete quests and time to clear the world to define the different engagement behavior</div><div style="padding:0.3em"></div></li></ul></div><hr/></div><div class="indented"><div><p style="padding:0.2em"><b>Texte des blocs</b>: <mark class="highlight-yellow_background"><strong>Rebloom</strong> Limitation</mark></p><ul class="toggle"><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/9c3154c6-0bbd-47a7-b2ff-975e724f1fad/Capture_decran_2021-01-07_a_15.03.34.png" class="icon user-icon"/><span><b>Arthur MICHEL</b> <time style="font-size:0.8em">May 27, 2026, 10:46 AM</time></span></span></div><div style="padding:0.2em">I’d explicit the intentions in terms of quests here + the full cleaning of the world should be something or “elite” players IMO (or Invested and Elite TBD)</div><div style="padding:0.3em"></div></li></ul></div><hr/></div><div class="indented"><div><p style="padding:0.2em"><b>Texte des blocs</b>: <mark class="highlight-yellow_background"><strong>Ressource</strong> Clearance</mark></p><ul class="toggle"><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/9c3154c6-0bbd-47a7-b2ff-975e724f1fad/Capture_decran_2021-01-07_a_15.03.34.png" class="icon user-icon"/><span><b>Arthur MICHEL</b> <time style="font-size:0.8em">May 27, 2026, 10:46 AM</time></span></span></div><div style="padding:0.2em">I don’t think going with resource type will help u for the balancing as discussed yesterday</div><div style="padding:0.3em"></div></li></ul></div><hr/></div><div class="indented"><div><p style="padding:0.2em"><b>Texte des blocs</b>: <mark class="highlight-yellow_background">Modifier</mark></p><ul class="toggle"><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/9c3154c6-0bbd-47a7-b2ff-975e724f1fad/Capture_decran_2021-01-07_a_15.03.34.png" class="icon user-icon"/><span><b>Arthur MICHEL</b> <time style="font-size:0.8em">May 27, 2026, 10:44 AM</time></span></span></div><div style="padding:0.2em">For modifiers and restrictions I recommend to:<br/>  • Include them at the intention level and for example define what type of modifier or restriction can be used for what type of expected difficulty (e.g. first levels should probably have no modifiers or boost on biomes that are quite generic and easy to master for example)<br/>  • Take them into account in your difficlty computation with a variable depending on their specificity (e.g. a small boost on biome makes the level a little bit easier to finish so we need to boost the resources power)</div><div style="padding:0.3em"></div></li></ul></div><hr/></div><div class="indented"><div><p style="padding:0.2em"><b>Texte des blocs</b>: <mark class="highlight-yellow_background">I should determine how much currency we give by those systems, and take a percentage to put in the gauge.</mark></p><ul class="toggle"><li><div><span class="user" style="padding:0.2em"><img src="https://s3-us-west-2.amazonaws.com/public.notion-static.com/9c3154c6-0bbd-47a7-b2ff-975e724f1fad/Capture_decran_2021-01-07_a_15.03.34.png" class="icon user-icon"/><span><b>Arthur MICHEL</b> <time style="font-size:0.8em">May 27, 2026, 10:51 AM</time></span></span></div><div style="padding:0.2em">Yes I think you want to put on paper all features that give rewards in the main world of the game and for each of them discuss with you remove / add for the event.<br/>My overall reco is to focus on XP rewards so it’s clear for players that the goal of this event is to progress on the gauge vs main worlds that rewards you with more stuff with the different things you find in worlds:<br/>  • Quests: give XP (more than in normal world relative to other sources) and maybe some other small rewards (bit of coins? but not sure it’s necessary)<br/>  • Resources: give only xp (maybe less than in the main world relative to other sources)<br/>  • Gifts: give XP and potions<br/>  • Wheel: give XP, potions and maybe eggs of the biome<br/>  • GPE: give only XP (maybe more than in the mainworld relative to other sources)<br/>  • Golden apple: I suggest we create a new type of resource that give a lot of XP and can be found randomly in the world to replace the golden apple but I wouldn’t include it in the event<br/><br/>Let me know if it’s unclear ^^</div><div style="padding:0.3em"></div></li></ul></div><hr/></div></details></span></body></html>

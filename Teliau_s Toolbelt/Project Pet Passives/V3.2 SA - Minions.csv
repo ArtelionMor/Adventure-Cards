@@ -1,0 +1,37 @@
+id,~image,rarity,biome_id,passive_id,name,description,is_initial,world_unlock,passive_cost_currency_name,animal_type,~Gems price,,,,,,,,,,,,,,,,,,,,,,
+pet.bear,,legendary,forest,,Bear,"Big, cuddly, but don’t steal its snacks!",FALSE,3,currency.forestCandies,Mammal_Large,5,,,,,,,,,,,,,,,,,,,,,,
+pet.cat,,common,meadow,,Cat,Self-proclaimed ruler of the game. You serve it now.,FALSE,1,currency.meadowCandies,Mammal_Small,5,,,,,,~Rarity,~Count,,~Biome,~Count,,~Rarity/biome,legendary,common,epic,rare,,,~Rarity filtered,,,
+pet.goat,,epic,meadow,rock_breaker,Goat,"Climbs anything, eats everything, fears nothing! This hoofed hooligan is chaos on four legs!",FALSE,4,currency.meadowCandies,Mammal_Medium,5,,,,,,legendary,8,,forest,7,,forest,1,1,2,3,0,,common,rare,epic,legendary
+pet.cow,,legendary,meadow,squash_lover,Cow,"Chill, chunky, and full of charm. This cow loves naps, snacks, and occasional stampedes when nobody’s looking.",FALSE,1,currency.meadowCandies,Mammal_Large,5,,,,,,common,7,,meadow,8,,meadow,1,3,3,1,0,,pet.cat,pet.deer,pet.goat,pet.bear
+pet.deer,,rare,forest,blueberry_lover,Deer,"Graceful, speedy… scared of literally everything.",FALSE,3,currency.forestCandies,Mammal_Medium,5,,,,,,epic,9,,jungle,6,,jungle,2,0,1,3,0,,pet.dog,pet.rabbit,pet.frog,pet.cow
+pet.dog,,common,meadow,hole_digger,Dog,"Loyal, goofy, and always chasing things he’ll never catch, like his own tail. Your new best buddy!",TRUE,,currency.meadowCandies,Mammal_Medium,5,,,,,,rare,10,,sea,5,,sea,1,2,1,1,0,,pet.badger,pet.caiman,pet.beaver,pet.jaguar
+pet.frog,,epic,jungle,,Frog,"Bright, bouncy, and possibly poisonous! This little hopper’s got big jumps, loud croaks, and zero chill. Ribbit!",FALSE,15,currency.jungleCandies,Amphibian,5,,,,,,,0,,cave,2,,cave,1,0,0,1,0,,pet.crab,pet.iguana,pet.otter,pet.capybara
+pet.jaguar,,legendary,jungle,,Jaguar,"Silent, sleek, and faster than your Wi-Fi! This jungle ninja strikes hard, naps harder, and always looks cool doing it",FALSE,11,currency.jungleCandies,Mammal_Large,5,,,,,,,0,,snow,2,,snow,0,1,1,0,0,,pet.duck,pet.moose,pet.owl,pet.dolphin
+pet.rabbit,,rare,meadow,carrot_lover,Rabbit,Hops around like it drank five energy drinks.,FALSE,1,currency.meadowCandies,Mammal_Small,5,,,,,,,,,savanna,4,,savanna,2,0,1,1,0,,pet.seagull,pet.raccoon,pet.shark,pet.axolotl
+pet.beaver,,epic,forest,log_chewer,Beaver,This overly enthusiastic log-chewer thinks everything is a dam project. Will chew your enemies’ defenses… or your furniture,FALSE,8,currency.forestCandies,Mammal_Medium,5,,,,,,,,,,0,,,0,0,0,0,0,,pet.squirrel,pet.toucan,pet.redfox,pet.flamingo
+pet.badger,,common,forest,,Badger,"Nature’s grumpy garden gnome. Digging tunnels, fighting bees, and looking perpetually annoyed since forever.",FALSE,3,currency.forestCandies,Mammal_Medium,5,,,,,,,,,,0,,,0,0,0,0,0,,,pet.bat,pet.horse,pet.lion
+pet.caiman,,rare,jungle,,Caiman,A crocodile’s sneaky cousin who lurks like it’s always planning a prank — and maybe it is.,FALSE,12,currency.jungleCandies,Reptile,5,,,,,,,,,,0,,,0,0,0,0,0,,,pet.monkey,pet.giraffe,
+pet.capybara,,legendary,jungle,,Capybara,The chillest creature alive. Basically a furry potato that vibes with everyone. Even caimans,FALSE,15,currency.jungleCandies,Mammal_Medium,5,,,,,,,,,,0,,,0,0,0,0,0,,,pet.zebra,,
+pet.crab,,common,sea,,Crab,"Tiny sideways tank. Pinches first, asks questions never. Sandcastle destroyer by trade.",FALSE,2,currency.seaCandies,Invertebrate,5,,,,,,,,,,0,,,0,0,0,0,0,,,,,
+pet.dolphin,,legendary,sea,damage_aoe,Dolphin,A smiley ocean genius who surfs waves and judges your intelligence. Secretly plotting something.,FALSE,5,currency.seaCandies,Aquatic_Mammal,5,,,,,,,,,,0,,,0,0,0,0,0,,,,,
+pet.duck,,common,meadow,plum_lover,Duck,"Quack-powered chaos in a feathery tuxedo. Cute, loud, occasionally terrifying.",FALSE,4,currency.meadowCandies,Bird_Large,5,,,,,,,,,,0,,,0,0,0,0,0,,,,,
+pet.iguana,,rare,sea,watermelon_lover,Iguana,Lounge lizard with a mohawk. Too cool to move fast. Loves sunbathing and salad.,FALSE,5,currency.seaCandies,Reptile,5,,,,,,,,,,0,,,0,0,0,0,0,,,,,
+pet.moose,,rare,forest,apple_lover,Moose,A majestic forest horse with tree-branch antlers and zero understanding of personal space.,FALSE,6,currency.forestCandies,Mammal_Large,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.otter,,epic,meadow,,Otter,"Floating fuzzballs who hold hands, crack shellfish, and look like they’re in a soap opera.",FALSE,13,currency.meadowCandies,Mammal_Medium,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.owl,,epic,forest,blueberry_lover,Owl,Feathered librarian of the woods. Sees all. Knows all. Might judge your grammar.,FALSE,6,currency.forestCandies,Bird_Large,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.raccoon,,rare,forest,,Raccoon,"Trash panda extraordinaire. Masked like a bandit, snacks like a king.",FALSE,5,currency.forestCandies,Mammal_Medium,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.seagull,,common,sea,gojiberry_lover,Seagull,Loud beach hooligan with a hunger for fries and no respect for picnics.,FALSE,2,currency.seaCandies,Bird_Large,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.shark,,epic,sea,instant_kill,Shark,"Toothy sea missile. Not evil, just misunderstood and really into cardio.",FALSE,2,currency.seaCandies,Aquatic_Predator,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.toucan,,rare,jungle,watermelon_lover,Toucan,"Flying rainbow with a fruit slicer for a face. Lives in style, squawks in stereo.",FALSE,12,currency.jungleCandies,Bird_Large,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.bat,,rare,cave,crystalberry_lover,Bat,Tiny night goblin with built-in sonar and a flair for the dramatic.,FALSE,14,currency.caveCandies,Mammal_Small,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.axolotl,,legendary,cave,,Axolotl,"Smiling water gremlin that refuses to grow up, literally.",FALSE,14,currency.caveCandies,Amphibian,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.squirrel,,common,snow,chestnut_lover,Squirrel,Hyperactive tree ninja with acorn hoarding issues.,FALSE,20,currency.snowCandies,Mammal_Small,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.redfox,,epic,snow,,Red Fox,Ginger floof who’s sure a dramatic tail swish can solve literally anything.,FALSE,22,currency.snowCandies,Mammal_Medium,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.flamingo,,legendary,savanna,,Flamingo,Standing on one leg because drama is a lifestyle.,FALSE,10,currency.savannaCandies,Bird_Large,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.monkey,,rare,jungle,banana_lover,Monkey,"Pocket rocket in a fur coat, buzzing from vine to vine while inventing brand-new jungle sound effects",FALSE,11,currency.jungleCandies,Mammal_Medium,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.horse,,epic,meadow,apple_lover,Horse,"Mane-whipping wind machine posing for epic photos, then sideways-jumping at imaginary ghosts just for fun",FALSE,8,currency.meadowCandies,Mammal_Large,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.zebra,,rare,savanna,mango_lover,Zebra,"Stripey horse with commitment issues. Can’t pick black or white, so went with both.",FALSE,7,currency.savannaCandies,Mammal_Large,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.giraffe,,epic,savanna,gojiberry_lover,Giraffe,"Walking skyscraper with spots, sass, and zero neck control.",FALSE,7,currency.savannaCandies,Mammal_Large,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+pet.lion,,legendary,savanna,damage_buff,Lion,"Savanna’s drama king. Big hair, big roar, bigger ego.",FALSE,7,currency.savannaCandies,Mammal_Large,5,,,,,,,,,,,,,0,0,0,0,0,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,0,0,0,0,0,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,0,0,0,0,0,,,,,

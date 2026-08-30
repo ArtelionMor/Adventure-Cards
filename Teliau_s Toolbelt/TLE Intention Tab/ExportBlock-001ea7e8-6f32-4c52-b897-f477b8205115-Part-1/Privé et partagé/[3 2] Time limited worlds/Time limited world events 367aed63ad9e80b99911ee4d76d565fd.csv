@@ -1,0 +1,4 @@
+﻿Name,Challenge type,Day of the week,Difficulty,Duration (h),Leaderboard,Modifier / restriction,Nb of level,Reward type
+Island Trial,Power,Monday,Medium,24,No,Pet rarity boost,1,Biome egg
+Island Trial,Power,Wednesday,Medium,24,No,Pet rarity boost,1,Biome egg
+Island Odyssey,"Collection, Power",Friday,High,72,Yes,"Biome restriction, Specific pet boost",5,"Biome egg, Candies, New pets"
