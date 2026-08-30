@@ -11,3 +11,8 @@ Avant de travailler sur ce projet, lis **`docs/GDD.md`** : c'est le document de 
 ## Dossiers
 - `docs/GDD.md` — game design doc complet.
 - `mockups/` — mockups de cartes (placeholders, pas la direction artistique finale).
+- `Characters/` — sprites de personnages (animaux : chien, chat, corbeau, renard, grenouille, chouette, lapin, panda roux, paresseux...).
+- `Machines/` — sprites de bâtiments/machines de production (fermes, ateliers...).
+- `Ressources/` — sprites de ressources récoltées/produites, par tiers de rareté (1 à 6).
+- `UI/` — sprites d'interface (pièces, coffre, arbre, dé...).
+- `V2/` — itération plus récente d'assets (bâtiments, ressources, refs) — vérifier avec l'utilisateur si V2 remplace les dossiers ci-dessus ou les complète.
