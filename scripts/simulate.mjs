@@ -6,6 +6,7 @@ import { CHARACTERS, CHAR_BY_ID, resolveCard, STARTERS } from '../game/src/confi
 import { ENCOUNTERS, ENEMY_CARDS } from '../game/src/config/world.js';
 import { createBattle, playCard, attack, endTurn } from '../game/src/combat/engine.js';
 import { botAction } from '../game/src/combat/ai.js';
+import { pendingMechanics } from '../game/src/config/mechanics.js';
 
 const RUNS = Number(process.argv[2] || 200);
 
@@ -29,6 +30,8 @@ function enemySide(id) {
            deck: e.deck.map(c => ({ ...ENEMY_CARDS[c] })) };
 }
 
+const seenPending = new Set();
+
 function run(p, e) {
   const B = createBattle(p, e);
   let guard = 0;
@@ -38,6 +41,7 @@ function run(p, e) {
     else if (a.type === 'play') { if (!playCard(B, B.turn, a.index, a.target)) endTurn(B); }
     else if (a.type === 'attack') { if (!attack(B, B.turn, a.uid, a.target)) endTurn(B); }
   }
+  for (const id of B.pending) seenPending.add(id);
   if (guard >= 4000) return 'stuck';
   return B.winner;
 }
@@ -69,3 +73,15 @@ for (const s of scenarios) {
   console.log(s.label + ' | ' + row.join(''));
 }
 console.log(issues ? `\n${issues} case(s) bloquee(s) — le moteur boucle.` : '\nAucun blocage moteur.');
+
+// Mecaniques inventees dans le Card Builder et pas encore codees : les combats
+// tournent quand meme, mais ces cartes ne font rien. Voir docs/MECANIQUES-A-CODER.md.
+const todo = pendingMechanics();
+if (todo.length) {
+  console.log(`\n${todo.length} mecanique(s) a coder :`);
+  for (const m of todo) {
+    const hit = seenPending.has(m.id) ? 'rencontree en combat' : 'jamais tiree dans ces parties';
+    console.log(`  - ${m.id} (${m.label}) — ${hit}`);
+  }
+  console.log('  -> docs/MECANIQUES-A-CODER.md');
+}

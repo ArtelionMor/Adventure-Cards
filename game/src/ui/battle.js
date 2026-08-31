@@ -5,6 +5,7 @@ import { CHAR_BY_ID, characterDeck } from '../config/characters.js';
 import { ENCOUNTERS, ENEMY_CARDS } from '../config/world.js';
 import { save, team, gain, persist } from '../state.js';
 import { relicMods } from '../config/relics.js';
+import { TRIGGERS } from '../config/mechanics.js';
 import { createBattle, playCard, attack, endTurn, canPlay, needsTarget, legalTargets, attackableTargets } from '../combat/engine.js';
 import { botAction } from '../combat/ai.js';
 import { $, el, asset, toast } from './shell.js';
@@ -79,6 +80,15 @@ function applyAction(k, a) {
 }
 
 // ------------------------------------------------------------------ rendu
+/** Les moments portes par une carte ou une unite, en une ligne lisible. */
+function moments(x) {
+  const out = Object.entries(TRIGGERS)
+    .filter(([slot, def]) => slot !== 'play' && (x[slot] || []).length)
+    .map(([, def]) => def.label);
+  if (x.aura) out.push('Aura');
+  return out;
+}
+
 function unitNode(u, side) {
   const n = el(`
     <div class="unit ${u.keys.includes('Taunt') ? 'taunt' : ''} ${side === 'p' && u.canAttack && u.atk > 0 ? 'ready' : ''}"
@@ -86,6 +96,7 @@ function unitNode(u, side) {
       ${u.sprite ? `<img src="${asset(u.sprite)}" alt="">` : '<img alt="">'}
       <div class="s"><span class="a">${u.atk}</span> / <span class="h">${u.hp}</span></div>
       ${u.keys.length ? `<div class="kw">${u.keys.join(' ')}</div>` : ''}
+      ${moments(u).length ? `<div class="kw" style="color:var(--accent2)">◆</div>` : ''}
     </div>`);
   if (selUnit === u.uid) n.classList.add('sel');
   return n;
@@ -116,6 +127,7 @@ function handNode() {
         ${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}
         <div class="nm">${c.name}</div>
         <div class="tx">${c.text || ''}</div>
+        ${moments(c).length ? `<div class="tx" style="color:var(--accent2)">◆ ${moments(c).join(' · ')}</div>` : ''}
         ${c.type === 'ally' ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}
       </div>`);
     n.onclick = () => onCardClick(i);

@@ -1,0 +1,1323 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Card Builder — Adventure Card</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --bg-2: #161922;
+    --bg-3: #1d2230;
+    --line: #2a3142;
+    --text: #e7eaf0;
+    --muted: #9aa3b2;
+    --accent: #7aa2ff;
+    --accent-2: #79e3c5;
+    --accent-3: #c69bff;
+    --warn: #f5a623;
+    --danger: #ff6b81;
+    --shadow: 0 8px 24px rgba(0,0,0,.35);
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; }
+  body {
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+
+  /* shared nav */
+  .tb-nav {
+    position: sticky; top: 0; z-index: 9999;
+    display: flex; align-items: center; gap: 18px;
+    height: 52px; padding: 0 18px;
+    background: rgba(13,15,20,.86);
+    backdrop-filter: saturate(140%) blur(10px);
+    -webkit-backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .tb-nav__brand { display: flex; align-items: center; gap: 8px; color: var(--text); font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+  .tb-nav__brand .tb-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 10px rgba(122,162,255,.7); }
+  .tb-nav__links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .tb-nav__link { color: var(--muted); padding: 7px 12px; border-radius: 8px; border: 1px solid transparent; white-space: nowrap; transition: background .15s, color .15s; font-size: 14px; cursor: pointer; }
+  .tb-nav__link:hover { color: var(--text); background: var(--bg-3); }
+  .tb-nav__link--active { color: var(--text); background: var(--bg-3); border-color: var(--line); }
+  .tb-nav__spacer { flex: 1; }
+  @media (max-width: 640px) { .tb-nav { height: auto; padding: 8px 12px; flex-wrap: wrap; gap: 10px; } }
+
+  .wrap { max-width: 1360px; margin: 0 auto; padding: 28px 24px 90px; }
+  .hero { margin-bottom: 22px; }
+  .hero .eyebrow { display: inline-block; padding: 4px 12px; border-radius: 999px; background: var(--bg-3); color: var(--muted); font-size: 12px; border: 1px solid var(--line); margin-bottom: 14px; letter-spacing: .04em; text-transform: uppercase; }
+  .hero h1 { font-size: 34px; margin: 0 0 10px; letter-spacing: -.02em; line-height: 1.1; background: linear-gradient(120deg, #fff 0%, var(--accent) 60%, var(--accent-2) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { color: var(--muted); max-width: 78ch; font-size: 15px; margin: 0; }
+
+  .layout { display: grid; grid-template-columns: 280px 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 1080px) { .layout { grid-template-columns: 1fr; } }
+  .sidecol { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 70px; }
+  @media (max-width: 1080px) { .sidecol { position: static; } }
+
+  .panel { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .panel__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .panel__head h2 { font-size: 15px; margin: 0; letter-spacing: -.01em; }
+  .panel__body { padding: 16px; }
+  .count { color: var(--muted); font-size: 12px; }
+
+  .btn { background: var(--bg-3); color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 8px 13px; font: inherit; font-size: 14px; cursor: pointer; transition: background .15s, border-color .15s; }
+  .btn:hover { background: #232a3a; }
+  .btn--primary { background: linear-gradient(135deg, #3f63c4, #4a7de0); border-color: #4a7de0; color: #fff; font-weight: 600; }
+  .btn--primary:hover { background: linear-gradient(135deg, #4570d6, #5a8bf0); }
+  .btn--danger { color: var(--danger); border-color: #4a2733; }
+  .btn--danger:hover { background: #2a1a22; }
+  .btn--ghost { background: transparent; }
+  .btn--sm { padding: 5px 10px; font-size: 13px; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .spacer { flex: 1; }
+
+  .input, .select, .textarea { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; font: inherit; font-size: 14px; }
+  .textarea { resize: vertical; min-height: 76px; line-height: 1.5; }
+  .input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--accent); }
+  .field { margin-bottom: 12px; }
+  .field > label { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 5px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .sep { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
+  .stat { color: var(--muted); font-size: 12px; }
+
+  /* liste de personnages */
+  .charlist { display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow-y: auto; }
+  .charrow { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 10px; border: 1px solid transparent; cursor: pointer; }
+  .charrow:hover { background: var(--bg-3); }
+  .charrow--active { background: var(--bg-3); border-color: var(--accent); }
+  .charrow img { width: 30px; height: 30px; object-fit: contain; }
+  .charrow .nm { font-size: 14px; font-weight: 600; }
+  .charrow .sub { font-size: 11px; color: var(--muted); }
+  .badge { font-size: 10px; padding: 2px 6px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+  .badge--star { color: var(--accent-2); border-color: #2c4c44; }
+
+  /* mecaniques */
+  .mechlist { display: flex; flex-direction: column; gap: 5px; max-height: 300px; overflow-y: auto; }
+  .mechrow { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .mechrow:hover { background: var(--bg-3); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .dot--ok { background: var(--accent-2); }
+  .dot--todo { background: var(--warn); box-shadow: 0 0 8px rgba(245,166,35,.6); }
+  .mechrow .mid { flex: 1; min-width: 0; }
+  .mechrow code { font-size: 11px; color: var(--muted); }
+
+  /* slots de cartes */
+  .slotgrid { display: grid; gap: 10px; }
+  .slotrow { display: grid; grid-template-columns: 34px 1fr 1fr; gap: 10px; align-items: stretch; }
+  .slotnum { display: grid; place-items: center; color: var(--muted); font-size: 12px; border: 1px dashed var(--line); border-radius: 10px; }
+  .minicard { text-align: left; background: var(--bg-3); border: 1px solid var(--line); border-left: 3px solid var(--accent-2); border-radius: 11px; padding: 9px 11px; cursor: pointer; display: grid; gap: 3px; position: relative; }
+  .minicard--spell { border-left-color: var(--accent-3); }
+  .minicard--empty { border-style: dashed; border-left-style: dashed; color: var(--muted); text-align: center; align-content: center; min-height: 62px; }
+  .minicard:hover { background: #232a3a; }
+  .minicard--active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .minicard .nm { font-size: 13px; font-weight: 650; }
+  .minicard .tx { font-size: 11px; color: var(--muted); }
+  .minicard .tag { position: absolute; top: 8px; right: 9px; font-size: 10px; color: var(--muted); }
+  .minicard .warn { color: var(--warn); font-size: 11px; }
+  .colhead { display: grid; grid-template-columns: 34px 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+  .colhead div { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+  /* editeur d'effets / paliers */
+  .rowbox { background: var(--bg); border: 1px solid var(--line); border-radius: 11px; padding: 10px; margin-bottom: 8px; }
+  .rowbox__head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .rowbox__head .select { flex: 1; }
+  .params { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+  .params label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); font-size: 13px; cursor: pointer; color: var(--muted); }
+  .chip--on { background: var(--bg-3); border-color: var(--accent); color: var(--text); }
+  .chip--todo { border-color: #4a3a1a; color: var(--warn); }
+
+  /* apercu de carte */
+  .preview { background: linear-gradient(180deg, #262034, #1d1828); border: 1px solid var(--line); border-left: 4px solid var(--accent-2); border-radius: 14px; padding: 12px; display: grid; gap: 6px; }
+  .preview--spell { border-left-color: var(--accent-3); }
+  .preview__top { display: flex; gap: 10px; align-items: center; }
+  .preview__top img { width: 54px; height: 54px; object-fit: contain; }
+  .preview__cost { margin-left: auto; width: 28px; height: 28px; border-radius: 50%; background: #6cb8ff; color: #06203a; font-weight: 800; display: grid; place-items: center; font-size: 13px; }
+  .preview__nm { font-weight: 700; }
+  .preview__tx { font-size: 12px; color: var(--muted); }
+  .preview__st { font-weight: 800; color: var(--warn); }
+  .preview__tier { font-size: 11px; color: var(--muted); }
+
+  .sprites { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 8px; max-height: 380px; overflow-y: auto; }
+  .sprite { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 6px; cursor: pointer; display: grid; gap: 3px; justify-items: center; }
+  .sprite:hover { border-color: var(--accent); }
+  .sprite img { width: 100%; aspect-ratio: 1; object-fit: contain; }
+  .sprite span { font-size: 9px; color: var(--muted); text-align: center; word-break: break-word; }
+
+  .issues { display: flex; flex-direction: column; gap: 6px; }
+  .issue { font-size: 13px; padding: 8px 10px; border-radius: 9px; background: #241c14; border: 1px solid #4a3a1a; color: var(--warn); }
+  .issue--bad { background: #2a1a1f; border-color: #4a2733; color: var(--danger); }
+
+  /* modal */
+  .modal { position: fixed; inset: 0; background: rgba(6,8,12,.72); display: none; align-items: center; justify-content: center; padding: 24px; z-index: 10000; }
+  .modal--on { display: flex; }
+  .modal__box { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 640px; max-height: 86vh; overflow-y: auto; }
+
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(12px); background: var(--bg-3); border: 1px solid var(--line); color: var(--text); padding: 10px 18px; border-radius: 999px; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; font-size: 14px; z-index: 10001; }
+  .toast--on { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<nav class="tb-nav">
+  <span class="tb-nav__brand"><span class="tb-dot"></span>Adventure Card</span>
+  <div class="tb-nav__links">
+    <a class="tb-nav__link" href="../game/index.html">Jouer</a>
+    <span class="tb-nav__link tb-nav__link--active">Card Builder</span>
+    <a class="tb-nav__link" href="../docs/MECANIQUES-A-CODER.md" target="_blank">Mécaniques à coder</a>
+  </div>
+  <span class="tb-nav__spacer"></span>
+  <button class="btn btn--primary btn--sm" id="applyBtn">💾 Appliquer au jeu</button>
+</nav>
+
+<div class="wrap">
+  <div class="hero">
+    <span class="eyebrow">Game config</span>
+    <h1>Card Builder</h1>
+    <p>Crée des personnages, leurs 5 cartes et la carte switch de chaque slot. Les mécaniques disponibles viennent
+      du moteur ; si celle dont tu as besoin n'existe pas, invente-la ici avec sa description — elle part dans
+      <code>docs/MECANIQUES-A-CODER.md</code> pour être codée, et le jeu la signale au lieu de faire semblant.
+      « Appliquer au jeu » réécrit <code>game/data/characters.data.js</code> : recharge le jeu et c'est en place.</p>
+  </div>
+
+  <div class="layout">
+    <aside class="sidecol">
+      <section class="panel">
+        <div class="panel__head"><h2>Personnages</h2><span class="count" id="charCount"></span></div>
+        <div class="panel__body">
+          <div class="toolbar" style="margin-bottom:12px;">
+            <button class="btn btn--primary btn--sm" id="newChar">+ Nouveau</button>
+            <button class="btn btn--sm" id="dupChar">Dupliquer</button>
+            <button class="btn btn--sm btn--danger" id="delChar">Supprimer</button>
+          </div>
+          <div class="charlist" id="charList"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__head"><h2>Mécaniques</h2><span class="count" id="mechCount"></span></div>
+        <div class="panel__body">
+          <button class="btn btn--sm btn--primary" id="newMech" style="margin-bottom:12px;">+ Nouvelle mécanique</button>
+          <div class="mechlist" id="mechList"></div>
+          <p class="stat" style="margin:10px 0 0;">
+            <span class="dot dot--ok" style="display:inline-block"></span> codée ·
+            <span class="dot dot--todo" style="display:inline-block"></span> à coder
+          </p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__head"><h2>Sauvegarde</h2></div>
+        <div class="panel__body">
+          <div class="issue" id="draftBar" style="display:none;margin-bottom:12px"></div>
+          <div class="toolbar">
+            <button class="btn btn--sm" id="exportBtn">⬇ Exporter JSON</button>
+            <button class="btn btn--sm" id="importBtn">⬆ Importer JSON</button>
+            <input type="file" id="importFile" accept="application/json" hidden>
+          </div>
+          <hr class="sep">
+          <div class="toolbar">
+            <button class="btn btn--sm btn--ghost" id="revertBtn">Repartir du fichier du jeu</button>
+          </div>
+          <p class="stat" id="saveStatus" style="margin:10px 0 0;"></p>
+        </div>
+      </section>
+    </aside>
+
+    <main style="display:flex; flex-direction:column; gap:22px;">
+      <section class="panel" id="issuesPanel" style="display:none;">
+        <div class="panel__head"><h2>À vérifier</h2><span class="count" id="issueCount"></span></div>
+        <div class="panel__body"><div class="issues" id="issues"></div></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__head"><h2>Personnage</h2><span class="count" id="charHint"></span></div>
+        <div class="panel__body" id="charForm"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__head">
+          <h2>Cartes</h2>
+          <span class="count">5 slots · une carte de base + sa carte switch</span>
+        </div>
+        <div class="panel__body">
+          <div class="colhead"><div></div><div>Carte de base</div><div>Carte switch</div></div>
+          <div class="slotgrid" id="slots"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="cardPanel">
+        <div class="panel__head"><h2 id="cardTitle">Éditeur de carte</h2><span class="count" id="cardWhere"></span></div>
+        <div class="panel__body" id="cardForm"></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="modal" id="modal"><div class="modal__box" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { SPRITES } from '../game/data/sprites.js';
+import { CHARACTER_DATA } from '../game/data/characters.data.js';
+import { EFFECTS, KEYWORDS, TARGETS, AMPLIFIABLE, TRIGGERS, AURA_SCOPES } from '../game/src/config/mechanics.js';
+import { DEFAULT_TIERS } from '../game/src/config/characters.js';
+
+// ---------- ETAT ----------
+const LS_KEY = 'adventureCardBuilder.v1';
+const FILE_DATA = structuredClone(CHARACTER_DATA);
+let DB = structuredClone(CHARACTER_DATA);
+let selChar = DB.characters[0] ? DB.characters[0].id : null;
+let selCard = { slot: 0, side: 'cards' };   // 'cards' = base, 'switches' = switch
+
+const $ = s => document.querySelector(s);
+const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const elt = html => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+const option = (value, label, current) =>
+  '<option value="' + esc(value) + '"' + (value === current ? ' selected' : '') + '>' + esc(label) + '</option>';
+const asset = p => '../' + p.split('/').map(encodeURIComponent).join('/');
+const slug = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('toast--on');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('toast--on'), 2400);
+}
+function setStatus(t) { $('#saveStatus').textContent = t; }
+
+// ---------- MECANIQUES (registre du moteur + celles inventees ici) ----------
+function customs() { return DB.customMechanics || (DB.customMechanics = []); }
+function allEffects() {
+  const o = {};
+  for (const [id, d] of Object.entries(EFFECTS)) o[id] = { ...d, implemented: true };
+  for (const m of customs()) if (m.kind !== 'keyword') o[m.id] = { label: m.label, desc: m.desc, params: m.params || [], implemented: !!m.implemented, custom: true };
+  return o;
+}
+function allKeywords() {
+  const o = {};
+  for (const [id, d] of Object.entries(KEYWORDS)) o[id] = { ...d, implemented: true };
+  for (const m of customs()) if (m.kind === 'keyword') o[m.id] = { label: m.label, desc: m.desc, implemented: !!m.implemented, custom: true };
+  return o;
+}
+
+// ---------- PERSISTANCE ----------
+function save() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({ at: Date.now(), db: DB }));
+    setStatus('Brouillon local · ' + new Date().toLocaleTimeString() + ' — pense à « Appliquer au jeu »');
+    renderIssues();   // le panneau « À vérifier » suit chaque modification
+    draft = null;     // on edite maintenant en direct : plus de brouillon concurrent
+    const bar = document.getElementById('draftBar');
+    if (bar) bar.style.display = 'none';
+  } catch { setStatus('⚠ localStorage indisponible'); }
+}
+// Un brouillon non applique n'est jamais repris ni jete tout seul : on le signale
+// et c'est toi qui choisis. Rien ne se perd en rechargeant la page.
+let draft = null;
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (!d || !d.db) return;
+    if (JSON.stringify(d.db) === JSON.stringify(FILE_DATA)) return; // rien de neuf
+    draft = d;
+  } catch {}
+}
+
+function renderDraftBar() {
+  const bar = $('#draftBar');
+  if (!draft) { bar.style.display = 'none'; return; }
+  bar.style.display = '';
+  bar.innerHTML = `Brouillon non appliqué du ${new Date(draft.at).toLocaleString('fr-FR')}.
+    <div class="toolbar" style="margin-top:8px">
+      <button class="btn btn--sm btn--primary" id="useDraft">Reprendre</button>
+      <button class="btn btn--sm" id="dropDraft">Jeter</button>
+    </div>`;
+  bar.querySelector('#useDraft').onclick = () => {
+    DB = draft.db;
+    selChar = DB.characters[0] ? DB.characters[0].id : null;
+    selCard = { slot: 0, side: 'cards' };
+    draft = null;
+    setStatus('Brouillon repris.');
+    renderAll();
+  };
+  bar.querySelector('#dropDraft').onclick = () => {
+    localStorage.removeItem(LS_KEY);
+    draft = null;
+    setStatus('Brouillon jeté.');
+    renderAll();
+  };
+}
+
+async function writeFile(path, content) {
+  const res = await fetch('/api/write?path=' + encodeURIComponent(path), {
+    method: 'POST', headers: { 'Content-Type': 'text/plain; charset=utf-8' }, body: content
+  });
+  if (!res.ok) throw new Error(path + ' : ' + await res.text());
+}
+
+async function applyToGame() {
+  const issues = validate().filter(i => i.bad);
+  if (issues.length && !confirm(issues.length + ' problème(s) bloquant(s) détecté(s). Appliquer quand même ?')) return;
+  const btn = $('#applyBtn');
+  btn.disabled = true; btn.textContent = 'Écriture…';
+  try {
+    await writeFile('game/data/characters.data.js', dataFileContent());
+    await writeFile('docs/MECANIQUES-A-CODER.md', mechanicsDoc());
+    localStorage.removeItem(LS_KEY);
+    setStatus('Appliqué au jeu · ' + new Date().toLocaleTimeString());
+    toast('Écrit. Recharge le jeu pour voir tes cartes.');
+  } catch (e) {
+    toast('Échec : ' + e.message);
+    setStatus('⚠ Écriture impossible — lance le jeu via AdventureCard.exe ou node scripts/devserver.js');
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 Appliquer au jeu';
+  }
+}
+
+function dataFileContent() {
+  // Ouvrir une carte dans l'editeur initialise ses listes de moments : on ne les
+  // ecrit pas si elles sont restees vides, sinon le fichier se remplit de bruit.
+  const clean = structuredClone(DB);
+  for (const c of clean.characters) {
+    for (const side of ['cards', 'switches']) {
+      for (const card of c[side] || []) {
+        if (!card) continue;
+        for (const slot of Object.keys(TRIGGERS)) {
+          if (slot === 'play') continue;
+          if (!(card[slot] || []).length) delete card[slot];
+        }
+        if (!card.aura || !(card.aura.atk || card.aura.hp || card.aura.key)) delete card.aura;
+      }
+    }
+  }
+  return '// DONNEES DE JEU — genere et re-ecrit par le Card Builder (/builder/).\n'
+    + '// Tu peux l\'editer a la main, mais le builder est fait pour ca : ouvre-le plutot.\n'
+    + 'export const CHARACTER_DATA = ' + JSON.stringify(clean, null, 2) + ';\n';
+}
+
+/** Le fichier special : ce qu'il reste a coder, et ou. */
+function mechanicsDoc() {
+  const pending = customs().filter(m => !m.implemented);
+  const users = {};
+  for (const c of DB.characters) {
+    for (const side of ['cards', 'switches']) {
+      (c[side] || []).forEach((card, i) => {
+        if (!card) return;
+        const where = `${c.name} · « ${card.name} » (${side === 'cards' ? 'base' : 'switch'}, slot ${i + 1})`;
+        for (const e of card.play || []) (users[e.op] = users[e.op] || []).push(where);
+        for (const k of card.keys || []) (users[k] = users[k] || []).push(where);
+        for (const t of card.tiers || []) {
+          if (t.key) (users[t.key] = users[t.key] || []).push(where + ' — palier ' + t.lvl);
+          if (t.extra && t.extra.op) (users[t.extra.op] = users[t.extra.op] || []).push(where + ' — palier ' + t.lvl);
+        }
+      });
+    }
+  }
+
+  let md = '# Mécaniques à coder\n\n';
+  md += '> Fichier généré par le Card Builder le ' + new Date().toLocaleString('fr-FR') + '.\n';
+  md += '> Réécrit entièrement à chaque « Appliquer au jeu » — ne pas l\'éditer à la main.\n\n';
+
+  if (!pending.length) {
+    md += 'Rien à coder : toutes les mécaniques utilisées par les cartes existent déjà dans le moteur.\n';
+    return md;
+  }
+
+  md += pending.length + ' mécanique(s) inventée(s) dans le builder attendent d\'être implémentées.\n';
+  md += 'Tant qu\'elles ne le sont pas, le jeu les affiche mais écrit « pas encore codée » dans le journal de combat.\n\n';
+
+  for (const m of pending) {
+    md += '---\n\n## `' + m.id + '` — ' + m.label + '\n\n';
+    md += '**Type** : ' + (m.kind === 'keyword' ? 'mot-clé porté par une unité (`keys`)' : 'effet jouable (`play`)') + '\n\n';
+    md += '**Ce qu\'elle doit faire**\n\n' + (m.desc || '_(pas de description — à préciser)_') + '\n\n';
+    if ((m.params || []).length) {
+      md += '**Paramètres**\n\n';
+      for (const p of m.params) md += '- `' + p.k + '` (' + p.type + ') — ' + (p.label || '') + (p.def !== undefined ? ' · défaut `' + p.def + '`' : '') + '\n';
+      md += '\n';
+    }
+    const use = [...new Set(users[m.id] || [])];
+    md += '**Utilisée par** : ' + (use.length ? '\n\n' + use.map(u => '- ' + u).join('\n') + '\n' : 'aucune carte pour l\'instant.\n');
+    md += '\n**Où la coder**\n\n';
+    if (m.kind === 'keyword') {
+      md += '1. `game/src/config/mechanics.js` → ajouter `' + m.id + '` dans `KEYWORDS` avec `implemented: true`.\n';
+      md += '2. `game/src/combat/engine.js` → gérer le comportement (voir `Taunt` dans `attackableTargets`, `Venin` dans `damageUnit`, `Charge` dans `makeUnit`).\n';
+    } else {
+      md += '1. `game/src/config/mechanics.js` → ajouter `' + m.id + '` dans `EFFECTS` avec ses params et `implemented: true`.\n';
+      md += '2. `game/src/combat/engine.js` → ajouter `case \'' + m.id + '\':` dans `applyEffects`.\n';
+      md += '3. `game/src/combat/ai.js` → si l\'effet doit peser dans les décisions du bot, l\'ajouter aux heuristiques.\n';
+    }
+    md += (m.kind === 'keyword' ? '3' : '4') + ". Retirer l'entrée de `customMechanics` dans `game/data/characters.data.js` (ou passer `implemented: true`).\n\n";
+  }
+  return md;
+}
+
+// ---------- VALIDATION ----------
+function validate() {
+  const out = [];
+  const eff = allEffects(), kw = allKeywords();
+  const ids = new Set();
+  for (const c of DB.characters) {
+    if (ids.has(c.id)) out.push({ bad: true, msg: `Deux personnages ont l'identifiant « ${c.id} ».` });
+    ids.add(c.id);
+    if (!c.id) out.push({ bad: true, msg: `« ${c.name} » n'a pas d'identifiant.` });
+    for (const side of ['cards', 'switches']) {
+      const n = (c[side] || []).filter(Boolean).length;
+      if (n !== 5) out.push({ bad: side === 'cards', msg: `${c.name} — ${n}/5 ${side === 'cards' ? 'cartes de base' : 'cartes switch'} remplies.` });
+      (c[side] || []).forEach((card, i) => {
+        if (!card) return;
+        for (const e of card.play || []) {
+          if (!eff[e.op]) out.push({ bad: true, msg: `${c.name} · ${card.name} — effet inconnu « ${e.op} ».` });
+          else if (!eff[e.op].implemented) out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${eff[e.op].label} » reste à coder.` });
+        }
+        for (const k of card.keys || []) {
+          if (!kw[k]) out.push({ bad: true, msg: `${c.name} · ${card.name} — mot-clé inconnu « ${k} ».` });
+          else if (!kw[k].implemented) out.push({ bad: false, msg: `${c.name} · ${card.name} — mot-clé « ${kw[k].label} » reste à coder.` });
+        }
+        for (const t of card.tiers || []) {
+          const w = tierIssue(card, t);
+          if (w) out.push({ bad: false, msg: `${c.name} · ${card.name} — palier ${t.lvl} sans effet : ${w}` });
+        }
+        // Une cible comme « Elle-meme » n'a pas de porteur sur un sort.
+        for (const slot of Object.keys(TRIGGERS)) {
+          for (const e of card[slot] || []) {
+            const tdef = TARGETS[e.t];
+            if (tdef && tdef.allyOnly && card.type !== 'ally')
+              out.push({ bad: true, msg: `${c.name} · ${card.name} — cible « ${tdef.label} » impossible sur un sort.` });
+          }
+        }
+        // Un sort ne reste pas en jeu : ses moments d'unite ne partiraient jamais.
+        if (card.type !== 'ally') {
+          for (const [slot, def] of Object.entries(TRIGGERS)) {
+            if (def.allyOnly && (card[slot] || []).length)
+              out.push({ bad: true, msg: `${c.name} · ${card.name} — « ${def.label} » sur un sort ne se déclenchera jamais.` });
+          }
+          if (card.aura) out.push({ bad: true, msg: `${c.name} · ${card.name} — une aura sur un sort ne s'appliquera jamais.` });
+        }
+      });
+    }
+  }
+  for (const s of DB.starters || []) if (!ids.has(s)) out.push({ bad: true, msg: `Le personnage de départ « ${s} » n'existe plus.` });
+  return out;
+}
+
+// ---------- MODELES ----------
+function emptyCard(type = 'ally', name = 'Nouvelle carte') {
+  const c = { id: 'card_' + Math.random().toString(36).slice(2, 8), name, type, cost: 1, keys: [], text: '', play: [], tiers: DEFAULT_TIERS[type]() };
+  if (type === 'ally') { c.atk = 1; c.hp = 1; }
+  return c;
+}
+function emptyChar() {
+  return {
+    id: 'perso_' + Math.random().toString(36).slice(2, 6),
+    name: 'Nouveau personnage', species: '', sprite: 'Characters/Dog.png', role: '',
+    stats: { hp: 26, mana: 7, hand: 4 },
+    cards: Array.from({ length: 5 }, (_, i) => emptyCard('ally', 'Carte ' + (i + 1))),
+    switches: Array.from({ length: 5 }, (_, i) => emptyCard('ally', 'Switch ' + (i + 1)))
+  };
+}
+const char = () => DB.characters.find(c => c.id === selChar) || null;
+const card = () => { const c = char(); return c ? (c[selCard.side] || [])[selCard.slot] : null; };
+
+// ---------- RENDU : liste des personnages ----------
+function renderChars() {
+  const list = $('#charList');
+  list.innerHTML = '';
+  for (const c of DB.characters) {
+    const starter = (DB.starters || []).includes(c.id);
+    const row = document.createElement('div');
+    row.className = 'charrow' + (c.id === selChar ? ' charrow--active' : '');
+    row.innerHTML = `<img src="${asset(c.sprite)}" alt="">
+      <div style="flex:1;min-width:0">
+        <div class="nm">${esc(c.name)}</div>
+        <div class="sub">${esc(c.species || '—')} · ${(c.cards || []).filter(Boolean).length}/5 cartes</div>
+      </div>
+      ${starter ? '<span class="badge badge--star">tuto</span>' : ''}`;
+    row.onclick = () => { selChar = c.id; selCard = { slot: 0, side: 'cards' }; renderAll(); };
+    list.appendChild(row);
+  }
+  $('#charCount').textContent = DB.characters.length + ' persos';
+}
+
+// ---------- RENDU : fiche personnage ----------
+function renderCharForm() {
+  const c = char();
+  const box = $('#charForm');
+  if (!c) { box.innerHTML = '<p class="stat">Aucun personnage. Crée-en un.</p>'; $('#charHint').textContent = ''; return; }
+  $('#charHint').textContent = c.id;
+
+  box.innerHTML = `
+    <div style="display:grid;grid-template-columns:110px 1fr;gap:16px;align-items:start">
+      <div>
+        <img src="${asset(c.sprite)}" style="width:110px;aspect-ratio:1;object-fit:contain;background:var(--bg);border:1px solid var(--line);border-radius:12px">
+        <button class="btn btn--sm" id="pickSprite" style="width:100%;margin-top:8px">Changer</button>
+      </div>
+      <div>
+        <div class="grid2">
+          <div class="field"><label>Nom</label><input class="input" id="fName" value="${esc(c.name)}"></div>
+          <div class="field"><label>Identifiant (code)</label><input class="input" id="fId" value="${esc(c.id)}"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Espèce</label><input class="input" id="fSpecies" value="${esc(c.species || '')}"></div>
+          <div class="field"><label>Rôle / archétype</label><input class="input" id="fRole" value="${esc(c.role || '')}"></div>
+        </div>
+        <div class="grid3">
+          <div class="field"><label>PV</label><input class="input" type="number" id="fHp" value="${c.stats.hp}"></div>
+          <div class="field"><label>Mana max</label><input class="input" type="number" id="fMana" value="${c.stats.mana}"></div>
+          <div class="field"><label>Cartes en main</label><input class="input" type="number" id="fHand" value="${c.stats.hand}"></div>
+        </div>
+        <label class="chip ${(DB.starters || []).includes(c.id) ? 'chip--on' : ''}" id="fStarter" style="cursor:pointer">
+          Distribué au tutoriel
+        </label>
+      </div>
+    </div>`;
+
+  const bind = (sel, fn) => { const n = box.querySelector(sel); n.oninput = () => { fn(n.value); save(); }; };
+  bind('#fName', v => { c.name = v; renderChars(); });
+  bind('#fSpecies', v => { c.species = v; });
+  bind('#fRole', v => { c.role = v; });
+  bind('#fHp', v => { c.stats.hp = +v || 0; });
+  bind('#fMana', v => { c.stats.mana = +v || 0; });
+  bind('#fHand', v => { c.stats.hand = +v || 0; });
+  box.querySelector('#fId').onchange = e => {
+    const old = c.id, nid = slug(e.target.value) || old;
+    if (DB.characters.some(x => x !== c && x.id === nid)) { toast('Identifiant déjà pris.'); e.target.value = old; return; }
+    c.id = nid;
+    DB.starters = (DB.starters || []).map(s => (s === old ? nid : s));
+    selChar = nid;
+    save(); renderAll();
+  };
+  box.querySelector('#fStarter').onclick = () => {
+    DB.starters = DB.starters || [];
+    const i = DB.starters.indexOf(c.id);
+    if (i >= 0) DB.starters.splice(i, 1); else DB.starters.push(c.id);
+    save(); renderAll();
+  };
+  box.querySelector('#pickSprite').onclick = () => pickSprite(p => { c.sprite = p; save(); renderAll(); });
+}
+
+function pickSprite(done) {
+  const folders = Object.keys(SPRITES);
+  let cur = 'Characters';
+  const draw = () => {
+    openModal('Choisir un sprite', `
+      <div class="chips" style="margin-bottom:12px">
+        ${folders.map(f => `<span class="chip ${f === cur ? 'chip--on' : ''}" data-f="${f}">${f}</span>`).join('')}
+      </div>
+      <div class="sprites">
+        ${SPRITES[cur].map(n => `<div class="sprite" data-p="${esc(cur + '/' + n)}">
+          <img src="${asset(cur + '/' + n)}" alt=""><span>${esc(n.replace(/\.\w+$/, ''))}</span></div>`).join('')}
+      </div>`);
+    $('#modalBox').querySelectorAll('[data-f]').forEach(n => n.onclick = () => { cur = n.dataset.f; draw(); });
+    $('#modalBox').querySelectorAll('[data-p]').forEach(n => n.onclick = () => { done(n.dataset.p); closeModal(); });
+  };
+  draw();
+}
+
+// ---------- RENDU : slots de cartes ----------
+function renderSlots() {
+  const c = char();
+  const wrap = $('#slots');
+  wrap.innerHTML = '';
+  if (!c) return;
+  const eff = allEffects(), kw = allKeywords();
+
+  for (let i = 0; i < 5; i++) {
+    const row = document.createElement('div');
+    row.className = 'slotrow';
+    row.innerHTML = `<div class="slotnum">${i + 1}</div>`;
+    for (const side of ['cards', 'switches']) {
+      const cd = (c[side] || [])[i];
+      const active = selCard.slot === i && selCard.side === side;
+      const n = document.createElement('div');
+      if (!cd) {
+        n.className = 'minicard minicard--empty' + (active ? ' minicard--active' : '');
+        n.textContent = '+ créer la carte';
+        n.onclick = () => {
+          c[side] = c[side] || [];
+          c[side][i] = emptyCard('ally', side === 'cards' ? 'Carte ' + (i + 1) : 'Switch ' + (i + 1));
+          selCard = { slot: i, side };
+          save(); renderAll();
+        };
+      } else {
+        const todo = [...(cd.play || []).map(e => e.op), ...(cd.keys || [])]
+          .filter(id => { const d = eff[id] || kw[id]; return !d || !d.implemented; });
+        n.className = 'minicard' + (cd.type === 'spell' ? ' minicard--spell' : '') + (active ? ' minicard--active' : '');
+        const moments = Object.entries(TRIGGERS)
+          .filter(([slot, def]) => slot !== 'play' && (cd[slot] || []).length)
+          .map(([, def]) => def.label);
+        if (cd.aura) moments.push('Aura');
+        n.innerHTML = `<div class="tag">${cd.cost}⬤${cd.type === 'ally' ? ' · ' + cd.atk + '/' + cd.hp : ''}</div>
+          <div class="nm">${esc(cd.name)}</div>
+          <div class="tx">${esc(cd.text || '—')}</div>
+          ${moments.length ? `<div class="tx" style="color:var(--accent-2)">◆ ${esc(moments.join(' · '))}</div>` : ''}
+          ${todo.length ? `<div class="warn">⚠ ${todo.length} mécanique(s) à coder</div>` : ''}`;
+        n.onclick = () => { selCard = { slot: i, side }; renderCardForm(); renderSlots(); };
+      }
+      row.appendChild(n);
+    }
+    wrap.appendChild(row);
+  }
+}
+
+// ---------- RENDU : editeur de carte ----------
+function renderCardForm() {
+  const c = char(), cd = card();
+  const box = $('#cardForm');
+  $('#cardWhere').textContent = c ? `${c.name} · slot ${selCard.slot + 1} · ${selCard.side === 'cards' ? 'carte de base' : 'carte switch'}` : '';
+  if (!cd) { box.innerHTML = '<p class="stat">Sélectionne une carte au-dessus.</p>'; $('#cardTitle').textContent = 'Éditeur de carte'; return; }
+  $('#cardTitle').textContent = cd.name;
+
+  const eff = allEffects(), kw = allKeywords();
+  box.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start" id="cardCols">
+      <div id="cardMain"></div>
+      <div id="cardSide"></div>
+    </div>`;
+
+  // --- colonne principale
+  const main = box.querySelector('#cardMain');
+  main.innerHTML = `
+    <div class="grid2">
+      <div class="field"><label>Nom de la carte</label><input class="input" id="cName" value="${esc(cd.name)}"></div>
+      <div class="field"><label>Type</label>
+        <select class="select" id="cType">
+          <option value="ally" ${cd.type === 'ally' ? 'selected' : ''}>Allié (unité posée sur le plateau)</option>
+          <option value="spell" ${cd.type === 'spell' ? 'selected' : ''}>Sort (effet immédiat)</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="field"><label>Coût en mana</label><input class="input" type="number" min="0" id="cCost" value="${cd.cost}"></div>
+      <div class="field" ${cd.type === 'ally' ? '' : 'style="display:none"'}><label>Attaque</label><input class="input" type="number" id="cAtk" value="${cd.atk ?? 1}"></div>
+      <div class="field" ${cd.type === 'ally' ? '' : 'style="display:none"'}><label>Vie</label><input class="input" type="number" id="cHp" value="${cd.hp ?? 1}"></div>
+    </div>
+    <div class="field"><label>Texte de la carte</label><input class="input" id="cText" value="${esc(cd.text || '')}" placeholder="Ce que lit le joueur"></div>
+    <div class="field"><label>Mots-clés</label><div class="chips" id="cKeys"></div></div>
+    <div class="field">
+      <div id="cTriggers"></div>
+      <div id="cAura"></div>
+    </div>
+    <hr class="sep">
+    <div class="field">
+      <label>Paliers de niveau <span style="text-transform:none;letter-spacing:0">— cumulatifs, débloqués par le niveau du personnage</span></label>
+      <div id="cTiers"></div>
+      <div class="toolbar">
+        <button class="btn btn--sm" id="addTier">+ Ajouter un palier</button>
+        <button class="btn btn--sm btn--ghost" id="defTiers">Paliers par défaut (${cd.type === 'ally' ? '2/5/10' : '3/6/11'})</button>
+      </div>
+    </div>`;
+
+  const bind = (sel, fn) => { const n = main.querySelector(sel); if (n) n.oninput = () => { fn(n.value); save(); }; };
+  bind('#cName', v => { cd.name = v; $('#cardTitle').textContent = v; renderSlots(); renderPreview(); });
+  bind('#cCost', v => { cd.cost = Math.max(0, +v || 0); renderSlots(); renderPreview(); });
+  bind('#cAtk', v => { cd.atk = +v || 0; renderSlots(); renderPreview(); });
+  bind('#cHp', v => { cd.hp = +v || 0; renderSlots(); renderPreview(); });
+  bind('#cText', v => { cd.text = v; renderSlots(); renderPreview(); });
+  main.querySelector('#cType').onchange = e => {
+    cd.type = e.target.value;
+    if (cd.type === 'ally') { cd.atk = cd.atk ?? 1; cd.hp = cd.hp ?? 1; }
+    else {
+      delete cd.atk; delete cd.hp;
+      // Un sort ne peut pas mourir ni voir passer un tour : on ne garde pas de
+      // champs fantomes qui ne se declencheraient jamais.
+      const perdus = Object.entries(TRIGGERS).filter(([slot, d]) => d.allyOnly && (cd[slot] || []).length).map(([, d]) => d.label);
+      if (cd.aura) perdus.push('Aura');
+      if (perdus.length && !confirm('Passer en sort supprime : ' + perdus.join(', ') + '. Continuer ?')) {
+        cd.type = 'ally'; renderCardForm(); return;
+      }
+      for (const [slot, d] of Object.entries(TRIGGERS)) if (d.allyOnly) delete cd[slot];
+      delete cd.aura;
+    }
+    save(); renderCardForm(); renderSlots();
+  };
+
+  // mots-cles
+  const keysBox = main.querySelector('#cKeys');
+  for (const [id, d] of Object.entries(kw)) {
+    const on = (cd.keys || []).includes(id);
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (on ? ' chip--on' : '') + (d.implemented ? '' : ' chip--todo');
+    chip.title = d.desc || '';
+    chip.textContent = d.label + (d.implemented ? '' : ' ⚠');
+    chip.onclick = () => {
+      cd.keys = cd.keys || [];
+      const i = cd.keys.indexOf(id);
+      if (i >= 0) cd.keys.splice(i, 1); else cd.keys.push(id);
+      save(); renderCardForm(); renderSlots();
+    };
+    keysBox.appendChild(chip);
+  }
+
+  // Un bloc d'effets par moment. Les moments reserves aux unites disparaissent
+  // quand la carte est un sort : un sort ne reste pas en jeu, il ne peut ni mourir
+  // ni voir passer un debut de tour.
+  const trigBox = main.querySelector('#cTriggers');
+  for (const [slot, def] of Object.entries(TRIGGERS)) {
+    if (def.allyOnly && cd.type !== 'ally') continue;
+    cd[slot] = cd[slot] || [];
+    const field = elt(`<div class="field">
+      <label>${esc(def.label)} <span style="text-transform:none;letter-spacing:0">— ${esc(def.desc)}</span></label>
+      <div class="js-fx"></div>
+      <button class="btn btn--sm">+ Ajouter un effet</button>
+    </div>`);
+    const list = field.querySelector('.js-fx');
+    cd[slot].forEach((e, i) => list.appendChild(effectRow(e, eff, () => {
+      cd[slot].splice(i, 1); save(); renderCardForm(); renderSlots();
+    })));
+    field.querySelector('button').onclick = () => {
+      cd[slot].push(newEffect('dmg', eff));
+      save(); renderCardForm(); renderSlots();
+    };
+    trigBox.appendChild(field);
+  }
+
+  // L'aura : pas une liste d'effets, un modificateur continu.
+  const auraBox = main.querySelector('#cAura');
+  if (cd.type === 'ally') {
+    const a = cd.aura || { scope: 'otherAllies', atk: 0, hp: 0, key: '' };
+    const field = elt(`<div class="field">
+      <label>Aura <span style="text-transform:none;letter-spacing:0">— appliquée en continu tant que l'unité est en jeu, retirée dès qu'elle meurt</span></label>
+      <div class="rowbox">
+        <div class="params">
+          <div><label>Porte sur</label><select class="select js-scope">
+            ${Object.entries(AURA_SCOPES).map(([id, d]) => `<option value="${id}" ${a.scope === id ? 'selected' : ''}>${esc(d.label)}</option>`).join('')}
+          </select></div>
+          <div><label>Attaque</label><input class="input js-aatk" type="number" value="${a.atk || 0}"></div>
+          <div><label>Vie</label><input class="input js-ahp" type="number" value="${a.hp || 0}"></div>
+          <div><label>Mot-clé offert</label><select class="select js-akey">
+            <option value="">— aucun —</option>
+            ${Object.entries(kw).map(([id, d]) => `<option value="${id}" ${a.key === id ? 'selected' : ''}>${esc(d.label)}</option>`).join('')}
+          </select></div>
+        </div>
+        <div class="stat" style="margin-top:8px">Tout à 0 et sans mot-clé = pas d'aura. Les valeurs négatives affaiblissent (utile sur « les unités adverses »).</div>
+      </div>
+    </div>`);
+    const readAura = () => {
+      const next = {
+        scope: field.querySelector('.js-scope').value,
+        atk: +field.querySelector('.js-aatk').value || 0,
+        hp: +field.querySelector('.js-ahp').value || 0,
+        key: field.querySelector('.js-akey').value
+      };
+      if (!next.atk && !next.hp && !next.key) delete cd.aura;
+      else cd.aura = next;
+      save(); renderSlots(); renderPreview();
+    };
+    field.querySelectorAll('input, select').forEach(n => { n.oninput = readAura; n.onchange = readAura; });
+    auraBox.appendChild(field);
+  }
+
+  // paliers
+  const tierBox = main.querySelector('#cTiers');
+  cd.tiers = cd.tiers || [];
+  cd.tiers.forEach((t, i) => tierBox.appendChild(tierRow(t, eff, kw, () => { cd.tiers.splice(i, 1); save(); renderCardForm(); })));
+  main.querySelector('#addTier').onclick = () => {
+    cd.tiers.push({ lvl: (cd.tiers.length ? Math.max(...cd.tiers.map(t => t.lvl)) + 3 : 2), stats: { atk: 1, hp: 1 }, text: '+1/+1' });
+    save(); renderCardForm();
+  };
+  main.querySelector('#defTiers').onclick = () => {
+    cd.tiers = DEFAULT_TIERS[cd.type]();
+    save(); renderCardForm();
+  };
+
+  renderPreview();
+
+  // actions de carte
+  const side = box.querySelector('#cardSide');
+  const actions = document.createElement('div');
+  actions.className = 'toolbar';
+  actions.style.marginTop = '12px';
+  actions.innerHTML = `<button class="btn btn--sm" id="copyOther">Copier vers ${selCard.side === 'cards' ? 'le switch' : 'la base'}</button>
+    <button class="btn btn--sm btn--danger" id="delCard">Supprimer</button>`;
+  side.appendChild(actions);
+  actions.querySelector('#copyOther').onclick = () => {
+    const other = selCard.side === 'cards' ? 'switches' : 'cards';
+    c[other] = c[other] || [];
+    const copy = structuredClone(cd);
+    copy.id = copy.id + '_alt';
+    c[other][selCard.slot] = copy;
+    save(); renderAll();
+    toast('Carte copiée.');
+  };
+  actions.querySelector('#delCard').onclick = () => {
+    if (!confirm('Supprimer « ' + cd.name + ' » ?')) return;
+    c[selCard.side][selCard.slot] = null;
+    save(); renderAll();
+  };
+}
+
+function renderPreview() {
+  const cd = card(), c = char();
+  const side = $('#cardSide');
+  if (!side || !cd) return;
+  const eff = allEffects();
+  const first = side.querySelector('.preview');
+  const html = `
+    <div class="preview ${cd.type === 'spell' ? 'preview--spell' : ''}">
+      <div class="preview__top">
+        <img src="${asset(c.sprite)}" alt="">
+        <div>
+          <div class="preview__nm">${esc(cd.name)}</div>
+          <div class="preview__tx">${esc(cd.type === 'ally' ? 'Allié' : 'Sort')}${(cd.keys || []).length ? ' · ' + cd.keys.join(', ') : ''}</div>
+        </div>
+        <div class="preview__cost">${cd.cost}</div>
+      </div>
+      ${cd.type === 'ally' ? `<div class="preview__st">${cd.atk}/${cd.hp}</div>` : ''}
+      <div class="preview__tx">${esc(cd.text || '—')}</div>
+      ${Object.entries(TRIGGERS).filter(([slot]) => (cd[slot] || []).length).map(([slot, def]) =>
+        `<div class="preview__tx"><b>${esc(def.label)}</b> : ${cd[slot].map(e => esc(describe(e, eff))).join(' · ')}</div>`).join('')}
+      ${cd.aura ? `<div class="preview__tx"><b>Aura</b> : ${esc(auraText(cd.aura))}</div>` : ''}
+      ${(cd.tiers || []).map(t => `<div class="preview__tier" ${tierIssue(cd, t) ? 'style="color:var(--warn)"' : ''}>${tierIssue(cd, t) ? '⚠' : '🔒'} Niveau ${t.lvl} — ${esc(t.text || tierText(t))}</div>`).join('')}
+    </div>`;
+  if (first) first.outerHTML = html; else side.insertAdjacentHTML('afterbegin', html);
+}
+
+function describe(e, eff) {
+  const d = eff[e.op];
+  if (!d) return '⚠ « ' + e.op +' » inconnu';
+  if (!d.implemented) return '⚠ ' + d.label + ' (à coder)';
+  const t = e.t ? ' → ' + ((TARGETS[e.t] || {}).label || e.t) : '';
+  switch (e.op) {
+    case 'dmg': return e.v + ' dégâts' + t;
+    case 'heal': return 'soigne ' + e.v + t;
+    case 'buff': return '+' + (e.atk || 0) + '/+' + (e.hp || 0) + (e.key ? ' et ' + e.key : '') + t;
+    case 'draw': return 'pioche ' + e.v;
+    case 'armor': return e.v + ' armure';
+    case 'mana': return '+' + e.v + ' mana ce tour';
+    case 'summon': return 'invoque ' + (e.n || 1) + ' × ' + (e.unit ? e.unit.name + ' ' + e.unit.atk + '/' + e.unit.hp : '?');
+    default: return d.label;
+  }
+}
+// Un palier peut etre parfaitement valide et ne rien faire du tout sur SA carte :
+// amplifier une carte qui ne fait que piocher, donner un mot-cle a un sort...
+// On le dit tout de suite plutot que de laisser la carte mentir au joueur.
+function tierIssue(cd, t) {
+  if (!cd) return null;
+  if (t.amp !== undefined) {
+    const ampliable = Object.keys(TRIGGERS).some(slot => (cd[slot] || []).some(e => AMPLIFIABLE.includes(e.op)));
+    if (!ampliable) return "n'amplifie rien : cette carte n'a aucun effet amplifiable (dégâts, soin, armure, renfort). Passe par « Ajoute un effet ».";
+  }
+  if (t.stats && cd.type !== 'ally')
+    return "les bonus de stats ne servent qu'aux alliés, pas aux sorts.";
+  if (t.key && cd.type !== 'ally')
+    return "un mot-clé ne s'applique qu'à un allié, pas à un sort.";
+  if (t.aura && cd.type !== 'ally')
+    return "une aura ne s'applique qu'à un allié, pas à un sort.";
+  if (t.extra && cd.type !== 'ally') {
+    const def = TRIGGERS[t.slot || 'play'];
+    if (def && def.allyOnly) return '« ' + def.label + ' » ne se déclenche jamais sur un sort.';
+  }
+  return null;
+}
+
+function auraText(a) {
+  if (!a) return '';
+  const parts = [];
+  if (a.atk) parts.push((a.atk > 0 ? '+' : '') + a.atk + ' attaque');
+  if (a.hp) parts.push((a.hp > 0 ? '+' : '') + a.hp + ' vie');
+  if (a.key) parts.push(((allKeywords()[a.key] || {}).label) || a.key);
+  const scope = (AURA_SCOPES[a.scope || 'otherAllies'] || {}).label || a.scope;
+  return parts.join(', ') + ' → ' + scope.toLowerCase();
+}
+
+function tierText(t) {
+  if (t.stats) return '+' + (t.stats.atk || 0) + '/+' + (t.stats.hp || 0);
+  if (t.key) return 'gagne ' + (((allKeywords()[t.key]) || {}).label || t.key);
+  if (t.cost) return 'coût ' + t.cost;
+  if (t.amp) return 'effet +' + t.amp;
+  if (t.aura) return 'aura : ' + auraText(t.aura);
+  if (t.extra) return ((TRIGGERS[t.slot || 'play'] || {}).label || '?') + ' en plus';
+  return '—';
+}
+
+function newEffect(op, eff) {
+  const e = { op };
+  for (const p of (eff[op] || {}).params || []) {
+    if (p.type === 'number') e[p.k] = p.def ?? 1;
+    else if (p.type === 'target') e[p.k] = (p.allow || Object.keys(TARGETS))[0];
+    else if (p.type === 'unit') e[p.k] = { name: 'Jeton', atk: 1, hp: 1, keys: [] };
+  }
+  return e;
+}
+
+function effectRow(e, eff, onDelete) {
+  const box = document.createElement('div');
+  box.className = 'rowbox';
+  const opts = Object.entries(eff).map(([id, d]) =>
+    `<option value="${id}" ${id === e.op ? 'selected' : ''}>${esc(d.label)}${d.implemented ? '' : ' ⚠ à coder'}</option>`).join('');
+  box.innerHTML = `<div class="rowbox__head">
+      <select class="select">${opts}</select>
+      <button class="btn btn--sm btn--danger">✕</button>
+    </div><div class="params"></div>`;
+
+  const sel = box.querySelector('select');
+  sel.onchange = () => {
+    for (const k of Object.keys(e)) if (k !== 'op') delete e[k];
+    Object.assign(e, newEffect(sel.value, eff));
+    e.op = sel.value;
+    save(); renderCardForm(); renderSlots();
+  };
+  box.querySelector('button').onclick = onDelete;
+
+  const params = box.querySelector('.params');
+  const def = eff[e.op];
+  if (!def) params.innerHTML = '<span class="stat">Mécanique inconnue — choisis-en une autre.</span>';
+  else if (!def.params.length && def.custom) params.innerHTML = `<span class="stat">${esc(def.desc || 'Pas de paramètre.')}</span>`;
+  for (const p of (def && def.params) || []) {
+    const wrap = document.createElement('div');
+    if (p.type === 'number') {
+      wrap.innerHTML = `<label>${esc(p.label)}</label><input class="input" type="number" value="${e[p.k] ?? p.def ?? 0}">`;
+      wrap.querySelector('input').oninput = ev => { e[p.k] = +ev.target.value || 0; save(); renderSlots(); renderPreview(); };
+    } else if (p.type === 'target') {
+      // Une cible reservee aux unites n'a rien a faire dans un sort : on ne la propose pas.
+      const cd = card();
+      const allow = (p.allow || Object.keys(TARGETS))
+        .filter(t => !TARGETS[t].allyOnly || !cd || cd.type === 'ally');
+      wrap.innerHTML = `<label>${esc(p.label)}</label><select class="select">${allow.map(t =>
+        `<option value="${t}" ${e[p.k] === t ? 'selected' : ''}>${esc(TARGETS[t].label)}</option>`).join('')}</select>`;
+      wrap.querySelector('select').onchange = ev => { e[p.k] = ev.target.value; save(); renderPreview(); };
+    } else if (p.type === 'keyword') {
+      const kws = allKeywords();
+      wrap.innerHTML = `<label>${esc(p.label)}</label><select class="select">
+        <option value="">— aucun —</option>
+        ${Object.entries(kws).map(([id, d]) => `<option value="${id}" ${e[p.k] === id ? 'selected' : ''}>${esc(d.label)}</option>`).join('')}</select>`;
+      wrap.querySelector('select').onchange = ev => { if (ev.target.value) e[p.k] = ev.target.value; else delete e[p.k]; save(); renderPreview(); };
+    } else if (p.type === 'unit') {
+      const u = e[p.k] = e[p.k] || { name: 'Jeton', atk: 1, hp: 1, keys: [] };
+      wrap.style.gridColumn = '1 / -1';
+      wrap.innerHTML = `<label>${esc(p.label)}</label>
+        <div class="grid3">
+          <input class="input" value="${esc(u.name)}" placeholder="Nom">
+          <input class="input" type="number" value="${u.atk}" placeholder="Atk">
+          <input class="input" type="number" value="${u.hp}" placeholder="PV">
+        </div>`;
+      const [nm, at, hp] = wrap.querySelectorAll('input');
+      nm.oninput = () => { u.name = nm.value; save(); renderPreview(); };
+      at.oninput = () => { u.atk = +at.value || 0; save(); renderPreview(); };
+      hp.oninput = () => { u.hp = +hp.value || 0; save(); renderPreview(); };
+    } else {
+      wrap.innerHTML = `<label>${esc(p.label)}</label><input class="input" value="${esc(e[p.k] || '')}">`;
+      wrap.querySelector('input').oninput = ev => { e[p.k] = ev.target.value; save(); };
+    }
+    params.appendChild(wrap);
+  }
+  return box;
+}
+
+function tierRow(t, eff, kw, onDelete) {
+  const cd = card();
+  const kind = t.stats ? 'stats' : t.key ? 'key' : t.cost ? 'cost' : t.amp ? 'amp'
+    : t.aura ? 'aura' : t.extra ? 'extra' : 'stats';
+  // Les moments proposes suivent le registre : en ajouter un le fait apparaitre ici.
+  const slots = Object.entries(TRIGGERS).filter(([, d]) => !d.allyOnly || !cd || cd.type === 'ally');
+
+  const box = document.createElement('div');
+  box.className = 'rowbox';
+  box.innerHTML = '<div class="rowbox__head">'
+    + '<div style="width:110px"><label style="font-size:11px;color:var(--muted)">Niveau</label>'
+    + '<input class="input js-lvl" type="number" min="1" value="' + t.lvl + '"></div>'
+    + '<div style="flex:1"><label style="font-size:11px;color:var(--muted)">Ce que débloque le palier</label>'
+    + '<select class="select js-kind">'
+    + option('stats', 'Bonus de stats', kind)
+    + option('key', 'Gagne un mot-clé', kind)
+    + option('amp', 'Amplifie les effets', kind)
+    + option('extra', 'Ajoute un effet sur un moment', kind)
+    + option('aura', 'Donne ou renforce une aura', kind)
+    + option('cost', 'Modifie le coût', kind)
+    + '</select></div>'
+    + '<button class="btn btn--sm btn--danger js-del" style="align-self:end">✕</button>'
+    + '</div>'
+    + '<div class="params" style="margin-bottom:8px"></div>'
+    + '<div><label style="font-size:11px;color:var(--muted)">Libellé affiché sur la carte</label>'
+    + '<input class="input js-text" value="' + esc(t.text || '') + '" placeholder="ex. +1/+2"></div>';
+
+  const lvlInput = box.querySelector('.js-lvl');
+  lvlInput.oninput = () => { t.lvl = +lvlInput.value || 1; save(); renderPreview(); };
+  box.querySelector('.js-del').onclick = onDelete;
+  const textInput = box.querySelector('.js-text');
+  textInput.oninput = () => { t.text = textInput.value; save(); renderPreview(); };
+
+  const sel = box.querySelector('.js-kind');
+  sel.onchange = () => {
+    delete t.stats; delete t.key; delete t.cost; delete t.amp; delete t.extra; delete t.slot; delete t.aura;
+    if (sel.value === 'stats') t.stats = { atk: 1, hp: 1 };
+    else if (sel.value === 'key') t.key = Object.keys(kw)[0];
+    else if (sel.value === 'amp') t.amp = 1;
+    else if (sel.value === 'extra') { t.extra = { op: 'draw', v: 1 }; t.slot = 'play'; }
+    else if (sel.value === 'aura') t.aura = { scope: 'otherAllies', atk: 1, hp: 0, key: '' };
+    else t.cost = -1;
+    t.text = tierText(t);
+    save(); renderCardForm();
+  };
+
+  const params = box.querySelector('.params');
+  if (t.stats) {
+    params.innerHTML = '<div><label>Attaque</label><input class="input" type="number" value="' + (t.stats.atk || 0) + '"></div>'
+      + '<div><label>Vie</label><input class="input" type="number" value="' + (t.stats.hp || 0) + '"></div>';
+    const [a, h] = params.querySelectorAll('input');
+    a.oninput = () => { t.stats.atk = +a.value || 0; save(); renderPreview(); };
+    h.oninput = () => { t.stats.hp = +h.value || 0; save(); renderPreview(); };
+  } else if (t.key !== undefined) {
+    params.innerHTML = '<div><label>Mot-clé</label><select class="select">'
+      + Object.entries(kw).map(([id, d]) => option(id, d.label + (d.implemented ? '' : ' ⚠'), t.key)).join('')
+      + '</select></div>';
+    params.querySelector('select').onchange = ev => { t.key = ev.target.value; save(); renderPreview(); };
+  } else if (t.amp !== undefined) {
+    params.innerHTML = '<div><label>Amplification (+N sur dégâts, soins, armure, renforts)</label>'
+      + '<input class="input" type="number" value="' + t.amp + '"></div>';
+    params.querySelector('input').oninput = ev => { t.amp = +ev.target.value || 0; save(); renderPreview(); };
+  } else if (t.cost !== undefined) {
+    params.innerHTML = '<div><label>Modificateur de coût (−1 = moins cher)</label>'
+      + '<input class="input" type="number" value="' + t.cost + '"></div>';
+    params.querySelector('input').oninput = ev => { t.cost = +ev.target.value || 0; save(); renderPreview(); };
+  } else if (t.aura) {
+    params.innerHTML = '<div><label>Porte sur</label><select class="select js-scope">'
+      + Object.entries(AURA_SCOPES).map(([id, d]) => option(id, d.label, t.aura.scope || 'otherAllies')).join('')
+      + '</select></div>'
+      + '<div><label>Attaque</label><input class="input js-atk" type="number" value="' + (t.aura.atk || 0) + '"></div>'
+      + '<div><label>Vie</label><input class="input js-hp" type="number" value="' + (t.aura.hp || 0) + '"></div>'
+      + '<div><label>Mot-clé offert</label><select class="select js-key"><option value="">— aucun —</option>'
+      + Object.entries(kw).map(([id, d]) => option(id, d.label, t.aura.key)).join('')
+      + '</select></div>';
+    const readAura = () => {
+      t.aura = {
+        scope: params.querySelector('.js-scope').value,
+        atk: +params.querySelector('.js-atk').value || 0,
+        hp: +params.querySelector('.js-hp').value || 0,
+        key: params.querySelector('.js-key').value
+      };
+      save(); renderPreview();
+    };
+    params.querySelectorAll('input, select').forEach(n => { n.oninput = readAura; n.onchange = readAura; });
+  } else if (t.extra) {
+    params.style.display = 'block';
+    // Sur quel moment l'effet vient-il se greffer ?
+    const pick = elt('<div class="field" style="margin-bottom:8px"><label>Moment</label>'
+      + '<select class="select">'
+      + slots.map(([id, d]) => option(id, d.label, t.slot || 'play')).join('')
+      + '</select></div>');
+    pick.querySelector('select').onchange = ev => { t.slot = ev.target.value; t.text = tierText(t); save(); renderCardForm(); };
+    params.appendChild(pick);
+    params.appendChild(effectRow(t.extra, eff, () => { t.extra = { op: 'draw', v: 1 }; save(); renderCardForm(); }));
+  }
+
+  const warn = tierIssue(cd, t);
+  if (warn) {
+    const w = document.createElement('div');
+    w.className = 'issue';
+    w.style.marginTop = '8px';
+    w.textContent = '⚠ Palier sans effet — ' + warn;
+    box.appendChild(w);
+  }
+  return box;
+}
+
+// ---------- MECANIQUES : liste + creation ----------
+function renderMechs() {
+  const list = $('#mechList');
+  list.innerHTML = '';
+  const add = (id, d, kind) => {
+    const row = document.createElement('div');
+    row.className = 'mechrow';
+    row.innerHTML = `<span class="dot ${d.implemented ? 'dot--ok' : 'dot--todo'}"></span>
+      <span class="mid"><b>${esc(d.label)}</b> <code>${esc(id)}</code><br><span class="stat">${esc(kind)}</span></span>`;
+    row.title = d.desc || '';
+    if (d.custom) row.onclick = () => editMech(id);
+    list.appendChild(row);
+  };
+  for (const [id, d] of Object.entries(allEffects())) add(id, d, 'effet');
+  for (const [id, d] of Object.entries(allKeywords())) add(id, d, 'mot-clé');
+  const todo = customs().filter(m => !m.implemented).length;
+  $('#mechCount').textContent = todo ? todo + ' à coder' : 'toutes codées';
+}
+
+function editMech(id) {
+  const m = customs().find(x => x.id === id);
+  if (!m) return;
+  mechForm(m, () => { customs().splice(customs().indexOf(m), 1); save(); renderAll(); });
+}
+
+function mechForm(existing, onDelete) {
+  const m = existing || { id: '', kind: 'effect', label: '', desc: '', params: [], implemented: false };
+  openModal(existing ? 'Modifier la mécanique' : 'Nouvelle mécanique', `
+    <div class="grid2">
+      <div class="field"><label>Nom lisible</label><input class="input" id="mLabel" value="${esc(m.label)}" placeholder="ex. Poison lent"></div>
+      <div class="field"><label>Identifiant (code)</label><input class="input" id="mId" value="${esc(m.id)}" placeholder="poison_lent"></div>
+    </div>
+    <div class="field"><label>Type</label>
+      <select class="select" id="mKind">
+        <option value="effect" ${m.kind !== 'keyword' ? 'selected' : ''}>Effet jouable — se déclenche quand la carte est jouée</option>
+        <option value="keyword" ${m.kind === 'keyword' ? 'selected' : ''}>Mot-clé — comportement permanent d'une unité</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Qu'est-ce qu'elle fait ? <span style="text-transform:none;letter-spacing:0">— c'est ce texte qui part dans le fichier à coder, sois précis</span></label>
+      <textarea class="textarea" id="mDesc" placeholder="ex. À la fin de chaque tour, l'unité empoisonnée perd 1 PV. Le poison se cumule. Si l'unité meurt empoisonnée, son propriétaire pioche une carte.">${esc(m.desc)}</textarea>
+    </div>
+    <div class="field">
+      <label>Paramètres réglables (optionnel)</label>
+      <div id="mParams"></div>
+      <button class="btn btn--sm" id="mAddParam">+ Ajouter un paramètre</button>
+    </div>
+    <div class="field">
+      <label class="chip ${m.implemented ? 'chip--on' : ''}" id="mDone" style="cursor:pointer">Déjà codée dans le moteur</label>
+    </div>
+    <hr class="sep">
+    <div class="toolbar">
+      <button class="btn btn--primary" id="mSave">${existing ? 'Enregistrer' : 'Créer'}</button>
+      <button class="btn" id="mCancel">Annuler</button>
+      <span class="spacer"></span>
+      ${existing ? '<button class="btn btn--danger" id="mDel">Supprimer</button>' : ''}
+    </div>`);
+
+  const box = $('#modalBox');
+  const drawParams = () => {
+    const p = box.querySelector('#mParams');
+    p.innerHTML = '';
+    m.params.forEach((par, i) => {
+      const row = document.createElement('div');
+      row.className = 'rowbox';
+      row.innerHTML = `<div class="params">
+          <div><label>Clé</label><input class="input" value="${esc(par.k)}"></div>
+          <div><label>Libellé</label><input class="input" value="${esc(par.label || '')}"></div>
+          <div><label>Type</label><select class="select">
+            ${['number', 'target', 'keyword', 'text'].map(t => `<option ${par.type === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select></div>
+          <div><label>Défaut</label><input class="input" value="${esc(String(par.def ?? ''))}"></div>
+        </div>
+        <button class="btn btn--sm btn--danger" style="margin-top:8px">Retirer</button>`;
+      const [k, label, def] = row.querySelectorAll('input');
+      k.oninput = () => par.k = slug(k.value);
+      label.oninput = () => par.label = label.value;
+      def.oninput = () => par.def = def.value === '' ? undefined : (isNaN(+def.value) ? def.value : +def.value);
+      row.querySelector('select').onchange = ev => par.type = ev.target.value;
+      row.querySelector('button').onclick = () => { m.params.splice(i, 1); drawParams(); };
+      p.appendChild(row);
+    });
+  };
+  drawParams();
+  box.querySelector('#mAddParam').onclick = () => { m.params.push({ k: 'v', label: 'Valeur', type: 'number', def: 1 }); drawParams(); };
+  box.querySelector('#mLabel').oninput = e => {
+    m.label = e.target.value;
+    const idIn = box.querySelector('#mId');
+    if (!existing && !idIn.dataset.touched) idIn.value = slug(e.target.value);
+  };
+  box.querySelector('#mId').oninput = e => { e.target.dataset.touched = '1'; };
+  box.querySelector('#mDone').onclick = e => { m.implemented = !m.implemented; e.target.classList.toggle('chip--on', m.implemented); };
+  box.querySelector('#mCancel').onclick = closeModal;
+  if (existing) box.querySelector('#mDel').onclick = () => { if (confirm('Supprimer cette mécanique ?')) { onDelete(); closeModal(); } };
+  box.querySelector('#mSave').onclick = () => {
+    m.label = box.querySelector('#mLabel').value.trim();
+    m.id = slug(box.querySelector('#mId').value) || slug(m.label);
+    m.kind = box.querySelector('#mKind').value;
+    m.desc = box.querySelector('#mDesc').value.trim();
+    if (!m.label || !m.id) { toast('Il faut au moins un nom et un identifiant.'); return; }
+    if (!m.desc) { toast('Décris ce que fait la mécanique — sinon impossible de la coder.'); return; }
+    const clash = (m.kind === 'keyword' ? KEYWORDS : EFFECTS)[m.id];
+    if (clash) { toast('Cet identifiant existe déjà dans le moteur.'); return; }
+    if (!existing) customs().push(m);
+    save(); closeModal(); renderAll();
+    toast(m.implemented ? 'Mécanique enregistrée.' : 'Ajoutée à docs/MECANIQUES-A-CODER.md au prochain « Appliquer ».');
+  };
+}
+
+// ---------- MODAL ----------
+function openModal(title, html) {
+  $('#modalBox').innerHTML = `<div class="panel__head"><h2>${esc(title)}</h2>
+    <button class="btn btn--sm btn--ghost" id="mClose">✕</button></div><div class="panel__body">${html}</div>`;
+  $('#modal').classList.add('modal--on');
+  $('#mClose').onclick = closeModal;
+}
+function closeModal() { $('#modal').classList.remove('modal--on'); $('#modalBox').innerHTML = ''; }
+$('#modal').onclick = e => { if (e.target.id === 'modal') closeModal(); };
+
+// ---------- VALIDATION UI ----------
+function renderIssues() {
+  const list = validate();
+  const panel = $('#issuesPanel');
+  panel.style.display = list.length ? '' : 'none';
+  $('#issueCount').textContent = list.length + ' point(s)';
+  $('#issues').innerHTML = list.map(i => `<div class="issue ${i.bad ? 'issue--bad' : ''}">${esc(i.msg)}</div>`).join('');
+}
+
+// ---------- RENDU GLOBAL ----------
+function renderAll() {
+  renderDraftBar();
+  renderChars();
+  renderCharForm();
+  renderSlots();
+  renderCardForm();
+  renderMechs();
+  renderIssues();
+}
+
+// ---------- ACTIONS GLOBALES ----------
+$('#newChar').onclick = () => { const c = emptyChar(); DB.characters.push(c); selChar = c.id; selCard = { slot: 0, side: 'cards' }; save(); renderAll(); };
+$('#dupChar').onclick = () => {
+  const c = char(); if (!c) return;
+  const copy = structuredClone(c);
+  copy.id = c.id + '_copie';
+  copy.name = c.name + ' (copie)';
+  DB.characters.push(copy); selChar = copy.id; save(); renderAll();
+};
+$('#delChar').onclick = () => {
+  const c = char(); if (!c) return;
+  if (!confirm('Supprimer « ' + c.name + ' » et ses 10 cartes ?')) return;
+  DB.characters = DB.characters.filter(x => x !== c);
+  DB.starters = (DB.starters || []).filter(s => s !== c.id);
+  selChar = DB.characters[0] ? DB.characters[0].id : null;
+  save(); renderAll();
+};
+$('#newMech').onclick = () => mechForm(null);
+$('#applyBtn').onclick = applyToGame;
+$('#exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'adventure-card-data.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+$('#importBtn').onclick = () => $('#importFile').click();
+$('#importFile').onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (!d.characters) throw new Error('fichier invalide');
+      DB = d;
+      selChar = DB.characters[0] ? DB.characters[0].id : null;
+      save(); renderAll(); toast('Importé.');
+    } catch (err) { toast('Import impossible : ' + err.message); }
+  };
+  r.readAsText(f);
+  e.target.value = '';
+};
+$('#revertBtn').onclick = () => {
+  if (!confirm('Jeter les modifications non appliquées et repartir du fichier du jeu ?')) return;
+  draft = null;
+  DB = structuredClone(FILE_DATA);
+  selChar = DB.characters[0] ? DB.characters[0].id : null;
+  localStorage.removeItem(LS_KEY);
+  setStatus('Rechargé depuis le fichier du jeu.');
+  renderAll();
+};
+
+loadDraft();
+renderAll();
+setStatus(localStorage.getItem(LS_KEY) ? 'Brouillon local en cours.' : 'Synchronisé avec le fichier du jeu.');
+</script>
+</body>
+</html>

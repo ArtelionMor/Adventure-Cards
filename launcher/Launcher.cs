@@ -65,6 +65,7 @@ static class Launcher
         Console.WriteLine("Adventure Card");
         Console.WriteLine("Serveur local : " + url);
         Console.WriteLine("Racine        : " + Root);
+        Console.WriteLine("Card Builder  : http://127.0.0.1:" + Port + "/builder/index.html");
         Console.WriteLine("Ferme la fenetre du jeu pour quitter.");
 
         Process browser = OpenBrowser(url);
@@ -150,6 +151,14 @@ static class Launcher
         }
     }
 
+    // Le Card Builder n'a le droit d'ecrire que la, et rien d'autre.
+    static bool CanWrite(string rel)
+    {
+        rel = rel.Replace('\\', '/');
+        return System.Text.RegularExpressions.Regex.IsMatch(rel, @"^game/data/[\w.-]+\.(js|json)$")
+            || System.Text.RegularExpressions.Regex.IsMatch(rel, @"^docs/[\w.-]+\.md$");
+    }
+
     static void Handle(object o)
     {
         using (TcpClient client = (TcpClient)o)
@@ -160,14 +169,44 @@ static class Launcher
                 client.ReceiveTimeout = 5000;
                 string requestLine = ReadLine(ns);
                 if (string.IsNullOrEmpty(requestLine)) return;
-                while (!string.IsNullOrEmpty(ReadLine(ns))) { } // on jette les en-tetes
+
+                int length = 0;
+                string header;
+                while (!string.IsNullOrEmpty(header = ReadLine(ns)))
+                {
+                    if (header.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))
+                        int.TryParse(header.Substring(15).Trim(), out length);
+                }
 
                 string[] parts = requestLine.Split(' ');
                 if (parts.Length < 2) { Send(ns, 400, "text/plain", Encoding.UTF8.GetBytes("Bad request")); return; }
 
-                string path = parts[1];
-                int q = path.IndexOf('?');
-                if (q >= 0) path = path.Substring(0, q);
+                string rawPath = parts[1];
+                string query = "";
+                int qm = rawPath.IndexOf('?');
+                if (qm >= 0) { query = rawPath.Substring(qm + 1); rawPath = rawPath.Substring(0, qm); }
+
+                // Ecriture demandee par le Card Builder.
+                if (parts[0] == "POST" && rawPath == "/api/write")
+                {
+                    string rel = "";
+                    foreach (string pair in query.Split('&'))
+                    {
+                        if (pair.StartsWith("path=")) rel = Uri.UnescapeDataString(pair.Substring(5)).Replace('\\', '/');
+                    }
+                    if (!CanWrite(rel)) { Send(ns, 403, "text/plain", Encoding.UTF8.GetBytes("Chemin non autorise : " + rel)); return; }
+                    byte[] body = ReadBody(ns, length);
+                    string dest = Path.GetFullPath(Path.Combine(Root, rel.Replace('/', Path.DirectorySeparatorChar)));
+                    if (!dest.StartsWith(Root, StringComparison.OrdinalIgnoreCase))
+                    { Send(ns, 403, "text/plain", Encoding.UTF8.GetBytes("Forbidden")); return; }
+                    Directory.CreateDirectory(Path.GetDirectoryName(dest));
+                    File.WriteAllText(dest, Encoding.UTF8.GetString(body), new UTF8Encoding(false));
+                    Console.WriteLine("ecrit : " + rel + " (" + body.Length + " octets)");
+                    Send(ns, 200, "text/plain", Encoding.UTF8.GetBytes("ok"));
+                    return;
+                }
+
+                string path = rawPath;
                 path = Uri.UnescapeDataString(path).Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
                 if (path.Length == 0) path = Path.Combine("game", "index.html");
 
@@ -184,6 +223,19 @@ static class Launcher
             }
             catch { }
         }
+    }
+
+    static byte[] ReadBody(NetworkStream ns, int length)
+    {
+        byte[] buf = new byte[length];
+        int read = 0;
+        while (read < length)
+        {
+            int n = ns.Read(buf, read, length - read);
+            if (n <= 0) break;
+            read += n;
+        }
+        return buf;
     }
 
     static string ReadLine(NetworkStream ns)
