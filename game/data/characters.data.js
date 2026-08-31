@@ -11,10 +11,10 @@ export const CHARACTER_DATA = {
   "characters": [
     {
       "id": "dog",
-      "name": "Gniocci",
+      "name": "Médor",
       "species": "Chien",
-      "sprite": "Characters/Dog Gniocci.png",
-      "role": "Gardien — tient la ligne et soigne",
+      "sprite": "Characters/Dog.png",
+      "role": "Gardien — tient la ligne / Appelle la meute",
       "stats": {
         "hp": 32,
         "mana": 7,
@@ -36,27 +36,34 @@ export const CHARACTER_DATA = {
           "tiers": [
             {
               "lvl": 2,
-              "stats": {
+              "text": "Gagne +0/+1 à la fin du tour.",
+              "extra": {
+                "op": "buff",
+                "t": "self",
                 "atk": 0,
                 "hp": 1
               },
-              "text": "+0/+1"
+              "slot": "turnEnd"
             },
             {
               "lvl": 5,
               "stats": {
                 "atk": 1,
-                "hp": 0
-              },
-              "text": "+1/+0"
-            },
-            {
-              "lvl": 10,
-              "stats": {
-                "atk": 1,
                 "hp": 2
               },
               "text": "+1/+2"
+            },
+            {
+              "lvl": 10,
+              "text": "gagne Bouclier",
+              "key": "Bouclier"
+            }
+          ],
+          "turnStart": [
+            {
+              "op": "heal",
+              "t": "ownHero",
+              "v": 1
             }
           ]
         },
@@ -65,39 +72,55 @@ export const CHARACTER_DATA = {
           "name": "Molosse de Garde",
           "type": "ally",
           "cost": 3,
-          "atk": 3,
-          "hp": 4,
+          "atk": 2,
+          "hp": 3,
           "keys": [
             "Taunt"
           ],
-          "text": "Provocation.",
+          "text": "Provocation, tes autres alliés ont +0/+1.",
           "play": [],
           "tiers": [
             {
-              "lvl": 2,
+              "lvl": 3,
               "stats": {
-                "atk": 0,
+                "atk": 1,
                 "hp": 1
               },
-              "text": "+0/+1"
+              "text": "+1/+1"
             },
             {
-              "lvl": 5,
+              "lvl": 6,
               "stats": {
-                "atk": 1,
-                "hp": 0
-              },
-              "text": "+1/+0"
-            },
-            {
-              "lvl": 10,
-              "stats": {
-                "atk": 1,
+                "atk": 2,
                 "hp": 2
               },
-              "text": "+1/+2"
+              "text": "+2/+2"
+            },
+            {
+              "lvl": 8,
+              "text": "aura : +1 attaque → tes autres allies",
+              "aura": {
+                "scope": "otherAllies",
+                "atk": 1,
+                "hp": 0,
+                "key": ""
+              }
+            },
+            {
+              "lvl": 13,
+              "stats": {
+                "atk": 3,
+                "hp": 3
+              },
+              "text": "+3/+3"
             }
-          ]
+          ],
+          "aura": {
+            "scope": "otherAllies",
+            "atk": 0,
+            "hp": 1,
+            "key": ""
+          }
         },
         {
           "id": "dog_bark",
@@ -115,22 +138,30 @@ export const CHARACTER_DATA = {
           ],
           "tiers": [
             {
-              "lvl": 3,
+              "lvl": 4,
               "amp": 1,
               "text": "Effet +1"
             },
             {
-              "lvl": 6,
+              "lvl": 7,
               "extra": {
-                "op": "draw",
-                "v": 1
+                "op": "buff",
+                "t": "allAllies",
+                "atk": 0,
+                "hp": 0,
+                "key": "Charge"
               },
-              "text": "Pioche 1 carte en plus"
+              "text": "Donne charge à tout tes alliés"
             },
             {
-              "lvl": 11,
-              "amp": 2,
-              "text": "Effet +2"
+              "lvl": 15,
+              "text": "Inflige 1 blessure à toutes les unités adverses",
+              "extra": {
+                "op": "dmg",
+                "t": "allEnemyUnits",
+                "v": 1
+              },
+              "slot": "play"
             }
           ]
         },
@@ -140,32 +171,39 @@ export const CHARACTER_DATA = {
           "type": "spell",
           "cost": 2,
           "keys": [],
-          "text": "Rend 6 PV a ton heros.",
+          "text": "Rend 6 PV à une cible.",
           "play": [
             {
               "op": "heal",
-              "t": "ownHero",
+              "t": "allyUnit",
               "v": 6
             }
           ],
           "tiers": [
             {
-              "lvl": 3,
-              "amp": 1,
-              "text": "Effet +1"
+              "lvl": 8,
+              "text": "coût -1",
+              "cost": -1
             },
             {
-              "lvl": 6,
+              "lvl": 10,
               "extra": {
-                "op": "draw",
-                "v": 1
+                "op": "mana_au_prochain_tour",
+                "x": 2
               },
-              "text": "Pioche 1 carte en plus"
+              "text": "Donne 2 manas au prochain tour seulement."
             },
             {
-              "lvl": 11,
-              "amp": 2,
-              "text": "Effet +2"
+              "lvl": 16,
+              "text": "Donne +6/+6 et provocation à un de tes alliés.",
+              "extra": {
+                "op": "buff",
+                "t": "allyUnit",
+                "atk": 6,
+                "hp": 6,
+                "key": "Taunt"
+              },
+              "slot": "play"
             }
           ]
         },
@@ -176,7 +214,9 @@ export const CHARACTER_DATA = {
           "cost": 4,
           "atk": 2,
           "hp": 2,
-          "keys": [],
+          "keys": [
+            "type:Chien"
+          ],
           "text": "Cri de guerre : invoque deux Chiots 1/1.",
           "play": [
             {
@@ -185,34 +225,47 @@ export const CHARACTER_DATA = {
               "unit": {
                 "name": "Chiot",
                 "atk": 1,
-                "hp": 1
+                "hp": 1,
+                "keys": [
+                  "type:Chien"
+                ]
               }
             }
           ],
           "tiers": [
             {
-              "lvl": 2,
-              "stats": {
-                "atk": 0,
-                "hp": 1
-              },
-              "text": "+0/+1"
-            },
-            {
-              "lvl": 5,
-              "stats": {
+              "lvl": 7,
+              "text": "Donne +1/+0 aux Chiots.",
+              "extra": {
+                "op": "buff",
+                "t": "previous",
                 "atk": 1,
                 "hp": 0
               },
-              "text": "+1/+0"
+              "slot": "play"
             },
             {
-              "lvl": 10,
-              "stats": {
-                "atk": 1,
-                "hp": 2
+              "lvl": 12,
+              "text": "Donne Charge aux Chiots.",
+              "extra": {
+                "op": "buff",
+                "t": "previous",
+                "atk": 0,
+                "hp": 0,
+                "key": "Charge"
               },
-              "text": "+1/+2"
+              "slot": "play"
+            },
+            {
+              "lvl": 15,
+              "text": "Donne +3/+1 aux Chiots.",
+              "extra": {
+                "op": "buff",
+                "t": "previous",
+                "atk": 3,
+                "hp": 1
+              },
+              "slot": "play"
             }
           ]
         }

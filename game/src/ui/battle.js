@@ -5,7 +5,7 @@ import { CHAR_BY_ID, characterDeck } from '../config/characters.js';
 import { ENCOUNTERS, ENEMY_CARDS } from '../config/world.js';
 import { save, team, gain, persist } from '../state.js';
 import { relicMods } from '../config/relics.js';
-import { TRIGGERS } from '../config/mechanics.js';
+import { TRIGGERS, keyLabel, hasKey } from '../config/mechanics.js';
 import { createBattle, playCard, attack, endTurn, canPlay, needsTarget, legalTargets, attackableTargets } from '../combat/engine.js';
 import { botAction } from '../combat/ai.js';
 import { $, el, asset, toast } from './shell.js';
@@ -91,11 +91,11 @@ function moments(x) {
 
 function unitNode(u, side) {
   const n = el(`
-    <div class="unit ${u.keys.includes('Taunt') ? 'taunt' : ''} ${side === 'p' && u.canAttack && u.atk > 0 ? 'ready' : ''}"
+    <div class="unit ${hasKey(u.keys, 'Taunt') ? 'taunt' : ''} ${side === 'p' && u.canAttack && u.atk > 0 ? 'ready' : ''}"
          data-uid="${u.uid}" data-side="${side}">
       ${u.sprite ? `<img src="${asset(u.sprite)}" alt="">` : '<img alt="">'}
       <div class="s"><span class="a">${u.atk}</span> / <span class="h">${u.hp}</span></div>
-      ${u.keys.length ? `<div class="kw">${u.keys.join(' ')}</div>` : ''}
+      ${u.keys.length ? `<div class="kw">${u.keys.map(keyLabel).join(' ')}</div>` : ''}
       ${moments(u).length ? `<div class="kw" style="color:var(--accent2)">◆</div>` : ''}
     </div>`);
   if (selUnit === u.uid) n.classList.add('sel');
@@ -104,13 +104,15 @@ function unitNode(u, side) {
 
 function heroNode(s, k) {
   const pct = Math.max(0, s.hp / s.maxHp * 100);
-  const pips = Array.from({ length: s.manaCap }, (_, i) =>
+  // Le mana peut depasser le plafond (mana promis au tour precedent) : on affiche
+  // alors les cristaux en trop plutot que de les faire disparaitre.
+  const pips = Array.from({ length: Math.max(s.manaCap, s.mana) }, (_, i) =>
     `<i class="pip ${i < s.mana ? 'on' : ''}"></i>`).join('');
   return el(`
     <div class="bt-hero" data-side="${k}" data-uid="hero">
       <img src="${asset(s.sprite)}" alt="">
       <div style="flex:1">
-        <div style="font-size:12px;font-weight:600">${s.name} ${s.armor ? '🛡' + s.armor : ''}</div>
+        <div style="font-size:12px;font-weight:600">${s.name} ${s.armor ? '🛡' + s.armor : ''}${s.nextMana ? ' ⧗+' + s.nextMana : ''}</div>
         <div class="hpbar"><i style="width:${pct}%"></i><b>${Math.max(0, s.hp)} / ${s.maxHp}</b></div>
       </div>
       <div class="manapips">${pips}</div>

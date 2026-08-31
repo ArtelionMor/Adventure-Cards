@@ -14,7 +14,7 @@
 //   turnEnd    a la fin du tour de son proprietaire
 //   aura       en continu tant que l'unite est en jeu (pas un effet : un modificateur)
 import { BALANCE } from '../config/balance.js';
-import { ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, TARGETS } from '../config/mechanics.js';
+import { ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, keyId, keyArgs, hasKey, targetId, targetArg, targetDef } from '../config/mechanics.js';
 
 let uid = 1;
 const nextUid = () => 'u' + uid++;
@@ -43,6 +43,9 @@ function makeSide(cfg) {
     discard: [],
     hand: [],
     board: [],
+    // Mana promis pour le PROCHAIN tour (effet `mana_au_prochain_tour`). Il s'ajoute
+    // au mana du tour et peut donc depasser le mana max : c'est l'interet de l'effet.
+    nextMana: 0,
     fatigue: 0
   };
 }
@@ -98,6 +101,17 @@ export function draw(B, k, n = 1) {
   }
 }
 
+// -------------------------------------------------------------------- types
+// Le mot-cle « type:Chien » etiquette une unite. Les types viennent de `baseKeys` et
+// pas des auras : une aura ne peut pas donner de valeur a un mot-cle, donc elle ne
+// peut pas rendre une unite « Chien » — et on evite un ordre de calcul circulaire
+// (une aura qui se donnerait a elle-meme ses propres destinataires).
+const typesOf = u => keyArgs(u.baseKeys, 'type');
+const shareType = (a, b) => {
+  const ta = typesOf(a);
+  return ta.length ? typesOf(b).some(t => ta.includes(t)) : false;
+};
+
 // -------------------------------------------------------------------- auras
 /**
  * Recalcule les valeurs derivees de toutes les unites a partir de leurs valeurs de
@@ -117,7 +131,9 @@ function refresh(B) {
       // Auras alliees : elles ne se portent pas sur leur propre porteur.
       for (const src of mine) {
         if (!src.aura || src === u) continue;
-        if ((src.aura.scope || 'otherAllies') === 'otherAllies') take(src);
+        const scope = src.aura.scope || 'otherAllies';
+        if (scope === 'otherAllies') take(src);
+        else if (scope === 'sameTypeAllies' && shareType(src, u)) take(src);
       }
       // Auras adverses qui debuffent nos unites.
       for (const src of theirs) {
@@ -128,8 +144,9 @@ function refresh(B) {
       u.maxHp = u.baseHp + bHp;
       u.hp = u.maxHp - u.damage;
       u.keys = [...new Set([...u.baseKeys, ...bKeys])];
+      u.types = typesOf(u);
       // Une aura peut donner Charge : l'unite doit alors pouvoir frapper tout de suite.
-      if (u.keys.includes('Charge') && B.turn === k && !u.attackedThisTurn) u.canAttack = true;
+      if (hasKey(u.keys, 'Charge') && B.turn === k && !u.attackedThisTurn) u.canAttack = true;
     }
   }
 }
@@ -151,7 +168,7 @@ function damageUnit(B, k, u, v, source) {
   if (v <= 0) return;
   if (u.shield) { u.shield = false; say(B, `${u.name} encaisse avec son bouclier.`); return; }
   u.damage += v;
-  if (source && source !== u && source.keys && source.keys.includes('Venin')) {
+  if (source && source !== u && hasKey(source.keys, 'Venin')) {
     u.damage = u.maxHp;
     say(B, `${u.name} succombe au venin.`);
   }
@@ -212,6 +229,12 @@ export function beginTurn(B) {
   s.maxMana = Math.min(s.maxMana + 1, s.manaCap);
   s.mana = s.maxMana;
   s.tempMana = 0;
+  if (s.nextMana) {
+    // Volontairement au-dessus du mana max : c'est ce que promet l'effet.
+    s.mana += s.nextMana;
+    say(B, `${s.name} recupere ${s.nextMana} mana promis au tour precedent.`);
+    s.nextMana = 0;
+  }
   for (const u of s.board) { u.canAttack = true; u.attackedThisTurn = false; }
   if (B.turnNo > 2) draw(B, k);   // les deux premiers tours partent de la main de depart
   say(B, `— Tour de ${s.name} (${s.mana} mana) —`);
@@ -227,7 +250,7 @@ export function endTurn(B) {
 }
 
 // ------------------------------------------------------------------- ciblage
-const isPick = t => !!(TARGETS[t] && TARGETS[t].pick);
+const isPick = t => !!(targetDef(t) && targetDef(t).pick);
 
 /** Une carte a-t-elle besoin que le joueur designe une cible avant d'etre jouee ? */
 export function needsTarget(card) {
@@ -285,12 +308,18 @@ const pickOne = list => (list.length ? list[Math.floor(Math.random() * list.leng
  * Tout le ciblage passe par ici, donc ajouter une cible au registre ne demande
  * qu'un `case` de plus, jamais de retoucher les effets un par un.
  */
-function recipients(B, k, t, target, source) {
+function recipients(B, k, t, target, source, last) {
   const me = B[k], them = B[foe(k)];
   const unit = (side, u) => ({ kind: 'unit', side, unit: u });
   const hero = side => ({ kind: 'hero', side });
 
-  switch (t) {
+  switch (targetId(t)) {
+    case 'previous':
+      // « Lui » : les destinataires du precedent effet de la meme sequence. Les morts
+      // ne sont ramassees qu'a la fin de la carte, donc une unite mise a 0 PV par
+      // l'effet d'avant est encore la — c'est ce qui permet « inflige 3, puis rend 5 ».
+      // Le filtre ne sert qu'a ecarter celles qui ont VRAIMENT quitte le plateau.
+      return (last || []).filter(r => r.kind === 'hero' || B[r.side].board.includes(r.unit));
     case 'enemyHero': return [hero(foe(k))];
     case 'ownHero': return [hero(k)];
     case 'allEnemyUnits': return them.board.map(u => unit(foe(k), u));
@@ -304,6 +333,20 @@ function recipients(B, k, t, target, source) {
     case 'randomAllyAny': {
       const pool = [...me.board.map(u => unit(k, u)), hero(k)];
       return [pickOne(pool)];
+    }
+    case 'sameTypeAllies': {
+      // Comme `allAllies` : le porteur ne se compte pas lui-meme.
+      if (!source || !source.uid || !me.board.includes(source)) return [];
+      return me.board.filter(u => u !== source && shareType(source, u)).map(u => unit(k, u));
+    }
+    case 'allyType': {
+      // Le type est ecrit dans la cible : aucun besoin de porteur, un sort y a droit.
+      const voulu = targetArg(t);
+      return voulu ? me.board.filter(u => typesOf(u).includes(voulu)).map(u => unit(k, u)) : [];
+    }
+    case 'enemyType': {
+      const voulu = targetArg(t);
+      return voulu ? them.board.filter(u => typesOf(u).includes(voulu)).map(u => unit(foe(k), u)) : [];
     }
     case 'self':
       // Un sort n'est "lui-meme" de rien : la source doit etre une unite en jeu.
@@ -324,11 +367,16 @@ const nameOf = (B, r) => (r.kind === 'hero' ? B[r.side].name : r.unit.name);
 // ------------------------------------------------------------------- effets
 function applyEffects(B, k, effects, target, source) {
   const me = B[k], them = B[foe(k)];
+  // Ce que le dernier effet a vise ou cree, pour la cible « Lui ». Les effets sans
+  // destinataire (pioche, armure, mana) ne l'ecrasent pas : ils ne coupent pas la chaine.
+  let last = [];
+  const cible = (t) => recipients(B, k, t, target, source, last);
   for (const e of effects) {
     switch (e.op) {
       case 'dmg': {
-        const cibles = recipients(B, k, e.t, target, source);
+        const cibles = cible(e.t);
         if (!cibles.length) { say(B, 'Aucune cible a viser.'); break; }
+        last = cibles;
         for (const r of cibles) {
           say(B, `${e.v} degats a ${nameOf(B, r)}.`);
           if (r.kind === 'hero') damageHero(B, r.side, e.v);
@@ -338,7 +386,9 @@ function applyEffects(B, k, effects, target, source) {
       }
       case 'heal': {
         // On soigne en effacant des degats, jamais en gonflant les PV au-dela du max.
-        for (const r of recipients(B, k, e.t, target, source)) {
+        const soignes = cible(e.t);
+        if (soignes.length) last = soignes;
+        for (const r of soignes) {
           if (r.kind === 'hero') {
             const s = B[r.side];
             s.hp = Math.min(s.maxHp, s.hp + e.v);
@@ -351,7 +401,9 @@ function applyEffects(B, k, effects, target, source) {
         break;
       }
       case 'buff': {
-        const list = recipients(B, k, e.t, target, source).filter(r => r.kind === 'unit').map(r => r.unit);
+        const recus = cible(e.t).filter(r => r.kind === 'unit');
+        if (recus.length) last = recus;
+        const list = recus.map(r => r.unit);
         for (const u of list) {
           u.baseAtk += e.atk || 0;
           u.baseHp += e.hp || 0;
@@ -366,14 +418,23 @@ function applyEffects(B, k, effects, target, source) {
       case 'draw': draw(B, k, e.v); break;
       case 'armor': me.armor += e.v; say(B, `${me.name} gagne ${e.v} armure.`); break;
       case 'mana': me.mana += e.v; say(B, `+${e.v} mana.`); break;
+      case 'mana_au_prochain_tour':
+        me.nextMana += e.x || 0;
+        say(B, `+${e.x || 0} mana au prochain tour.`);
+        break;
       case 'summon': {
+        // Le jeton porte tout ce que makeUnit sait lire : mots-cles, aura, moments.
+        // Les jetons qui viennent d'arriver deviennent le « lui » de l'effet suivant.
+        const arrives = [];
         for (let i = 0; i < (e.n || 1); i++) {
           if (me.board.length >= BALANCE.combat.boardSize) break;
-          const t = makeUnit({ ...e.unit, sprite: source ? source.sprite : null });
+          const t = makeUnit({ ...e.unit, sprite: e.unit.sprite || (source ? source.sprite : null) });
           me.board.push(t);
+          arrives.push({ kind: 'unit', side: k, unit: t });
           checkKeywords(B, t);
         }
-        say(B, `${e.n || 1} ${e.unit.name}(s) arrivent.`);
+        if (arrives.length) last = arrives;
+        say(B, arrives.length ? `${arrives.length} ${e.unit.name}(s) arrivent.` : 'Le plateau est plein : aucune invocation.');
         break;
       }
       default: {
@@ -397,8 +458,9 @@ function notePending(B, id, label) {
 
 function checkKeywords(B, unit) {
   for (const k of unit.keys) {
-    if (ALL_KEYWORDS[k] && ALL_KEYWORDS[k].implemented) continue;
-    notePending(B, k, (ALL_KEYWORDS[k] && ALL_KEYWORDS[k].label) || k);
+    const id = keyId(k);
+    if (ALL_KEYWORDS[id] && ALL_KEYWORDS[id].implemented) continue;
+    notePending(B, id, (ALL_KEYWORDS[id] && ALL_KEYWORDS[id].label) || id);
   }
 }
 
@@ -412,8 +474,8 @@ function makeUnit(c) {
     baseKeys: keys,
     damage: 0,
     sprite: c.sprite,
-    shield: keys.includes('Bouclier'),
-    canAttack: keys.includes('Charge'),
+    shield: hasKey(keys, 'Bouclier'),
+    canAttack: hasKey(keys, 'Charge'),
     attackedThisTurn: false,
     aura: c.aura && (c.aura.atk || c.aura.hp || c.aura.key) ? { ...c.aura } : null
   };
@@ -425,6 +487,7 @@ function makeUnit(c) {
   u.maxHp = u.baseHp;
   u.hp = u.baseHp;
   u.keys = [...keys];
+  u.types = typesOf(u);
   return u;
 }
 
@@ -465,7 +528,7 @@ export function playCard(B, k, handIndex, target = null) {
 
 export function attackableTargets(B, k, unit) {
   const them = B[foe(k)];
-  const taunts = them.board.filter(u => u.keys.includes('Taunt'));
+  const taunts = them.board.filter(u => hasKey(u.keys, 'Taunt'));
   if (taunts.length) return taunts.map(u => ({ side: foe(k), uid: u.uid }));
   return [...them.board.map(u => ({ side: foe(k), uid: u.uid })), { side: foe(k), uid: 'hero' }];
 }

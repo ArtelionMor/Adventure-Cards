@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vue d'ensemble des cartes — Adventure Card</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --bg-2: #161922;
+    --bg-3: #1d2230;
+    --line: #2a3142;
+    --text: #e7eaf0;
+    --muted: #9aa3b2;
+    --accent: #7aa2ff;
+    --accent-2: #79e3c5;
+    --accent-3: #c69bff;
+    --warn: #f5a623;
+    --danger: #ff6b81;
+    --shadow: 0 8px 24px rgba(0,0,0,.35);
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; }
+  body {
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+
+  .tb-nav {
+    position: sticky; top: 0; z-index: 9999;
+    display: flex; align-items: center; gap: 18px;
+    height: 52px; padding: 0 18px;
+    background: rgba(13,15,20,.86);
+    backdrop-filter: saturate(140%) blur(10px);
+    -webkit-backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .tb-nav__brand { display: flex; align-items: center; gap: 8px; color: var(--text); font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+  .tb-nav__brand .tb-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 10px rgba(122,162,255,.7); }
+  .tb-nav__links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .tb-nav__link { color: var(--muted); padding: 7px 12px; border-radius: 8px; border: 1px solid transparent; white-space: nowrap; font-size: 14px; cursor: pointer; }
+  .tb-nav__link:hover { color: var(--text); background: var(--bg-3); }
+  .tb-nav__link--active { color: var(--text); background: var(--bg-3); border-color: var(--line); }
+  .tb-nav__spacer { flex: 1; }
+  @media (max-width: 640px) { .tb-nav { height: auto; padding: 8px 12px; flex-wrap: wrap; gap: 10px; } }
+
+  .wrap { max-width: 1500px; margin: 0 auto; padding: 24px 22px 90px; }
+  .hero h1 { font-size: 30px; margin: 0 0 8px; letter-spacing: -.02em; line-height: 1.1; background: linear-gradient(120deg, #fff 0%, var(--accent) 60%, var(--accent-2) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { color: var(--muted); max-width: 82ch; font-size: 14px; margin: 0 0 18px; }
+
+  /* barre de reglages : elle suit le defilement, on regle le niveau en lisant */
+  .ctrl {
+    position: sticky; top: 52px; z-index: 900;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+    padding: 10px 14px; margin-bottom: 20px; box-shadow: var(--shadow);
+  }
+  .ctrl label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .ctrl input[type=range] { width: 210px; accent-color: var(--accent); }
+  .ctrl .lvl { font-weight: 800; color: var(--warn); font-size: 18px; min-width: 2.2ch; text-align: center; }
+  .seg { display: flex; gap: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 2px; }
+  .seg button { background: none; border: 0; color: var(--muted); font: inherit; font-size: 13px; padding: 5px 11px; border-radius: 7px; cursor: pointer; }
+  .seg button.on { background: var(--bg-3); color: var(--text); }
+  .ctrl .spacer { flex: 1; }
+  .ctrl .stat { font-size: 12px; color: var(--muted); }
+
+  /* un panneau par personnage */
+  .char { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; overflow: hidden; }
+  .char__head { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--bg-3); flex-wrap: wrap; }
+  .char__head img { width: 46px; height: 46px; object-fit: contain; }
+  .char__id .nm { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+  .char__id .sub { font-size: 12px; color: var(--muted); }
+  .char__stats { display: flex; gap: 8px; flex-wrap: wrap; }
+  .kpi { background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 5px 10px; font-size: 12px; color: var(--muted); }
+  .kpi b { color: var(--text); font-size: 14px; }
+  .curve { display: flex; align-items: flex-end; gap: 3px; height: 34px; }
+  .curve div { width: 15px; background: linear-gradient(180deg, var(--accent), #3f63c4); border-radius: 3px 3px 0 0; position: relative; min-height: 2px; }
+  .curve div span { position: absolute; bottom: -15px; left: 0; right: 0; text-align: center; font-size: 9px; color: var(--muted); }
+
+  .slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(272px, 1fr)); gap: 12px; padding: 16px; }
+  .slot { display: grid; gap: 8px; align-content: start; }
+  .slot__num { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+
+  /* une carte */
+  .card { background: linear-gradient(180deg, #262034, #1d1828); border: 1px solid var(--line); border-left: 4px solid var(--accent-2); border-radius: 13px; padding: 11px 12px; display: grid; gap: 6px; }
+  .card--spell { border-left-color: var(--accent-3); }
+  .card--switch { background: linear-gradient(180deg, #1c1f2b, #171a24); opacity: .92; }
+  .card--vide { border-style: dashed; color: var(--muted); font-size: 12px; text-align: center; padding: 18px; }
+  .card--cliquable { cursor: pointer; }
+  .card--cliquable:hover { border-color: var(--accent); }
+  .card--focus { box-shadow: 0 0 0 2px var(--accent) inset; }
+  .src { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--muted); }
+  .src .pastille { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-2); flex: none; }
+  .src--draft { color: var(--warn); border-color: #4a3a1a; }
+  .src--draft .pastille { background: var(--warn); box-shadow: 0 0 8px rgba(245,166,35,.6); }
+  .card__top { display: flex; align-items: center; gap: 8px; }
+  .card__nm { font-weight: 700; font-size: 14px; line-height: 1.2; }
+  .card__cost { margin-left: auto; width: 26px; height: 26px; flex: none; border-radius: 50%; background: #6cb8ff; color: #06203a; font-weight: 800; display: grid; place-items: center; font-size: 13px; }
+  .card__cost.up { background: var(--accent-2); }
+  .tagline { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 11px; color: var(--muted); }
+  .tag { padding: 2px 7px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); }
+  .tag--ally { color: var(--accent-2); border-color: #2c4c44; }
+  .tag--spell { color: var(--accent-3); border-color: #3d3153; }
+  .tag--key { color: var(--text); }
+  .tag--switch { color: var(--warn); border-color: #4a3a1a; }
+  .stats { font-weight: 800; color: var(--warn); font-size: 15px; display: flex; align-items: baseline; gap: 8px; }
+  .stats .ratio { font-size: 11px; font-weight: 500; color: var(--muted); }
+  .grow { color: var(--accent-2); font-size: 11px; font-weight: 600; }
+  .txt { font-size: 12px; color: var(--muted); }
+  .fx { font-size: 12px; color: var(--text); }
+  .fx b { color: var(--accent); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+  .tiers { display: grid; gap: 3px; margin-top: 2px; padding-top: 6px; border-top: 1px solid var(--line); }
+  .tier { font-size: 11px; color: var(--muted); display: flex; gap: 6px; align-items: baseline; }
+  .tier .lv { flex: none; width: 34px; font-weight: 700; color: var(--muted); }
+  .tier--on { color: var(--text); }
+  .tier--on .lv { color: var(--accent-2); }
+  .tier--next .lv { color: var(--warn); }
+  .vide { color: var(--muted); font-size: 12px; padding: 12px 16px; }
+
+  /* impression : fond clair, une carte ne se coupe pas en deux */
+  @media print {
+    .tb-nav, .ctrl { display: none; }
+    html, body { background: #fff; color: #111; }
+    .wrap { max-width: none; padding: 0; }
+    .char, .card { break-inside: avoid; box-shadow: none; background: #fff; border-color: #bbb; }
+    .char__head { background: #f2f2f2; }
+    .card__nm, .stats, .fx { color: #111; }
+    .txt, .tier, .tagline { color: #444; }
+  }
+</style>
+</head>
+<body>
+<nav class="tb-nav">
+  <span class="tb-nav__brand"><span class="tb-dot"></span>Adventure Card</span>
+  <div class="tb-nav__links">
+    <a class="tb-nav__link" href="../game/index.html">Jouer</a>
+    <a class="tb-nav__link" href="index.html">Card Builder</a>
+    <span class="tb-nav__link tb-nav__link--active">Vue d'ensemble</span>
+    <a class="tb-nav__link" href="../docs/MECANIQUES-A-CODER.md" target="_blank">Mécaniques à coder</a>
+  </div>
+  <span class="tb-nav__spacer"></span>
+  <button class="btn tb-nav__link" id="printBtn">🖨️ Imprimer / PDF</button>
+</nav>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>Vue d'ensemble des cartes</h1>
+    <p>Toutes les cartes de tous les personnages, résolues au niveau choisi — c'est la page à garder ouverte
+       pendant que tu équilibres. Ouverte à côté du Card Builder, elle <b>suit tes modifications en direct</b> :
+       chaque frappe dans le builder se voit ici, et cliquer une carte l'ouvre dans le builder de l'autre écran.</p>
+  </div>
+
+  <div class="ctrl">
+    <label for="lvl">Niveau des personnages</label>
+    <input type="range" id="lvl" min="1" max="20" step="1">
+    <span class="lvl" id="lvlVal">1</span>
+    <div class="seg" id="cote">
+      <button data-v="cards">Cartes de base</button>
+      <button data-v="switches">Switch</button>
+      <button data-v="both">Les deux</button>
+    </div>
+    <span class="spacer"></span>
+    <span class="src" id="source"></span>
+    <span class="stat" id="resume"></span>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script type="module">
+import { CHARACTER_DATA } from '../game/data/characters.data.js';
+import { resolveCard } from '../game/src/config/characters.js';
+import { TRIGGERS, describeEffect, describeAura, keyLabel } from '../game/src/config/mechanics.js';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const asset = p => '../' + String(p || '').split('/').map(encodeURIComponent).join('/');
+
+// Les reglages survivent au rechargement : on equilibre par allers-retours avec le builder.
+const LS = 'adventureCardOverview.v1';
+const etat = Object.assign({ niveau: 1, cote: 'both' }, JSON.parse(localStorage.getItem(LS) || '{}'));
+const garde = () => { try { localStorage.setItem(LS, JSON.stringify(etat)); } catch { /* pas grave */ } };
+
+// ---------- LES DONNEES AFFICHEES ----------
+// Deux sources possibles, et il faut dire laquelle : le fichier du jeu, ou le brouillon
+// que le builder ecrit a chaque frappe. Tant qu'un brouillon existe, c'est LUI qu'on
+// montre — sinon on equilibrerait sur des chiffres que le builder a deja changes.
+const LS_BUILDER = 'adventureCardBuilder.v1';
+const LS_FOCUS = 'adventureCardBuilder.focus';
+
+function brouillon() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_BUILDER) || 'null');
+    return d && d.db && d.db.characters ? d : null;
+  } catch { return null; }
+}
+let DB = CHARACTER_DATA;
+let depuis = null;         // date du brouillon affiche, null = fichier du jeu
+
+// Carte ouverte dans le builder, pour la surligner. On la lit des le depart : le
+// builder a annonce sa selection avant meme que cette page soit ouverte, et son
+// message est reste en localStorage.
+let focus = (() => {
+  try { return JSON.parse(localStorage.getItem(LS_FOCUS) || 'null'); } catch { return null; }
+})();
+
+function relit() {
+  const d = brouillon();
+  DB = d ? d.db : CHARACTER_DATA;
+  depuis = d ? d.at : null;
+}
+relit();
+
+/** Le texte d'un palier : celui du game designer, sinon on le deduit de sa structure. */
+function texteTier(t) {
+  if (t.text) return t.text;
+  if (t.stats) return `+${t.stats.atk || 0}/+${t.stats.hp || 0}`;
+  if (t.key) return 'gagne ' + keyLabel(t.key);
+  if (t.cost) return 'coût ' + t.cost;
+  if (t.amp) return 'effet +' + t.amp;
+  if (t.aura) return 'aura : ' + describeAura(t.aura);
+  if (t.extra) return ((TRIGGERS[t.slot || 'play'] || {}).label || '?') + ' en plus';
+  return '—';
+}
+
+/**
+ * Les « points » d'une carte : sa ligne de statistiques plus les corps qu'elle pose
+ * a la pose. Un sort d'invocation compte donc pour ce qu'il met sur le plateau —
+ * sinon la carte la plus chargee du jeu passerait pour la plus faible.
+ * C'est un repere de comparaison, pas un modele de valeur : ni les mots-cles, ni les
+ * auras, ni les rales n'y entrent (le bot, lui, les chiffre dans combat/ai.js).
+ */
+const pointsJetons = c => (c.play || []).filter(e => e.op === 'summon' && e.unit)
+  .reduce((a, e) => a + (e.n || 1) * ((e.unit.atk || 0) + (e.unit.hp || 0)), 0);
+const points = c => (c.type === 'ally' ? (c.atk || 0) + (c.hp || 0) : 0) + pointsJetons(c);
+
+function carteHTML(def, sprite, estSwitch, ou) {
+  const side = estSwitch ? 'switches' : 'cards';
+  const vise = focus && focus.char === ou.char && focus.side === side && focus.slot === ou.slot;
+  if (!def) return `<div class="card card--vide">${estSwitch ? 'pas de switch' : 'slot vide'}</div>`;
+  const c = resolveCard(def, etat.niveau);
+  const base = resolveCard(def, 1);
+  const ally = c.type === 'ally';
+  const paliers = [...(def.tiers || [])].sort((a, b) => a.lvl - b.lvl);
+  const prochain = paliers.find(t => t.lvl > etat.niveau);
+
+  // Ce que la carte fait vraiment, moment par moment — pas seulement sa prose.
+  const moments = Object.entries(TRIGGERS)
+    .filter(([slot]) => (c[slot] || []).length)
+    .map(([slot, d]) => `<div class="fx"><b>${esc(d.label)}</b> ${esc(c[slot].map(describeEffect).join(' · '))}</div>`)
+    .join('');
+
+  const cles = (c.keys || []).map(k => `<span class="tag tag--key">${esc(keyLabel(k))}</span>`).join('');
+  const gagne = ally && (c.atk !== base.atk || c.hp !== base.hp)
+    ? `<span class="grow">+${(c.atk || 0) - (base.atk || 0)}/+${(c.hp || 0) - (base.hp || 0)} depuis le niv. 1</span>` : '';
+
+  const jetons = pointsJetons(c);
+  const pts = points(c);
+  const ratio = pts && c.cost > 0
+    ? `<span class="ratio">${(pts / c.cost).toFixed(1)} pts/mana${jetons ? ' (jetons compris)' : ''}</span>` : '';
+
+  return `<div class="card card--cliquable ${ally ? '' : 'card--spell'} ${estSwitch ? 'card--switch' : ''} ${vise ? 'card--focus' : ''}"
+    data-char="${esc(ou.char)}" data-side="${side}" data-slot="${ou.slot}" title="Ouvrir dans le Card Builder">
+    <div class="card__top">
+      <span class="card__nm">${esc(c.name)}</span>
+      <span class="card__cost ${c.cost !== def.cost ? 'up' : ''}" title="${c.cost !== def.cost ? 'coût réduit par un palier (base ' + def.cost + ')' : 'coût en mana'}">${c.cost}</span>
+    </div>
+    <div class="tagline">
+      <span class="tag ${ally ? 'tag--ally' : 'tag--spell'}">${ally ? 'Allié' : 'Sort'}</span>
+      ${estSwitch ? '<span class="tag tag--switch">switch</span>' : ''}
+      ${cles}
+    </div>
+    ${ally || ratio ? `<div class="stats">${ally ? `${c.atk}/${c.hp}` : ''} ${ratio} ${gagne}</div>` : ''}
+    ${c.text ? `<div class="txt">${esc(c.text)}</div>` : ''}
+    ${moments}
+    ${c.aura ? `<div class="fx"><b>Aura</b> ${esc(describeAura(c.aura))}</div>` : ''}
+    ${paliers.length ? `<div class="tiers">${paliers.map(t => {
+      const acquis = etat.niveau >= t.lvl;
+      const cls = acquis ? 'tier tier--on' : (t === prochain ? 'tier tier--next' : 'tier');
+      return `<div class="${cls}"><span class="lv">${acquis ? '✓' : '🔒'} ${t.lvl}</span><span>${esc(texteTier(t))}</span></div>`;
+    }).join('')}</div>` : ''}
+  </div>`;
+}
+
+function persoHTML(ch) {
+  const cotes = etat.cote === 'both' ? ['cards', 'switches'] : [etat.cote];
+  const slots = Math.max(5, (ch.cards || []).length, (ch.switches || []).length);
+
+  // Courbe de mana : les couts effectifs au niveau choisi, cartes de base uniquement,
+  // sinon on compterait deux fois le meme slot.
+  const couts = (ch.cards || []).filter(Boolean).map(c => resolveCard(c, etat.niveau).cost);
+  const maxCout = Math.max(6, ...couts);
+  const paquets = Array.from({ length: maxCout + 1 }, (_, i) => couts.filter(c => c === i).length);
+  const hautMax = Math.max(1, ...paquets);
+  const curve = paquets.map((n, i) =>
+    `<div style="height:${Math.round(n / hautMax * 30) + 2}px" title="${n} carte(s) à ${i} mana"><span>${i}</span></div>`).join('');
+
+  // Moyenne sur les cartes qui posent quelque chose sur le plateau (allies et invocations).
+  const avecCorps = (ch.cards || []).filter(Boolean).map(c => resolveCard(c, etat.niveau)).filter(c => points(c) > 0);
+  const moyenne = avecCorps.length
+    ? (avecCorps.reduce((a, c) => a + points(c) / Math.max(1, c.cost), 0) / avecCorps.length).toFixed(1)
+    : '—';
+
+  const corps = Array.from({ length: slots }, (_, i) => `<div class="slot">
+      <div class="slot__num">Slot ${i + 1}</div>
+      ${cotes.map(side => carteHTML((ch[side] || [])[i], ch.sprite, side === 'switches', { char: ch.id, slot: i })).join('')}
+    </div>`).join('');
+
+  return `<section class="char">
+    <div class="char__head">
+      <img src="${asset(ch.sprite)}" alt="">
+      <div class="char__id">
+        <div class="nm">${esc(ch.name)} <span class="sub">· ${esc(ch.species || '')}</span></div>
+        <div class="sub">${esc(ch.role || '')}</div>
+      </div>
+      <span class="tb-nav__spacer"></span>
+      <div class="curve" title="Courbe de mana des 5 cartes de base">${curve}</div>
+      <div class="char__stats">
+        <span class="kpi">PV <b>${ch.stats ? ch.stats.hp : '?'}</b></span>
+        <span class="kpi">Mana <b>${ch.stats ? ch.stats.mana : '?'}</b></span>
+        <span class="kpi">Main <b>${ch.stats ? ch.stats.hand : '?'}</b></span>
+        <span class="kpi">Moyenne <b>${moyenne}</b> pts/mana</span>
+      </div>
+    </div>
+    <div class="slots">${corps}</div>
+  </section>`;
+}
+
+function render() {
+  const chars = DB.characters || [];
+  $('#out').innerHTML = chars.length ? chars.map(persoHTML).join('') : '<p class="vide">Aucun personnage dans les données.</p>';
+  $('#lvlVal').textContent = etat.niveau;
+  $('#lvl').value = etat.niveau;
+  for (const b of document.querySelectorAll('#cote button')) b.classList.toggle('on', b.dataset.v === etat.cote);
+  const nb = chars.reduce((a, c) => a + (c.cards || []).filter(Boolean).length + (c.switches || []).filter(Boolean).length, 0);
+  const debloques = chars.reduce((a, c) => a + [...(c.cards || []), ...(c.switches || [])]
+    .filter(Boolean).reduce((n, card) => n + resolveCard(card, etat.niveau).unlocked.length, 0), 0);
+  $('#resume').textContent = `${chars.length} personnages · ${nb} cartes · ${debloques} paliers débloqués au niveau ${etat.niveau}`;
+  const src = $('#source');
+  src.className = 'src' + (depuis ? ' src--draft' : '');
+  src.innerHTML = '<span class="pastille"></span>' + (depuis
+    ? 'Brouillon du builder · ' + new Date(depuis).toLocaleTimeString() + ' — pas encore appliqué'
+    : 'Fichier du jeu');
+}
+
+// ---------- SYNCHRO AVEC LE BUILDER ----------
+// `storage` ne se declenche que dans les AUTRES fenetres : c'est exactement ce qu'on
+// veut entre deux ecrans. Un petit delai evite de tout redessiner a chaque touche.
+let attente = null;
+addEventListener('storage', ev => {
+  if (ev.key === LS_BUILDER) {
+    if (!ev.newValue) { location.reload(); return; }   // « Appliquer au jeu » : le fichier a change
+    clearTimeout(attente);
+    attente = setTimeout(() => { relit(); render(); }, 120);
+    return;
+  }
+  if (ev.key === LS_FOCUS && ev.newValue) {
+    try { focus = JSON.parse(ev.newValue); } catch { return; }
+    render();
+    const n = document.querySelector('.card--focus');
+    if (n) n.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+});
+
+// Clic sur une carte : elle s'ouvre dans le builder de l'autre ecran.
+$('#out').addEventListener('click', ev => {
+  const n = ev.target.closest('.card--cliquable');
+  if (!n) return;
+  focus = { char: n.dataset.char, side: n.dataset.side, slot: +n.dataset.slot };
+  render();
+  try {
+    localStorage.setItem(LS_FOCUS, JSON.stringify({ at: Date.now(), ...focus, from: 'overview' }));
+  } catch { /* le pont est un confort, pas une dependance */ }
+});
+
+$('#lvl').oninput = e => { etat.niveau = +e.target.value || 1; garde(); render(); };
+for (const b of document.querySelectorAll('#cote button')) {
+  b.onclick = () => { etat.cote = b.dataset.v; garde(); render(); };
+}
+$('#printBtn').onclick = () => window.print();
+render();
+</script>
+</body>
+</html>

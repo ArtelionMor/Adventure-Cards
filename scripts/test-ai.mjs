@@ -87,6 +87,13 @@ tendance('ne surestime pas une mecanique pas encore codee',
   ]),
   (B, a) => carteJouee(B, a) === 'Solide');
 
+tendance('valorise le jeton invoque pour ce qu il sait faire, pas pour ses stats',
+  () => setup([
+    sort('Pierres', [{ op: 'summon', n: 1, unit: { name: 'Caillou', atk: 2, hp: 2 } }]),
+    sort('Meute', [{ op: 'summon', n: 1, unit: { name: 'Molosse', atk: 2, hp: 2, keys: ['Taunt'], death: [{ op: 'dmg', t: 'enemyHero', v: 4 }] } }])
+  ]),
+  (B, a) => carteJouee(B, a) === 'Meute');
+
 // ---------------------------------------------------------------------------
 console.log('\nChoix de la cible a abattre');
 

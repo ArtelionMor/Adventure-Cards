@@ -170,6 +170,7 @@
   <div class="tb-nav__links">
     <a class="tb-nav__link" href="../game/index.html">Jouer</a>
     <span class="tb-nav__link tb-nav__link--active">Card Builder</span>
+    <a class="tb-nav__link" href="overview.html">Vue d'ensemble</a>
     <a class="tb-nav__link" href="../docs/MECANIQUES-A-CODER.md" target="_blank">Mécaniques à coder</a>
   </div>
   <span class="tb-nav__spacer"></span>
@@ -266,7 +267,7 @@
 <script type="module">
 import { SPRITES } from '../game/data/sprites.js';
 import { CHARACTER_DATA } from '../game/data/characters.data.js';
-import { EFFECTS, KEYWORDS, TARGETS, AMPLIFIABLE, TRIGGERS, AURA_SCOPES } from '../game/src/config/mechanics.js';
+import { EFFECTS, KEYWORDS, TARGETS, AMPLIFIABLE, TRIGGERS, TOKEN_TRIGGERS, AURA_SCOPES, keyId, keyArg, keyLabel, targetId, targetArg, targetDef, targetLabel } from '../game/src/config/mechanics.js';
 import { DEFAULT_TIERS } from '../game/src/config/characters.js';
 
 // ---------- ETAT ----------
@@ -304,8 +305,14 @@ function allEffects() {
 function allKeywords() {
   const o = {};
   for (const [id, d] of Object.entries(KEYWORDS)) o[id] = { ...d, implemented: true };
-  for (const m of customs()) if (m.kind === 'keyword') o[m.id] = { label: m.label, desc: m.desc, implemented: !!m.implemented, custom: true };
+  for (const m of customs()) if (m.kind === 'keyword') o[m.id] = { label: m.label, desc: m.desc, params: m.params || [], implemented: !!m.implemented, custom: true };
   return o;
+}
+/** Un mot-cle a parametre s'ecrit « id:valeur » : il ne peut pas etre choisi dans
+ *  un simple menu deroulant (aura, renfort, palier), qui n'a pas de champ pour la
+ *  valeur. On ne propose donc que les mots-cles simples a ces endroits-la. */
+function plainKeywords() {
+  return Object.fromEntries(Object.entries(allKeywords()).filter(([, d]) => !(d.params || []).length));
 }
 
 // ---------- PERSISTANCE ----------
@@ -319,6 +326,42 @@ function save() {
     if (bar) bar.style.display = 'none';
   } catch { setStatus('⚠ localStorage indisponible'); }
 }
+// ---------- PONT ENTRE LES DEUX FENETRES ----------
+// Le builder et la vue d'ensemble tournent souvent sur deux ecrans. Ils partagent la
+// meme origine, donc l'evenement `storage` suffit : il ne se declenche QUE dans les
+// autres fenetres, jamais dans celle qui ecrit. Zero serveur, zero dependance.
+//   - le brouillon (LS_KEY) est deja ecrit a chaque frappe : la vue d'ensemble le lit ;
+//   - LS_FOCUS transporte « ouvre cette carte », dans les deux sens.
+const LS_FOCUS = 'adventureCardBuilder.focus';
+let dernierFocus = '';
+
+/** Dit aux autres fenetres quelle carte on regarde (elles la surlignent). */
+function annonceSelection() {
+  const c = char();
+  if (!c) return;
+  const cle = c.id + '|' + selCard.side + '|' + selCard.slot;
+  if (cle === dernierFocus) return;   // pas de bavardage a chaque frappe
+  dernierFocus = cle;
+  try {
+    localStorage.setItem(LS_FOCUS, JSON.stringify({ at: Date.now(), char: c.id, side: selCard.side, slot: selCard.slot, from: 'builder' }));
+  } catch { /* localStorage indisponible : le pont est un confort, pas une dependance */ }
+}
+
+addEventListener('storage', ev => {
+  if (ev.key !== LS_FOCUS || !ev.newValue) return;
+  let msg;
+  try { msg = JSON.parse(ev.newValue); } catch { return; }
+  if (!msg || msg.from === 'builder') return;   // c'est nous qui l'avons envoye
+  const existe = DB.characters.some(c => c.id === msg.char);
+  if (!existe) return;
+  dernierFocus = msg.char + '|' + msg.side + '|' + msg.slot;
+  selChar = msg.char;
+  selCard = { slot: msg.slot, side: msg.side };
+  renderAll();
+  const panneau = document.getElementById('cardPanel');
+  if (panneau) panneau.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
 // Un brouillon non applique n'est jamais repris ni jete tout seul : on le signale
 // et c'est toi qui choisis. Rien ne se perd en rechargeant la page.
 let draft = null;
@@ -392,17 +435,49 @@ function dataFileContent() {
     for (const side of ['cards', 'switches']) {
       for (const card of c[side] || []) {
         if (!card) continue;
-        for (const slot of Object.keys(TRIGGERS)) {
-          if (slot === 'play') continue;
-          if (!(card[slot] || []).length) delete card[slot];
-        }
-        if (!card.aura || !(card.aura.atk || card.aura.hp || card.aura.key)) delete card.aura;
+        // La carte, puis chacun de ses jetons : meme menage, meme regle.
+        const nettoie = (h, estCarte) => {
+          for (const slot of Object.keys(TRIGGERS)) {
+            if (slot === 'play' && estCarte) continue;
+            if (!(h[slot] || []).length) delete h[slot];
+          }
+          if (!h.aura || !(h.aura.atk || h.aura.hp || h.aura.key)) delete h.aura;
+          if (!estCarte && !(h.keys || []).length) delete h.keys;
+          for (const slot of Object.keys(TRIGGERS))
+            for (const e of h[slot] || []) if (e.op === 'summon' && e.unit) nettoie(e.unit, false);
+        };
+        nettoie(card, true);
       }
     }
   }
   return '// DONNEES DE JEU — genere et re-ecrit par le Card Builder (/builder/).\n'
     + '// Tu peux l\'editer a la main, mais le builder est fait pour ca : ouvre-le plutot.\n'
     + 'export const CHARACTER_DATA = ' + JSON.stringify(clean, null, 2) + ';\n';
+}
+
+// ---------- PARCOURS D'UNE CARTE ----------
+// Un jeton invoque porte des mots-cles et des moments comme une carte : tout ce qui
+// inspecte une carte (validation, compte des mecaniques a coder, fichier de suivi)
+// doit donc descendre dedans, sinon une mecanique se cache dans un jeton.
+
+/** Chaque effet d'une carte : ses moments, ses paliers, et ceux de ses jetons. */
+function eachEffect(card, fn) {
+  const lists = [];
+  const holder = h => { for (const slot of Object.keys(TRIGGERS)) if ((h[slot] || []).length) lists.push(h[slot]); };
+  holder(card);
+  for (const t of card.tiers || []) if (t.extra) lists.push([t.extra]);
+  while (lists.length) {
+    for (const e of lists.pop()) {
+      fn(e);
+      if (e.op === 'summon' && e.unit) holder(e.unit);
+    }
+  }
+}
+
+/** Chaque unite d'une carte : elle-meme si c'est un allie, plus chaque jeton invoque. */
+function eachUnit(card, fn) {
+  if (card.type === 'ally') fn(card);
+  eachEffect(card, e => { if (e.op === 'summon' && e.unit) fn(e.unit); });
 }
 
 /** Le fichier special : ce qu'il reste a coder, et ou. */
@@ -414,8 +489,12 @@ function mechanicsDoc() {
       (c[side] || []).forEach((card, i) => {
         if (!card) return;
         const where = `${c.name} · « ${card.name} » (${side === 'cards' ? 'base' : 'switch'}, slot ${i + 1})`;
-        for (const e of card.play || []) (users[e.op] = users[e.op] || []).push(where);
-        for (const k of card.keys || []) (users[k] = users[k] || []).push(where);
+        // Les effets et mots-cles de la carte ET de ses jetons invoques.
+        eachEffect(card, e => (users[e.op] = users[e.op] || []).push(where));
+        eachUnit(card, u => {
+          const ou = u === card ? where : where + ' — jeton ' + u.name;
+          for (const k of u.keys || []) (users[keyId(k)] = users[keyId(k)] || []).push(ou);
+        });
         for (const t of card.tiers || []) {
           if (t.key) (users[t.key] = users[t.key] || []).push(where + ' — palier ' + t.lvl);
           if (t.extra && t.extra.op) (users[t.extra.op] = users[t.extra.op] || []).push(where + ' — palier ' + t.lvl);
@@ -475,13 +554,25 @@ function validate() {
       if (n !== 5) out.push({ bad: side === 'cards', msg: `${c.name} — ${n}/5 ${side === 'cards' ? 'cartes de base' : 'cartes switch'} remplies.` });
       (c[side] || []).forEach((card, i) => {
         if (!card) return;
-        for (const e of card.play || []) {
+        // Effets de la carte et de ses jetons.
+        eachEffect(card, e => {
           if (!eff[e.op]) out.push({ bad: true, msg: `${c.name} · ${card.name} — effet inconnu « ${e.op} ».` });
           else if (!eff[e.op].implemented) out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${eff[e.op].label} » reste à coder.` });
-        }
-        for (const k of card.keys || []) {
-          if (!kw[k]) out.push({ bad: true, msg: `${c.name} · ${card.name} — mot-clé inconnu « ${k} ».` });
-          else if (!kw[k].implemented) out.push({ bad: false, msg: `${c.name} · ${card.name} — mot-clé « ${kw[k].label} » reste à coder.` });
+        });
+        // Mots-cles de la carte et de ses jetons.
+        eachUnit(card, u => {
+          const ou = u === card ? '' : ` (jeton « ${u.name} »)`;
+          for (const k of u.keys || []) {
+            const d = kw[keyId(k)];
+            if (!d) out.push({ bad: true, msg: `${c.name} · ${card.name}${ou} — mot-clé inconnu « ${keyId(k)} ».` });
+            else if (!d.implemented) out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — mot-clé « ${d.label} » reste à coder.` });
+            else if ((d.params || []).length && !keyArg(k)) out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — mot-clé « ${d.label} » sans valeur : il ne servira à rien.` });
+          }
+        });
+        // « Lui » en tete de liste ne designe rien : aucun effet ne l'a precede.
+        for (const [slot, def] of Object.entries(TRIGGERS)) {
+          if ((card[slot] || [])[0] && card[slot][0].t === 'previous')
+            out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${def.label} » commence par « Lui » : aucun effet ne le précède, la cible sera vide.` });
         }
         for (const t of card.tiers || []) {
           const w = tierIssue(card, t);
@@ -490,9 +581,12 @@ function validate() {
         // Une cible comme « Elle-meme » n'a pas de porteur sur un sort.
         for (const slot of Object.keys(TRIGGERS)) {
           for (const e of card[slot] || []) {
-            const tdef = TARGETS[e.t];
+            const tdef = targetDef(e.t);
             if (tdef && tdef.allyOnly && card.type !== 'ally')
               out.push({ bad: true, msg: `${c.name} · ${card.name} — cible « ${tdef.label} » impossible sur un sort.` });
+            // Une cible par type sans type écrit ne trouvera jamais personne.
+            if (tdef && (tdef.params || []).length && !targetArg(e.t))
+              out.push({ bad: false, msg: `${c.name} · ${card.name} — cible « ${tdef.label} » sans type : elle ne touchera personne.` });
           }
         }
         // Un sort ne reste pas en jeu : ses moments d'unite ne partiraient jamais.
@@ -649,8 +743,10 @@ function renderSlots() {
           save(); renderAll();
         };
       } else {
-        const todo = [...(cd.play || []).map(e => e.op), ...(cd.keys || [])]
-          .filter(id => { const d = eff[id] || kw[id]; return !d || !d.implemented; });
+        const ids = [];
+        eachEffect(cd, e => ids.push(e.op));
+        eachUnit(cd, u => ids.push(...(u.keys || []).map(keyId)));
+        const todo = ids.filter(id => { const d = eff[id] || kw[id]; return !d || !d.implemented; });
         n.className = 'minicard' + (cd.type === 'spell' ? ' minicard--spell' : '') + (active ? ' minicard--active' : '');
         const moments = Object.entries(TRIGGERS)
           .filter(([slot, def]) => slot !== 'play' && (cd[slot] || []).length)
@@ -676,6 +772,7 @@ function renderCardForm() {
   $('#cardWhere').textContent = c ? `${c.name} · slot ${selCard.slot + 1} · ${selCard.side === 'cards' ? 'carte de base' : 'carte switch'}` : '';
   if (!cd) { box.innerHTML = '<p class="stat">Sélectionne une carte au-dessus.</p>'; $('#cardTitle').textContent = 'Éditeur de carte'; return; }
   $('#cardTitle').textContent = cd.name;
+  annonceSelection();
 
   const eff = allEffects(), kw = allKeywords();
   box.innerHTML = `
@@ -741,81 +838,15 @@ function renderCardForm() {
     save(); renderCardForm(); renderSlots();
   };
 
-  // mots-cles
-  const keysBox = main.querySelector('#cKeys');
-  for (const [id, d] of Object.entries(kw)) {
-    const on = (cd.keys || []).includes(id);
-    const chip = document.createElement('span');
-    chip.className = 'chip' + (on ? ' chip--on' : '') + (d.implemented ? '' : ' chip--todo');
-    chip.title = d.desc || '';
-    chip.textContent = d.label + (d.implemented ? '' : ' ⚠');
-    chip.onclick = () => {
-      cd.keys = cd.keys || [];
-      const i = cd.keys.indexOf(id);
-      if (i >= 0) cd.keys.splice(i, 1); else cd.keys.push(id);
-      save(); renderCardForm(); renderSlots();
-    };
-    keysBox.appendChild(chip);
-  }
+  // mots-cles, moments et aura : les memes blocs que pour un jeton invoque.
+  keywordChips(main.querySelector('#cKeys'), cd);
 
-  // Un bloc d'effets par moment. Les moments reserves aux unites disparaissent
-  // quand la carte est un sort : un sort ne reste pas en jeu, il ne peut ni mourir
-  // ni voir passer un debut de tour.
-  const trigBox = main.querySelector('#cTriggers');
-  for (const [slot, def] of Object.entries(TRIGGERS)) {
-    if (def.allyOnly && cd.type !== 'ally') continue;
-    cd[slot] = cd[slot] || [];
-    const field = elt(`<div class="field">
-      <label>${esc(def.label)} <span style="text-transform:none;letter-spacing:0">— ${esc(def.desc)}</span></label>
-      <div class="js-fx"></div>
-      <button class="btn btn--sm">+ Ajouter un effet</button>
-    </div>`);
-    const list = field.querySelector('.js-fx');
-    cd[slot].forEach((e, i) => list.appendChild(effectRow(e, eff, () => {
-      cd[slot].splice(i, 1); save(); renderCardForm(); renderSlots();
-    })));
-    field.querySelector('button').onclick = () => {
-      cd[slot].push(newEffect('dmg', eff));
-      save(); renderCardForm(); renderSlots();
-    };
-    trigBox.appendChild(field);
-  }
+  // Les moments reserves aux unites disparaissent quand la carte est un sort : un sort
+  // ne reste pas en jeu, il ne peut ni mourir ni voir passer un debut de tour.
+  const slots = Object.keys(TRIGGERS).filter(slot => !TRIGGERS[slot].allyOnly || cd.type === 'ally');
+  triggerFields(main.querySelector('#cTriggers'), cd, slots, { depth: 0, unit: cd.type === 'ally' });
 
-  // L'aura : pas une liste d'effets, un modificateur continu.
-  const auraBox = main.querySelector('#cAura');
-  if (cd.type === 'ally') {
-    const a = cd.aura || { scope: 'otherAllies', atk: 0, hp: 0, key: '' };
-    const field = elt(`<div class="field">
-      <label>Aura <span style="text-transform:none;letter-spacing:0">— appliquée en continu tant que l'unité est en jeu, retirée dès qu'elle meurt</span></label>
-      <div class="rowbox">
-        <div class="params">
-          <div><label>Porte sur</label><select class="select js-scope">
-            ${Object.entries(AURA_SCOPES).map(([id, d]) => `<option value="${id}" ${a.scope === id ? 'selected' : ''}>${esc(d.label)}</option>`).join('')}
-          </select></div>
-          <div><label>Attaque</label><input class="input js-aatk" type="number" value="${a.atk || 0}"></div>
-          <div><label>Vie</label><input class="input js-ahp" type="number" value="${a.hp || 0}"></div>
-          <div><label>Mot-clé offert</label><select class="select js-akey">
-            <option value="">— aucun —</option>
-            ${Object.entries(kw).map(([id, d]) => `<option value="${id}" ${a.key === id ? 'selected' : ''}>${esc(d.label)}</option>`).join('')}
-          </select></div>
-        </div>
-        <div class="stat" style="margin-top:8px">Tout à 0 et sans mot-clé = pas d'aura. Les valeurs négatives affaiblissent (utile sur « les unités adverses »).</div>
-      </div>
-    </div>`);
-    const readAura = () => {
-      const next = {
-        scope: field.querySelector('.js-scope').value,
-        atk: +field.querySelector('.js-aatk').value || 0,
-        hp: +field.querySelector('.js-ahp').value || 0,
-        key: field.querySelector('.js-akey').value
-      };
-      if (!next.atk && !next.hp && !next.key) delete cd.aura;
-      else cd.aura = next;
-      save(); renderSlots(); renderPreview();
-    };
-    field.querySelectorAll('input, select').forEach(n => { n.oninput = readAura; n.onchange = readAura; });
-    auraBox.appendChild(field);
-  }
+  if (cd.type === 'ally') main.querySelector('#cAura').appendChild(auraField(cd));
 
   // paliers
   const tierBox = main.querySelector('#cTiers');
@@ -868,7 +899,7 @@ function renderPreview() {
         <img src="${asset(c.sprite)}" alt="">
         <div>
           <div class="preview__nm">${esc(cd.name)}</div>
-          <div class="preview__tx">${esc(cd.type === 'ally' ? 'Allié' : 'Sort')}${(cd.keys || []).length ? ' · ' + cd.keys.join(', ') : ''}</div>
+          <div class="preview__tx">${esc(cd.type === 'ally' ? 'Allié' : 'Sort')}${(cd.keys || []).length ? ' · ' + cd.keys.map(keyLabel).join(', ') : ''}</div>
         </div>
         <div class="preview__cost">${cd.cost}</div>
       </div>
@@ -886,7 +917,7 @@ function describe(e, eff) {
   const d = eff[e.op];
   if (!d) return '⚠ « ' + e.op +' » inconnu';
   if (!d.implemented) return '⚠ ' + d.label + ' (à coder)';
-  const t = e.t ? ' → ' + ((TARGETS[e.t] || {}).label || e.t) : '';
+  const t = e.t ? ' → ' + targetLabel(e.t) : '';
   switch (e.op) {
     case 'dmg': return e.v + ' dégâts' + t;
     case 'heal': return 'soigne ' + e.v + t;
@@ -894,7 +925,17 @@ function describe(e, eff) {
     case 'draw': return 'pioche ' + e.v;
     case 'armor': return e.v + ' armure';
     case 'mana': return '+' + e.v + ' mana ce tour';
-    case 'summon': return 'invoque ' + (e.n || 1) + ' × ' + (e.unit ? e.unit.name + ' ' + e.unit.atk + '/' + e.unit.hp : '?');
+    case 'mana_au_prochain_tour': return '+' + (e.x || 0) + ' mana au prochain tour';
+    case 'summon': {
+      if (!e.unit) return 'invoque ' + (e.n || 1) + ' × ?';
+      const dons = [
+        ...(e.unit.keys || []).map(keyLabel),
+        ...TOKEN_TRIGGERS.filter(slot => (e.unit[slot] || []).length).map(slot => TRIGGERS[slot].label),
+        ...(e.unit.aura ? ['Aura'] : [])
+      ];
+      return 'invoque ' + (e.n || 1) + ' × ' + e.unit.name + ' ' + e.unit.atk + '/' + e.unit.hp
+        + (dons.length ? ' (' + dons.join(', ') + ')' : '');
+    }
     default: return d.label;
   }
 }
@@ -940,24 +981,170 @@ function tierText(t) {
   return '—';
 }
 
+// ---------- BLOCS REUTILISABLES : une carte et un jeton portent les memes choses ----------
+// Mots-cles, moments, aura : ecrits une fois, servis aux deux. Un jeton invoque est
+// une unite comme une autre, il n'y a pas de raison de lui refaire des champs a part.
+
+/** Puces de mots-cles, avec un champ de saisie pour ceux qui portent une valeur. */
+function keywordChips(box, holder) {
+  const kw = allKeywords();
+  holder.keys = holder.keys || [];
+  for (const [id, d] of Object.entries(kw)) {
+    // Un mot-cle a parametre est stocke « id:valeur » : on retrouve donc sa position
+    // par son id, jamais par la chaine entiere.
+    const at = holder.keys.findIndex(k => keyId(k) === id);
+    const on = at >= 0;
+    const par = (d.params || [])[0];
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (on ? ' chip--on' : '') + (d.implemented ? '' : ' chip--todo');
+    chip.title = d.desc || '';
+    chip.textContent = d.label + (on && par ? ' ' + (keyArg(holder.keys[at]) || '?') : '') + (d.implemented ? '' : ' ⚠');
+    chip.onclick = () => {
+      const i = holder.keys.findIndex(k => keyId(k) === id);
+      if (i >= 0) holder.keys.splice(i, 1);
+      else holder.keys.push(par ? id + ':' + (par.def || '') : id);
+      save(); renderCardForm(); renderSlots();
+    };
+    box.appendChild(chip);
+    // Le champ de valeur ne s'affiche que quand le mot-cle est actif.
+    if (on && par) {
+      const wrap = elt(`<span class="chip" style="padding:2px 6px">
+        <input class="input" style="height:22px;padding:2px 6px;width:110px" value="${esc(keyArg(holder.keys[at]))}" placeholder="${esc(par.label || 'valeur')}">
+      </span>`);
+      const input = wrap.querySelector('input');
+      input.oninput = () => {
+        holder.keys[at] = id + ':' + input.value.trim();
+        save(); renderSlots(); renderPreview();
+      };
+      box.appendChild(wrap);
+    }
+  }
+}
+
+/** Un bloc d'effets par moment. `slots` dit lesquels sont proposes ici. */
+function triggerFields(box, holder, slots, opts) {
+  const eff = allEffects();
+  for (const slot of slots) {
+    const def = TRIGGERS[slot];
+    holder[slot] = holder[slot] || [];
+    const field = elt(`<div class="field">
+      <label>${esc(def.label)} <span style="text-transform:none;letter-spacing:0">— ${esc(def.desc)}</span></label>
+      <div class="js-fx"></div>
+    </div>`);
+    const list = field.querySelector('.js-fx');
+    holder[slot].forEach((e, i) => list.appendChild(effectRow(e, eff, () => {
+      holder[slot].splice(i, 1); save(); renderCardForm(); renderSlots();
+    }, opts)));
+    // Le bouton est CREE ici et garde en main. Ne le cherche jamais dans le DOM :
+    // le champ contient deja les lignes d'effet (chacune avec sa croix) et, si l'une
+    // d'elles est une invocation, tout l'editeur du jeton avec ses propres boutons.
+    // Un querySelector attraperait celui du jeton et on ajouterait au mauvais endroit.
+    const ajouter = elt('<button class="btn btn--sm">+ Ajouter un effet</button>');
+    ajouter.onclick = () => {
+      holder[slot].push(newEffect('dmg', eff));
+      save(); renderCardForm(); renderSlots();
+    };
+    field.appendChild(ajouter);
+    box.appendChild(field);
+  }
+}
+
+/** L'aura : pas une liste d'effets, un modificateur continu. */
+function auraField(holder) {
+  const a = holder.aura || { scope: 'otherAllies', atk: 0, hp: 0, key: '' };
+  const field = elt(`<div class="field">
+    <label>Aura <span style="text-transform:none;letter-spacing:0">— appliquée en continu tant que l'unité est en jeu, retirée dès qu'elle meurt</span></label>
+    <div class="rowbox">
+      <div class="params">
+        <div><label>Porte sur</label><select class="select js-scope">
+          ${Object.entries(AURA_SCOPES).map(([id, d]) => `<option value="${id}" ${a.scope === id ? 'selected' : ''}>${esc(d.label)}</option>`).join('')}
+        </select></div>
+        <div><label>Attaque</label><input class="input js-aatk" type="number" value="${a.atk || 0}"></div>
+        <div><label>Vie</label><input class="input js-ahp" type="number" value="${a.hp || 0}"></div>
+        <div><label>Mot-clé offert</label><select class="select js-akey">
+          <option value="">— aucun —</option>
+          ${Object.entries(plainKeywords()).map(([id, d]) => `<option value="${id}" ${a.key === id ? 'selected' : ''}>${esc(d.label)}</option>`).join('')}
+        </select></div>
+      </div>
+      <div class="stat" style="margin-top:8px">Tout à 0 et sans mot-clé = pas d'aura. Les valeurs négatives affaiblissent (utile sur « les unités adverses »).</div>
+    </div>
+  </div>`);
+  const readAura = () => {
+    const next = {
+      scope: field.querySelector('.js-scope').value,
+      atk: +field.querySelector('.js-aatk').value || 0,
+      hp: +field.querySelector('.js-ahp').value || 0,
+      key: field.querySelector('.js-akey').value
+    };
+    if (!next.atk && !next.hp && !next.key) delete holder.aura;
+    else holder.aura = next;
+    save(); renderSlots(); renderPreview();
+  };
+  field.querySelectorAll('input, select').forEach(n => { n.oninput = readAura; n.onchange = readAura; });
+  return field;
+}
+
+/**
+ * Editeur d'un jeton invoque. Un jeton est une unite : il porte des mots-cles (type
+ * compris), une aura et des moments — tout sauf « A la pose », qui ne se declenche
+ * que pour une carte jouee depuis la main.
+ * `depth` arrete la poupee russe : un jeton qui invoque un jeton ne propose plus que
+ * la ligne de stats et les mots-cles, sinon l'editeur s'emboite a l'infini.
+ */
+function unitEditor(u, depth) {
+  const box = elt('<div></div>');
+  const head = elt(`<div class="grid3">
+    <input class="input js-n" value="${esc(u.name)}" placeholder="Nom">
+    <input class="input js-a" type="number" value="${u.atk}" placeholder="Atk">
+    <input class="input js-h" type="number" value="${u.hp}" placeholder="PV">
+  </div>`);
+  head.querySelector('.js-n').oninput = ev => { u.name = ev.target.value; save(); renderPreview(); };
+  head.querySelector('.js-a').oninput = ev => { u.atk = +ev.target.value || 0; save(); renderPreview(); };
+  head.querySelector('.js-h').oninput = ev => { u.hp = +ev.target.value || 0; save(); renderPreview(); };
+  box.appendChild(head);
+
+  const keys = elt('<div class="field"><label>Mots-clés du jeton</label><div class="chips"></div></div>');
+  keywordChips(keys.querySelector('.chips'), u);
+  box.appendChild(keys);
+
+  if (depth >= 1) {
+    box.appendChild(elt('<div class="stat">Ce jeton est déjà invoqué par un jeton : on en reste aux mots-clés.</div>'));
+    return box;
+  }
+  // Les moments du jeton, puis son aura : les memes blocs que sur une carte alliee.
+  triggerFields(box, u, TOKEN_TRIGGERS, { depth: depth + 1, unit: true });
+  box.appendChild(auraField(u));
+  return box;
+}
+
 function newEffect(op, eff) {
   const e = { op };
   for (const p of (eff[op] || {}).params || []) {
     if (p.type === 'number') e[p.k] = p.def ?? 1;
-    else if (p.type === 'target') e[p.k] = (p.allow || Object.keys(TARGETS))[0];
+    else if (p.type === 'target') {
+      const t = (p.allow || Object.keys(TARGETS))[0];
+      const par = (TARGETS[t] || {}).params || [];
+      e[p.k] = par.length ? t + ':' + (par[0].def || '') : t;
+    }
     else if (p.type === 'unit') e[p.k] = { name: 'Jeton', atk: 1, hp: 1, keys: [] };
   }
   return e;
 }
 
-function effectRow(e, eff, onDelete) {
+/**
+ * Une ligne d'effet. `opts.unit` dit si le porteur est une unite (une carte alliee ou
+ * un jeton) : c'est ce qui autorise les cibles reservees aux unites, comme « Elle-meme ».
+ * `opts.depth` compte les invocations emboitees.
+ */
+function effectRow(e, eff, onDelete, opts = {}) {
+  const depth = opts.depth || 0;
   const box = document.createElement('div');
   box.className = 'rowbox';
-  const opts = Object.entries(eff).map(([id, d]) =>
+  const choix = Object.entries(eff).map(([id, d]) =>
     `<option value="${id}" ${id === e.op ? 'selected' : ''}>${esc(d.label)}${d.implemented ? '' : ' ⚠ à coder'}</option>`).join('');
   box.innerHTML = `<div class="rowbox__head">
-      <select class="select">${opts}</select>
-      <button class="btn btn--sm btn--danger">✕</button>
+      <select class="select">${choix}</select>
+      <button class="btn btn--sm btn--danger js-del">✕</button>
     </div><div class="params"></div>`;
 
   const sel = box.querySelector('select');
@@ -967,7 +1154,8 @@ function effectRow(e, eff, onDelete) {
     e.op = sel.value;
     save(); renderCardForm(); renderSlots();
   };
-  box.querySelector('button').onclick = onDelete;
+  // Meme precaution : la croix de CETTE ligne, celle de son propre en-tete.
+  box.querySelector('.rowbox__head > .js-del').onclick = onDelete;
 
   const params = box.querySelector('.params');
   const def = eff[e.op];
@@ -979,15 +1167,34 @@ function effectRow(e, eff, onDelete) {
       wrap.innerHTML = `<label>${esc(p.label)}</label><input class="input" type="number" value="${e[p.k] ?? p.def ?? 0}">`;
       wrap.querySelector('input').oninput = ev => { e[p.k] = +ev.target.value || 0; save(); renderSlots(); renderPreview(); };
     } else if (p.type === 'target') {
-      // Une cible reservee aux unites n'a rien a faire dans un sort : on ne la propose pas.
+      // Une cible reservee aux unites n'a rien a faire dans un sort : on ne la propose
+      // pas. Un jeton, lui, est toujours une unite, meme invoque par un sort.
       const cd = card();
+      const porteurEstUnite = opts.unit !== undefined ? opts.unit : (!cd || cd.type === 'ally');
       const allow = (p.allow || Object.keys(TARGETS))
-        .filter(t => !TARGETS[t].allyOnly || !cd || cd.type === 'ally');
+        .filter(t => !TARGETS[t].allyOnly || porteurEstUnite);
+      // Une cible a parametre est stockee « id:valeur » : le menu se compare sur l'id.
+      const choisie = targetId(e[p.k]);
+      const parT = (TARGETS[choisie] || {}).params || [];
       wrap.innerHTML = `<label>${esc(p.label)}</label><select class="select">${allow.map(t =>
-        `<option value="${t}" ${e[p.k] === t ? 'selected' : ''}>${esc(TARGETS[t].label)}</option>`).join('')}</select>`;
-      wrap.querySelector('select').onchange = ev => { e[p.k] = ev.target.value; save(); renderPreview(); };
+        `<option value="${t}" ${choisie === t ? 'selected' : ''}>${esc(TARGETS[t].label)}</option>`).join('')}</select>`;
+      wrap.querySelector('select').onchange = ev => {
+        const def = TARGETS[ev.target.value] || {};
+        // On repart de la valeur par defaut : changer de cible ne traine pas l'ancien type.
+        e[p.k] = (def.params || []).length ? ev.target.value + ':' + (def.params[0].def || '') : ev.target.value;
+        save(); renderCardForm(); renderSlots();
+      };
+      if (parT.length) {
+        const champ = elt(`<div style="margin-top:6px"><label style="font-size:11px;color:var(--muted)">${esc(parT[0].label)}</label>
+          <input class="input" value="${esc(targetArg(e[p.k]))}" placeholder="${esc(parT[0].def || 'Chien')}"></div>`);
+        const input = champ.querySelector('input');
+        input.oninput = () => { e[p.k] = choisie + ':' + input.value.trim(); save(); renderSlots(); renderPreview(); };
+        wrap.appendChild(champ);
+      }
     } else if (p.type === 'keyword') {
-      const kws = allKeywords();
+      // Un mot-cle a parametre ne rentre pas dans un menu deroulant (pas de champ ou
+      // ecrire sa valeur) : il se pose sur la carte, dans « Mots-clés ».
+      const kws = plainKeywords();
       wrap.innerHTML = `<label>${esc(p.label)}</label><select class="select">
         <option value="">— aucun —</option>
         ${Object.entries(kws).map(([id, d]) => `<option value="${id}" ${e[p.k] === id ? 'selected' : ''}>${esc(d.label)}</option>`).join('')}</select>`;
@@ -995,16 +1202,8 @@ function effectRow(e, eff, onDelete) {
     } else if (p.type === 'unit') {
       const u = e[p.k] = e[p.k] || { name: 'Jeton', atk: 1, hp: 1, keys: [] };
       wrap.style.gridColumn = '1 / -1';
-      wrap.innerHTML = `<label>${esc(p.label)}</label>
-        <div class="grid3">
-          <input class="input" value="${esc(u.name)}" placeholder="Nom">
-          <input class="input" type="number" value="${u.atk}" placeholder="Atk">
-          <input class="input" type="number" value="${u.hp}" placeholder="PV">
-        </div>`;
-      const [nm, at, hp] = wrap.querySelectorAll('input');
-      nm.oninput = () => { u.name = nm.value; save(); renderPreview(); };
-      at.oninput = () => { u.atk = +at.value || 0; save(); renderPreview(); };
-      hp.oninput = () => { u.hp = +hp.value || 0; save(); renderPreview(); };
+      wrap.innerHTML = `<label>${esc(p.label)}</label>`;
+      wrap.appendChild(unitEditor(u, depth));
     } else {
       wrap.innerHTML = `<label>${esc(p.label)}</label><input class="input" value="${esc(e[p.k] || '')}">`;
       wrap.querySelector('input').oninput = ev => { e[p.k] = ev.target.value; save(); };
@@ -1051,7 +1250,7 @@ function tierRow(t, eff, kw, onDelete) {
   sel.onchange = () => {
     delete t.stats; delete t.key; delete t.cost; delete t.amp; delete t.extra; delete t.slot; delete t.aura;
     if (sel.value === 'stats') t.stats = { atk: 1, hp: 1 };
-    else if (sel.value === 'key') t.key = Object.keys(kw)[0];
+    else if (sel.value === 'key') t.key = Object.keys(plainKeywords())[0];
     else if (sel.value === 'amp') t.amp = 1;
     else if (sel.value === 'extra') { t.extra = { op: 'draw', v: 1 }; t.slot = 'play'; }
     else if (sel.value === 'aura') t.aura = { scope: 'otherAllies', atk: 1, hp: 0, key: '' };
@@ -1069,7 +1268,7 @@ function tierRow(t, eff, kw, onDelete) {
     h.oninput = () => { t.stats.hp = +h.value || 0; save(); renderPreview(); };
   } else if (t.key !== undefined) {
     params.innerHTML = '<div><label>Mot-clé</label><select class="select">'
-      + Object.entries(kw).map(([id, d]) => option(id, d.label + (d.implemented ? '' : ' ⚠'), t.key)).join('')
+      + Object.entries(plainKeywords()).map(([id, d]) => option(id, d.label + (d.implemented ? '' : ' ⚠'), t.key)).join('')
       + '</select></div>';
     params.querySelector('select').onchange = ev => { t.key = ev.target.value; save(); renderPreview(); };
   } else if (t.amp !== undefined) {
