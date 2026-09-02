@@ -138,6 +138,7 @@
     <a class="tb-nav__link" href="../game/index.html">Jouer</a>
     <a class="tb-nav__link" href="index.html">Card Builder</a>
     <span class="tb-nav__link tb-nav__link--active">Vue d'ensemble</span>
+    <a class="tb-nav__link" href="balance.html">Équilibrage</a>
     <a class="tb-nav__link" href="../docs/MECANIQUES-A-CODER.md" target="_blank">Mécaniques à coder</a>
   </div>
   <span class="tb-nav__spacer"></span>
@@ -161,6 +162,10 @@
       <button data-v="switches">Switch</button>
       <button data-v="both">Les deux</button>
     </div>
+    <div class="seg" id="pnj">
+      <button data-v="off">Héros seuls</button>
+      <button data-v="on">+ cartes libres et adversaires</button>
+    </div>
     <span class="spacer"></span>
     <span class="src" id="source"></span>
     <span class="stat" id="resume"></span>
@@ -172,7 +177,8 @@
 <script type="module">
 import { CHARACTER_DATA } from '../game/data/characters.data.js';
 import { resolveCard } from '../game/src/config/characters.js';
-import { TRIGGERS, describeEffect, describeAura, keyLabel } from '../game/src/config/mechanics.js';
+import { TRIGGERS, describeEffect, describeAura, describeStatic, keyLabel } from '../game/src/config/mechanics.js';
+import { cardIndex } from '../game/src/config/npcs.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -180,7 +186,7 @@ const asset = p => '../' + String(p || '').split('/').map(encodeURIComponent).jo
 
 // Les reglages survivent au rechargement : on equilibre par allers-retours avec le builder.
 const LS = 'adventureCardOverview.v1';
-const etat = Object.assign({ niveau: 1, cote: 'both' }, JSON.parse(localStorage.getItem(LS) || '{}'));
+const etat = Object.assign({ niveau: 1, cote: 'both', pnj: false }, JSON.parse(localStorage.getItem(LS) || '{}'));
 const garde = () => { try { localStorage.setItem(LS, JSON.stringify(etat)); } catch { /* pas grave */ } };
 
 // ---------- LES DONNEES AFFICHEES ----------
@@ -221,6 +227,7 @@ function texteTier(t) {
   if (t.cost) return 'coût ' + t.cost;
   if (t.amp) return 'effet +' + t.amp;
   if (t.aura) return 'aura : ' + describeAura(t.aura);
+  if (t.statique) return describeStatic(t.statique);
   if (t.extra) return ((TRIGGERS[t.slot || 'play'] || {}).label || '?') + ' en plus';
   return '—';
 }
@@ -236,11 +243,11 @@ const pointsJetons = c => (c.play || []).filter(e => e.op === 'summon' && e.unit
   .reduce((a, e) => a + (e.n || 1) * ((e.unit.atk || 0) + (e.unit.hp || 0)), 0);
 const points = c => (c.type === 'ally' ? (c.atk || 0) + (c.hp || 0) : 0) + pointsJetons(c);
 
-function carteHTML(def, sprite, estSwitch, ou) {
+function carteHTML(def, sprite, estSwitch, ou, niveau) {
   const side = estSwitch ? 'switches' : 'cards';
-  const vise = focus && focus.char === ou.char && focus.side === side && focus.slot === ou.slot;
+  const vise = !!ou && focus && focus.char === ou.char && focus.side === side && focus.slot === ou.slot;
   if (!def) return `<div class="card card--vide">${estSwitch ? 'pas de switch' : 'slot vide'}</div>`;
-  const c = resolveCard(def, etat.niveau);
+  const c = resolveCard(def, niveau === undefined ? etat.niveau : niveau);
   const base = resolveCard(def, 1);
   const ally = c.type === 'ally';
   const paliers = [...(def.tiers || [])].sort((a, b) => a.lvl - b.lvl);
@@ -261,8 +268,8 @@ function carteHTML(def, sprite, estSwitch, ou) {
   const ratio = pts && c.cost > 0
     ? `<span class="ratio">${(pts / c.cost).toFixed(1)} pts/mana${jetons ? ' (jetons compris)' : ''}</span>` : '';
 
-  return `<div class="card card--cliquable ${ally ? '' : 'card--spell'} ${estSwitch ? 'card--switch' : ''} ${vise ? 'card--focus' : ''}"
-    data-char="${esc(ou.char)}" data-side="${side}" data-slot="${ou.slot}" title="Ouvrir dans le Card Builder">
+  return `<div class="card ${ou ? 'card--cliquable' : ''} ${ally ? '' : 'card--spell'} ${estSwitch ? 'card--switch' : ''} ${vise ? 'card--focus' : ''}"
+    ${ou ? `data-char="${esc(ou.char)}" data-side="${side}" data-slot="${ou.slot}" title="Ouvrir dans le Card Builder"` : ''}>
     <div class="card__top">
       <span class="card__nm">${esc(c.name)}</span>
       <span class="card__cost ${c.cost !== def.cost ? 'up' : ''}" title="${c.cost !== def.cost ? 'coût réduit par un palier (base ' + def.cost + ')' : 'coût en mana'}">${c.cost}</span>
@@ -276,6 +283,7 @@ function carteHTML(def, sprite, estSwitch, ou) {
     ${c.text ? `<div class="txt">${esc(c.text)}</div>` : ''}
     ${moments}
     ${c.aura ? `<div class="fx"><b>Aura</b> ${esc(describeAura(c.aura))}</div>` : ''}
+    ${(c.statics || []).length ? `<div class="fx"><b>Statique</b> ${esc(c.statics.map(describeStatic).join(' · '))}</div>` : ''}
     ${paliers.length ? `<div class="tiers">${paliers.map(t => {
       const acquis = etat.niveau >= t.lvl;
       const cls = acquis ? 'tier tier--on' : (t === prochain ? 'tier tier--next' : 'tier');
@@ -328,12 +336,87 @@ function persoHTML(ch) {
   </section>`;
 }
 
+/**
+ * Les CARTES LIBRES : celles qui n'appartiennent a aucun deck de personnage. On les
+ * montre comme un personnage de plus, sans statistiques ni switch — c'est la reserve
+ * ou piochent les adversaires.
+ */
+function libresHTML() {
+  const cartes = (DB.library || []).filter(Boolean);
+  if (!cartes.length) return '';
+  const corps = cartes.map((c, i) => `<div class="slot">
+      <div class="slot__num">${i + 1}</div>
+      ${carteHTML(c, c.sprite || 'UI/Chest.png', false, { char: '__libre', slot: i })}
+    </div>`).join('');
+  return `<section class="char">
+    <div class="char__head">
+      <img src="${asset('UI/Chest.png')}" alt="">
+      <div class="char__id">
+        <div class="nm">Cartes libres <span class="sub">· sans deck</span></div>
+        <div class="sub">Utilisables par les adversaires, et reprenables par un héros</div>
+      </div>
+      <span class="tb-nav__spacer"></span>
+      <div class="char__stats"><span class="kpi">Cartes <b>${cartes.length}</b></span></div>
+    </div>
+    <div class="slots">${corps}</div>
+  </section>`;
+}
+
+/**
+ * Les ADVERSAIRES : leurs statistiques et leur deck, carte par carte, avec le nombre
+ * d'exemplaires. C'est la meme vignette que pour les cartes de heros, donc on lit un
+ * deck de PNJ exactement comme on lit un deck de personnage.
+ */
+function pnjHTML(n) {
+  const idx = cardIndex(DB);
+  const total = (n.deck || []).reduce((a, l) => a + (l.n || 1), 0);
+  const couts = [];
+  const corps = (n.deck || []).map(ligne => {
+    const e = idx[ligne.card];
+    if (!e) return `<div class="slot"><div class="slot__num">×${ligne.n || 1}</div>
+      <div class="card card--vide">⚠ carte « ${esc(ligne.card)} » introuvable</div></div>`;
+    const resolue = resolveCard(e.card, n.level || 1);
+    for (let i = 0; i < (ligne.n || 1); i++) couts.push(resolue.cost);
+    return `<div class="slot">
+      <div class="slot__num">×${ligne.n || 1}</div>
+      ${carteHTML(e.card, e.card.sprite || n.sprite, false, null, n.level || 1)}
+    </div>`;
+  }).join('');
+  const maxCout = Math.max(6, ...couts);
+  const paquets = Array.from({ length: maxCout + 1 }, (_, i) => couts.filter(c => c === i).length);
+  const hautMax = Math.max(1, ...paquets);
+  const curve = paquets.map((c, i) =>
+    `<div style="height:${Math.round(c / hautMax * 30) + 2}px" title="${c} carte(s) à ${i} mana"><span>${i}</span></div>`).join('');
+  return `<section class="char">
+    <div class="char__head">
+      <img src="${asset(n.sprite || 'Characters/Dog.png')}" alt="">
+      <div class="char__id">
+        <div class="nm">${esc(n.name)} <span class="sub">· adversaire${n.boss ? ' · boss' : ''}</span></div>
+        <div class="sub">cartes au niveau ${n.level || 1}${n.ia ? ' · bot « ' + esc(n.ia) + ' »' : ''}</div>
+      </div>
+      <span class="tb-nav__spacer"></span>
+      <div class="curve" title="Courbe de mana du deck">${curve}</div>
+      <div class="char__stats">
+        <span class="kpi">PV <b>${n.hp}</b></span>
+        <span class="kpi">Mana <b>${n.mana}</b></span>
+        <span class="kpi">Main <b>${n.hand}</b></span>
+        <span class="kpi">Deck <b>${total}</b></span>
+      </div>
+    </div>
+    <div class="slots">${corps}</div>
+  </section>`;
+}
+
 function render() {
   const chars = DB.characters || [];
-  $('#out').innerHTML = chars.length ? chars.map(persoHTML).join('') : '<p class="vide">Aucun personnage dans les données.</p>';
+  const pnj = etat.pnj ? (DB.npcs || []).map(pnjHTML).join('') : '';
+  const libres = etat.pnj ? libresHTML() : '';
+  $('#out').innerHTML = (chars.length ? chars.map(persoHTML).join('') : '<p class="vide">Aucun personnage dans les données.</p>')
+    + libres + pnj;
   $('#lvlVal').textContent = etat.niveau;
   $('#lvl').value = etat.niveau;
   for (const b of document.querySelectorAll('#cote button')) b.classList.toggle('on', b.dataset.v === etat.cote);
+  for (const b of document.querySelectorAll('#pnj button')) b.classList.toggle('on', (b.dataset.v === 'on') === !!etat.pnj);
   const nb = chars.reduce((a, c) => a + (c.cards || []).filter(Boolean).length + (c.switches || []).filter(Boolean).length, 0);
   const debloques = chars.reduce((a, c) => a + [...(c.cards || []), ...(c.switches || [])]
     .filter(Boolean).reduce((n, card) => n + resolveCard(card, etat.niveau).unlocked.length, 0), 0);
@@ -376,6 +459,9 @@ $('#out').addEventListener('click', ev => {
 });
 
 $('#lvl').oninput = e => { etat.niveau = +e.target.value || 1; garde(); render(); };
+for (const b of document.querySelectorAll('#pnj button')) {
+  b.onclick = () => { etat.pnj = b.dataset.v === 'on'; garde(); render(); };
+}
 for (const b of document.querySelectorAll('#cote button')) {
   b.onclick = () => { etat.cote = b.dataset.v; garde(); render(); };
 }

@@ -6,7 +6,7 @@
 // Un deck = 3 personnages = 15 cartes melangees dans un paquet unique.
 // Les effets et mots-cles disponibles sont decrits dans config/mechanics.js.
 import { CHARACTER_DATA } from '../../data/characters.data.js';
-import { AMPLIFIABLE, TRIGGERS } from './mechanics.js';
+import { AMPLIFIABLE, TRIGGERS, amplify } from './mechanics.js';
 
 export const CHARACTERS = CHARACTER_DATA.characters;
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));
@@ -39,6 +39,9 @@ export function resolveCard(def, level) {
     ...def,
     keys: [...(def.keys || [])],
     aura: def.aura ? { ...def.aura } : null,
+    // Les effets statiques sont copies eux aussi : un palier peut en ajouter, et la
+    // definition de la carte ne doit pas bouger quand le personnage monte de niveau.
+    statics: copy(def.statics),
     ownerLevel: level,
     unlocked: []
   };
@@ -68,6 +71,9 @@ export function resolveCard(def, level) {
       if (t.aura.key) c.aura.key = t.aura.key;
       if (t.aura.scope) c.aura.scope = t.aura.scope;
     }
+    // Un palier peut aussi poser un effet statique de plus (« a partir du niveau 5,
+    // tes sorts coutent 1 de moins »).
+    if (t.statique) c.statics.push({ ...t.statique });
     if (t.amp) amp += t.amp;
   }
   if (amp) {
@@ -75,8 +81,10 @@ export function resolveCard(def, level) {
     for (const slot of Object.keys(TRIGGERS)) {
       for (const e of c[slot] || []) {
         if (!AMPLIFIABLE.includes(e.op)) continue; // pioche/mana/invocation : non amplifiables
-        if (e.op === 'buff') { if (e.atk) e.atk += amp; if (e.hp) e.hp += amp; }
-        else e.v += amp;
+        // amplify() sait amplifier un nombre comme un montant variable (il nourrit
+        // alors son bonus a plat) sans jamais toucher a l'objet d'origine.
+        if (e.op === 'buff') { if (e.atk) e.atk = amplify(e.atk, amp); if (e.hp) e.hp = amplify(e.hp, amp); }
+        else e.v = amplify(e.v, amp);
       }
     }
   }

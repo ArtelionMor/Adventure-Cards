@@ -8,6 +8,504 @@ export const CHARACTER_DATA = {
     "crow"
   ],
   "customMechanics": [],
+  "library": [
+    {
+      "id": "grunt1",
+      "name": "Rongeur",
+      "type": "ally",
+      "cost": 1,
+      "keys": [
+        "type:Lapin"
+      ],
+      "text": "",
+      "play": [],
+      "tiers": [],
+      "atk": 1,
+      "hp": 2,
+      "statics": []
+    },
+    {
+      "id": "grunt2",
+      "name": "Chapardeur",
+      "type": "ally",
+      "cost": 2,
+      "keys": [
+        "passe_murailles"
+      ],
+      "text": "Passe-Murailles",
+      "play": [],
+      "tiers": [],
+      "atk": 2,
+      "hp": 2,
+      "statics": []
+    },
+    {
+      "id": "grunt3",
+      "name": "Brute",
+      "type": "ally",
+      "cost": 3,
+      "keys": [
+        "type:Lapin",
+        "Taunt"
+      ],
+      "text": "Provocation. Fin du tour, soigne 6 à elle-même.",
+      "play": [],
+      "tiers": [],
+      "atk": 3,
+      "hp": 4,
+      "statics": [],
+      "turnEnd": [
+        {
+          "op": "heal",
+          "t": "self",
+          "v": 6
+        }
+      ]
+    },
+    {
+      "id": "grunt4",
+      "name": "Colosse",
+      "type": "ally",
+      "cost": 5,
+      "keys": [],
+      "text": "",
+      "play": [],
+      "tiers": [],
+      "atk": 5,
+      "hp": 5
+    },
+    {
+      "id": "wall1",
+      "name": "Garde",
+      "type": "ally",
+      "cost": 2,
+      "keys": [
+        "Taunt"
+      ],
+      "text": "Provocation.",
+      "play": [],
+      "tiers": [],
+      "atk": 1,
+      "hp": 4
+    },
+    {
+      "id": "wall2",
+      "name": "Rempart",
+      "type": "ally",
+      "cost": 4,
+      "keys": [
+        "Taunt"
+      ],
+      "text": "Provocation.",
+      "play": [],
+      "tiers": [],
+      "atk": 3,
+      "hp": 6
+    },
+    {
+      "id": "rush1",
+      "name": "Eclaireur Fou",
+      "type": "ally",
+      "cost": 2,
+      "keys": [
+        "Charge"
+      ],
+      "text": "Charge.",
+      "play": [],
+      "tiers": [],
+      "atk": 3,
+      "hp": 1
+    },
+    {
+      "id": "bolt",
+      "name": "Caillou",
+      "type": "spell",
+      "cost": 1,
+      "keys": [],
+      "text": "2 degats.",
+      "play": [
+        {
+          "op": "dmg",
+          "t": "enemyAny",
+          "v": 2
+        }
+      ],
+      "tiers": []
+    },
+    {
+      "id": "smash",
+      "name": "Massue",
+      "type": "spell",
+      "cost": 3,
+      "keys": [],
+      "text": "4 degats.",
+      "play": [
+        {
+          "op": "dmg",
+          "t": "enemyAny",
+          "v": 4
+        }
+      ],
+      "tiers": []
+    },
+    {
+      "id": "potion",
+      "name": "Fiole",
+      "type": "spell",
+      "cost": 2,
+      "keys": [],
+      "text": "Rend 5 PV.",
+      "play": [
+        {
+          "op": "heal",
+          "t": "ownHero",
+          "v": 5
+        }
+      ],
+      "tiers": []
+    },
+    {
+      "id": "rally",
+      "name": "Ralliement",
+      "type": "spell",
+      "cost": 3,
+      "keys": [],
+      "text": "+1/+1 a tous ses allies.",
+      "play": [
+        {
+          "op": "buff",
+          "t": "allAllies",
+          "atk": 1,
+          "hp": 1
+        }
+      ],
+      "tiers": []
+    },
+    {
+      "id": "venomite",
+      "name": "Bestiole Venimeuse",
+      "type": "ally",
+      "cost": 3,
+      "keys": [
+        "Venin"
+      ],
+      "text": "Venin.",
+      "play": [],
+      "tiers": [],
+      "atk": 2,
+      "hp": 3
+    },
+    {
+      "id": "card_bjidas",
+      "name": "Lapin Garou",
+      "type": "ally",
+      "cost": 3,
+      "keys": [
+        "type:Lapin"
+      ],
+      "text": "",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 1,
+      "hp": 1,
+      "statics": [],
+      "turnStart": [
+        {
+          "op": "buff",
+          "t": "self",
+          "atk": 5,
+          "hp": 5,
+          "key": "Taunt"
+        }
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "id": "rabbit1",
+      "name": "Lapin Chapardeur",
+      "sprite": "Characters/Rabbit.png",
+      "hp": 20,
+      "mana": 5,
+      "hand": 3,
+      "level": 1,
+      "deck": [
+        {
+          "card": "grunt1",
+          "n": 4
+        },
+        {
+          "card": "grunt2",
+          "n": 4
+        },
+        {
+          "card": "bolt",
+          "n": 2
+        }
+      ],
+      "ia": "naif"
+    },
+    {
+      "id": "cat1",
+      "name": "Chat de Ruelle",
+      "sprite": "Characters/Cat Ginger.png",
+      "hp": 24,
+      "mana": 6,
+      "hand": 3,
+      "level": 1,
+      "deck": [
+        {
+          "card": "grunt2",
+          "n": 4
+        },
+        {
+          "card": "rush1",
+          "n": 4
+        },
+        {
+          "card": "bolt",
+          "n": 3
+        }
+      ],
+      "ia": "naif"
+    },
+    {
+      "id": "crow1",
+      "name": "Corbeau Rieur",
+      "sprite": "Characters/Crow White.png",
+      "hp": 26,
+      "mana": 6,
+      "hand": 4,
+      "level": 1,
+      "deck": [
+        {
+          "card": "grunt2",
+          "n": 3
+        },
+        {
+          "card": "grunt3",
+          "n": 3
+        },
+        {
+          "card": "bolt",
+          "n": 3
+        },
+        {
+          "card": "wall1",
+          "n": 2
+        }
+      ]
+    },
+    {
+      "id": "wolf",
+      "name": "Grand Mechant Loup",
+      "sprite": "Characters/Big Bad Wolf.png",
+      "hp": 42,
+      "mana": 8,
+      "hand": 4,
+      "level": 1,
+      "deck": [
+        {
+          "card": "grunt3",
+          "n": 4
+        },
+        {
+          "card": "wall2",
+          "n": 3
+        },
+        {
+          "card": "rush1",
+          "n": 3
+        },
+        {
+          "card": "smash",
+          "n": 3
+        },
+        {
+          "card": "rally",
+          "n": 2
+        }
+      ],
+      "ia": "dur",
+      "boss": true
+    },
+    {
+      "id": "frog1",
+      "name": "Crapaud Baveux",
+      "sprite": "Characters/Frog Toad.png",
+      "hp": 32,
+      "mana": 7,
+      "hand": 4,
+      "level": 1,
+      "deck": [
+        {
+          "card": "venomite",
+          "n": 3
+        },
+        {
+          "card": "wall1",
+          "n": 3
+        },
+        {
+          "card": "grunt3",
+          "n": 4
+        },
+        {
+          "card": "potion",
+          "n": 3
+        }
+      ]
+    },
+    {
+      "id": "octo1",
+      "name": "Pieuvre Pirate",
+      "sprite": "Characters/Octopus Pirate.png",
+      "hp": 36,
+      "mana": 7,
+      "hand": 4,
+      "level": 1,
+      "deck": [
+        {
+          "card": "grunt3",
+          "n": 4
+        },
+        {
+          "card": "grunt4",
+          "n": 2
+        },
+        {
+          "card": "smash",
+          "n": 3
+        },
+        {
+          "card": "wall1",
+          "n": 3
+        }
+      ]
+    },
+    {
+      "id": "frogboss",
+      "name": "Capitaine Grenouille",
+      "sprite": "Characters/Frog Captain.png",
+      "hp": 76,
+      "mana": 9,
+      "hand": 5,
+      "level": 1,
+      "deck": [
+        {
+          "card": "venomite",
+          "n": 4
+        },
+        {
+          "card": "wall2",
+          "n": 4
+        },
+        {
+          "card": "grunt4",
+          "n": 3
+        },
+        {
+          "card": "smash",
+          "n": 3
+        },
+        {
+          "card": "rally",
+          "n": 3
+        },
+        {
+          "card": "potion",
+          "n": 2
+        }
+      ],
+      "ia": "dur",
+      "boss": true
+    },
+    {
+      "id": "fox1",
+      "name": "Renard des Neiges",
+      "sprite": "Characters/Fox Snow.png",
+      "hp": 40,
+      "mana": 8,
+      "hand": 4,
+      "level": 1,
+      "deck": [
+        {
+          "card": "rush1",
+          "n": 5
+        },
+        {
+          "card": "grunt4",
+          "n": 3
+        },
+        {
+          "card": "smash",
+          "n": 4
+        },
+        {
+          "card": "grunt3",
+          "n": 3
+        }
+      ]
+    },
+    {
+      "id": "owlboss",
+      "name": "Grand-Duc",
+      "sprite": "Characters/Owl Great Horned Owl.png",
+      "hp": 105,
+      "mana": 10,
+      "hand": 5,
+      "level": 1,
+      "deck": [
+        {
+          "card": "wall2",
+          "n": 5
+        },
+        {
+          "card": "grunt4",
+          "n": 5
+        },
+        {
+          "card": "smash",
+          "n": 4
+        },
+        {
+          "card": "rally",
+          "n": 3
+        },
+        {
+          "card": "potion",
+          "n": 3
+        }
+      ],
+      "ia": "dur",
+      "boss": true
+    }
+  ],
   "characters": [
     {
       "id": "dog",
@@ -25,11 +523,10 @@ export const CHARACTER_DATA = {
           "id": "dog_pup",
           "name": "Toutou Fidele",
           "type": "ally",
-          "cost": 1,
-          "atk": 1,
-          "hp": 3,
+          "cost": 3,
           "keys": [
-            "Taunt"
+            "Taunt",
+            "type:Chien"
           ],
           "text": "Provocation.",
           "play": [],
@@ -65,17 +562,21 @@ export const CHARACTER_DATA = {
               "t": "ownHero",
               "v": 1
             }
-          ]
+          ],
+          "atk": 1,
+          "hp": 3,
+          "statics": []
         },
         {
           "id": "dog_guard",
           "name": "Molosse de Garde",
           "type": "ally",
-          "cost": 3,
-          "atk": 2,
-          "hp": 3,
+          "cost": 2,
+          "atk": 1,
+          "hp": 2,
           "keys": [
-            "Taunt"
+            "Taunt",
+            "type:Chien"
           ],
           "text": "Provocation, tes autres alliés ont +0/+1.",
           "play": [],
@@ -181,7 +682,7 @@ export const CHARACTER_DATA = {
           ],
           "tiers": [
             {
-              "lvl": 8,
+              "lvl": 5,
               "text": "coût -1",
               "cost": -1
             },
@@ -234,7 +735,7 @@ export const CHARACTER_DATA = {
           ],
           "tiers": [
             {
-              "lvl": 7,
+              "lvl": 6,
               "text": "Donne +1/+0 aux Chiots.",
               "extra": {
                 "op": "buff",
@@ -276,16 +777,17 @@ export const CHARACTER_DATA = {
           "name": "Morsure",
           "type": "ally",
           "cost": 2,
-          "atk": 3,
-          "hp": 2,
+          "atk": 2,
+          "hp": 1,
           "keys": [
-            "Charge"
+            "Charge",
+            "type:Chien"
           ],
           "text": "Charge.",
           "play": [],
           "tiers": [
             {
-              "lvl": 2,
+              "lvl": 7,
               "stats": {
                 "atk": 0,
                 "hp": 1
@@ -293,7 +795,7 @@ export const CHARACTER_DATA = {
               "text": "+0/+1"
             },
             {
-              "lvl": 5,
+              "lvl": 8,
               "stats": {
                 "atk": 1,
                 "hp": 0
@@ -315,21 +817,16 @@ export const CHARACTER_DATA = {
           "name": "Alpha",
           "type": "ally",
           "cost": 5,
-          "atk": 5,
-          "hp": 5,
-          "keys": [],
-          "text": "Cri de guerre : +1/+1 a tes autres allies.",
-          "play": [
-            {
-              "op": "buff",
-              "t": "allAllies",
-              "atk": 1,
-              "hp": 1
-            }
+          "atk": 3,
+          "hp": 3,
+          "keys": [
+            "type:Chien"
           ],
+          "text": "Cri de guerre : +1/+1 a tes autres allies.",
+          "play": [],
           "tiers": [
             {
-              "lvl": 2,
+              "lvl": 8,
               "stats": {
                 "atk": 0,
                 "hp": 1
@@ -337,7 +834,7 @@ export const CHARACTER_DATA = {
               "text": "+0/+1"
             },
             {
-              "lvl": 5,
+              "lvl": 10,
               "stats": {
                 "atk": 1,
                 "hp": 0
@@ -345,44 +842,78 @@ export const CHARACTER_DATA = {
               "text": "+1/+0"
             },
             {
-              "lvl": 10,
-              "stats": {
-                "atk": 1,
-                "hp": 2
+              "lvl": 12,
+              "text": "Arrive : Invoque un Chiot 1/1 avec Charge",
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Jeton",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Chien",
+                    "Charge"
+                  ],
+                  "death": [],
+                  "turnStart": [],
+                  "turnEnd": []
+                }
               },
-              "text": "+1/+2"
+              "slot": "play"
             }
-          ]
+          ],
+          "aura": {
+            "scope": "otherAllies",
+            "atk": 1,
+            "hp": 1,
+            "key": ""
+          }
         },
         {
           "id": "dog_shield",
-          "name": "Carapace",
+          "name": "Charge",
           "type": "spell",
-          "cost": 2,
+          "cost": 3,
           "keys": [],
-          "text": "Gagne 6 points d’armure.",
+          "text": "Donne +2/+0 et Charge à vos alliés",
           "play": [
             {
-              "op": "armor",
-              "v": 6
+              "op": "buff",
+              "t": "allAllies",
+              "atk": 2,
+              "hp": 0,
+              "key": "Charge"
             }
           ],
           "tiers": [
             {
-              "lvl": 3,
+              "lvl": 9,
               "amp": 1,
               "text": "Effet +1"
             },
             {
-              "lvl": 6,
+              "lvl": 13,
               "extra": {
-                "op": "draw",
-                "v": 1
+                "op": "summon",
+                "n": 2,
+                "unit": {
+                  "name": "Jeton",
+                  "atk": 4,
+                  "hp": 1,
+                  "keys": [
+                    "type:Chien",
+                    "Charge"
+                  ],
+                  "death": [],
+                  "turnStart": [],
+                  "turnEnd": []
+                }
               },
-              "text": "Pioche 1 carte en plus"
+              "text": "Invoque deux Chiots 4/1 Charge."
             },
             {
-              "lvl": 11,
+              "lvl": 15,
               "amp": 2,
               "text": "Effet +2"
             }
@@ -390,77 +921,150 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "dog_bone",
-          "name": "Vieil Os",
-          "type": "spell",
-          "cost": 3,
-          "keys": [],
-          "text": "Rend 4 PV et pioche une carte.",
-          "play": [
-            {
-              "op": "heal",
-              "t": "ownHero",
-              "v": 4
-            },
-            {
-              "op": "draw",
-              "v": 1
-            }
+          "name": "Prince Foufi",
+          "type": "ally",
+          "cost": 4,
+          "keys": [
+            "type:Chien",
+            "characteristique_variable:both:alliesOfType:Chien"
           ],
+          "text": "Force et Vie égales au nombre de Chien sur le terrain",
+          "play": [],
           "tiers": [
             {
-              "lvl": 3,
-              "amp": 1,
-              "text": "Effet +1"
+              "lvl": 10,
+              "text": "+1/+1 sur les Chiens",
+              "aura": {
+                "scope": "sameTypeAllies",
+                "atk": 1,
+                "hp": 1,
+                "key": ""
+              }
             },
             {
-              "lvl": 6,
+              "lvl": 12,
+              "text": "Invoque un Chiot 1/1",
               "extra": {
-                "op": "draw",
-                "v": 1
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Chiot",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Chien"
+                  ],
+                  "death": [],
+                  "turnStart": [],
+                  "turnEnd": []
+                }
               },
-              "text": "Pioche 1 carte en plus"
+              "slot": "play"
             },
             {
-              "lvl": 11,
-              "amp": 2,
-              "text": "Effet +2"
+              "lvl": 16,
+              "text": "Invoque un Chiot 1/1",
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Chiot",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Chien"
+                  ],
+                  "death": [],
+                  "turnStart": [],
+                  "turnEnd": []
+                }
+              },
+              "slot": "play"
+            },
+            {
+              "lvl": 17,
+              "text": "Vos Chiens ont Charge",
+              "aura": {
+                "scope": "sameTypeAllies",
+                "atk": 0,
+                "hp": 0,
+                "key": "Charge"
+              }
             }
-          ]
+          ],
+          "atk": 0,
+          "hp": 0
         },
         {
           "id": "dog_growl",
-          "name": "Grondement",
+          "name": "Surpasser",
           "type": "spell",
-          "cost": 1,
+          "cost": 3,
           "keys": [],
-          "text": "Un allie gagne +0/+3 et Provocation.",
+          "text": "Inflige X blessures, X est le nombre de Chien que vous contrôlez.",
           "play": [
             {
-              "op": "buff",
-              "t": "allyUnit",
-              "atk": 0,
-              "hp": 3,
-              "key": "Taunt"
+              "op": "dmg",
+              "t": "enemyAny",
+              "v": {
+                "src": "alliesOfType",
+                "arg": "Chien",
+                "plus": 0
+              }
             }
           ],
           "tiers": [
             {
-              "lvl": 3,
-              "amp": 1,
-              "text": "Effet +1"
+              "lvl": 11,
+              "text": "Invoque un Chiot 1/1",
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Chiot",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Chien"
+                  ],
+                  "death": [],
+                  "turnStart": [],
+                  "turnEnd": []
+                }
+              },
+              "slot": "play"
             },
             {
-              "lvl": 6,
+              "lvl": 13,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Chiot",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Chien"
+                  ],
+                  "death": [],
+                  "turnStart": [],
+                  "turnEnd": []
+                }
+              },
+              "text": "Invoque un Chiot 1/1"
+            },
+            {
+              "lvl": 15,
+              "text": "Pioche une carte pour chaque Chien que vous contrôlez",
               "extra": {
                 "op": "draw",
-                "v": 1
+                "v": {
+                  "src": "alliesOfType",
+                  "arg": "Chien",
+                  "plus": 0
+                }
               },
-              "text": "Pioche 1 carte en plus"
-            },
-            {
-              "lvl": 11,
-              "amp": 2,
-              "text": "Effet +2"
+              "slot": "play"
             }
           ]
         }
@@ -468,10 +1072,10 @@ export const CHARACTER_DATA = {
     },
     {
       "id": "cat",
-      "name": "Mistral",
+      "name": "Felix",
       "species": "Chat",
-      "sprite": "Characters/Cat.png",
-      "role": "Rodeur — vitesse et pression",
+      "sprite": "Characters/Cat Bug.png",
+      "role": "Mille coupures",
       "stats": {
         "hp": 26,
         "mana": 8,
@@ -482,90 +1086,98 @@ export const CHARACTER_DATA = {
           "id": "cat_claw",
           "name": "Griffure",
           "type": "ally",
-          "cost": 1,
+          "cost": 3,
           "atk": 2,
-          "hp": 1,
+          "hp": 2,
           "keys": [
-            "Charge"
+            "Charge",
+            "type:Chat"
           ],
-          "text": "Charge.",
+          "text": "Dès que vous lancez un sort, inflige une blessure à un adversaire",
           "play": [],
           "tiers": [
             {
-              "lvl": 2,
-              "stats": {
-                "atk": 0,
-                "hp": 1
-              },
-              "text": "+0/+1"
+              "lvl": 11,
+              "text": "effet +1",
+              "amp": 1
             },
             {
-              "lvl": 5,
-              "stats": {
-                "atk": 1,
-                "hp": 0
-              },
-              "text": "+1/+0"
+              "lvl": 14,
+              "text": "effet +1",
+              "amp": 1
             },
             {
-              "lvl": 10,
-              "stats": {
-                "atk": 1,
-                "hp": 2
-              },
-              "text": "+1/+2"
+              "lvl": 17,
+              "text": "effet +1",
+              "amp": 1
             }
-          ]
+          ],
+          "on_spell_self": [
+            {
+              "op": "dmg",
+              "t": "randomEnemyAny",
+              "v": 1
+            }
+          ],
+          "statics": []
         },
         {
           "id": "cat_alley",
           "name": "Chat de Gouttiere",
           "type": "ally",
           "cost": 2,
-          "atk": 2,
-          "hp": 3,
-          "keys": [],
-          "text": "",
+          "atk": 1,
+          "hp": 2,
+          "keys": [
+            "type:Chat"
+          ],
+          "text": "Réduit le coût des cartes ",
           "play": [],
           "tiers": [
             {
               "lvl": 2,
-              "stats": {
-                "atk": 0,
-                "hp": 1
-              },
-              "text": "+0/+1"
+              "text": "gagne Elusif",
+              "key": "elusif"
             },
             {
               "lvl": 5,
-              "stats": {
-                "atk": 1,
-                "hp": 0
-              },
-              "text": "+1/+0"
+              "text": "gagne Passe-Murailles",
+              "key": "passe_murailles"
             },
             {
               "lvl": 10,
-              "stats": {
+              "text": "Quand tu lances un sort gagne +1/+0",
+              "extra": {
+                "op": "buff",
+                "t": "self",
                 "atk": 1,
-                "hp": 2
+                "hp": 0
               },
-              "text": "+1/+2"
+              "slot": "on_spell_self"
+            }
+          ],
+          "on_attack_self": [
+            {
+              "op": "pioche_x",
+              "carte": "Coup de Griffe",
+              "n": 1
             }
           ]
         },
         {
           "id": "cat_pounce",
-          "name": "Bond",
+          "name": "Coup de Griffe",
           "type": "spell",
           "cost": 1,
-          "keys": [],
-          "text": "Inflige 3 degats a une unite.",
+          "keys": [
+            "type:Chat"
+          ],
+          "text": "Inflige 2 degats a une unité adverse aléatoire.",
           "play": [
             {
               "op": "dmg",
-              "t": "enemyUnit",
-              "v": 3
+              "t": "randomEnemyUnit",
+              "v": 2
             }
           ],
           "tiers": [
@@ -583,9 +1195,23 @@ export const CHARACTER_DATA = {
               "text": "Pioche 1 carte en plus"
             },
             {
-              "lvl": 11,
-              "amp": 2,
-              "text": "Effet +2"
+              "lvl": 17,
+              "text": "Inflige 3 blessure à une unité adverse aléatoire",
+              "extra": {
+                "op": "dmg",
+                "t": "enemyAny",
+                "v": 2
+              },
+              "slot": "play"
+            },
+            {
+              "lvl": 17,
+              "text": "Pioche une carte",
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "slot": "play"
             }
           ]
         },
@@ -593,20 +1219,20 @@ export const CHARACTER_DATA = {
           "id": "cat_nine",
           "name": "Neuf Vies",
           "type": "spell",
-          "cost": 3,
-          "keys": [],
-          "text": "Invoque trois Chatons 1/1 avec Charge.",
+          "cost": 9,
+          "keys": [
+            "cout_x_de_moins_de_plus:X:1:ownTurns:",
+            "type:Chat"
+          ],
+          "text": "Pioche autant de carte \"Coup de Griffe\" que de tour joués",
           "play": [
             {
-              "op": "summon",
-              "n": 3,
-              "unit": {
-                "name": "Chaton",
-                "atk": 1,
-                "hp": 1,
-                "keys": [
-                  "Charge"
-                ]
+              "op": "pioche_x",
+              "carte": "Coup de Griffe",
+              "n": {
+                "src": "ownTurns",
+                "arg": "",
+                "plus": 0
               }
             }
           ],
@@ -614,18 +1240,11 @@ export const CHARACTER_DATA = {
             {
               "lvl": 3,
               "extra": {
-                "op": "summon",
-                "n": 1,
-                "unit": {
-                  "name": "Chaton",
-                  "atk": 1,
-                  "hp": 1,
-                  "keys": [
-                    "Charge"
-                  ]
-                }
+                "op": "dmg",
+                "t": "allEnemyUnits",
+                "v": 3
               },
-              "text": "Un chaton de plus"
+              "text": "Inflige 3 blessures à toutes les unités adverses"
             },
             {
               "lvl": 6,
@@ -646,7 +1265,11 @@ export const CHARACTER_DATA = {
                   "hp": 1,
                   "keys": [
                     "Charge"
-                  ]
+                  ],
+                  "death": [],
+                  "turnStart": [],
+                  "turnEnd": [],
+                  "statics": []
                 }
               },
               "text": "Un chaton de plus"
@@ -657,36 +1280,51 @@ export const CHARACTER_DATA = {
           "id": "cat_shadow",
           "name": "Ombre Feutree",
           "type": "ally",
-          "cost": 4,
-          "atk": 5,
-          "hp": 3,
-          "keys": [],
-          "text": "",
+          "cost": 2,
+          "atk": 1,
+          "hp": 1,
+          "keys": [
+            "type:Chat"
+          ],
+          "text": "Les sorts de votre main coûtent 1 de moins.",
           "play": [],
           "tiers": [
             {
               "lvl": 2,
               "stats": {
-                "atk": 0,
+                "atk": 1,
                 "hp": 1
               },
-              "text": "+0/+1"
-            },
-            {
-              "lvl": 5,
-              "stats": {
-                "atk": 1,
-                "hp": 0
-              },
-              "text": "+1/+0"
+              "text": "+1/+1"
             },
             {
               "lvl": 10,
-              "stats": {
-                "atk": 1,
-                "hp": 2
+              "text": "Cri de guerre : Pioche un sort",
+              "extra": {
+                "op": "pioche_une_carte_de_type",
+                "type": "spell",
+                "n": 1
               },
-              "text": "+1/+2"
+              "slot": "play"
+            },
+            {
+              "lvl": 16,
+              "text": "Quand vous lancez un sort, inflige 2 blessures à un adversaire aléatoire",
+              "extra": {
+                "op": "dmg",
+                "t": "randomEnemyUnit",
+                "v": 2
+              },
+              "slot": "on_spell_self"
+            }
+          ],
+          "statics": [
+            {
+              "op": "cout_des_cartes",
+              "qui": "toi",
+              "quoi": "spell",
+              "sens": "moins",
+              "v": 1
             }
           ]
         }
@@ -694,10 +1332,63 @@ export const CHARACTER_DATA = {
       "switches": [
         {
           "id": "cat_scratch",
+          "name": "Tempête de patounes",
+          "type": "spell",
+          "cost": 3,
+          "keys": [
+            "type:Chat"
+          ],
+          "text": "Inflige X blessures, X étant le nombre sorts lancés cette partie.",
+          "play": [
+            {
+              "op": "dmg",
+              "t": "enemyAny",
+              "v": {
+                "src": "ownTurns",
+                "arg": "",
+                "plus": 0
+              }
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "text": "Au prochain tour, gagne 2 manas.",
+              "extra": {
+                "op": "mana_au_prochain_tour",
+                "x": 2
+              },
+              "slot": "play"
+            },
+            {
+              "lvl": 6,
+              "text": "coût -1",
+              "cost": -1
+            },
+            {
+              "lvl": 11,
+              "text": "coût -1",
+              "cost": -1
+            },
+            {
+              "lvl": 14,
+              "text": "Pioche une carte.",
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "slot": "play"
+            }
+          ]
+        },
+        {
+          "id": "cat_hunt",
           "name": "Coup de Patte",
           "type": "spell",
-          "cost": 0,
-          "keys": [],
+          "cost": 1,
+          "keys": [
+            "type:Chat"
+          ],
           "text": "Inflige 1 degat.",
           "play": [
             {
@@ -714,90 +1405,71 @@ export const CHARACTER_DATA = {
             },
             {
               "lvl": 6,
+              "text": "Réduit le coût des sorts",
               "extra": {
-                "op": "draw",
-                "v": 1
+                "op": "reduit_le_cout_de",
+                "quoi": "spell",
+                "v": 1,
+                "argType": "Chat"
               },
-              "text": "Pioche 1 carte en plus"
+              "slot": "play"
             },
             {
-              "lvl": 11,
-              "amp": 2,
-              "text": "Effet +2"
-            }
-          ]
-        },
-        {
-          "id": "cat_hunt",
-          "name": "Chasse",
-          "type": "spell",
-          "cost": 2,
-          "keys": [],
-          "text": "Un allie gagne +2/+0 et Charge.",
-          "play": [
-            {
-              "op": "buff",
-              "t": "allyUnit",
-              "atk": 2,
-              "hp": 0,
-              "key": "Charge"
-            }
-          ],
-          "tiers": [
-            {
-              "lvl": 3,
-              "amp": 1,
-              "text": "Effet +1"
-            },
-            {
-              "lvl": 6,
-              "extra": {
-                "op": "draw",
-                "v": 1
-              },
-              "text": "Pioche 1 carte en plus"
-            },
-            {
-              "lvl": 11,
-              "amp": 2,
-              "text": "Effet +2"
+              "lvl": 9,
+              "text": "coût -1",
+              "cost": -1
             }
           ]
         },
         {
           "id": "cat_curio",
           "name": "Curiosite",
-          "type": "spell",
+          "type": "ally",
           "cost": 2,
-          "keys": [],
-          "text": "Pioche 2 cartes.",
-          "play": [
-            {
-              "op": "draw",
-              "v": 2
-            }
+          "keys": [
+            "type:Chat"
           ],
+          "text": "Quand tu lances un sort : Gagnez deux armures",
+          "play": [],
           "tiers": [
             {
-              "lvl": 3,
-              "cost": -1,
-              "text": "Coût −1"
+              "lvl": 2,
+              "text": "+1/+1",
+              "stats": {
+                "atk": 1,
+                "hp": 2
+              }
             },
             {
-              "lvl": 6,
+              "lvl": 5,
+              "text": "gagne Provocation",
+              "key": "Taunt"
+            },
+            {
+              "lvl": 8,
+              "text": "Rale d'agonie : Gagne 4 armures",
               "extra": {
-                "op": "draw",
-                "v": 1
+                "op": "armor",
+                "v": 4
               },
-              "text": "Pioche 1 carte en plus"
+              "slot": "death"
             },
             {
               "lvl": 11,
+              "text": "Rale d'agonie : Pioche une carte",
               "extra": {
                 "op": "draw",
                 "v": 1
               },
-              "text": "Pioche 1 carte en plus"
+              "slot": "death"
+            }
+          ],
+          "atk": 1,
+          "hp": 1,
+          "on_spell_self": [
+            {
+              "op": "armor",
+              "v": 2
             }
           ]
         },
@@ -805,43 +1477,45 @@ export const CHARACTER_DATA = {
           "id": "cat_trap",
           "name": "Piege a Souris",
           "type": "ally",
-          "cost": 2,
+          "cost": 6,
           "atk": 1,
-          "hp": 4,
+          "hp": 6,
           "keys": [
-            "Taunt"
+            "passe_murailles",
+            "Charge"
           ],
-          "text": "Provocation. Cri de guerre : pioche une carte.",
-          "play": [
-            {
-              "op": "draw",
-              "v": 1
-            }
-          ],
+          "text": "Charge. Passe-Murailles. Quand vous attaquez, piochez une carte et infligez 2 blessures à un adversaire aléatoire.",
+          "play": [],
           "tiers": [
             {
               "lvl": 2,
-              "stats": {
-                "atk": 0,
-                "hp": 1
-              },
-              "text": "+0/+1"
+              "text": "coût -2",
+              "cost": -2
             },
             {
               "lvl": 5,
-              "stats": {
-                "atk": 1,
-                "hp": 0
+              "text": "Quand tu pioches une carte, gagnez 2 Armures.",
+              "extra": {
+                "op": "armor",
+                "v": 2
               },
-              "text": "+1/+0"
+              "slot": "on_draw_self"
             },
             {
               "lvl": 10,
-              "stats": {
-                "atk": 1,
-                "hp": 2
-              },
-              "text": "+1/+2"
+              "text": "coût -1",
+              "cost": -2
+            }
+          ],
+          "on_attack_self": [
+            {
+              "op": "draw",
+              "v": 1
+            },
+            {
+              "op": "dmg",
+              "t": "randomEnemyAny",
+              "v": 2
             }
           ]
         },
@@ -850,42 +1524,61 @@ export const CHARACTER_DATA = {
           "name": "Roi des Toits",
           "type": "ally",
           "cost": 5,
-          "atk": 4,
-          "hp": 5,
-          "keys": [],
-          "text": "Cri de guerre : +1/+0 a tes autres allies.",
-          "play": [
-            {
-              "op": "buff",
-              "t": "allAllies",
-              "atk": 1,
-              "hp": 0
-            }
+          "atk": 2,
+          "hp": 3,
+          "keys": [
+            "type:Chat",
+            "Charge",
+            "passe_murailles"
           ],
+          "text": "Charge. Passe-Murailles. Quand vous lancez un Chat, invoquez un Chat 1/1.",
+          "play": [],
           "tiers": [
             {
               "lvl": 2,
-              "stats": {
+              "text": "Vos Chats ont Charge",
+              "aura": {
+                "scope": "sameTypeAllies",
                 "atk": 0,
-                "hp": 1
-              },
-              "text": "+0/+1"
+                "hp": 0,
+                "key": "Charge"
+              }
             },
             {
               "lvl": 5,
-              "stats": {
-                "atk": 1,
-                "hp": 0
-              },
-              "text": "+1/+0"
+              "text": "Vos Chats ont +2/+0",
+              "aura": {
+                "scope": "sameTypeAllies",
+                "atk": 2,
+                "hp": 0,
+                "key": ""
+              }
             },
             {
               "lvl": 10,
-              "stats": {
-                "atk": 1,
-                "hp": 2
+              "text": "Vos Chats coûtent 2 de moins",
+              "extra": {
+                "op": "reduit_le_cout_de",
+                "quoi": "ofType",
+                "v": 2,
+                "argType": "Chat"
               },
-              "text": "+1/+2"
+              "slot": "play"
+            }
+          ],
+          "on_spell_self": [
+            {
+              "op": "summon",
+              "n": 1,
+              "unit": {
+                "name": "Jeton",
+                "atk": 1,
+                "hp": 1,
+                "keys": [
+                  "type:Chat",
+                  "passe_murailles"
+                ]
+              }
             }
           ]
         }
@@ -950,122 +1643,7 @@ export const CHARACTER_DATA = {
           "atk": 2,
           "hp": 2,
           "keys": [],
-          "text": "Cri de guerre : pioche une carte.",
-          "play": [
-            {
-              "op": "draw",
-              "v": 1
-            }
-          ],
-          "tiers": [
-            {
-              "lvl": 2,
-              "stats": {
-                "atk": 0,
-                "hp": 1
-              },
-              "text": "+0/+1"
-            },
-            {
-              "lvl": 5,
-              "stats": {
-                "atk": 1,
-                "hp": 0
-              },
-              "text": "+1/+0"
-            },
-            {
-              "lvl": 10,
-              "stats": {
-                "atk": 1,
-                "hp": 2
-              },
-              "text": "+1/+2"
-            }
-          ]
-        },
-        {
-          "id": "crow_murder",
-          "name": "Nuee",
-          "type": "spell",
-          "cost": 4,
-          "keys": [],
-          "text": "Inflige 2 degats a toutes les unites adverses.",
-          "play": [
-            {
-              "op": "dmg",
-              "t": "allEnemyUnits",
-              "v": 2
-            }
-          ],
-          "tiers": [
-            {
-              "lvl": 3,
-              "amp": 1,
-              "text": "Effet +1"
-            },
-            {
-              "lvl": 6,
-              "extra": {
-                "op": "draw",
-                "v": 1
-              },
-              "text": "Pioche 1 carte en plus"
-            },
-            {
-              "lvl": 11,
-              "amp": 2,
-              "text": "Effet +2"
-            }
-          ]
-        },
-        {
-          "id": "crow_omen",
-          "name": "Presage",
-          "type": "spell",
-          "cost": 2,
-          "keys": [],
-          "text": "Pioche 2 cartes.",
-          "play": [
-            {
-              "op": "draw",
-              "v": 2
-            }
-          ],
-          "tiers": [
-            {
-              "lvl": 3,
-              "cost": -1,
-              "text": "Coût −1"
-            },
-            {
-              "lvl": 6,
-              "extra": {
-                "op": "draw",
-                "v": 1
-              },
-              "text": "Pioche 1 carte en plus"
-            },
-            {
-              "lvl": 11,
-              "extra": {
-                "op": "dmg",
-                "t": "enemyHero",
-                "v": 2
-              },
-              "text": "Inflige 2 dégâts au héros adverse"
-            }
-          ]
-        },
-        {
-          "id": "crow_raven",
-          "name": "Grand Corbeau",
-          "type": "ally",
-          "cost": 5,
-          "atk": 4,
-          "hp": 4,
-          "keys": [],
-          "text": "",
+          "text": "Quand tu attaques avec une unité, pioche une carte.",
           "play": [],
           "tiers": [
             {
@@ -1092,23 +1670,103 @@ export const CHARACTER_DATA = {
               },
               "text": "+1/+2"
             }
+          ],
+          "on_attack_self": [
+            {
+              "op": "draw",
+              "v": 1
+            }
           ]
-        }
-      ],
-      "switches": [
+        },
         {
-          "id": "crow_thief",
-          "name": "Voleur de Brillants",
-          "type": "ally",
-          "cost": 3,
-          "atk": 3,
-          "hp": 2,
+          "id": "crow_murder",
+          "name": "Envol",
+          "type": "spell",
+          "cost": 4,
           "keys": [],
-          "text": "Cri de guerre : +1 mana ce tour.",
+          "text": "Inflige 2 degats a toutes les unites adverses.",
           "play": [
             {
-              "op": "mana",
-              "v": 1
+              "op": "dmg",
+              "t": "allEnemyUnits",
+              "v": 2
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "amp": 1,
+              "text": "Effet +1"
+            },
+            {
+              "lvl": 15,
+              "text": "coût -2",
+              "cost": -2
+            },
+            {
+              "lvl": 19,
+              "text": "Pioche un allié",
+              "extra": {
+                "op": "pioche_une_carte_de_type",
+                "type": "ally",
+                "n": 1
+              },
+              "slot": "play"
+            }
+          ]
+        },
+        {
+          "id": "crow_omen",
+          "name": "Presage",
+          "type": "spell",
+          "cost": 4,
+          "keys": [],
+          "text": "Pioche 2 cartes.",
+          "play": [
+            {
+              "op": "draw",
+              "v": 2
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "cost": -2,
+              "text": "Coût −2"
+            },
+            {
+              "lvl": 6,
+              "extra": {
+                "op": "pioche_x",
+                "carte": "Envol",
+                "n": 1
+              },
+              "text": "Pioche Envol"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "mana",
+                "v": 2
+              },
+              "text": "+2 manas ce tour-ci."
+            }
+          ]
+        },
+        {
+          "id": "crow_raven",
+          "name": "Grand Corbeau",
+          "type": "ally",
+          "cost": 7,
+          "atk": 4,
+          "hp": 4,
+          "keys": [],
+          "text": "Quand l'adversaire pioche une carte, vous aussi. Cri de guerre : inflige 3 blessures à toutes les unités adverses.",
+          "play": [
+            {
+              "op": "dmg",
+              "t": "allEnemyUnits",
+              "v": 3
             }
           ],
           "tiers": [
@@ -1136,6 +1794,54 @@ export const CHARACTER_DATA = {
               },
               "text": "+1/+2"
             }
+          ],
+          "on_draw_foe": [
+            {
+              "op": "draw",
+              "v": 1
+            }
+          ]
+        }
+      ],
+      "switches": [
+        {
+          "id": "crow_thief",
+          "name": "Frappeur Nocturne",
+          "type": "ally",
+          "cost": 2,
+          "atk": 2,
+          "hp": 2,
+          "keys": [],
+          "text": "Cri de guerre : +2 mana ce tour, puis Piochez une carte",
+          "play": [
+            {
+              "op": "mana",
+              "v": 2
+            },
+            {
+              "op": "draw",
+              "v": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 2,
+              "stats": {
+                "atk": 2,
+                "hp": 0
+              },
+              "text": "+2/+0"
+            },
+            {
+              "lvl": 5,
+              "text": "gagne Elusif",
+              "key": "elusif"
+            },
+            {
+              "lvl": 10,
+              "text": "coût -1",
+              "cost": -1
+            }
           ]
         },
         {
@@ -1144,11 +1850,11 @@ export const CHARACTER_DATA = {
           "type": "spell",
           "cost": 3,
           "keys": [],
-          "text": "Inflige 5 degats.",
+          "text": "Inflige 5 degats à une unité adverse.",
           "play": [
             {
               "op": "dmg",
-              "t": "enemyAny",
+              "t": "enemyUnit",
               "v": 5
             }
           ],
@@ -1161,138 +1867,197 @@ export const CHARACTER_DATA = {
             {
               "lvl": 6,
               "extra": {
-                "op": "draw",
-                "v": 1
+                "op": "pioche_une_carte_de_type",
+                "type": "spell",
+                "n": 1
               },
-              "text": "Pioche 1 carte en plus"
+              "text": "Pioche un sort"
             },
             {
               "lvl": 11,
-              "amp": 2,
-              "text": "Effet +2"
+              "text": "Réduit le coût des cartes Oiseaux de 2",
+              "extra": {
+                "op": "reduit_le_cout_de",
+                "quoi": "ofType",
+                "v": 2,
+                "argType": "Oiseau"
+              },
+              "slot": "play"
             }
           ]
         },
         {
           "id": "crow_feather",
           "name": "Plume Noire",
-          "type": "spell",
-          "cost": 1,
-          "keys": [],
-          "text": "Un allie gagne +2/+1.",
-          "play": [
-            {
-              "op": "buff",
-              "t": "allyUnit",
-              "atk": 2,
-              "hp": 1
-            }
+          "type": "ally",
+          "cost": 2,
+          "keys": [
+            "type:Oiseau"
           ],
+          "text": "Gagne +1/+1 à chaque fois que tu pioches une carte.",
+          "play": [],
           "tiers": [
             {
               "lvl": 3,
-              "amp": 1,
-              "text": "Effet +1"
-            },
-            {
-              "lvl": 6,
+              "text": "Quand tu pioches une carte, soigne 2 PV à votre héro.",
               "extra": {
-                "op": "draw",
-                "v": 1
+                "op": "heal",
+                "t": "ownHero",
+                "v": 2
               },
-              "text": "Pioche 1 carte en plus"
+              "slot": "on_draw_self"
             },
             {
-              "lvl": 11,
-              "amp": 2,
-              "text": "Effet +2"
+              "lvl": 12,
+              "text": "gagne Elusif",
+              "key": "elusif"
+            },
+            {
+              "lvl": 16,
+              "text": "coût -1",
+              "cost": -1
+            }
+          ],
+          "atk": 1,
+          "hp": 1,
+          "on_draw_self": [
+            {
+              "op": "buff",
+              "t": "self",
+              "atk": 1,
+              "hp": 1
             }
           ]
         },
         {
           "id": "crow_swarm",
-          "name": "Envol",
+          "name": "Nuee",
           "type": "ally",
           "cost": 4,
-          "atk": 3,
-          "hp": 3,
-          "keys": [],
-          "text": "Cri de guerre : invoque un Corbillat 1/2.",
+          "atk": 1,
+          "hp": 2,
+          "keys": [
+            "type:Oiseau"
+          ],
+          "text": "Cri de guerre : invoque un Corbeau avec \"Quand vous piochez une carte, gagne +1/+1\"",
           "play": [
             {
               "op": "summon",
               "n": 1,
               "unit": {
-                "name": "Corbillat",
+                "name": "Corbeau",
                 "atk": 1,
-                "hp": 2
+                "hp": 2,
+                "keys": [
+                  "type:Oiseau"
+                ],
+                "on_draw_self": [
+                  {
+                    "op": "buff",
+                    "t": "self",
+                    "atk": 1,
+                    "hp": 1
+                  }
+                ],
+                "statics": []
               }
             }
           ],
           "tiers": [
             {
-              "lvl": 2,
-              "stats": {
-                "atk": 0,
-                "hp": 1
-              },
-              "text": "+0/+1"
-            },
-            {
-              "lvl": 5,
-              "stats": {
-                "atk": 1,
-                "hp": 0
-              },
-              "text": "+1/+0"
-            },
-            {
               "lvl": 10,
-              "stats": {
-                "atk": 1,
-                "hp": 2
+              "text": "En invoque un autre",
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Corbeau",
+                  "atk": 1,
+                  "hp": 2,
+                  "keys": [
+                    "type:Oiseau"
+                  ],
+                  "death": [],
+                  "turnStart": [],
+                  "turnEnd": [],
+                  "on_draw_self": [
+                    {
+                      "op": "buff",
+                      "t": "allyUnit",
+                      "atk": 1,
+                      "hp": 1
+                    }
+                  ],
+                  "statics": []
+                }
               },
-              "text": "+1/+2"
+              "slot": "play"
+            },
+            {
+              "lvl": 12,
+              "text": "Cri de guerre : Pioche une carte",
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "slot": "play"
+            },
+            {
+              "lvl": 15,
+              "text": "Donne +1/+1 aux Oiseaux",
+              "aura": {
+                "scope": "sameTypeAllies",
+                "atk": 1,
+                "hp": 1,
+                "key": ""
+              }
             }
-          ]
+          ],
+          "statics": []
         },
         {
           "id": "crow_night",
           "name": "Nuit Sans Lune",
           "type": "spell",
-          "cost": 5,
+          "cost": 4,
           "keys": [],
-          "text": "3 degats a toutes les unites adverses, 2 au heros adverse.",
+          "text": "Détruit toutes les unités",
           "play": [
             {
-              "op": "dmg",
-              "t": "allEnemyUnits",
-              "v": 3
+              "op": "detruit",
+              "x": "allEnemyUnits",
+              "t": "allEnemyUnits"
             },
             {
-              "op": "dmg",
-              "t": "enemyHero",
-              "v": 2
+              "op": "detruit",
+              "x": "allAllies",
+              "t": "allAllies"
             }
           ],
           "tiers": [
             {
               "lvl": 3,
-              "amp": 1,
-              "text": "Effet +1"
+              "text": "Piochez un allié.",
+              "extra": {
+                "op": "pioche_une_carte_de_type",
+                "type": "ally",
+                "n": 1
+              },
+              "slot": "play"
             },
             {
               "lvl": 6,
               "extra": {
-                "op": "draw",
-                "v": 1
+                "op": "heal",
+                "t": "ownHero",
+                "v": 6
               },
-              "text": "Pioche 1 carte en plus"
+              "text": "Soigne 6 PV à votre héro."
             },
             {
               "lvl": 11,
-              "amp": 2,
-              "text": "Effet +2"
+              "text": "coût -1",
+              "cost": -1
             }
           ]
         }

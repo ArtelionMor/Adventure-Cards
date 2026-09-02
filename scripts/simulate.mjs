@@ -3,7 +3,7 @@
 // combats gagnes d'avance avant de toucher au GAME CONFIG.
 //   node scripts/simulate.mjs [nbParties]
 import { CHARACTERS, CHAR_BY_ID, resolveCard, STARTERS } from '../game/src/config/characters.js';
-import { ENCOUNTERS, ENEMY_CARDS } from '../game/src/config/world.js';
+import { ENCOUNTERS } from '../game/src/config/world.js';
 import { createBattle, playCard, attack, endTurn } from '../game/src/combat/engine.js';
 import { botAction } from '../game/src/combat/ai.js';
 import { pendingMechanics } from '../game/src/config/mechanics.js';
@@ -27,16 +27,18 @@ function playerSide(teamIds, level) {
 function enemySide(id) {
   const e = ENCOUNTERS[id];
   return { name: e.name, sprite: e.sprite, hp: e.hp, mana: e.mana, hand: e.hand,
-           deck: e.deck.map(c => ({ ...ENEMY_CARDS[c] })) };
+           deck: e.deck.map(c => ({ ...c })) };
 }
 
 const seenPending = new Set();
 
-function run(p, e) {
+function run(p, e, ia) {
   const B = createBattle(p, e);
   let guard = 0;
   while (!B.over && guard++ < 4000) {
-    const a = botAction(B, B.turn);
+    // La rencontre peut demander un niveau de jeu (les boss jouent serre) : la
+    // simulation doit voir la meme difficulte que le joueur, sinon elle ment.
+    const a = botAction(B, B.turn, B.turn === 'e' ? ia : undefined);
     if (!a || a.type === 'end') endTurn(B);
     else if (a.type === 'play') { if (!playCard(B, B.turn, a.index, a.target)) endTurn(B); }
     else if (a.type === 'attack') { if (!attack(B, B.turn, a.uid, a.target)) endTurn(B); }
@@ -63,7 +65,7 @@ for (const s of scenarios) {
   for (const id of encIds) {
     let win = 0, stuck = 0;
     for (let i = 0; i < RUNS; i++) {
-      const r = run(playerSide(s.team, s.level), enemySide(id));
+      const r = run(playerSide(s.team, s.level), enemySide(id), ENCOUNTERS[id].ia);
       if (r === 'p') win++;
       else if (r === 'stuck') stuck++;
     }

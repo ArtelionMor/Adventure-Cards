@@ -151,6 +151,11 @@
   .sprite img { width: 100%; aspect-ratio: 1; object-fit: contain; }
   .sprite span { font-size: 9px; color: var(--muted); text-align: center; word-break: break-word; }
 
+  /* glisser-deposer d'une carte : la cible se signale, sinon on lache dans le vide */
+  .minicard--drag { opacity: .4; }
+  .minicard--drop { outline: 2px dashed var(--accent); outline-offset: 2px; }
+  .charrow--drop { outline: 2px dashed var(--accent); outline-offset: -2px; }
+
   .issues { display: flex; flex-direction: column; gap: 6px; }
   .issue { font-size: 13px; padding: 8px 10px; border-radius: 9px; background: #241c14; border: 1px solid #4a3a1a; color: var(--warn); }
   .issue--bad { background: #2a1a1f; border-color: #4a2733; color: var(--danger); }
@@ -171,6 +176,7 @@
     <a class="tb-nav__link" href="../game/index.html">Jouer</a>
     <span class="tb-nav__link tb-nav__link--active">Card Builder</span>
     <a class="tb-nav__link" href="overview.html">Vue d'ensemble</a>
+    <a class="tb-nav__link" href="balance.html">Équilibrage</a>
     <a class="tb-nav__link" href="../docs/MECANIQUES-A-CODER.md" target="_blank">Mécaniques à coder</a>
   </div>
   <span class="tb-nav__spacer"></span>
@@ -198,6 +204,19 @@
             <button class="btn btn--sm btn--danger" id="delChar">Supprimer</button>
           </div>
           <div class="charlist" id="charList"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__head"><h2>Adversaires</h2><span class="count" id="npcCount"></span></div>
+        <div class="panel__body">
+          <div class="toolbar" style="margin-bottom:12px;">
+            <button class="btn btn--primary btn--sm" id="newNpc">+ Nouveau</button>
+            <button class="btn btn--sm" id="dupNpc">Dupliquer</button>
+            <button class="btn btn--sm btn--danger" id="delNpc">Supprimer</button>
+          </div>
+          <div class="charlist" id="npcList"></div>
+          <p class="stat" style="margin:10px 0 0;">Leurs decks piochent dans toutes les cartes du jeu : les cartes libres et celles des personnages.</p>
         </div>
       </section>
 
@@ -237,19 +256,27 @@
         <div class="panel__body"><div class="issues" id="issues"></div></div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="npcPanel" style="display:none">
+        <div class="panel__head"><h2>Adversaire</h2><span class="count" id="npcHint"></span></div>
+        <div class="panel__body" id="npcForm"></div>
+      </section>
+
+      <section class="panel" id="charPanel">
         <div class="panel__head"><h2>Personnage</h2><span class="count" id="charHint"></span></div>
         <div class="panel__body" id="charForm"></div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="cardsPanel">
         <div class="panel__head">
           <h2>Cartes</h2>
-          <span class="count">5 slots · une carte de base + sa carte switch</span>
+          <span class="count" id="cardsHint">5 slots · une carte de base + sa carte switch</span>
         </div>
         <div class="panel__body">
-          <div class="colhead"><div></div><div>Carte de base</div><div>Carte switch</div></div>
+          <div class="colhead" id="colhead"><div></div><div>Carte de base</div><div>Carte switch</div></div>
           <div class="slotgrid" id="slots"></div>
+          <div class="toolbar" id="slotsTools" style="margin-top:12px;display:none">
+            <button class="btn btn--sm btn--primary" id="addFree">+ Nouvelle carte libre</button>
+          </div>
         </div>
       </section>
 
@@ -267,18 +294,56 @@
 <script type="module">
 import { SPRITES } from '../game/data/sprites.js';
 import { CHARACTER_DATA } from '../game/data/characters.data.js';
-import { EFFECTS, KEYWORDS, TARGETS, AMPLIFIABLE, TRIGGERS, TOKEN_TRIGGERS, AURA_SCOPES, keyId, keyArg, keyLabel, targetId, targetArg, targetDef, targetLabel } from '../game/src/config/mechanics.js';
+import { EFFECTS, KEYWORDS, TARGETS, AMPLIFIABLE, TRIGGERS, TOKEN_TRIGGERS, BASE_TRIGGERS, EVENTS, EVENT_WHO, eventSlot, AURA_SCOPES, STATICS, CARD_FILTERS, COUNTERS, IMPLEMENTED_AS, keyId, keyArg, keyLabel, keyFields, keyFrom, targetId, targetArg, targetDef, targetLabel, isVariableAmount, describeAmount, describeStatic } from '../game/src/config/mechanics.js';
 import { DEFAULT_TIERS } from '../game/src/config/characters.js';
+import { BALANCE } from '../game/src/config/balance.js';
+import { validateData, eachEffect, eachUnit, tierIssue } from '../game/src/config/validate.js';
 
 // ---------- ETAT ----------
 const LS_KEY = 'adventureCardBuilder.v1';
+// Une mecanique inventee ici finit par etre codee. Le jour ou elle existe dans le
+// moteur, elle n'a plus rien a faire dans `customMechanics` : sinon elle re-apparait
+// « a coder » a chaque fois qu'un vieil onglet applique son brouillon, et elle masque
+// la vraie mecanique du registre. On la retire donc automatiquement, en disant par
+// quoi elle a ete remplacee.
+const dejaCodee = m => !!(m && ((m.kind === 'keyword' ? KEYWORDS : EFFECTS)[m.id] || IMPLEMENTED_AS[m.id]));
+let codeesRetirees = [];
+
+function nettoieCustoms(db) {
+  const liste = db.customMechanics || [];
+  const gardees = liste.filter(m => !dejaCodee(m));
+  const retirees = liste.filter(dejaCodee);
+  if (retirees.length) {
+    db.customMechanics = gardees;
+    codeesRetirees = retirees.map(m => ({
+      label: m.label,
+      comment: IMPLEMENTED_AS[m.id] || `c’est « ${((m.kind === 'keyword' ? KEYWORDS : EFFECTS)[m.id] || {}).label || m.id} », dans le registre du moteur`
+    }));
+  }
+  return db;
+}
+
 const FILE_DATA = structuredClone(CHARACTER_DATA);
-let DB = structuredClone(CHARACTER_DATA);
+let DB = nettoieCustoms(structuredClone(CHARACTER_DATA));
 let selChar = DB.characters[0] ? DB.characters[0].id : null;
 let selCard = { slot: 0, side: 'cards' };   // 'cards' = base, 'switches' = switch
+let selNpc = null;   // un adversaire selectionne remplace l'edition de personnage
+
+// LES CARTES LIBRES sont editees comme un personnage de plus, mais fictif : il n'a
+// ni statistiques ni cartes switch, juste une liste de cartes qui n'appartiennent a
+// aucun deck. C'est ce qui permet de reutiliser tout l'editeur de carte tel quel.
+const LIBRE = '__libre';
+function libreChar() {
+  DB.library = DB.library || [];
+  return { id: LIBRE, virtuel: true, name: 'Cartes libres', sprite: 'UI/Chest.png',
+    stats: { hp: 0, mana: 0, hand: 0 }, cards: DB.library, switches: [] };
+}
+const estLibre = () => selChar === LIBRE;
 
 const $ = s => document.querySelector(s);
-const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// Un parametre peut avoir un nombre pour valeur par defaut : on echappe toujours une
+// chaine, jamais ce qu'on a recu (comme dans overview.html).
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const elt = html => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
 const option = (value, label, current) =>
   '<option value="' + esc(value) + '"' + (value === current ? ' selected' : '') + '>' + esc(label) + '</option>';
@@ -308,6 +373,14 @@ function allKeywords() {
   for (const m of customs()) if (m.kind === 'keyword') o[m.id] = { label: m.label, desc: m.desc, params: m.params || [], implemented: !!m.implemented, custom: true };
   return o;
 }
+/** Les effets statiques, presentes comme un registre d'effets : `effectRow` sait
+ *  dessiner n'importe quel registre {label, desc, params}, on ne redessine donc rien. */
+function allStatics() {
+  const o = {};
+  for (const [id, d] of Object.entries(STATICS)) o[id] = { ...d, implemented: true };
+  return o;
+}
+
 /** Un mot-cle a parametre s'ecrit « id:valeur » : il ne peut pas etre choisi dans
  *  un simple menu deroulant (aura, renfort, palier), qui n'a pas de champ pour la
  *  valeur. On ne propose donc que les mots-cles simples a ces endroits-la. */
@@ -386,7 +459,7 @@ function renderDraftBar() {
       <button class="btn btn--sm" id="dropDraft">Jeter</button>
     </div>`;
   bar.querySelector('#useDraft').onclick = () => {
-    DB = draft.db;
+    DB = nettoieCustoms(draft.db);
     selChar = DB.characters[0] ? DB.characters[0].id : null;
     selCard = { slot: 0, side: 'cards' };
     draft = null;
@@ -431,7 +504,8 @@ function dataFileContent() {
   // Ouvrir une carte dans l'editeur initialise ses listes de moments : on ne les
   // ecrit pas si elles sont restees vides, sinon le fichier se remplit de bruit.
   const clean = structuredClone(DB);
-  for (const c of clean.characters) {
+  // Les cartes libres sont des cartes comme les autres : meme menage.
+  for (const c of [{ cards: clean.library || [], switches: [] }, ...clean.characters]) {
     for (const side of ['cards', 'switches']) {
       for (const card of c[side] || []) {
         if (!card) continue;
@@ -453,31 +527,6 @@ function dataFileContent() {
   return '// DONNEES DE JEU — genere et re-ecrit par le Card Builder (/builder/).\n'
     + '// Tu peux l\'editer a la main, mais le builder est fait pour ca : ouvre-le plutot.\n'
     + 'export const CHARACTER_DATA = ' + JSON.stringify(clean, null, 2) + ';\n';
-}
-
-// ---------- PARCOURS D'UNE CARTE ----------
-// Un jeton invoque porte des mots-cles et des moments comme une carte : tout ce qui
-// inspecte une carte (validation, compte des mecaniques a coder, fichier de suivi)
-// doit donc descendre dedans, sinon une mecanique se cache dans un jeton.
-
-/** Chaque effet d'une carte : ses moments, ses paliers, et ceux de ses jetons. */
-function eachEffect(card, fn) {
-  const lists = [];
-  const holder = h => { for (const slot of Object.keys(TRIGGERS)) if ((h[slot] || []).length) lists.push(h[slot]); };
-  holder(card);
-  for (const t of card.tiers || []) if (t.extra) lists.push([t.extra]);
-  while (lists.length) {
-    for (const e of lists.pop()) {
-      fn(e);
-      if (e.op === 'summon' && e.unit) holder(e.unit);
-    }
-  }
-}
-
-/** Chaque unite d'une carte : elle-meme si c'est un allie, plus chaque jeton invoque. */
-function eachUnit(card, fn) {
-  if (card.type === 'ally') fn(card);
-  eachEffect(card, e => { if (e.op === 'summon' && e.unit) fn(e.unit); });
 }
 
 /** Le fichier special : ce qu'il reste a coder, et ou. */
@@ -542,66 +591,12 @@ function mechanicsDoc() {
 
 // ---------- VALIDATION ----------
 function validate() {
-  const out = [];
-  const eff = allEffects(), kw = allKeywords();
-  const ids = new Set();
-  for (const c of DB.characters) {
-    if (ids.has(c.id)) out.push({ bad: true, msg: `Deux personnages ont l'identifiant « ${c.id} ».` });
-    ids.add(c.id);
-    if (!c.id) out.push({ bad: true, msg: `« ${c.name} » n'a pas d'identifiant.` });
-    for (const side of ['cards', 'switches']) {
-      const n = (c[side] || []).filter(Boolean).length;
-      if (n !== 5) out.push({ bad: side === 'cards', msg: `${c.name} — ${n}/5 ${side === 'cards' ? 'cartes de base' : 'cartes switch'} remplies.` });
-      (c[side] || []).forEach((card, i) => {
-        if (!card) return;
-        // Effets de la carte et de ses jetons.
-        eachEffect(card, e => {
-          if (!eff[e.op]) out.push({ bad: true, msg: `${c.name} · ${card.name} — effet inconnu « ${e.op} ».` });
-          else if (!eff[e.op].implemented) out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${eff[e.op].label} » reste à coder.` });
-        });
-        // Mots-cles de la carte et de ses jetons.
-        eachUnit(card, u => {
-          const ou = u === card ? '' : ` (jeton « ${u.name} »)`;
-          for (const k of u.keys || []) {
-            const d = kw[keyId(k)];
-            if (!d) out.push({ bad: true, msg: `${c.name} · ${card.name}${ou} — mot-clé inconnu « ${keyId(k)} ».` });
-            else if (!d.implemented) out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — mot-clé « ${d.label} » reste à coder.` });
-            else if ((d.params || []).length && !keyArg(k)) out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — mot-clé « ${d.label} » sans valeur : il ne servira à rien.` });
-          }
-        });
-        // « Lui » en tete de liste ne designe rien : aucun effet ne l'a precede.
-        for (const [slot, def] of Object.entries(TRIGGERS)) {
-          if ((card[slot] || [])[0] && card[slot][0].t === 'previous')
-            out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${def.label} » commence par « Lui » : aucun effet ne le précède, la cible sera vide.` });
-        }
-        for (const t of card.tiers || []) {
-          const w = tierIssue(card, t);
-          if (w) out.push({ bad: false, msg: `${c.name} · ${card.name} — palier ${t.lvl} sans effet : ${w}` });
-        }
-        // Une cible comme « Elle-meme » n'a pas de porteur sur un sort.
-        for (const slot of Object.keys(TRIGGERS)) {
-          for (const e of card[slot] || []) {
-            const tdef = targetDef(e.t);
-            if (tdef && tdef.allyOnly && card.type !== 'ally')
-              out.push({ bad: true, msg: `${c.name} · ${card.name} — cible « ${tdef.label} » impossible sur un sort.` });
-            // Une cible par type sans type écrit ne trouvera jamais personne.
-            if (tdef && (tdef.params || []).length && !targetArg(e.t))
-              out.push({ bad: false, msg: `${c.name} · ${card.name} — cible « ${tdef.label} » sans type : elle ne touchera personne.` });
-          }
-        }
-        // Un sort ne reste pas en jeu : ses moments d'unite ne partiraient jamais.
-        if (card.type !== 'ally') {
-          for (const [slot, def] of Object.entries(TRIGGERS)) {
-            if (def.allyOnly && (card[slot] || []).length)
-              out.push({ bad: true, msg: `${c.name} · ${card.name} — « ${def.label} » sur un sort ne se déclenchera jamais.` });
-          }
-          if (card.aura) out.push({ bad: true, msg: `${c.name} · ${card.name} — une aura sur un sort ne s'appliquera jamais.` });
-        }
-      });
-    }
-  }
-  for (const s of DB.starters || []) if (!ids.has(s)) out.push({ bad: true, msg: `Le personnage de départ « ${s} » n'existe plus.` });
-  return out;
+  // Ce qui vient d'etre code : on le signale une fois, pour que tu saches ou c'est passe.
+  const out = codeesRetirees.map(m =>
+    ({ bad: false, msg: `« ${m.label} » est codée : ${m.comment}. Retirée de la liste « à coder ».` }));
+  // Les regles, elles, vivent dans game/src/config/validate.js : le builder et
+  // `node scripts/check-decks.mjs` appliquent ainsi exactement les memes.
+  return [...out, ...validateData(DB, allEffects(), allKeywords())];
 }
 
 // ---------- MODELES ----------
@@ -619,33 +614,80 @@ function emptyChar() {
     switches: Array.from({ length: 5 }, (_, i) => emptyCard('ally', 'Switch ' + (i + 1)))
   };
 }
-const char = () => DB.characters.find(c => c.id === selChar) || null;
+const char = () => (selChar === LIBRE ? libreChar() : DB.characters.find(c => c.id === selChar) || null);
+const npcs = () => (DB.npcs = DB.npcs || []);
+const npc = () => npcs().find(n => n.id === selNpc) || null;
 const card = () => { const c = char(); return c ? (c[selCard.side] || [])[selCard.slot] : null; };
 
 // ---------- RENDU : liste des personnages ----------
 function renderChars() {
   const list = $('#charList');
   list.innerHTML = '';
+  // Les cartes libres, en tete : des cartes sans deck, que les adversaires (et plus
+  // tard les heros) peuvent reprendre.
+  const libre = libreChar();
+  const rowLibre = document.createElement('div');
+  // Un adversaire selectionne : plus rien n'est actif dans la liste des personnages.
+  rowLibre.className = 'charrow' + (estLibre() && !selNpc ? ' charrow--active' : '');
+  rowLibre.innerHTML = `<img src="${asset(libre.sprite)}" alt="">
+    <div style="flex:1;min-width:0">
+      <div class="nm">Cartes libres</div>
+      <div class="sub">${libre.cards.length} carte(s) sans deck</div>
+    </div>`;
+  rowLibre.onclick = () => { selNpc = null; selChar = LIBRE; selCard = { slot: 0, side: 'cards' }; renderAll(); };
+  cibleDeDepot(rowLibre, 'charrow--drop', src => deposeChez(LIBRE, src));
+  list.appendChild(rowLibre);
+
   for (const c of DB.characters) {
     const starter = (DB.starters || []).includes(c.id);
     const row = document.createElement('div');
-    row.className = 'charrow' + (c.id === selChar ? ' charrow--active' : '');
+    row.className = 'charrow' + (c.id === selChar && !selNpc ? ' charrow--active' : '');
     row.innerHTML = `<img src="${asset(c.sprite)}" alt="">
       <div style="flex:1;min-width:0">
         <div class="nm">${esc(c.name)}</div>
         <div class="sub">${esc(c.species || '—')} · ${(c.cards || []).filter(Boolean).length}/5 cartes</div>
       </div>
       ${starter ? '<span class="badge badge--star">tuto</span>' : ''}`;
-    row.onclick = () => { selChar = c.id; selCard = { slot: 0, side: 'cards' }; renderAll(); };
+    row.onclick = () => { selNpc = null; selChar = c.id; selCard = { slot: 0, side: 'cards' }; renderAll(); };
+    // Lacher une carte ici la donne a ce personnage : c'est la seule facon de passer
+    // d'un heros a l'autre, ses slots n'etant pas a l'ecran.
+    cibleDeDepot(row, 'charrow--drop', src => deposeChez(c.id, src));
     list.appendChild(row);
   }
   $('#charCount').textContent = DB.characters.length + ' persos';
+}
+
+// ---------- RENDU : liste des adversaires ----------
+function renderNpcs() {
+  const list = $('#npcList');
+  list.innerHTML = '';
+  for (const n of npcs()) {
+    const row = document.createElement('div');
+    row.className = 'charrow' + (n.id === selNpc ? ' charrow--active' : '');
+    const cartes = (n.deck || []).reduce((a, l) => a + (l.n || 1), 0);
+    row.innerHTML = `<img src="${asset(n.sprite || 'Characters/Dog.png')}" alt="">
+      <div style="flex:1;min-width:0">
+        <div class="nm">${esc(n.name)}</div>
+        <div class="sub">${n.hp} PV · ${cartes} carte(s)</div>
+      </div>
+      ${n.boss ? '<span class="badge badge--star">boss</span>' : ''}`;
+    row.onclick = () => { selNpc = n.id; renderAll(); };
+    list.appendChild(row);
+  }
+  $('#npcCount').textContent = npcs().length + ' PNJ';
 }
 
 // ---------- RENDU : fiche personnage ----------
 function renderCharForm() {
   const c = char();
   const box = $('#charForm');
+  if (estLibre()) {
+    $('#charHint').textContent = 'sans deck';
+    box.innerHTML = `<p class="stat">Des cartes qui n'appartiennent à aucun slot de personnage.
+      Elles servent aux decks des adversaires, et peuvent être reprises par un héros plus tard.
+      Elles ne partent dans aucun deck toutes seules.</p>`;
+    return;
+  }
   if (!c) { box.innerHTML = '<p class="stat">Aucun personnage. Crée-en un.</p>'; $('#charHint').textContent = ''; return; }
   $('#charHint').textContent = c.id;
 
@@ -699,6 +741,54 @@ function renderCharForm() {
   box.querySelector('#pickSprite').onclick = () => pickSprite(p => { c.sprite = p; save(); renderAll(); });
 }
 
+/**
+ * Poser une carte libre dans le deck d'un personnage. La carte libre RESTE dans la
+ * bibliotheque (les adversaires qui la jouent la gardent) : c'est une copie qui part,
+ * avec son propre identifiant, sinon deux cartes differentes porteraient le meme.
+ */
+function donneCarte(cd) {
+  if (!DB.characters.length) { toast('Aucun personnage.'); return; }
+  openModal('Donner « ' + cd.name + ' » à un personnage', `
+    <div class="grid3">
+      <div class="field"><label>Personnage</label>
+        <select class="select" id="gChar">${DB.characters.map(c => option(c.id, c.name, DB.characters[0].id)).join('')}</select></div>
+      <div class="field"><label>Slot</label>
+        <select class="select" id="gSlot">${[0, 1, 2, 3, 4].map(i => option(String(i), 'Slot ' + (i + 1), '0')).join('')}</select></div>
+      <div class="field"><label>Place</label>
+        <select class="select" id="gSide">${option('cards', 'Carte de base', 'cards')}${option('switches', 'Carte switch', 'cards')}</select></div>
+    </div>
+    <p class="stat" id="gQuoi"></p>
+    <hr class="sep">
+    <div class="toolbar">
+      <button class="btn btn--primary" id="gOk">Poser la carte</button>
+      <button class="btn" id="gCancel">Annuler</button>
+    </div>`);
+  const box = $('#modalBox');
+  const occupant = () => {
+    const c = DB.characters.find(x => x.id === box.querySelector('#gChar').value);
+    return c ? (c[box.querySelector('#gSide').value] || [])[+box.querySelector('#gSlot').value] : null;
+  };
+  const maj = () => {
+    const o = occupant();
+    box.querySelector('#gQuoi').textContent = o ? `Ce slot contient « ${o.name} » : elle sera remplacée.` : 'Ce slot est vide.';
+  };
+  box.querySelectorAll('select').forEach(n => n.onchange = maj);
+  maj();
+  box.querySelector('#gCancel').onclick = closeModal;
+  box.querySelector('#gOk').onclick = () => {
+    const c = DB.characters.find(x => x.id === box.querySelector('#gChar').value);
+    const side = box.querySelector('#gSide').value, slot = +box.querySelector('#gSlot').value;
+    const copie = structuredClone(cd);
+    copie.id = slug(c.id + '_' + cd.name) || ('card_' + Math.random().toString(36).slice(2, 8));
+    c[side] = c[side] || [];
+    c[side][slot] = copie;
+    closeModal();
+    selNpc = null; selChar = c.id; selCard = { slot, side };
+    save(); renderAll();
+    toast('Carte posée chez ' + c.name + '.');
+  };
+}
+
 function pickSprite(done) {
   const folders = Object.keys(SPRITES);
   let cur = 'Characters';
@@ -717,22 +807,121 @@ function pickSprite(done) {
   draw();
 }
 
+// ---------- DEPLACER UNE CARTE ----------
+// Une carte se traine d'un slot a l'autre, et d'un personnage a l'autre en la lachant
+// sur sa ligne dans la liste de gauche (les slots d'un autre personnage ne sont pas
+// affiches, c'est la seule cible qui existe toujours). Lacher sur un slot occupe
+// echange les deux cartes : c'est ce qu'on veut quand on reordonne un deck.
+let glisse = null;   // { char, side, slot } de la carte en cours de deplacement
+
+const porteur = id => (id === LIBRE ? libreChar() : DB.characters.find(c => c.id === id) || null);
+const litSlot = ref => { const c = porteur(ref.char); return c ? (c[ref.side] || [])[ref.slot] : null; };
+function ecritSlot(ref, carte) {
+  const c = porteur(ref.char);
+  if (!c) return;
+  c[ref.side] = c[ref.side] || [];
+  c[ref.side][ref.slot] = carte;
+}
+/** Retirer une carte : un slot de personnage se vide, une carte libre disparait. */
+function retireSlot(ref) {
+  const c = porteur(ref.char);
+  if (!c) return;
+  if (ref.char === LIBRE) c.cards.splice(ref.slot, 1);
+  else c[ref.side][ref.slot] = null;
+}
+
+/** Echange deux slots (l'un peut etre vide : c'est alors un simple deplacement). */
+function echangeSlots(a, b) {
+  if (a.char === b.char && a.side === b.side && a.slot === b.slot) return;
+  const ca = litSlot(a), cb = litSlot(b);
+  if (a.char === LIBRE && b.char !== LIBRE) {
+    // Sortir de la bibliotheque : la carte quitte la liste, l'ancienne occupante y entre.
+    ecritSlot(b, ca);
+    retireSlot(a);
+    if (cb) porteur(LIBRE).cards.push(cb);
+  } else if (b.char === LIBRE && a.char !== LIBRE) {
+    ecritSlot(a, cb || null);
+    porteur(LIBRE).cards[b.slot] = ca;
+    if (!cb) retireSlot(a);
+  } else {
+    ecritSlot(a, cb || null);
+    ecritSlot(b, ca);
+    if (a.char === LIBRE && !cb) retireSlot(a);
+  }
+  save(); renderAll();
+}
+
+/** Deposer une carte chez un personnage : premier slot libre, ou la bibliotheque. */
+function deposeChez(charId, ref) {
+  const carte = litSlot(ref);
+  if (!carte) return;
+  if (charId === ref.char) return;
+  if (charId === LIBRE) {
+    porteur(LIBRE).cards.push(carte);
+    retireSlot(ref);
+    save(); renderAll();
+    toast('Carte déplacée vers les cartes libres.');
+    return;
+  }
+  const cible = porteur(charId);
+  const side = ['cards', 'switches'].find(sd => {
+    for (let i = 0; i < 5; i++) if (!(cible[sd] || [])[i]) return true;
+    return false;
+  });
+  if (!side) { toast(`${cible.name} n'a plus de slot libre.`); return; }
+  let slot = 0;
+  while ((cible[side] || [])[slot]) slot++;
+  ecritSlot({ char: charId, side, slot }, carte);
+  retireSlot(ref);
+  save();
+  selNpc = null; selChar = charId; selCard = { slot, side };
+  renderAll();
+  toast(`« ${carte.name} » posée chez ${cible.name} (${side === 'cards' ? 'base' : 'switch'} ${slot + 1}).`);
+}
+
+/** Les evenements de depot sur une cible quelconque. */
+function cibleDeDepot(n, classe, quandLache) {
+  n.ondragover = e => { if (glisse) { e.preventDefault(); n.classList.add(classe); } };
+  n.ondragleave = () => n.classList.remove(classe);
+  n.ondrop = e => {
+    e.preventDefault();
+    n.classList.remove(classe);
+    if (glisse) quandLache(glisse);
+    glisse = null;
+  };
+}
+
 // ---------- RENDU : slots de cartes ----------
 function renderSlots() {
   const c = char();
   const wrap = $('#slots');
   wrap.innerHTML = '';
+  // Les cartes libres n'ont ni nombre fixe de slots ni carte switch : une seule
+  // colonne, autant de lignes que de cartes, et un bouton pour en ajouter une.
+  const libre = estLibre();
+  $('#colhead').style.display = libre ? 'none' : '';
+  $('#slotsTools').style.display = libre ? '' : 'none';
+  $('#cardsHint').textContent = libre
+    ? `${(c ? c.cards : []).length} carte(s) libre(s)`
+    : '5 slots · une carte de base + sa carte switch';
+  $('#slots').style.gridTemplateColumns = '';
   if (!c) return;
   const eff = allEffects(), kw = allKeywords();
 
-  for (let i = 0; i < 5; i++) {
+  const lignes = libre ? Math.max(1, c.cards.length) : 5;
+  for (let i = 0; i < lignes; i++) {
     const row = document.createElement('div');
     row.className = 'slotrow';
+    if (libre) row.style.gridTemplateColumns = '34px 1fr';
     row.innerHTML = `<div class="slotnum">${i + 1}</div>`;
-    for (const side of ['cards', 'switches']) {
+    for (const side of (libre ? ['cards'] : ['cards', 'switches'])) {
       const cd = (c[side] || [])[i];
       const active = selCard.slot === i && selCard.side === side;
       const n = document.createElement('div');
+      const ref = { char: c.id, side, slot: i };
+      // Tout slot est une cible de depot, meme vide : deplacer dans un trou est le
+      // geste le plus naturel pour reordonner.
+      cibleDeDepot(n, 'minicard--drop', src => echangeSlots(src, ref));
       if (!cd) {
         n.className = 'minicard minicard--empty' + (active ? ' minicard--active' : '');
         n.textContent = '+ créer la carte';
@@ -748,9 +937,10 @@ function renderSlots() {
         eachUnit(cd, u => ids.push(...(u.keys || []).map(keyId)));
         const todo = ids.filter(id => { const d = eff[id] || kw[id]; return !d || !d.implemented; });
         n.className = 'minicard' + (cd.type === 'spell' ? ' minicard--spell' : '') + (active ? ' minicard--active' : '');
+        // Les libelles d'evenement sont longs : dans la vignette on garde le nom court.
         const moments = Object.entries(TRIGGERS)
           .filter(([slot, def]) => slot !== 'play' && (cd[slot] || []).length)
-          .map(([, def]) => def.label);
+          .map(([, def]) => def.event ? def.label.replace('Quand ', '⚡ ') : def.label);
         if (cd.aura) moments.push('Aura');
         n.innerHTML = `<div class="tag">${cd.cost}⬤${cd.type === 'ally' ? ' · ' + cd.atk + '/' + cd.hp : ''}</div>
           <div class="nm">${esc(cd.name)}</div>
@@ -758,11 +948,125 @@ function renderSlots() {
           ${moments.length ? `<div class="tx" style="color:var(--accent-2)">◆ ${esc(moments.join(' · '))}</div>` : ''}
           ${todo.length ? `<div class="warn">⚠ ${todo.length} mécanique(s) à coder</div>` : ''}`;
         n.onclick = () => { selCard = { slot: i, side }; renderCardForm(); renderSlots(); };
+        n.draggable = true;
+        n.ondragstart = ev => {
+          glisse = ref;
+          n.classList.add('minicard--drag');
+          ev.dataTransfer.effectAllowed = 'move';
+          // Firefox ne demarre pas un glisser sans donnees : on met le nom, ca sert aussi
+          // si on lache la carte dans un champ texte.
+          ev.dataTransfer.setData('text/plain', cd.name);
+        };
+        n.ondragend = () => { n.classList.remove('minicard--drag'); glisse = null; };
       }
       row.appendChild(n);
     }
     wrap.appendChild(row);
   }
+}
+
+/** Toutes les cartes du jeu, rangees par provenance : le menu ou piochent les PNJ. */
+function catalogue() {
+  const out = [];
+  for (const c of DB.library || []) if (c) out.push({ id: c.id, card: c, origine: 'Cartes libres' });
+  for (const ch of DB.characters) {
+    for (const cote of ['cards', 'switches']) {
+      for (const c of ch[cote] || []) {
+        if (!c) continue;
+        out.push({ id: c.id, card: c, origine: `${ch.name} · ${cote === 'cards' ? 'base' : 'switch'}` });
+      }
+    }
+  }
+  return out;
+}
+
+// ---------- RENDU : fiche adversaire ----------
+function renderNpcForm() {
+  const n = npc();
+  const box = $('#npcForm');
+  if (!n) { box.innerHTML = '<p class="stat">Aucun adversaire.</p>'; $('#npcHint').textContent = ''; return; }
+  $('#npcHint').textContent = n.id;
+  const cat = catalogue();
+  const total = (n.deck || []).reduce((a, l) => a + (l.n || 1), 0);
+  const niveaux = Object.keys(BALANCE.ai.niveaux);
+
+  box.innerHTML = `
+    <div style="display:grid;grid-template-columns:110px 1fr;gap:16px;align-items:start">
+      <div>
+        <img src="${asset(n.sprite || 'Characters/Dog.png')}" style="width:110px;aspect-ratio:1;object-fit:contain;background:var(--bg);border:1px solid var(--line);border-radius:12px">
+        <button class="btn btn--sm" id="nSprite" style="width:100%;margin-top:8px">Changer</button>
+      </div>
+      <div>
+        <div class="grid2">
+          <div class="field"><label>Nom</label><input class="input" id="nName" value="${esc(n.name)}"></div>
+          <div class="field"><label>Identifiant (code)</label><input class="input" id="nId" value="${esc(n.id)}"></div>
+        </div>
+        <div class="grid3">
+          <div class="field"><label>PV</label><input class="input" type="number" id="nHp" value="${n.hp}"></div>
+          <div class="field"><label>Mana max</label><input class="input" type="number" id="nMana" value="${n.mana}"></div>
+          <div class="field"><label>Cartes en main</label><input class="input" type="number" id="nHand" value="${n.hand}"></div>
+        </div>
+        <div class="grid3">
+          <div class="field"><label>Niveau des cartes</label><input class="input" type="number" min="1" id="nLevel" value="${n.level || 1}"></div>
+          <div class="field"><label>Niveau de jeu du bot</label>
+            <select class="select" id="nIa">
+              <option value="">— celui par défaut (${esc(BALANCE.ai.defaut)}) —</option>
+              ${niveaux.map(x => `<option value="${x}" ${n.ia === x ? 'selected' : ''}>${x}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label>Rang</label>
+            <label class="chip ${n.boss ? 'chip--on' : ''}" id="nBoss" style="cursor:pointer;margin-top:6px">Boss</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="field">
+      <label>Deck <span style="text-transform:none;letter-spacing:0">— ${total} carte(s) ; pioche dans les cartes libres et dans celles des personnages</span></label>
+      <div id="nDeck"></div>
+      <button class="btn btn--sm" id="nAdd" style="margin-top:8px">+ Ajouter une carte</button>
+    </div>`;
+
+  const bind = (sel, fn) => { const x = box.querySelector(sel); x.oninput = () => { fn(x.value); save(); }; };
+  bind('#nName', v => { n.name = v; renderNpcs(); });
+  bind('#nHp', v => { n.hp = +v || 0; renderNpcs(); });
+  bind('#nMana', v => { n.mana = +v || 0; });
+  bind('#nHand', v => { n.hand = +v || 0; });
+  bind('#nLevel', v => { n.level = Math.max(1, +v || 1); });
+  box.querySelector('#nIa').onchange = e => { if (e.target.value) n.ia = e.target.value; else delete n.ia; save(); };
+  box.querySelector('#nBoss').onclick = () => { if (n.boss) delete n.boss; else n.boss = true; save(); renderAll(); };
+  box.querySelector('#nSprite').onclick = () => pickSprite(pth => { n.sprite = pth; save(); renderAll(); });
+  box.querySelector('#nId').onchange = e => {
+    const old = n.id, nid = slug(e.target.value) || old;
+    if (npcs().some(x => x !== n && x.id === nid)) { toast('Identifiant déjà pris.'); e.target.value = old; return; }
+    n.id = nid; selNpc = nid; save(); renderAll();
+  };
+
+  // Le deck, ligne par ligne : une carte du catalogue et combien d'exemplaires.
+  const liste = box.querySelector('#nDeck');
+  n.deck = n.deck || [];
+  n.deck.forEach((ligne, i) => {
+    const connue = cat.some(e => e.id === ligne.card);
+    const ligneBox = elt(`<div class="rowbox" style="margin-bottom:8px">
+      <div class="rowbox__head">
+        <select class="select js-card">
+          ${connue ? '' : `<option value="${esc(ligne.card)}" selected>⚠ ${esc(ligne.card)} (n'existe plus)</option>`}
+          ${cat.map(e => `<option value="${esc(e.id)}" ${e.id === ligne.card ? 'selected' : ''}>${esc(e.card.name)} — ${esc(e.origine)} (${e.card.cost}⬤)</option>`).join('')}
+        </select>
+        <input class="input js-n" type="number" min="1" max="20" style="width:80px" value="${ligne.n || 1}">
+        <button class="btn btn--sm btn--danger js-del">✕</button>
+      </div>
+    </div>`);
+    ligneBox.querySelector('.js-card').onchange = e => { ligne.card = e.target.value; save(); renderAll(); };
+    ligneBox.querySelector('.js-n').oninput = e => { ligne.n = Math.max(1, +e.target.value || 1); save(); renderNpcs(); };
+    ligneBox.querySelector('.js-del').onclick = () => { n.deck.splice(i, 1); save(); renderAll(); };
+    liste.appendChild(ligneBox);
+  });
+  if (!n.deck.length) liste.appendChild(elt('<p class="stat">Deck vide : ce PNJ n\'a rien à jouer.</p>'));
+  box.querySelector('#nAdd').onclick = () => {
+    n.deck.push({ card: (cat[0] || {}).id || '', n: 2 });
+    save(); renderAll();
+  };
 }
 
 // ---------- RENDU : editeur de carte ----------
@@ -803,6 +1107,7 @@ function renderCardForm() {
     <div class="field">
       <div id="cTriggers"></div>
       <div id="cAura"></div>
+      <div id="cStatics"></div>
     </div>
     <hr class="sep">
     <div class="field">
@@ -840,10 +1145,13 @@ function renderCardForm() {
 
   // mots-cles, moments et aura : les memes blocs que pour un jeton invoque.
   keywordChips(main.querySelector('#cKeys'), cd);
+  // Un sort ne reste pas en jeu : un effet statique n'y durerait pas une seconde.
+  if (cd.type === 'ally') staticsField(main.querySelector('#cStatics'), cd);
 
   // Les moments reserves aux unites disparaissent quand la carte est un sort : un sort
   // ne reste pas en jeu, il ne peut ni mourir ni voir passer un debut de tour.
   const slots = Object.keys(TRIGGERS).filter(slot => !TRIGGERS[slot].allyOnly || cd.type === 'ally');
+  // Un sort ne reste pas en jeu : il n'ecoute rien. `allyOnly` s'en occupe deja.
   triggerFields(main.querySelector('#cTriggers'), cd, slots, { depth: 0, unit: cd.type === 'ally' });
 
   if (cd.type === 'ally') main.querySelector('#cAura').appendChild(auraField(cd));
@@ -868,10 +1176,15 @@ function renderCardForm() {
   const actions = document.createElement('div');
   actions.className = 'toolbar';
   actions.style.marginTop = '12px';
-  actions.innerHTML = `<button class="btn btn--sm" id="copyOther">Copier vers ${selCard.side === 'cards' ? 'le switch' : 'la base'}</button>
-    <button class="btn btn--sm btn--danger" id="delCard">Supprimer</button>`;
+  // Une carte libre n'a pas de switch en face : rien a copier. En revanche elle peut
+  // etre donnee a un heros — c'est a ca que sert la bibliotheque : un banc d'essai.
+  actions.innerHTML = (estLibre()
+    ? `<button class="btn btn--sm" id="giveCard">Donner à un personnage</button>`
+    : `<button class="btn btn--sm" id="copyOther">Copier vers ${selCard.side === 'cards' ? 'le switch' : 'la base'}</button>`)
+    + `<button class="btn btn--sm" id="dupCard">Dupliquer</button>`
+    + `<button class="btn btn--sm btn--danger" id="delCard">Supprimer</button>`;
   side.appendChild(actions);
-  actions.querySelector('#copyOther').onclick = () => {
+  if (actions.querySelector('#copyOther')) actions.querySelector('#copyOther').onclick = () => {
     const other = selCard.side === 'cards' ? 'switches' : 'cards';
     c[other] = c[other] || [];
     const copy = structuredClone(cd);
@@ -880,9 +1193,44 @@ function renderCardForm() {
     save(); renderAll();
     toast('Carte copiée.');
   };
+  if (actions.querySelector('#giveCard')) actions.querySelector('#giveCard').onclick = () => donneCarte(cd);
+  actions.querySelector('#dupCard').onclick = () => {
+    const copie = structuredClone(cd);
+    copie.id = (cd.id || 'card') + '_copie';
+    copie.name = cd.name + ' (copie)';
+    if (estLibre()) {
+      c.cards.push(copie);
+      selCard = { slot: c.cards.length - 1, side: 'cards' };
+    } else {
+      // Premier slot libre du personnage, base puis switch.
+      let place = null;
+      for (const sd of ['cards', 'switches']) {
+        for (let i = 0; i < 5 && !place; i++) if (!(c[sd] || [])[i]) place = { char: c.id, side: sd, slot: i };
+      }
+      if (!place) porteur(LIBRE).cards.push(copie);
+      else { ecritSlot(place, copie); selCard = { slot: place.slot, side: place.side }; }
+      var versLibres = !place;
+    }
+    save(); renderAll();
+    // Un seul message, et il dit OU la copie a atterri : sans slot libre elle part
+    // dans la bibliotheque, et sinon on ne la retrouverait pas.
+    toast(typeof versLibres !== 'undefined' && versLibres
+      ? 'Aucun slot libre : la copie est dans les cartes libres.'
+      : 'Carte dupliquée.');
+  };
   actions.querySelector('#delCard').onclick = () => {
-    if (!confirm('Supprimer « ' + cd.name + ' » ?')) return;
-    c[selCard.side][selCard.slot] = null;
+    // Un slot de personnage se vide (il en faut toujours 5) ; une carte libre, elle,
+    // disparait de la liste — sinon on garderait des trous dans la bibliotheque.
+    const utilisee = estLibre() ? npcs().filter(n => (n.deck || []).some(l => l.card === cd.id)) : [];
+    const avertissement = utilisee.length
+      ? `\n\nElle est dans le deck de : ${utilisee.map(n => n.name).join(', ')}.` : '';
+    if (!confirm('Supprimer « ' + cd.name + ' » ?' + avertissement)) return;
+    if (estLibre()) {
+      c.cards.splice(selCard.slot, 1);
+      selCard = { slot: Math.max(0, selCard.slot - 1), side: 'cards' };
+    } else {
+      c[selCard.side][selCard.slot] = null;
+    }
     save(); renderAll();
   };
 }
@@ -908,6 +1256,7 @@ function renderPreview() {
       ${Object.entries(TRIGGERS).filter(([slot]) => (cd[slot] || []).length).map(([slot, def]) =>
         `<div class="preview__tx"><b>${esc(def.label)}</b> : ${cd[slot].map(e => esc(describe(e, eff))).join(' · ')}</div>`).join('')}
       ${cd.aura ? `<div class="preview__tx"><b>Aura</b> : ${esc(auraText(cd.aura))}</div>` : ''}
+      ${(cd.statics || []).length ? `<div class="preview__tx"><b>Statique</b> : ${cd.statics.map(m => esc(describeStatic(m))).join(' · ')}</div>` : ''}
       ${(cd.tiers || []).map(t => `<div class="preview__tier" ${tierIssue(cd, t) ? 'style="color:var(--warn)"' : ''}>${tierIssue(cd, t) ? '⚠' : '🔒'} Niveau ${t.lvl} — ${esc(t.text || tierText(t))}</div>`).join('')}
     </div>`;
   if (first) first.outerHTML = html; else side.insertAdjacentHTML('afterbegin', html);
@@ -918,14 +1267,16 @@ function describe(e, eff) {
   if (!d) return '⚠ « ' + e.op +' » inconnu';
   if (!d.implemented) return '⚠ ' + d.label + ' (à coder)';
   const t = e.t ? ' → ' + targetLabel(e.t) : '';
+  const n = k => describeAmount(e[k]);
   switch (e.op) {
-    case 'dmg': return e.v + ' dégâts' + t;
-    case 'heal': return 'soigne ' + e.v + t;
-    case 'buff': return '+' + (e.atk || 0) + '/+' + (e.hp || 0) + (e.key ? ' et ' + e.key : '') + t;
-    case 'draw': return 'pioche ' + e.v;
-    case 'armor': return e.v + ' armure';
-    case 'mana': return '+' + e.v + ' mana ce tour';
-    case 'mana_au_prochain_tour': return '+' + (e.x || 0) + ' mana au prochain tour';
+    case 'dmg': return n('v') + ' dégâts' + t;
+    case 'detruit': return 'détruit' + t;
+    case 'heal': return 'soigne ' + n('v') + t;
+    case 'buff': return '+' + n('atk') + '/+' + n('hp') + (e.key ? ' et ' + e.key : '') + t;
+    case 'draw': return 'pioche ' + n('v');
+    case 'armor': return n('v') + ' armure';
+    case 'mana': return '+' + n('v') + ' mana ce tour';
+    case 'mana_au_prochain_tour': return '+' + n('x') + ' mana au prochain tour';
     case 'summon': {
       if (!e.unit) return 'invoque ' + (e.n || 1) + ' × ?';
       const dons = [
@@ -933,34 +1284,12 @@ function describe(e, eff) {
         ...TOKEN_TRIGGERS.filter(slot => (e.unit[slot] || []).length).map(slot => TRIGGERS[slot].label),
         ...(e.unit.aura ? ['Aura'] : [])
       ];
-      return 'invoque ' + (e.n || 1) + ' × ' + e.unit.name + ' ' + e.unit.atk + '/' + e.unit.hp
+      return 'invoque ' + describeAmount(e.n === undefined ? 1 : e.n) + ' × ' + e.unit.name + ' ' + e.unit.atk + '/' + e.unit.hp
         + (dons.length ? ' (' + dons.join(', ') + ')' : '');
     }
     default: return d.label;
   }
 }
-// Un palier peut etre parfaitement valide et ne rien faire du tout sur SA carte :
-// amplifier une carte qui ne fait que piocher, donner un mot-cle a un sort...
-// On le dit tout de suite plutot que de laisser la carte mentir au joueur.
-function tierIssue(cd, t) {
-  if (!cd) return null;
-  if (t.amp !== undefined) {
-    const ampliable = Object.keys(TRIGGERS).some(slot => (cd[slot] || []).some(e => AMPLIFIABLE.includes(e.op)));
-    if (!ampliable) return "n'amplifie rien : cette carte n'a aucun effet amplifiable (dégâts, soin, armure, renfort). Passe par « Ajoute un effet ».";
-  }
-  if (t.stats && cd.type !== 'ally')
-    return "les bonus de stats ne servent qu'aux alliés, pas aux sorts.";
-  if (t.key && cd.type !== 'ally')
-    return "un mot-clé ne s'applique qu'à un allié, pas à un sort.";
-  if (t.aura && cd.type !== 'ally')
-    return "une aura ne s'applique qu'à un allié, pas à un sort.";
-  if (t.extra && cd.type !== 'ally') {
-    const def = TRIGGERS[t.slot || 'play'];
-    if (def && def.allyOnly) return '« ' + def.label + ' » ne se déclenche jamais sur un sort.';
-  }
-  return null;
-}
-
 function auraText(a) {
   if (!a) return '';
   const parts = [];
@@ -977,6 +1306,7 @@ function tierText(t) {
   if (t.cost) return 'coût ' + t.cost;
   if (t.amp) return 'effet +' + t.amp;
   if (t.aura) return 'aura : ' + auraText(t.aura);
+  if (t.statique) return describeStatic(t.statique);
   if (t.extra) return ((TRIGGERS[t.slot || 'play'] || {}).label || '?') + ' en plus';
   return '—';
 }
@@ -990,41 +1320,76 @@ function keywordChips(box, holder) {
   const kw = allKeywords();
   holder.keys = holder.keys || [];
   for (const [id, d] of Object.entries(kw)) {
-    // Un mot-cle a parametre est stocke « id:valeur » : on retrouve donc sa position
+    // Un mot-cle a parametres est stocke « id:v1:v2 » : on retrouve donc sa position
     // par son id, jamais par la chaine entiere.
     const at = holder.keys.findIndex(k => keyId(k) === id);
     const on = at >= 0;
-    const par = (d.params || [])[0];
+    const params = d.params || [];
     const chip = document.createElement('span');
     chip.className = 'chip' + (on ? ' chip--on' : '') + (d.implemented ? '' : ' chip--todo');
     chip.title = d.desc || '';
-    chip.textContent = d.label + (on && par ? ' ' + (keyArg(holder.keys[at]) || '?') : '') + (d.implemented ? '' : ' ⚠');
+    chip.textContent = (on && params.length ? keyLabel(holder.keys[at]) : d.label) + (d.implemented ? '' : ' ⚠');
     chip.onclick = () => {
       const i = holder.keys.findIndex(k => keyId(k) === id);
       if (i >= 0) holder.keys.splice(i, 1);
-      else holder.keys.push(par ? id + ':' + (par.def || '') : id);
+      else holder.keys.push(keyFrom(id, {}, params));
       save(); renderCardForm(); renderSlots();
     };
     box.appendChild(chip);
-    // Le champ de valeur ne s'affiche que quand le mot-cle est actif.
-    if (on && par) {
-      const wrap = elt(`<span class="chip" style="padding:2px 6px">
-        <input class="input" style="height:22px;padding:2px 6px;width:110px" value="${esc(keyArg(holder.keys[at]))}" placeholder="${esc(par.label || 'valeur')}">
-      </span>`);
-      const input = wrap.querySelector('input');
-      input.oninput = () => {
-        holder.keys[at] = id + ':' + input.value.trim();
-        save(); renderSlots(); renderPreview();
-      };
-      box.appendChild(wrap);
-    }
+    // Les champs n'apparaissent que quand le mot-cle est pose, un par parametre.
+    if (on && params.length) box.appendChild(keywordParams(holder, at, id, params, chip));
   }
 }
 
-/** Un bloc d'effets par moment. `slots` dit lesquels sont proposes ici. */
+/**
+ * Les champs d'un mot-cle a parametres. Un menu deroulant par choix, un champ libre
+ * par texte — et on n'affiche que les champs qui servent : demander « type suivi »
+ * pour un compteur qui compte les tours n'aurait aucun sens.
+ */
+function keywordParams(holder, at, id, params, chip) {
+  const champs = keyFields(holder.keys[at]);
+  const boite = elt('<span class="chip" style="padding:4px 8px; gap:8px; flex-wrap:wrap"></span>');
+  const ecrit = () => { holder.keys[at] = keyFrom(id, champs, params); save(); renderCardForm(); renderSlots(); };
+
+  for (const par of params) {
+    // Un parametre peut dependre d'un autre : `si` dit quand il a un sens.
+    if (par.si && !par.si(champs)) continue;
+    const wrap = elt('<span style="display:inline-flex; align-items:center; gap:5px"></span>');
+    wrap.appendChild(elt(`<span style="font-size:11px;color:var(--muted)">${esc(par.label)}</span>`));
+    if (par.type === 'choice') {
+      const sel = elt(`<select class="select" style="height:24px;padding:2px 6px;width:auto">${(par.choices || [])
+        .map(([v, lab]) => `<option value="${esc(v)}" ${champs[par.k] === v ? 'selected' : ''}>${esc(lab)}</option>`).join('')}</select>`);
+      sel.onchange = () => { champs[par.k] = sel.value; ecrit(); };
+      wrap.appendChild(sel);
+    } else {
+      const inp = elt(`<input class="input" style="height:24px;padding:2px 6px;width:110px" value="${esc(champs[par.k] || '')}" placeholder="${esc(par.def || 'valeur')}">`);
+      // Un champ libre ne redessine pas tout : on garderait le curseur en otage.
+      // La puce, elle, doit suivre la frappe — sinon elle affiche « ? » alors que
+      // la valeur est deja saisie.
+      inp.oninput = () => {
+        champs[par.k] = inp.value.trim();
+        holder.keys[at] = keyFrom(id, champs, params);
+        if (chip) chip.textContent = keyLabel(holder.keys[at]);
+        save(); renderSlots(); renderPreview();
+      };
+      wrap.appendChild(inp);
+    }
+    boite.appendChild(wrap);
+  }
+  return boite;
+}
+
+/**
+ * Un bloc d'effets par moment. `slots` dit lesquels sont proposes ici.
+ * Les moments d'EVENEMENT (« quand X alors Y ») sont 18 : les afficher tous ferait un
+ * mur de blocs vides. On ne montre donc que ceux qui portent quelque chose, et un
+ * bouton ajoute celui qu'on veut.
+ */
 function triggerFields(box, holder, slots, opts) {
   const eff = allEffects();
-  for (const slot of slots) {
+  const evenements = slots.filter(slot => TRIGGERS[slot].event);
+  const montres = slots.filter(slot => !TRIGGERS[slot].event || (holder[slot] || []).length);
+  for (const slot of montres) {
     const def = TRIGGERS[slot];
     holder[slot] = holder[slot] || [];
     const field = elt(`<div class="field">
@@ -1045,8 +1410,49 @@ function triggerFields(box, holder, slots, opts) {
       save(); renderCardForm(); renderSlots();
     };
     field.appendChild(ajouter);
+    // Un moment d'evenement se retire entierement : sinon il resterait une liste vide
+    // impossible a faire disparaitre.
+    if (TRIGGERS[slot].event) {
+      const retirer = elt('<button class="btn btn--sm btn--danger btn--ghost" style="margin-left:6px">Retirer ce déclencheur</button>');
+      retirer.onclick = () => { delete holder[slot]; save(); renderCardForm(); renderSlots(); };
+      field.appendChild(retirer);
+    }
     box.appendChild(field);
   }
+  if (evenements.length) box.appendChild(ajoutEvenement(holder, evenements));
+}
+
+/**
+ * Le choix « quand X alors Y » : un evenement, un « qui », et le moment apparait.
+ * C'est la seule facon raisonnable d'offrir 18 moments sans noyer l'editeur.
+ */
+function ajoutEvenement(holder, dispo) {
+  const libres = ([ev, who]) => dispo.includes(eventSlot(ev, who)) && !(holder[eventSlot(ev, who)] || []).length;
+  const field = elt(`<div class="field">
+    <label>Quand X alors Y <span style="text-transform:none;letter-spacing:0">— l'unité écoute ce qui se passe tant qu'elle est en jeu</span></label>
+    <div class="toolbar">
+      <select class="select js-ev" style="width:auto">${Object.entries(EVENTS)
+        .map(([id, e]) => `<option value="${id}">${esc(e.other)}</option>`).join('')}</select>
+      <select class="select js-who" style="width:auto">${Object.entries(EVENT_WHO)
+        .map(([id, w]) => `<option value="${id}">${esc(w.label)}</option>`).join('')}</select>
+      <button class="btn btn--sm js-go">+ Ajouter ce déclencheur</button>
+    </div>
+  </div>`);
+  const majLibelle = () => {
+    const slot = eventSlot(field.querySelector('.js-ev').value, field.querySelector('.js-who').value);
+    field.querySelector('.js-go').textContent = (holder[slot] || []).length
+      ? '↑ ce déclencheur existe déjà' : '+ ' + TRIGGERS[slot].label;
+  };
+  field.querySelector('.js-ev').onchange = majLibelle;
+  field.querySelector('.js-who').onchange = majLibelle;
+  field.querySelector('.js-go').onclick = () => {
+    const slot = eventSlot(field.querySelector('.js-ev').value, field.querySelector('.js-who').value);
+    if ((holder[slot] || []).length) return;   // deja la : le bloc est plus haut
+    holder[slot] = [newEffect('dmg', allEffects())];
+    save(); renderCardForm(); renderSlots();
+  };
+  majLibelle();
+  return field;
 }
 
 /** L'aura : pas une liste d'effets, un modificateur continu. */
@@ -1085,6 +1491,36 @@ function auraField(holder) {
 }
 
 /**
+ * Les EFFETS STATIQUES : la meme promesse que l'aura (ca dure tant que l'unite est la)
+ * mais sur autre chose que les stats des unites — le cout des cartes, les montants des
+ * effets, les degats d'un heros, la pioche et le mana. Une liste, parce qu'une meme
+ * unite peut tres bien en porter deux.
+ */
+function staticsField(box, holder) {
+  const reg = allStatics();
+  holder.statics = holder.statics || [];
+  const field = elt(`<div class="field">
+    <label>Effets statiques <span style="text-transform:none;letter-spacing:0">— « les [trucs] sont affectés [comme ça] », tant que l'unité est en jeu</span></label>
+    <div class="js-st"></div>
+  </div>`);
+  const list = field.querySelector('.js-st');
+  holder.statics.forEach((m, i) => list.appendChild(effectRow(m, reg, () => {
+    holder.statics.splice(i, 1);
+    if (!holder.statics.length) delete holder.statics;
+    save(); renderCardForm(); renderSlots();
+  })));
+  // Meme precaution que pour les moments : le bouton est cree ici et garde en main.
+  const ajouter = elt('<button class="btn btn--sm">+ Ajouter un effet statique</button>');
+  ajouter.onclick = () => {
+    holder.statics = holder.statics || [];
+    holder.statics.push(newEffect(Object.keys(STATICS)[0], reg));
+    save(); renderCardForm(); renderSlots();
+  };
+  field.appendChild(ajouter);
+  box.appendChild(field);
+}
+
+/**
  * Editeur d'un jeton invoque. Un jeton est une unite : il porte des mots-cles (type
  * compris), une aura et des moments — tout sauf « A la pose », qui ne se declenche
  * que pour une carte jouee depuis la main.
@@ -1114,13 +1550,59 @@ function unitEditor(u, depth) {
   // Les moments du jeton, puis son aura : les memes blocs que sur une carte alliee.
   triggerFields(box, u, TOKEN_TRIGGERS, { depth: depth + 1, unit: true });
   box.appendChild(auraField(u));
+  staticsField(box, u);
   return box;
+}
+
+/**
+ * Un nombre d'effet : soit une valeur fixe, soit un MONTANT VARIABLE (« X = tes allies
+ * Chien »). Le bouton bascule de l'un a l'autre — c'est le meme champ, pas deux
+ * mecaniques differentes, et ca marche pour les degats comme pour la pioche.
+ */
+function champNombre(e, p) {
+  const ligne = elt('<div style="display:flex; gap:6px; align-items:center"></div>');
+  const v = e[p.k];
+
+  if (!isVariableAmount(v)) {
+    const inp = elt(`<input class="input" type="number" value="${v ?? p.def ?? 0}">`);
+    inp.oninput = () => { e[p.k] = +inp.value || 0; save(); renderSlots(); renderPreview(); };
+    const bascule = elt('<button class="btn btn--sm" title="Faire varier ce nombre : il vaudra un compteur">X</button>');
+    bascule.onclick = () => {
+      e[p.k] = { src: Object.keys(COUNTERS)[0], arg: '', plus: 0 };
+      save(); renderCardForm(); renderSlots();
+    };
+    ligne.appendChild(inp);
+    ligne.appendChild(bascule);
+    return ligne;
+  }
+
+  const sel = elt(`<select class="select" style="width:auto">${Object.entries(COUNTERS)
+    .map(([id, d]) => `<option value="${id}" ${v.src === id ? 'selected' : ''}>${esc(d.label)}</option>`).join('')}</select>`);
+  sel.onchange = () => { e[p.k] = { ...e[p.k], src: sel.value }; save(); renderCardForm(); renderSlots(); };
+  ligne.appendChild(elt('<span style="font-size:12px;color:var(--muted)">X =</span>'));
+  ligne.appendChild(sel);
+
+  // Le type suivi ne se demande que pour les compteurs qui en ont besoin.
+  if ((COUNTERS[v.src] || {}).needsArg) {
+    const inp = elt(`<input class="input" style="width:100px" value="${esc(v.arg || '')}" placeholder="Type">`);
+    inp.oninput = () => { e[p.k] = { ...e[p.k], arg: inp.value.trim() }; save(); renderSlots(); renderPreview(); };
+    ligne.appendChild(inp);
+  }
+  // `plus` n'a pas de champ : il est nourri par les paliers « Amplifie les effets ».
+  if (v.plus) ligne.appendChild(elt(`<span style="font-size:12px;color:var(--accent-2)">+${v.plus}</span>`));
+
+  const retour = elt('<button class="btn btn--sm btn--ghost" title="Revenir à un nombre fixe">123</button>');
+  retour.onclick = () => { e[p.k] = p.def ?? 1; save(); renderCardForm(); renderSlots(); };
+  ligne.appendChild(retour);
+  return ligne;
 }
 
 function newEffect(op, eff) {
   const e = { op };
   for (const p of (eff[op] || {}).params || []) {
     if (p.type === 'number') e[p.k] = p.def ?? 1;
+    else if (p.type === 'choice') e[p.k] = p.def ?? ((p.choices || [[]])[0] || [])[0] ?? '';
+    else if (p.type === 'cardName' || p.type === 'cardRef') e[p.k] = '';
     else if (p.type === 'target') {
       const t = (p.allow || Object.keys(TARGETS))[0];
       const par = (TARGETS[t] || {}).params || [];
@@ -1162,10 +1644,44 @@ function effectRow(e, eff, onDelete, opts = {}) {
   if (!def) params.innerHTML = '<span class="stat">Mécanique inconnue — choisis-en une autre.</span>';
   else if (!def.params.length && def.custom) params.innerHTML = `<span class="stat">${esc(def.desc || 'Pas de paramètre.')}</span>`;
   for (const p of (def && def.params) || []) {
+    // Un parametre peut n'avoir de sens que selon un autre (« Type visé » n'apparait
+    // que pour un filtre qui vise un type).
+    if (p.si && !p.si(e)) continue;
     const wrap = document.createElement('div');
-    if (p.type === 'number') {
-      wrap.innerHTML = `<label>${esc(p.label)}</label><input class="input" type="number" value="${e[p.k] ?? p.def ?? 0}">`;
-      wrap.querySelector('input').oninput = ev => { e[p.k] = +ev.target.value || 0; save(); renderSlots(); renderPreview(); };
+    if (p.type === 'choice') {
+      wrap.innerHTML = `<label>${esc(p.label)}</label><select class="select">${(p.choices || [])
+        .map(([v, lab]) => `<option value="${esc(v)}" ${e[p.k] === v ? 'selected' : ''}>${esc(lab)}</option>`).join('')}</select>`;
+      // Un choix peut faire apparaitre ou disparaitre d'autres champs : on redessine.
+      wrap.querySelector('select').onchange = ev => { e[p.k] = ev.target.value; save(); renderCardForm(); renderSlots(); };
+    } else if (p.type === 'cardRef') {
+      // Une carte du CATALOGUE, designee par son identifiant : cartes libres et cartes
+      // des personnages. C'est le meme menu que les decks de PNJ.
+      const cat = catalogue();
+      const actuel = e[p.k] || '';
+      const inconnue = actuel && !cat.some(x => x.id === actuel);
+      wrap.innerHTML = `<label>${esc(p.label)}</label><select class="select">
+        <option value="">— choisis une carte —</option>
+        ${inconnue ? `<option value="${esc(actuel)}" selected>⚠ ${esc(actuel)} (n'existe plus)</option>` : ''}
+        ${cat.map(x => `<option value="${esc(x.id)}" ${actuel === x.id ? 'selected' : ''}>${esc(x.card.name)} — ${esc(x.origine)} (${x.card.cost}⬤)</option>`).join('')}
+      </select>`;
+      wrap.querySelector('select').onchange = ev => { e[p.k] = ev.target.value; save(); renderSlots(); renderPreview(); };
+    } else if (p.type === 'cardName') {
+      // La liste des cartes existantes, pour ne jamais taper un nom a la main : une
+      // faute de frappe donnerait une pioche qui ne trouve rien, en silence.
+      const noms = [];
+      for (const c of DB.characters) for (const side of ['cards', 'switches'])
+        for (const carte of c[side] || []) if (carte && !noms.includes(carte.name)) noms.push(carte.name);
+      const actuel = e[p.k] || '';
+      const inconnue = actuel && !noms.includes(actuel);
+      wrap.innerHTML = `<label>${esc(p.label)}</label><select class="select">
+        <option value="">— choisis une carte —</option>
+        ${inconnue ? `<option value="${esc(actuel)}" selected>⚠ ${esc(actuel)} (n'existe pas)</option>` : ''}
+        ${noms.map(n => `<option value="${esc(n)}" ${actuel === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}
+      </select>`;
+      wrap.querySelector('select').onchange = ev => { e[p.k] = ev.target.value; save(); renderSlots(); renderPreview(); };
+    } else if (p.type === 'number') {
+      wrap.appendChild(elt(`<label>${esc(p.label)}</label>`));
+      wrap.appendChild(champNombre(e, p));
     } else if (p.type === 'target') {
       // Une cible reservee aux unites n'a rien a faire dans un sort : on ne la propose
       // pas. Un jeton, lui, est toujours une unite, meme invoque par un sort.
@@ -1216,7 +1732,7 @@ function effectRow(e, eff, onDelete, opts = {}) {
 function tierRow(t, eff, kw, onDelete) {
   const cd = card();
   const kind = t.stats ? 'stats' : t.key ? 'key' : t.cost ? 'cost' : t.amp ? 'amp'
-    : t.aura ? 'aura' : t.extra ? 'extra' : 'stats';
+    : t.aura ? 'aura' : t.statique ? 'statique' : t.extra ? 'extra' : 'stats';
   // Les moments proposes suivent le registre : en ajouter un le fait apparaitre ici.
   const slots = Object.entries(TRIGGERS).filter(([, d]) => !d.allyOnly || !cd || cd.type === 'ally');
 
@@ -1232,6 +1748,7 @@ function tierRow(t, eff, kw, onDelete) {
     + option('amp', 'Amplifie les effets', kind)
     + option('extra', 'Ajoute un effet sur un moment', kind)
     + option('aura', 'Donne ou renforce une aura', kind)
+    + option('statique', 'Ajoute un effet statique', kind)
     + option('cost', 'Modifie le coût', kind)
     + '</select></div>'
     + '<button class="btn btn--sm btn--danger js-del" style="align-self:end">✕</button>'
@@ -1248,12 +1765,13 @@ function tierRow(t, eff, kw, onDelete) {
 
   const sel = box.querySelector('.js-kind');
   sel.onchange = () => {
-    delete t.stats; delete t.key; delete t.cost; delete t.amp; delete t.extra; delete t.slot; delete t.aura;
+    delete t.stats; delete t.key; delete t.cost; delete t.amp; delete t.extra; delete t.slot; delete t.aura; delete t.statique;
     if (sel.value === 'stats') t.stats = { atk: 1, hp: 1 };
     else if (sel.value === 'key') t.key = Object.keys(plainKeywords())[0];
     else if (sel.value === 'amp') t.amp = 1;
     else if (sel.value === 'extra') { t.extra = { op: 'draw', v: 1 }; t.slot = 'play'; }
     else if (sel.value === 'aura') t.aura = { scope: 'otherAllies', atk: 1, hp: 0, key: '' };
+    else if (sel.value === 'statique') t.statique = newEffect(Object.keys(STATICS)[0], allStatics());
     else t.cost = -1;
     t.text = tierText(t);
     save(); renderCardForm();
@@ -1298,6 +1816,11 @@ function tierRow(t, eff, kw, onDelete) {
       save(); renderPreview();
     };
     params.querySelectorAll('input, select').forEach(n => { n.oninput = readAura; n.onchange = readAura; });
+  } else if (t.statique) {
+    params.style.display = 'block';
+    params.appendChild(effectRow(t.statique, allStatics(), () => {
+      t.statique = newEffect(Object.keys(STATICS)[0], allStatics()); save(); renderCardForm();
+    }));
   } else if (t.extra) {
     params.style.display = 'block';
     // Sur quel moment l'effet vient-il se greffer ?
@@ -1453,6 +1976,15 @@ function renderIssues() {
 function renderAll() {
   renderDraftBar();
   renderChars();
+  renderNpcs();
+  // Deux modes dans la colonne principale : editer un personnage (ou les cartes
+  // libres), ou editer un adversaire. Jamais les deux a la fois.
+  const modePnj = !!selNpc;
+  $('#npcPanel').style.display = modePnj ? '' : 'none';
+  $('#charPanel').style.display = modePnj ? 'none' : '';
+  $('#cardsPanel').style.display = modePnj ? 'none' : '';
+  $('#cardPanel').style.display = modePnj ? 'none' : '';
+  if (modePnj) { renderNpcForm(); renderMechs(); renderIssues(); return; }
   renderCharForm();
   renderSlots();
   renderCardForm();
@@ -1461,7 +1993,32 @@ function renderAll() {
 }
 
 // ---------- ACTIONS GLOBALES ----------
-$('#newChar').onclick = () => { const c = emptyChar(); DB.characters.push(c); selChar = c.id; selCard = { slot: 0, side: 'cards' }; save(); renderAll(); };
+$('#newChar').onclick = () => { const c = emptyChar(); DB.characters.push(c); selNpc = null; selChar = c.id; selCard = { slot: 0, side: 'cards' }; save(); renderAll(); };
+$('#addFree').onclick = () => {
+  DB.library = DB.library || [];
+  const c = emptyCard('ally', 'Carte libre ' + (DB.library.length + 1));
+  DB.library.push(c);
+  selNpc = null; selChar = LIBRE; selCard = { slot: DB.library.length - 1, side: 'cards' };
+  save(); renderAll();
+};
+$('#newNpc').onclick = () => {
+  const n = { id: 'pnj_' + Math.random().toString(36).slice(2, 6), name: 'Nouvel adversaire',
+    sprite: 'Characters/Rabbit.png', hp: 24, mana: 6, hand: 3, level: 1, deck: [] };
+  npcs().push(n); selNpc = n.id; save(); renderAll();
+};
+$('#dupNpc').onclick = () => {
+  const n = npc(); if (!n) return;
+  const copie = structuredClone(n);
+  copie.id = n.id + '_copie';
+  copie.name = n.name + ' (copie)';
+  npcs().push(copie); selNpc = copie.id; save(); renderAll();
+};
+$('#delNpc').onclick = () => {
+  const n = npc(); if (!n) return;
+  if (!confirm(`Supprimer « ${n.name} » ? Les rencontres qui l'utilisent n'auront plus d'adversaire.`)) return;
+  npcs().splice(npcs().indexOf(n), 1);
+  selNpc = null; save(); renderAll();
+};
 $('#dupChar').onclick = () => {
   const c = char(); if (!c) return;
   const copy = structuredClone(c);
@@ -1496,7 +2053,7 @@ $('#importFile').onchange = e => {
     try {
       const d = JSON.parse(r.result);
       if (!d.characters) throw new Error('fichier invalide');
-      DB = d;
+      DB = nettoieCustoms(d);
       selChar = DB.characters[0] ? DB.characters[0].id : null;
       save(); renderAll(); toast('Importé.');
     } catch (err) { toast('Import impossible : ' + err.message); }
@@ -1507,7 +2064,7 @@ $('#importFile').onchange = e => {
 $('#revertBtn').onclick = () => {
   if (!confirm('Jeter les modifications non appliquées et repartir du fichier du jeu ?')) return;
   draft = null;
-  DB = structuredClone(FILE_DATA);
+  DB = nettoieCustoms(structuredClone(FILE_DATA));
   selChar = DB.characters[0] ? DB.characters[0].id : null;
   localStorage.removeItem(LS_KEY);
   setStatus('Rechargé depuis le fichier du jeu.');

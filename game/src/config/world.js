@@ -1,6 +1,10 @@
 // GAME CONFIG — overworld et rencontres.
+// Les adversaires eux-memes (statistiques, deck, niveau de jeu) sont dans les donnees
+// du Card Builder : config/npcs.js les resout, ce fichier ne fait que les placer.
 // Le monde entier existe des le prototype (GDD) ; ce sont les NIVEAUX REQUIS sur les
 // passages qui rythment la progression, pas un decoupage en chapitres.
+
+import { NPC_BY_ID, npcSide } from './npcs.js';
 
 export const TILE = {
   GRASS: 0, SAND: 1, WATER: 2, TREE: 3, ROCK: 4, PATH: 5, DARK: 6, SNOW: 7, BUSH: 8
@@ -64,60 +68,29 @@ export const WORLD = {
 };
 
 // ---------------------------------------------------------------------------
-// Cartes ennemies : volontairement simples et lisibles (le bot doit pouvoir
-// les evaluer, cf. GDD "les cartes doivent rester evaluables simplement").
-const e = (id, name, type, cost, atk, hp, o = {}) =>
-  ({ id, name, type, cost, atk, hp, keys: o.keys || [], text: o.text || '', play: o.play || [], tiers: [] });
-
-export const ENEMY_CARDS = {
-  grunt1: e('grunt1', 'Rongeur', 'ally', 1, 1, 2),
-  grunt2: e('grunt2', 'Chapardeur', 'ally', 2, 2, 2),
-  grunt3: e('grunt3', 'Brute', 'ally', 3, 3, 3),
-  grunt4: e('grunt4', 'Colosse', 'ally', 5, 5, 5),
-  wall1: e('wall1', 'Garde', 'ally', 2, 1, 4, { keys: ['Taunt'], text: 'Provocation.' }),
-  wall2: e('wall2', 'Rempart', 'ally', 4, 3, 6, { keys: ['Taunt'], text: 'Provocation.' }),
-  rush1: e('rush1', 'Eclaireur Fou', 'ally', 2, 3, 1, { keys: ['Charge'], text: 'Charge.' }),
-  bolt: e('bolt', 'Caillou', 'spell', 1, 0, 0, { text: '2 degats.', play: [{ op: 'dmg', t: 'enemyAny', v: 2 }] }),
-  smash: e('smash', 'Massue', 'spell', 3, 0, 0, { text: '4 degats.', play: [{ op: 'dmg', t: 'enemyAny', v: 4 }] }),
-  potion: e('potion', 'Fiole', 'spell', 2, 0, 0, { text: 'Rend 5 PV.', play: [{ op: 'heal', t: 'ownHero', v: 5 }] }),
-  rally: e('rally', 'Ralliement', 'spell', 3, 0, 0, { text: '+1/+1 a tous ses allies.', play: [{ op: 'buff', t: 'allAllies', atk: 1, hp: 1 }] }),
-  venomite: e('venomite', 'Bestiole Venimeuse', 'ally', 3, 2, 3, { keys: ['Venin'], text: 'Venin.' })
+// RENCONTRES. Le MONDE dit ou elles sont et ce qu'elles rapportent ; le DECK et les
+// statistiques de l'adversaire, eux, sont editables dans le Card Builder (onglet
+// « Adversaires ») et vivent dans les donnees — voir config/npcs.js.
+// Une rencontre porte donc juste ses recompenses ; tout le reste vient du PNJ de
+// meme identifiant. Un PNJ absent des donnees laisse une rencontre vide plutot que
+// de casser le monde : le controle des decks le signale.
+const RECOMPENSES = {
+  rabbit1: { A: 3, B: 6, xp: 14 },
+  cat1: { A: 4, B: 8, xp: 16 },
+  crow1: { A: 5, B: 10, xp: 18 },
+  wolf: { A: 15, B: 25, xp: 60 },
+  frog1: { A: 7, B: 14, xp: 24 },
+  octo1: { A: 9, B: 16, xp: 28 },
+  frogboss: { A: 25, B: 40, xp: 90 },
+  fox1: { A: 12, B: 20, xp: 34 },
+  owlboss: { A: 35, B: 55, xp: 130 }
 };
 
-const deck = (...pairs) => {
-  const out = [];
-  for (let i = 0; i < pairs.length; i += 2) for (let k = 0; k < pairs[i + 1]; k++) out.push(pairs[i]);
-  return out;
-};
-
-export const ENCOUNTERS = {
-  rabbit1: { name: 'Lapin Chapardeur', sprite: 'Characters/Rabbit.png', hp: 20, mana: 5, hand: 3,
-    deck: deck('grunt1', 4, 'grunt2', 4, 'bolt', 2), rewards: { A: 3, B: 6, xp: 14 } },
-
-  cat1: { name: 'Chat de Ruelle', sprite: 'Characters/Cat Ginger.png', hp: 24, mana: 6, hand: 3,
-    deck: deck('grunt2', 4, 'rush1', 4, 'bolt', 3), rewards: { A: 4, B: 8, xp: 16 } },
-
-  crow1: { name: 'Corbeau Rieur', sprite: 'Characters/Crow White.png', hp: 26, mana: 6, hand: 4,
-    deck: deck('grunt2', 3, 'grunt3', 3, 'bolt', 3, 'wall1', 2), rewards: { A: 5, B: 10, xp: 18 } },
-
-  wolf: { name: 'Grand Mechant Loup', sprite: 'Characters/Big Bad Wolf.png', hp: 42, mana: 8, hand: 4, boss: true,
-    deck: deck('grunt3', 4, 'wall2', 3, 'rush1', 3, 'smash', 3, 'rally', 2), rewards: { A: 15, B: 25, xp: 60 } },
-
-  frog1: { name: 'Crapaud Baveux', sprite: 'Characters/Frog Toad.png', hp: 32, mana: 7, hand: 4,
-    deck: deck('venomite', 3, 'wall1', 3, 'grunt3', 4, 'potion', 3), rewards: { A: 7, B: 14, xp: 24 } },
-
-  octo1: { name: 'Pieuvre Pirate', sprite: 'Characters/Octopus Pirate.png', hp: 36, mana: 7, hand: 4,
-    deck: deck('grunt3', 4, 'grunt4', 2, 'smash', 3, 'wall1', 3), rewards: { A: 9, B: 16, xp: 28 } },
-
-  frogboss: { name: 'Capitaine Grenouille', sprite: 'Characters/Frog Captain.png', hp: 76, mana: 9, hand: 5, boss: true,
-    deck: deck('venomite', 4, 'wall2', 4, 'grunt4', 3, 'smash', 3, 'rally', 3, 'potion', 2), rewards: { A: 25, B: 40, xp: 90 } },
-
-  fox1: { name: 'Renard des Neiges', sprite: 'Characters/Fox Snow.png', hp: 40, mana: 8, hand: 4,
-    deck: deck('rush1', 5, 'grunt4', 3, 'smash', 4, 'grunt3', 3), rewards: { A: 12, B: 20, xp: 34 } },
-
-  owlboss: { name: 'Grand-Duc', sprite: 'Characters/Owl Great Horned Owl.png', hp: 105, mana: 10, hand: 5, boss: true,
-    deck: deck('wall2', 5, 'grunt4', 5, 'smash', 4, 'rally', 3, 'potion', 3), rewards: { A: 35, B: 55, xp: 130 } }
-};
+export const ENCOUNTERS = Object.fromEntries(Object.entries(RECOMPENSES).map(([id, rewards]) => {
+  const npc = NPC_BY_ID[id] || {};
+  const side = npcSide(id) || { name: id, sprite: '', hp: 20, mana: 5, hand: 3, deck: [] };
+  return [id, { ...side, boss: !!npc.boss, rewards }];
+}));
 
 // --------------------------------------------------------------------------
 // Generation du terrain. Deterministe (seed fixe) : le monde est le meme pour

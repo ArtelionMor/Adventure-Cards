@@ -4,8 +4,9 @@
 // Tout passe par de vrais chemins de code : on tue avec un sort, jamais en bidouillant
 // les PV a la main — sinon le test ne prouve rien sur le vrai jeu.
 //   node scripts/test-triggers.mjs
-import { createBattle, playCard, endTurn, attackableTargets } from '../game/src/combat/engine.js';
+import { createBattle, playCard, endTurn, attack, attackableTargets, canPlay, cardCost, draw } from '../game/src/combat/engine.js';
 import { resolveCard } from '../game/src/config/characters.js';
+import { BALANCE } from '../game/src/config/balance.js';
 
 let pass = 0, fail = 0;
 function check(label, got, want) {
@@ -19,16 +20,22 @@ const ally = (name, atk, hp, extra = {}) =>
 const frappe = v =>
   ({ id: 'f' + v, name: 'Frappe' + v, type: 'spell', cost: 1, keys: [], text: '', tiers: [], play: [{ op: 'dmg', t: 'enemyUnit', v }] });
 
+/** Un sort qui detruit, quelle que soit la cible visee. */
+const desintegre = (name, t, cost = 1) =>
+  ({ id: name, name, type: 'spell', cost, keys: [], text: '', tiers: [], play: [{ op: 'detruit', t }] });
+
 const filler = n => Array.from({ length: n }, (_, i) => ally('Vide' + i, 0, 1));
 const side = (name, cards) => ({ name, sprite: '', hp: 30, mana: 10, hand: 1, deck: [...cards, ...filler(8)] });
 
 /** Combat ou les deux camps ont la main choisie et 10 mana. */
-function setup(playerCards, enemyCards = []) {
+function setup(playerCards, enemyCards = [], deckJoueur = []) {
   const B = createBattle(side('Joueur', playerCards), side('Adversaire', enemyCards), {});
   B.p.hand = playerCards.map(c => ({ ...c }));
   B.e.hand = enemyCards.map(c => ({ ...c }));
   B.p.mana = B.p.maxMana = 10;
   B.e.mana = B.e.maxMana = 10;
+  // Cartes placees expres dans le deck (pour tester les pioches ciblees).
+  for (const c of deckJoueur) B.p.deck.push({ ...c });
   return B;
 }
 const board = (B, k) => B[k].board.map(u => `${u.name} ${u.atk}/${u.hp}`);
@@ -630,6 +637,786 @@ console.log('\nCibles par type');
   play(B, 'p', 'Combo');
   // 3 degats encaisses, 2 rendus : 4 PV. Sans la chaine, le soin ne serait alle nulle part.
   check('« lui » reprend les cibles designees par le type', board(B, 'p'), ['Chiot 2/4']);
+}
+
+// ---------------------------------------------------------------------------
+// Caracteristique variable : l'attaque et/ou la vie valent un compteur. C'est un
+// DERIVE — donc il doit se comporter comme une aura : monter, descendre, tuer si la
+// vie tombe a zero, et ne jamais reguerir ni retuer une unite deja blessee.
+console.log('\nCaracteristique variable');
+const variable = (stat, src, arg = '') => `characteristique_variable:${stat}:${src}:${arg}`;
+{
+  const foufi = ally('Foufi', 0, 0, { keys: [variable('both', 'ownTurns')] });
+  const B = setup([foufi]);
+  play(B, 'p', 'Foufi');
+  check('elle vaut le compteur des la pose', board(B, 'p'), ['Foufi 1/1']);
+  endTurn(B); endTurn(B);
+  check('elle suit le compteur sans qu on joue quoi que ce soit', board(B, 'p'), ['Foufi 2/2']);
+  endTurn(B); endTurn(B);
+  check('... a chaque tour', board(B, 'p'), ['Foufi 3/3']);
+}
+{
+  // Le compteur monte pendant que l'unite est blessee : les degats restent.
+  const foufi = ally('Foufi', 0, 0, { keys: [variable('hp', 'ownTurns')] });
+  const B = setup([foufi], [frappe(2)]);
+  endTurn(B); endTurn(B); endTurn(B); endTurn(B);   // on arrive au tour 3
+  play(B, 'p', 'Foufi');
+  check('vie variable au tour 3', board(B, 'p'), ['Foufi 0/3']);
+  play(B, 'e', 'Frappe2', { side: 'p', uid: B.p.board[0].uid });
+  check('blessee de 2', board(B, 'p'), ['Foufi 0/1']);
+  endTurn(B); endTurn(B);
+  check('le compteur monte : la blessure reste', board(B, 'p'), ['Foufi 0/2']);
+}
+{
+  // La vie variable tombe a zero : l'unite meurt, et son rale part.
+  const chien = ally('Chien', 1, 1, { keys: ['type:Chien'] });
+  const totem = ally('Totem', 0, 0, {
+    keys: [variable('hp', 'alliesOfType', 'Chien')],
+    death: [{ op: 'dmg', t: 'enemyHero', v: 3 }]
+  });
+  const B = setup([chien, totem], [frappe(99)]);
+  play(B, 'p', 'Chien');
+  play(B, 'p', 'Totem');
+  check('un allie du type : le totem tient a 1 PV', board(B, 'p'), ['Chien 1/1', 'Totem 0/1']);
+  const avant = B.e.hp;
+  tuer(B, 'e', 'p', 'Chien');
+  check('le dernier Chien tombe : le totem s effondre avec lui', board(B, 'p'), []);
+  check('... et son rale d agonie part quand meme', B.e.hp, avant - 3);
+}
+{
+  // Un renfort recu en combat s'ajoute au compteur, il n'est pas avale par lui.
+  const foufi = ally('Foufi', 0, 0, { keys: [variable('both', 'ownTurns')] });
+  const renfort = { id: 'r', name: 'Renfort', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'buff', t: 'allyUnit', atk: 2, hp: 3 }] };
+  const B = setup([foufi, renfort]);
+  play(B, 'p', 'Foufi');
+  play(B, 'p', 'Renfort', { side: 'p', uid: B.p.board[0].uid });
+  check('le renfort s ajoute au compteur', board(B, 'p'), ['Foufi 3/4']);
+  endTurn(B); endTurn(B);
+  check('... et il reste acquis quand le compteur monte', board(B, 'p'), ['Foufi 4/5']);
+}
+{
+  // Une aura se pose par-dessus, et se retire proprement.
+  const foufi = ally('Foufi', 0, 0, { keys: [variable('both', 'ownTurns')] });
+  const chef = ally('Chef', 1, 3, { aura: { scope: 'otherAllies', atk: 2, hp: 2 } });
+  const B = setup([foufi, chef], [frappe(99)]);
+  play(B, 'p', 'Foufi');
+  play(B, 'p', 'Chef');
+  check('aura par-dessus une caracteristique variable', board(B, 'p'), ['Foufi 3/3', 'Chef 1/3']);
+  tuer(B, 'e', 'p', 'Chef');
+  check('l aura tombe : on revient au compteur seul', board(B, 'p'), ['Foufi 1/1']);
+}
+{
+  // Les statistiques ecrites sur la carte sont ignorees pour la caracteristique qui
+  // varie, mais pas pour l'autre.
+  const mixte = ally('Mixte', 7, 4, { keys: [variable('atk', 'ownTurns')] });
+  const B = setup([mixte]);
+  play(B, 'p', 'Mixte');
+  check('seule l attaque varie, la vie ecrite reste', board(B, 'p'), ['Mixte 1/4']);
+}
+{
+  // Un jeton invoque peut lui aussi porter une caracteristique variable.
+  const invoc = { id: 'i', name: 'Invocation', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'summon', n: 1, unit: { name: 'Echo', atk: 0, hp: 0, keys: [variable('both', 'handCards')] } }] };
+  const B = setup([invoc, ally('A', 1, 1), ally('B', 1, 1)]);
+  play(B, 'p', 'Invocation');
+  check('un jeton suit lui aussi son compteur', board(B, 'p'), ['Echo ' + B.p.hand.length + '/' + B.p.hand.length]);
+  const avant = B.p.hand.length;
+  play(B, 'p', 'A');
+  check('la main se vide : le jeton retrecit', board(B, 'p')[0], 'Echo ' + (avant - 1) + '/' + (avant - 1));
+}
+{
+  // Compteur inconnu (mecanique a moitie decrite) : 0, et surtout pas un plantage.
+  const cassee = ally('Cassee', 3, 3, { keys: ['characteristique_variable:atk:compteur_qui_nexiste_pas:'] });
+  const B = setup([cassee]);
+  play(B, 'p', 'Cassee');
+  check('un compteur inconnu vaut 0 sans casser le combat', board(B, 'p'), ['Cassee 0/3']);
+}
+
+// ---------------------------------------------------------------------------
+// Montants variables : n'importe quel nombre d'un effet peut valoir un compteur.
+// « Inflige X degats, X = tes allies Chien » — et pareil pour le soin, la pioche,
+// le renfort, l'armure, le mana, le nombre de jetons invoques.
+console.log('\nMontants variables');
+const X = (src, arg = '', plus = 0) => ({ src, arg, plus });
+{
+  const peste = { id: 'p', name: 'Peste', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'enemyHero', v: X('alliesOfType', 'Chien') }] };
+  const chien = name => ally(name, 1, 1, { keys: ['type:Chien'] });
+  const B = setup([chien('Un'), chien('Deux'), ally('Corbeau', 1, 1), peste]);
+  const avant = B.e.hp;
+  play(B, 'p', 'Peste');
+  check('sans meute, X vaut 0', B.e.hp, avant);
+  play(B, 'p', 'Un'); play(B, 'p', 'Corbeau');
+  const avant2 = B.e.hp;
+  const peste2 = { ...peste, id: 'p2', name: 'Peste2' };
+  B.p.hand.push(peste2);
+  play(B, 'p', 'Peste2');
+  check('un Chien sur le plateau : X vaut 1', B.e.hp, avant2 - 1);
+  play(B, 'p', 'Deux');
+  const avant3 = B.e.hp;
+  B.p.hand.push({ ...peste, id: 'p3', name: 'Peste3' });
+  play(B, 'p', 'Peste3');
+  check('deux Chiens : X vaut 2, le montant a suivi', B.e.hp, avant3 - 2);
+}
+{
+  // Le montant est lu au moment ou l'effet part, pas quand la carte entre en main.
+  const forge = ally('Forge', 1, 5, { turnEnd: [{ op: 'dmg', t: 'enemyHero', v: X('ownTurns') }] });
+  const B = setup([forge]);
+  play(B, 'p', 'Forge');
+  const t1 = B.e.hp;
+  endTurn(B);
+  check('fin du tour 1 : 1 degat', B.e.hp, t1 - 1);
+  endTurn(B);
+  const t2 = B.e.hp;
+  endTurn(B);
+  check('fin du tour 2 : 2 degats, le compteur a bouge', B.e.hp, t2 - 2);
+}
+{
+  // Tous les nombres marchent, pas seulement les degats : pioche, armure, mana, renfort.
+  const rituel = { id: 'r', name: 'Rituel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [
+      { op: 'draw', v: X('alliesOfType', 'Chien') },
+      { op: 'armor', v: X('allyUnits') },
+      { op: 'mana', v: X('alliesOfType', 'Chien') }
+    ] };
+  const chien = name => ally(name, 1, 1, { keys: ['type:Chien'] });
+  const B = setup([chien('Un'), chien('Deux'), rituel]);
+  play(B, 'p', 'Un'); play(B, 'p', 'Deux');
+  const mainAvant = B.p.hand.length, manaAvant = B.p.mana;
+  play(B, 'p', 'Rituel');
+  check('la pioche suit le compteur', B.p.hand.length, mainAvant - 1 + 2);   // -1 : le rituel quitte la main
+  check('l armure suit le compteur', B.p.armor, 2);
+  check('le mana suit le compteur', B.p.mana, manaAvant - 1 + 2);
+}
+{
+  // Un renfort dont l'attaque ET la vie sont variables.
+  const meute = { id: 'm', name: 'Cri de meute', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'buff', t: 'allyType:Chien', atk: X('alliesOfType', 'Chien'), hp: 1 }] };
+  const chien = name => ally(name, 1, 1, { keys: ['type:Chien'] });
+  const B = setup([chien('Un'), chien('Deux'), meute]);
+  play(B, 'p', 'Un'); play(B, 'p', 'Deux');
+  play(B, 'p', 'Cri de meute');
+  check('le renfort variable touche toute la meute', board(B, 'p'), ['Un 3/2', 'Deux 3/2']);
+}
+{
+  // Le nombre de jetons invoques peut lui aussi etre un compteur.
+  const nuee = { id: 'n', name: 'Nuee', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'summon', n: X('handCards'), unit: { name: 'Moucheron', atk: 1, hp: 1 } }] };
+  const B = setup([nuee, ally('A', 1, 1), ally('B', 1, 1)]);
+  const enMain = B.p.hand.length - 1;   // la Nuee quitte la main avant de se resoudre
+  play(B, 'p', 'Nuee');
+  check('le nombre d invocations suit le compteur', B.p.board.length, enMain);
+}
+{
+  // Un palier « Amplifie les effets » nourrit le bonus a plat du montant variable.
+  const def = { id: 'a', name: 'Vague', type: 'spell', cost: 1, keys: [], text: '',
+    play: [{ op: 'dmg', t: 'enemyHero', v: X('ownTurns') }],
+    tiers: [{ lvl: 3, amp: 2, text: 'Effet +2' }] };
+  const bas = resolveCard(def, 1), haut = resolveCard(def, 3);
+  check('sans le palier, le montant reste nu', bas.play[0].v, { src: 'ownTurns', arg: '', plus: 0 });
+  check('le palier amplifie le bonus a plat, pas le compteur', haut.play[0].v, { src: 'ownTurns', arg: '', plus: 2 });
+  check('la definition d origine n a pas bouge', def.play[0].v.plus, 0);
+  const B = setup([{ ...haut }]);
+  const avant = B.e.hp;
+  play(B, 'p', 'Vague');
+  check('en combat : compteur (1) + bonus (2)', B.e.hp, avant - 3);
+}
+{
+  // Compteur inconnu : 0 degat, pas de NaN et surtout pas de plantage.
+  const cassee = { id: 'c', name: 'Cassee', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'enemyHero', v: X('compteur_inexistant') }] };
+  const B = setup([cassee]);
+  const avant = B.e.hp;
+  play(B, 'p', 'Cassee');
+  check('un compteur inconnu fait 0, sans casser le combat', B.e.hp, avant);
+}
+{
+  // Le rale d'agonie choisit sa cible en connaissant le vrai montant.
+  const bombe = ally('Bombe', 1, 1, { keys: ['type:Chien'], death: [{ op: 'dmg', t: 'enemyUnit', v: X('alliesOfType', 'Chien', 2) }] });
+  const B = setup([bombe], [ally('Gros', 1, 9), frappe(99)]);
+  play(B, 'e', 'Gros');
+  play(B, 'p', 'Bombe');
+  tuer(B, 'e', 'p', 'Bombe');
+  // Le porteur meurt avant le rale : il ne se compte plus, X = 0 + 2.
+  check('le rale applique le montant calcule a l instant ou il part', board(B, 'e'), ['Gros 1/7']);
+}
+
+// ---------------------------------------------------------------------------
+// « Quand X alors Y » : des moments de plus, declenches par un evenement et pas par
+// le tour. Ce sont les plus dangereux du moteur — ils peuvent se rappeler entre eux.
+console.log('\nEvenements (quand X alors Y)');
+// Un sort qui vise directement un heros : pas besoin d'unite sur le plateau.
+const eclair = (v, nom = 'Eclair') =>
+  ({ id: nom, name: nom, type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'enemyHero', v }] });
+{
+  // Quand TU lances un sort : le sort de l'adversaire ne doit rien declencher.
+  const veilleur = ally('Veilleur', 1, 5, { on_spell_self: [{ op: 'dmg', t: 'enemyHero', v: 2 }] });
+  const B = setup([veilleur, eclair(1)], [eclair(1)]);
+  play(B, 'p', 'Veilleur');
+  const avant = B.e.hp, avantJ = B.p.hp;
+  play(B, 'e', 'Eclair');
+  check('le sort adverse ne declenche pas « quand TU lances un sort »', [B.e.hp, B.p.hp], [avant, avantJ - 1]);
+  play(B, 'p', 'Eclair');
+  check('ton propre sort le declenche', B.e.hp, avant - 1 - 2);
+}
+{
+  // Quand l'ADVERSAIRE joue un allie.
+  const guetteur = ally('Guetteur', 1, 5, { on_ally_foe: [{ op: 'dmg', t: 'enemyHero', v: 2 }] });
+  const B = setup([guetteur, ally('Ami', 1, 1)], [ally('Sbire', 1, 1)]);
+  play(B, 'p', 'Guetteur');
+  const avant = B.e.hp;
+  play(B, 'p', 'Ami');
+  check('poser TON allie ne le declenche pas', B.e.hp, avant);
+  play(B, 'e', 'Sbire');
+  check('l allie adverse le declenche', B.e.hp, avant - 2);
+}
+{
+  // « N'importe qui » ecoute les deux camps.
+  const echo = ally('Echo', 1, 9, { on_ally_any: [{ op: 'heal', t: 'ownHero', v: 1 }] });
+  const B = setup([echo, ally('Ami', 1, 1)], [ally('Sbire', 1, 1)]);
+  B.p.hp = B.p.maxHp - 10;
+  play(B, 'p', 'Echo');
+  const apresEcho = B.p.hp;
+  play(B, 'p', 'Ami');
+  check('un allie a toi declenche « n importe qui »', B.p.hp, apresEcho + 1);
+  play(B, 'e', 'Sbire');
+  check('... et un allie adverse aussi', B.p.hp, apresEcho + 2);
+}
+{
+  // Quand ton heros perd des PV.
+  const rancunier = ally('Rancunier', 1, 5, { on_heroHurt_self: [{ op: 'dmg', t: 'enemyHero', v: 3 }] });
+  const B = setup([rancunier], [eclair(2)]);
+  play(B, 'p', 'Rancunier');
+  const avant = B.e.hp;
+  play(B, 'e', 'Eclair');
+  check('les PV perdus par ton heros declenchent la riposte', B.e.hp, avant - 3);
+}
+{
+  // Quand une unite meurt, des deux cotes.
+  const charognard = ally('Charognard', 1, 9, { on_unitDies_any: [{ op: 'buff', t: 'self', atk: 1, hp: 0 }] });
+  const B = setup([charognard, ally('Pion', 1, 1), frappe(99)], [ally('Cible', 1, 1), frappe(99)]);
+  play(B, 'p', 'Charognard');
+  play(B, 'p', 'Pion');
+  play(B, 'e', 'Cible');
+  tuer(B, 'e', 'p', 'Pion');
+  check('la mort d un allie le nourrit', B.p.board[0].atk, 2);
+  tuer(B, 'p', 'e', 'Cible');
+  check('la mort d une unite adverse aussi', B.p.board[0].atk, 3);
+}
+{
+  // Quand tu pioches. Le declencheur part a chaque carte piochee.
+  const archiviste = ally('Archiviste', 1, 9, { on_draw_self: [{ op: 'dmg', t: 'enemyHero', v: 1 }] });
+  const pioche = { id: 'p2', name: 'Etude', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'draw', v: 2 }] };
+  const B = setup([archiviste, pioche]);
+  play(B, 'p', 'Archiviste');
+  const avant = B.e.hp;
+  play(B, 'p', 'Etude');
+  check('deux cartes piochees : deux declenchements', B.e.hp, avant - 2);
+}
+{
+  // LE cas dangereux : « quand tu pioches, pioche ». Le combat doit tenir.
+  const boucle = ally('Boucle', 1, 9, { on_draw_self: [{ op: 'draw', v: 1 }] });
+  const B = setup([boucle]);
+  play(B, 'p', 'Boucle');
+  const depart = Date.now();
+  endTurn(B); endTurn(B);          // la pioche de debut de tour amorce la chaine
+  const duree = Date.now() - depart;
+  check('la boucle infinie est coupee', duree < 2000, true);
+  check('le combat continue', B.over, false);
+  check('la coupure est dite dans le journal', B.log.some(l => l.includes('chaine de declenchements')), true);
+}
+{
+  // Une unite qui n'ecoute pas ne fait rien, et « a la pose » reste different.
+  const muet = ally('Muet', 1, 5, { play: [{ op: 'dmg', t: 'enemyHero', v: 1 }] });
+  const B = setup([muet, eclair(1)]);
+  play(B, 'p', 'Muet');
+  const avant = B.e.hp;
+  play(B, 'p', 'Eclair');
+  check('un cri de guerre ne se rejoue pas a chaque sort', B.e.hp, avant - 1);
+}
+{
+  // Le declencheur voyage par resolveCard et par un jeton invoque, comme les autres.
+  const def = { id: 'g', name: 'Gardien', type: 'ally', cost: 2, atk: 1, hp: 5, keys: [], text: '', play: [],
+    tiers: [{ lvl: 4, extra: { op: 'dmg', t: 'enemyHero', v: 2 }, slot: 'on_spell_foe', text: 'Riposte aux sorts' }] };
+  check('niveau 1 : rien', (resolveCard(def, 1).on_spell_foe || []).length, 0);
+  check('niveau 4 : le palier debloque un evenement', resolveCard(def, 4).on_spell_foe, [{ op: 'dmg', t: 'enemyHero', v: 2 }]);
+  const B = setup([{ ...resolveCard(def, 4) }], [eclair(1)]);
+  play(B, 'p', 'Gardien');
+  const avant = B.e.hp;
+  play(B, 'e', 'Eclair');
+  check('et il part vraiment en combat', B.e.hp, avant - 2);
+}
+{
+  const invoc = { id: 'i', name: 'Invocation', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'summon', n: 1, unit: { name: 'Sentinelle', atk: 1, hp: 5, on_ally_foe: [{ op: 'dmg', t: 'enemyHero', v: 2 }] } }] };
+  const B = setup([invoc], [ally('Sbire', 1, 1)]);
+  play(B, 'p', 'Invocation');
+  const avant = B.e.hp;
+  play(B, 'e', 'Sbire');
+  check('un jeton peut ecouter un evenement', B.e.hp, avant - 2);
+}
+
+// ---------------------------------------------------------------------------
+// Pioche ciblee, Elusif, Passe-Murailles et reduction de cout.
+console.log('\nPioche ciblee');
+{
+  const tresor = ally('Tresor', 5, 5);
+  const chercher = { id: 'c', name: 'Fouille', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pioche_x', carte: 'Tresor' }] };
+  const B = setup([chercher], [], [tresor]);
+  check('le tresor est bien dans le deck, pas en main', B.p.hand.some(c => c.name === 'Tresor'), false);
+  play(B, 'p', 'Fouille');
+  check('la carte cherchee arrive en main', B.p.hand.some(c => c.name === 'Tresor'), true);
+  check('... et a quitte le deck', B.p.deck.some(c => c.name === 'Tresor'), false);
+}
+{
+  // Nom inconnu : rien ne se passe, et le journal le dit.
+  const rate = { id: 'r', name: 'Fouille', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pioche_x', carte: 'Carte Qui N Existe Pas' }] };
+  const B = setup([rate]);
+  const mainAvant = B.p.hand.length;
+  play(B, 'p', 'Fouille');
+  check('un nom inconnu ne pioche rien', B.p.hand.length, mainAvant - 1);
+  check('... et le journal le dit', B.log.some(l => l.includes('Rien qui s')), true);
+}
+{
+  // Les accents et les majuscules ne doivent pas faire rater la carte.
+  const carte = ally('Épée Sacrée', 2, 2);
+  const chercher = { id: 'c', name: 'Fouille', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pioche_x', carte: 'epee sacree' }] };
+  const B = setup([chercher], [], [carte]);
+  play(B, 'p', 'Fouille');
+  check('le nom est compare sans accents ni majuscules', B.p.hand.some(c => c.name === 'Épée Sacrée'), true);
+}
+{
+  // Pioche par genre : un sort, pas un allie.
+  const chercher = { id: 'c', name: 'Fouille', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pioche_une_carte_de_type', type: 'spell' }] };
+  const unSort = { id: 's', name: 'Boule', type: 'spell', cost: 1, keys: [], text: '', tiers: [], play: [] };
+  const B = setup([chercher], [], [ally('Gros', 9, 9), unSort]);
+  play(B, 'p', 'Fouille');
+  check('elle pioche un sort et pas l allie', [B.p.hand.some(c => c.name === 'Boule'), B.p.hand.some(c => c.name === 'Gros')], [true, false]);
+}
+{
+  // La pioche ciblee declenche « quand tu pioches », comme une pioche normale.
+  const guet = ally('Guet', 1, 9, { on_draw_self: [{ op: 'dmg', t: 'enemyHero', v: 1 }] });
+  const chercher = { id: 'c', name: 'Fouille', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pioche_x', carte: 'Tresor' }] };
+  const B = setup([guet, chercher], [], [ally('Tresor', 1, 1)]);
+  play(B, 'p', 'Guet');
+  const avant = B.e.hp;
+  play(B, 'p', 'Fouille');
+  check('une pioche ciblee reste une pioche', B.e.hp, avant - 1);
+}
+
+console.log('\nElusif et Passe-Murailles');
+{
+  const chat = ally('Chat', 2, 2, { keys: ['elusif'] });
+  const B = setup([chat]);
+  play(B, 'p', 'Chat');
+  const cibles = attackableTargets(B, 'e', null).map(t => t.uid);
+  check('une unite elusive n est pas attaquable', cibles, ['hero']);
+  // Mais un sort l'atteint toujours.
+  const B2 = setup([chat], [frappe(99)]);
+  play(B2, 'p', 'Chat');
+  tuer(B2, 'e', 'p', 'Chat');
+  check('... mais un sort la touche quand meme', board(B2, 'p'), []);
+}
+{
+  // Une provocation elusive ne protege plus personne : elle n'est pas attaquable.
+  const mur = ally('Mur', 1, 5, { keys: ['Taunt', 'elusif'] });
+  const autre = ally('Autre', 1, 1);
+  const B = setup([mur, autre]);
+  play(B, 'p', 'Mur');
+  play(B, 'p', 'Autre');
+  const cibles = attackableTargets(B, 'e', null).map(t => t.uid).sort();
+  check('une provocation elusive ne bloque pas le passage',
+    cibles.includes('hero') && cibles.includes(B.p.board[1].uid) && !cibles.includes(B.p.board[0].uid), true);
+}
+{
+  // Passe-Murailles ignore la provocation adverse.
+  const mur = ally('Mur', 0, 5, { keys: ['Taunt'] });
+  const voleur = ally('Voleur', 3, 3, { keys: ['passe_murailles', 'Charge'] });
+  const B = setup([voleur], [mur]);
+  play(B, 'e', 'Mur');
+  play(B, 'p', 'Voleur');
+  const v = B.p.board[0];
+  const cibles = attackableTargets(B, 'p', v).map(t => t.uid);
+  check('il peut viser le heros malgre la provocation', cibles.includes('hero'), true);
+  const avant = B.e.hp;
+  attack(B, 'p', v.uid, { side: 'e', uid: 'hero' });
+  check('et il frappe vraiment au visage', B.e.hp, avant - 3);
+}
+{
+  // Sans Passe-Murailles, la provocation tient toujours.
+  const mur = ally('Mur', 0, 5, { keys: ['Taunt'] });
+  const banal = ally('Banal', 3, 3, { keys: ['Charge'] });
+  const B = setup([banal], [mur]);
+  play(B, 'e', 'Mur');
+  play(B, 'p', 'Banal');
+  const cibles = attackableTargets(B, 'p', B.p.board[0]).map(t => t.uid);
+  check('la provocation arrete toujours les autres', cibles, [B.e.board[0].uid]);
+}
+
+console.log('\nReduction de cout');
+{
+  const alleger = { id: 'a', name: 'Alleger', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'reduit_le_cout_de', quoi: 'ally', v: 2 }] };
+  const gros = { ...ally('Gros', 5, 5), cost: 5 };
+  const sort = { id: 's', name: 'Boule', type: 'spell', cost: 4, keys: [], text: '', tiers: [], play: [] };
+  const B = setup([alleger, gros, sort]);
+  play(B, 'p', 'Alleger');
+  const enMain = n => B.p.hand.find(c => c.name === n);
+  check('l allie coute 2 de moins', enMain('Gros').cost, 3);
+  check('le sort n est pas touche', enMain('Boule').cost, 4);
+}
+{
+  // Par mot-cle, et le cout ne descend jamais sous zero.
+  const alleger = { id: 'a', name: 'Alleger', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'reduit_le_cout_de', quoi: 'withKey', argKey: 'Charge', v: 9 }] };
+  const rapide = { ...ally('Rapide', 2, 2, { keys: ['Charge'] }), cost: 3 };
+  const lent = { ...ally('Lent', 2, 2), cost: 3 };
+  const B = setup([alleger, rapide, lent]);
+  play(B, 'p', 'Alleger');
+  const enMain = n => B.p.hand.find(c => c.name === n);
+  check('seules les cartes avec le mot-cle sont allegees', [enMain('Rapide').cost, enMain('Lent').cost], [0, 3]);
+}
+{
+  // Par type, avec un montant variable, et la carte devient vraiment moins chere a jouer.
+  const alleger = { id: 'a', name: 'Alleger', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'reduit_le_cout_de', quoi: 'ofType', argType: 'Chien', v: { src: 'ownTurns', arg: '', plus: 0 } }] };
+  const chien = { ...ally('Molosse', 2, 2, { keys: ['type:Chien'] }), cost: 4 };
+  const B = setup([alleger, chien]);
+  play(B, 'p', 'Alleger');
+  check('le montant variable marche aussi ici (tour 1 : -1)', B.p.hand.find(c => c.name === 'Molosse').cost, 3);
+  B.p.mana = 3;
+  play(B, 'p', 'Molosse');
+  check('et la carte se joue bien au nouveau cout', board(B, 'p'), ['Molosse 2/2']);
+}
+{
+  // Les cartes piochees APRES ne sont pas allegees : c'est un effet ponctuel.
+  const alleger = { id: 'a', name: 'Alleger', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'reduit_le_cout_de', quoi: 'all', v: 1 }, { op: 'draw', v: 1 }] };
+  const tard = { ...ally('Tardif', 1, 1), cost: 3 };
+  const B = setup([alleger], [], [tard]);
+  play(B, 'p', 'Alleger');
+  const t = B.p.hand.find(c => c.name === 'Tardif');
+  check('une carte piochee ensuite garde son cout', t ? t.cost : null, 3);
+}
+
+console.log('\nDestruction');
+{
+  // Peu importe les PV : la destruction ne compare rien, elle enleve.
+  const colosse = ally('Colosse', 9, 9);
+  const B = setup([desintegre('Desintegration', 'enemyUnit')], [colosse]);
+  play(B, 'e', 'Colosse');
+  const c = B.e.board[0];
+  play(B, 'p', 'Desintegration', { side: 'e', uid: c.uid });
+  check('le colosse 9/9 tombe', board(B, 'e'), []);
+}
+{
+  // Une unite detruite meurt vraiment : son rale d'agonie part.
+  const bombe = ally('Bombe', 1, 9, { death: [{ op: 'dmg', t: 'enemyHero', v: 3 }] });
+  const B = setup([bombe], [desintegre('Desintegration', 'enemyUnit')]);
+  play(B, 'p', 'Bombe');
+  const avant = B.e.hp;
+  play(B, 'e', 'Desintegration', { side: 'p', uid: B.p.board[0].uid });
+  check('le rale part quand l\'unite est detruite', B.e.hp, avant - 3);
+  check('elle a bien quitte le plateau', board(B, 'p'), []);
+}
+{
+  // Le Bouclier absorbe une PERTE DE PV : il n'arrete pas une destruction.
+  const garde = ally('Garde', 2, 4, { keys: ['Bouclier'] });
+  const B = setup([desintegre('Desintegration', 'enemyUnit')], [garde]);
+  play(B, 'e', 'Garde');
+  play(B, 'p', 'Desintegration', { side: 'e', uid: B.e.board[0].uid });
+  check('le bouclier ne protege pas de la destruction', board(B, 'e'), []);
+}
+{
+  // « Nuit Sans Lune » : les deux plateaux, en un seul sort.
+  const cataclysme = { id: 'cata', name: 'Cataclysme', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'detruit', t: 'allEnemyUnits' }, { op: 'detruit', t: 'allAllies' }] };
+  const mien = ally('Mien', 3, 3);
+  const sien = ally('Sien', 4, 4);
+  const B = setup([cataclysme, mien], [sien]);
+  play(B, 'e', 'Sien');
+  play(B, 'p', 'Mien');
+  play(B, 'p', 'Cataclysme');
+  check('les deux plateaux sont vides', [board(B, 'p'), board(B, 'e')], [[], []]);
+}
+{
+  // Un heros dans les destinataires (via « Lui ») est simplement ignore.
+  const eclair = { id: 'ecl', name: 'Eclair', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'enemyHero', v: 2 }, { op: 'detruit', t: 'previous' }] };
+  const B = setup([eclair]);
+  const avant = B.e.hp;
+  play(B, 'p', 'Eclair');
+  check('le heros perd ses PV mais n\'est pas detruit', [B.e.hp, B.over], [avant - 2, false]);
+}
+{
+  // Meme regle que pour des degats mortels : tant que la carte n'est pas finie, un
+  // soin sur « Lui » rattrape l'unite. C'est ce qui permet « detruis puis ranime ».
+  const rituel = { id: 'rit', name: 'Rituel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'detruit', t: 'allAllies' }, { op: 'heal', t: 'previous', v: 5 }] };
+  const sacrifie = ally('Sacrifie', 2, 8);
+  const B = setup([rituel, sacrifie]);
+  play(B, 'p', 'Sacrifie');
+  play(B, 'p', 'Rituel');
+  check('un soin dans la meme carte sauve encore la victime', board(B, 'p'), ['Sacrifie 2/5']);
+}
+
+console.log('\nCout X de moins/de plus');
+{
+  const gros = { ...ally('Gros', 5, 5), cost: 5, keys: ['cout_x_de_moins_de_plus:moins:2'] };
+  const B = setup([gros]);
+  B.p.mana = 3;
+  play(B, 'p', 'Gros');
+  check('la carte se joue a 3 au lieu de 5', [board(B, 'p'), B.p.mana], [['Gros 5/5'], 0]);
+}
+{
+  const lourd = { ...ally('Lourd', 5, 5), cost: 3, keys: ['cout_x_de_moins_de_plus:plus:2'] };
+  const B = setup([lourd]);
+  B.p.mana = 4;
+  check('a 4 mana elle est injouable (elle coute 5)', canPlay(B, 'p', B.p.hand[0]), false);
+  B.p.mana = 5;
+  play(B, 'p', 'Lourd');
+  check('a 5 mana elle passe, et prend tout', [board(B, 'p'), B.p.mana], [['Lourd 5/5'], 0]);
+}
+{
+  const gratos = { ...ally('Gratos', 1, 1), cost: 2, keys: ['cout_x_de_moins_de_plus:moins:9:fixe:'] };
+  const B = setup([gratos]);
+  B.p.mana = 0;
+  play(B, 'p', 'Gratos');
+  check('un cout ne descend jamais sous zero', [board(B, 'p'), B.p.mana], [['Gratos 1/1'], 0]);
+}
+{
+  // X est un compteur, comme n'importe quel montant du jeu : la carte devient moins
+  // chere a mesure que la partie avance.
+  const patient = { ...ally('Patient', 4, 4), cost: 6, keys: ['cout_x_de_moins_de_plus:moins:0:ownTurns:'] };
+  const B = setup([patient]);
+  check('tour 1 : 6 - 1 = 5', cardCost(B.p.hand[0], B, 'p'), 5);
+  endTurn(B); endTurn(B);
+  check('tour 2 : 6 - 2 = 4', cardCost(B.p.hand.find(c => c.name === 'Patient'), B, 'p'), 4);
+}
+{
+  // Le mot-cle et la reduction ponctuelle se cumulent : l'un bouge le cout ecrit,
+  // l'autre s'applique par-dessus.
+  const alleger = { id: 'a', name: 'Alleger', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'reduit_le_cout_de', quoi: 'ally', v: 2 }] };
+  const gros = { ...ally('Gros', 5, 5), cost: 6, keys: ['cout_x_de_moins_de_plus:moins:1'] };
+  const B = setup([alleger, gros]);
+  play(B, 'p', 'Alleger');
+  check('6 - 2 (reduction) - 1 (mot-cle) = 3', cardCost(B.p.hand.find(c => c.name === 'Gros'), B, 'p'), 3);
+}
+
+console.log('\nEffets statiques');
+{
+  // Le cout des cartes en main baisse tant que le porteur est la, et REMONTE quand
+  // il meurt : c'est ce qui separe un effet statique d'une reduction ponctuelle.
+  const mecene = ally('Mecene', 1, 4, { statics: [{ op: 'cout_des_cartes', qui: 'toi', quoi: 'spell', sens: 'moins', v: 2 }] });
+  const boule = { id: 'b', name: 'Boule', type: 'spell', cost: 4, keys: [], text: '', tiers: [], play: [] };
+  const gros = { ...ally('Gros', 5, 5), cost: 4 };
+  const B = setup([mecene, boule, gros], [frappe(99)]);
+  play(B, 'p', 'Mecene');
+  const cout = n => cardCost(B.p.hand.find(c => c.name === n), B, 'p');
+  check('le sort coute 2 de moins', cout('Boule'), 2);
+  check('l allie n est pas concerne', cout('Gros'), 4);
+  tuer(B, 'e', 'p', 'Mecene');
+  check('le porteur meurt : le cout remonte', cout('Boule'), 4);
+}
+{
+  // Il porte aussi sur le camp d'en face, et le cout ne descend jamais sous zero.
+  const taxe = ally('Taxe', 1, 4, { statics: [{ op: 'cout_des_cartes', qui: 'adversaire', quoi: 'all', sens: 'plus', v: 2 }] });
+  const cadeau = ally('Cadeau', 1, 4, { statics: [{ op: 'cout_des_cartes', qui: 'toi', quoi: 'all', sens: 'moins', v: 9 }] });
+  const petit = { ...ally('Petit', 1, 1), cost: 1 };
+  const B = setup([petit, cadeau], [taxe]);
+  play(B, 'e', 'Taxe');
+  check('la carte adverse coute 2 de plus', cardCost(B.p.hand.find(c => c.name === 'Petit'), B, 'p'), 3);
+  play(B, 'p', 'Cadeau');
+  check('les deux se cumulent et le cout plancher a 0', cardCost(B.p.hand.find(c => c.name === 'Petit'), B, 'p'), 0);
+}
+{
+  // Les montants des effets : le meme geste qu'un palier « Amplifie », mais tant que
+  // l'unite tient le plateau.
+  const totem = ally('Totem', 0, 4, { statics: [{ op: 'montant_des_effets', qui: 'toi', cible: 'dmg', sens: 'plus', v: 2 }] });
+  const B = setup([totem, frappe(3)], [ally('Cible', 0, 9)]);
+  play(B, 'e', 'Cible');
+  play(B, 'p', 'Totem');
+  const cible = B.e.board[0];
+  play(B, 'p', 'Frappe3', { side: 'e', uid: cible.uid });
+  check('3 degats deviennent 5', board(B, 'e'), ['Cible 0/4']);
+}
+{
+  // Les degats subis par un heros, dans les deux sens.
+  const abri = ally('Abri', 0, 4, { statics: [{ op: 'degats_du_heros', qui: 'toi', sens: 'moins', v: 2 }] });
+  const malediction = ally('Malediction', 0, 4, { statics: [{ op: 'degats_du_heros', qui: 'adversaire', sens: 'plus', v: 1 }] });
+  const brulure = { id: 'br', name: 'Brulure', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'enemyHero', v: 4 }] };
+  const B = setup([abri, malediction, { ...brulure, id: 'br2', name: 'Brulure2' }], [{ ...brulure }]);
+  play(B, 'p', 'Abri');
+  const avant = B.p.hp;
+  play(B, 'e', 'Brulure', { side: 'p', uid: 'hero' });
+  check('4 degats deviennent 2 sur ton heros', B.p.hp, avant - 2);
+  play(B, 'p', 'Malediction');
+  const avantE = B.e.hp;
+  play(B, 'p', 'Brulure2', { side: 'e', uid: 'hero' });
+  check('le heros adverse encaisse 1 de plus', B.e.hp, avantE - 5);
+}
+{
+  // La pioche et le mana de debut de tour.
+  const bibliotheque = ally('Bibliotheque', 0, 4, { statics: [{ op: 'pioche_du_tour', qui: 'toi', sens: 'plus', v: 1 }] });
+  const puits = ally('Puits', 0, 4, { statics: [{ op: 'mana_du_tour', qui: 'toi', sens: 'plus', v: 3 }] });
+  const B = setup([bibliotheque, puits]);
+  play(B, 'p', 'Bibliotheque');
+  play(B, 'p', 'Puits');
+  const mainAvant = B.p.hand.length;
+  endTurn(B); endTurn(B);   // un tour complet : on revient chez nous
+  check('on pioche 2 cartes au lieu d une', B.p.hand.length, mainAvant + 2);
+  check('et le mana depasse la courbe', B.p.mana, B.p.maxMana + 3);
+}
+{
+  // Un effet statique porte par un JETON marche comme sur n importe quelle unite.
+  const invoc = { id: 'i', name: 'Rituel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'summon', n: 1, unit: { name: 'Esprit', atk: 1, hp: 1, keys: [],
+      statics: [{ op: 'cout_des_cartes', qui: 'toi', quoi: 'all', sens: 'moins', v: 1 }] } }] };
+  const gros = { ...ally('Gros', 5, 5), cost: 4 };
+  const B = setup([invoc, gros]);
+  play(B, 'p', 'Rituel');
+  check('le jeton allege la main', cardCost(B.p.hand.find(c => c.name === 'Gros'), B, 'p'), 3);
+}
+{
+  // Un palier peut poser un effet statique de plus.
+  const def = { ...ally('Marchand', 1, 3), tiers: [{ lvl: 4, statique: { op: 'cout_des_cartes', qui: 'toi', quoi: 'ally', sens: 'moins', v: 1 }, text: 'Tes allies coutent 1 de moins' }] };
+  check('niveau 1 : aucun effet statique', (resolveCard(def, 1).statics || []).length, 0);
+  const haut = resolveCard(def, 4);
+  check('niveau 4 : le palier en pose un', haut.statics.length, 1);
+  const gros = { ...ally('Gros', 5, 5), cost: 4 };
+  const B = setup([haut, gros]);
+  play(B, 'p', 'Marchand');
+  check('et il agit vraiment en combat', cardCost(B.p.hand.find(c => c.name === 'Gros'), B, 'p'), 3);
+}
+
+console.log('\nCompteurs de sorts');
+{
+  const frappe1 = { id: 'f1', name: 'Frappe1', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'enemyHero', v: 1 }] };
+  // Un allie dont l attaque vaut les sorts joues ce tour, et un autre la partie entiere.
+  const chef = ally('Chef', 0, 5, { keys: ['characteristique_variable:atk:spellsTurn:'] });
+  const archive = ally('Archive', 0, 5, { keys: ['characteristique_variable:atk:spellsGame:'] });
+  const B = setup([chef, archive, { ...frappe1 }, { ...frappe1, id: 'f2', name: 'Frappe1bis' }]);
+  play(B, 'p', 'Chef');
+  play(B, 'p', 'Archive');
+  check('aucun sort joue : 0 attaque', board(B, 'p'), ['Chef 0/5', 'Archive 0/5']);
+  play(B, 'p', 'Frappe1', { side: 'e', uid: 'hero' });
+  play(B, 'p', 'Frappe1bis', { side: 'e', uid: 'hero' });
+  check('deux sorts joues ce tour', board(B, 'p'), ['Chef 2/5', 'Archive 2/5']);
+  endTurn(B); endTurn(B);
+  check('le compteur du tour est remis a zero, pas celui de la partie', board(B, 'p'), ['Chef 0/5', 'Archive 2/5']);
+}
+
+console.log('\nLe combat ne dure pas indefiniment');
+{
+  // Deux camps qui ne peuvent pas se tuer (que des unites a 0 attaque, la defausse se
+  // remelange donc la fatigue n'arrive jamais) : sans plafond, la partie tourne dans
+  // le vide pour toujours. C'est arrive une fois sur 10 000 dans les mesures.
+  const pique = { id: 'pq', name: 'Pique', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'enemyHero', v: 5 }] };
+  // Un deck volumineux des deux cotes : sinon c'est la fatigue qui tranche avant le
+  // plafond, et on ne testerait pas ce qu'on croit.
+  const B = createBattle(side('Joueur', filler(300)), side('Adversaire', filler(300)), {});
+  B.p.hand = [{ ...pique }];
+  B.p.mana = B.p.maxMana = 10;
+  play(B, 'p', 'Pique', { side: 'e', uid: 'hero' });
+  const avance = B.e.hp;
+  for (let i = 0; i < 400 && !B.over; i++) endTurn(B);
+  check('la partie finit toute seule', B.over, true);
+  check('elle finit au plafond de tours', B.turnNo, BALANCE.combat.maxTurns + 1);
+  check('celui qui a le plus de PV l emporte', [B.winner, avance < B.p.hp], ['p', true]);
+  check('et le journal le dit', B.log.some(l => l.includes('s\'eternise')), true);
+}
+
+console.log('\nFinir sa pioche');
+{
+  // Le deck NE SE REMELANGE PAS : finir sa pioche veut dire qu'on ne pioche plus.
+  // Sans cette regle, « sort a 0 mana qui fait piocher » tourne en boucle sans fin.
+  const B = setup([]);
+  B.p.deck = [ally('Derniere', 1, 1)];
+  B.p.discard = [ally('Deja jouee', 1, 1), ally('Aussi', 1, 1)];
+  const main = B.p.hand.length;
+  draw(B, 'p');
+  check('la derniere carte du deck arrive bien en main', [B.p.hand.length, B.p.deck.length], [main + 1, 0]);
+  draw(B, 'p');
+  check('deck vide : on ne pioche plus rien', B.p.hand.length, main + 1);
+  check('et la defausse reste ou elle est', B.p.discard.length, 2);
+  check('le journal le dit une fois', B.log.filter(l => l.includes('fini sa pioche')).length, 1);
+}
+{
+  // La boucle que la regle empeche : un sort a 0 mana qui pioche... lui-meme.
+  const boucle = { id: 'bcl', name: 'Echo', type: 'spell', cost: 0, keys: [], text: '', tiers: [],
+    play: [{ op: 'draw', v: 1 }] };
+  const B = setup([{ ...boucle }]);
+  B.p.deck = [{ ...boucle, id: 'bcl2' }];
+  B.p.discard = [];
+  play(B, 'p', 'Echo');            // pioche la copie du deck
+  play(B, 'p', 'Echo');            // la rejoue : le deck est vide, la boucle s'arrete
+  check('la boucle se coupe toute seule', [B.p.hand.length, B.p.discard.length], [0, 2]);
+}
+{
+  // Plus personne ne peut rien faire : on tranche aux PV plutot que de tourner en rond.
+  const pique = { id: 'pq2', name: 'Pique', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'enemyHero', v: 5 }] };
+  const B = setup([pique]);
+  play(B, 'p', 'Pique', { side: 'e', uid: 'hero' });
+  B.p.deck = []; B.e.deck = []; B.p.hand = []; B.e.hand = [];
+  endTurn(B);
+  check('la partie s arrete', B.over, true);
+  check('celui qui a le plus de PV gagne', B.winner, 'p');
+  check('et le journal explique pourquoi', B.log.some(l => l.includes('plus personne ne peut jouer')), true);
+}
+{
+  // Egalite parfaite : match nul (que l'UI compte comme une defaite du joueur).
+  const B = setup([]);
+  B.p.deck = []; B.e.deck = []; B.p.hand = []; B.e.hand = [];
+  endTurn(B);
+  check('a PV egaux, match nul', [B.over, B.winner], [true, 'draw']);
+}
+{
+  // Un camp a sec continue de jouer ce qu'il a : la partie ne s arrete pas pour lui.
+  const gros = ally('Gros', 3, 3);
+  const B = setup([gros]);
+  play(B, 'p', 'Gros');
+  B.p.deck = []; B.p.hand = [];
+  endTurn(B);
+  check('l adversaire peut encore agir : on continue', B.over, false);
+}
+
+console.log('\nCreer une carte');
+{
+  // « Cree » ne touche pas au deck : la carte apparait en main, meme deck fini.
+  // On prend une carte du catalogue reel (la bibliotheque de cartes libres).
+  const rituel = { id: 'rit2', name: 'Invocation', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'cree', carte: 'grunt1', n: 2, lvl: 1 }] };
+  const B = setup([rituel]);
+  B.p.deck = [];
+  const avant = B.p.hand.length;
+  play(B, 'p', 'Invocation');
+  const creees = B.p.hand.filter(c => c.id === 'grunt1');
+  check('deux cartes creees en main', creees.length, 2);
+  check('sans toucher au deck', B.p.deck.length, 0);
+  check('et elles sont jouables', canPlay(B, 'p', creees[0]), true);
+}
+{
+  // Une carte qui n'existe pas ne cree rien, et le dit.
+  const rate = { id: 'rat', name: 'Rate', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'cree', carte: 'nexiste_pas', n: 1 }] };
+  const B = setup([rate]);
+  const avant = B.p.hand.length;
+  play(B, 'p', 'Rate');
+  check('rien n est cree', B.p.hand.length, avant - 1);
+  check('et le journal le dit', B.log.some(l => l.includes("n'existe pas")), true);
 }
 
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);

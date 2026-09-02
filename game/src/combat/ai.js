@@ -8,11 +8,22 @@
 // pas son cout en mana mais ce qu'elle rapporte. Un rale d'agonie compte parce qu'il
 // part meme si l'unite meurt ; une aura compte pour ce qu'elle multiplie ; un
 // declencheur de tour compte plusieurs fois parce qu'il se repete.
-import { canPlay, legalTargets, attackableTargets, needsTarget } from './engine.js';
-import { TRIGGERS, TARGETS, hasKey, keyArgs, targetId, targetArg } from '../config/mechanics.js';
+import { BALANCE } from '../config/balance.js';
+import { canPlay, legalTargets, attackableTargets, needsTarget, cloneBattle, playCard, attack, endTurn } from './engine.js';
+import { TRIGGERS, TARGETS, STATICS, hasKey, keyId, keyArgs, keyFields, counterValue, amountValue, cardCost, staticFields, targetId, targetArg } from '../config/mechanics.js';
 
 const foe = k => (k === 'p' ? 'e' : 'p');
-const MISPLAY = 0.12; // probabilite de partir sur un coup au hasard plutot que le bon
+
+/**
+ * Le niveau de jeu du bot. Il vient du GAME CONFIG (`BALANCE.ai`) : c'est une valeur
+ * d'equilibrage, elle n'a rien a faire ici en dur. On peut le demander au coup par
+ * coup — `botAction(B, k, 'dur')` — ou le poser sur le combat entier via son `meta.ia`.
+ */
+function reglages(B, opts) {
+  const niveaux = BALANCE.ai.niveaux;
+  const choix = opts || (B.meta && B.meta.ia) || BALANCE.ai.defaut;
+  return typeof choix === 'string' ? (niveaux[choix] || niveaux[BALANCE.ai.defaut]) : { ...niveaux[BALANCE.ai.defaut], ...choix };
+}
 
 // Combien de tours on suppose qu'une unite survit : sert a chiffrer le recurrent.
 const TOURS_ESPERES = 2;
@@ -34,30 +45,66 @@ function typeCount(board, t) {
 // --------------------------------------------------------------- valorisation
 /** Valeur approximative d'un effet, en "points de tempo". ctx = tailles de plateau. */
 function effectValue(e, ctx) {
+  // Un montant variable vaut ce qu'il vaudrait maintenant : « X degats, X = tes
+  // allies Chien » ne vaut rien sans meute, et beaucoup avec.
+  const n = key => amountValue(e[key], ctx.B, ctx.k, null);
   switch (e.op) {
-    case 'dmg':
-      if (e.t === 'allEnemyUnits') return e.v * Math.max(1, ctx.enemies) * 0.9;
+    case 'dmg': {
+      const v = n('v');
+      if (e.t === 'allEnemyUnits') return v * Math.max(1, ctx.enemies) * 0.9;
       // Une cible par type ne vaut que les unites qui portent vraiment l'etiquette :
       // sans meute en face, la carte ne fait rien et le bot ne doit pas la jouer.
-      if (targetId(e.t) === 'enemyType') return e.v * typeCount(ctx.foeBoard, e.t) * 0.9;
-      if (targetId(e.t) === 'allyType') return -e.v * typeCount(ctx.board, e.t);
+      if (targetId(e.t) === 'enemyType') return v * typeCount(ctx.foeBoard, e.t) * 0.9;
+      if (targetId(e.t) === 'allyType') return -v * typeCount(ctx.board, e.t);
       // Se blesser soi-meme ou blesser un allie est un cout, pas un gain : le bot
       // doit prendre une carte pareille pour ce qu'elle est.
-      if (['self', 'randomAllyUnit', 'randomAllyAny'].includes(e.t)) return -e.v;
+      if (['self', 'randomAllyUnit', 'randomAllyAny'].includes(e.t)) return -v;
       // Une cible tiree au sort vaut un peu moins qu'une cible choisie.
       // « Lui » peut viser aussi bien un jeton adverse qu'un des notres selon ce que
       // l'effet d'avant a touche : on ne parie ni dans un sens ni dans l'autre.
-      if (e.t === 'previous') return e.v * 0.5;
-      return (TARGETS[targetId(e.t)] || {}).random ? e.v * 0.85 : e.v;
-    case 'heal': return e.v * 0.6;
-    case 'draw': return e.v * 1.6;
-    case 'armor': return e.v * 0.6;
-    case 'mana': return e.v * 1.2;
+      if (e.t === 'previous') return v * 0.5;
+      return (TARGETS[targetId(e.t)] || {}).random ? v * 0.85 : v;
+    }
+    case 'detruit': {
+      // La destruction ignore les PV : elle vaut le CORPS qu'elle enleve, pas les
+      // degats qu'il aurait fallu pour l'abattre. Pointee sur nos propres allies,
+      // c'est un cout — « detruit tout » ne se joue que quand on perd moins qu'en face.
+      const poids = u => (u.atk || 0) * 1.3 + (u.hp || 0) * 0.35;
+      const somme = list => (list || []).reduce((a, u) => a + poids(u), 0);
+      const moyenne = list => (list && list.length ? somme(list) / list.length : 0);
+      const duType = list => (list || []).filter(u => typesOf(u).includes(targetArg(e.t)));
+      switch (targetId(e.t)) {
+        case 'allEnemyUnits': return somme(ctx.foeBoard);
+        case 'enemyType': return somme(duType(ctx.foeBoard));
+        // On designe la cible : c'est la plus grosse unite d'en face qui tombe.
+        case 'enemyUnit': return Math.max(0, ...(ctx.foeBoard || []).map(poids));
+        case 'randomEnemyUnit': return moyenne(ctx.foeBoard) * 0.85;
+        case 'allAllies': return -somme(ctx.board);
+        case 'allyType': return -somme(duType(ctx.board));
+        case 'allyUnit': case 'randomAllyUnit': case 'self': case 'sameTypeAllies': return -moyenne(ctx.board);
+        // « Lui » peut viser un jeton adverse comme un des notres : on ne parie pas.
+        default: return 0;
+      }
+    }
+    case 'heal': return n('v') * 0.6;
+    case 'draw': return n('v') * 1.6;
+    // Aller CHERCHER une carte precise vaut plus que piocher au hasard : on sait ce
+    // qu'on prend. Mais ca ne vaut rien si le deck ne la contient pas — le bot ne peut
+    // pas le savoir ici, on reste donc raisonnable.
+    // Creer vaut un peu plus que chercher dans son deck : la carte arrive toujours,
+    // meme deck fini, et on sait exactement laquelle.
+    case 'cree': return (e.n === undefined ? 1 : n('n')) * 2.2;
+    case 'pioche_x': return (e.n === undefined ? 1 : n('n')) * 2;
+    case 'pioche_une_carte_de_type': return (e.n === undefined ? 1 : n('n')) * 1.8;
+    // Du mana rendu sur des cartes qu'on a deja en main : c'est du tempo pour plus tard.
+    case 'reduit_le_cout_de': return n('v') * 0.9;
+    case 'armor': return n('v') * 0.6;
+    case 'mana': return n('v') * 1.2;
     // Un mana promis pour le tour suivant vaut presque autant qu'un mana tout de
     // suite : il n'est pas plafonne, mais il faut survivre au tour d'en face.
-    case 'mana_au_prochain_tour': return (e.x || 0) * 1.1;
+    case 'mana_au_prochain_tour': return n('x') * 1.1;
     case 'buff': {
-      const per = (e.atk || 0) + (e.hp || 0) * 0.6 + (e.key ? 1.2 : 0);
+      const per = n('atk') + n('hp') * 0.6 + (e.key ? 1.2 : 0);
       // Un renfort « du meme type » ne vaut que le nombre d'allies etiquetes presents :
       // sans meute sur le plateau, il ne fait rien, et le bot ne doit pas le jouer.
       const cibles = e.t === 'allAllies' ? Math.max(1, ctx.allies)
@@ -68,7 +115,7 @@ function effectValue(e, ctx) {
     }
     case 'summon': {
       // Un jeton peut porter mots-cles, aura et moments : il vaut son corps entier.
-      return (e.n || 1) * bodyValue(e.unit || {}, ctx, 0.8);
+      return (e.n === undefined ? 1 : amountValue(e.n, ctx.B, ctx.k, null)) * bodyValue(e.unit || {}, ctx, 0.8);
     }
     // Mecanique inventee dans le builder et pas encore codee : elle ne fait rien,
     // le bot ne doit donc pas surestimer la carte qui la porte.
@@ -90,6 +137,46 @@ function auraValue(aura, allies, enemies, sameType) {
 }
 
 /**
+ * Ce que valent les EFFETS STATIQUES d'une unite, par tour, pour le camp qui la pose.
+ * Rien n'est ecrit ici mecanique par mecanique : le registre dit deja si « de plus »
+ * est une bonne nouvelle (`bon`) et combien un point pese (`poids`). Ajouter un effet
+ * statique ne demande donc aucune ligne de bot.
+ */
+function staticsValue(u, ctx) {
+  let v = 0;
+  for (const brut of u.statics || []) {
+    const d = STATICS[brut.op];
+    if (!d) continue;
+    const m = staticFields(brut);
+    const x = amountValue(m.v, ctx.B, ctx.k, null);
+    // Bon pour le camp vise ? Puis : ce camp, est-ce le notre ou celui d'en face ?
+    const pourLeVise = (m.sens === 'plus' ? 1 : -1) * (d.bon || 1);
+    v += x * (d.poids || 1) * pourLeVise * (m.qui === 'adversaire' ? -1 : 1);
+  }
+  return v;
+}
+
+/**
+ * Une carte a caracteristique variable ment sur sa ligne de statistiques : elle
+ * annonce 0/0 alors qu'elle arrivera peut-etre en 5/5. On estime ce qu'elle vaudra
+ * si on la pose MAINTENANT, sinon le bot ne la joue jamais.
+ */
+function estimee(B, k, card) {
+  const cle = (card.keys || []).find(x => keyId(x) === 'characteristique_variable');
+  if (!cle) return card;
+  const f = keyFields(cle);
+  let x = counterValue(f.src, B, k, null, f.arg);
+  // Elle n'est pas encore sur le plateau : les compteurs qui comptent les allies
+  // vaudront un de plus une fois qu'elle sera posee.
+  if (f.src === 'allyUnits') x += 1;
+  if (f.src === 'alliesOfType' && typesOf(card).includes(f.arg)) x += 1;
+  const copie = { ...card };
+  if (f.stat === 'atk' || f.stat === 'both') copie.atk = x;
+  if (f.stat === 'hp' || f.stat === 'both') copie.hp = x;
+  return copie;
+}
+
+/**
  * Ce que vaut un CORPS d'unite : sa ligne de stats, ses mots-cles, son aura et ses
  * moments. Sert aux cartes alliees comme aux jetons invoques — un jeton qui laisse
  * un rale ou porte une aura n'est pas un 1/1 comme un autre.
@@ -102,19 +189,25 @@ function bodyValue(u, ctx, poidsPv) {
   if (hasKey(keys, 'Charge')) v += (u.atk || 0) * 0.6;
   if (hasKey(keys, 'Venin')) v += 2;
   if (hasKey(keys, 'Bouclier')) v += 1.5;
+  // Une unite qu'on ne peut pas attaquer, ou qui ignore les provocations, pese lourd.
+  if (hasKey(keys, 'elusif')) v += 2;
+  if (hasKey(keys, 'passe_murailles')) v += (u.atk || 0) * 0.5;
   v += auraValue(u.aura, ctx.allies, ctx.enemies, ctx.sameType);
   // Un rale part meme quand l'unite tombe : sa valeur ne se perd presque jamais.
   v += effectsValue(u.death, ctx) * 0.9;
   // Un declencheur de tour rapporte a chaque tour ou l'unite tient.
   v += (effectsValue(u.turnStart, ctx) + effectsValue(u.turnEnd, ctx)) * TOURS_ESPERES;
+  // Un effet statique aussi : il court tant que l'unite est la, comme une aura.
+  v += staticsValue(u, ctx) * TOURS_ESPERES;
   return v;
 }
 
 /** Ce que vaut une carte si on la pose maintenant, dans cette position. */
-function cardValue(B, k, card) {
+function cardValue(B, k, def) {
   const me = B[k], them = B[foe(k)];
+  const card = estimee(B, k, def);
   const ctx = { allies: me.board.length, enemies: them.board.length, sameType: sameTypeCount(me.board, card),
-    board: me.board, foeBoard: them.board };
+    board: me.board, foeBoard: them.board, B, k };
   let v = effectsValue(card.play, ctx);
 
   if (card.type === 'ally') {
@@ -132,87 +225,251 @@ function cardValue(B, k, card) {
 function unitThreat(B, k, u) {
   const them = B[foe(k)];
   const memeType = sameTypeCount(them.board, u);
+  // Les effets valorises ici sont ceux de l'unite ADVERSE : ses montants variables
+  // se comptent depuis son camp a elle.
   const ctx = { allies: them.board.length, enemies: B[k].board.length, sameType: memeType,
-    board: them.board, foeBoard: B[k].board };
+    board: them.board, foeBoard: B[k].board, B, k: foe(k) };
   let p = u.atk * 1.3 + u.hp * 0.35;
   if (hasKey(u.keys, 'Venin')) p += 2;
   if (hasKey(u.keys, 'Taunt')) p += 0.5;
+  // On ne peut pas la frapper au corps a corps : quand un sort peut l'atteindre, ca vaut le coup.
+  if (hasKey(u.keys, 'elusif')) p += 2;
   // Couper une aura adverse vaut plus que sa ligne de stats.
   p += auraValue(u.aura, them.board.length - 1, B[k].board.length, memeType) * 1.5;
   // Un moteur qui se redeclenche chaque tour doit tomber en priorite.
   p += (effectsValue(u.turnStart, ctx) + effectsValue(u.turnEnd, ctx)) * TOURS_ESPERES;
+  // Idem pour ce qu'elle impose en continu (nos cartes plus cheres, ses degats plus
+  // forts...) : `ctx` est monte du cote adverse, donc la valeur est bien la SIENNE.
+  p += staticsValue(u, ctx) * TOURS_ESPERES;
   // Mais le tuer lui offre son rale : c'est un cadeau, ca fait baisser l'envie.
   p -= effectsValue(u.death, ctx) * 0.8;
   return p;
 }
 
-const directDamage = card =>
+const directDamage = (B, k, card) =>
   (card.play || []).filter(e => e.op === 'dmg' && (e.t === 'enemyAny' || e.t === 'enemyHero'))
-    .reduce((a, e) => a + e.v, 0);
+    .reduce((a, e) => a + amountValue(e.v, B, k, null), 0);
+
+/**
+ * Le meilleur PAQUET de cartes payables avec le mana disponible (un sac a dos, DP sur
+ * le mana). Sans ca le bot pose la carte la plus chere et laisse dormir trois manas :
+ * deux petites cartes valent tres souvent mieux qu'une grosse.
+ */
+function meilleurPaquet(B, k, playable) {
+  const mana = Math.max(0, B[k].mana);
+  const objets = playable
+    .map(x => ({ ...x, cout: Math.max(0, cardCost(x.c, B, k)), valeur: cardValue(B, k, x.c) }))
+    .filter(x => x.valeur > 0);
+  const table = Array.from({ length: mana + 1 }, () => ({ valeur: 0, choix: [] }));
+  for (const o of objets) {
+    for (let m = mana; m >= o.cout; m--) {
+      const candidat = table[m - o.cout].valeur + o.valeur;
+      if (candidat > table[m].valeur) table[m] = { valeur: candidat, choix: [...table[m - o.cout].choix, o] };
+    }
+  }
+  return table[mana].choix;
+}
+
+/**
+ * La meilleure attaque du plateau ENTIER, pas la premiere trouvee : on compare
+ * chaque (attaquant, cible) une bonne fois. Tuer une grosse menace sans mourir vaut
+ * mieux que taper au visage, taper au visage vaut mieux qu'un echange perdant.
+ */
+function meilleureAttaque(B, k, ready) {
+  const me = B[k], them = B[foe(k)];
+  const ctx = { allies: me.board.length, enemies: them.board.length, sameType: 0,
+    board: me.board, foeBoard: them.board, B, k };
+  let best = null;
+  for (const u of ready) {
+    for (const t of attackableTargets(B, k, u)) {
+      let note;
+      if (t.uid === 'hero') {
+        note = u.atk;
+      } else {
+        const d = them.board.find(x => x.uid === t.uid);
+        if (!d) continue;
+        const tue = d.hp <= u.atk;
+        const meurt = u.hp <= d.atk;
+        // Ce qu'on gagne : la menace enlevee, ou juste des degats sur un gros corps.
+        const gain = tue ? unitThreat(B, k, d) : u.atk * 0.35;
+        // Ce qu'on perd : notre unite — moins son rale, qui partira quand meme.
+        const perte = meurt ? (u.atk * 1.3 + u.hp * 0.35) - effectsValue(u.death, ctx) * 0.9 : 0;
+        note = gain - perte;
+      }
+      if (!best || note > best.note) best = { note, uid: u.uid, target: t };
+    }
+  }
+  return best;
+}
+
+// ------------------------------------------------------------- Monte-Carlo
+// Les regles ci-dessus disent ce qu'une carte VAUT ; elles se trompent forcement un
+// peu, et elles ne voient jamais deux coups plus loin. La recherche, elle, ne sait
+// rien du jeu : elle essaie un coup, finit la partie au pas de course des deux cotes,
+// recommence, et garde le coup qui gagne le plus souvent. C'est du Monte-Carlo — la
+// meme idee que l'estimation des matchups, appliquee a une seule decision.
+//
+// Le combat etant une chaine de Markov (l'etat suffit a decrire la suite), une partie
+// terminee depuis la position obtenue est un echantillon honnete de ce qui nous attend.
+
+/** Tous les coups jouables maintenant : les cartes, les attaques, et passer. */
+function coupsPossibles(B, k) {
+  const me = B[k];
+  const coups = [];
+  me.hand.forEach((c, i) => {
+    if (!canPlay(B, k, c)) return;
+    coups.push({ type: 'play', index: i, target: pickTarget(B, k, c) });
+  });
+  for (const u of me.board.filter(u => u.canAttack && u.atk > 0)) {
+    for (const t of attackableTargets(B, k, u)) coups.push({ type: 'attack', uid: u.uid, target: t });
+  }
+  coups.push({ type: 'end' });
+  return coups;
+}
+
+function applique(B, k, a) {
+  if (!a || a.type === 'end') endTurn(B);
+  else if (a.type === 'play') { if (!playCard(B, k, a.index, a.target)) endTurn(B); }
+  else if (a.type === 'attack') { if (!attack(B, k, a.uid, a.target)) endTurn(B); }
+}
+
+/** Finit la partie avec le bot rapide des deux cotes. Rend le gagnant. */
+function jusquAuBout(B, jeu) {
+  const rapide = { ...jeu, rollouts: 0 };
+  let garde = 0;
+  while (!B.over && garde++ < 600) applique(B, B.turn, botAction(B, B.turn, rapide));
+  return B.over ? B.winner : 'draw';
+}
+
+/** Le coup qui gagne le plus souvent, sur `n` parties finies par coup. */
+function coupCherche(B, k, jeu) {
+  const coups = coupsPossibles(B, k);
+  if (coups.length === 1) return coups[0];
+  let best = null;
+  for (const a of coups) {
+    let score = 0;
+    for (let i = 0; i < jeu.rollouts; i++) {
+      const C = cloneBattle(B);
+      applique(C, k, a);
+      const g = C.over ? C.winner : jusquAuBout(C, jeu);
+      score += g === k ? 1 : g === 'draw' ? 0.5 : 0;
+    }
+    // A egalite on garde le premier : les cartes viennent avant « passer ».
+    if (!best || score > best.score) best = { a, score };
+  }
+  return best.a;
+}
 
 // ------------------------------------------------------------------- decision
 /** Renvoie UNE action a executer, ou {type:'end'} quand il n'y a plus rien a faire. */
-export function botAction(B, k) {
+export function botAction(B, k, opts) {
+  const jeu = reglages(B, opts);
+  // Le bot qui cherche ne passe pas par les priorites : il les remplace.
+  if (jeu.rollouts > 0 && !B.over) return coupCherche(B, k, jeu);
   const me = B[k], them = B[foe(k)];
   const ready = me.board.filter(u => u.canAttack && u.atk > 0);
   const taunts = them.board.filter(u => hasKey(u.keys, 'Taunt'));
   const playable = me.hand.map((c, i) => ({ c, i })).filter(x => canPlay(B, k, x.c));
 
   // --- 1. victoire immediate -----------------------------------------------
-  const faceDamage = taunts.length ? 0 : ready.reduce((a, u) => a + u.atk, 0);
-  const burnCards = playable.filter(x => directDamage(x.c) > 0);
+  // Qui peut vraiment toucher le heros : une provocation arrete la plupart des
+  // unites, mais pas Passe-Murailles. On le demande au moteur plutot que de le
+  // deviner, sinon le bot rate une lethale ou en invente une.
+  const faceDamage = ready.filter(u => attackableTargets(B, k, u).some(t => t.uid === 'hero'))
+    .reduce((a, u) => a + u.atk, 0);
+  const brulure = c => directDamage(B, k, c);
+  const burnCards = playable.filter(x => brulure(x.c) > 0);
   let burn = 0, mana = me.mana;
-  for (const x of burnCards.sort((a, b) => directDamage(b.c) - directDamage(a.c))) {
-    if (mana >= x.c.cost) { burn += directDamage(x.c); mana -= x.c.cost; }
+  for (const x of burnCards.sort((a, b) => brulure(b.c) - brulure(a.c))) {
+    const cout = cardCost(x.c, B, k);
+    if (mana >= cout) { burn += brulure(x.c); mana -= cout; }
   }
   if (them.hp <= faceDamage + burn - them.armor) {
-    const b = burnCards.sort((a, b) => directDamage(b.c) - directDamage(a.c))[0];
+    const b = burnCards.sort((a, b) => brulure(b.c) - brulure(a.c))[0];
     if (b && them.hp > faceDamage - them.armor) {
       return { type: 'play', index: b.i, target: { side: foe(k), uid: 'hero' } };
     }
-    if (ready.length) return { type: 'attack', uid: ready[0].uid, target: { side: foe(k), uid: 'hero' } };
+    const frappeur = ready.find(u => attackableTargets(B, k, u).some(t => t.uid === 'hero'));
+    if (frappeur) return { type: 'attack', uid: frappeur.uid, target: { side: foe(k), uid: 'hero' } };
   }
 
   // --- coup au hasard occasionnel ------------------------------------------
-  if (Math.random() < MISPLAY) {
+  if (Math.random() < jeu.misplay) {
     const r = randomAction(B, k, playable, ready);
     if (r) return r;
   }
 
   // --- 2. se developper ----------------------------------------------------
-  // On pose l'allie qui rapporte le plus dans cette position, pas le plus cher.
-  const allies = playable.filter(x => x.c.type === 'ally')
-    .sort((a, b) => cardValue(B, k, b.c) - cardValue(B, k, a.c));
-  if (allies.length) return { type: 'play', index: allies[0].i, target: pickTarget(B, k, allies[0].c) };
+  // Le bot malin ne choisit pas parmi TOUTE la main : il choisit dans le meilleur
+  // paquet payable ce tour-ci. Poser un 5 mana en laissant deux 2 mana en main est
+  // une erreur classique, et c'est celle qui coute le plus cher.
+  const candidats = jeu.malin ? meilleurPaquet(B, k, playable) : playable;
+  const dansLePaquet = x => candidats.some(c => c.i === x.i);
 
-  const utility = playable
-    // L'invocation en fait partie : un sort qui pose un jeton developpe le plateau
-    // autant qu'un allie, et depuis que les jetons portent mots-cles, aura et moments,
-    // le laisser au tirage au sort revenait a jeter la carte.
-    .filter(x => (x.c.play || []).some(e => ['draw', 'armor', 'heal', 'buff', 'mana', 'mana_au_prochain_tour', 'summon'].includes(e.op)))
+  // On pose l'allie qui rapporte le plus dans cette position, pas le plus cher.
+  const allies = playable.filter(x => x.c.type === 'ally').filter(dansLePaquet)
     .sort((a, b) => cardValue(B, k, b.c) - cardValue(B, k, a.c));
-  if (utility.length) {
-    const u = utility[0];
-    const besoinAllie = (u.c.play || []).some(e => ['allyUnit', 'allAllies', 'sameTypeAllies', 'allyType'].includes(targetId(e.t)));
-    // On ne gaspille pas un renfort quand il n'y a personne a renforcer.
-    if (!(besoinAllie && me.board.length === 0)) {
-      return { type: 'play', index: u.i, target: pickTarget(B, k, u.c) };
+  // Le bot naif pose TOUJOURS un allie avant de regarder le reste : tant qu'il en a
+  // un en main, ses sorts de pioche dorment jusqu'a la fin du combat. Le bot malin
+  // compare les deux — poser un corps reste souvent mieux, mais plus systematiquement.
+  if (allies.length && !jeu.malin) return { type: 'play', index: allies[0].i, target: pickTarget(B, k, allies[0].c) };
+
+  const utility = playable.filter(dansLePaquet)
+    // Tout ce qui n'est pas du pur retrait developpe : pioche, mana, armure, soin,
+    // renfort, invocation, reduction de cout, recherche de carte... La liste vient
+    // du registre en creux (« ce qui n'est ni degats ni destruction »), sinon un
+    // effet ajoute plus tard resterait invisible pour le bot — c'est ce qui laissait
+    // dormir « Presage » et « Sagesse » en main.
+    .filter(x => (x.c.play || []).some(e => !['dmg', 'detruit'].includes(e.op)))
+    .sort((a, b) => cardValue(B, k, b.c) - cardValue(B, k, a.c));
+  // On ne gaspille pas un renfort quand il n'y a personne a renforcer.
+  const utile = utility.find(x => {
+    const besoinAllie = (x.c.play || []).some(e => ['allyUnit', 'allAllies', 'sameTypeAllies', 'allyType'].includes(targetId(e.t)));
+    return !(besoinAllie && me.board.length === 0);
+  });
+  if (jeu.malin && allies.length) {
+    // Un corps sur le plateau vaut un peu plus que sa valeur brute : il attaque des
+    // le tour suivant et force l'adversaire a s'en occuper. D'ou la prime de tempo.
+    const valeurAllie = cardValue(B, k, allies[0].c) * 1.15;
+    if (!utile || valeurAllie >= cardValue(B, k, utile.c)) {
+      return { type: 'play', index: allies[0].i, target: pickTarget(B, k, allies[0].c) };
     }
   }
+  if (utile) return { type: 'play', index: utile.i, target: pickTarget(B, k, utile.c) };
 
   // --- 3. freiner l'adversaire ---------------------------------------------
   // Sort de degats sur une unite qu'on peut tuer : on vise la plus genante.
   for (const x of playable) {
-    const dmg = (x.c.play || []).filter(e => e.op === 'dmg').reduce((a, e) => a + e.v, 0);
+    const dmg = (x.c.play || []).filter(e => e.op === 'dmg').reduce((a, e) => a + amountValue(e.v, B, k, null), 0);
     if (!dmg) continue;
     const kill = them.board.filter(u => u.hp <= dmg)
       .sort((a, b) => unitThreat(B, k, b) - unitThreat(B, k, a))[0];
-    if (kill) return { type: 'play', index: x.i, target: { side: foe(k), uid: kill.uid } };
+    // Un bot malin garde son gros retrait : bruler 6 degats sur un 1/1 est un cadeau.
+    // Sans menace qui en vaille la peine, la carte reste en main pour le tour suivant.
+    const vautLeCoup = !jeu.malin || !kill || unitThreat(B, k, kill) >= dmg * 0.8;
+    if (kill && vautLeCoup) return { type: 'play', index: x.i, target: { side: foe(k), uid: kill.uid } };
     if ((x.c.play || []).some(e => e.t === 'allEnemyUnits') && them.board.length >= 2) {
       return { type: 'play', index: x.i, target: null };
     }
   }
-  // Attaques : provocations d'abord, puis les echanges qui valent le coup.
+  // Destruction : elle n'a pas de seuil de PV a atteindre, elle ne passe donc pas par
+  // la boucle de degats ci-dessus. On ne la joue que si elle rapporte vraiment — une
+  // carte qui detruit les deux plateaux vaut zero quand c'est nous qui perdons le plus.
+  for (const x of playable) {
+    if (!(x.c.play || []).some(e => e.op === 'detruit')) continue;
+    if (!them.board.length || cardValue(B, k, x.c) <= 0) continue;
+    return { type: 'play', index: x.i, target: pickTarget(B, k, x.c) };
+  }
+  // Attaques. Le bot malin compare TOUTES les paires (attaquant, cible) avant de
+  // frapper, et s'abstient quand rien de bon n'est possible — mieux vaut garder une
+  // unite vivante que la jeter dans une provocation qui la mange.
+  if (jeu.malin && ready.length) {
+    const coup = meilleureAttaque(B, k, ready);
+    if (coup && coup.note > 0) return { type: 'attack', uid: coup.uid, target: coup.target };
+    if (coup) return { type: 'end' };
+  }
+
+  // Attaques (bot naif) : provocations d'abord, puis les echanges qui valent le coup.
   for (const u of ready) {
     const legal = attackableTargets(B, k, u);
     const units = legal.filter(t => t.uid !== 'hero')
@@ -225,7 +482,7 @@ export function botAction(B, k) {
 
     // Echange ou l'on meurt aussi : acceptable si la cible est vraiment genante,
     // ou si notre unite laisse un rale derriere elle.
-    const ctx = { allies: me.board.length, enemies: them.board.length };
+    const ctx = { allies: me.board.length, enemies: them.board.length, board: me.board, foeBoard: them.board, B, k };
     const consolation = effectsValue(u.death, ctx) * 0.9;
     const troc = units.filter(d => d.hp <= u.atk)
       .sort((a, b) => unitThreat(B, k, b) - unitThreat(B, k, a))[0];
@@ -267,7 +524,7 @@ function pickTarget(B, k, card) {
     if (mine.length) {
       // On renforce l'unite qui compte le plus : porteuse d'aura ou grosse attaque.
       const ctx = { allies: B[k].board.length, enemies: B[foe(k)].board.length, sameType: 0,
-        board: B[k].board, foeBoard: B[foe(k)].board };
+        board: B[k].board, foeBoard: B[foe(k)].board, B, k };
       const poids = u => u.atk
         + auraValue(u.aura, ctx.allies - 1, ctx.enemies, sameTypeCount(B[k].board, u)) * 1.5
         + effectsValue(u.death, { ...ctx, sameType: sameTypeCount(B[k].board, u) });
@@ -276,7 +533,16 @@ function pickTarget(B, k, card) {
     }
   }
 
-  const dmg = (card.play || []).filter(e => e.op === 'dmg').reduce((a, e) => a + e.v, 0);
+  // Une destruction ne regarde pas les PV : on enleve l'unite la plus genante.
+  if ((card.play || []).some(e => e.op === 'detruit')) {
+    const them = B[foe(k)];
+    const proies = targets.filter(t => t.side === foe(k) && t.uid !== 'hero')
+      .map(t => them.board.find(u => u.uid === t.uid)).filter(Boolean)
+      .sort((a, b) => unitThreat(B, k, b) - unitThreat(B, k, a));
+    if (proies.length) return { side: foe(k), uid: proies[0].uid };
+  }
+
+  const dmg = (card.play || []).filter(e => e.op === 'dmg').reduce((a, e) => a + amountValue(e.v, B, k, null), 0);
   if (dmg) {
     const them = B[foe(k)];
     const kill = them.board.filter(u => u.hp <= dmg)

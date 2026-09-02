@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Équilibrage des decks — Adventure Card</title>
+<style>
+  :root {
+    --bg: #0f1115; --bg-2: #161922; --bg-3: #1d2230; --line: #2a3142;
+    --text: #e7eaf0; --muted: #9aa3b2; --accent: #7aa2ff; --accent-2: #79e3c5;
+    --accent-3: #c69bff; --warn: #f5a623; --danger: #ff6b81;
+    --shadow: 0 8px 24px rgba(0,0,0,.35); --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; }
+  body { font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-decoration: none; }
+
+  .tb-nav { position: sticky; top: 0; z-index: 9999; display: flex; align-items: center; gap: 18px; height: 52px; padding: 0 18px;
+    background: rgba(13,15,20,.86); backdrop-filter: saturate(140%) blur(10px); border-bottom: 1px solid var(--line); }
+  .tb-nav__brand { display: flex; align-items: center; gap: 8px; font-weight: 700; white-space: nowrap; }
+  .tb-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 10px rgba(122,162,255,.7); }
+  .tb-nav__links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .tb-nav__link { color: var(--muted); padding: 7px 12px; border-radius: 8px; border: 1px solid transparent; font-size: 14px; cursor: pointer; }
+  .tb-nav__link:hover { color: var(--text); background: var(--bg-3); }
+  .tb-nav__link--active { color: var(--text); background: var(--bg-3); border-color: var(--line); }
+  .tb-nav__spacer { flex: 1; }
+
+  .wrap { max-width: 1500px; margin: 0 auto; padding: 24px 22px 90px; }
+  h1 { font-size: 30px; margin: 0 0 8px; letter-spacing: -.02em;
+    background: linear-gradient(120deg, #fff 0%, var(--accent) 60%, var(--accent-2) 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .lede { color: var(--muted); max-width: 92ch; font-size: 14px; margin: 0 0 18px; }
+
+  .ctrl { position: sticky; top: 52px; z-index: 900; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin-bottom: 18px; box-shadow: var(--shadow); }
+  .ctrl label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .ctrl .grp { display: flex; align-items: center; gap: 8px; }
+  input[type=number], select { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 7px 10px; font: inherit; font-size: 14px; }
+  input[type=range] { accent-color: var(--accent); }
+  .btn { background: var(--bg-3); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; font: inherit; font-size: 14px; cursor: pointer; }
+  .btn:hover { border-color: var(--accent); }
+  .btn--primary { background: linear-gradient(135deg, var(--accent), #5b86ff); border-color: transparent; color: #0b1020; font-weight: 700; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); font-size: 13px; cursor: pointer; color: var(--muted); }
+  .chip--on { border-color: var(--accent); color: var(--text); background: #1b2337; }
+  .badge { font-size: 11px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .badge--draft { color: var(--warn); border-color: #4a3a1a; background: #241c14; }
+  .badge--file { color: var(--accent-2); border-color: #1e4238; background: #14231f; }
+
+  .panel { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 18px; }
+  .panel__head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .panel__head h2 { font-size: 15px; margin: 0; letter-spacing: .01em; }
+  .panel__head .count { margin-left: auto; font-size: 12px; color: var(--muted); }
+  .panel__body { padding: 16px 18px; }
+
+  .bar { height: 6px; border-radius: 999px; background: var(--bg-3); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .15s; }
+
+  table.mx { border-collapse: collapse; font-size: 13px; }
+  table.mx th, table.mx td { border: 1px solid var(--line); padding: 5px 8px; text-align: center; white-space: nowrap; }
+  table.mx th.rowh { text-align: left; position: sticky; left: 0; background: var(--bg-2); z-index: 2; }
+  table.mx th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  td.cible { background: #14231f; color: var(--accent-2); }
+  td.entre { background: #241c14; color: var(--warn); }
+  td.ecrase { background: #2a1a1f; color: var(--danger); }
+  td.miroir { color: var(--muted); background: var(--bg-3); }
+  .scroll { overflow-x: auto; }
+  .stat { color: var(--muted); font-size: 13px; }
+  .rank { display: grid; grid-template-columns: 200px 60px 1fr; gap: 8px; align-items: center; margin-bottom: 4px; font-size: 13px; }
+  .rank i { display: block; height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-3)); }
+  ul.liste { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<nav class="tb-nav">
+  <span class="tb-nav__brand"><span class="tb-dot"></span>Adventure Card</span>
+  <div class="tb-nav__links">
+    <a class="tb-nav__link" href="../game/index.html">Jouer</a>
+    <a class="tb-nav__link" href="index.html">Card Builder</a>
+    <a class="tb-nav__link" href="overview.html">Vue d'ensemble</a>
+    <span class="tb-nav__link tb-nav__link--active">Équilibrage</span>
+  </div>
+  <span class="tb-nav__spacer"></span>
+  <span id="source"></span>
+</nav>
+
+<div class="wrap">
+  <h1>Équilibrage des decks</h1>
+  <p class="lede">
+    Chaque case du tableau, c'est un vrai paquet de parties jouées ici, dans ton navigateur, par le bot contre lui-même —
+    la moitié en commençant, la moitié en subissant, parce que celui qui ouvre a un avantage réel.
+    On ne <em>calcule</em> pas un taux de victoire (le jeu a bien trop d'états possibles) : on l'<strong>estime</strong> en jouant,
+    et le <strong>±</strong> affiché dit à quel point on peut y croire. <strong>Ne corrige jamais un écart plus petit que le ±</strong> : c'est du bruit.
+    Cibles visées : <strong>66 %</strong> quand le deck a le matchup, <strong>33 %</strong> quand il ne l'a pas, <strong>50 %</strong> entre deux decks de même force.<br>
+    <strong>⬇ CSV</strong> sort une ligne par matchup (à croiser dans un tableur), <strong>⬇ Journaux</strong> le déroulé complet
+    d'une partie témoin de chaque case — c'est là qu'on voit <em>pourquoi</em> un deck en écrase un autre.<br>
+    <strong>Personnages (mélange)</strong> est le mode le plus proche du vrai jeu : chaque slot y est tiré au sort entre sa carte
+    de base et sa carte switch, à chaque partie — « tout base » et « tout switch » ne sont que deux decks parmi les 32 qu'un joueur peut monter.
+  </p>
+
+  <div class="ctrl">
+    <div class="grp"><label>Niveau</label><input type="range" id="lvl" min="1" max="20" step="1"><span id="lvlOut" style="width:2ch"></span></div>
+    <div class="grp"><label>Parties par case</label><input type="number" id="runs" min="10" max="1000" step="10" style="width:90px"></div>
+    <div class="grp"><label>Bot</label><select id="bot"></select></div>
+    <div class="grp" id="quoi"></div>
+    <span style="flex:1"></span>
+    <button class="btn btn--primary" id="go">▶ Lancer</button>
+    <button class="btn" id="stop" disabled>Arrêter</button>
+    <button class="btn" id="csv" disabled title="Une ligne par matchup : ça se croise dans un tableur">⬇ CSV</button>
+    <button class="btn" id="logs" disabled title="Le journal d'une partie témoin par matchup">⬇ Journaux</button>
+  </div>
+
+  <div class="panel" id="progPanel" style="display:none">
+    <div class="panel__body">
+      <div class="bar"><i id="prog"></i></div>
+      <p class="stat" id="progTxt" style="margin:8px 0 0"></p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel__head"><h2>Matrice des matchups</h2><span class="count" id="mxCount"></span></div>
+    <div class="panel__body scroll" id="mx"><p class="stat">Choisis tes réglages et lance la mesure.</p></div>
+  </div>
+
+  <div class="panel" id="lecturePanel" style="display:none">
+    <div class="panel__head"><h2>Lecture</h2><span class="count" id="lectureCount"></span></div>
+    <div class="panel__body" id="lecture"></div>
+  </div>
+
+  <div class="panel" id="forcePanel" style="display:none">
+    <div class="panel__head"><h2>Force globale</h2><span class="count">moyenne des matchups, hors miroir</span></div>
+    <div class="panel__body" id="force"></div>
+  </div>
+</div>
+
+<script type="module">
+import { CHARACTER_DATA } from '../game/data/characters.data.js';
+import { BALANCE } from '../game/src/config/balance.js';
+import { campPerso, campMelange, campPnj, serie, wilson, lecture, matriceCsv, journauxTexte, CIBLES, TOLERANCE } from '../game/src/tools/arene.js';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const pc = x => Math.round(x * 100) + '%';
+
+// ---------- LES DONNEES : le brouillon du builder d'abord ----------
+// Meme regle que la vue d'ensemble : tant que le builder a un brouillon, c'est LUI
+// qu'on mesure — sinon on equilibrerait des chiffres deja changes a cote.
+const LS_BUILDER = 'adventureCardBuilder.v1';
+const LS = 'adventureCardBalance.v1';
+let DB = CHARACTER_DATA;
+
+function relit() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(LS_BUILDER) || 'null'); } catch { /* pas grave */ }
+  const valide = d && d.db && d.db.characters;
+  DB = valide ? d.db : CHARACTER_DATA;
+  $('#source').innerHTML = valide
+    ? `<span class="badge badge--draft">brouillon du builder · ${new Date(d.at).toLocaleTimeString('fr-FR')}</span>`
+    : '<span class="badge badge--file">fichier du jeu</span>';
+}
+relit();
+// Le builder ecrit a chaque frappe : on se resynchronise quand il change.
+addEventListener('storage', ev => { if (ev.key === LS_BUILDER) { relit(); majQuoi(); } });
+
+// ---------- REGLAGES ----------
+const etat = Object.assign(
+  { niveau: 5, runs: 60, bot: BALANCE.ai.defaut, quoi: { base: true, switch: false, mix: false, pnj: false } },
+  JSON.parse(localStorage.getItem(LS) || '{}'));
+const garde = () => { try { localStorage.setItem(LS, JSON.stringify(etat)); } catch { /* pas grave */ } };
+
+$('#lvl').value = etat.niveau; $('#lvlOut').textContent = etat.niveau;
+$('#runs').value = etat.runs;
+$('#bot').innerHTML = Object.keys(BALANCE.ai.niveaux)
+  .map(n => `<option value="${n}" ${n === etat.bot ? 'selected' : ''}>${n}${BALANCE.ai.niveaux[n].rollouts ? ' (lent)' : ''}</option>`).join('');
+
+const QUOI = [
+  ['base', 'Personnages (base)'],
+  ['switch', 'Personnages (switch)'],
+  ['mix', 'Personnages (mélange)'],
+  ['pnj', 'Adversaires']
+];
+const AIDE = {
+  base: 'Les 5 cartes de base du personnage.',
+  switch: 'Les 5 cartes switch du personnage.',
+  mix: 'Chaque slot est tiré au sort entre sa carte de base et sa carte switch, à CHAQUE partie : '
+    + "c'est le deck qu'un joueur monte vraiment, et le taux obtenu est la moyenne sur toutes les combinaisons possibles.",
+  pnj: 'Les adversaires du jeu, avec le deck que tu leur as donné.'
+};
+function majQuoi() {
+  $('#quoi').innerHTML = QUOI.map(([k, lab]) =>
+    `<span class="chip ${etat.quoi[k] ? 'chip--on' : ''}" data-k="${k}" title="${esc(AIDE[k])}">${esc(lab)}</span>`).join('');
+  $('#quoi').querySelectorAll('[data-k]').forEach(n => n.onclick = () => {
+    etat.quoi[n.dataset.k] = !etat.quoi[n.dataset.k];
+    garde(); majQuoi();
+  });
+}
+majQuoi();
+
+$('#lvl').oninput = () => { etat.niveau = +$('#lvl').value; $('#lvlOut').textContent = etat.niveau; garde(); };
+$('#runs').oninput = () => { etat.runs = Math.max(10, +$('#runs').value || 10); garde(); };
+$('#bot').onchange = () => { etat.bot = $('#bot').value; garde(); };
+
+// ---------- LES DECKS MESURES ----------
+function decks() {
+  const out = [];
+  for (const c of DB.characters || []) {
+    if (etat.quoi.base) { const cfg = campPerso([c.id], etat.niveau, 'cards', DB); if (cfg) out.push({ nom: c.name, sous: 'base', cfg }); }
+    if (etat.quoi.switch) { const cfg = campPerso([c.id], etat.niveau, 'switches', DB); if (cfg) out.push({ nom: c.name, sous: 'switch', cfg }); }
+    // Le melange n'est pas un deck fige : c'est une fabrique, retiree a chaque partie.
+    if (etat.quoi.mix) { const cfg = campMelange([c.id], etat.niveau, DB); if (cfg) out.push({ nom: c.name, sous: 'mélange', cfg }); }
+  }
+  if (etat.quoi.pnj) {
+    for (const n of DB.npcs || []) {
+      const cfg = campPnj(n.id, DB);
+      if (cfg && cfg.deck.length) out.push({ nom: n.name, sous: 'PNJ', cfg });
+    }
+  }
+  return out;
+}
+
+// ---------- EXPORTS ----------
+// Un taux de victoire ne dit jamais POURQUOI. Le CSV sert a croiser les chiffres,
+// les journaux a lire ce qui s'est reellement passe dans une partie de chaque case.
+let derniers = null;   // { liste, resultats } de la derniere mesure
+
+function telecharge(nom, texte, type = 'text/plain') {
+  const url = URL.createObjectURL(new Blob(['\ufeff' + texte], { type: type + ';charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nom;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+const horodatage = () => new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+const nomDeck = d => (d.sous === 'base' ? d.nom : `${d.nom} (${d.sous})`);
+const meta = () => ({
+  niveau: etat.niveau, parties_par_case: etat.runs, bot: etat.bot,
+  decks: QUOI.filter(([k]) => etat.quoi[k]).map(([, l]) => l).join(' + '),
+  source: DB === CHARACTER_DATA ? 'fichier du jeu' : 'brouillon du builder'
+});
+
+$('#csv').onclick = () => {
+  if (!derniers) return;
+  telecharge(`matchups-${horodatage()}.csv`, matriceCsv(derniers.resultats, nomDeck, meta()), 'text/csv');
+};
+$('#logs').onclick = () => {
+  if (!derniers) return;
+  telecharge(`journaux-${horodatage()}.txt`, journauxTexte(derniers.resultats, nomDeck, meta()));
+};
+
+// ---------- LA MESURE ----------
+let enCours = false, stop = false;
+
+$('#stop').onclick = () => { stop = true; };
+$('#go').onclick = async () => {
+  if (enCours) return;
+  const liste = decks();
+  if (liste.length < 2) { $('#mx').innerHTML = '<p class="stat">Il faut au moins deux decks : coche une catégorie.</p>'; return; }
+
+  enCours = true; stop = false;
+  $('#go').disabled = true; $('#stop').disabled = false;
+  $('#progPanel').style.display = '';
+  const total = liste.length * liste.length;
+  let fait = 0;
+  const resultats = [];
+
+  for (const a of liste) {
+    for (const b of liste) {
+      if (stop) break;
+      const r = serie(a.cfg, b.cfg, etat.runs, { bot: etat.bot });
+      resultats.push({ a, b, ...r, demi: wilson(r.taux, r.decisives).demi });
+      fait++;
+      $('#prog').style.width = (fait / total * 100) + '%';
+      $('#progTxt').textContent = `${fait} / ${total} cases · ${a.nom} contre ${b.nom}`;
+      // On rend la main au navigateur entre deux cases, sinon la page se fige.
+      await new Promise(r2 => setTimeout(r2, 0));
+    }
+    if (stop) break;
+  }
+
+  enCours = false;
+  $('#go').disabled = false; $('#stop').disabled = true;
+  $('#progPanel').style.display = 'none';
+  if (resultats.length) {
+    derniers = { liste, resultats };
+    $('#csv').disabled = false;
+    $('#logs').disabled = false;
+    dessine(liste, resultats);
+  }
+};
+
+// ---------- L'AFFICHAGE ----------
+function dessine(liste, resultats) {
+  const trouve = (a, b) => resultats.find(r => r.a === a && r.b === b);
+  const nom = d => d.sous === 'base' ? d.nom : `${d.nom} (${d.sous})`;
+
+  let html = '<table class="mx"><tr><th class="rowh"></th>'
+    + liste.map(d => `<th title="${esc(nom(d))}">${esc(d.nom.slice(0, 9))}${d.sous !== 'base' ? '<br><span style="font-weight:400">' + esc(d.sous) + '</span>' : ''}</th>`).join('')
+    + '</tr>';
+  for (const a of liste) {
+    html += `<tr><th class="rowh">${esc(nom(a))}</th>`;
+    for (const b of liste) {
+      const r = trouve(a, b);
+      if (!r) { html += '<td>—</td>'; continue; }
+      const l = lecture(r.taux);
+      const cls = a === b ? 'miroir' : l.ecrasant ? 'ecrase' : l.dedans ? 'cible' : 'entre';
+      const titre = `${nom(a)} contre ${nom(b)} : ${pc(r.taux)} ± ${pc(r.demi)} sur ${r.decisives} parties`
+        + `\n${a === b ? 'miroir : doit tourner autour de 50 %' : l.ecrasant ? 'écrasant — hors des cibles' : l.dedans ? 'sur la cible « ' + l.cible.nom + ' »' : 'entre deux cibles'}`;
+      html += `<td class="${cls}" title="${esc(titre)}">${pc(r.taux)}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  $('#mx').innerHTML = html;
+  $('#mxCount').textContent = `${liste.length} decks · ${etat.runs} parties par case · niveau ${etat.niveau} · bot ${etat.bot}`;
+
+  // --- lecture ---
+  const horsMiroir = resultats.filter(r => r.a !== r.b);
+  const demiMoyen = resultats.reduce((s, r) => s + r.demi, 0) / resultats.length;
+  const avantage = resultats.reduce((s, r) => s + r.avantagePremier, 0) / resultats.length;
+  const bloquees = resultats.reduce((s, r) => s + r.bloquees, 0);
+  const compte = {};
+  for (const c of CIBLES) compte[c.nom] = 0;
+  let hors = 0;
+  for (const r of horsMiroir) {
+    const l = lecture(r.taux);
+    if (!l.ecrasant && l.dedans) compte[l.cible.nom]++; else hors++;
+  }
+  const surCible = CIBLES.reduce((a, c) => a + compte[c.nom], 0);
+  const ecrases = horsMiroir.filter(r => lecture(r.taux).ecrasant).sort((x, y) => y.taux - x.taux);
+
+  $('#lecturePanel').style.display = '';
+  $('#lectureCount').textContent = `${surCible} / ${horsMiroir.length} matchups sur une cible`;
+  $('#lecture').innerHTML = `
+    <p class="stat"><strong style="color:var(--accent-2)">Précision : ±${pc(demiMoyen)} par case</strong> (Wilson 95 %).
+      Un écart plus petit que ça ne veut rien dire — augmente le nombre de parties pour resserrer.</p>
+    <p class="stat">Avantage de celui qui commence : <strong>${pc(avantage)}</strong> (50 % = aucun avantage).</p>
+    ${bloquees ? `<p class="stat" style="color:var(--danger)">${bloquees} partie(s) bloquée(s) : le moteur tourne en rond quelque part.</p>` : ''}
+    <p class="stat">Sur une cible (33 / 50 / 66 ± ${pc(TOLERANCE)}) : <strong>${surCible}</strong> —
+      ${CIBLES.map(c => `${compte[c.nom]} ${c.nom}`).join(', ')}.
+      Entre deux cibles ou hors bornes : <strong>${hors}</strong>.</p>
+    ${ecrases.length ? `<p class="stat" style="color:var(--danger);margin-top:10px">${ecrases.length} matchup(s) écrasant(s) — c'est là que l'équilibrage se joue :</p>
+      <ul class="liste">${ecrases.slice(0, 15).map(r => `<li>${esc(nom(r.a))} bat ${esc(nom(r.b))} <strong>${pc(r.taux)}</strong> ± ${pc(r.demi)}</li>`).join('')}</ul>` : ''}`;
+
+  // --- force globale ---
+  const forces = liste.map(d => {
+    const siens = horsMiroir.filter(r => r.a === d);
+    return { d, moyenne: siens.length ? siens.reduce((s, r) => s + r.taux, 0) / siens.length : 0.5 };
+  }).sort((x, y) => y.moyenne - x.moyenne);
+  $('#forcePanel').style.display = '';
+  $('#force').innerHTML = forces.map(f => `
+    <div class="rank">
+      <span>${esc(nom(f.d))}</span>
+      <span style="color:${f.moyenne > 0.6 || f.moyenne < 0.4 ? 'var(--warn)' : 'var(--accent-2)'}">${pc(f.moyenne)}</span>
+      <i style="width:${Math.round(f.moyenne * 100)}%"></i>
+    </div>`).join('')
+    + '<p class="stat" style="margin-top:10px">Une distribution saine : tout le monde entre 45 % et 55 % de moyenne, avec des matchups tranchés en dessous.</p>';
+}
+</script>
+</body>
+</html>

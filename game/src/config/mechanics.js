@@ -66,6 +66,17 @@ const ALLY_TARGETS = ['ownHero', 'allyUnit', 'allAllies', 'randomAllyAny', 'rand
 const num = (k, label, def = 1) => ({ k, type: 'number', label, def });
 const tgt = (k, label, allow) => ({ k, type: 'target', label, allow });
 
+// FILTRES DE CARTES — « quelles cartes de ta main ? ». Sert aux reductions de cout,
+// et a tout ce qui voudra designer un paquet de cartes plus tard.
+// Ajouter un filtre = une entree ici + son cas dans cardMatches().
+export const CARD_FILTERS = {
+  all: { label: 'Toutes tes cartes' },
+  ally: { label: 'Tes allies' },
+  spell: { label: 'Tes sorts' },
+  ofType: { label: 'Tes cartes d’un type', arg: 'type' },
+  withKey: { label: 'Tes cartes avec un mot-cle', arg: 'key' }
+};
+
 // Effets jouables (champ `play` d'une carte).
 export const EFFECTS = {
   dmg: {
@@ -73,6 +84,17 @@ export const EFFECTS = {
     label: 'Degats',
     desc: 'Inflige des degats a la cible.',
     params: [tgt('t', 'Cible', [...ENEMY_TARGETS, 'randomAllyAny', 'randomAllyUnit', 'self', 'previous']), num('v', 'Montant', 2)],
+    implemented: true
+  },
+  detruit: {
+    // Une destruction ne regarde pas les PV : elle marque l'unite comme morte, comme
+    // le fait le Venin, et c'est resolveDeaths qui la ramasse — donc son rale d'agonie
+    // part normalement. Le Bouclier n'arrete rien : il absorbe une PERTE DE PV, pas
+    // une destruction. Le heros, lui, n'est jamais concerne.
+    label: 'Destruction',
+    desc: 'Detruit les unites visees, quel que soit leur nombre de PV. Ne touche pas les heros.',
+    params: [tgt('t', 'Cible', ['enemyUnit', 'allEnemyUnits', 'randomEnemyUnit', 'enemyType',
+      'allyUnit', 'allAllies', 'randomAllyUnit', 'self', 'sameTypeAllies', 'allyType', 'previous'])],
     implemented: true
   },
   heal: {
@@ -100,6 +122,53 @@ export const EFFECTS = {
     label: 'Mana au prochain tour',
     desc: 'Donne X manas au prochain tour au joueur. (ce mana peut depasser la quantite de mana max du joueur)',
     params: [num('x', 'Valeur', 1)],
+    implemented: true
+  },
+  pioche_x: {
+    // Chercher une carte precise dans le deck. Le nom est celui de la carte : le
+    // builder le propose dans une liste, justement pour qu'il ne soit jamais tape.
+    label: 'Pioche une carte precise',
+    desc: 'Cherche une carte par son nom dans ton deck et la met en main. Ne fouille pas la defausse.',
+    params: [{ k: 'carte', type: 'cardName', label: 'Carte cherchee' }, num('n', 'Combien', 1)],
+    implemented: true
+  },
+  cree: {
+    // « Cree » n'est pas « pioche » : la carte n'a pas besoin d'etre dans le deck, elle
+    // apparait en main. Ca ouvre le catalogue entier (cartes libres comprises) sans le
+    // combo evident « je pioche le sort qui pioche », et ca marche encore quand le deck
+    // est fini — ce qui, depuis que la defausse ne se remelange plus, arrive vraiment.
+    label: 'Cree une carte',
+    desc: 'Fait apparaitre une carte en main, prise dans tout le catalogue du jeu. Elle ne vient pas du deck : le deck n\'est pas touche.',
+    params: [
+      { k: 'carte', type: 'cardRef', label: 'Carte creee' },
+      num('n', 'Combien', 1),
+      { k: 'lvl', type: 'number', label: 'Niveau de la carte', def: 1 }
+    ],
+    implemented: true
+  },
+  pioche_une_carte_de_type: {
+    label: 'Pioche un allie ou un sort',
+    desc: 'Cherche dans ton deck la premiere carte du genre demande et la met en main.',
+    params: [
+      { k: 'type', type: 'choice', label: 'Genre', def: 'ally', choices: [['ally', 'Un allie'], ['spell', 'Un sort']] },
+      num('n', 'Combien', 1)
+    ],
+    implemented: true
+  },
+  reduit_le_cout_de: {
+    // Effet PONCTUEL : il touche les cartes deja en main, pas celles a venir, et la
+    // reduction leur reste acquise pour tout le combat.
+    label: 'Reduit le cout',
+    desc: 'Reduit le cout des cartes de ta main qui correspondent au filtre. Un cout ne descend jamais sous 0. Les cartes piochees ensuite ne sont pas concernees.',
+    params: [
+      {
+        k: 'quoi', type: 'choice', label: 'Quelles cartes', def: 'all',
+        choices: Object.entries(CARD_FILTERS).map(([id, d]) => [id, d.label])
+      },
+      { k: 'argType', type: 'text', label: 'Type vise', def: 'Chien', si: ({ quoi }) => (CARD_FILTERS[quoi] || {}).arg === 'type' },
+      { k: 'argKey', type: 'keyword', label: 'Mot-cle vise', si: ({ quoi }) => (CARD_FILTERS[quoi] || {}).arg === 'key' },
+      num('v', 'Reduction', 1)
+    ],
     implemented: true
   },
   summon: {
@@ -139,9 +208,58 @@ export const TRIGGERS = {
   }
 };
 
+// ---------------------------------------------------------------------------
+// EVENEMENTS — « quand X, alors Y ».
+// Ce ne sont PAS des mots-cles : ce sont des moments de plus. Une unite en jeu ecoute
+// ce qui se passe et declenche sa liste d'effets, exactement comme « Debut de ton tour ».
+// Tout ce qui sait deja transporter un moment (resolveCard, makeUnit, le builder, le
+// bot) les transporte donc sans une ligne de plus.
+//
+// Chaque evenement existe en trois versions selon QUI l'a provoque : toi, l'adversaire,
+// ou n'importe qui. Ajouter un evenement = une entree ici + son `fireEvent` au bon
+// endroit dans engine.js.
+export const EVENTS = {
+  draw: { you: 'pioches une carte', other: 'pioche une carte' },
+  spell: { you: 'lances un sort', other: 'lance un sort' },
+  ally: { you: 'joues un allie', other: 'joue un allie' },
+  heroHurt: { you: 'perds des PV', other: 'perd des PV' },
+  unitDies: { you: 'perds une unite', other: 'perd une unite' },
+  attack: { you: 'attaques avec une unite', other: 'attaque avec une unite' }
+};
+
+export const EVENT_WHO = {
+  self: { label: 'Toi' },
+  foe: { label: 'L’adversaire' },
+  any: { label: 'N’importe qui' }
+};
+
+/** Le nom du moment qui porte « quand QUI fait EVENEMENT ». */
+export const eventSlot = (ev, who) => `on_${ev}_${who}`;
+
+const eventLabel = (ev, who) =>
+  who === 'self' ? `Quand tu ${EVENTS[ev].you}`
+    : who === 'foe' ? `Quand l’adversaire ${EVENTS[ev].other}`
+      : `Quand n’importe qui ${EVENTS[ev].other}`;
+
+for (const ev of Object.keys(EVENTS)) {
+  for (const who of Object.keys(EVENT_WHO)) {
+    TRIGGERS[eventSlot(ev, who)] = {
+      label: eventLabel(ev, who),
+      desc: `Tant que cette unite est en jeu, a chaque fois que ca se produit.`,
+      allyOnly: true,   // il faut etre sur le plateau pour ecouter
+      event: true, ev, who
+    };
+  }
+}
+
 /** Les moments qu'un jeton invoque peut porter : tout sauf « A la pose », qui ne
  *  se declenche que pour une carte jouee depuis la main. */
 export const TOKEN_TRIGGERS = Object.keys(TRIGGERS).filter(slot => slot !== 'play');
+
+/** Les moments « ordinaires » (pose, rale, tours) — ceux que le builder montre toujours. */
+export const BASE_TRIGGERS = Object.keys(TRIGGERS).filter(slot => !TRIGGERS[slot].event);
+/** Les moments d'evenement, ranges par evenement puis par « qui ». */
+export const EVENT_TRIGGERS = Object.keys(TRIGGERS).filter(slot => TRIGGERS[slot].event);
 
 // L'aura n'est pas un effet : c'est un modificateur applique en continu tant que
 // l'unite est sur le plateau, et retire des qu'elle le quitte.
@@ -157,6 +275,208 @@ export const AURA_SCOPES = {
 // Le Card Builder lit cette liste pour prevenir quand un palier ne servirait a rien.
 export const AMPLIFIABLE = ['dmg', 'heal', 'buff', 'armor'];
 
+// ---------------------------------------------------------------------------
+// EFFETS STATIQUES — « les [trucs] sont affectes [comme ca] ».
+// L'aura ci-dessus ne sait toucher qu'une seule chose : les statistiques des unites en
+// jeu. Un effet statique tient la meme promesse (ca dure tant que le porteur est la,
+// ca disparait avec lui) sur tout le reste : le cout des cartes en main, les montants
+// que les effets envoient, les degats subis par un heros, la pioche et le mana du tour.
+//
+// Chaque entree dit QUI est vise (`qui` : le camp du porteur, ou celui d'en face),
+// DANS QUEL SENS (`sens`) et DE COMBIEN (`v` — un nombre du jeu, donc un compteur si
+// on veut). Le moteur ne va jamais les chercher un par un : il appelle `staticTotal`
+// a l'endroit exact ou la valeur est lue, et repart avec un seul nombre.
+// AJOUTER UN EFFET STATIQUE = une entree ici + un appel a `staticTotal` au bon endroit.
+//   `bon`   : est-ce que « de plus » est une bonne nouvelle pour le camp vise ? (le bot)
+//   `poids` : ce que vaut un point de ce modificateur pendant un tour (le bot).
+const quiParam = (soi, autre) => ({
+  k: 'qui', type: 'choice', label: 'Porte sur', def: 'toi',
+  choices: [['toi', soi], ['adversaire', autre]]
+});
+const sensParam = def => ({
+  k: 'sens', type: 'choice', label: 'Sens', def,
+  choices: [['moins', 'De moins'], ['plus', 'De plus']]
+});
+
+export const STATICS = {
+  cout_des_cartes: {
+    label: 'Le cout des cartes en main',
+    desc: "Les cartes visees coutent moins (ou plus) cher tant que cette unite est en jeu. Le cout revient a la normale des qu'elle quitte le plateau.",
+    params: [
+      quiParam('Tes cartes', 'Les cartes de l’adversaire'),
+      {
+        k: 'quoi', type: 'choice', label: 'Quelles cartes', def: 'all',
+        choices: Object.entries(CARD_FILTERS).map(([id, d]) => [id, d.label])
+      },
+      // Pas de valeur par defaut : `staticFields` comble les trous, et un champ laisse
+      // vide ne doit surtout pas se transformer en « Chien » sans le dire.
+      { k: 'argType', type: 'text', label: 'Type vise', def: '', si: ({ quoi }) => (CARD_FILTERS[quoi] || {}).arg === 'type' },
+      { k: 'argKey', type: 'keyword', label: 'Mot-cle vise', si: ({ quoi }) => (CARD_FILTERS[quoi] || {}).arg === 'key' },
+      sensParam('moins'),
+      num('v', 'Combien', 1)
+    ],
+    bon: -1, poids: 1.2,
+    text: m => `${paquetDe(m)} coutent ${describeAmount(m.v)} de ${motSens(m)}`
+  },
+  montant_des_effets: {
+    // Le meme geste qu'un palier « Amplifie les effets », mais tant que le porteur
+    // tient le plateau — et il peut viser les effets d'en face pour les affaiblir.
+    label: 'Les montants des effets',
+    desc: "Les nombres envoyes par un type d'effet montent (ou baissent) : « tes degats infligent 1 de plus ».",
+    params: [
+      quiParam('Tes effets', 'Les effets de l’adversaire'),
+      {
+        k: 'cible', type: 'choice', label: 'Quel effet', def: 'dmg',
+        choices: AMPLIFIABLE.map(op => [op, EFFECTS[op].label])
+      },
+      sensParam('plus'),
+      num('v', 'Combien', 1)
+    ],
+    bon: 1, poids: 1.5,
+    text: m => `${m.qui === 'adversaire' ? 'Les' : 'Tes'} ${motEffet(m.cible)}`
+      + `${m.qui === 'adversaire' ? ' de l’adversaire' : ''} : ${describeAmount(m.v)} de ${motSens(m)}`
+  },
+  degats_du_heros: {
+    label: 'Les degats subis par un heros',
+    desc: "Chaque perte de PV d'un heros est reduite (ou aggravee). L'armure fait son travail apres.",
+    params: [quiParam('Ton heros', 'Le heros adverse'), sensParam('moins'), num('v', 'Combien', 1)],
+    bon: -1, poids: 1.2,
+    text: m => `Les degats subis par ${m.qui === 'adversaire' ? 'le heros adverse' : 'ton heros'} : ${describeAmount(m.v)} de ${motSens(m)}`
+  },
+  pioche_du_tour: {
+    label: 'La pioche de debut de tour',
+    desc: "La carte piochee chaque tour devient plusieurs (ou aucune). Ne touche pas les pioches ecrites sur les cartes.",
+    params: [quiParam('Toi', 'L’adversaire'), sensParam('plus'), num('v', 'Combien', 1)],
+    bon: 1, poids: 1.6,
+    text: m => `${m.qui === 'adversaire' ? 'L’adversaire pioche' : 'Tu pioches'} ${describeAmount(m.v)} de ${motSens(m)} par tour`
+  },
+  mana_du_tour: {
+    label: 'Le mana de chaque tour',
+    desc: "Du mana en plus (ou en moins) au debut de chaque tour. Comme le mana promis, il peut depasser le mana max.",
+    params: [quiParam('Toi', 'L’adversaire'), sensParam('plus'), num('v', 'Combien', 1)],
+    bon: 1, poids: 1.2,
+    text: m => `${m.qui === 'adversaire' ? 'L’adversaire a' : 'Tu as'} ${describeAmount(m.v)} mana de ${motSens(m)} par tour`
+  }
+};
+
+const motSens = m => (m.sens === 'plus' ? 'plus' : 'moins');
+// Le nom d'un effet au pluriel, pour que la carte se lise en francais. Un effet
+// amplifiable ajoute au registre sans passer par ici retombe sur son libelle.
+const MOTS_EFFET = { dmg: 'degats', heal: 'soins', buff: 'renforts', armor: 'armures' };
+const motEffet = op => MOTS_EFFET[op] || ((EFFECTS[op] || {}).label || op).toLowerCase();
+/** « tes sorts » vu du porteur, « les sorts de l'adversaire » vu d'en face. */
+const paquetDe = m => (m.qui === 'adversaire'
+  ? describeFilter(m).replace(/\btes\b/, 'les') + ' de l’adversaire'
+  : describeFilter(m));
+
+/** Les parametres d'un effet statique, trous combles par les valeurs par defaut. */
+export function staticFields(m) {
+  const out = { ...m };
+  for (const p of ((STATICS[(m || {}).op] || {}).params || [])) if (out[p.k] === undefined) out[p.k] = p.def;
+  return out;
+}
+
+/**
+ * La somme signee des effets statiques qui visent le camp `k` pour un modificateur
+ * donne. C'est LE point de passage : le moteur l'appelle la ou il lit la valeur
+ * (le cout d'une carte, les degats d'un heros, la pioche du tour...) et n'a jamais a
+ * parcourir les plateaux lui-meme. `garde` affine (le filtre de cartes, l'effet vise).
+ */
+export function staticTotal(B, k, op, garde) {
+  if (!B) return 0;   // hors combat (vitrine du deck) : aucun plateau, aucun modificateur
+  let total = 0;
+  for (const camp of ['p', 'e']) {
+    for (const u of B[camp].board) {
+      for (const brut of u.statics || []) {
+        if (brut.op !== op) continue;
+        const m = staticFields(brut);
+        // « Toi » = le camp du porteur ; « L'adversaire » = celui d'en face.
+        const vise = m.qui === 'adversaire' ? (camp === 'p' ? 'e' : 'p') : camp;
+        if (vise !== k || (garde && !garde(m))) continue;
+        // Le montant se compte du cote du PORTEUR : « X = tes allies Chien » parle de lui.
+        const v = amountValue(m.v, B, camp, u);
+        total += m.sens === 'plus' ? v : -v;
+      }
+    }
+  }
+  return total;
+}
+
+/** Texte lisible d'un effet statique, pour la carte et pour le builder. */
+export function describeStatic(m) {
+  const d = STATICS[(m || {}).op];
+  if (!d) return `⚠ effet statique inconnu « ${(m || {}).op} »`;
+  return d.text(staticFields(m));
+}
+
+// ---------------------------------------------------------------------------
+// COMPTEURS. Ce qu'une caracteristique variable peut suivre. Chacun rend un NOMBRE
+// a partir de l'etat du combat — jamais a partir de l'attaque ou des PV d'une unite,
+// sinon deux caracteristiques variables se regarderaient en boucle.
+// Ajouter un compteur = une entree ici, rien d'autre : le moteur l'appelle et le
+// Card Builder le propose tout seul.
+//   B = la bataille, k = le camp du porteur, u = le porteur (peut manquer quand le
+//   bot evalue une carte encore en main), arg = la valeur saisie (un type, souvent).
+const compte = (list, t) => (list || []).filter(x => keyArgs(x.baseKeys || x.keys, 'type').includes(t)).length;
+
+export const COUNTERS = {
+  ownTurns: { label: 'Tes tours joués', compute: (B, k) => B[k].turns || 0 },
+  turnTotal: { label: 'Tours joués (les deux camps)', compute: B => B.turnNo || 0 },
+  spellsGame: { label: 'Tes sorts joués cette partie', compute: (B, k) => B[k].spellsGame || 0 },
+  spellsTurn: { label: 'Tes sorts joués ce tour', compute: (B, k) => B[k].spellsTurn || 0 },
+  allyUnits: { label: 'Tes alliés en jeu (celui-ci compris)', compute: (B, k) => B[k].board.length },
+  enemyUnits: { label: 'Les unités adverses en jeu', compute: (B, k) => B[k === 'p' ? 'e' : 'p'].board.length },
+  alliesOfType: {
+    label: 'Tes alliés d’un type', needsArg: true, argLabel: 'Type suivi',
+    compute: (B, k, u, arg) => compte(B[k].board, arg)
+  },
+  enemiesOfType: {
+    label: 'Les unités adverses d’un type', needsArg: true, argLabel: 'Type suivi',
+    compute: (B, k, u, arg) => compte(B[k === 'p' ? 'e' : 'p'].board, arg)
+  },
+  handCards: { label: 'Les cartes de ta main', compute: (B, k) => B[k].hand.length },
+  discardCards: { label: 'Les cartes de ta défausse', compute: (B, k) => B[k].discard.length },
+  heroMissingHp: { label: 'Les PV manquants de ton héros', compute: (B, k) => Math.max(0, B[k].maxHp - B[k].hp) }
+};
+
+/** Le nombre suivi, ou 0 si le compteur n'existe pas (mecanique a moitie decrite). */
+export function counterValue(id, B, k, u, arg) {
+  const def = COUNTERS[id];
+  return def ? Math.max(0, def.compute(B, k, u, arg) || 0) : 0;
+}
+
+// ---------------------------------------------------------------------------
+// MONTANTS VARIABLES. N'IMPORTE QUEL nombre d'un effet peut valoir un compteur au
+// lieu d'une valeur fixe : « inflige X degats, X = tes allies Chien », « pioche X
+// cartes », « invoque X jetons ». Ce n'est donc pas un effet de plus — c'est une
+// facon d'ecrire un nombre, et tous les effets en profitent d'un coup.
+//   nombre fixe   : 3
+//   nombre variable : { src: 'alliesOfType', arg: 'Chien', plus: 0 }
+// `plus` est le bonus a plat, celui que les paliers « Amplifie les effets » ajoutent.
+export const isVariableAmount = v => !!(v && typeof v === 'object' && v.src);
+
+/** Le nombre a utiliser maintenant. Un montant fixe se rend tel quel. */
+export function amountValue(v, B, k, u) {
+  if (!isVariableAmount(v)) return +v || 0;
+  return Math.max(0, counterValue(v.src, B, k, u, v.arg) + (v.plus || 0));
+}
+
+/** Ce qu'on lit sur la carte : « 3 », ou « X (X = tes allies Chien) ». */
+export function describeAmount(v) {
+  if (!isVariableAmount(v)) return String(+v || 0);
+  const c = COUNTERS[v.src];
+  const bonus = v.plus ? ` + ${v.plus}` : '';
+  return `X${bonus} (= ${c ? c.label.toLowerCase() : '?'}${c && c.needsArg ? ' « ' + (v.arg || '?') + ' »' : ''})`;
+}
+
+/** Amplifie un montant : un palier « Effet +2 » nourrit le bonus a plat. */
+export function amplify(v, amp) {
+  return isVariableAmount(v) ? { ...v, plus: (v.plus || 0) + amp } : (+v || 0) + amp;
+}
+
+/** Les parametres numeriques d'un effet — ceux qui acceptent un montant variable. */
+export const numberParams = op => ((ALL_EFFECTS[op] || {}).params || []).filter(p => p.type === 'number');
+
 // Mots-cles portes par une unite (champ `keys`).
 export const KEYWORDS = {
   Taunt: { label: 'Provocation', desc: 'Doit etre attaquee avant le heros et les autres unites.', implemented: true },
@@ -171,6 +491,77 @@ export const KEYWORDS = {
     desc: 'L’allie est du type X, referencable par les cartes qui visent « les allies du meme type ».',
     params: [{ k: 'x', type: 'text', label: 'Valeur', def: 'Chien' }],
     implemented: true
+  },
+  elusif: {
+    label: 'Elusif',
+    desc: 'Ne peut pas etre attaquee par les unites adverses. Les sorts et les effets, eux, l’atteignent toujours.',
+    implemented: true
+  },
+  passe_murailles: {
+    label: 'Passe-Murailles',
+    desc: 'Peut frapper le heros adverse meme si des unites ont Provocation.',
+    implemented: true
+  },
+  // Le cout n'est pas une valeur derivee comme atk/hp : c'est ce mot-cle, et lui seul,
+  // qui le fait bouger. Il vaut pour la carte EN MAIN — le porter sur un allie ne fait
+  // rien une fois l'unite posee. Sa valeur passe par le systeme de montants variables :
+  // « 2 de moins » comme « X de plus, X = tes tours joues » s'ecrivent pareil.
+  cout_x_de_moins_de_plus: {
+    label: 'Cout X de moins/de plus',
+    desc: 'Cette carte coute X mana de moins (ou de plus). X peut etre un nombre fixe ou un compteur. Un cout ne descend jamais sous 0.',
+    params: [
+      {
+        k: 'sens', type: 'choice', label: 'Sens', def: 'moins',
+        choices: [['moins', 'De moins'], ['plus', 'De plus']]
+      },
+      // En mode « fixe » c'est X lui-meme ; avec un compteur, c'est le bonus a plat
+      // qui s'y ajoute (le meme role que `plus` dans un montant variable).
+      { k: 'v', type: 'number', label: 'Valeur (bonus si X suit un compteur)', def: 1 },
+      // « fixe » = la valeur ci-dessus, telle quelle. Un compteur = la valeur devient
+      // le bonus a plat du montant variable, exactement comme `plus` ailleurs.
+      {
+        k: 'src', type: 'choice', label: 'X vaut', def: 'fixe',
+        choices: [['fixe', 'La valeur ci-dessus'], ...Object.entries(COUNTERS).map(([id, d]) => [id, d.label])]
+      },
+      {
+        k: 'arg', type: 'text', label: 'Type suivi', def: '',
+        si: ({ src }) => !!(COUNTERS[src] && COUNTERS[src].needsArg)
+      }
+    ],
+    text: (f) => `Cout ${describeAmount(costAmount(f))} de ${f.sens === 'plus' ? 'plus' : 'moins'}`,
+    implemented: true
+  },
+  // Mot-cle a PLUSIEURS parametres : « id:stat:compteur:valeur ».
+  // L'attaque et/ou les PV ne sont plus ecrits sur la carte, ils SONT le compteur.
+  // C'est une valeur derivee de plus : refresh() la recalcule, exactement comme une
+  // aura, donc elle monte et descend toute seule sans jamais toucher aux degats subis.
+  characteristique_variable: {
+    label: 'Caractéristique variable',
+    desc: 'L’attaque et/ou la vie de cette unite valent ce que compte un compteur (tours joues, allies d’un type...). Les statistiques ecrites sur la carte sont alors ignorees ; les renforts recus en combat, eux, s’ajoutent.',
+    params: [
+      {
+        k: 'stat', type: 'choice', label: 'Ce qui varie', def: 'atk',
+        choices: [['atk', 'L’attaque'], ['hp', 'La vie'], ['both', 'L’attaque et la vie']]
+      },
+      {
+        k: 'src', type: 'choice', label: 'Vaut le nombre de', def: 'ownTurns',
+        choices: Object.entries(COUNTERS).map(([id, d]) => [id, d.label])
+      },
+      // `si` : ce champ n'a de sens que pour un compteur qui demande une valeur.
+      // Le builder ne l'affiche donc pas quand on compte les tours.
+      {
+        k: 'arg', type: 'text', label: 'Type suivi', def: '',
+        si: ({ src }) => !!(COUNTERS[src] && COUNTERS[src].needsArg)
+      }
+    ],
+    /** Ce que la carte affiche : « Attaque = tes tours joues ». Recoit les parametres
+     *  deja completes par leurs valeurs par defaut, jamais des trous. */
+    text: ({ stat, src, arg }) => {
+      const quoi = stat === 'hp' ? 'Vie' : stat === 'both' ? 'Attaque et vie' : 'Attaque';
+      const cpt = COUNTERS[src];
+      return `${quoi} = ${cpt ? cpt.label.toLowerCase() : '?'}${cpt && cpt.needsArg ? ' « ' + (arg || '?') + ' »' : ''}`;
+    },
+    implemented: true
   }
 };
 
@@ -181,10 +572,68 @@ export const KEYWORDS = {
 // parametre ne demande donc pas de retoucher les mots-cles existants.
 export const keyId = k => String(k || '').split(':')[0];
 export const keyArg = k => { const i = String(k || '').indexOf(':'); return i < 0 ? '' : String(k).slice(i + 1); };
+/** Les valeurs d'un mot-cle a PLUSIEURS parametres, dans l'ordre de ses `params`. */
+export const keyParts = k => String(k || '').split(':').slice(1);
+/** Les parametres d'un mot-cle range par nom : { stat: 'atk', src: 'ownTurns', ... }. */
+export function keyFields(k) {
+  const def = ALL_KEYWORDS[keyId(k)];
+  const parts = keyParts(k);
+  const out = {};
+  ((def && def.params) || []).forEach((p, i) => { out[p.k] = parts[i] === undefined ? (p.def || '') : parts[i]; });
+  return out;
+}
+/** Assemble « id:v1:v2 » a partir des valeurs rangees par nom. */
+export function keyFrom(id, champs, defs) {
+  const params = (defs || (ALL_KEYWORDS[id] || {}).params) || [];
+  if (!params.length) return id;
+  return [id, ...params.map(p => (champs[p.k] === undefined ? (p.def || '') : champs[p.k]))].join(':');
+}
 /** La liste `keys` contient-elle ce mot-cle, avec ou sans valeur ? */
 export const hasKey = (keys, id) => (keys || []).some(k => keyId(k) === id);
 /** Les valeurs portees par un mot-cle donne (ex. tous les types d'une unite). */
 export const keyArgs = (keys, id) => (keys || []).filter(k => keyId(k) === id).map(keyArg).filter(Boolean);
+
+// ---------------------------------------------------------------------------
+// COUT D'UNE CARTE. Le cout ecrit sur la carte (que les paliers et « Reduit le cout »
+// modifient) plus ce que dit le mot-cle « Cout X de moins/de plus », qui lui se
+// recalcule a chaque fois qu'on regarde la carte : son X peut etre un compteur.
+// Tout ce qui paie ou affiche un cout passe par `cardCost` — jamais par `card.cost`.
+export const COST_KEYWORD = 'cout_x_de_moins_de_plus';
+
+/** Le X du mot-cle, ecrit comme n'importe quel montant du jeu : nombre ou compteur. */
+export function costAmount(champs) {
+  const plat = +champs.v || 0;
+  return champs.src && COUNTERS[champs.src] ? { src: champs.src, arg: champs.arg || '', plus: plat } : plat;
+}
+
+/** Ce que le mot-cle ajoute (positif) ou retire (negatif) au cout, ici et maintenant. */
+export function costDelta(card, B, k) {
+  const cle = ((card && card.keys) || []).find(x => keyId(x) === COST_KEYWORD);
+  if (!cle) return 0;
+  const champs = keyFields(cle);
+  // Hors combat (vitrine du deck, vue d'ensemble) il n'y a pas de compteurs a lire :
+  // on ne montre alors que la part fixe, jamais un nombre invente.
+  const x = B ? amountValue(costAmount(champs), B, k, null) : Math.max(0, +champs.v || 0);
+  return champs.sens === 'plus' ? x : -x;
+}
+
+/** Le cout a payer pour cette carte, dans cette position. Jamais negatif.
+ *  Trois choses le composent : le cout ecrit (que les paliers et « Reduit le cout »
+ *  modifient), le mot-cle porte par la carte, et les effets statiques en jeu. */
+export const cardCost = (card, B, k) => Math.max(0, ((card && card.cost) || 0)
+  + costDelta(card, B, k)
+  + staticTotal(B, k, 'cout_des_cartes', m => cardMatches(card, m)));
+
+// ---------------------------------------------------------------------------
+// MECANIQUES INVENTEES DANS LE BUILDER QUI SONT MAINTENANT CODEES, mais sous une
+// autre forme que celle imaginee au depart : ni un effet, ni un mot-cle, donc elles
+// n'apparaissent pas dans EFFECTS/KEYWORDS et le builder ne pourrait pas deviner
+// qu'elles sont faites. Il s'en sert pour les retirer de `customMechanics` tout seul
+// et dire par quoi les remplacer.
+export const IMPLEMENTED_AS = {
+  montant_variable: 'c’est le bouton « X » a cote de chaque nombre d’un effet',
+  quand_x_alors_y: 'ce sont les moments « Quand X alors Y » (pioche, sort, allie pose, PV perdus, unite tuee, attaque)'
+};
 
 // ---------------------------------------------------------------------------
 // Fusion avec les mecaniques inventees dans le builder.
@@ -194,7 +643,15 @@ export const CUSTOM_MECHANICS = customs;
 
 export const ALL_EFFECTS = { ...EFFECTS };
 export const ALL_KEYWORDS = { ...KEYWORDS };
+/** Cette mecanique inventee dans le builder existe-t-elle deja, pour de vrai, ici ? */
+const dejaCodee = m => !!((m.kind === 'keyword' ? KEYWORDS : EFFECTS)[m.id] || IMPLEMENTED_AS[m.id]);
+
 for (const m of customs) {
+  // Une mecanique CODEE ne doit plus jamais etre ecrasee par sa version « a coder ».
+  // Sinon un vieil onglet du builder qui re-applique son brouillon la remet dans les
+  // donnees, et le moteur perd la vraie : ses parametres redeviennent ceux qu'on avait
+  // imagines, et la carte ne fait plus rien. Le builder fait le meme tri de son cote.
+  if (dejaCodee(m)) continue;
   const entry = { label: m.label, desc: m.desc, params: m.params || [], implemented: !!m.implemented, custom: true };
   if (m.kind === 'keyword') ALL_KEYWORDS[m.id] = entry;
   else ALL_EFFECTS[m.id] = entry;
@@ -206,13 +663,34 @@ export const isKeywordReady = k => !!(ALL_KEYWORDS[keyId(k)] && ALL_KEYWORDS[key
 /** Ce qu'on affiche sur une carte pour un mot-cle : « Provocation », « Type Chien ». */
 export const keyLabel = k => {
   const def = ALL_KEYWORDS[keyId(k)];
+  if (def && def.text) return def.text(keyFields(k));   // le mot-cle sait se dire lui-meme
   const arg = keyArg(k);
   return (def ? def.label : keyId(k)) + (arg ? ' ' + arg : '');
 };
 
 /** Tout ce qui reste a coder — sert au jeu, au simulateur et au fichier de suivi. */
 export function pendingMechanics() {
-  return customs.filter(m => !m.implemented);
+  return customs.filter(m => !m.implemented && !dejaCodee(m));
+}
+
+/** Cette carte correspond-elle au filtre ? `e` porte les valeurs saisies. */
+export function cardMatches(card, e) {
+  if (!card) return false;
+  switch (e.quoi || 'all') {
+    case 'ally': return card.type === 'ally';
+    case 'spell': return card.type !== 'ally';
+    case 'ofType': return !!e.argType && keyArgs(card.keys, 'type').includes(e.argType);
+    case 'withKey': return !!e.argKey && hasKey(card.keys, e.argKey);
+    default: return true;
+  }
+}
+
+/** Comment on nomme ce paquet de cartes dans un texte de carte. */
+export function describeFilter(e) {
+  const d = CARD_FILTERS[e.quoi || 'all'] || CARD_FILTERS.all;
+  if (d.arg === 'type') return `tes cartes « ${e.argType || '?'} »`;
+  if (d.arg === 'key') return `tes cartes avec ${e.argKey ? keyLabel(e.argKey) : '?'}`;
+  return d.label.toLowerCase();
 }
 
 /** Texte lisible d'une aura : « +1 attaque, Provocation → tes autres allies ». */
@@ -231,14 +709,20 @@ export function describeEffect(e) {
   const def = ALL_EFFECTS[e.op];
   if (!def) return `⚠ mecanique inconnue « ${e.op} »`;
   const t = e.t ? ` → ${targetLabel(e.t)}` : '';
+  const n = k => describeAmount(e[k]);
   switch (e.op) {
-    case 'dmg': return `${e.v} degats${t}`;
-    case 'heal': return `soigne ${e.v}${t}`;
-    case 'buff': return `+${e.atk || 0}/+${e.hp || 0}${e.key ? ' et ' + e.key : ''}${t}`;
-    case 'draw': return `pioche ${e.v}`;
-    case 'armor': return `${e.v} armure`;
-    case 'mana': return `+${e.v} mana ce tour`;
-    case 'mana_au_prochain_tour': return `+${e.x} mana au prochain tour`;
+    case 'dmg': return `${n('v')} degats${t}`;
+    case 'detruit': return `detruit${t}`;
+    case 'heal': return `soigne ${n('v')}${t}`;
+    case 'buff': return `+${n('atk')}/+${n('hp')}${e.key ? ' et ' + e.key : ''}${t}`;
+    case 'draw': return `pioche ${n('v')}`;
+    case 'armor': return `${n('v')} armure`;
+    case 'mana': return `+${n('v')} mana ce tour`;
+    case 'mana_au_prochain_tour': return `+${n('x')} mana au prochain tour`;
+    case 'cree': return `cree ${describeAmount(e.n === undefined ? 1 : e.n)} × « ${e.carte || '?'} » en main`;
+    case 'pioche_x': return `cherche ${describeAmount(e.n === undefined ? 1 : e.n)} × « ${e.carte || '?'} » dans ton deck`;
+    case 'pioche_une_carte_de_type': return `cherche ${describeAmount(e.n === undefined ? 1 : e.n)} ${e.type === 'spell' ? 'sort' : 'allie'}(s) dans ton deck`;
+    case 'reduit_le_cout_de': return `${describeAmount(e.v)} mana de moins pour ${describeFilter(e)} en main`;
     case 'summon': {
       if (!e.unit) return `invoque ${e.n || 1} × ?`;
       // Un jeton peut porter mots-cles, moments et aura : le dire, sinon la carte
@@ -248,7 +732,7 @@ export function describeEffect(e) {
         ...TOKEN_TRIGGERS.filter(slot => (e.unit[slot] || []).length).map(slot => TRIGGERS[slot].label),
         ...(e.unit.aura ? ['Aura'] : [])
       ];
-      return `invoque ${e.n || 1} × ${e.unit.name} ${e.unit.atk}/${e.unit.hp}`
+      return `invoque ${describeAmount(e.n === undefined ? 1 : e.n)} × ${e.unit.name} ${e.unit.atk}/${e.unit.hp}`
         + (dons.length ? ` (${dons.join(', ')})` : '');
     }
     default: return def.implemented ? def.label : `⚠ ${def.label} (pas encore codee)`;

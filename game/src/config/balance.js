@@ -30,12 +30,37 @@ export const BALANCE = {
     stallSlot: n => 60 + n * 90      // cout du slot d'etale n+1
   },
 
+  // LE BOT. Le GDD veut un bot qui joue regulierement mal : c'est la marge de
+  // progression que recupere le joueur quand il reprend la main en mode manuel.
+  // `misplay` = part de coups tires au hasard. `malin` allume la lecture fine :
+  // mana bien depense (sac a dos sur la main), meilleure attaque du plateau entier,
+  // retraits gardes pour ce qui en vaut la peine. L'eteindre rend le bot naif.
+  //   Un combat peut demander un niveau precis : createBattle(p, e, { ia: 'dur' }).
+  ai: {
+    defaut: 'normal',
+    niveaux: {
+      naif: { misplay: 0.25, malin: false },
+      simple: { misplay: 0.12, malin: false },   // le bot d'origine du GDD
+      normal: { misplay: 0.08, malin: true },
+      dur: { misplay: 0.03, malin: true },
+      // Le seul qui CHERCHE au lieu de suivre des regles : pour chaque coup possible
+      // il finit la partie `rollouts` fois et garde celui qui gagne le plus souvent.
+      // Environ 50 ms par decision : confortable en jeu, trop lent pour une grosse
+      // matrice de matchups (`node scripts/matchups.mjs ... --fort` l'utilise quand
+      // on veut verifier un matchup precis avec une reference solide).
+      montecarlo: { misplay: 0, malin: true, rollouts: 10 }
+    }
+  },
+
   combat: {
     boardSize: 5,
     handMax: 8,
     maxManaCap: 10,
     autoStepMs: 750,        // rythme du mode auto (spectacle idle)
-    fatigueBase: 1          // degats de fatigue, +1 par pioche a vide
+    // PLAFOND DE TOURS (les deux camps confondus), garde-fou de derniere ligne : le
+    // combat s'arrete et celui qui a le plus de PV l'emporte. Depuis que le deck ne
+    // se remelange plus, la partie se termine presque toujours bien avant.
+    maxTurns: 100
   },
 
   farm: {

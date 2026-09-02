@@ -2,10 +2,10 @@
 // le mode manuel est une reprise en main volontaire (GDD).
 import { BALANCE } from '../config/balance.js';
 import { CHAR_BY_ID, characterDeck } from '../config/characters.js';
-import { ENCOUNTERS, ENEMY_CARDS } from '../config/world.js';
+import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist } from '../state.js';
 import { relicMods } from '../config/relics.js';
-import { TRIGGERS, keyLabel, hasKey } from '../config/mechanics.js';
+import { TRIGGERS, keyLabel, hasKey, cardCost, describeStatic } from '../config/mechanics.js';
 import { createBattle, playCard, attack, endTurn, canPlay, needsTarget, legalTargets, attackableTargets } from '../combat/engine.js';
 import { botAction } from '../combat/ai.js';
 import { $, el, asset, toast } from './shell.js';
@@ -42,7 +42,8 @@ function buildEnemySide(encId) {
     hp: enc.hp,
     mana: enc.mana,
     hand: enc.hand,
-    deck: enc.deck.map(id => ({ ...ENEMY_CARDS[id], sprite: enc.sprite }))
+    // Le deck du PNJ vient des donnees du builder, deja resolu carte par carte.
+    deck: enc.deck.map(c => ({ ...c, sprite: c.sprite || enc.sprite }))
   };
 }
 
@@ -66,7 +67,9 @@ function loop() {
   const isBot = B.turn === 'e' || auto;
   if (!isBot) return;                       // au joueur de jouer
   timer = setTimeout(() => {
-    const a = botAction(B, B.turn);
+    // L'adversaire peut jouer a un autre niveau que le pilote automatique du joueur :
+    // c'est le champ `ia` de la rencontre (GAME CONFIG), un boss a le droit d'etre dur.
+    const a = botAction(B, B.turn, B.turn === 'e' ? (ENCOUNTERS[ctx.enemy] || {}).ia : undefined);
     applyAction(B.turn, a);
     render();
     if (B.over) finish(); else loop();
@@ -86,6 +89,9 @@ function moments(x) {
     .filter(([slot, def]) => slot !== 'play' && (x[slot] || []).length)
     .map(([, def]) => def.label);
   if (x.aura) out.push('Aura');
+  // Un effet statique se lit en entier : c'est lui qui explique pourquoi une carte
+  // de la main coute soudain moins cher.
+  for (const m of x.statics || []) out.push(describeStatic(m));
   return out;
 }
 
@@ -123,9 +129,12 @@ function handNode() {
   const wrap = el('<div class="bt-hand"></div>');
   B.p.hand.forEach((c, i) => {
     const ok = canPlay(B, 'p', c) && B.turn === 'p' && !auto;
+    // Le cout affiche est celui qu'on va vraiment payer : le mot-cle « Cout X de
+    // moins/de plus » peut le faire bouger d'un tour a l'autre, on le signale.
+    const cout = cardCost(c, B, 'p');
     const n = el(`
       <div class="hcard ${c.type === 'spell' ? 'spell' : ''} ${ok ? '' : 'no'} ${selCard === i ? 'sel' : ''}">
-        <div class="cost">${c.cost}</div>
+        <div class="cost" ${cout !== c.cost ? `title="coût de base ${c.cost}" style="color:var(--accent2)"` : ''}>${cout}</div>
         ${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}
         <div class="nm">${c.name}</div>
         <div class="tx">${c.text || ''}</div>
@@ -153,6 +162,20 @@ function render() {
   const log = el('<div class="bt-log"></div>');
   B.log.slice(-40).forEach(l => log.appendChild(el(`<div>${l}</div>`)));
   root.appendChild(log);
+  // Le journal complet, telechargeable : l'ecran n'en montre que la fin, et c'est
+  // justement le debut du combat qu'on relit quand on cherche a comprendre.
+  const dl = el('<button class="btn ghost" style="font-size:11px;padding:4px 10px;align-self:flex-end">⬇ journal</button>');
+  dl.onclick = () => {
+    const texte = [`${B.p.name} contre ${B.e.name} — tour ${B.turnNo}`,
+      `PV ${B.p.hp}/${B.p.maxHp} contre ${B.e.hp}/${B.e.maxHp}`, ''].concat(B.log).join('\n');
+    const url = URL.createObjectURL(new Blob(['\ufeff' + texte], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `combat-${B.e.name.replace(/\s+/g, '-')}.txt`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
+  root.appendChild(dl);
 
   const pb = el('<div class="board" id="boardP"></div>');
   B.p.board.forEach(u => pb.appendChild(unitNode(u, 'p')));

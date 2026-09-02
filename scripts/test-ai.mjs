@@ -31,13 +31,21 @@ const sort = (name, effects, cost = 2) =>
 const filler = n => Array.from({ length: n }, (_, i) => ally('Vide' + i, 0, 1));
 const side = (name, cards) => ({ name, sprite: '', hp: 30, mana: 10, hand: 1, deck: [...cards, ...filler(8)] });
 
-function setup(mainJoueur, plateauAdverse = []) {
+/** Comme setup(), mais avec des unites deja posees des DEUX cotes. */
+function plateaux(mainJoueur, plateauJoueur, plateauAdverse) {
+  const B = setup([...plateauJoueur, ...mainJoueur], plateauAdverse);
+  for (const c of plateauJoueur) playCard(B, 'p', B.p.hand.findIndex(x => x.name === c.name), null);
+  B.p.mana = B.p.maxMana = 10;
+  return B;
+}
+
+function setup(mainJoueur, plateauAdverse = [], mana = 10) {
   const B = createBattle(side('Joueur', mainJoueur), side('Adversaire', plateauAdverse), {});
   B.e.hand = plateauAdverse.map(c => ({ ...c }));
   B.e.mana = B.e.maxMana = 10;
   for (const c of plateauAdverse) playCard(B, 'e', B.e.hand.findIndex(x => x.name === c.name), null);
   B.p.hand = mainJoueur.map(c => ({ ...c }));
-  B.p.mana = B.p.maxMana = 10;
+  B.p.mana = B.p.maxMana = mana;
   B.turn = 'p';
   return B;
 }
@@ -117,6 +125,82 @@ tendance('evite de declencher un gros rale adverse',
     ally('Piege', 2, 2, { death: [{ op: 'dmg', t: 'enemyHero', v: 6 }] })
   ]),
   (B, a) => cibleVisee(B, a) === 'Inoffensif');
+
+// ---------------------------------------------------------------------------
+console.log('\nDestruction');
+
+tendance('detruit la plus grosse menace, pas la plus entamee',
+  () => setup([sort('Desintegration', [{ op: 'detruit', t: 'enemyUnit' }])], [
+    ally('Rat', 1, 1),
+    ally('Colosse', 8, 8)
+  ]),
+  (B, a) => cibleVisee(B, a) === 'Colosse');
+
+tendance('lance la destruction totale quand c est l adversaire qui perd le plus',
+  () => plateaux([sort('Cataclysme', [{ op: 'detruit', t: 'allEnemyUnits' }, { op: 'detruit', t: 'allAllies' }])],
+    [ally('Bebe', 1, 1, { keys: ['Charge'] })], [ally('Colosse', 8, 8)]),
+  (B, a) => carteJouee(B, a) === 'Cataclysme');
+
+tendance('mais ne se rase pas son propre plateau pour rien',
+  () => plateaux([sort('Cataclysme', [{ op: 'detruit', t: 'allEnemyUnits' }, { op: 'detruit', t: 'allAllies' }])],
+    [ally('Colosse', 8, 8, { keys: ['Charge'] })], [ally('Bebe', 1, 1)]),
+  (B, a) => carteJouee(B, a) !== 'Cataclysme');
+
+// ---------------------------------------------------------------------------
+console.log('\nEffets statiques');
+
+tendance('prefere l allie qui allege toute la main',
+  () => setup([
+    ally('Banal', 2, 2),
+    ally('Mecene', 2, 2, { statics: [{ op: 'cout_des_cartes', qui: 'toi', quoi: 'all', sens: 'moins', v: 2 }] })
+  ]),
+  (B, a) => carteJouee(B, a) === 'Mecene');
+
+tendance('ne joue pas un effet statique qui profite a l adversaire',
+  () => setup([
+    ally('Banal', 2, 2),
+    ally('Genereux', 2, 2, { statics: [{ op: 'mana_du_tour', qui: 'adversaire', sens: 'plus', v: 3 }] })
+  ]),
+  (B, a) => carteJouee(B, a) === 'Banal');
+
+tendance('vise en priorite l unite adverse qui impose un effet statique',
+  () => setup([sort('Frappe', [{ op: 'dmg', t: 'enemyUnit', v: 3 }])], [
+    ally('Piou', 2, 2),
+    ally('Taxe', 2, 2, { statics: [{ op: 'cout_des_cartes', qui: 'adversaire', quoi: 'all', sens: 'plus', v: 2 }] })
+  ]),
+  (B, a) => cibleVisee(B, a) === 'Taxe');
+
+// ---------------------------------------------------------------------------
+console.log('\nLecture fine (bot « malin »)');
+
+tendance('depense tout son mana plutot que de poser la plus grosse carte',
+  () => setup([
+    { ...ally('Colosse', 5, 5), cost: 5 },
+    { ...ally('Frere1', 3, 3), cost: 2 },
+    { ...ally('Frere2', 3, 3), cost: 2 }
+  ], [], 5),
+  // Deux 3/3 pour 4 mana valent mieux qu'un 5/5 pour 5 : le sac a dos les choisit,
+  // et le bot pose donc un frere en premier.
+  (B, a) => carteJouee(B, a) !== 'Colosse');
+
+tendance('ne brule pas un gros retrait sur un moucheron',
+  () => setup([sort('Gros Sort', [{ op: 'dmg', t: 'enemyUnit', v: 6 }]), sort('Petit Sort', [{ op: 'dmg', t: 'enemyUnit', v: 2 }])],
+    [ally('Moucheron', 1, 1)]),
+  (B, a) => carteJouee(B, a) === 'Petit Sort');
+
+tendance('n envoie pas son unite mourir dans une provocation qui la mange',
+  () => {
+    const B = setup([], [ally('Mur', 5, 10, { keys: ['Taunt'] })]);
+    // Une 2/2 a nous, prete a attaquer : la seule cible legale est le mur, qui la tue
+    // sans mourir. Ne rien faire est meilleur que l'offrir.
+    B.p.board.push({
+      uid: 'x1', name: 'Piou', baseAtk: 2, baseHp: 2, baseKeys: [], damage: 0, printedAtk: 2, printedHp: 2,
+      atk: 2, hp: 2, maxHp: 2, keys: [], canAttack: true, attackedThisTurn: false,
+      death: [], turnStart: [], turnEnd: [], aura: null, statics: []
+    });
+    return B;
+  },
+  (B, a) => a.type === 'end');
 
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);
