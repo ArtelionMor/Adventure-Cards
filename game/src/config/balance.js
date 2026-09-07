@@ -90,6 +90,28 @@ export const BALANCE = {
     maxTurns: 100
   },
 
+  // LA COURBE DE DIFFICULTE, telle que `node scripts/simulate.mjs` la mesure.
+  // On ne teste plus une equipe figee mais TOUTES LES COMBINAISONS de heros possibles :
+  // en jeu, le joueur monte l'equipe qu'il veut, et c'est la pire combinaison qui dit
+  // si une rencontre est un mur.
+  simulation: {
+    // Combien de heros le joueur emmene face a quelle rencontre. La liste se lit dans
+    // l'ordre du monde : chaque palier prend `rencontres` rencontres a partir de la ou
+    // s'est arrete le precedent, et le DERNIER ramasse tout le reste (`rencontres: 0`).
+    paliers: [
+      { rencontres: 2, heros: 1, niveau: 1 },
+      { rencontres: 2, heros: 2, niveau: 5 },
+      { rencontres: 0, heros: 3, niveau: 8 }
+    ],
+    // Parties jouees par combinaison. C'est le curseur precision / duree : a 20, une
+    // case se lit a +/- 20 points, ce qui suffit pour reperer un mur ou un combat
+    // gagne d'avance ; monte a 100 pour juger un ecart fin.
+    parties: 20,
+    // Combinaisons tirees au hasard par palier, 0 = toutes. Six heros font 20 equipes
+    // de trois ; dix en feraient 120, et la simulation deviendrait longue.
+    equipesMax: 0
+  },
+
   farm: {
     saleIntervalMs: 15 * 60 * 1000,  // une vente toutes les 15 min (GDD)
     startPlots: 2,

@@ -101,7 +101,12 @@ est ignorée à la résolution (le jeu ne casse pas) et signalée par la validat
 **Aucune valeur d'équilibrage en dehors de `game/src/config/`.** Le GDD dit que la
 cadence de déblocage et les coûts sont pilotés par le game designer (l'utilisateur) :
 tout ce qui se tune doit rester dans ces fichiers, commenté en français.
-Après un changement d'équilibrage, faire tourner `node scripts/simulate.mjs`.
+Après un changement d'équilibrage, faire tourner `node scripts/simulate.mjs` — il essaie
+**toutes les combinaisons d'équipe** de la taille prévue par le palier, et c'est la
+**pire** qui dit si une rencontre est un mur (la moyenne masquerait qu'une seule équipe
+passe). Les paliers — combien de héros face à quelle rencontre, à quel niveau — sont du
+game config : `BALANCE.simulation`. `--paliers 1,2,3` les surcharge le temps d'un essai,
+`--csv f.csv` sort une ligne par combinaison.
 Après un changement de **cartes**, faire tourner `node scripts/check-decks.mjs` (les
 erreurs) et `node scripts/matchups.mjs` (l'équilibre entre decks) — voir « Outils ».
 Après toute modification de `game/src/combat/`, faire tourner **les trois bancs** :
