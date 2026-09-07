@@ -55,7 +55,12 @@ on lit tout de suite ce que ça donne.
 plus (au choix) les **cartes libres** et les **decks des adversaires**, chacun avec sa
 courbe de mana et ses cartes résolues à SON niveau,
 résolues au niveau choisi (curseur), avec leurs paliers et le rapport points/mana. Elle lit
-les données en direct, ne les écrit jamais, et sert à équilibrer.
+les données en direct, ne les écrit jamais, et sert à équilibrer. Son bouton
+**⬇ Exporter JSON** sort toutes les cartes **résolues au niveau du curseur**, avec pour
+chacune ce qu'elle **dit** (les effets écrits en clair par `describeEffect`) *et* ce
+qu'elle **est** (les structures brutes) : le fichier de données seul ne donne que la
+seconde moitié, illisible sans le registre. C'est le format à donner à relire — à
+quelqu'un, ou à une IA.
 
 ⚠ **Piège d'import** : `CHARACTER_DATA` est un import de module, donc figé au chargement
 de la page. Quand « Appliquer au jeu » réécrit le fichier, une page déjà ouverte garderait

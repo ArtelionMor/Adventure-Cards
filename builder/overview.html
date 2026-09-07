@@ -143,6 +143,7 @@
     <a class="tb-nav__link" href="../docs/MECANIQUES-A-CODER.md" target="_blank">Mécaniques à coder</a>
   </div>
   <span class="tb-nav__spacer"></span>
+  <button class="btn tb-nav__link" id="exportBtn" title="Toutes les cartes en JSON, effets écrits en clair — pour les relire ailleurs ou les donner à lire à une IA">⬇ Exporter JSON</button>
   <button class="btn tb-nav__link" id="printBtn">🖨️ Imprimer / PDF</button>
 </nav>
 
@@ -473,6 +474,76 @@ $('#out').addEventListener('click', ev => {
     localStorage.setItem(LS_FOCUS, JSON.stringify({ at: Date.now(), ...focus, from: 'overview' }));
   } catch { /* le pont est un confort, pas une dependance */ }
 });
+
+/**
+ * EXPORTER LES CARTES. Le fichier de donnees est deja du JSON, mais il decrit les effets
+ * en STRUCTURES (`{op:'dmg', t:'enemyUnit', v:2}`) : pour les relire ailleurs — ou les
+ * donner a lire a une IA — il faut aussi ce que la carte DIT. On sort donc les deux :
+ * `effets` porte les structures telles quelles, `texte` la meme chose ecrite en clair
+ * par les memes fonctions que l'apercu du builder.
+ *
+ * Les cartes sont RESOLUES au niveau du curseur : c'est ce que la page montre, et ce
+ * qu'on lit dans le fichier serait la version brute, paliers non appliques.
+ */
+function exportCartes() {
+  const lignes = [];
+  const ajoute = (def, ou, cote) => {
+    if (!def) return;
+    const c = resolveCard(def, etat.niveau);
+    const moments = {};
+    for (const [slot, d] of Object.entries(TRIGGERS)) {
+      if (slot === 'aura' || !(c[slot] || []).length) continue;
+      moments[d.label] = c[slot].map(describeEffect);
+    }
+    lignes.push({
+      id: def.id || null,
+      nom: c.name,
+      ou,                                   // « Médor · base », « Cartes libres »...
+      cote,                                 // 'cards' | 'switches' | null
+      type: c.type === 'ally' ? 'allié' : 'sort',
+      cout: c.cost,
+      attaque: c.type === 'ally' ? c.atk : null,
+      vie: c.type === 'ally' ? c.hp : null,
+      motsCles: (c.keys || []).map(keyLabel),
+      texteCarte: c.text || '',
+      moments,                              // ce que la carte fait, en clair
+      aura: c.aura ? describeAura(c.aura) : null,
+      statiques: (c.statics || []).map(describeStatic),
+      paliers: (def.tiers || []).map(t => ({ niveau: t.lvl, effet: texteTier(t), acquis: etat.niveau >= t.lvl })),
+      effets: Object.fromEntries(Object.entries(TRIGGERS)
+        .filter(([slot]) => slot !== 'aura' && (def[slot] || []).length)
+        .map(([slot]) => [slot, def[slot]]))   // les structures brutes, sans les paliers
+    });
+  };
+
+  for (const ch of DB.characters || []) {
+    for (const c of ch.cards || []) ajoute(c, `${ch.name} · base`, 'cards');
+    for (const c of ch.switches || []) ajoute(c, `${ch.name} · switch`, 'switches');
+  }
+  for (const c of DB.library || []) ajoute(c, 'Cartes libres', null);
+
+  return {
+    genere: new Date().toISOString(),
+    niveau: etat.niveau,
+    source: depuis ? 'brouillon du builder (' + new Date(depuis).toLocaleString('fr-FR') + ')' : 'fichier du jeu',
+    aLire: 'Les cartes sont résolues au niveau indiqué : les paliers en dessous sont déjà appliqués aux valeurs. « moments » dit ce que la carte fait en français ; « effets » porte les mêmes effets en structures, avant paliers.',
+    personnages: (DB.characters || []).map(ch => ({
+      id: ch.id, nom: ch.name, espece: ch.species || '', role: ch.role || '',
+      pv: ch.stats.hp, manaMax: ch.stats.mana, cartesEnMain: ch.stats.hand
+    })),
+    cartes: lignes
+  };
+}
+
+$('#exportBtn').onclick = () => {
+  const nom = `cartes-niveau-${etat.niveau}-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`;
+  const blob = new Blob([JSON.stringify(exportCartes(), null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nom;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
 
 $('#lvl').oninput = e => { etat.niveau = +e.target.value || 1; garde(); render(); };
 for (const b of document.querySelectorAll('#pnj button')) {
