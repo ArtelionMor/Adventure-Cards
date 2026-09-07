@@ -109,7 +109,6 @@
     </select></div>
     <div class="grp" id="quoi"></div>
     <div class="grp" id="tailles"></div>
-    <div class="grp" id="masque"></div>
     <span style="flex:1"></span>
     <button class="btn btn--primary" id="go">▶ Lancer</button>
     <button class="btn" id="stop" disabled>Arrêter</button>
@@ -223,11 +222,7 @@ const etat = Object.assign(
     quoi: { base: true, switch: false, mix: false, pnj: false },
     // La TAILLE D'EQUIPE se combine avec les categories ci-dessus : « mélange » et
     // « équipes de 3 » donnent tous les trios possibles, chacun en mode mélange.
-    tailles: { 1: true, 2: false, 3: false },
-    // Ce qu'on ne veut PAS voir. Une case masquee n'est pas non plus calculee : autant
-    // ne pas payer pour ce qu'on ne lira pas. Si on demasque apres coup, elle affiche
-    // « — » — elle n'a pas ete jouee, et le tableau ne fait pas semblant.
-    masque: { '1v1': false, '2v2': false, '3v3': false, pnj: false }
+    tailles: { 1: true, 2: false, 3: false }
   },
   JSON.parse(localStorage.getItem(LS) || '{}'));
 const garde = () => { try { localStorage.setItem(LS, JSON.stringify(etat)); } catch { /* pas grave */ } };
@@ -260,23 +255,6 @@ function majQuoi() {
 }
 majQuoi();
 
-/** Combien de heros dans ce deck. Un PNJ n'en a pas : il rend 0. */
-const tailleDe = d => (d.sous === 'PNJ' ? 0 : (d.recette.ids || []).length);
-
-/** Un deck entierement masque disparait du tableau, ligne ET colonne. */
-const visible = d => !(etat.masque.pnj && d.sous === 'PNJ');
-
-/**
- * UNE CASE MASQUEE. Les matchups « meme taille contre meme taille » se masquent par
- * famille : un 3v3 n'apprend pas la meme chose qu'un 1v3, et on veut souvent regarder
- * l'un sans l'autre.
- */
-function masquee(a, b) {
-  if (!visible(a) || !visible(b)) return true;
-  const ta = tailleDe(a), tb = tailleDe(b);
-  return ta > 0 && ta === tb && !!etat.masque[`${ta}v${ta}`];
-}
-
 // La taille d'equipe, et surtout le COUT annonce : 41 decks font 1681 cases, et mieux
 // vaut le lire avant de lancer que le decouvrir en regardant la barre.
 const TAILLES = [[1, 'Solos'], [2, 'Duos'], [3, 'Trios']];
@@ -289,34 +267,14 @@ function majTailles() {
   };
   majCout();
 }
-const MASQUES = [['1v1', '1v1'], ['2v2', '2v2'], ['3v3', '3v3'], ['pnj', 'PNJ']];
-function majMasque() {
-  $('#masque').innerHTML = '<label style="color:var(--muted);font-size:12px;align-self:center">Masquer</label>'
-    + MASQUES.map(([k, lab]) =>
-      `<span class="chip ${etat.masque[k] ? 'chip--on' : ''}" data-m="${k}" title="Ne pas afficher — ni calculer — ces matchups">${lab}</span>`).join('');
-  for (const n of $('#masque').querySelectorAll('[data-m]')) n.onclick = () => {
-    etat.masque[n.dataset.m] = !etat.masque[n.dataset.m];
-    garde(); majMasque();
-    // On redessine ce qu'on a deja : masquer ne relance pas une mesure.
-    if (derniers) dessine(derniers.liste, derniers.resultats);
-  };
-  majCout();
-}
-
 function majCout() {
-  const liste = decks();
-  let jouees = 0, refletees = 0;
-  for (let i = 0; i < liste.length; i++) for (let j = i; j < liste.length; j++) {
-    if (masquee(liste[i], liste[j])) continue;
-    jouees++;
-    if (i !== j) refletees++;
-  }
-  $('#mxCount').textContent = liste.length
-    ? `${liste.filter(visible).length} deck(s) · ${jouees} cases jouées (+${refletees} par symétrie) · ${jouees * etat.runs} parties`
+  const n = decks().length;
+  const jouees = n * (n + 1) / 2;          // le triangle, diagonale comprise
+  $('#mxCount').textContent = n
+    ? `${n} deck(s) · ${jouees} cases jouées (+${n * n - jouees} par symétrie) · ${jouees * etat.runs} parties`
     : '';
 }
 majTailles();
-majMasque();
 
 $('#lvl').oninput = () => { etat.niveau = +$('#lvl').value; $('#lvlOut').textContent = etat.niveau; garde(); majCout(); };
 $('#runs').oninput = () => { etat.runs = Math.max(10, +$('#runs').value || 10); garde(); majCout(); };
@@ -706,10 +664,7 @@ $('#go').onclick = async () => {
   // seconde n'apprend rien. L'autre moitie du tableau sera un REFLET — affiche comme
   // tel, jamais comme une mesure.
   const cellules = [];
-  for (let i = 0; i < liste.length; i++) for (let j = i; j < liste.length; j++) {
-    if (masquee(liste[i], liste[j])) continue;   // masque = pas affiche, donc pas paye
-    cellules.push([i, j]);
-  }
+  for (let i = 0; i < liste.length; i++) for (let j = i; j < liste.length; j++) cellules.push([i, j]);
   const coeurs = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, cellules.length));
 
   let ouvriers = [];
@@ -810,11 +765,9 @@ function avecReflets(resultats) {
   return out;
 }
 
-function dessine(listeTout, mesures) {
+function dessine(liste, mesures) {
   const resultats = avecReflets(mesures);
   const trouve = (a, b) => resultats.find(r => r.a === a && r.b === b);
-  // Un deck entierement masque quitte le tableau ; une case masquee reste, vide.
-  const liste = listeTout.filter(visible);
   const nom = d => d.sous === 'base' ? d.nom : `${d.nom} (${d.sous})`;
 
   let html = '<table class="mx"><tr><th class="rowh"></th>'
@@ -823,8 +776,8 @@ function dessine(listeTout, mesures) {
   for (const a of liste) {
     html += `<tr><th class="rowh">${esc(nom(a))}</th>`;
     for (const b of liste) {
-      const r = masquee(a, b) ? null : trouve(a, b);
-      if (!r) { html += '<td style="opacity:.25">—</td>'; continue; }
+      const r = trouve(a, b);
+      if (!r) { html += '<td>—</td>'; continue; }
       const l = lecture(r.taux);
       const { cls, style } = peinture(r.taux, a === b);
       const titre = `${nom(a)} contre ${nom(b)} : ${pc(r.taux)} ± ${pc(r.demi)} sur ${r.decisives} parties`
@@ -855,7 +808,6 @@ function dessine(listeTout, mesures) {
   // --- lecture ---
   // On lit les MESURES, pas les reflets : un matchup desequilibre est un probleme, pas
   // deux. (Avant le triangle, il etait compte deux fois — une fois dans chaque sens.)
-  mesures = mesures.filter(r => !masquee(r.a, r.b));
   const horsMiroir = mesures.filter(r => r.a !== r.b);
   const demiMoyen = mesures.reduce((s, r) => s + r.demi, 0) / mesures.length;
   const avantage = mesures.reduce((s, r) => s + r.avantagePremier, 0) / mesures.length;
