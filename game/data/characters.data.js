@@ -1171,8 +1171,8 @@ export const CHARACTER_DATA = {
               "t": "enemyUnit",
               "qui": "toi",
               "n": 5,
-              "atk": 4,
-              "hp": 4
+              "atk": 0,
+              "hp": 0
             },
             {
               "op": "pose_sur_le_plateau",
@@ -1183,7 +1183,7 @@ export const CHARACTER_DATA = {
               "argCard": "",
               "t": "enemyUnit",
               "qui": "toi",
-              "n": 4,
+              "n": 1,
               "atk": 0,
               "hp": 0
             }
@@ -1734,7 +1734,7 @@ export const CHARACTER_DATA = {
             "cout_x_de_moins_de_plus:X:1:ownTurns:",
             "type:Chat"
           ],
-          "text": "Crée autant de carte \"Foudre\" que de tour joués.",
+          "text": "Crée autant de carte \"Coup de Griffe\" que de tour joués",
           "play": [
             {
               "op": "cree",

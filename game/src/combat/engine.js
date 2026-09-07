@@ -472,31 +472,6 @@ function damageUnit(B, k, u, v, source) {
  * Retire les unites mortes et declenche leur rale d'agonie. Boucle tant que ces rales
  * (ou la disparition d'une aura) en tuent d'autres, avec un garde-fou.
  */
-/**
- * LA CARTE D'UN JETON. Un jeton n'a jamais ete joue depuis une main : il n'a donc pas
- * de carte, et il disparaissait purement et simplement en mourant. On lui en fabrique
- * une a sa mort, fidele a ce qu'il ETAIT en arrivant (`printedAtk`/`printedHp`, pas ses
- * renforts) : sa defausse peut ainsi le recycler, le reanimer, le compter.
- *
- * Elle coute 0 — un jeton n'a jamais eu de prix — et n'a PAS d'identifiant : rien dans
- * le catalogue ne la designe, donc « une carte precise » ne la trouvera jamais et elle
- * ne peut pas revenir par la pile de fatigue. Elle n'existe que dans cette partie.
- */
-function carteDuJeton(u) {
-  const c = {
-    id: null, name: u.name, type: 'ally', cost: 0,
-    atk: u.printedAtk || 0, hp: u.printedHp || 0,
-    keys: [...(u.baseKeys || [])], text: '', tiers: [],
-    sprite: u.sprite || null, ownerLevel: u.ownerLevel || 0,
-    statics: (u.statics || []).map(m => ({ ...m }))
-  };
-  // Les moments suivent le jeton, comme ils suivaient l'unite : generique, donc un
-  // moment ajoute au registre voyage sans toucher a cette fonction.
-  for (const slot of Object.keys(TRIGGERS)) if (Array.isArray(u[slot])) c[slot] = u[slot].map(e => ({ ...e }));
-  if (u.aura) c.aura = { ...u.aura };
-  return c;
-}
-
 function resolveDeaths(B, depth = 0) {
   refresh(B);
   const dead = [];
@@ -509,9 +484,8 @@ function resolveDeaths(B, depth = 0) {
 
   for (const { k, u } of dead) {
     say(B, `${u.name} est mis hors de combat.`);
-    // La carte rejoint la defausse maintenant. Un jeton n'en a pas : on lui en fabrique
-    // une, pour qu'il y aille comme les autres au lieu de s'evaporer.
-    B[k].discard.push(u.card || carteDuJeton(u));
+    // La carte rejoint la defausse maintenant : un jeton, lui, n'en a pas et disparait.
+    if (u.card) B[k].discard.push(u.card);
     if (u.death && u.death.length && !B.over) {
       B.fired.death = (B.fired.death || 0) + 1;
       say(B, `Rale d'agonie de ${u.name}.`);
