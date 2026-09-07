@@ -1940,8 +1940,8 @@ console.log('\nRenforcer des cartes la ou elles sont');
 }
 
 console.log('\nLes sorts joues retournent dans la pioche');
-const gardien = (qui = 'toi') => ally('Gardien', 1, 5, {
-  statics: [{ op: 'cartes_jouees_remelangees', qui }]
+const gardien = (qui = 'toi', quoi = 'tout') => ally('Gardien', 1, 5, {
+  statics: [{ op: 'cartes_jouees_remelangees', qui, quoi }]
 });
 {
   // L'effet statique dure tant que le porteur est la : le sort joue repart dans la
@@ -1974,6 +1974,44 @@ const gardien = (qui = 'toi') => ally('Gardien', 1, 5, {
   play(B, 'p', 'Chien');
   check('l allie reste sur le plateau', board(B, 'p'), ['Gardien 1/5', 'Chien 1/1']);
   check('et rien n est remelange', B.p.deck.length, 0);
+}
+{
+  // L'ALLIE, LUI, N'Y VA QU'A SA MORT. Sa carte suit l'unite tant qu'elle tient le
+  // plateau : c'est la mort, et elle seule, qui la renvoie dans la pioche.
+  const B = setup([gardien(), ally('Chien', 1, 1)], [frappe(99)]);
+  play(B, 'p', 'Gardien');
+  play(B, 'p', 'Chien');
+  B.p.deck = []; B.p.discard = [];
+  tuer(B, 'e', 'p', 'Chien');
+  check('l allie mort repart dans la pioche', B.p.deck.map(c => c.name), ['Chien']);
+  check('et pas a la defausse', B.p.discard.length, 0);
+}
+{
+  // LA DISTINCTION : « seulement les sorts » laisse l'allie mort a la defausse.
+  const B = setup([gardien('toi', 'sorts'), ally('Chien', 1, 1)], [frappe(99)]);
+  play(B, 'p', 'Gardien');
+  play(B, 'p', 'Chien');
+  B.p.deck = []; B.p.discard = [];
+  tuer(B, 'e', 'p', 'Chien');
+  check('« seulement les sorts » : l allie va a la defausse', [B.p.deck.length, B.p.discard.map(c => c.name)], [0, ['Chien']]);
+}
+{
+  // Et « seulement les allies » laisse le sort joue a la defausse.
+  const B = setup([gardien('toi', 'allies'), frappe(1)], [ally('Cible', 1, 9)]);
+  play(B, 'p', 'Gardien');
+  play(B, 'e', 'Cible');
+  B.p.deck = []; B.p.discard = [];
+  play(B, 'p', 'Frappe1', { side: 'e', uid: B.e.board[0].uid });
+  check('« seulement les allies » : le sort va a la defausse', [B.p.deck.length, B.p.discard.map(c => c.name)], [0, ['Frappe1']]);
+}
+{
+  // LE PORTEUR NE S'APPLIQUE PAS A LUI-MEME : un statique s'arrete avec celui qui le
+  // porte, et il a deja quitte le plateau quand on ramasse les morts.
+  const B = setup([gardien()], [frappe(99)]);
+  play(B, 'p', 'Gardien');
+  B.p.deck = []; B.p.discard = [];
+  tuer(B, 'e', 'p', 'Gardien');
+  check('le porteur mort va a la defausse, pas dans sa pioche', [B.p.deck.length, B.p.discard.map(c => c.name)], [0, ['Gardien']]);
 }
 {
   // « Chez l'adversaire » : c'est SA pioche qui se remplit, pas la notre.

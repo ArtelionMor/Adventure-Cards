@@ -485,7 +485,13 @@ function resolveDeaths(B, depth = 0) {
   for (const { k, u } of dead) {
     say(B, `${u.name} est mis hors de combat.`);
     // La carte rejoint la defausse maintenant : un jeton, lui, n'en a pas et disparait.
-    if (u.card) B[k].discard.push(u.card);
+    // « Tes allies qui meurent retournent dans ta pioche » la detourne vers le deck.
+    // Le porteur qui meurt ne s'applique pas a lui-meme : il a deja quitte le plateau
+    // juste au-dessus, et un statique s'arrete avec son porteur — c'est sa promesse.
+    if (u.card) {
+      if (staticTotal(B, k, 'cartes_jouees_remelangees', m => m.quoi !== 'sorts') > 0) melangeDedans(B, k, [u.card]);
+      else B[k].discard.push(u.card);
+    }
     if (u.death && u.death.length && !B.over) {
       B.fired.death = (B.fired.death || 0) + 1;
       say(B, `Rale d'agonie de ${u.name}.`);
@@ -1064,7 +1070,7 @@ export function playCard(B, k, handIndex, target = null) {
     // s'applique — c'est lui qui empeche « sort a 0 mana qui revient » de tourner.
     // Le sort part AVANT que ses effets se resolvent : un sort qui pioche peut donc se
     // retirer lui-meme. C'est la meme regle que pour la defausse, et c'est visible.
-    if (staticTotal(B, k, 'cartes_jouees_remelangees') > 0) melangeDedans(B, k, [card]);
+    if (staticTotal(B, k, 'cartes_jouees_remelangees', m => m.quoi !== 'allies') > 0) melangeDedans(B, k, [card]);
     else s.discard.push(card);
   }
   say(B, `${s.name} joue ${card.name}.`);

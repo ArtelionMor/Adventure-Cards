@@ -105,7 +105,7 @@ Après un changement d'équilibrage, faire tourner `node scripts/simulate.mjs`.
 Après un changement de **cartes**, faire tourner `node scripts/check-decks.mjs` (les
 erreurs) et `node scripts/matchups.mjs` (l'équilibre entre decks) — voir « Outils ».
 Après toute modification de `game/src/combat/`, faire tourner **les trois bancs** :
-`node scripts/test-triggers.mjs` (303 tests : râles, auras, déclencheurs de tour, paliers qui
+`node scripts/test-triggers.mjs` (308 tests : râles, auras, déclencheurs de tour, paliers qui
 débloquent un moment, couture builder → moteur, mana différé, mots-clés à paramètre, capacités
 des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, pile de fatigue, création de carte (précise et au hasard), déplacements de zone (mélange, renvoi, pose), leur renfort et celui des cartes sur place, prise du dessus, complétion par la fatigue, événement de renfort, filtre « une carte précise », niveau du propriétaire, plafond de tours), `node scripts/test-ai.mjs` (19 tests : le bot
 valorise-t-il ces mécaniques) et `node scripts/simulate.mjs` (la courbe de difficulté).
@@ -388,14 +388,23 @@ le registre + un appel à `staticTotal` au bon endroit** ; le builder, le bot, l
 les jetons le transportent sans une ligne de plus (`bon` et `poids` suffisent au bot à le
 valoriser, dans les deux sens : imposer un malus à l'adversaire est un bonus pour soi).
 
-Un effet statique n'est pas forcément un **nombre**. « Les sorts que tu joues retournent
-dans ta pioche » (`cartes_jouees_remelangees`) ne se dose pas : il est là ou il n'est pas.
-Il garde donc les deux champs que `staticTotal` additionne (`sens`, `v`), figés et cachés
-du builder, et le moteur teste simplement `> 0`. Un **allié** joué n'est pas concerné :
-sa carte voyage avec l'unité et ne tombe à la défausse qu'à sa mort — la remélanger à la
-pose la dupliquerait. Le plafond `maxRecyclageParTour` s'applique, et le sort part vers la
-pioche **avant** que ses effets se résolvent, donc un sort qui pioche peut se retirer
-lui-même (même règle que pour la défausse).
+Un effet statique n'est pas forcément un **nombre**. « Les cartes retournent dans la
+pioche » (`cartes_jouees_remelangees`) ne se dose pas : il est là ou il n'est pas. Il
+garde donc les deux champs que `staticTotal` additionne (`sens`, `v`), figés et cachés du
+builder, et le moteur teste simplement `> 0`.
+
+Il montre aussi qu'**une carte part à la défausse à deux moments différents** : un **sort**
+y va dès qu'il est joué (`playCard`), un **allié** seulement quand il meurt (`resolveDeaths`)
+— sa carte voyage avec l'unité tant qu'elle tient le plateau, et la remélanger à la pose la
+dupliquerait. Le champ « Quelles cartes » choisit l'un, l'autre ou les deux, et le moteur
+lit le même statique aux deux endroits avec une garde différente (`m.quoi`). Un **jeton**
+n'a pas de carte : il ne laisse rien. Et le **porteur qui meurt ne s'applique pas à
+lui-même** — il a déjà quitté le plateau quand on ramasse les morts, et un statique
+s'arrête avec son porteur.
+
+Le plafond `maxRecyclageParTour` s'applique, et le sort part vers la pioche **avant** que
+ses effets se résolvent, donc un sort qui pioche peut se retirer lui-même (même règle que
+pour la défausse).
 
 Contrairement à l'aura, ce n'est **pas** une valeur dérivée recalculée par `refresh()` :
 rien n'est stocké, tout est additionné au moment de la lecture. C'est ce qui rend le coût

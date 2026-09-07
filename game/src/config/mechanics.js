@@ -511,19 +511,36 @@ export const STATICS = {
   // avec lui. Il ne se dose pas — il est la ou il n'est pas — d'ou les deux champs
   // figes que `staticTotal` additionne et que le builder ne montre pas.
   //
-  // Un ALLIE joue n'est pas concerne : sa carte voyage avec l'unite et ne tombe a la
-  // defausse qu'a sa mort. La remelanger a la pose la dupliquerait (une unite sur le
-  // plateau ET une carte dans le deck).
+  // UNE CARTE PART A LA DEFAUSSE A DEUX MOMENTS, et ce sont deux choses differentes :
+  // un SORT y va des qu'il est joue, un ALLIE seulement quand il meurt — sa carte
+  // voyage avec l'unite tant qu'elle tient le plateau, la remelanger a la pose la
+  // dupliquerait (une unite en jeu ET une carte dans le deck). Le champ « Quelles
+  // cartes » laisse donc choisir l'un, l'autre, ou les deux.
   cartes_jouees_remelangees: {
-    label: 'Les cartes jouees retournent dans la pioche',
-    desc: "Un sort joue est remelange dans la pioche de son proprietaire au lieu d'aller a la defausse, tant que cette unite est en jeu. Les allies ne sont pas concernes : leur carte suit l'unite et ne part a la defausse qu'a sa mort. Le plafond de recyclage par tour s'applique.",
+    label: 'Les cartes retournent dans la pioche',
+    desc: "Au lieu d'aller a la defausse, la carte est remelangee dans la pioche de son proprietaire, tant que cette unite est en jeu. Un sort part des qu'il est joue ; un allie seulement quand il meurt. Un jeton n'a pas de carte : il ne laisse rien. Le plafond de recyclage par tour s'applique.",
     params: [
       quiParam('Toi', 'L’adversaire'),
+      {
+        k: 'quoi', type: 'choice', label: 'Quelles cartes', def: 'tout',
+        choices: [
+          ['tout', 'Les sorts joués et les alliés morts'],
+          ['sorts', 'Seulement les sorts joués'],
+          ['allies', 'Seulement les alliés qui meurent']
+        ]
+      },
       { k: 'sens', type: 'choice', label: 'Sens', def: 'plus', choices: [['plus', 'De plus']], si: () => false },
       { k: 'v', type: 'number', label: 'Valeur', def: 1, si: () => false }
     ],
     bon: 1, poids: 1.4,
-    text: m => `${m.qui === 'adversaire' ? 'Les sorts que joue l’adversaire retournent' : 'Les sorts que tu joues retournent'} dans la pioche`
+    text: m => {
+      const face = m.qui === 'adversaire';
+      const bouts = [];
+      if (m.quoi !== 'allies') bouts.push(face ? 'les sorts que joue l’adversaire' : 'les sorts que tu joues');
+      if (m.quoi !== 'sorts') bouts.push(face ? 'ses alliés qui meurent' : 'tes alliés qui meurent');
+      const phrase = bouts.join(' et ');
+      return phrase.charAt(0).toUpperCase() + phrase.slice(1) + ` retournent dans ${face ? 'sa' : 'ta'} pioche`;
+    }
   },
   pioche_du_tour: {
     label: 'La pioche de debut de tour',
