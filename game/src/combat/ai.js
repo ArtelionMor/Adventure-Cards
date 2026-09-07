@@ -512,6 +512,9 @@ function noteLaDecision(B, k, a, evalues) {
   const candidats = liste.map(n => decrisCoup(B, k, n.coup, n.victoires));
   const iChoisi = liste.findIndex(n => n.coup === a || memeCoup(n.coup, a));
   mouchard({
+    // Le combat lui-meme : l'ecouteur peut ainsi ecrire la decision DANS le journal
+    // de la partie, a sa place chronologique, juste avant le coup joue.
+    b: B,
     tour: B.turnNo, camp: k, nom: B[k].name,
     critere: liste.some(n => n.victoires !== undefined) ? 'victoires' : 'valeur',
     choisi: iChoisi >= 0 ? candidats[iChoisi] : decrisCoup(B, k, a),

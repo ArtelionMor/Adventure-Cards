@@ -31,6 +31,15 @@ ecouteLesChoix(d => {
   const jouables = d.candidats.filter(c => c.quoi === 'carte');
   if (!jouables.length) return;
   const meilleur = d.candidats.reduce((a, b) => ((b.victoires ?? -1) > (a.victoires ?? -1) ? b : a), d.candidats[0]);
+  // LA DECISION DANS LE JOURNAL. Elle s'ecrit avant le coup joue, donc a sa place
+  // chronologique : on lit « il hesitait entre ca et ca » puis « il joue ca ». C'est ce
+  // qui manquait pour comprendre une partie temoin — le journal disait ce qui a ete
+  // joue, jamais ce qui aurait pu l'etre.
+  if (d.b && d.b.log) {
+    const dit = c => c.nom + (c.victoires === undefined ? '' : ' ' + Math.round(c.victoires * 100) + '%');
+    const autres = d.candidats.filter(c => c !== d.choisi).map(dit).join(', ');
+    d.b.log.push(`   ↳ choix : ${dit(d.choisi)}${autres ? ' — devant ' + autres : ''}`);
+  }
   for (const c of jouables) {
     let f = cartes.get(c.nom);
     if (!f) cartes.set(c.nom, f = { nom: c.nom, propose: 0, joue: 0, sommeValeur: 0, nValeur: 0, sommeEcart: 0, nEcart: 0, prefereA: {} });
