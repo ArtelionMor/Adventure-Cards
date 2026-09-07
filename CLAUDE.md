@@ -28,6 +28,14 @@ paquet de cartes — donc six héros font 6 solos, **15** duos et **20** trios, 
 decks et 1681 cases. L'en-tête du panneau annonce le coût (decks, cases, parties) avant
 qu'on lance. Mesuré : 1681 cases à 10 parties, bot `dur`, **16 s** sur 16 cœurs.
 
+⚠ **On ne joue que le triangle.** `serie()` joue déjà la moitié des parties dans chaque
+sens, donc « A contre B » et « B contre A » mesurent exactement la même chose : la
+seconde n'apprend rien. La moitié sous la diagonale est **déduite** (`avecReflets`,
+`taux = 1 - taux`, ce qui est exact) et **affichée comme telle** — pâlie, penchée, avec
+une infobulle qui dit « case non jouée ». Le CSV, lui, ne contient que les cases
+réellement mesurées, et la lecture (matchups sur cible, écrasants) compte chaque matchup
+**une** fois au lieu de deux.
+
 **La courbe de difficulté** : « le joueur passe-t-il ? » — toutes les
 combinaisons d'équipe contre chaque adversaire, et c'est la **pire** qui dit si une
 rencontre est un mur (une moyenne masquerait qu'une seule équipe passe). Ses **paliers**

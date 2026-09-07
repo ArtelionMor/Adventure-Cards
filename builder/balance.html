@@ -269,7 +269,10 @@ function majTailles() {
 }
 function majCout() {
   const n = decks().length;
-  $('#mxCount').textContent = n ? `${n} deck(s) · ${n * n} cases · ${n * n * etat.runs} parties` : '';
+  const jouees = n * (n + 1) / 2;          // le triangle, diagonale comprise
+  $('#mxCount').textContent = n
+    ? `${n} deck(s) · ${jouees} cases jouées (+${n * n - jouees} par symétrie) · ${jouees * etat.runs} parties`
+    : '';
 }
 majTailles();
 
@@ -656,8 +659,12 @@ $('#go').onclick = async () => {
   // worker remonte les camps a partir des recettes et rend ses cases une par une, ce
   // qui garde la barre de progression vivante. Le repli sequentiel sert quand les
   // workers ne sont pas disponibles (page ouverte en fichier local, par exemple).
+  // ON NE JOUE QUE LE TRIANGLE. `serie()` joue deja la moitie des parties dans chaque
+  // sens : « A contre B » et « B contre A » mesurent exactement la meme chose, donc la
+  // seconde n'apprend rien. L'autre moitie du tableau sera un REFLET — affiche comme
+  // tel, jamais comme une mesure.
   const cellules = [];
-  for (let i = 0; i < liste.length; i++) for (let j = 0; j < liste.length; j++) cellules.push([i, j]);
+  for (let i = 0; i < liste.length; i++) for (let j = i; j < liste.length; j++) cellules.push([i, j]);
   const coeurs = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, cellules.length));
 
   let ouvriers = [];
@@ -743,7 +750,23 @@ function peinture(taux, estMiroir) {
   return { cls: l.ecrasant ? 'ecrase' : l.dedans ? 'cible' : 'entre', style: '' };
 }
 
-function dessine(liste, resultats) {
+/**
+ * L'AUTRE MOITIE DU TABLEAU. Elle n'a pas ete jouee : on la deduit de sa symetrique,
+ * ce qui est EXACT (le taux de B contre A vaut 1 moins celui de A contre B, sur les
+ * memes parties decisives) mais reste une deduction. Chaque case ainsi obtenue porte
+ * `reflet: true` — l'affichage la marque, le CSV ne la contient pas.
+ */
+function avecReflets(resultats) {
+  const out = [...resultats];
+  for (const r of resultats) {
+    if (r.a === r.b) continue;
+    out.push({ ...r, a: r.b, b: r.a, taux: 1 - r.taux, victoiresA: r.decisives - r.victoiresA, temoin: null, reflet: true });
+  }
+  return out;
+}
+
+function dessine(liste, mesures) {
+  const resultats = avecReflets(mesures);
   const trouve = (a, b) => resultats.find(r => r.a === a && r.b === b);
   const nom = d => d.sous === 'base' ? d.nom : `${d.nom} (${d.sous})`;
 
@@ -758,14 +781,18 @@ function dessine(liste, resultats) {
       const l = lecture(r.taux);
       const { cls, style } = peinture(r.taux, a === b);
       const titre = `${nom(a)} contre ${nom(b)} : ${pc(r.taux)} ± ${pc(r.demi)} sur ${r.decisives} parties`
-        + `\n${a === b ? 'miroir : doit tourner autour de 50 %' : l.ecrasant ? 'écrasant — hors des cibles' : l.dedans ? 'sur la cible « ' + l.cible.nom + ' »' : 'entre deux cibles'}`;
-      html += `<td class="${cls}" style="${style}" title="${esc(titre)}">${pc(r.taux)}</td>`;
+        + `\n${a === b ? 'miroir : doit tourner autour de 50 %' : l.ecrasant ? 'écrasant — hors des cibles' : l.dedans ? 'sur la cible « ' + l.cible.nom + ' »' : 'entre deux cibles'}`
+        + (r.reflet ? `\n\nCASE NON JOUEE : reflet exact de « ${nom(b)} contre ${nom(a)} », qui a ete mesuree.` : '');
+      // Un reflet se voit : il est pali et penche. On ne le donne pas pour une mesure.
+      const marque = r.reflet ? 'opacity:.5;font-style:italic;' : '';
+      html += `<td class="${cls}" style="${marque}${style}" title="${esc(titre)}">${pc(r.taux)}</td>`;
     }
     html += '</tr>';
   }
   html += '</table>';
   $('#mx').innerHTML = html;
-  $('#mxCount').textContent = `${liste.length} decks · ${etat.runs} parties par case · niveau ${etat.niveau} · bot ${etat.bot}`;
+  $('#mxCount').textContent = `${liste.length} decks · ${mesures.length} case(s) jouées`
+    + ` (+${resultats.length - mesures.length} reflétées) · ${etat.runs} parties par case · niveau ${etat.niveau} · bot ${etat.bot}`;
   $('#mx').insertAdjacentHTML('beforeend', etat.couleurs === 'taux'
     ? `<p class="stat" style="margin-top:10px">Lecture <strong>par taux</strong> : dégradé du rouge (0 %) au vert (100 %), qui domine qui.
        Passe en « par rapport aux cibles » pour juger l'équilibrage plutôt que la force brute.</p>`
@@ -773,12 +800,18 @@ function dessine(liste, resultats) {
        <span style="color:var(--accent-2)">vert</span> = sur une cible (33 / 50 / 66 ± ${pc(TOLERANCE)}),
        <span style="color:var(--warn)">orange</span> = entre deux, <span style="color:var(--danger)">rouge</span> = écrasant.
        Un 33 % voulu est donc aussi « vert » qu'un 66 %. Passe en « par taux » pour voir la force brute.</p>`);
+  $('#mx').insertAdjacentHTML('beforeend', `<p class="stat">Les cases <span style="opacity:.5;font-style:italic">pâlies et penchées</span>
+    sous la diagonale <strong>n'ont pas été jouées</strong> : ce sont les reflets exacts de leur symétrique, qui l'a été
+    (« B contre A » vaut 1 moins « A contre B », sur les mêmes parties). Ça divise le calcul par deux sans rien perdre —
+    et le CSV, lui, ne contient que les cases réellement mesurées.</p>`);
 
   // --- lecture ---
-  const horsMiroir = resultats.filter(r => r.a !== r.b);
-  const demiMoyen = resultats.reduce((s, r) => s + r.demi, 0) / resultats.length;
-  const avantage = resultats.reduce((s, r) => s + r.avantagePremier, 0) / resultats.length;
-  const bloquees = resultats.reduce((s, r) => s + r.bloquees, 0);
+  // On lit les MESURES, pas les reflets : un matchup desequilibre est un probleme, pas
+  // deux. (Avant le triangle, il etait compte deux fois — une fois dans chaque sens.)
+  const horsMiroir = mesures.filter(r => r.a !== r.b);
+  const demiMoyen = mesures.reduce((s, r) => s + r.demi, 0) / mesures.length;
+  const avantage = mesures.reduce((s, r) => s + r.avantagePremier, 0) / mesures.length;
+  const bloquees = mesures.reduce((s, r) => s + r.bloquees, 0);
   const compte = {};
   for (const c of CIBLES) compte[c.nom] = 0;
   let hors = 0;
