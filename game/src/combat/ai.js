@@ -10,7 +10,8 @@
 // declencheur de tour compte plusieurs fois parce qu'il se repete.
 import { BALANCE } from '../config/balance.js';
 import { canPlay, legalTargets, attackableTargets, needsTarget, cloneBattle, playCard, attack, endTurn } from './engine.js';
-import { TRIGGERS, TARGETS, STATICS, hasKey, keyId, keyArgs, keyFields, counterValue, amountValue, cardCost, staticFields, targetId, targetArg } from '../config/mechanics.js';
+import { TRIGGERS, TARGETS, STATICS, ZONES, hasKey, keyId, keyArgs, keyFields, counterValue, amountValue, cardCost, cardMatches, staticFields, targetId, targetArg } from '../config/mechanics.js';
+import { fatiguePile } from '../config/npcs.js';
 
 const foe = k => (k === 'p' ? 'e' : 'p');
 
@@ -43,8 +44,48 @@ function typeCount(board, t) {
 }
 
 // --------------------------------------------------------------- valorisation
+const CIBLES_ENNEMIES = ['enemyUnit', 'allEnemyUnits', 'randomEnemyUnit', 'enemyType'];
+// « Elle-meme » n'est pas la : le porteur sera bien la, meme si le plateau est vide.
+const CIBLES_ALLIEES = ['allyUnit', 'allAllies', 'randomAllyUnit', 'sameTypeAllies', 'allyType'];
+
+/**
+ * L'EFFET PEUT-IL SEULEMENT SE PRODUIRE ? La valorisation chiffrait ce que la carte
+ * PROMET, jamais ce qu'elle FERA : un renvoi en main sans rien a renvoyer, une pioche
+ * avec un deck fini, un sort de zone sans une seule unite en face valaient leur plein
+ * tarif — et le bot les jouait dans le vide. C'est ce que disent les journaux :
+ * « Aucune cible a viser », « Rien a deplacer », « Rien de sort a piocher ».
+ *
+ * On ne juge que ce qui est SUR : un effet dont on ne sait rien passe (mieux vaut le
+ * surestimer que rendre le bot craintif).
+ */
+function faisable(e, ctx) {
+  const B = ctx.B, k = ctx.k;
+  if (!B) return true;                       // hors combat : on ne sait rien
+  const me = B[k];
+  const t = targetId(e.t);
+  if (CIBLES_ENNEMIES.includes(t) && !ctx.enemies) return false;
+  if (CIBLES_ALLIEES.includes(t) && !ctx.allies) return false;
+
+  if (e.op === 'draw') return !!me.deck.length || !!fatiguePile().length;
+  if (e.op === 'pioche_x') return me.deck.some(c => c.name === e.carte);
+  if (e.op === 'pioche_une_carte_de_type') return me.deck.some(c => (e.type === 'spell') === (c.type !== 'ally'));
+  if (e.op === 'reduit_le_cout_de') return me.hand.some(c => cardMatches(c, e));
+
+  if (['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'renforce_les_cartes'].includes(e.op)) {
+    const z = ZONES[e.d_ou] || {};
+    if (z.carte) return true;                          // creee de toutes pieces
+    if (z.cible) return true;                          // le plateau : la cible a deja tranche
+    if (e.fatigue && fatiguePile().length) return true; // completee par la fatigue
+    const camp = e.qui === 'adversaire' ? B[foe(k)] : me;
+    const pile = e.d_ou === 'main' ? camp.hand : e.d_ou === 'pioche' ? camp.deck : camp.discard;
+    return pile.some(c => cardMatches(c, e));
+  }
+  return true;
+}
+
 /** Valeur approximative d'un effet, en "points de tempo". ctx = tailles de plateau. */
 function effectValue(e, ctx) {
+  if (!faisable(e, ctx)) return 0;
   // Un montant variable vaut ce qu'il vaudrait maintenant : « X degats, X = tes
   // allies Chien » ne vaut rien sans meute, et beaucoup avec.
   const n = key => amountValue(e[key], ctx.B, ctx.k, ctx.carte || null);
@@ -87,7 +128,10 @@ function effectValue(e, ctx) {
       }
     }
     case 'heal': return n('v') * 0.6;
-    case 'draw': return n('v') * 1.6;
+    // UNE PIOCHE QUI DEBORDE NE VAUT RIEN : au-dela de la place en main, la carte
+    // tiree part directement a la defausse. Les journaux en sont pleins (« Main
+    // pleine : X part a la defausse »), et le bot enchainait ces pioches sans le voir.
+    case 'draw': return Math.min(n('v'), ctx.place ?? 99) * 1.6;
     // Aller CHERCHER une carte precise vaut plus que piocher au hasard : on sait ce
     // qu'on prend. Mais ca ne vaut rien si le deck ne la contient pas — le bot ne peut
     // pas le savoir ici, on reste donc raisonnable.
@@ -95,7 +139,7 @@ function effectValue(e, ctx) {
     // meme deck fini, et on sait exactement laquelle.
     // Au hasard, on ne sait pas ce qui tombe : ca vaut un peu plus qu'une pioche,
     // un peu moins qu'une carte qu'on a choisie.
-    case 'cree': return (e.n === undefined ? 1 : n('n')) * (e.choix === 'hasard' ? 1.5 : 2.2);
+    case 'cree': return Math.min(e.n === undefined ? 1 : n('n'), ctx.place ?? 99) * (e.choix === 'hasard' ? 1.5 : 2.2);
     case 'renforce_les_cartes': {
       // Un renfort ecrit sur des cartes qu'on jouera plus tard : ca vaut moins qu'un
       // renfort sur le plateau (il faut encore les tirer et les payer), et c'est un
@@ -243,7 +287,10 @@ function bodyValue(u, ctx, poidsPv) {
 function cardValue(B, k, def) {
   const me = B[k], them = B[foe(k)];
   const card = estimee(B, k, def);
+  // `place` : combien de cartes tiendraient encore en main. La carte qu'on evalue va
+  // quitter la main en etant jouee, d'ou le +1.
   const ctx = { allies: me.board.length, enemies: them.board.length, sameType: sameTypeCount(me.board, card),
+    place: Math.max(0, BALANCE.combat.handMax - me.hand.length + 1),
     board: me.board, foeBoard: them.board, B, k, carte: card };
   let v = effectsValue(card.play, ctx);
 
@@ -265,6 +312,7 @@ function unitThreat(B, k, u) {
   // Les effets valorises ici sont ceux de l'unite ADVERSE : ses montants variables
   // se comptent depuis son camp a elle.
   const ctx = { allies: them.board.length, enemies: B[k].board.length, sameType: memeType,
+    place: Math.max(0, BALANCE.combat.handMax - them.hand.length),
     board: them.board, foeBoard: B[k].board, B, k: foe(k) };
   let p = u.atk * 1.3 + u.hp * 0.35;
   if (hasKey(u.keys, 'Venin')) p += 2;
@@ -461,11 +509,19 @@ function coupCherche(B, k, jeu) {
       for (const e of evalues) simule(B, k, e, jeu.rollouts, jeu);
     }
   } finally { enSondage--; }
-  // A egalite on garde le premier : les cartes viennent avant « passer ». Un candidat
-  // ecarte tot a moins de parties derriere lui — c'est voulu, il etait perdant.
+  // A EGALITE, LE MOINS CHER. Sans ce departage le bot gardait le PREMIER de la liste
+  // — et `coupsPossibles` empile les cartes avant « passer ». Une carte qui ne change
+  // rien donne pourtant exactement le meme taux que passer : le Monte-Carlo mesurait
+  // bien qu'elle etait inutile, puis la jouait quand meme, par ordre d'arrivee.
+  // Attaquer et passer coutent zero, donc rien ne passe devant une attaque gratuite.
+  // Un candidat ecarte tot a moins de parties derriere lui : c'est voulu, il perdait.
   const taux = e => (e.n ? e.somme / e.n : 0);
+  const cout = a => (a.type === 'play' ? Math.max(0, cardCost(B[k].hand[a.index], B, k)) : 0);
   let best = evalues[0];
-  for (const e of evalues) if (taux(e) > taux(best)) best = e;
+  for (const e of evalues) {
+    const ecart = taux(e) - taux(best);
+    if (ecart > 1e-9 || (ecart > -1e-9 && cout(e.coup) < cout(best.coup))) best = e;
+  }
   return { a: best.coup, evalues: evalues.map(e => ({ coup: e.coup, victoires: e.n ? e.somme / e.n : undefined })) };
 }
 
@@ -597,6 +653,9 @@ function decide(B, k, jeu) {
     // effet ajoute plus tard resterait invisible pour le bot — c'est ce qui laissait
     // dormir « Presage » et « Sagesse » en main.
     .filter(x => (x.c.play || []).some(e => !['dmg', 'detruit'].includes(e.op)))
+    // Une carte qui ne vaut plus rien dans cette position ne fera rien : elle n'a pas
+    // a passer devant « ne rien jouer ». C'est la faisabilite qui la met a zero.
+    .filter(x => cardValue(B, k, x.c) > 0)
     .sort((a, b) => cardValue(B, k, b.c) - cardValue(B, k, a.c));
   // On ne gaspille pas un renfort quand il n'y a personne a renforcer.
   const utile = utility.find(x => {
