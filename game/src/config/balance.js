@@ -48,7 +48,24 @@ export const BALANCE = {
       // Environ 50 ms par decision : confortable en jeu, trop lent pour une grosse
       // matrice de matchups (`node scripts/matchups.mjs ... --fort` l'utilise quand
       // on veut verifier un matchup precis avec une reference solide).
-      montecarlo: { misplay: 0, malin: true, rollouts: 10 }
+      // TROIS RACCOURCIS ONT ETE ESSAYES, UN SEUL A SURVECU A LA MESURE.
+      //   elimination (garde) : la moitie du budget pour tous les coups, on ecarte la
+      //     moitie des candidats, on recommence. Mesure : 0.78 s/partie contre 1.14 s,
+      //     pour des parties de MEME longueur (13.3 tours) et 50 % en duel direct
+      //     contre la version sans raccourci — meme force, un tiers de temps en moins.
+      //   troncature (abandonne, laisse a 0) : jouer N tours puis estimer la position
+      //     au lieu de finir la partie. Sur le papier ca divise le cout par 3 ; en vrai
+      //     le bot devient MYOPE — il optimise l'estimation au lieu de chercher la
+      //     victoire, les parties passent de 13 a 38 tours et le tout finit 3x PLUS
+      //     LENT. A ne retenter qu'avec une vraie fonction d'evaluation.
+      //   rolloutRapide (abandonne, laisse a false) : parties imaginees jouees par une
+      //     politique au hasard. Meme probleme, meme conclusion.
+      // Le code des trois est en place dans ai.js : il suffit de changer ces valeurs.
+      montecarlo: { misplay: 0, malin: true, rollouts: 10, troncature: 0, rolloutRapide: false, elimination: true },
+      // LE CRAN DE SURETE. Aucun raccourci : chaque coup recoit le meme budget et chaque
+      // rollout finit vraiment la partie. C'est la reference quand on veut en avoir le
+      // coeur net — un tiers plus lent, pas plus juste pour autant.
+      'montecarlo-exact': { misplay: 0, malin: true, rollouts: 10, troncature: 0, rolloutRapide: false, elimination: false }
     }
   },
 

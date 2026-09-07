@@ -370,12 +370,56 @@ function applique(B, k, a) {
   else if (a.type === 'attack') { if (!attack(B, k, a.uid, a.target)) endTurn(B); }
 }
 
-/** Finit la partie avec le bot rapide des deux cotes. Rend le gagnant. */
-function jusquAuBout(B, jeu) {
+/**
+ * UNE POLITIQUE DE ROLLOUT BON MARCHE : une carte jouable au hasard, sinon une attaque
+ * au hasard, sinon on passe. C'est volontairement bete — en Monte-Carlo, ce qui compte
+ * est le NOMBRE de parties imaginees, pas leur qualite. Le bot complet coute cinq fois
+ * plus cher par coup pour un signal a peine meilleur.
+ */
+function coupLeger(B, k) {
+  const me = B[k];
+  const jouables = [];
+  me.hand.forEach((c, i) => { if (canPlay(B, k, c)) jouables.push(i); });
+  if (jouables.length) {
+    const i = jouables[Math.floor(Math.random() * jouables.length)];
+    return { type: 'play', index: i, target: pickTarget(B, k, me.hand[i]) };
+  }
+  const prets = me.board.filter(u => u.canAttack && u.atk > 0);
+  if (prets.length) {
+    const u = prets[Math.floor(Math.random() * prets.length)];
+    const cibles = attackableTargets(B, k, u);
+    if (cibles.length) return { type: 'attack', uid: u.uid, target: cibles[Math.floor(Math.random() * cibles.length)] };
+  }
+  return { type: 'end' };
+}
+
+/**
+ * ESTIMER une position sans la jouer : c'est ce qui permet d'arreter un rollout avant
+ * la fin. On compte l'avance en PV, en corps sur le plateau et en cartes en main, puis
+ * on ecrase le tout entre 0 et 1 — une avance d'une vingtaine de points vaut a peu pres
+ * une partie gagnee. Grossier, mais un rollout tronque de 4 tours ne demande pas mieux :
+ * il sert a departager des coups, pas a annoncer un vainqueur.
+ */
+function estime(B, k) {
+  const me = B[k], them = B[foe(k)];
+  const corps = s => s.board.reduce((a, u) => a + (u.atk || 0) * 1.1 + (u.hp || 0) * 0.7, 0);
+  const avance = (me.hp - them.hp) * 0.7 + (corps(me) - corps(them)) + (me.hand.length - them.hand.length) * 0.5;
+  return 1 / (1 + Math.exp(-avance / 8));
+}
+
+/**
+ * Joue la partie imaginee et rend ce qu'elle vaut pour `k`, entre 0 et 1 (1 = gagnee,
+ * 0.5 = nulle). `jeu.troncature` arrete apres N tours et ESTIME au lieu de finir.
+ */
+function jusquAuBout(B, jeu, k) {
   const rapide = { ...jeu, rollouts: 0 };
+  const stop = jeu.troncature > 0 ? B.turnNo + jeu.troncature : Infinity;
   let garde = 0;
-  while (!B.over && garde++ < 600) applique(B, B.turn, botAction(B, B.turn, rapide));
-  return B.over ? B.winner : 'draw';
+  while (!B.over && garde++ < 600 && B.turnNo < stop) {
+    applique(B, B.turn, jeu.rolloutRapide ? coupLeger(B, B.turn) : botAction(B, B.turn, rapide));
+  }
+  if (B.over) return B.winner === k ? 1 : B.winner === 'draw' ? 0.5 : 0;
+  return estime(B, k);
 }
 
 /**
@@ -383,28 +427,46 @@ function jusquAuBout(B, jeu) {
  * la note de chaque candidat : c'est la seule vraie raison qu'ait ce bot de preferer
  * une carte a une autre, et le mouchard en a besoin.
  */
+/** `n` parties imaginees de plus pour ce candidat, cumulees sur les precedentes. */
+function simule(B, k, e, n, jeu) {
+  for (let i = 0; i < n; i++) {
+    const C = cloneBattle(B);
+    applique(C, k, e.coup);
+    e.somme += C.over ? (C.winner === k ? 1 : C.winner === 'draw' ? 0.5 : 0) : jusquAuBout(C, jeu, k);
+    e.n++;
+  }
+}
+
 function coupCherche(B, k, jeu) {
   const coups = coupsPossibles(B, k);
   if (coups.length === 1) return { a: coups[0], evalues: [{ coup: coups[0] }] };
-  const evalues = [];
+  const evalues = coups.map(coup => ({ coup, somme: 0, n: 0 }));
   // Les parties imaginees ne sont pas des decisions : on eteint le mouchard pendant.
   enSondage++;
   try {
-    for (const a of coups) {
-      let score = 0;
-      for (let i = 0; i < jeu.rollouts; i++) {
-        const C = cloneBattle(B);
-        applique(C, k, a);
-        const g = C.over ? C.winner : jusquAuBout(C, jeu);
-        score += g === k ? 1 : g === 'draw' ? 0.5 : 0;
+    if (jeu.elimination && evalues.length > 2) {
+      // ELIMINATION PROGRESSIVE : la moitie du budget pour tout le monde, on garde la
+      // moitie des candidats, on recommence. Un coup manifestement mauvais est ecarte
+      // apres cinq parties au lieu d'en consommer dix — et le coup retenu, lui, finit
+      // avec autant de simulations qu'avant.
+      let vivants = evalues;
+      const budget = Math.max(2, Math.round(jeu.rollouts / 2));
+      while (vivants.length > 1) {
+        for (const e of vivants) simule(B, k, e, budget, jeu);
+        const garde = Math.max(1, Math.floor(vivants.length / 2));
+        if (garde === vivants.length) break;
+        vivants = [...vivants].sort((a, b) => b.somme / b.n - a.somme / a.n).slice(0, garde);
       }
-      evalues.push({ coup: a, victoires: score / jeu.rollouts });
+    } else {
+      for (const e of evalues) simule(B, k, e, jeu.rollouts, jeu);
     }
   } finally { enSondage--; }
-  // A egalite on garde le premier : les cartes viennent avant « passer ».
+  // A egalite on garde le premier : les cartes viennent avant « passer ». Un candidat
+  // ecarte tot a moins de parties derriere lui — c'est voulu, il etait perdant.
+  const taux = e => (e.n ? e.somme / e.n : 0);
   let best = evalues[0];
-  for (const n of evalues) if (n.victoires > best.victoires) best = n;
-  return { a: best.coup, evalues };
+  for (const e of evalues) if (taux(e) > taux(best)) best = e;
+  return { a: best.coup, evalues: evalues.map(e => ({ coup: e.coup, victoires: e.n ? e.somme / e.n : undefined })) };
 }
 
 // ------------------------------------------------------------------ mouchard

@@ -1,0 +1,227 @@
+﻿# niveau=6 ; parties_par_case=10 ; bot=montecarlo ; decks=Personnages (mélange) + Adversaires ; source=brouillon du builder
+deck;adversaire;parties;decisives;victoires;taux;intervalle_95;nulles;bloquees;tours_moyens;avantage_premier;lecture
+Médor (mélange);Lapin Chapardeur (PNJ);10;10;8;80,0;22,7;0;0;12,7;70,0;ecrasant
+Médor (mélange);Roux (mélange);10;10;2;20,0;22,7;0;0;18,3;50,0;ecrasant
+Médor (mélange);Renard des Neiges (PNJ);10;10;2;20,0;22,7;0;0;21,7;50,0;ecrasant
+Felix (mélange);Chat de Ruelle (PNJ);10;10;10;100,0;13,9;0;0;17,9;50,0;ecrasant
+Felix (mélange);Lapin Chapardeur (PNJ);10;10;10;100,0;13,9;0;0;12,7;50,0;ecrasant
+Médor (mélange);Bulle (mélange);10;10;2;20,0;22,7;0;0;21,3;50,0;ecrasant
+Médor (mélange);Médor (mélange);10;10;5;50,0;26,3;0;0;22,6;40,0;miroir
+Médor (mélange);Chat de Ruelle (PNJ);10;10;6;60,0;26,0;0;0;32,5;50,0;entre deux cibles
+Felix (mélange);Médor (mélange);10;10;9;90,0;19,3;0;0;18,6;60,0;ecrasant
+Médor (mélange);Corbeau Rieur (PNJ);10;10;2;20,0;22,7;0;0;22,9;30,0;ecrasant
+Médor (mélange);Athena (mélange);10;10;2;20,0;22,7;0;0;22,7;70,0;ecrasant
+Médor (mélange);Pieuvre Pirate (PNJ);10;10;1;10,0;19,3;0;0;21,2;60,0;ecrasant
+Médor (mélange);Capitaine Grenouille (PNJ);10;10;0;0,0;13,9;0;0;27,7;50,0;ecrasant
+Médor (mélange);Crapaud Baveux (PNJ);10;10;4;40,0;26,0;0;0;17,7;90,0;entre deux cibles
+Corax (mélange);Chat de Ruelle (PNJ);10;10;9;90,0;19,3;0;0;18,8;60,0;ecrasant
+Médor (mélange);Grand-Duc (PNJ);10;10;0;0,0;13,9;0;0;31,3;50,0;ecrasant
+Médor (mélange);Felix (mélange);10;10;5;50,0;26,3;0;0;26,5;60,0;équilibré
+Médor (mélange);Corax (mélange);10;10;4;40,0;26,0;0;0;22,7;90,0;entre deux cibles
+Médor (mélange);Grand Mechant Loup (PNJ);10;9;0;0,0;15,0;1;0;29,2;55,6;ecrasant
+Felix (mélange);Athena (mélange);10;10;6;60,0;26,0;0;0;18,1;90,0;entre deux cibles
+Felix (mélange);Corbeau Rieur (PNJ);10;10;7;70,0;24,8;0;0;19,4;80,0;favorable
+Felix (mélange);Roux (mélange);10;10;6;60,0;26,0;0;0;19,3;50,0;entre deux cibles
+Corax (mélange);Corbeau Rieur (PNJ);10;10;8;80,0;22,7;0;0;23,3;50,0;ecrasant
+Bulle (mélange);Corbeau Rieur (PNJ);10;10;6;60,0;26,0;0;0;19,3;90,0;entre deux cibles
+Corax (mélange);Roux (mélange);10;10;6;60,0;26,0;0;0;19,1;70,0;entre deux cibles
+Felix (mélange);Bulle (mélange);10;10;7;70,0;24,8;0;0;19,0;80,0;favorable
+Corax (mélange);Lapin Chapardeur (PNJ);10;10;10;100,0;13,9;0;0;16,7;50,0;ecrasant
+Felix (mélange);Felix (mélange);10;10;7;70,0;24,8;0;0;20,8;60,0;miroir
+Felix (mélange);Renard des Neiges (PNJ);10;10;7;70,0;24,8;0;0;22,8;60,0;favorable
+Bulle (mélange);Lapin Chapardeur (PNJ);10;10;10;100,0;13,9;0;0;14,3;50,0;ecrasant
+Corax (mélange);Felix (mélange);10;10;4;40,0;26,0;0;0;25,1;70,0;entre deux cibles
+Corax (mélange);Médor (mélange);10;10;7;70,0;24,8;0;0;24,2;80,0;favorable
+Bulle (mélange);Grand Mechant Loup (PNJ);10;10;5;50,0;26,3;0;0;21,4;80,0;équilibré
+Felix (mélange);Corax (mélange);10;10;4;40,0;26,0;0;0;22,3;70,0;entre deux cibles
+Felix (mélange);Crapaud Baveux (PNJ);10;10;5;50,0;26,3;0;0;21,2;80,0;équilibré
+Bulle (mélange);Chat de Ruelle (PNJ);10;10;9;90,0;19,3;0;0;21,4;60,0;ecrasant
+Felix (mélange);Pieuvre Pirate (PNJ);10;10;6;60,0;26,0;0;0;23,9;70,0;entre deux cibles
+Felix (mélange);Grand Mechant Loup (PNJ);10;10;5;50,0;26,3;0;0;28,4;80,0;équilibré
+Athena (mélange);Chat de Ruelle (PNJ);10;10;9;90,0;19,3;0;0;21,4;60,0;ecrasant
+Athena (mélange);Crapaud Baveux (PNJ);10;10;3;30,0;24,8;0;0;17,0;80,0;défavorable
+Bulle (mélange);Corax (mélange);10;10;4;40,0;26,0;0;0;19,1;70,0;entre deux cibles
+Corax (mélange);Corax (mélange);10;10;8;80,0;22,7;0;0;22,3;70,0;miroir
+Corax (mélange);Athena (mélange);10;10;5;50,0;26,3;0;0;24,4;60,0;équilibré
+Corax (mélange);Grand Mechant Loup (PNJ);10;10;8;80,0;22,7;0;0;29,1;50,0;ecrasant
+Bulle (mélange);Felix (mélange);10;10;3;30,0;24,8;0;0;21,8;60,0;défavorable
+Athena (mélange);Corbeau Rieur (PNJ);10;10;7;70,0;24,8;0;0;20,0;80,0;favorable
+Athena (mélange);Grand Mechant Loup (PNJ);10;10;5;50,0;26,3;0;0;27,4;60,0;équilibré
+Roux (mélange);Corbeau Rieur (PNJ);10;10;7;70,0;24,8;0;0;18,6;80,0;favorable
+Felix (mélange);Capitaine Grenouille (PNJ);10;10;2;20,0;22,7;0;0;30,7;50,0;ecrasant
+Lapin Chapardeur (PNJ);Grand Mechant Loup (PNJ);10;10;0;0,0;13,9;0;0;16,3;50,0;ecrasant
+Bulle (mélange);Bulle (mélange);10;10;6;60,0;26,0;0;0;18,9;50,0;miroir
+Corax (mélange);Crapaud Baveux (PNJ);10;10;8;80,0;22,7;0;0;21,7;70,0;ecrasant
+Athena (mélange);Bulle (mélange);10;10;4;40,0;26,0;0;0;20,5;50,0;entre deux cibles
+Corax (mélange);Bulle (mélange);10;10;8;80,0;22,7;0;0;27,5;70,0;ecrasant
+Bulle (mélange);Roux (mélange);10;10;4;40,0;26,0;0;0;20,1;90,0;entre deux cibles
+Roux (mélange);Crapaud Baveux (PNJ);10;10;7;70,0;24,8;0;0;19,2;80,0;favorable
+Chat de Ruelle (PNJ);Crapaud Baveux (PNJ);10;10;0;0,0;13,9;0;0;16,9;50,0;ecrasant
+Roux (mélange);Pieuvre Pirate (PNJ);10;10;8;80,0;22,7;0;0;27,1;30,0;ecrasant
+Lapin Chapardeur (PNJ);Pieuvre Pirate (PNJ);10;10;0;0,0;13,9;0;0;14,5;50,0;ecrasant
+Athena (mélange);Lapin Chapardeur (PNJ);10;10;10;100,0;13,9;0;0;16,1;50,0;ecrasant
+Corax (mélange);Pieuvre Pirate (PNJ);10;10;8;80,0;22,7;0;0;29,7;70,0;ecrasant
+Athena (mélange);Corax (mélange);10;10;4;40,0;26,0;0;0;22,1;70,0;entre deux cibles
+Bulle (mélange);Crapaud Baveux (PNJ);10;10;3;30,0;24,8;0;0;24,6;60,0;défavorable
+Roux (mélange);Grand Mechant Loup (PNJ);10;10;3;30,0;24,8;0;0;22,4;80,0;défavorable
+Felix (mélange);Grand-Duc (PNJ);10;10;1;10,0;19,3;0;0;44,8;40,0;ecrasant
+Roux (mélange);Athena (mélange);10;10;5;50,0;26,3;0;0;18,6;80,0;équilibré
+Bulle (mélange);Athena (mélange);10;10;7;70,0;24,8;0;0;17,0;80,0;favorable
+Lapin Chapardeur (PNJ);Capitaine Grenouille (PNJ);10;10;0;0,0;13,9;0;0;18,7;50,0;ecrasant
+Roux (mélange);Bulle (mélange);10;10;4;40,0;26,0;0;0;15,7;70,0;entre deux cibles
+Chat de Ruelle (PNJ);Capitaine Grenouille (PNJ);10;10;0;0,0;13,9;0;0;22,3;50,0;ecrasant
+Athena (mélange);Athena (mélange);10;10;3;30,0;24,8;0;0;22,0;80,0;miroir
+Corax (mélange);Renard des Neiges (PNJ);10;10;6;60,0;26,0;0;0;28,7;50,0;entre deux cibles
+Roux (mélange);Chat de Ruelle (PNJ);10;10;8;80,0;22,7;0;0;18,3;70,0;ecrasant
+Lapin Chapardeur (PNJ);Roux (mélange);10;10;1;10,0;19,3;0;0;15,0;60,0;ecrasant
+Lapin Chapardeur (PNJ);Crapaud Baveux (PNJ);10;10;0;0,0;13,9;0;0;15,5;50,0;ecrasant
+Chat de Ruelle (PNJ);Renard des Neiges (PNJ);10;10;0;0,0;13,9;0;0;18,3;50,0;ecrasant
+Lapin Chapardeur (PNJ);Athena (mélange);10;10;1;10,0;19,3;0;0;15,8;40,0;ecrasant
+Roux (mélange);Roux (mélange);10;10;3;30,0;24,8;0;0;15,0;60,0;miroir
+Bulle (mélange);Pieuvre Pirate (PNJ);10;10;5;50,0;26,3;0;0;25,0;60,0;équilibré
+Bulle (mélange);Médor (mélange);10;10;7;70,0;24,8;0;0;17,2;60,0;favorable
+Corbeau Rieur (PNJ);Pieuvre Pirate (PNJ);10;10;3;30,0;24,8;0;0;23,2;60,0;défavorable
+Corbeau Rieur (PNJ);Renard des Neiges (PNJ);10;10;1;10,0;19,3;0;0;21,4;60,0;ecrasant
+Chat de Ruelle (PNJ);Lapin Chapardeur (PNJ);10;10;8;80,0;22,7;0;0;17,7;70,0;ecrasant
+Lapin Chapardeur (PNJ);Corbeau Rieur (PNJ);10;10;1;10,0;19,3;0;0;15,4;60,0;ecrasant
+Chat de Ruelle (PNJ);Roux (mélange);10;10;2;20,0;22,7;0;0;19,3;70,0;ecrasant
+Lapin Chapardeur (PNJ);Lapin Chapardeur (PNJ);10;10;6;60,0;26,0;0;0;16,1;70,0;miroir
+Chat de Ruelle (PNJ);Pieuvre Pirate (PNJ);10;10;1;10,0;19,3;0;0;20,2;40,0;ecrasant
+Athena (mélange);Roux (mélange);10;10;4;40,0;26,0;0;0;17,7;70,0;entre deux cibles
+Corax (mélange);Grand-Duc (PNJ);10;10;0;0,0;13,9;0;0;41,9;50,0;ecrasant
+Corbeau Rieur (PNJ);Lapin Chapardeur (PNJ);10;10;9;90,0;19,3;0;0;14,4;60,0;ecrasant
+Bulle (mélange);Capitaine Grenouille (PNJ);10;10;0;0,0;13,9;0;0;25,5;50,0;ecrasant
+Corbeau Rieur (PNJ);Chat de Ruelle (PNJ);10;10;9;90,0;19,3;0;0;18,2;60,0;ecrasant
+Athena (mélange);Pieuvre Pirate (PNJ);10;10;8;80,0;22,7;0;0;26,3;50,0;ecrasant
+Corbeau Rieur (PNJ);Grand-Duc (PNJ);10;10;0;0,0;13,9;0;0;30,3;50,0;ecrasant
+Chat de Ruelle (PNJ);Chat de Ruelle (PNJ);10;10;7;70,0;24,8;0;0;21,8;60,0;miroir
+Athena (mélange);Felix (mélange);10;10;4;40,0;26,0;0;0;18,5;70,0;entre deux cibles
+Roux (mélange);Lapin Chapardeur (PNJ);10;10;10;100,0;13,9;0;0;17,7;50,0;ecrasant
+Grand Mechant Loup (PNJ);Chat de Ruelle (PNJ);10;10;10;100,0;13,9;0;0;18,5;50,0;ecrasant
+Chat de Ruelle (PNJ);Grand Mechant Loup (PNJ);10;10;1;10,0;19,3;0;0;19,0;60,0;ecrasant
+Corbeau Rieur (PNJ);Capitaine Grenouille (PNJ);10;10;0;0,0;13,9;0;0;23,7;50,0;ecrasant
+Athena (mélange);Médor (mélange);10;10;7;70,0;24,8;0;0;19,2;80,0;favorable
+Lapin Chapardeur (PNJ);Chat de Ruelle (PNJ);10;10;1;10,0;19,3;0;0;17,8;60,0;ecrasant
+Roux (mélange);Corax (mélange);10;10;6;60,0;26,0;0;0;21,9;70,0;entre deux cibles
+Bulle (mélange);Grand-Duc (PNJ);10;10;0;0,0;13,9;0;0;37,3;50,0;ecrasant
+Corax (mélange);Capitaine Grenouille (PNJ);10;10;0;0,0;13,9;0;0;35,1;50,0;ecrasant
+Roux (mélange);Felix (mélange);10;10;3;30,0;24,8;0;0;19,6;60,0;défavorable
+Grand Mechant Loup (PNJ);Corbeau Rieur (PNJ);10;10;10;100,0;13,9;0;0;24,3;50,0;ecrasant
+Lapin Chapardeur (PNJ);Bulle (mélange);10;10;0;0,0;13,9;0;0;15,1;50,0;ecrasant
+Corbeau Rieur (PNJ);Corbeau Rieur (PNJ);10;10;5;50,0;26,3;0;0;20,8;100,0;miroir
+Crapaud Baveux (PNJ);Médor (mélange);10;10;5;50,0;26,3;0;0;24,6;100,0;équilibré
+Crapaud Baveux (PNJ);Corbeau Rieur (PNJ);10;10;6;60,0;26,0;0;0;20,7;70,0;entre deux cibles
+Athena (mélange);Renard des Neiges (PNJ);10;10;8;80,0;22,7;0;0;23,7;50,0;ecrasant
+Roux (mélange);Médor (mélange);10;10;6;60,0;26,0;0;0;16,7;70,0;entre deux cibles
+Chat de Ruelle (PNJ);Corbeau Rieur (PNJ);10;10;0;0,0;13,9;0;0;17,3;50,0;ecrasant
+Lapin Chapardeur (PNJ);Corax (mélange);10;10;1;10,0;19,3;0;0;17,0;60,0;ecrasant
+Lapin Chapardeur (PNJ);Felix (mélange);10;10;0;0,0;13,9;0;0;13,5;50,0;ecrasant
+Corbeau Rieur (PNJ);Crapaud Baveux (PNJ);10;10;2;20,0;22,7;0;0;18,7;70,0;ecrasant
+Chat de Ruelle (PNJ);Athena (mélange);10;10;2;20,0;22,7;0;0;22,5;70,0;ecrasant
+Grand Mechant Loup (PNJ);Renard des Neiges (PNJ);10;10;9;90,0;19,3;0;0;32,0;40,0;ecrasant
+Bulle (mélange);Renard des Neiges (PNJ);10;10;2;20,0;22,7;0;0;21,5;50,0;ecrasant
+Chat de Ruelle (PNJ);Bulle (mélange);10;10;3;30,0;24,8;0;0;20,8;80,0;défavorable
+Chat de Ruelle (PNJ);Corax (mélange);10;10;1;10,0;19,3;0;0;22,0;60,0;ecrasant
+Roux (mélange);Capitaine Grenouille (PNJ);10;10;2;20,0;22,7;0;0;27,5;50,0;ecrasant
+Grand Mechant Loup (PNJ);Capitaine Grenouille (PNJ);10;10;2;20,0;22,7;0;0;36,1;50,0;ecrasant
+Corbeau Rieur (PNJ);Roux (mélange);10;10;4;40,0;26,0;0;0;18,5;90,0;entre deux cibles
+Lapin Chapardeur (PNJ);Renard des Neiges (PNJ);10;10;0;0,0;13,9;0;0;15,9;50,0;ecrasant
+Pieuvre Pirate (PNJ);Felix (mélange);10;10;1;10,0;19,3;0;0;25,4;60,0;ecrasant
+Athena (mélange);Capitaine Grenouille (PNJ);10;10;2;20,0;22,7;0;0;33,7;70,0;ecrasant
+Grand Mechant Loup (PNJ);Lapin Chapardeur (PNJ);10;10;10;100,0;13,9;0;0;15,1;50,0;ecrasant
+Pieuvre Pirate (PNJ);Grand Mechant Loup (PNJ);10;10;0;0,0;13,9;0;0;28,5;50,0;ecrasant
+Crapaud Baveux (PNJ);Grand Mechant Loup (PNJ);10;10;2;20,0;22,7;0;0;26,3;50,0;ecrasant
+Corbeau Rieur (PNJ);Bulle (mélange);10;10;4;40,0;26,0;0;0;18,9;50,0;entre deux cibles
+Corbeau Rieur (PNJ);Athena (mélange);10;10;2;20,0;22,7;0;0;20,9;70,0;ecrasant
+Corbeau Rieur (PNJ);Grand Mechant Loup (PNJ);10;10;0;0,0;13,9;0;0;23,5;50,0;ecrasant
+Crapaud Baveux (PNJ);Grand-Duc (PNJ);10;10;0;0,0;13,9;0;0;35,1;50,0;ecrasant
+Crapaud Baveux (PNJ);Renard des Neiges (PNJ);10;10;1;10,0;19,3;0;0;26,8;40,0;ecrasant
+Chat de Ruelle (PNJ);Grand-Duc (PNJ);10;10;0;0,0;13,9;0;0;26,5;50,0;ecrasant
+Crapaud Baveux (PNJ);Chat de Ruelle (PNJ);10;10;9;90,0;19,3;0;0;19,2;60,0;ecrasant
+Roux (mélange);Renard des Neiges (PNJ);10;10;5;50,0;26,3;0;0;23,4;40,0;équilibré
+Grand Mechant Loup (PNJ);Grand-Duc (PNJ);10;10;2;20,0;22,7;0;0;45,7;70,0;ecrasant
+Capitaine Grenouille (PNJ);Crapaud Baveux (PNJ);10;10;10;100,0;13,9;0;0;26,1;50,0;ecrasant
+Grand Mechant Loup (PNJ);Athena (mélange);10;10;6;60,0;26,0;0;0;22,1;70,0;entre deux cibles
+Lapin Chapardeur (PNJ);Grand-Duc (PNJ);10;10;0;0,0;13,9;0;0;21,9;50,0;ecrasant
+Pieuvre Pirate (PNJ);Grand-Duc (PNJ);10;10;0;0,0;13,9;0;0;30,5;50,0;ecrasant
+Capitaine Grenouille (PNJ);Médor (mélange);10;10;10;100,0;13,9;0;0;27,9;50,0;ecrasant
+Grand Mechant Loup (PNJ);Roux (mélange);10;10;6;60,0;26,0;0;0;28,9;50,0;entre deux cibles
+Renard des Neiges (PNJ);Pieuvre Pirate (PNJ);10;10;9;90,0;19,3;0;0;25,4;60,0;ecrasant
+Grand Mechant Loup (PNJ);Pieuvre Pirate (PNJ);10;10;10;100,0;13,9;0;0;30,9;50,0;ecrasant
+Grand Mechant Loup (PNJ);Médor (mélange);10;10;10;100,0;13,9;0;0;20,3;50,0;ecrasant
+Crapaud Baveux (PNJ);Roux (mélange);10;10;6;60,0;26,0;0;0;17,3;90,0;entre deux cibles
+Pieuvre Pirate (PNJ);Corbeau Rieur (PNJ);10;10;7;70,0;24,8;0;0;28,6;60,0;favorable
+Crapaud Baveux (PNJ);Lapin Chapardeur (PNJ);10;10;6;60,0;26,0;0;0;15,1;90,0;entre deux cibles
+Renard des Neiges (PNJ);Médor (mélange);10;10;10;100,0;13,9;0;0;21,9;50,0;ecrasant
+Pieuvre Pirate (PNJ);Lapin Chapardeur (PNJ);10;10;9;90,0;19,3;0;0;17,6;60,0;ecrasant
+Pieuvre Pirate (PNJ);Crapaud Baveux (PNJ);10;10;5;50,0;26,3;0;0;32,4;80,0;équilibré
+Grand Mechant Loup (PNJ);Grand Mechant Loup (PNJ);10;10;8;80,0;22,7;0;0;36,1;70,0;miroir
+Capitaine Grenouille (PNJ);Corax (mélange);10;10;8;80,0;22,7;0;0;30,9;50,0;ecrasant
+Pieuvre Pirate (PNJ);Chat de Ruelle (PNJ);10;10;10;100,0;13,9;0;0;17,9;50,0;ecrasant
+Pieuvre Pirate (PNJ);Médor (mélange);10;10;6;60,0;26,0;0;0;25,5;70,0;entre deux cibles
+Capitaine Grenouille (PNJ);Chat de Ruelle (PNJ);10;10;10;100,0;13,9;0;0;23,7;50,0;ecrasant
+Grand Mechant Loup (PNJ);Crapaud Baveux (PNJ);10;10;9;90,0;19,3;0;0;25,4;60,0;ecrasant
+Renard des Neiges (PNJ);Felix (mélange);10;10;5;50,0;26,3;0;0;25,6;80,0;équilibré
+Capitaine Grenouille (PNJ);Pieuvre Pirate (PNJ);10;10;10;100,0;13,9;0;0;24,7;50,0;ecrasant
+Corbeau Rieur (PNJ);Médor (mélange);10;10;2;20,0;22,7;0;0;26,1;70,0;ecrasant
+Renard des Neiges (PNJ);Corbeau Rieur (PNJ);10;10;9;90,0;19,3;0;0;22,2;60,0;ecrasant
+Renard des Neiges (PNJ);Bulle (mélange);10;10;4;40,0;26,0;0;0;23,3;70,0;entre deux cibles
+Capitaine Grenouille (PNJ);Corbeau Rieur (PNJ);10;10;10;100,0;13,9;0;0;24,9;50,0;ecrasant
+Crapaud Baveux (PNJ);Felix (mélange);10;10;3;30,0;24,8;0;0;20,6;80,0;défavorable
+Roux (mélange);Grand-Duc (PNJ);10;10;1;10,0;19,3;0;0;40,0;40,0;ecrasant
+Crapaud Baveux (PNJ);Capitaine Grenouille (PNJ);10;10;0;0,0;13,9;0;0;29,3;50,0;ecrasant
+Crapaud Baveux (PNJ);Crapaud Baveux (PNJ);10;10;7;70,0;24,8;0;0;26,4;60,0;miroir
+Pieuvre Pirate (PNJ);Renard des Neiges (PNJ);10;10;0;0,0;13,9;0;0;25,1;50,0;ecrasant
+Chat de Ruelle (PNJ);Médor (mélange);10;10;2;20,0;22,7;0;0;19,5;50,0;ecrasant
+Crapaud Baveux (PNJ);Pieuvre Pirate (PNJ);10;10;2;20,0;22,7;0;0;28,3;70,0;ecrasant
+Pieuvre Pirate (PNJ);Corax (mélange);10;10;1;10,0;19,3;0;0;26,0;60,0;ecrasant
+Grand Mechant Loup (PNJ);Felix (mélange);10;10;6;60,0;26,0;0;0;24,9;50,0;entre deux cibles
+Athena (mélange);Grand-Duc (PNJ);10;10;2;20,0;22,7;0;0;40,1;50,0;ecrasant
+Capitaine Grenouille (PNJ);Felix (mélange);10;10;7;70,0;24,8;0;0;32,2;80,0;favorable
+Renard des Neiges (PNJ);Grand Mechant Loup (PNJ);10;10;2;20,0;22,7;0;0;34,3;50,0;ecrasant
+Lapin Chapardeur (PNJ);Médor (mélange);10;10;1;10,0;19,3;0;0;15,4;60,0;ecrasant
+Grand-Duc (PNJ);Felix (mélange);10;10;9;90,0;19,3;0;0;36,8;40,0;ecrasant
+Capitaine Grenouille (PNJ);Grand Mechant Loup (PNJ);10;10;7;70,0;24,8;0;0;37,6;40,0;favorable
+Pieuvre Pirate (PNJ);Capitaine Grenouille (PNJ);10;10;0;0,0;13,9;0;0;26,9;50,0;ecrasant
+Pieuvre Pirate (PNJ);Pieuvre Pirate (PNJ);10;10;8;80,0;22,7;0;0;38,3;50,0;miroir
+Chat de Ruelle (PNJ);Felix (mélange);10;10;0;0,0;13,9;0;0;16,3;50,0;ecrasant
+Corbeau Rieur (PNJ);Felix (mélange);10;10;2;20,0;22,7;0;0;23,5;50,0;ecrasant
+Crapaud Baveux (PNJ);Corax (mélange);10;10;2;20,0;22,7;0;0;22,7;70,0;ecrasant
+Grand-Duc (PNJ);Crapaud Baveux (PNJ);10;10;10;100,0;13,9;0;0;28,7;50,0;ecrasant
+Capitaine Grenouille (PNJ);Bulle (mélange);10;10;10;100,0;13,9;0;0;28,3;50,0;ecrasant
+Renard des Neiges (PNJ);Capitaine Grenouille (PNJ);10;10;2;20,0;22,7;0;0;43,3;70,0;ecrasant
+Renard des Neiges (PNJ);Corax (mélange);10;10;2;20,0;22,7;0;0;24,9;50,0;ecrasant
+Grand-Duc (PNJ);Corax (mélange);10;10;10;100,0;13,9;0;0;42,7;50,0;ecrasant
+Renard des Neiges (PNJ);Crapaud Baveux (PNJ);10;10;8;80,0;22,7;0;0;27,3;70,0;ecrasant
+Corbeau Rieur (PNJ);Corax (mélange);10;10;3;30,0;24,8;0;0;23,0;80,0;défavorable
+Pieuvre Pirate (PNJ);Bulle (mélange);10;10;5;50,0;26,3;0;0;20,6;80,0;équilibré
+Grand-Duc (PNJ);Grand Mechant Loup (PNJ);10;10;10;100,0;13,9;0;0;45,3;50,0;ecrasant
+Grand-Duc (PNJ);Athena (mélange);10;10;8;80,0;22,7;0;0;39,9;70,0;ecrasant
+Renard des Neiges (PNJ);Athena (mélange);10;10;1;10,0;19,3;0;0;30,2;60,0;ecrasant
+Grand-Duc (PNJ);Pieuvre Pirate (PNJ);10;10;10;100,0;13,9;0;0;32,5;50,0;ecrasant
+Grand Mechant Loup (PNJ);Bulle (mélange);10;10;5;50,0;26,3;0;0;25,6;60,0;équilibré
+Grand-Duc (PNJ);Bulle (mélange);10;10;10;100,0;13,9;0;0;35,3;50,0;ecrasant
+Grand Mechant Loup (PNJ);Corax (mélange);10;10;3;30,0;24,8;0;0;29,4;80,0;défavorable
+Capitaine Grenouille (PNJ);Renard des Neiges (PNJ);10;10;9;90,0;19,3;0;0;39,4;60,0;ecrasant
+Crapaud Baveux (PNJ);Athena (mélange);10;10;7;70,0;24,8;0;0;19,2;80,0;favorable
+Crapaud Baveux (PNJ);Bulle (mélange);10;10;8;80,0;22,7;0;0;21,7;70,0;ecrasant
+Grand-Duc (PNJ);Renard des Neiges (PNJ);10;10;9;90,0;19,3;0;0;50,0;40,0;ecrasant
+Pieuvre Pirate (PNJ);Roux (mélange);10;10;1;10,0;19,3;0;0;24,6;60,0;ecrasant
+Pieuvre Pirate (PNJ);Athena (mélange);10;10;1;10,0;19,3;0;0;25,6;60,0;ecrasant
+Capitaine Grenouille (PNJ);Lapin Chapardeur (PNJ);10;10;10;100,0;13,9;0;0;18,5;50,0;ecrasant
+Capitaine Grenouille (PNJ);Athena (mélange);10;10;7;70,0;24,8;0;0;37,0;80,0;favorable
+Renard des Neiges (PNJ);Chat de Ruelle (PNJ);10;10;10;100,0;13,9;0;0;18,1;50,0;ecrasant
+Grand-Duc (PNJ);Roux (mélange);10;10;8;80,0;22,7;0;0;39,5;50,0;ecrasant
+Grand-Duc (PNJ);Capitaine Grenouille (PNJ);10;10;6;60,0;26,0;0;0;62,9;70,0;entre deux cibles
+Renard des Neiges (PNJ);Grand-Duc (PNJ);10;10;0;0,0;13,9;0;0;45,3;50,0;ecrasant
+Renard des Neiges (PNJ);Roux (mélange);10;10;6;60,0;26,0;0;0;20,1;70,0;entre deux cibles
+Grand-Duc (PNJ);Corbeau Rieur (PNJ);10;10;10;100,0;13,9;0;0;28,3;50,0;ecrasant
+Grand-Duc (PNJ);Lapin Chapardeur (PNJ);10;10;10;100,0;13,9;0;0;21,1;50,0;ecrasant
+Capitaine Grenouille (PNJ);Capitaine Grenouille (PNJ);10;10;7;70,0;24,8;0;0;49,8;60,0;miroir
+Capitaine Grenouille (PNJ);Roux (mélange);10;10;9;90,0;19,3;0;0;27,4;60,0;ecrasant
+Renard des Neiges (PNJ);Lapin Chapardeur (PNJ);10;10;10;100,0;13,9;0;0;16,5;50,0;ecrasant
+Grand-Duc (PNJ);Chat de Ruelle (PNJ);10;10;10;100,0;13,9;0;0;23,1;50,0;ecrasant
+Capitaine Grenouille (PNJ);Grand-Duc (PNJ);10;10;1;10,0;19,3;0;0;59,4;60,0;ecrasant
+Renard des Neiges (PNJ);Renard des Neiges (PNJ);10;10;2;20,0;22,7;0;0;35,7;70,0;miroir
+Grand-Duc (PNJ);Médor (mélange);10;10;10;100,0;13,9;0;0;29,5;50,0;ecrasant
+Grand-Duc (PNJ);Grand-Duc (PNJ);10;10;5;50,0;26,3;0;0;63,6;60,0;miroir

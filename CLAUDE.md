@@ -446,10 +446,19 @@ marge de progression du joueur) ; `malin` allume la lecture fine — sac à dos 
 (deux petites cartes valent souvent mieux qu'une grosse), meilleure attaque du plateau
 entier plutôt que la première trouvée, abstention quand tout échange est perdant, retrait
 gardé pour une vraie menace, et comparaison allié / sort d'utilité au lieu d'une priorité
-aveugle aux alliés. Le niveau `montecarlo` ne suit aucune règle : pour chaque coup possible
-il **finit la partie** N fois (`cloneBattle` + rollouts) et garde celui qui gagne le plus
-souvent — ~50 ms par décision, imbattable par les autres (9 parties sur 10), trop lent pour
-une grosse matrice.
+Le niveau `montecarlo` ne suit aucune
+règle : pour chaque coup possible il **finit la partie** N fois (`cloneBattle` + rollouts)
+et garde celui qui gagne le plus souvent — imbattable par les autres (9 parties sur 10),
+mais ~50 ms par décision, donc trop lent pour une grosse matrice.
+
+⚠ **Trois raccourcis ont été essayés sur lui, un seul a survécu à la mesure** (le détail
+chiffré est dans `BALANCE.ai.niveaux`) : l'**élimination progressive** des candidats gagne
+un tiers du temps sans changer la force (50 % en duel direct, parties de même longueur) et
+elle est active ; la **troncature** des rollouts et la **politique de rollout au hasard**
+rendent le bot myope — il optimise l'estimation au lieu de chercher la victoire, les
+parties passent de 13 à 38 tours et le tout finit **3× plus lent**. Leur code est en place
+dans `ai.js` et débrayé dans la config : à ne retenter qu'avec une vraie fonction
+d'évaluation. `montecarlo-exact` est le cran de sûreté, sans aucun raccourci.
 
 Une rencontre choisit son niveau avec le champ `ia` (`world.js`) : les boss jouent `dur`,
 les deux premiers combats `naif`. `botAction(B, k, 'dur')` force un niveau ponctuellement ;
