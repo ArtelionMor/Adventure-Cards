@@ -23,7 +23,7 @@
 import { BALANCE } from '../config/balance.js';
 import { cardById, catalogCards, fatiguePile } from '../config/npcs.js';
 import { resolveCard } from '../config/characters.js';
-import { ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, ZONES, eventSlot, keyId, keyArgs, hasKey, keyFields, counterValue, amountValue, numberParams, cardMatches, describeFilter, describeCarteCreee, cardCost, staticTotal, describeStatic, targetId, targetArg, targetDef } from '../config/mechanics.js';
+import { staticMin, ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, ZONES, eventSlot, keyId, keyArgs, hasKey, keyFields, counterValue, amountValue, numberParams, cardMatches, describeFilter, describeCarteCreee, cardCost, staticTotal, describeStatic, targetId, targetArg, targetDef } from '../config/mechanics.js';
 
 
 let uid = 1;
@@ -60,6 +60,10 @@ function makeSide(cfg) {
     aVide: false,    // son deck est epuise : il ne piochera plus (dit une seule fois)
     recycle: 0,      // cartes remises dans sa pioche ce tour-ci (garde-fou anti-boucle)
     fatigue: 0,      // pioches faites dans la pile de fatigue ce tour-ci (idem)
+    // Ce que le camp a deja fait ce tour-ci, pour les trois plafonds statiques.
+    jouees: 0,       // cartes jouees
+    attaques: 0,     // unites qui ont attaque
+    piochees: 0,     // cartes piochees (la pioche de debut de tour comprise)
     spellsGame: 0,   // sorts joues par ce camp depuis le debut du combat
     spellsTurn: 0,   // ... et depuis le debut de SON tour (remis a zero a chaque tour)
   };
@@ -129,6 +133,13 @@ function carteDeFatigue(B, k) {
 export function draw(B, k, n = 1) {
   const s = B[k];
   for (let i = 0; i < n; i++) {
+    // « Tu ne pioches pas plus de X cartes par tour » : un effet statique. Il est dit
+    // une fois, sinon un sort qui pioche cinq fois ecrirait cinq lignes identiques.
+    if (s.piochees >= staticMin(B, k, 'nombre_de_cartes_piochees')) {
+      if (!s.plafondPioche) { s.plafondPioche = true; say(B, `${s.name} a atteint sa limite de pioche pour ce tour.`); }
+      return;
+    }
+    s.piochees++;
     // LE DECK NE SE REMELANGE PAS : une carte tiree ne revient pas d'elle-meme. Mais
     // une pioche vide n'est plus une impasse — on tire dans la pile de fatigue, qui
     // est le seul endroit ou une carte se fabrique toute seule. Un deck epais reste
@@ -614,6 +625,10 @@ export function beginTurn(B) {
   s.spellsTurn = 0;
   s.recycle = 0;
   s.fatigue = 0;
+  s.jouees = 0;
+  s.attaques = 0;
+  s.piochees = 0;
+  s.plafondPioche = false;
   // Mana statique (« +1 mana par tour tant que je suis la »). Comme le mana promis,
   // il n'est pas plafonne par le mana max : c'est ce que la carte annonce.
   const manaStatique = staticTotal(B, k, 'mana_du_tour');
@@ -1049,6 +1064,9 @@ function makeUnit(c) {
 // ---------------------------------------------------------------- jouer/attaquer
 export function canPlay(B, k, card) {
   const s = B[k];
+  // « Tu ne joues pas plus de X cartes par tour » : c'est bien une question de
+  // JOUABILITE, donc elle se pose ici — le bot et l'interface la voient tous les deux.
+  if (s.jouees >= staticMin(B, k, 'limite_de_cartes_jouees')) return false;
   if (s.mana < cardCost(card, B, k)) return false;
   if (card.type === 'ally' && s.board.length >= BALANCE.combat.boardSize) return false;
   if (needsTarget(card) && legalTargets(B, k, card).length === 0) {
@@ -1063,6 +1081,7 @@ export function playCard(B, k, handIndex, target = null) {
   const card = s.hand[handIndex];
   if (!card || !canPlay(B, k, card)) return false;
   s.mana -= cardCost(card, B, k);
+  s.jouees++;
   s.hand.splice(handIndex, 1);
   // UN ALLIE EN JEU N'EST PAS DANS LA DEFAUSSE : il est sur le plateau, et sa carte
   // voyage avec l'unite. Elle ne tombe a la defausse qu'a sa mort. Sans cette regle,
@@ -1117,6 +1136,9 @@ export function cloneBattle(B) {
 }
 
 export function attackableTargets(B, k, unit) {
+  // « Tu n'attaques pas avec plus de X unites par tour » : plus aucune cible legale
+  // une fois le plafond atteint, donc le bot cesse de proposer des attaques.
+  if (B[k].attaques >= staticMin(B, k, 'nombre_d_attaques')) return [];
   const them = B[foe(k)];
   // Elusif : invisible pour les attaques adverses (mais pas pour les sorts).
   const visibles = them.board.filter(u => !hasKey(u.keys, 'elusif'));
@@ -1136,6 +1158,7 @@ export function attack(B, k, unitUid, target) {
 
   a.canAttack = false;
   a.attackedThisTurn = true;
+  s.attaques++;
   if (target.uid === 'hero') {
     say(B, `${a.name} frappe ${them.name} pour ${a.atk}.`);
     damageHero(B, foe(k), a.atk);

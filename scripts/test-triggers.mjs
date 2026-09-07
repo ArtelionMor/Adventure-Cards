@@ -2059,6 +2059,52 @@ console.log('\nAffaiblir : un renfort negatif');
   check('le malus ne reveille pas le declencheur de renfort', board(B, 'e'), ['Tetard 2/2']);
 }
 
+console.log('\nLes plafonds par tour');
+const bride = (op, v = 1, qui = 'adversaire') => ally('Bride', 1, 9, { statics: [{ op, qui, v }] });
+{
+  // « L'adversaire ne joue pas plus d'une carte par tour » : c'est une question de
+  // JOUABILITE, donc `canPlay` la voit — le bot et l'interface aussi.
+  const B = setup([ally('Un', 1, 1), ally('Deux', 1, 1)], [bride('limite_de_cartes_jouees')]);
+  play(B, 'e', 'Bride');
+  check('la premiere carte passe', canPlay(B, 'p', B.p.hand[0]), true);
+  play(B, 'p', 'Un');
+  check('la seconde est bloquee', canPlay(B, 'p', B.p.hand[0]), false);
+  endTurn(B); endTurn(B);
+  check('et le tour suivant remet le compteur a zero', canPlay(B, 'p', B.p.hand[0]), true);
+}
+{
+  // Deux plafonds en jeu : c'est le PLUS SEVERE qui vaut. Ils ne s'additionnent pas,
+  // contrairement a tous les autres statiques.
+  const B = setup([ally('Un', 1, 1)], [bride('limite_de_cartes_jouees', 3), bride('limite_de_cartes_jouees', 1)]);
+  play(B, 'e', 'Bride');
+  play(B, 'e', 'Bride');
+  play(B, 'p', 'Un');
+  check('c est la limite la plus severe qui vaut', canPlay(B, 'p', B.p.hand[0] || { cost: 0 }), false);
+}
+{
+  // Le plafond d'attaques : plus aucune cible legale une fois atteint.
+  const B = setup([ally('Un', 2, 2), ally('Deux', 2, 2)], [bride('nombre_d_attaques')]);
+  play(B, 'e', 'Bride');
+  play(B, 'p', 'Un');
+  play(B, 'p', 'Deux');
+  endTurn(B); endTurn(B);                       // nos unites peuvent attaquer
+  const [u1, u2] = B.p.board;
+  check('la premiere unite peut frapper', attackableTargets(B, 'p', u1).length > 0, true);
+  attack(B, 'p', u1.uid, { side: 'e', uid: 'hero' });
+  check('la seconde n a plus de cible', attackableTargets(B, 'p', u2).length, 0);
+}
+{
+  // Le plafond de pioche : la pioche de debut de tour compte dedans.
+  const B = setup([{ id: 'pio', name: 'Pioche', type: 'spell', cost: 1, keys: [], text: '', tiers: [], play: [{ op: 'draw', v: 3 }] }],
+    [bride('nombre_de_cartes_piochees', 2)]);
+  play(B, 'e', 'Bride');
+  B.p.piochees = 0;
+  const avant = B.p.hand.length;
+  play(B, 'p', 'Pioche');
+  check('on ne pioche que jusqu au plafond', B.p.hand.length - (avant - 1), 2);
+  check('et le journal le dit une fois', B.log.filter(l => l.includes('limite de pioche')).length, 1);
+}
+
 console.log('\nLe niveau du proprietaire comme nombre');
 {
   // Une carte resolue au niveau 7 : ses effets peuvent valoir 7.

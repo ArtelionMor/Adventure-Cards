@@ -189,7 +189,7 @@ export const EFFECTS = {
     // Les degats peuvent viser ton propre camp : c'est un cout assume, pas un bug.
     label: 'Degats',
     desc: 'Inflige des degats a la cible.',
-    params: [tgt('t', 'Cible', [...ENEMY_TARGETS, 'randomAllyAny', 'randomAllyUnit', 'self', 'previous']), num('v', 'Montant', 2)],
+    params: [tgt('t', 'Cible', [...ENEMY_TARGETS, 'ownHero', 'allyUnit', 'allAllies', 'randomAllyAny', 'randomAllyUnit', 'self', 'previous']), num('v', 'Montant', 2)],
     implemented: true
   },
   detruit: {
@@ -548,6 +548,31 @@ export const STATICS = {
       return phrase.charAt(0).toUpperCase() + phrase.slice(1) + ` retournent dans ${face ? 'sa' : 'ta'} pioche`;
     }
   },
+  // TROIS PLAFONDS PAR TOUR. Ils ne s'AJOUTENT pas comme les autres statiques : deux
+  // unites qui imposent « une carte par tour » ne font pas deux cartes, elles font
+  // toujours une. Un plafond se compose donc par le MINIMUM — c'est `staticMin` qui les
+  // lit, pas `staticTotal`, et c'est la seule difference avec les autres entrees.
+  limite_de_cartes_jouees: {
+    label: 'Limite de cartes jouees par tour',
+    desc: "Le camp vise ne peut pas jouer plus de X cartes par tour, tant que cette unite est en jeu. Deux limites en jeu : c'est la plus severe qui vaut.",
+    params: [quiParam('Toi', 'L’adversaire'), num('v', 'Maximum par tour', 1)],
+    bon: -1, poids: 2.5,
+    text: m => `${m.qui === 'adversaire' ? 'L’adversaire ne joue' : 'Tu ne joues'} pas plus de ${describeAmount(m.v)} carte(s) par tour`
+  },
+  nombre_d_attaques: {
+    label: 'Limite d’attaques par tour',
+    desc: "Le camp vise ne peut pas attaquer avec plus de X unites par tour, tant que cette unite est en jeu. Deux limites en jeu : c'est la plus severe qui vaut.",
+    params: [quiParam('Toi', 'L’adversaire'), num('v', 'Maximum par tour', 1)],
+    bon: -1, poids: 2.5,
+    text: m => `${m.qui === 'adversaire' ? 'L’adversaire n’attaque' : 'Tu n’attaques'} pas avec plus de ${describeAmount(m.v)} unite(s) par tour`
+  },
+  nombre_de_cartes_piochees: {
+    label: 'Limite de cartes piochees par tour',
+    desc: "Le camp vise ne peut pas piocher plus de X cartes par tour, tant que cette unite est en jeu. La pioche de debut de tour compte. Deux limites en jeu : c'est la plus severe qui vaut.",
+    params: [quiParam('Toi', 'L’adversaire'), num('v', 'Maximum par tour', 1)],
+    bon: -1, poids: 2,
+    text: m => `${m.qui === 'adversaire' ? 'L’adversaire ne pioche' : 'Tu ne pioches'} pas plus de ${describeAmount(m.v)} carte(s) par tour`
+  },
   pioche_du_tour: {
     label: 'La pioche de debut de tour',
     desc: "La carte piochee chaque tour devient plusieurs (ou aucune). Ne touche pas les pioches ecrites sur les cartes.",
@@ -573,6 +598,29 @@ const motEffet = op => MOTS_EFFET[op] || ((EFFECTS[op] || {}).label || op).toLow
 const paquetDe = m => (m.qui === 'adversaire'
   ? describeFilter(m).replace(/\btes\b/, 'les') + ' de l’adversaire'
   : describeFilter(m));
+
+/**
+ * LE PLAFOND LE PLUS SEVERE qui vise le camp `k`. Les autres statiques s'ADDITIONNENT
+ * (deux fois « -1 mana » font -2) ; un plafond, non : deux unites qui imposent « une
+ * carte par tour » ne font pas deux cartes. Rend `Infinity` quand personne n'en impose,
+ * pour que l'appelant n'ait rien de special a ecrire.
+ */
+export function staticMin(B, k, op) {
+  if (!B) return Infinity;
+  let min = Infinity;
+  for (const camp of ['p', 'e']) {
+    for (const u of B[camp].board) {
+      for (const brut of u.statics || []) {
+        if (brut.op !== op) continue;
+        const m = staticFields(brut);
+        const vise = m.qui === 'adversaire' ? (camp === 'p' ? 'e' : 'p') : camp;
+        if (vise !== k) continue;
+        min = Math.min(min, Math.max(0, amountValue(m.v, B, camp, u)));
+      }
+    }
+  }
+  return min;
+}
 
 /** Les parametres d'un effet statique, trous combles par les valeurs par defaut. */
 export function staticFields(m) {
@@ -844,7 +892,12 @@ export const cardCost = (card, B, k) => Math.max(0, ((card && card.cost) || 0)
 // et dire par quoi les remplacer.
 export const IMPLEMENTED_AS = {
   montant_variable: 'c’est le bouton « X » a cote de chaque nombre d’un effet',
-  quand_x_alors_y: 'ce sont les moments « Quand X alors Y » (pioche, sort, allie pose, PV perdus, unite tuee, attaque)'
+  quand_x_alors_y: 'ce sont les moments « Quand X alors Y » (pioche, sort, allie pose, PV perdus, unite tuee, attaque)',
+  // Elles avaient ete inventees en MOTS-CLES ; ce sont en fait des effets statiques —
+  // « les [trucs] sont affectes [comme ca] », tant que le porteur tient le plateau.
+  limite_de_cartes_jouees: 'c’est l’effet statique « Limite de cartes jouees par tour »',
+  nombre_d_attaques: 'c’est l’effet statique « Limite d’attaques par tour »',
+  nombre_de_cartes_piochees: 'c’est l’effet statique « Limite de cartes piochees par tour »'
 };
 
 // ---------------------------------------------------------------------------

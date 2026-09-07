@@ -105,7 +105,7 @@ Après un changement d'équilibrage, faire tourner `node scripts/simulate.mjs`.
 Après un changement de **cartes**, faire tourner `node scripts/check-decks.mjs` (les
 erreurs) et `node scripts/matchups.mjs` (l'équilibre entre decks) — voir « Outils ».
 Après toute modification de `game/src/combat/`, faire tourner **les trois bancs** :
-`node scripts/test-triggers.mjs` (313 tests : râles, auras, déclencheurs de tour, paliers qui
+`node scripts/test-triggers.mjs` (321 tests : râles, auras, déclencheurs de tour, paliers qui
 débloquent un moment, couture builder → moteur, mana différé, mots-clés à paramètre, capacités
 des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, pile de fatigue, création de carte (précise et au hasard), déplacements de zone (mélange, renvoi, pose), leur renfort et celui des cartes sur place, prise du dessus, complétion par la fatigue, événement de renfort, filtre « une carte précise », niveau du propriétaire, plafond de tours), `node scripts/test-ai.mjs` (21 tests : le bot
 valorise-t-il ces mécaniques) et `node scripts/simulate.mjs` (la courbe de difficulté).
@@ -387,6 +387,16 @@ héros, `beginTurn` pour la pioche et le mana. **Ajouter un effet statique = une
 le registre + un appel à `staticTotal` au bon endroit** ; le builder, le bot, les paliers et
 les jetons le transportent sans une ligne de plus (`bon` et `poids` suffisent au bot à le
 valoriser, dans les deux sens : imposer un malus à l'adversaire est un bonus pour soi).
+
+⚠ **Un plafond ne s'additionne pas.** Les trois « limites par tour » (`limite_de_cartes_jouees`,
+`nombre_d_attaques`, `nombre_de_cartes_piochees`) se composent par le **minimum** : deux
+unités qui imposent « une carte par tour » ne font pas deux cartes. Elles passent donc par
+`staticMin()` et non par `staticTotal()` — c'est la seule différence avec les autres
+entrées du registre. Chaque camp compte ce qu'il a déjà fait ce tour-ci (`jouees`,
+`attaques`, `piochees`, remis à zéro par `beginTurn`), et les plafonds sont lus là où la
+question se pose : `canPlay` pour les cartes, `attackableTargets` pour les attaques (plus
+aucune cible légale une fois atteint, donc le bot cesse d'en proposer), `draw` pour la
+pioche — celle de début de tour comprise.
 
 Un effet statique n'est pas forcément un **nombre**. « Les cartes retournent dans la
 pioche » (`cartes_jouees_remelangees`) ne se dose pas : il est là ou il n'est pas. Il
