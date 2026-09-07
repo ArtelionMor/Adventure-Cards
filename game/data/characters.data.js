@@ -1155,7 +1155,7 @@ export const CHARACTER_DATA = {
           "id": "dog_lick",
           "name": "Rappel",
           "type": "spell",
-          "cost": 6,
+          "cost": 4,
           "keys": [
             "type:Chien"
           ],
@@ -1171,8 +1171,8 @@ export const CHARACTER_DATA = {
               "t": "enemyUnit",
               "qui": "toi",
               "n": 5,
-              "atk": 0,
-              "hp": 0
+              "atk": 4,
+              "hp": 4
             },
             {
               "op": "pose_sur_le_plateau",
@@ -1183,7 +1183,7 @@ export const CHARACTER_DATA = {
               "argCard": "",
               "t": "enemyUnit",
               "qui": "toi",
-              "n": 1,
+              "n": 4,
               "atk": 0,
               "hp": 0
             }
@@ -1734,7 +1734,7 @@ export const CHARACTER_DATA = {
             "cout_x_de_moins_de_plus:X:1:ownTurns:",
             "type:Chat"
           ],
-          "text": "Crée autant de carte \"Coup de Griffe\" que de tour joués",
+          "text": "Crée autant de carte \"Foudre\" que de tour joués.",
           "play": [
             {
               "op": "cree",
@@ -2756,7 +2756,7 @@ export const CHARACTER_DATA = {
             },
             {
               "lvl": 6,
-              "text": "effet +1",
+              "text": "Effet +1",
               "amp": 1
             },
             {
@@ -2788,11 +2788,21 @@ export const CHARACTER_DATA = {
           "tiers": [
             {
               "lvl": 2,
-              "stats": {
-                "atk": 1,
-                "hp": 1
+              "text": "A la pose en plus",
+              "extra": {
+                "op": "cree",
+                "choix": "precise",
+                "carte": "frog_tad",
+                "quoi": "all",
+                "argCard": "",
+                "n": 1,
+                "lvl": {
+                  "src": "ownerLevel",
+                  "arg": "",
+                  "plus": 0
+                }
               },
-              "text": "+1/+1"
+              "slot": "play"
             },
             {
               "lvl": 5,
@@ -2879,7 +2889,8 @@ export const CHARACTER_DATA = {
               },
               "text": "+1/+2"
             }
-          ]
+          ],
+          "statics": []
         }
       ],
       "switches": [
