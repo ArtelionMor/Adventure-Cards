@@ -46,9 +46,17 @@ http.createServer((req, res) => {
   if (!file.startsWith(ROOT)) { res.writeHead(403).end('Forbidden'); return; }
   fs.readFile(file, (err, buf) => {
     if (err) { res.writeHead(404).end('Not found: ' + rel); return; }
+    // CACHE TRES COURT SUR LES SOURCES. Sans lui, chaque Web Worker de la page
+    // d'equilibrage refait les 7 requetes du graphe de modules : seize ouvriers font
+    // 112 requetes d'un coup, le navigateur n'ouvre que 6 connexions a la fois, et des
+    // workers restent muets a attendre leurs modules. Deux secondes suffisent a servir
+    // toute la grappe depuis le cache memoire, sans jamais gener l'edition : les
+    // DONNEES du jeu, elles, restent en 'no-store' (le builder doit les relire fraiches,
+    // et les pages qui veulent la derniere version ajoutent deja un « ?t= »).
+    const donnees = rel.startsWith('/game/data/') || file.endsWith('.html');
     res.writeHead(200, {
       'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream',
-      'Cache-Control': 'no-store'
+      'Cache-Control': donnees ? 'no-store' : 'max-age=2'
     });
     res.end(buf);
   });

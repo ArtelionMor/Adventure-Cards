@@ -128,6 +128,11 @@
     <div class="panel__body scroll" id="mx"><p class="stat">Choisis tes réglages et lance la mesure.</p></div>
   </div>
 
+  <div class="panel" id="cartesPanel" style="display:none">
+    <div class="panel__head"><h2>Ce que le bot a préféré</h2><span class="count" id="cartesCount"></span></div>
+    <div class="panel__body scroll" id="cartesBody"></div>
+  </div>
+
   <div class="panel" id="lecturePanel" style="display:none">
     <div class="panel__head"><h2>Lecture</h2><span class="count" id="lectureCount"></span></div>
     <div class="panel__body" id="lecture"></div>
@@ -287,6 +292,62 @@ $('#logs').onclick = () => {
   telecharge(`journaux-${horodatage()}.txt`, journauxTexte(derniers.resultats, nomDeck, meta()));
 };
 
+// ---------- CE QUE LE BOT A PREFERE ----------
+// Les workers ecoutent les decisions pendant qu'ils jouent la matrice et renvoient leurs
+// compteurs par case. Ce ne sont que des sommes : les additionner suffit.
+let cartesVues = new Map();
+
+function rangeCartes(liste) {
+  for (const g of liste) {
+    let f = cartesVues.get(g.nom);
+    if (!f) cartesVues.set(g.nom, f = { nom: g.nom, propose: 0, joue: 0, sommeValeur: 0, nValeur: 0, sommeEcart: 0, nEcart: 0, prefereA: new Map() });
+    for (const c of ['propose', 'joue', 'sommeValeur', 'nValeur', 'sommeEcart', 'nEcart']) f[c] += g[c];
+    for (const [nom, n] of Object.entries(g.prefereA)) f.prefereA.set(nom, (f.prefereA.get(nom) || 0) + n);
+  }
+}
+
+/** « 2 min 30 », « 1 h 05 » : une duree lisible d'un coup d'oeil. */
+function duree(ms) {
+  const s = Math.round(ms / 1000);
+  if (s < 60) return s + ' s';
+  if (s < 3600) return `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')}`;
+  return `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`;
+}
+
+/**
+ * Le tableau des cartes. L'ECART est le chiffre a lire : combien de points de victoire
+ * la carte perd, en moyenne, face au meilleur coup du moment (0 = elle valait le
+ * meilleur). Le taux brut d'un coup, lui, dit surtout si la position etait gagnante.
+ */
+function dessineCartes() {
+  const l = [...cartesVues.values()].filter(f => f.propose >= 5).map(f => ({
+    ...f,
+    pref: f.joue / f.propose,
+    valeur: f.nValeur ? f.sommeValeur / f.nValeur : null,
+    ecart: f.nEcart ? f.sommeEcart / f.nEcart : null
+  })).sort((a, b) => b.pref - a.pref);
+  $('#cartesPanel').style.display = l.length ? '' : 'none';
+  if (!l.length) return;
+  $('#cartesCount').textContent = `${l.length} carte(s) · ${cartesVues.size} vues`;
+  const pc = x => Math.round(x * 100) + '%';
+  const lignes = l.map(f => {
+    const rivales = [...f.prefereA.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3)
+      .map(([n, c]) => `${n} (${c}×)`).join(', ');
+    return `<tr><td style="text-align:left">${f.nom}</td><td>${f.propose}</td><td>${f.joue}</td>`
+      + `<td>${pc(f.pref)}</td><td>${f.ecart === null ? '—' : (f.ecart * 100).toFixed(1)}</td>`
+      + `<td>${f.valeur === null ? '—' : f.valeur.toFixed(1)}</td>`
+      + `<td style="text-align:left;color:var(--muted)">${rivales || '—'}</td></tr>`;
+  }).join('');
+  $('#cartesBody').innerHTML = `<p class="stat" style="margin-top:0">
+      <b>proposée</b> = la carte était jouable · <b>jouée</b> = le bot l'a choisie ·
+      <b>écart</b> = points de victoire perdus face au meilleur coup du moment (0 = elle valait le meilleur) ·
+      <b>valeur</b> = ce qu'en pense la fonction de valeur du bot, un tout autre avis ·
+      <b>il lui a préféré</b> = ce qu'il a joué à la place.</p>
+    <table><thead><tr><th style="text-align:left">carte</th><th>proposée</th><th>jouée</th>
+      <th>préférée</th><th>écart</th><th>valeur</th><th style="text-align:left">il lui a préféré</th></tr></thead>
+      <tbody>${lignes}</tbody></table>`;
+}
+
 // ---------- LA MESURE ----------
 let enCours = false, stop = false;
 // Les workers en cours, pour pouvoir les couper NET : sinon « Arreter » attendrait la
@@ -309,17 +370,26 @@ $('#go').onclick = async () => {
   enCours = true; stop = false;
   $('#go').disabled = true; $('#stop').disabled = false;
   $('#progPanel').style.display = '';
+  const debut = Date.now();
   const total = liste.length * liste.length;
   let fait = 0;
   const resultats = [];
+  cartesVues = new Map();
+  $('#cartesPanel').style.display = 'none';
 
   // Une case avancee : le meme geste, que le calcul vienne d'un worker ou d'ici.
-  const range = (i, j, r) => {
+  const range = (i, j, r, cartes) => {
     const a = liste[i], b = liste[j];
     resultats.push({ a, b, ...r, demi: wilson(r.taux, r.decisives).demi });
+    if (cartes) rangeCartes(cartes);
     fait++;
     $('#prog').style.width = (fait / total * 100) + '%';
-    $('#progTxt').textContent = `${fait} / ${total} cases · ${a.nom} contre ${b.nom}`;
+    // Le temps restant est la seule facon de savoir si ca avance : sans lui, seize
+    // cases qui finissent ensemble donnent l'impression d'un ecran fige.
+    const ecoule = Date.now() - debut;
+    const reste = fait < total ? ecoule / fait * (total - fait) : 0;
+    $('#progTxt').textContent = `${fait} / ${total} cases · ${duree(ecoule)} écoulées`
+      + (reste ? ` · ~${duree(reste)} restantes` : '') + ` · ${a.nom} contre ${b.nom}`;
   };
 
   // TOUTES LES CASES SONT INDEPENDANTES : on les distribue sur les coeurs. Chaque
@@ -343,18 +413,33 @@ $('#go').onclick = async () => {
   if (ouvriers.length) {
     const recettes = liste.map(d => d.recette);
     $('#progTxt').textContent = `0 / ${total} cases · ${ouvriers.length} en parallèle…`;
+    // UNE FILE, pas des tranches decoupees d'avance : une case coute de quelques
+    // secondes a une minute selon les decks, donc un decoupage fige laisserait un
+    // ouvrier finir seul pendant que les autres attendent. Chacun redemande une case
+    // des qu'il a fini la sienne.
+    const file = cellules.slice();
     await Promise.all(ouvriers.map((w, n) => new Promise(fini => {
-      // Une case sur N a chacun : les cases voisines coutent des temps tres differents,
-      // les entrelacer repartit mieux que de donner des tranches contigues.
-      const miennes = cellules.filter((_, idx) => idx % ouvriers.length === n);
-      if (!miennes.length) { w.terminate(); fini(); return; }
+      const suivante = () => {
+        if (stop || !file.length) { w.terminate(); fini(); return; }
+        w.postMessage({ cellule: file.shift() });
+      };
       w.onmessage = ({ data }) => {
-        if (data.fini || stop) { w.terminate(); fini(); return; }
-        range(data.i, data.j, data.r);
+        pret = true;
+        if (data.pret) { suivante(); return; }
+        range(data.i, data.j, data.r, data.cartes);
+        suivante();
       };
       w.onerror = () => { w.terminate(); fini(); };
       ouvriersEnCours.push({ w, fini });
-      w.postMessage({ db: DB, recettes, cellules: miennes, runs: etat.runs, bot: etat.bot });
+      // UN OUVRIER MUET NE BLOQUE PAS LES AUTRES. Chacun doit charger le graphe de
+      // modules du moteur ; si le serveur trebuche, on l'abandonne au bout de 20 s et
+      // la file se termine avec ceux qui repondent (au pire un seul : c'est alors
+      // l'ancien rythme, pas une page figee).
+      let pret = false;
+      setTimeout(() => { if (!pret) { w.terminate(); fini(); } }, 20000);
+      // Naissances decalees : seize ouvriers qui reclament leurs modules a la meme
+      // milliseconde saturent les six connexions que le navigateur ouvre par hote.
+      setTimeout(() => w.postMessage({ setup: true, db: DB, recettes, runs: etat.runs, bot: etat.bot }), n * 60);
     })));
     ouvriers.forEach(w => w.terminate());
     ouvriersEnCours = [];
@@ -375,6 +460,7 @@ $('#go').onclick = async () => {
     $('#csv').disabled = false;
     $('#logs').disabled = false;
     dessine(liste, resultats);
+    dessineCartes();
   }
 };
 
