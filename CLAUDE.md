@@ -28,6 +28,13 @@ paquet de cartes — donc six héros font 6 solos, **15** duos et **20** trios, 
 decks et 1681 cases. L'en-tête du panneau annonce le coût (decks, cases, parties) avant
 qu'on lance. Mesuré : 1681 cases à 10 parties, bot `dur`, **16 s** sur 16 cœurs.
 
+**Deux réglages qu'il ne faut pas confondre**, et c'est pour ça qu'ils sont à deux
+endroits différents. Les puces de la **barre du haut** (base/switch/mélange, Adversaires,
+Solos/Duos/Trios) décident ce qui est **calculé** — les changer veut dire relancer. Les
+puces **« Afficher »**, dans le panneau de la matrice, ne font que cacher des lignes et
+des colonnes d'un tableau déjà obtenu : le redessin est instantané, rien n'est perdu, il
+suffit de rallumer. Elles n'apparaissent que pour les familles réellement mesurées.
+
 ⚠ **On ne joue que le triangle.** `serie()` joue déjà la moitié des parties dans chaque
 sens, donc « A contre B » et « B contre A » mesurent exactement la même chose : la
 seconde n'apprend rien. La moitié sous la diagonale est **déduite** (`avecReflets`,

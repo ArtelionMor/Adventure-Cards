@@ -126,6 +126,7 @@
 
   <div class="panel">
     <div class="panel__head"><h2>Matrice des matchups</h2><span class="count" id="mxCount"></span></div>
+    <div class="panel__body" id="vue" style="padding-bottom:0"></div>
     <div class="panel__body scroll" id="mx"><p class="stat">Choisis tes réglages et lance la mesure.</p></div>
   </div>
 
@@ -222,7 +223,11 @@ const etat = Object.assign(
     quoi: { base: true, switch: false, mix: false, pnj: false },
     // La TAILLE D'EQUIPE se combine avec les categories ci-dessus : « mélange » et
     // « équipes de 3 » donnent tous les trios possibles, chacun en mode mélange.
-    tailles: { 1: true, 2: false, 3: false }
+    tailles: { 1: true, 2: false, 3: false },
+    // CE QU'ON REGARDE, une fois la mesure faite. A ne pas confondre avec `tailles` et
+    // `quoi` ci-dessus, qui decident ce qui est CALCULE : ici on ne fait que cacher des
+    // lignes et des colonnes d'un tableau deja obtenu, et ca ne relance rien.
+    vue: { 1: true, 2: true, 3: true, pnj: true }
   },
   JSON.parse(localStorage.getItem(LS) || '{}'));
 const garde = () => { try { localStorage.setItem(LS, JSON.stringify(etat)); } catch { /* pas grave */ } };
@@ -254,6 +259,36 @@ function majQuoi() {
   });
 }
 majQuoi();
+
+/** La famille d'un deck : sa taille d'equipe, ou « pnj ». */
+const familleDe = d => (d.sous === 'PNJ' ? 'pnj' : String((d.recette.ids || []).length));
+
+/** Ce deck est-il affiche ? Rien a voir avec « a-t-il ete mesure ». */
+const montre = d => etat.vue[familleDe(d)] !== false;
+
+const FAMILLES = [['1', 'Solos'], ['2', 'Duos'], ['3', 'Trios'], ['pnj', 'Adversaires']];
+
+/**
+ * LES PUCES D'AFFICHAGE. Elles ne montrent que les familles REELLEMENT PRESENTES dans
+ * la derniere mesure : proposer de cacher les trios quand on n'en a pas mesure serait
+ * un bouton qui ne fait rien.
+ */
+function majVue() {
+  if (!derniers) { $('#vue').innerHTML = ''; return; }
+  const presentes = new Set(derniers.liste.map(familleDe));
+  const dispo = FAMILLES.filter(([k]) => presentes.has(k));
+  if (dispo.length < 2) { $('#vue').innerHTML = ''; return; }
+  $('#vue').innerHTML = '<div class="ctrl" style="margin:0">'
+    + '<label style="color:var(--muted);font-size:12px;align-self:center">Afficher</label>'
+    + dispo.map(([k, lab]) =>
+      `<span class="chip ${montre({ sous: k === 'pnj' ? 'PNJ' : '', recette: { ids: Array(+k || 0) } }) ? 'chip--on' : ''}" data-v="${k}">${lab}</span>`).join('')
+    + '<span class="stat" style="margin-left:8px">cache des lignes et des colonnes du tableau — ne relance aucune mesure</span></div>';
+  for (const n of $('#vue').querySelectorAll('[data-v]')) n.onclick = () => {
+    etat.vue[n.dataset.v] = etat.vue[n.dataset.v] === false;
+    garde();
+    dessine(derniers.liste, derniers.resultats);
+  };
+}
 
 // La taille d'equipe, et surtout le COUT annonce : 41 decks font 1681 cases, et mieux
 // vaut le lire avant de lancer que le decouvrir en regardant la barre.
@@ -765,7 +800,11 @@ function avecReflets(resultats) {
   return out;
 }
 
-function dessine(liste, mesures) {
+function dessine(listeTout, mesuresTout) {
+  // On filtre l'AFFICHAGE : les cases cachees ont bien ete jouees, on ne les regarde
+  // simplement pas. Rien n'est recalcule, et rien n'est perdu — il suffit de rallumer.
+  const liste = listeTout.filter(montre);
+  const mesures = mesuresTout.filter(r => montre(r.a) && montre(r.b));
   const resultats = avecReflets(mesures);
   const trouve = (a, b) => resultats.find(r => r.a === a && r.b === b);
   const nom = d => d.sous === 'base' ? d.nom : `${d.nom} (${d.sous})`;
@@ -791,7 +830,8 @@ function dessine(liste, mesures) {
   }
   html += '</table>';
   $('#mx').innerHTML = html;
-  $('#mxCount').textContent = `${liste.length} decks · ${mesures.length} case(s) jouées`
+  majVue();
+  $('#mxCount').textContent = `${liste.length}${liste.length < listeTout.length ? '/' + listeTout.length : ''} decks · ${mesures.length} case(s) jouées`
     + ` (+${resultats.length - mesures.length} reflétées) · ${etat.runs} parties par case · niveau ${etat.niveau} · bot ${etat.bot}`;
   $('#mx').insertAdjacentHTML('beforeend', etat.couleurs === 'taux'
     ? `<p class="stat" style="margin-top:10px">Lecture <strong>par taux</strong> : dégradé du rouge (0 %) au vert (100 %), qui domine qui.
