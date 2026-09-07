@@ -128,6 +128,29 @@
     <div class="panel__body scroll" id="mx"><p class="stat">Choisis tes réglages et lance la mesure.</p></div>
   </div>
 
+  <div class="panel">
+    <div class="panel__head"><h2>Courbe de difficulté</h2><span class="count" id="courbeCount"></span></div>
+    <div class="panel__body">
+      <p class="stat" style="margin-top:0">L'autre question de l'équilibrage : <b>le joueur passe-t-il ?</b> On fait jouer
+        <b>toutes les combinaisons d'équipe</b> possibles contre chaque adversaire, et c'est la <b>pire</b> qui dit si une rencontre
+        est un mur — une moyenne masquerait qu'une seule équipe passe. La meilleure, elle, dit si le combat est gagné d'avance.<br>
+        Un <b>palier</b> décrit une tranche du parcours : <em>les N prochains adversaires se jouent à H héros, au niveau L</em>.
+        Ils se lisent dans l'ordre où tes adversaires sont rangés dans le builder, et le dernier ramasse tout le reste.</p>
+      <div id="paliers"></div>
+      <div class="ctrl" style="margin-top:10px">
+        <button class="btn btn--sm" id="palierPlus">+ Ajouter un palier</button>
+        <div class="grp"><label>Parties par combinaison</label><input type="number" id="crRuns" min="2" max="500" step="2" style="width:90px"></div>
+        <div class="grp"><label>Bot</label><select id="crBot"></select></div>
+        <span style="flex:1"></span>
+        <button class="btn btn--primary" id="crGo">▶ Lancer la courbe</button>
+        <button class="btn" id="crStop" disabled>Arrêter</button>
+        <button class="btn" id="crCsv" disabled title="Une ligne par combinaison">⬇ CSV</button>
+      </div>
+      <div id="crProg" class="stat" style="margin-top:10px"></div>
+      <div class="scroll" id="crRes" style="margin-top:12px"></div>
+    </div>
+  </div>
+
   <div class="panel" id="cartesPanel" style="display:none">
     <div class="panel__head"><h2>Ce que le bot a préféré</h2><span class="count" id="cartesCount"></span></div>
     <div class="panel__body scroll" id="cartesBody"></div>
@@ -291,6 +314,205 @@ $('#logs').onclick = () => {
   if (!derniers) return;
   telecharge(`journaux-${horodatage()}.txt`, journauxTexte(derniers.resultats, nomDeck, meta()));
 };
+
+// ---------- LA COURBE DE DIFFICULTE ----------
+// L'autre question de l'equilibrage. La matrice demande « ce deck est-il plus fort que
+// celui-la ? » ; la courbe demande « le joueur passe-t-il ? ». On essaie donc TOUTES
+// LES COMBINAISONS d'equipe a la taille du palier, et c'est la PIRE qui tranche : une
+// moyenne masquerait qu'une seule equipe passe.
+//
+// Les paliers sont edites ICI, dans l'outil, et gardes avec le reste des reglages de la
+// page. Ils se lisent dans l'ordre ou les adversaires sont ranges dans le builder :
+// chaque palier prend sa tranche, le dernier ramasse le reste.
+// Les paliers de depart viennent du GAME CONFIG, comme ceux de `scripts/simulate.mjs` :
+// une seule source pour la valeur d'origine, et la page les laisse ensuite editer.
+const PALIERS_DEFAUT = BALANCE.simulation.paliers;
+const courbe = Object.assign(
+  { runs: 20, bot: BALANCE.ai.defaut, paliers: structuredClone(PALIERS_DEFAUT) },
+  JSON.parse(localStorage.getItem(LS + '.courbe') || '{}'));
+const gardeCourbe = () => { try { localStorage.setItem(LS + '.courbe', JSON.stringify(courbe)); } catch { /* pas grave */ } };
+
+$('#crRuns').value = courbe.runs;
+$('#crBot').innerHTML = Object.keys(BALANCE.ai.niveaux)
+  .map(n => `<option value="${n}" ${n === courbe.bot ? 'selected' : ''}>${n}${BALANCE.ai.niveaux[n].rollouts ? ' (lent)' : ''}</option>`).join('');
+$('#crRuns').oninput = () => { courbe.runs = Math.max(2, +$('#crRuns').value || 2); gardeCourbe(); };
+$('#crBot').onchange = () => { courbe.bot = $('#crBot').value; gardeCourbe(); };
+
+/** Toutes les equipes de `taille` heros, dans l'ordre du roster. */
+function combinaisons(ids, taille) {
+  if (taille <= 0 || taille > ids.length) return [];
+  if (taille === 1) return ids.map(id => [id]);
+  const out = [];
+  for (let i = 0; i <= ids.length - taille; i++)
+    for (const reste of combinaisons(ids.slice(i + 1), taille - 1)) out.push([ids[i], ...reste]);
+  return out;
+}
+
+/**
+ * Le plan : chaque palier prend sa tranche d'adversaires, le dernier ramasse le reste.
+ * Rend aussi les equipes, pour que l'editeur puisse dire combien de cases ca fera.
+ */
+function planCourbe() {
+  const pnjs = (DB.npcs || []).filter(n => (n.deck || []).length).map(n => n.id);
+  const heros = (DB.characters || []).map(c => c.id);
+  let curseur = 0;
+  return courbe.paliers.map((p, i) => {
+    const dernier = i === courbe.paliers.length - 1;
+    const combien = p.rencontres > 0 && !dernier ? p.rencontres : pnjs.length - curseur;
+    const tranche = pnjs.slice(curseur, curseur + Math.max(0, combien));
+    curseur += tranche.length;
+    return { ...p, pnjs: tranche, equipes: combinaisons(heros, p.heros) };
+  }).filter(p => p.pnjs.length && p.equipes.length);
+}
+
+function renderPaliers() {
+  const plan = planCourbe();
+  const nom = id => ((DB.npcs || []).find(n => n.id === id) || {}).name || id;
+  $('#paliers').innerHTML = courbe.paliers.map((p, i) => {
+    const detail = plan[i] ? `${plan[i].equipes.length} équipe(s) × ${plan[i].pnjs.length} adversaire(s) — ${plan[i].pnjs.map(nom).join(', ')}` : '—';
+    const dernier = i === courbe.paliers.length - 1;
+    return `<div class="ctrl" data-i="${i}" style="margin-bottom:6px">
+      <div class="grp"><label>Adversaires</label>
+        <input type="number" class="js-renc" min="0" max="99" style="width:70px" value="${p.rencontres}" ${dernier ? 'disabled title="Le dernier palier ramasse tout le reste"' : ''}></div>
+      <div class="grp"><label>Héros par équipe</label><input type="number" class="js-heros" min="1" max="6" style="width:70px" value="${p.heros}"></div>
+      <div class="grp"><label>Niveau</label><input type="number" class="js-niv" min="1" max="20" style="width:70px" value="${p.niveau}"></div>
+      <span class="stat" style="flex:1">${esc(detail)}</span>
+      <button class="btn btn--sm btn--danger js-del" ${courbe.paliers.length < 2 ? 'disabled' : ''}>✕</button>
+    </div>`;
+  }).join('');
+  for (const ligne of $('#paliers').querySelectorAll('.ctrl')) {
+    const i = +ligne.dataset.i;
+    const lit = (sel, k, min) => {
+      const n = ligne.querySelector(sel);
+      if (n) n.oninput = () => { courbe.paliers[i][k] = Math.max(min, +n.value || min); gardeCourbe(); renderPaliers(); };
+    };
+    lit('.js-renc', 'rencontres', 0);
+    lit('.js-heros', 'heros', 1);
+    lit('.js-niv', 'niveau', 1);
+    ligne.querySelector('.js-del').onclick = () => { courbe.paliers.splice(i, 1); gardeCourbe(); renderPaliers(); };
+  }
+  const total = plan.reduce((a, p) => a + p.pnjs.length * p.equipes.length, 0);
+  $('#courbeCount').textContent = `${total} case(s) · ${total * courbe.runs} parties`;
+}
+$('#palierPlus').onclick = () => {
+  courbe.paliers.push({ rencontres: 1, heros: courbe.paliers.length + 1, niveau: 5 });
+  gardeCourbe(); renderPaliers();
+};
+
+let crEnCours = false, crStop = false, crOuvriers = [], crLignes = [];
+$('#crStop').onclick = () => { crStop = true; for (const o of crOuvriers) { o.w.terminate(); o.fini(); } crOuvriers = []; };
+
+$('#crGo').onclick = async () => {
+  if (crEnCours) return;
+  await relit();
+  const plan = planCourbe();
+  if (!plan.length) { $('#crRes').innerHTML = '<p class="stat">Il faut au moins un adversaire avec un deck et un personnage.</p>'; return; }
+
+  crEnCours = true; crStop = false; crLignes = [];
+  $('#crGo').disabled = true; $('#crStop').disabled = false;
+  const jobs = [];
+  for (const p of plan) for (const pnj of p.pnjs) for (const equipe of p.equipes) jobs.push({ equipe, niveau: p.niveau, pnj });
+  const total = jobs.length;
+  const resultats = new Map();          // pnj -> [{equipe, taux}]
+  let fait = 0;
+  const debut = Date.now();
+
+  const range = (job, r) => {
+    if (!r) return;
+    const l = resultats.get(job.pnj) || [];
+    l.push({ equipe: job.equipe, taux: r.taux, niveau: job.niveau });
+    resultats.set(job.pnj, l);
+    crLignes.push([job.pnj, nomPnj(job.pnj), job.equipe.length, job.niveau,
+      job.equipe.map(nomHeros).join('&'), r.parties, r.victoiresA, (r.taux * 100).toFixed(1).replace('.', ','), r.bloquees]);
+    fait++;
+    const ecoule = Date.now() - debut;
+    const reste = fait < total ? ecoule / fait * (total - fait) : 0;
+    $('#crProg').textContent = `${fait} / ${total} cases · ${duree(ecoule)} écoulées`
+      + (reste ? ` · ~${duree(reste)} restantes` : '');
+  };
+
+  const coeurs = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, jobs.length));
+  let ouvriers = [];
+  try {
+    ouvriers = Array.from({ length: coeurs }, () =>
+      new Worker(new URL('./balance-worker.js', import.meta.url), { type: 'module' }));
+  } catch { ouvriers = []; }
+
+  if (ouvriers.length) {
+    const file = jobs.slice();
+    await Promise.all(ouvriers.map((w, n) => new Promise(fini => {
+      const suivante = () => {
+        if (crStop || !file.length) { w.terminate(); fini(); return; }
+        w.postMessage({ courbe: file.shift() });
+      };
+      let pret = false;
+      w.onmessage = ({ data }) => {
+        pret = true;
+        if (data.pret) { suivante(); return; }
+        range(data.courbe, data.r);
+        suivante();
+      };
+      w.onerror = () => { w.terminate(); fini(); };
+      crOuvriers.push({ w, fini });
+      setTimeout(() => { if (!pret) { w.terminate(); fini(); } }, 20000);
+      setTimeout(() => w.postMessage({ setup: true, db: DB, runs: courbe.runs, bot: courbe.bot }), n * 60);
+    })));
+    ouvriers.forEach(w => w.terminate());
+    crOuvriers = [];
+  } else {
+    for (const job of jobs) {
+      if (crStop) break;
+      const p = campPerso(job.equipe, job.niveau, 'cards', DB), e = campPnj(job.pnj, DB);
+      if (p && e) range(job, serie(p, e, courbe.runs, { bot: courbe.bot }));
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  crEnCours = false;
+  $('#crGo').disabled = false; $('#crStop').disabled = true;
+  $('#crCsv').disabled = !crLignes.length;
+  dessineCourbe(resultats);
+};
+
+const nomPnj = id => ((DB.npcs || []).find(n => n.id === id) || {}).name || id;
+const nomHeros = id => ((DB.characters || []).find(c => c.id === id) || {}).name || id;
+
+/**
+ * PIRE / MEDIAN / MEILLEUR par adversaire, plus l'equipe qui porte chaque extreme.
+ * Un MUR : meme la meilleure equipe ne passe pas. UN COMBAT OFFERT : meme la pire
+ * gagne haut la main. Les deux sont des defauts de courbe, pas des accidents.
+ */
+function dessineCourbe(resultats) {
+  if (!resultats.size) { $('#crRes').innerHTML = '<p class="stat">Aucun résultat.</p>'; return; }
+  const pc = x => Math.round(x * 100) + '%';
+  const eq = e => e.equipe.map(nomHeros).join('&');
+  const murs = [], offerts = [];
+  const lignes = [...resultats].map(([pnj, l]) => {
+    l.sort((a, b) => a.taux - b.taux);
+    const pire = l[0], meilleur = l[l.length - 1], median = l[Math.floor(l.length / 2)];
+    if (meilleur.taux < 0.35) murs.push(`${nomPnj(pnj)} — au mieux ${pc(meilleur.taux)}`);
+    if (pire.taux > 0.9) offerts.push(`${nomPnj(pnj)} — au pire ${pc(pire.taux)}`);
+    const c = t => `background:${t < 0.35 ? '#4a1d1d' : t > 0.9 ? '#1d4a2a' : 'transparent'}`;
+    return `<tr><td style="text-align:left">${esc(nomPnj(pnj))}</td><td>${pire.equipe.length} héros · niv. ${pire.niveau}</td>
+      <td>${l.length}</td><td style="${c(pire.taux)}">${pc(pire.taux)}</td><td>${pc(median.taux)}</td>
+      <td style="${c(meilleur.taux)}">${pc(meilleur.taux)}</td>
+      <td style="text-align:left;color:var(--muted)">${esc(eq(pire))} ${pc(pire.taux)} &nbsp;/&nbsp; ${esc(eq(meilleur))} ${pc(meilleur.taux)}</td></tr>`;
+  }).join('');
+  const alerte = (titre, l) => l.length ? `<p class="stat"><b>${titre}</b><br>${l.map(esc).join('<br>')}</p>` : '';
+  $('#crRes').innerHTML = `<table><thead><tr><th style="text-align:left">adversaire</th><th>équipe</th><th>combis</th>
+      <th>pire</th><th>médian</th><th>meilleur</th><th style="text-align:left">la plus faible / la plus forte</th></tr></thead>
+      <tbody>${lignes}</tbody></table>`
+    + alerte('Murs — même la meilleure équipe ne passe pas :', murs)
+    + alerte('Combats offerts — même la pire équipe gagne :', offerts);
+}
+
+$('#crCsv').onclick = () => {
+  const entete = 'adversaire;nom;heros;niveau;equipe;parties;victoires;taux;bloquees';
+  telecharge(`courbe-${horodatage()}.csv`,
+    '\ufeff' + [entete, ...crLignes.map(l => l.join(';'))].join('\n'), 'text/csv;charset=utf-8');
+};
+
+renderPaliers();
 
 // ---------- CE QUE LE BOT A PREFERE ----------
 // Les workers ecoutent les decisions pendant qu'ils jouent la matrice et renvoient leurs

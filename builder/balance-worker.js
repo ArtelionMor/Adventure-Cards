@@ -21,7 +21,7 @@ function camp(r, db) {
   return campPerso([r.id], r.niveau, r.type === 'switch' ? 'switches' : 'cards', db);
 }
 
-let camps = null, runs = 10, bot = 'normal';
+let camps = null, runs = 10, bot = 'normal', DB = null;
 
 // CE QUE LE BOT A PREFERE, ramasse pendant que la matrice se joue. Les parties sont deja
 // jouees : ecouter ses decisions ne coute presque rien, et donne le tableau des cartes
@@ -55,13 +55,27 @@ ecouteLesChoix(d => {
 
 self.onmessage = ({ data }) => {
   if (data.setup) {
-    camps = data.recettes.map(r => camp(r, data.db));
+    DB = data.db;
+    camps = (data.recettes || []).map(r => camp(r, data.db));
     runs = data.runs; bot = data.bot;
     self.postMessage({ pret: true });
     return;
   }
-  const [i, j] = data.cellule;
   cartes = new Map();                       // les compteurs partent par case, en delta
+
+  // LA COURBE DE DIFFICULTE : une equipe de heros contre une rencontre. Le worker
+  // remonte le camp lui-meme, comme pour la matrice — la seule difference est qu'ici
+  // l'equipe se decrit par la liste de ses heros et son niveau.
+  if (data.courbe) {
+    const { equipe, niveau, pnj } = data.courbe;
+    const p = campPerso(equipe, niveau, 'cards', DB);
+    const e = campPnj(pnj, DB);
+    const r = p && e ? serie(p, e, runs, { bot }) : null;
+    self.postMessage({ courbe: data.courbe, r, cartes: [...cartes.values()] });
+    return;
+  }
+
+  const [i, j] = data.cellule;
   const r = serie(camps[i], camps[j], runs, { bot });
   self.postMessage({ i, j, r, cartes: [...cartes.values()] });
 };

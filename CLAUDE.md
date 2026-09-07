@@ -18,8 +18,14 @@ sur le modèle du builder de build de Teliau's Toolbelt. Il écrit `game/data/ch
 et `docs/MECANIQUES-A-CODER.md` via `POST /api/write` (implémenté dans `scripts/devserver.js`
 **et** dans `launcher/Launcher.cs` — modifier les deux).
 
-`builder/balance.html` — l'équilibrage : la matrice deck contre deck, jouée dans le
-navigateur (bot contre bot), avec les cibles 33 / 50 / 66 et l'intervalle de confiance.
+`builder/balance.html` — l'équilibrage, deux mesures qui répondent à deux questions
+différentes. **La matrice** deck contre deck, jouée dans le navigateur (bot contre bot),
+avec les cibles 33 / 50 / 66 et l'intervalle de confiance : « ce deck est-il plus fort que
+celui-là ? ». **La courbe de difficulté** : « le joueur passe-t-il ? » — toutes les
+combinaisons d'équipe contre chaque adversaire, et c'est la **pire** qui dit si une
+rencontre est un mur (une moyenne masquerait qu'une seule équipe passe). Ses **paliers**
+(les N prochains adversaires se jouent à H héros au niveau L) s'éditent **dans la page**,
+se gardent avec les autres réglages, et partent des valeurs de `BALANCE.simulation`.
 Elle mesure le **brouillon** du builder quand il existe : on change une carte, on relance,
 on lit tout de suite ce que ça donne.
 
