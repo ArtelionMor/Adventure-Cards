@@ -112,7 +112,7 @@ Principe directeur : une activité → une monnaie → un usage. Les monnaies ne
 
 ## Combat ✅ implémenté
 
-**Règles du prototype** : mana qui monte de 1 par tour jusqu'au plafond du personnage, 5 emplacements d'unités par camp, main plafonnée à 8 cartes. **La défausse est remélangée quand le paquet est vide** (façon Slay the Spire) : c'est ce qui rend un deck de 5 cartes jouable quand le joueur n'a encore qu'un personnage équipé, la fatigue ne punissant plus que les combats qui s'éternisent vraiment.
+**Règles du prototype** : mana qui monte de 1 par tour jusqu'au plafond du personnage, 5 emplacements d'unités par camp, main plafonnée à 8 cartes. **La défausse n'est jamais remélangée** : une carte tirée ne revient pas. Quand la pioche est vide, on tire à la place une carte au hasard dans la **pile de fatigue** — une liste unique, éditée dans le Card Builder, qui ne s'épuise pas. C'est elle qui rend un deck de 5 cartes jouable quand le joueur n'a encore qu'un personnage équipé, sans faire du deck épais une simple jauge de survie. Pile laissée vide : on ne pioche plus du tout, et quand plus personne ne peut jouer c'est le plus de PV qui l'emporte.
 
 **Mots-clés** : Provocation (doit être attaquée en premier), Charge (attaque dès son arrivée), Venin (détruit toute unité qu'elle blesse), Bouclier (absorbe la première perte de PV).
 

@@ -128,6 +128,10 @@
   .rowbox__head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
   .rowbox__head .select { flex: 1; }
   .params { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+  /* Sans ca, une case de grille garde la largeur de son contenu : un menu deroulant au
+     long libelle poussait ses voisins et sortait le bouton de retour de l'ecran. */
+  .params > * { min-width: 0; }
+  .params .input, .params .select { max-width: 100%; }
   .params label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); font-size: 13px; cursor: pointer; color: var(--muted); }
@@ -152,6 +156,8 @@
   .sprite span { font-size: 9px; color: var(--muted); text-align: center; word-break: break-word; }
 
   /* glisser-deposer d'une carte : la cible se signale, sinon on lache dans le vide */
+  .minicard { position: relative; }
+  .mini__img { position: absolute; top: 6px; right: 8px; width: 34px; height: 34px; object-fit: contain; opacity: .95; pointer-events: none; }
   .minicard--drag { opacity: .4; }
   .minicard--drop { outline: 2px dashed var(--accent); outline-offset: 2px; }
   .charrow--drop { outline: 2px dashed var(--accent); outline-offset: -2px; }
@@ -216,7 +222,9 @@
             <button class="btn btn--sm btn--danger" id="delNpc">Supprimer</button>
           </div>
           <div class="charlist" id="npcList"></div>
-          <p class="stat" style="margin:10px 0 0;">Leurs decks piochent dans toutes les cartes du jeu : les cartes libres et celles des personnages.</p>
+          <p class="stat" style="margin:10px 0 0;">Leurs decks piochent dans toutes les cartes du jeu : les cartes libres et celles des personnages.
+            Glisse une carte sur un adversaire pour l'ajouter à son deck — elle reste à sa place, il ne fait que la désigner.
+            La <b>pile de fatigue</b> se remplit pareil : ce sont les cartes qu'on tire quand la pioche est vide.</p>
         </div>
       </section>
 
@@ -257,7 +265,7 @@
       </section>
 
       <section class="panel" id="npcPanel" style="display:none">
-        <div class="panel__head"><h2>Adversaire</h2><span class="count" id="npcHint"></span></div>
+        <div class="panel__head"><h2 id="npcPanelTitle">Adversaire</h2><span class="count" id="npcHint"></span></div>
         <div class="panel__body" id="npcForm"></div>
       </section>
 
@@ -294,7 +302,7 @@
 <script type="module">
 import { SPRITES } from '../game/data/sprites.js';
 import { CHARACTER_DATA } from '../game/data/characters.data.js';
-import { EFFECTS, KEYWORDS, TARGETS, AMPLIFIABLE, TRIGGERS, TOKEN_TRIGGERS, BASE_TRIGGERS, EVENTS, EVENT_WHO, eventSlot, AURA_SCOPES, STATICS, CARD_FILTERS, COUNTERS, IMPLEMENTED_AS, keyId, keyArg, keyLabel, keyFields, keyFrom, targetId, targetArg, targetDef, targetLabel, isVariableAmount, describeAmount, describeStatic } from '../game/src/config/mechanics.js';
+import { EFFECTS, KEYWORDS, TARGETS, AMPLIFIABLE, TRIGGERS, TOKEN_TRIGGERS, BASE_TRIGGERS, EVENTS, EVENT_WHO, eventSlot, AURA_SCOPES, STATICS, CARD_FILTERS, ZONES, COUNTERS, IMPLEMENTED_AS, describeFilter, describeZone, keyId, keyArg, keyLabel, keyFields, keyFrom, targetId, targetArg, targetDef, targetLabel, isVariableAmount, describeAmount, describeStatic } from '../game/src/config/mechanics.js';
 import { DEFAULT_TIERS } from '../game/src/config/characters.js';
 import { BALANCE } from '../game/src/config/balance.js';
 import { validateData, eachEffect, eachUnit, tierIssue } from '../game/src/config/validate.js';
@@ -339,6 +347,13 @@ function libreChar() {
     stats: { hp: 0, mana: 0, hand: 0 }, cards: DB.library, switches: [] };
 }
 const estLibre = () => selChar === LIBRE;
+
+// LA PILE DE FATIGUE s'edite dans le panneau des adversaires, parce que c'est le meme
+// objet : une liste de lignes qui DESIGNENT des cartes du catalogue. Elle se selectionne
+// donc comme un PNJ, avec un identifiant qu'aucun PNJ ne peut porter.
+const FATIGUE = '__fatigue';
+const estFatigue = () => selNpc === FATIGUE;
+const pile = () => (DB.fatigue = DB.fatigue || []);
 
 const $ = s => document.querySelector(s);
 // Un parametre peut avoir un nombre pour valeur par defaut : on echappe toujours une
@@ -661,6 +676,20 @@ function renderChars() {
 function renderNpcs() {
   const list = $('#npcList');
   list.innerHTML = '';
+  // En tete : la pile de fatigue. Ce n'est pas un adversaire, mais ca se remplit
+  // exactement pareil — et on peut y glisser une carte comme sur un PNJ.
+  const cartesPile = pile().reduce((a, l) => a + (l.n || 1), 0);
+  const rowPile = document.createElement('div');
+  rowPile.className = 'charrow' + (estFatigue() ? ' charrow--active' : '');
+  rowPile.innerHTML = `<img src="${asset('UI/Chest.png')}" alt="">
+    <div style="flex:1;min-width:0">
+      <div class="nm">Pile de fatigue</div>
+      <div class="sub">${cartesPile ? cartesPile + ' carte(s) quand la pioche est vide' : 'vide : pioche finie, plus rien'}</div>
+    </div>`;
+  rowPile.onclick = () => { selNpc = FATIGUE; renderAll(); };
+  cibleDeDepot(rowPile, 'charrow--drop', src => ajouteAuDeck(FATIGUE, src));
+  list.appendChild(rowPile);
+
   for (const n of npcs()) {
     const row = document.createElement('div');
     row.className = 'charrow' + (n.id === selNpc ? ' charrow--active' : '');
@@ -672,6 +701,8 @@ function renderNpcs() {
       </div>
       ${n.boss ? '<span class="badge badge--star">boss</span>' : ''}`;
     row.onclick = () => { selNpc = n.id; renderAll(); };
+    // Lacher une carte ici l'ajoute a son deck (sans la lui prendre).
+    cibleDeDepot(row, 'charrow--drop', src => ajouteAuDeck(n.id, src));
     list.appendChild(row);
   }
   $('#npcCount').textContent = npcs().length + ' PNJ';
@@ -879,6 +910,26 @@ function deposeChez(charId, ref) {
   toast(`« ${carte.name} » posée chez ${cible.name} (${side === 'cards' ? 'base' : 'switch'} ${slot + 1}).`);
 }
 
+/**
+ * Deposer une carte sur un ADVERSAIRE. Un deck de PNJ ne possede pas ses cartes : il
+ * les designe par identifiant dans le catalogue. Deposer ici AJOUTE donc une ligne de
+ * deck (ou un exemplaire de plus) et laisse la carte exactement ou elle est — c'est
+ * toute la difference avec un depot sur un personnage, qui la deplace pour de bon.
+ */
+function ajouteAuDeck(npcId, ref) {
+  const carte = litSlot(ref);
+  // La pile de fatigue se remplit comme un deck de PNJ : elle designe, elle ne possede pas.
+  const cible = npcId === FATIGUE ? { name: 'la pile de fatigue', deck: pile() } : npcs().find(x => x.id === npcId);
+  if (!carte || !cible) return;
+  if (!carte.id) { toast(`« ${carte.name} » n'a pas d'identifiant : un deck ne peut pas la désigner.`); return; }
+  cible.deck = cible.deck || [];
+  const ligne = cible.deck.find(l => l.card === carte.id);
+  if (ligne) ligne.n = (ligne.n || 1) + 1;
+  else cible.deck.push({ card: carte.id, n: 1 });
+  save(); renderAll();
+  toast(`« ${carte.name} » dans le deck de ${cible.name} (×${ligne ? ligne.n : 1}). Elle reste à sa place.`);
+}
+
 /** Les evenements de depot sur une cible quelconque. */
 function cibleDeDepot(n, classe, quandLache) {
   n.ondragover = e => { if (glisse) { e.preventDefault(); n.classList.add(classe); } };
@@ -942,7 +993,10 @@ function renderSlots() {
           .filter(([slot, def]) => slot !== 'play' && (cd[slot] || []).length)
           .map(([, def]) => def.event ? def.label.replace('Quand ', '⚡ ') : def.label);
         if (cd.aura) moments.push('Aura');
-        n.innerHTML = `<div class="tag">${cd.cost}⬤${cd.type === 'ally' ? ' · ' + cd.atk + '/' + cd.hp : ''}</div>
+        // L'image n'apparait que si la CARTE en a une : sinon les dix vignettes d'un
+        // personnage montreraient dix fois le meme sprite, ce qui n'aide personne.
+        n.innerHTML = `${cd.sprite ? `<img src="${asset(cd.sprite)}" alt="" class="mini__img">` : ''}
+          <div class="tag">${cd.cost}⬤${cd.type === 'ally' ? ' · ' + cd.atk + '/' + cd.hp : ''}</div>
           <div class="nm">${esc(cd.name)}</div>
           <div class="tx">${esc(cd.text || '—')}</div>
           ${moments.length ? `<div class="tx" style="color:var(--accent-2)">◆ ${esc(moments.join(' · '))}</div>` : ''}
@@ -981,7 +1035,65 @@ function catalogue() {
 }
 
 // ---------- RENDU : fiche adversaire ----------
+/**
+ * LES LIGNES D'UN PAQUET QUI DESIGNE DES CARTES : le deck d'un PNJ et la pile de
+ * fatigue sont la meme chose (une carte du catalogue, un nombre d'exemplaires), donc
+ * le meme rendu. `niveau` ajoute le niveau de resolution, que seule la pile demande :
+ * un PNJ a deja le sien, la pile n'appartient a personne.
+ */
+function renderDeckLines(liste, deck, cat, { niveau = false, vide = '' } = {}) {
+  liste.innerHTML = '';
+  deck.forEach((ligne, i) => {
+    const connue = cat.some(e => e.id === ligne.card);
+    const ligneBox = elt(`<div class="rowbox" style="margin-bottom:8px">
+      <div class="rowbox__head">
+        <select class="select js-card">
+          ${connue ? '' : `<option value="${esc(ligne.card)}" selected>⚠ ${esc(ligne.card)} (n'existe plus)</option>`}
+          ${cat.map(e => `<option value="${esc(e.id)}" ${e.id === ligne.card ? 'selected' : ''}>${esc(e.card.name)} — ${esc(e.origine)} (${e.card.cost}⬤)</option>`).join('')}
+        </select>
+        <input class="input js-n" type="number" min="1" max="20" style="width:80px" value="${ligne.n || 1}" title="Exemplaires">
+        ${niveau ? `<input class="input js-lvl" type="number" min="1" style="width:80px" value="${ligne.lvl || 1}" title="Niveau de la carte">` : ''}
+        <button class="btn btn--sm btn--danger js-del">✕</button>
+      </div>
+    </div>`);
+    ligneBox.querySelector('.js-card').onchange = e => { ligne.card = e.target.value; save(); renderAll(); };
+    ligneBox.querySelector('.js-n').oninput = e => { ligne.n = Math.max(1, +e.target.value || 1); save(); renderNpcs(); };
+    const lvl = ligneBox.querySelector('.js-lvl');
+    if (lvl) lvl.oninput = e => { ligne.lvl = Math.max(1, +e.target.value || 1); save(); };
+    ligneBox.querySelector('.js-del').onclick = () => { deck.splice(i, 1); save(); renderAll(); };
+    liste.appendChild(ligneBox);
+  });
+  if (!deck.length && vide) liste.appendChild(elt(`<p class="stat">${vide}</p>`));
+}
+
+/**
+ * LA PILE DE FATIGUE : « les cartes qu'on pioche quand on essaie de piocher avec une
+ * pioche vide ». Une seule pile pour tout le jeu, les deux camps y tirent. Elle ne
+ * s'epuise jamais : chaque pioche a vide en tire une copie au hasard.
+ */
+function renderFatigueForm() {
+  const box = $('#npcForm');
+  const cat = catalogue();
+  const total = pile().reduce((a, l) => a + (l.n || 1), 0);
+  $('#npcHint').textContent = total ? total + ' carte(s)' : 'vide';
+  box.innerHTML = `
+    <p class="stat" style="margin-top:0">Quand un camp essaie de piocher et que sa pioche est vide, il tire ici une carte
+      <b>au hasard</b> — héros comme adversaires, c'est la même pile. Elle ne s'épuise pas : chaque tirage en fait une copie,
+      et les exemplaires (le 2ᵉ champ) pondèrent le tirage. Le 3ᵉ champ est le niveau auquel la carte sort.<br>
+      <b>Pile vide</b> : l'ancienne règle s'applique telle quelle — pioche finie, on ne pioche plus, et quand plus personne
+      ne peut jouer c'est le plus de PV qui l'emporte.</p>
+    <div class="field">
+      <label>Cartes de la pile <span style="text-transform:none;letter-spacing:0">— ${total} exemplaire(s) ; pioche dans les cartes libres et dans celles des personnages</span></label>
+      <div id="fDeck"></div>
+      <button class="btn btn--sm" id="fAdd" style="margin-top:8px">+ Ajouter une carte</button>
+    </div>`;
+  renderDeckLines(box.querySelector('#fDeck'), pile(), cat, { niveau: true, vide: 'Pile vide : on ne pioche plus quand la pioche est finie.' });
+  box.querySelector('#fAdd').onclick = () => { pile().push({ card: (cat[0] || {}).id || '', n: 1, lvl: 1 }); save(); renderAll(); };
+}
+
 function renderNpcForm() {
+  if (estFatigue()) { $('#npcPanelTitle').textContent = 'Pile de fatigue'; renderFatigueForm(); return; }
+  $('#npcPanelTitle').textContent = 'Adversaire';
   const n = npc();
   const box = $('#npcForm');
   if (!n) { box.innerHTML = '<p class="stat">Aucun adversaire.</p>'; $('#npcHint').textContent = ''; return; }
@@ -1043,26 +1155,8 @@ function renderNpcForm() {
   };
 
   // Le deck, ligne par ligne : une carte du catalogue et combien d'exemplaires.
-  const liste = box.querySelector('#nDeck');
   n.deck = n.deck || [];
-  n.deck.forEach((ligne, i) => {
-    const connue = cat.some(e => e.id === ligne.card);
-    const ligneBox = elt(`<div class="rowbox" style="margin-bottom:8px">
-      <div class="rowbox__head">
-        <select class="select js-card">
-          ${connue ? '' : `<option value="${esc(ligne.card)}" selected>⚠ ${esc(ligne.card)} (n'existe plus)</option>`}
-          ${cat.map(e => `<option value="${esc(e.id)}" ${e.id === ligne.card ? 'selected' : ''}>${esc(e.card.name)} — ${esc(e.origine)} (${e.card.cost}⬤)</option>`).join('')}
-        </select>
-        <input class="input js-n" type="number" min="1" max="20" style="width:80px" value="${ligne.n || 1}">
-        <button class="btn btn--sm btn--danger js-del">✕</button>
-      </div>
-    </div>`);
-    ligneBox.querySelector('.js-card').onchange = e => { ligne.card = e.target.value; save(); renderAll(); };
-    ligneBox.querySelector('.js-n').oninput = e => { ligne.n = Math.max(1, +e.target.value || 1); save(); renderNpcs(); };
-    ligneBox.querySelector('.js-del').onclick = () => { n.deck.splice(i, 1); save(); renderAll(); };
-    liste.appendChild(ligneBox);
-  });
-  if (!n.deck.length) liste.appendChild(elt('<p class="stat">Deck vide : ce PNJ n\'a rien à jouer.</p>'));
+  renderDeckLines(box.querySelector('#nDeck'), n.deck, cat, { vide: 'Deck vide : ce PNJ n\'a rien à jouer.' });
   box.querySelector('#nAdd').onclick = () => {
     n.deck.push({ card: (cat[0] || {}).id || '', n: 2 });
     save(); renderAll();
@@ -1102,6 +1196,16 @@ function renderCardForm() {
       <div class="field" ${cd.type === 'ally' ? '' : 'style="display:none"'}><label>Attaque</label><input class="input" type="number" id="cAtk" value="${cd.atk ?? 1}"></div>
       <div class="field" ${cd.type === 'ally' ? '' : 'style="display:none"'}><label>Vie</label><input class="input" type="number" id="cHp" value="${cd.hp ?? 1}"></div>
     </div>
+    <div class="field">
+      <label>Image de la carte ${estLibre() ? '' : '<span style="text-transform:none;letter-spacing:0">— sinon celle du personnage</span>'}</label>
+      <div style="display:flex; align-items:center; gap:10px">
+        <img id="cImg" src="${asset(cd.sprite || (estLibre() ? 'UI/Chest.png' : c.sprite))}" alt=""
+             style="width:56px;height:56px;object-fit:contain;background:var(--bg);border:1px solid var(--line);border-radius:10px">
+        <button class="btn btn--sm" id="pickCardSprite">Changer</button>
+        ${cd.sprite ? '<button class="btn btn--sm btn--ghost" id="clearCardSprite">Retirer</button>' : ''}
+        <span class="stat">${cd.sprite ? esc(cd.sprite) : (estLibre() ? 'aucune image : le coffre est un simple repère' : 'aucune : la carte prend le sprite de ' + esc(c.name))}</span>
+      </div>
+    </div>
     <div class="field"><label>Texte de la carte</label><input class="input" id="cText" value="${esc(cd.text || '')}" placeholder="Ce que lit le joueur"></div>
     <div class="field"><label>Mots-clés</label><div class="chips" id="cKeys"></div></div>
     <div class="field">
@@ -1125,6 +1229,11 @@ function renderCardForm() {
   bind('#cAtk', v => { cd.atk = +v || 0; renderSlots(); renderPreview(); });
   bind('#cHp', v => { cd.hp = +v || 0; renderSlots(); renderPreview(); });
   bind('#cText', v => { cd.text = v; renderSlots(); renderPreview(); });
+  // Une carte peut porter sa propre image : indispensable aux cartes libres, qui n'ont
+  // pas de personnage dont heriter, et bien pratique ailleurs.
+  main.querySelector('#pickCardSprite').onclick = () => pickSprite(chemin => { cd.sprite = chemin; save(); renderAll(); });
+  const efface = main.querySelector('#clearCardSprite');
+  if (efface) efface.onclick = () => { delete cd.sprite; save(); renderAll(); };
   main.querySelector('#cType').onchange = e => {
     cd.type = e.target.value;
     if (cd.type === 'ally') { cd.atk = cd.atk ?? 1; cd.hp = cd.hp ?? 1; }
@@ -1244,7 +1353,7 @@ function renderPreview() {
   const html = `
     <div class="preview ${cd.type === 'spell' ? 'preview--spell' : ''}">
       <div class="preview__top">
-        <img src="${asset(c.sprite)}" alt="">
+        <img src="${asset(cd.sprite || (selChar === LIBRE ? 'UI/Chest.png' : c.sprite))}" alt="">
         <div>
           <div class="preview__nm">${esc(cd.name)}</div>
           <div class="preview__tx">${esc(cd.type === 'ally' ? 'Allié' : 'Sort')}${(cd.keys || []).length ? ' · ' + cd.keys.map(keyLabel).join(', ') : ''}</div>
@@ -1263,6 +1372,8 @@ function renderPreview() {
 }
 
 function describe(e, eff) {
+  // Le nom de la carte plutot que son identifiant : c'est ce que lit le designer.
+  const nomCarte = id => ((catalogue().find(x => x.id === id) || {}).card || {}).name || id || '?';
   const d = eff[e.op];
   if (!d) return '⚠ « ' + e.op +' » inconnu';
   if (!d.implemented) return '⚠ ' + d.label + ' (à coder)';
@@ -1271,6 +1382,12 @@ function describe(e, eff) {
   switch (e.op) {
     case 'dmg': return n('v') + ' dégâts' + t;
     case 'detruit': return 'détruit' + t;
+    // Les trois deplacements de zone se decrivent depuis le registre : une seule
+    // ecriture pour « melange », « renvoie » et « pose ».
+    case 'melange_a_la_pioche': return 'mélange ' + describeZone(e) + ' dans '
+      + ((ZONES[e.d_ou] || {}).cible ? 'sa pioche' : e.qui === 'adversaire' ? 'la pioche de l’adversaire' : 'ta pioche');
+    case 'renvoie_en_main': return 'renvoie ' + describeZone(e) + ' en main';
+    case 'pose_sur_le_plateau': return 'pose ' + describeZone(e) + ' sur le plateau';
     case 'heal': return 'soigne ' + n('v') + t;
     case 'buff': return '+' + n('atk') + '/+' + n('hp') + (e.key ? ' et ' + e.key : '') + t;
     case 'draw': return 'pioche ' + n('v');
@@ -1559,14 +1676,22 @@ function unitEditor(u, depth) {
  * Chien »). Le bouton bascule de l'un a l'autre — c'est le meme champ, pas deux
  * mecaniques differentes, et ca marche pour les degats comme pour la pioche.
  */
+/**
+ * UN NOMBRE DU JEU : soit un chiffre, soit un compteur. Les deux etats vivent dans la
+ * meme case de grille, donc la ligne S'ENROULE et rien n'a de largeur fixe — sinon le
+ * long libelle d'un compteur poussait le bouton de retour hors de la case et on ne
+ * pouvait plus revenir a un chiffre. Le bouton qui bascule est toujours le dernier :
+ * « X » pour passer au compteur, « 123 » pour revenir au chiffre.
+ */
 function champNombre(e, p) {
-  const ligne = elt('<div style="display:flex; gap:6px; align-items:center"></div>');
+  const ligne = elt('<div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; min-width:0"></div>');
   const v = e[p.k];
+  const fixe = 'flex:0 0 auto';
 
   if (!isVariableAmount(v)) {
-    const inp = elt(`<input class="input" type="number" value="${v ?? p.def ?? 0}">`);
+    const inp = elt(`<input class="input" type="number" style="flex:1 1 60px; min-width:0" value="${v ?? p.def ?? 0}">`);
     inp.oninput = () => { e[p.k] = +inp.value || 0; save(); renderSlots(); renderPreview(); };
-    const bascule = elt('<button class="btn btn--sm" title="Faire varier ce nombre : il vaudra un compteur">X</button>');
+    const bascule = elt(`<button class="btn btn--sm" style="${fixe}" title="Faire varier ce nombre : il vaudra un compteur">X</button>`);
     bascule.onclick = () => {
       e[p.k] = { src: Object.keys(COUNTERS)[0], arg: '', plus: 0 };
       save(); renderCardForm(); renderSlots();
@@ -1576,22 +1701,26 @@ function champNombre(e, p) {
     return ligne;
   }
 
-  const sel = elt(`<select class="select" style="width:auto">${Object.entries(COUNTERS)
+  const sel = elt(`<select class="select" style="flex:1 1 120px; min-width:0">${Object.entries(COUNTERS)
     .map(([id, d]) => `<option value="${id}" ${v.src === id ? 'selected' : ''}>${esc(d.label)}</option>`).join('')}</select>`);
   sel.onchange = () => { e[p.k] = { ...e[p.k], src: sel.value }; save(); renderCardForm(); renderSlots(); };
-  ligne.appendChild(elt('<span style="font-size:12px;color:var(--muted)">X =</span>'));
+  ligne.appendChild(elt(`<span style="font-size:12px;color:var(--muted);${fixe}">X =</span>`));
   ligne.appendChild(sel);
 
   // Le type suivi ne se demande que pour les compteurs qui en ont besoin.
   if ((COUNTERS[v.src] || {}).needsArg) {
-    const inp = elt(`<input class="input" style="width:100px" value="${esc(v.arg || '')}" placeholder="Type">`);
+    const inp = elt(`<input class="input" style="flex:1 1 90px; min-width:0" value="${esc(v.arg || '')}" placeholder="Type">`);
     inp.oninput = () => { e[p.k] = { ...e[p.k], arg: inp.value.trim() }; save(); renderSlots(); renderPreview(); };
     ligne.appendChild(inp);
   }
-  // `plus` n'a pas de champ : il est nourri par les paliers « Amplifie les effets ».
-  if (v.plus) ligne.appendChild(elt(`<span style="font-size:12px;color:var(--accent-2)">+${v.plus}</span>`));
+  // Le bonus a plat qui s'ajoute au compteur (« X = tes tours joues, +2 »). Les paliers
+  // « Amplifie les effets » ecrivent dans le meme champ.
+  const bonus = elt(`<input class="input" type="number" style="flex:0 1 64px; min-width:0" title="Bonus à plat qui s’ajoute au compteur" value="${v.plus || 0}">`);
+  bonus.oninput = () => { e[p.k] = { ...e[p.k], plus: +bonus.value || 0 }; save(); renderSlots(); renderPreview(); };
+  ligne.appendChild(elt(`<span style="font-size:12px;color:var(--accent-2);${fixe}">+</span>`));
+  ligne.appendChild(bonus);
 
-  const retour = elt('<button class="btn btn--sm btn--ghost" title="Revenir à un nombre fixe">123</button>');
+  const retour = elt(`<button class="btn btn--sm btn--ghost" style="${fixe}" title="Revenir à un nombre fixe">123</button>`);
   retour.onclick = () => { e[p.k] = p.def ?? 1; save(); renderCardForm(); renderSlots(); };
   ligne.appendChild(retour);
   return ligne;
@@ -1601,6 +1730,7 @@ function newEffect(op, eff) {
   const e = { op };
   for (const p of (eff[op] || {}).params || []) {
     if (p.type === 'number') e[p.k] = p.def ?? 1;
+    else if (p.type === 'bool') e[p.k] = p.def ?? false;
     else if (p.type === 'choice') e[p.k] = p.def ?? ((p.choices || [[]])[0] || [])[0] ?? '';
     else if (p.type === 'cardName' || p.type === 'cardRef') e[p.k] = '';
     else if (p.type === 'target') {
@@ -1679,7 +1809,15 @@ function effectRow(e, eff, onDelete, opts = {}) {
         ${noms.map(n => `<option value="${esc(n)}" ${actuel === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}
       </select>`;
       wrap.querySelector('select').onchange = ev => { e[p.k] = ev.target.value; save(); renderSlots(); renderPreview(); };
+    } else if (p.type === 'bool') {
+      // Une case a cocher : le libelle EST la case, on ne met pas d'etiquette au-dessus.
+      const chip = elt(`<label class="chip ${e[p.k] ? 'chip--on' : ''}" style="cursor:pointer">${esc(p.label)}</label>`);
+      chip.onclick = () => { e[p.k] = !e[p.k]; save(); renderCardForm(); renderSlots(); };
+      wrap.appendChild(chip);
     } else if (p.type === 'number') {
+      // Devenu compteur, le champ a un menu, un bonus et un bouton de retour a loger :
+      // il prend la ligne entiere plutot que d'ecraser ses voisins.
+      if (isVariableAmount(e[p.k])) wrap.style.gridColumn = '1 / -1';
       wrap.appendChild(elt(`<label>${esc(p.label)}</label>`));
       wrap.appendChild(champNombre(e, p));
     } else if (p.type === 'target') {

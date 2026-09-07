@@ -103,12 +103,17 @@
     <div class="grp"><label>Niveau</label><input type="range" id="lvl" min="1" max="20" step="1"><span id="lvlOut" style="width:2ch"></span></div>
     <div class="grp"><label>Parties par case</label><input type="number" id="runs" min="10" max="1000" step="10" style="width:90px"></div>
     <div class="grp"><label>Bot</label><select id="bot"></select></div>
+    <div class="grp"><label>Couleurs</label><select id="couleurs">
+      <option value="cibles">Par rapport aux cibles</option>
+      <option value="taux">Par taux de victoire</option>
+    </select></div>
     <div class="grp" id="quoi"></div>
     <span style="flex:1"></span>
     <button class="btn btn--primary" id="go">▶ Lancer</button>
     <button class="btn" id="stop" disabled>Arrêter</button>
     <button class="btn" id="csv" disabled title="Une ligne par matchup : ça se croise dans un tableur">⬇ CSV</button>
     <button class="btn" id="logs" disabled title="Le journal d'une partie témoin par matchup">⬇ Journaux</button>
+    <button class="btn" id="relire" title="Relire les cartes (le fichier a pu changer depuis l'ouverture de la page)">🔄</button>
   </div>
 
   <div class="panel" id="progPanel" style="display:none">
@@ -150,22 +155,40 @@ const LS_BUILDER = 'adventureCardBuilder.v1';
 const LS = 'adventureCardBalance.v1';
 let DB = CHARACTER_DATA;
 
-function relit() {
+/**
+ * PIEGE A EVITER : `CHARACTER_DATA` est un import de module, donc fige au chargement de
+ * la page. Quand le builder ecrit le fichier (« Appliquer au jeu »), cette page garde en
+ * memoire l'ANCIENNE version et mesure des cartes perimees sans le dire — on croit alors
+ * que changer une carte ne change rien au taux de victoire.
+ * On RE-IMPORTE donc le fichier avec une URL unique (le navigateur ne peut pas resservir
+ * son cache), a chaque relecture. Et on relit avant chaque mesure, pas seulement au
+ * chargement : c'est la seule facon de garantir qu'on mesure ce qui est vraiment en place.
+ */
+async function relit() {
   let d = null;
   try { d = JSON.parse(localStorage.getItem(LS_BUILDER) || 'null'); } catch { /* pas grave */ }
   const valide = d && d.db && d.db.characters;
-  DB = valide ? d.db : CHARACTER_DATA;
-  $('#source').innerHTML = valide
-    ? `<span class="badge badge--draft">brouillon du builder · ${new Date(d.at).toLocaleTimeString('fr-FR')}</span>`
-    : '<span class="badge badge--file">fichier du jeu</span>';
+  if (valide) {
+    DB = d.db;
+    $('#source').innerHTML = `<span class="badge badge--draft">brouillon du builder · ${new Date(d.at).toLocaleTimeString('fr-FR')}</span>`;
+    return;
+  }
+  try {
+    const frais = await import(`../game/data/characters.data.js?t=${Date.now()}`);
+    DB = frais.CHARACTER_DATA;
+  } catch {
+    DB = CHARACTER_DATA;   // hors serveur (fichier ouvert a la main) : on garde l'import
+  }
+  $('#source').innerHTML = `<span class="badge badge--file">fichier du jeu · lu à ${new Date().toLocaleTimeString('fr-FR')}</span>`;
 }
-relit();
-// Le builder ecrit a chaque frappe : on se resynchronise quand il change.
-addEventListener('storage', ev => { if (ev.key === LS_BUILDER) { relit(); majQuoi(); } });
+await relit();
+// Le builder ecrit a chaque frappe : on se resynchronise quand il change. Un brouillon
+// EFFACE veut dire « Appliquer au jeu » : le fichier vient de changer, on le relit.
+addEventListener('storage', async ev => { if (ev.key === LS_BUILDER) { await relit(); majQuoi(); } });
 
 // ---------- REGLAGES ----------
 const etat = Object.assign(
-  { niveau: 5, runs: 60, bot: BALANCE.ai.defaut, quoi: { base: true, switch: false, mix: false, pnj: false } },
+  { niveau: 5, runs: 60, bot: BALANCE.ai.defaut, couleurs: 'cibles', quoi: { base: true, switch: false, mix: false, pnj: false } },
   JSON.parse(localStorage.getItem(LS) || '{}'));
 const garde = () => { try { localStorage.setItem(LS, JSON.stringify(etat)); } catch { /* pas grave */ } };
 
@@ -200,20 +223,34 @@ majQuoi();
 $('#lvl').oninput = () => { etat.niveau = +$('#lvl').value; $('#lvlOut').textContent = etat.niveau; garde(); };
 $('#runs').oninput = () => { etat.runs = Math.max(10, +$('#runs').value || 10); garde(); };
 $('#bot').onchange = () => { etat.bot = $('#bot').value; garde(); };
+// Changer de lecture ne relance rien : on repeint la matrice deja mesuree.
+$('#relire').onclick = async () => { await relit(); majQuoi(); toastSource(); };
+function toastSource() {
+  const t = $('#source').textContent.trim();
+  $('#mxCount').textContent = 'données relues — ' + t;
+}
+$('#couleurs').value = etat.couleurs;
+$('#couleurs').onchange = () => {
+  etat.couleurs = $('#couleurs').value;
+  garde();
+  if (derniers) dessine(derniers.liste, derniers.resultats);
+};
 
 // ---------- LES DECKS MESURES ----------
 function decks() {
   const out = [];
   for (const c of DB.characters || []) {
-    if (etat.quoi.base) { const cfg = campPerso([c.id], etat.niveau, 'cards', DB); if (cfg) out.push({ nom: c.name, sous: 'base', cfg }); }
-    if (etat.quoi.switch) { const cfg = campPerso([c.id], etat.niveau, 'switches', DB); if (cfg) out.push({ nom: c.name, sous: 'switch', cfg }); }
+    // `recette` dit COMMENT remonter le camp : un worker ne peut pas recevoir une
+    // fabrique (`campMelange` rend une fonction), il la refabrique de son cote.
+    if (etat.quoi.base) { const cfg = campPerso([c.id], etat.niveau, 'cards', DB); if (cfg) out.push({ nom: c.name, sous: 'base', cfg, recette: { type: 'base', id: c.id, niveau: etat.niveau } }); }
+    if (etat.quoi.switch) { const cfg = campPerso([c.id], etat.niveau, 'switches', DB); if (cfg) out.push({ nom: c.name, sous: 'switch', cfg, recette: { type: 'switch', id: c.id, niveau: etat.niveau } }); }
     // Le melange n'est pas un deck fige : c'est une fabrique, retiree a chaque partie.
-    if (etat.quoi.mix) { const cfg = campMelange([c.id], etat.niveau, DB); if (cfg) out.push({ nom: c.name, sous: 'mélange', cfg }); }
+    if (etat.quoi.mix) { const cfg = campMelange([c.id], etat.niveau, DB); if (cfg) out.push({ nom: c.name, sous: 'mélange', cfg, recette: { type: 'mix', id: c.id, niveau: etat.niveau } }); }
   }
   if (etat.quoi.pnj) {
     for (const n of DB.npcs || []) {
       const cfg = campPnj(n.id, DB);
-      if (cfg && cfg.deck.length) out.push({ nom: n.name, sous: 'PNJ', cfg });
+      if (cfg && cfg.deck.length) out.push({ nom: n.name, sous: 'PNJ', cfg, recette: { type: 'pnj', id: n.id } });
     }
   }
   return out;
@@ -252,10 +289,20 @@ $('#logs').onclick = () => {
 
 // ---------- LA MESURE ----------
 let enCours = false, stop = false;
+// Les workers en cours, pour pouvoir les couper NET : sinon « Arreter » attendrait la
+// fin de la case en train de se jouer, ce qui fait plusieurs secondes en montecarlo.
+let ouvriersEnCours = [];
 
-$('#stop').onclick = () => { stop = true; };
+$('#stop').onclick = () => {
+  stop = true;
+  for (const o of ouvriersEnCours) { o.w.terminate(); o.fini(); }
+  ouvriersEnCours = [];
+};
 $('#go').onclick = async () => {
   if (enCours) return;
+  // On repart des donnees du moment : le builder a pu appliquer ses changements
+  // pendant que cette page etait ouverte.
+  await relit();
   const liste = decks();
   if (liste.length < 2) { $('#mx').innerHTML = '<p class="stat">Il faut au moins deux decks : coche une catégorie.</p>'; return; }
 
@@ -266,18 +313,58 @@ $('#go').onclick = async () => {
   let fait = 0;
   const resultats = [];
 
-  for (const a of liste) {
-    for (const b of liste) {
+  // Une case avancee : le meme geste, que le calcul vienne d'un worker ou d'ici.
+  const range = (i, j, r) => {
+    const a = liste[i], b = liste[j];
+    resultats.push({ a, b, ...r, demi: wilson(r.taux, r.decisives).demi });
+    fait++;
+    $('#prog').style.width = (fait / total * 100) + '%';
+    $('#progTxt').textContent = `${fait} / ${total} cases · ${a.nom} contre ${b.nom}`;
+  };
+
+  // TOUTES LES CASES SONT INDEPENDANTES : on les distribue sur les coeurs. Chaque
+  // worker remonte les camps a partir des recettes et rend ses cases une par une, ce
+  // qui garde la barre de progression vivante. Le repli sequentiel sert quand les
+  // workers ne sont pas disponibles (page ouverte en fichier local, par exemple).
+  const cellules = [];
+  for (let i = 0; i < liste.length; i++) for (let j = 0; j < liste.length; j++) cellules.push([i, j]);
+  const coeurs = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, cellules.length));
+
+  let ouvriers = [];
+  try {
+    if (coeurs < 2) throw new Error('un seul coeur');
+    ouvriers = Array.from({ length: coeurs }, () =>
+      new Worker(new URL('./balance-worker.js', import.meta.url), { type: 'module' }));
+  } catch (err) {
+    ouvriers.forEach(w => w.terminate());
+    ouvriers = [];
+  }
+
+  if (ouvriers.length) {
+    const recettes = liste.map(d => d.recette);
+    $('#progTxt').textContent = `0 / ${total} cases · ${ouvriers.length} en parallèle…`;
+    await Promise.all(ouvriers.map((w, n) => new Promise(fini => {
+      // Une case sur N a chacun : les cases voisines coutent des temps tres differents,
+      // les entrelacer repartit mieux que de donner des tranches contigues.
+      const miennes = cellules.filter((_, idx) => idx % ouvriers.length === n);
+      if (!miennes.length) { w.terminate(); fini(); return; }
+      w.onmessage = ({ data }) => {
+        if (data.fini || stop) { w.terminate(); fini(); return; }
+        range(data.i, data.j, data.r);
+      };
+      w.onerror = () => { w.terminate(); fini(); };
+      ouvriersEnCours.push({ w, fini });
+      w.postMessage({ db: DB, recettes, cellules: miennes, runs: etat.runs, bot: etat.bot });
+    })));
+    ouvriers.forEach(w => w.terminate());
+    ouvriersEnCours = [];
+  } else {
+    for (const [i, j] of cellules) {
       if (stop) break;
-      const r = serie(a.cfg, b.cfg, etat.runs, { bot: etat.bot });
-      resultats.push({ a, b, ...r, demi: wilson(r.taux, r.decisives).demi });
-      fait++;
-      $('#prog').style.width = (fait / total * 100) + '%';
-      $('#progTxt').textContent = `${fait} / ${total} cases · ${a.nom} contre ${b.nom}`;
+      range(i, j, serie(liste[i].cfg, liste[j].cfg, etat.runs, { bot: etat.bot }));
       // On rend la main au navigateur entre deux cases, sinon la page se fige.
       await new Promise(r2 => setTimeout(r2, 0));
     }
-    if (stop) break;
   }
 
   enCours = false;
@@ -292,6 +379,24 @@ $('#go').onclick = async () => {
 };
 
 // ---------- L'AFFICHAGE ----------
+/**
+ * DEUX LECTURES DE LA MEME MATRICE, et elles ne disent pas la meme chose.
+ *   « cibles » : vert = la case est sur une des cibles (33 / 50 / 66), orange = entre
+ *     deux, rouge = ecrasant. C'est la lecture d'equilibrage : elle juge l'ecart a
+ *     l'intention, donc un 33 % voulu est aussi bon qu'un 66 %.
+ *   « taux » : un simple degrade rouge → vert du plus bas au plus haut pourcentage.
+ *     C'est la lecture de force brute : on voit d'un coup d'oeil qui domine qui.
+ */
+function peinture(taux, estMiroir) {
+  if (etat.couleurs === 'taux') {
+    const h = Math.round(taux * 120);          // 0 = rouge, 60 = jaune, 120 = vert
+    return { cls: '', style: `background:hsl(${h} 45% 14%); color:hsl(${h} 85% 70%)` };
+  }
+  if (estMiroir) return { cls: 'miroir', style: '' };
+  const l = lecture(taux);
+  return { cls: l.ecrasant ? 'ecrase' : l.dedans ? 'cible' : 'entre', style: '' };
+}
+
 function dessine(liste, resultats) {
   const trouve = (a, b) => resultats.find(r => r.a === a && r.b === b);
   const nom = d => d.sous === 'base' ? d.nom : `${d.nom} (${d.sous})`;
@@ -305,16 +410,23 @@ function dessine(liste, resultats) {
       const r = trouve(a, b);
       if (!r) { html += '<td>—</td>'; continue; }
       const l = lecture(r.taux);
-      const cls = a === b ? 'miroir' : l.ecrasant ? 'ecrase' : l.dedans ? 'cible' : 'entre';
+      const { cls, style } = peinture(r.taux, a === b);
       const titre = `${nom(a)} contre ${nom(b)} : ${pc(r.taux)} ± ${pc(r.demi)} sur ${r.decisives} parties`
         + `\n${a === b ? 'miroir : doit tourner autour de 50 %' : l.ecrasant ? 'écrasant — hors des cibles' : l.dedans ? 'sur la cible « ' + l.cible.nom + ' »' : 'entre deux cibles'}`;
-      html += `<td class="${cls}" title="${esc(titre)}">${pc(r.taux)}</td>`;
+      html += `<td class="${cls}" style="${style}" title="${esc(titre)}">${pc(r.taux)}</td>`;
     }
     html += '</tr>';
   }
   html += '</table>';
   $('#mx').innerHTML = html;
   $('#mxCount').textContent = `${liste.length} decks · ${etat.runs} parties par case · niveau ${etat.niveau} · bot ${etat.bot}`;
+  $('#mx').insertAdjacentHTML('beforeend', etat.couleurs === 'taux'
+    ? `<p class="stat" style="margin-top:10px">Lecture <strong>par taux</strong> : dégradé du rouge (0 %) au vert (100 %), qui domine qui.
+       Passe en « par rapport aux cibles » pour juger l'équilibrage plutôt que la force brute.</p>`
+    : `<p class="stat" style="margin-top:10px">Lecture <strong>par rapport aux cibles</strong> :
+       <span style="color:var(--accent-2)">vert</span> = sur une cible (33 / 50 / 66 ± ${pc(TOLERANCE)}),
+       <span style="color:var(--warn)">orange</span> = entre deux, <span style="color:var(--danger)">rouge</span> = écrasant.
+       Un 33 % voulu est donc aussi « vert » qu'un 66 %. Passe en « par taux » pour voir la force brute.</p>`);
 
   // --- lecture ---
   const horsMiroir = resultats.filter(r => r.a !== r.b);

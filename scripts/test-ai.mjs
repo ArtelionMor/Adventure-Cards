@@ -202,5 +202,22 @@ tendance('n envoie pas son unite mourir dans une provocation qui la mange',
   },
   (B, a) => a.type === 'end');
 
+// ---------------------------------------------------------------------------
+console.log('\nMelanger dans la pioche');
+
+tendance('recycle sa defausse plutot que de jouer un sort sans cible',
+  () => setup([
+    sort('Recyclage', [{ op: 'melange_a_la_pioche', qui: 'toi', d_ou: 'defausse', quoi: 'all', n: 3 }]),
+    sort('Petite Frappe', [{ op: 'dmg', t: 'enemyUnit', v: 1 }])
+  ]),
+  (B, a) => carteJouee(B, a) === 'Recyclage');
+
+tendance('ne remplit pas la pioche de l adversaire par gentillesse',
+  () => setup([
+    ally('Banal', 2, 2),
+    sort('Cadeau', [{ op: 'melange_a_la_pioche', qui: 'adversaire', d_ou: 'creee', carte: 'grunt4', n: 3 }])
+  ]),
+  (B, a) => carteJouee(B, a) === 'Banal');
+
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);

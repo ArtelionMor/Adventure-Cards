@@ -29,6 +29,13 @@ courbe de mana et ses cartes résolues à SON niveau,
 résolues au niveau choisi (curseur), avec leurs paliers et le rapport points/mana. Elle lit
 les données en direct, ne les écrit jamais, et sert à équilibrer.
 
+⚠ **Piège d'import** : `CHARACTER_DATA` est un import de module, donc figé au chargement
+de la page. Quand « Appliquer au jeu » réécrit le fichier, une page déjà ouverte garderait
+l'ancienne version *sans le dire* — on croit alors qu'une carte modifiée ne change rien.
+`relit()` **re-importe** donc le fichier avec une URL unique (`?t=` + horodatage), à
+l'ouverture, à chaque message du builder, avant chaque mesure, et sur le bouton 🔄. Le badge
+affiche l'heure de lecture : si elle est vieille, c'est qu'on regarde de vieilles cartes.
+
 Les deux pages se synchronisent par `localStorage` + l'événement `storage`, qui ne se
 déclenche que dans les **autres** fenêtres — c'est ce qui les fait vivre ensemble sur deux
 écrans, sans serveur ni dépendance. La vue d'ensemble affiche le brouillon du builder tant
@@ -55,7 +62,13 @@ l'ajouter à `EFFECTS`/`KEYWORDS` dans `game/src/config/mechanics.js` et retirer
 Une vignette de carte se **glisse** : sur un autre slot (les deux cartes s'échangent, y
 compris entre base et switch), ou sur une **ligne de personnage** dans la liste de gauche —
 c'est la seule cible qui existe toujours, les slots des autres héros n'étant pas à l'écran.
-Elle part alors dans son premier slot libre, et « Cartes libres » accepte tout. Le bouton
+Elle part alors dans son premier slot libre, et « Cartes libres » accepte tout.
+
+Lâchée sur un **adversaire**, la carte n'est pas déplacée : le deck d'un PNJ ne possède
+pas ses cartes, il les **désigne par identifiant** dans le catalogue. Le dépôt ajoute donc
+une ligne de deck (ou un exemplaire de plus si elle y est déjà) et la carte reste chez son
+propriétaire. Une carte sans identifiant est refusée avec un message : rien ne pourrait la
+retrouver. Le bouton
 **Dupliquer** copie la carte dans le premier slot libre du même personnage, ou dans les
 cartes libres s'il est plein — et le dit.
 
@@ -65,10 +78,18 @@ tient les **cartes libres** : des cartes sans deck, éditées dans le builder co
 personnage de plus (fictif, sans statistiques ni switch — c'est ce qui permet de réutiliser
 l'éditeur de carte tel quel). Elles servent aux adversaires, et un héros peut en reprendre une.
 
+Une carte peut porter **sa propre image** (`sprite`), réglée dans l'éditeur de carte. Elle
+gagne sur celle du personnage ou du PNJ qui la joue — c'est ce qui rend les cartes libres
+lisibles : sans personnage dont hériter, elles n'avaient que le coffre comme repère. Sans
+image propre, une carte prend celle de son porteur, comme avant.
+
 `CHARACTER_DATA.npcs` tient les **adversaires** : statistiques, sprite, niveau des cartes,
 niveau de jeu du bot (`ia`), et un deck qui **pioche dans le catalogue** — les cartes libres
 *et* toutes les cartes des personnages (`cardCatalog()` dans `config/npcs.js`, le grand menu
 déroulant du builder). Une ligne de deck s'écrit `{card: 'grunt1', n: 4}`.
+
+`CHARACTER_DATA.fatigue` tient la **pile de fatigue** : les mêmes lignes de deck (avec un
+`lvl` en plus), mais une seule pile pour tout le jeu — voir « Finir sa pioche ».
 
 Le partage est net : `world.js` ne dit plus que **où** est la rencontre et **ce qu'elle
 rapporte** ; tout ce qui est deck ou statistiques d'adversaire vient des données, donc du
@@ -84,27 +105,41 @@ Après un changement d'équilibrage, faire tourner `node scripts/simulate.mjs`.
 Après un changement de **cartes**, faire tourner `node scripts/check-decks.mjs` (les
 erreurs) et `node scripts/matchups.mjs` (l'équilibre entre decks) — voir « Outils ».
 Après toute modification de `game/src/combat/`, faire tourner **les trois bancs** :
-`node scripts/test-triggers.mjs` (205 tests : râles, auras, déclencheurs de tour, paliers qui
+`node scripts/test-triggers.mjs` (295 tests : râles, auras, déclencheurs de tour, paliers qui
 débloquent un moment, couture builder → moteur, mana différé, mots-clés à paramètre, capacités
-des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, création de carte, plafond de tours), `node scripts/test-ai.mjs` (17 tests : le bot
+des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, pile de fatigue, création de carte (précise et au hasard), déplacements de zone (mélange, renvoi, pose), leur renfort et celui des cartes sur place, prise du dessus, complétion par la fatigue, événement de renfort, filtre « une carte précise », niveau du propriétaire, plafond de tours), `node scripts/test-ai.mjs` (19 tests : le bot
 valorise-t-il ces mécaniques) et `node scripts/simulate.mjs` (la courbe de difficulté).
 
-## Finir sa pioche, et la fin de partie
-**Le deck ne se remélange pas.** Quand il est vide, on ne pioche plus — ni fatigue, ni
-défausse recyclée. Deux raisons, et les deux comptent :
-1. sans ça, « sort à 0 mana qui fait piocher » se rejoue en boucle sans fin ;
-2. surtout, un deck plus épais devient un **avantage**. C'est ce qui récompense le joueur
-   qui emmène 2 ou 3 compagnons, au lieu de lui faire sentir que diluer son deck est puni.
+## Finir sa pioche, et la pile de fatigue
+**Le deck ne se remélange pas** : une carte tirée ne revient pas d'elle-même, et la
+défausse n'est jamais recyclée. Ce qui change, c'est ce qui arrive quand la pioche est
+vide : on tire alors dans la **pile de fatigue** — « les cartes qu'on pioche quand on
+essaie de piocher avec un deck vide ». Une carte au hasard, à chaque fois.
 
-Un camp à sec ne perd pas : il joue ce qu'il a encore en main et sur le plateau. Quand
-**plus personne ne peut rien faire** (`peutAgir()` : plus de pioche, rien de payable même
-à plein mana, rien qui frappe), `beginTurn` arrête le combat et **le plus de PV l'emporte**
-— égalité = match nul, que l'UI compte comme une défaite du joueur. `BALANCE.combat.maxTurns`
-reste en garde-fou de dernière ligne pour le cas où les deux camps peuvent agir sans fin.
+C'est **une seule pile pour tout le jeu** (`CHARACTER_DATA.fatigue`), les deux camps y
+tirent, héros comme PNJ. Elle s'édite dans le builder, en tête de la liste des
+adversaires, comme un deck de PNJ : des lignes qui **désignent** une carte du catalogue,
+avec ses exemplaires (qui pondèrent le tirage) et le **niveau** auquel elle sort — la
+pile n'appartenant à personne, elle ne peut hériter du niveau de personne.
+`fatiguePile()` (`config/npcs.js`) la déroule, `carteDeFatigue()` (`engine.js`) y tire.
 
-**Conséquence à surveiller** : un héros seul a 5 cartes et en tire 4 d'entrée ; face à un
-PNJ de 10 à 15 cartes, il n'a plus rien à jouer très vite. Les decks des adversaires (donc
-la taille des premiers combats) sont le curseur, et ils s'éditent dans le builder.
+**Elle ne s'épuise jamais** : chaque tirage en fabrique une copie. D'où le plafond
+`BALANCE.combat.maxPiochesAVideParTour`, remis à zéro chaque tour : il remplace la
+protection que donnait l'ancienne règle, sinon « sort à 0 mana qui fait piocher » se
+rejouerait sans fin. Un deck épais reste un avantage — on tire ses bonnes cartes avant
+d'en être réduit à la pile — mais ce n'est plus une condition de survie.
+
+**Pile vide = l'ancienne règle, à l'identique**, et c'est l'état par défaut : on ne
+pioche plus, un camp à sec joue ce qu'il a encore en main et sur le plateau, et quand
+**plus personne ne peut rien faire** (`peutAgir()` : plus de pioche, rien de payable
+même à plein mana, rien qui frappe), `beginTurn` arrête le combat et **le plus de PV
+l'emporte** — égalité = match nul, que l'UI compte comme une défaite du joueur.
+
+⚠ **Avec une pile non vide, `peutAgir()` est toujours vrai** : personne n'est jamais à
+court de pioche, donc la fin « plus personne ne peut jouer » ne se déclenche plus et
+c'est `BALANCE.combat.maxTurns` qui devient le vrai garde-fou. À surveiller quand la
+pile se remplit : la longueur des combats est le premier chiffre à relire
+(`node scripts/simulate.mjs` affiche le nombre de tours moyen).
 
 ## Modèle de carte
 Une carte porte des effets sur plusieurs **moments** (`TRIGGERS` dans `config/mechanics.js`) :
@@ -141,10 +176,15 @@ porteur de l'effet.
 ## Caractéristiques variables
 `characteristique_variable` fait valoir l'attaque et/ou les PV d'une unité un **compteur**
 (`COUNTERS` dans `config/mechanics.js` : tours joués, sorts joués, alliés d'un type, cartes
-en main…). Ajouter un compteur = une entrée dans ce registre — **sauf** s'il suit quelque
-chose que le combat ne compte pas encore : il faut alors le champ dans `makeSide` et son
+en main, **niveau du héros propriétaire**…). Ajouter un compteur = une entrée dans ce
+registre — **sauf** s'il suit quelque chose que le combat ne compte pas encore : il faut alors le champ dans `makeSide` et son
 incrément au bon endroit d'`engine.js` (c'est le cas de `spellsGame` / `spellsTurn`, remis
 à zéro par `beginTurn` pour celui du tour).
+
+`ownerLevel` est le seul compteur qui ne lit pas le combat mais **la carte** : son niveau
+de résolution, posé par `resolveCard()`. C'est pourquoi le porteur (`u`) est passé partout
+où un nombre se calcule — y compris `costDelta()`, qui passe la carte elle-même, et le bot,
+qui la passe avant même de la poser. Un jeton hérite du niveau de qui l'invoque.
 
 C'est une valeur **dérivée**, calculée dans `refresh()` comme une aura : elle monte et
 descend sans jamais toucher aux dégâts subis, et une vie variable qui tombe à 0 tue l'unité
@@ -166,9 +206,28 @@ jetons, le bot — les transporte sans une ligne de plus.
 
 Ajouter un événement = une entrée dans `EVENTS` + un appel à `fireEvent(B, camp, id)` au
 bon endroit d'`engine.js` (aujourd'hui : `draw`, `damageHero`, `resolveDeaths`, la fin de
-`playCard`, la fin d'`attack`). `fireEvent` **ne ramasse pas les morts** — c'est le flux
-normal qui s'en charge, sinon on retirerait une unité du plateau au milieu d'une liste en
-cours de parcours.
+`playCard`, la fin d'`attack`, et `case 'buff'`). `fireEvent` **ne ramasse pas les morts** —
+c'est le flux normal qui s'en charge, sinon on retirerait une unité du plateau au milieu
+d'une liste en cours de parcours.
+
+**« Quand cette unité reçoit du renfort »** (`renfort`) est le seul événement dont le
+**sujet est une unité** et non un camp, et il montre comment en écrire d'autres :
+
+- `EVENTS.renfort.soi` remplace le libellé « Quand tu… » du moment `self` — un événement
+  à sujet ne se dit pas comme un événement de camp ;
+- `fireEvent(B, camp, ev, sujets)` prend une **liste d'unités** en 4ᵉ argument : le moment
+  `self` n'est alors écouté que par elles. Les variantes **adverse** et **n'importe qui**
+  restent de camp (« une unité de ce côté-là l'a reçu »), et les entendent donc toutes ;
+- il part pour le camp de l'**unité renforcée**, pas pour celui qui a joué la carte — un
+  renfort peut tomber en face, par « Lui » ;
+- **une fois par pile** : un renfort donné *par* un déclencheur de renfort ne relance pas
+  l'événement (`B.renfortEnCours`), quelle qu'en soit la cible. Sans ça, « quand cette
+  unité reçoit du renfort, +1/+1 sur elle-même » tournerait jusqu'au garde-fou de chaîne
+  et la carte donnerait quatre fois ce qu'elle annonce ; et deux unités qui s'écoutent se
+  relanceraient l'une l'autre.
+
+Un renfort qui n'offre qu'un mot-clé (+0/+0) n'en est pas un, et une **aura** non plus —
+elle modifie tant qu'elle dure, elle ne donne rien.
 
 Le garde-fou `B.eventDepth` (4 rebonds) est obligatoire : « quand tu pioches, pioche » se
 rappellerait sans fin. Au-delà, la chaîne est coupée et le journal le dit. Un test du banc
@@ -186,22 +245,110 @@ profitent d'un coup, et un effet qui gagnera un paramètre numérique en profite
 `resolveAmounts()` dans `engine.js` calcule ces nombres **une seule fois**, à l'entrée de
 `applyEffects` (et de `autoTarget`), à partir de `numberParams(op)` lu dans le registre :
 tout le reste du moteur ne voit que des nombres, comme avant. Ne lis jamais `e.v` sans être
-passé par là. `plus` est le bonus à plat que les paliers « Amplifie les effets » nourrissent
-via `amplify()` — sans lui, un palier casserait le montant ou ne ferait rien.
+passé par là. `plus` est le bonus à plat : le builder l'édite (le petit champ « + » à côté
+du compteur, d'où « X = tes tours joués, +2 ») et les paliers « Amplifie les effets » s'y
+**ajoutent** via `amplify()` — sans lui, un palier casserait le montant ou ne ferait rien.
+
+⚠ **Un montant peut être un compteur : ne l'interpole jamais brut dans un texte** (`+${e.atk}`
+donne `[object Object]`). Passe par `describeAmount()`, y compris dans les messages de
+validation.
+
+## Déplacer des cartes entre les zones
+« Mélange dans la pioche », « Renvoie en main » et « Pose sur le plateau » sont **le même
+geste** : prendre des cartes quelque part, les mettre ailleurs. Une seule liste de zones
+(`ZONES` dans `config/mechanics.js` : main, défausse, pioche, plateau, créées), les mêmes
+paramètres pour les trois (`paramsZone`), un seul chemin de moteur (`preleve()` puis
+`depose()`). Ajouter une zone les sert donc toutes les trois d'un coup.
+
+Deux règles tiennent tout l'ensemble :
+1. **Une carte reste chez son propriétaire.** Renvoyer une unité adverse la met dans SA
+   main à lui. Le choix « chez qui » ne sert qu'aux zones de paquet ; le plateau, lui, se
+   désigne avec une cible ordinaire (`t`), qui dit déjà de quel côté on prend.
+2. **Une unité prélevée sur le plateau ne meurt pas** : pas de râle d'agonie, pas de
+   passage par la défausse. C'est ce qui sépare un rebond d'une destruction.
+
+Ce que ça donne : « recycle ta défausse », « mélange les Chiens de ta main », « renvoie
+une unité ciblée », « réanime un allié de la défausse » (depuis la défausse vers le
+plateau), « triche de coût » (depuis la main vers le plateau), « cherche dans ta pioche »
+(pioche vers main). Une carte posée sur le plateau n'est **pas jouée** : « À la pose » ne
+part pas, même règle que pour un jeton invoqué. Un sort ne se pose pas, un jeton renvoyé
+disparaît (il n'a pas de carte), et une main pleine renvoie la carte à la défausse.
+
+**Le modèle de zones a été corrigé pour ça** : un allié en jeu n'est plus dans la défausse
+(il l'était par simplification), sa carte voyage avec l'unité et n'y tombe qu'à sa mort.
+Sans cette correction, « réanime un allié de ta défausse » ressusciterait une unité encore
+vivante et « renvoie en main » dupliquerait la carte.
+
+Le compteur `recycle` du camp, remis à zéro chaque tour, plafonne les retours vers la
+pioche (`BALANCE.combat.maxRecyclageParTour`) : sans lui, « sort à 0 mana qui se remélange
+et fait piocher » rouvrirait la boucle sans fin que la règle de non-remélange avait fermée.
+
+**Comment on prend dans un paquet** est un paramètre de plus (`paramsOrdre`) : *au
+hasard* (le défaut, et ce que faisait le moteur depuis toujours) ou *du dessus* — le
+dessus d'un paquet est la **fin du tableau**, là où `draw()` va chercher. Et la case
+**« Compléter avec la pile de fatigue »** fabrique les cartes qui manquent quand le paquet
+n'en a pas assez, exactement comme une pioche à vide (même plafond par tour). Elle est
+décochée par défaut : sans ça, un paquet vide se mettrait à produire des cartes tout seul
+sur des cartes déjà écrites. `choisitDansPaquet()` (`engine.js`) est le seul endroit qui
+répond « lesquelles, dans quel ordre, et que faire s'il en manque ».
+
+**Renforcer sans déplacer** : `renforce_les_cartes` donne +X/+Y aux cartes d'un paquet
+**là où elles sont** (main, pioche, défausse, chez soi ou en face). C'est le seul moyen de
+renforcer un allié qui n'est pas encore en jeu — `buff` ne connaît que les unités du
+plateau. Il partage tout avec les déplacements : le même filtre, le même « comment », le
+même `renforceCartes()` qui écrit sur la carte. Une carte renforcée dans la pioche arrive
+donc déjà grossie quand on la tire et qu'on la joue.
+
+**« Et leur donne +X/+Y »** est un paramètre du déplacement, pas un effet à part : le
+renfort va aux cartes **qu'on vient de déplacer**, donc pas de second filtre à régler ni
+d'ambiguïté sur qui en profite (« remélange ta défausse dans ta pioche et donne-leur
++2/+2 »). Les trois destinations l'ont d'un coup, et c'est un nombre du jeu comme un
+autre — le bouton « X » y met un compteur. `renforceDeplacees()` (`engine.js`) l'écrit
+sur la **carte** (`atk`/`hp`), juste **avant** le dépôt : la carte reste grossie jusqu'à
+ce qu'on la joue, une carte posée sur le plateau arrive déjà grossie, et `baseAtk`/`baseHp`
+étant lus de la carte, les auras se cumulent par-dessus comme d'habitude. Un sort n'a ni
+attaque ni vie et traverse sans rien recevoir (la validation le dit quand le filtre ne
+peut prendre que des sorts). Le bot compte le bonus pour le camp **à qui sont les
+cartes** : en donner à celles d'en face est un cadeau, pas un bon coup.
+
+⚠ Un **sort** est mis à la défausse **avant** que ses effets partent (`playCard`) : un
+sort qui remélange sa propre défausse peut donc se reprendre lui-même. C'est voulu et
+visible en jeu — mais c'est le genre de détail qui rend un test instable si on l'oublie.
 
 ## Créer une carte
 `cree` fait apparaître en main **n'importe quelle carte du catalogue** (les cartes libres
-et celles des personnages), par son identifiant. Ce n'est pas une pioche : le deck n'est
+et celles des personnages). Ce n'est pas une pioche : le deck n'est
 pas touché, et ça marche encore quand il est fini. C'est ce qui remplace les combos
 « je pioche le sort qui pioche » — trop évidents, et cassés par la règle de pioche.
-Le builder l'édite avec un paramètre de type `cardRef` (le même grand menu que les decks
-de PNJ) ; le moteur passe par `cardById()` de `config/npcs.js`.
+
+La carte se désigne de **deux façons**, et c'est le champ « Quelle carte » qui tranche :
+- **une carte précise**, par son identifiant (paramètre `cardRef` du builder, le même
+  grand menu que les decks de PNJ) ; le moteur passe par `cardById()` de `config/npcs.js` ;
+- **une carte au hasard**, tirée dans le catalogue parmi celles que laisse passer un
+  **filtre de cartes** (toutes, les alliés, les sorts, un type, un mot-clé — cf. plus bas).
+  Le tirage est refait **à chaque exemplaire** : « 3 cartes au hasard », c'est trois
+  tirages, pas trois copies. Le sac vient de `catalogCards()` (`config/npcs.js`), gardé
+  en mémoire comme l'index — une carte sans identifiant n'y est pas.
+
+Les deux vivent dans `paramsCarteCreee()` (`config/mechanics.js`), un seul bloc de
+paramètres que partagent `cree` **et** la zone « Créées de toutes pièces » des trois
+déplacements : « mélange deux sorts au hasard dans ta pioche » se dit sans une ligne de
+moteur en plus. Un seul endroit répond « quelle carte apparaît ? » côté moteur :
+`modeleCree()` dans `engine.js`. Le bot valorise un tirage un peu moins qu'une carte
+choisie — il ne sait pas ce qui va tomber.
 
 ## Filtres de cartes
 `CARD_FILTERS` (`config/mechanics.js`) dit « quelles cartes » : toutes, les alliés, les
-sorts, celles d'un type, celles portant un mot-clé. `cardMatches(card, e)` tranche,
-`describeFilter(e)` l'écrit. La réduction de coût s'en sert ; tout ce qui voudra désigner
-un paquet de cartes s'en servira aussi. Ajouter un filtre = une entrée + un `case`.
+sorts, celles d'un type, celles portant un mot-clé, ou **une carte précise** désignée par
+son identifiant (comme dans un deck de PNJ — c'est ce qui fait de « pose une carte de ta
+pioche » un tuteur). `cardMatches(card, e)` tranche, `describeFilter(e)` l'écrit. Ajouter
+un filtre = une entrée + un `case`.
+
+Le bloc de champs qui va avec (« Lesquelles » + le champ que le filtre réclame) est
+`paramsFiltre()`, et **les trois endroits qui filtrent des cartes l'utilisent** : les
+déplacements de zone, « Réduit le coût » et l'effet statique sur le coût. Un filtre ajouté
+les sert donc tous les trois d'un coup. Un filtre marqué `precise` est retiré des listes
+« au hasard » : tirer au sort parmi une seule carte n'aurait pas de sens.
 
 `reduit_le_cout_de` est **ponctuel** : il touche les cartes déjà en main (la réduction leur
 reste acquise pour le combat) et jamais celles piochées après. La version « aura », où le
@@ -308,6 +455,13 @@ Une rencontre choisit son niveau avec le champ `ia` (`world.js`) : les boss joue
 les deux premiers combats `naif`. `botAction(B, k, 'dur')` force un niveau ponctuellement ;
 sans rien, c'est `BALANCE.ai.defaut`.
 
+**Le bot dit pourquoi**, si on le lui demande : `ecouteLesChoix(fn)` branche un mouchard,
+éteint par défaut, que `botAction` nourrit à **chaque décision où il y avait un choix** —
+les candidats, ce que chacun valait, celui qu'il a gardé. Deux précautions tiennent tout :
+les coups joués **dans** un rollout de Monte-Carlo ne sont pas notés (`enSondage` : ce sont
+des milliers de parties imaginaires, pas des décisions), et la décision elle-même (`decide`,
+`coupCherche`) ne sait pas qu'on l'observe — `botAction` est la seule enveloppe qui note.
+
 ## Outils d'équilibrage
 - `node scripts/check-decks.mjs [niveau] [parties]` — **les erreurs**. Deux passes : les
   règles du builder (via `game/src/config/validate.js`, partagé avec lui — une règle
@@ -317,8 +471,10 @@ sans rien, c'est `BALANCE.ai.defaut`.
 - **`builder/balance.html`** — la même mesure **dans l'outil**, sur le brouillon en cours :
   on coche ce qu'on veut comparer (personnages base, switch, **mélange**, adversaires), le niveau, le
   nombre de parties et le bot, on lance, et la matrice se remplit case par case (la page
-  rend la main entre deux cases, elle ne se fige pas). Les couleurs disent tout de suite ce
-  qui est sur une cible, entre deux, ou écrasant.
+  rend la main entre deux cases, elle ne se fige pas). Deux lectures au choix, sans
+  relancer la mesure : **par rapport aux cibles** (vert = sur une cible, donc un 33 %
+  voulu vaut un 66 %) ou **par taux** (dégradé rouge → vert, la force brute : qui domine
+  qui). La première juge l'équilibrage, la seconde se lit d'un coup d'œil.
 - `node scripts/matchups.mjs [parties] [niveau]` — la même chose en ligne de commande,
   moitié des parties en commençant (l'avantage du premier tour est réel et mesuré).
   `--pnj` ajoute les adversaires à la matrice, `--mix` mélange base et switch, `--switch`
@@ -342,6 +498,29 @@ sans rien, c'est `BALANCE.ai.defaut`.
   d'une partie témoin par matchup. En ligne de commande : `--csv fichier.csv` et
   `--logs fichier.txt`. L'écran de combat du jeu a aussi un bouton « ⬇ journal ».
   Un taux ne dit jamais *pourquoi* : c'est le journal qui le dit.
+- `node scripts/analyse-cartes.mjs [parties] [niveau]` — **ce que le bot a préféré, et
+  pourquoi**. Un taux de victoire dit qu'un deck gagne ; il ne dit jamais quelle carte a
+  fait le travail ni laquelle est restée en main. L'outil écoute les décisions et sort,
+  par carte : combien de fois elle était **jouable**, combien de fois **jouée**, et
+  l'**écart** — combien de points de victoire elle perd, en moyenne, face au meilleur coup
+  du moment (0 = elle valait le meilleur). Puis « cartes boudées » avec, pour chacune, **ce
+  qu'il lui a préféré** et combien de fois.
+
+  ⚠ Le chiffre à lire est l'**écart**, pas le taux brut d'un coup : celui-ci dit surtout si
+  la position était gagnante, donc une bonne carte dans une partie perdue afficherait 0 %.
+  Un écart nul avec zéro partie jouée n'est pas une contradiction — à égalité le bot garde
+  le premier coup de sa liste, c'est l'ordre de la main qui tranche.
+
+  La colonne **valeur** est le deuxième avis : ce qu'en pense `cardValue()`. Le Monte-Carlo
+  cherche, la fonction de valeur suppose ; quand ils divergent nettement, l'outil le dit —
+  et c'est `ai.js` qu'il faut relire, pas la carte.
+  Les parties etant independantes, elles tournent **en parallele sur les coeurs** (un
+  worker par coeur, `--jobs N` pour regler, `--jobs 1` pour desactiver) : 16 parties en
+  5 s au lieu de 70. Chaque worker depouille sa part et renvoie ses compteurs, qui ne
+  sont que des sommes.
+  `--rollouts 30` affine l'écart (10 rollouts ne le mesurent qu'à 10 points près),
+  `--persos`, `--pnj`, `--niv`, `--switch` choisissent le matchup, `--logs f.txt` écrit
+  chaque décision (« T4 Médor — joue Meute 62 % devant : Rappel 55 %, — passer — 41 % »).
 - `game/src/tools/arene.js` — le socle commun (monter un camp, jouer une partie, une série,
   Wilson, les cibles 33/50/66). Il vit dans `game/` et pas dans `scripts/` **parce que la
   page du builder l'importe aussi** : une seule implémentation, donc les mêmes chiffres en
@@ -349,7 +528,7 @@ sans rien, c'est `BALANCE.ai.defaut`.
 
 ## Dossiers
 - `game/` — le prototype jouable. `src/config/` = game config (dont `npcs.js`, qui résout
-  les adversaires et le catalogue de cartes, et `validate.js`, les règles de validation
+  les adversaires, le catalogue de cartes et la pile de fatigue, et `validate.js`, les règles de validation
   partagées avec le builder), `src/combat/` = moteur + bot, `src/tools/` = l'arène de mesure,
   `src/ui/` = écrans, `data/` = données générées par le builder.
 - `builder/` — le Card Builder, `overview.html` (vue d'ensemble) et `balance.html`

@@ -35,7 +35,7 @@ export function campPerso(ids, level, cote = 'cards', data = CHARACTER_DATA) {
   const chars = ids.map(id => (data.characters || []).find(c => c.id === id)).filter(Boolean);
   if (!chars.length) return null;
   const cartes = chars.flatMap(ch => (ch[cote] || ch.cards || []).filter(Boolean)
-    .map(c => ({ ...resolveCard(c, level), sprite: ch.sprite })));
+    .map(c => ({ ...resolveCard(c, level), sprite: c.sprite || ch.sprite })));
   return campDeCartes(chars.map(c => c.name).join('&'), {
     hp: chars.reduce((a, c) => a + c.stats.hp, 0),
     mana: Math.max(...chars.map(c => c.stats.mana)),
@@ -64,7 +64,7 @@ export function campMelange(ids, level, data = CHARACTER_DATA) {
         const base = (ch.cards || [])[i], swap = (ch.switches || [])[i];
         // Sans switch en face, le slot garde sa carte de base : c'est ce que voit le joueur.
         const choisie = (swap && Math.random() < 0.5) ? swap : (base || swap);
-        if (choisie) pris.push({ ...resolveCard(choisie, level), sprite: ch.sprite });
+        if (choisie) pris.push({ ...resolveCard(choisie, level), sprite: choisie.sprite || ch.sprite });
       }
       return pris;
     });

@@ -86,10 +86,11 @@ for (const a of equipes) {
       if (winner === 'stuck') bloquees++;
       if (winner === 'draw') nulles++;
       for (const k of ['p', 'e']) {
-        // La defausse contient tout ce qui a ete joue ; main et plateau, ce qui a ete
-        // pioche sans etre pose.
-        for (const c of B[k].discard) { compte(jouees, c.name); compte(piochees, c.name); }
-        for (const c of [...B[k].hand, ...B[k].board]) compte(piochees, c.name);
+        // Une carte posee est soit a la defausse (sort joue, allie mort), soit sur le
+        // plateau (allie encore en vie, sa carte voyage avec l'unite).
+        const posees = [...B[k].discard, ...B[k].board.map(u => u.card).filter(Boolean)];
+        for (const c of posees) { compte(jouees, c.name); compte(piochees, c.name); }
+        for (const c of B[k].hand) compte(piochees, c.name);
       }
       for (const slot of Object.keys(B.fired)) declenches.add(slot);
     }

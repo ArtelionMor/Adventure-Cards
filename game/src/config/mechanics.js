@@ -69,13 +69,119 @@ const tgt = (k, label, allow) => ({ k, type: 'target', label, allow });
 // FILTRES DE CARTES — « quelles cartes de ta main ? ». Sert aux reductions de cout,
 // et a tout ce qui voudra designer un paquet de cartes plus tard.
 // Ajouter un filtre = une entree ici + son cas dans cardMatches().
+// `label` nomme un paquet QUI EST A TOI (ta main, ta defausse) ; `tout` nomme le
+// meme filtre applique au CATALOGUE du jeu, ou rien n'appartient a personne — c'est
+// ce que lit « cree une carte au hasard ».
 export const CARD_FILTERS = {
-  all: { label: 'Toutes tes cartes' },
-  ally: { label: 'Tes allies' },
-  spell: { label: 'Tes sorts' },
-  ofType: { label: 'Tes cartes d’un type', arg: 'type' },
-  withKey: { label: 'Tes cartes avec un mot-cle', arg: 'key' }
+  all: { label: 'Toutes tes cartes', tout: 'N’importe quelle carte' },
+  ally: { label: 'Tes allies', tout: 'N’importe quel allie' },
+  spell: { label: 'Tes sorts', tout: 'N’importe quel sort' },
+  ofType: { label: 'Tes cartes d’un type', tout: 'N’importe quelle carte d’un type', arg: 'type' },
+  withKey: { label: 'Tes cartes avec un mot-cle', tout: 'N’importe quelle carte avec un mot-cle', arg: 'key' },
+  // UNE CARTE PRECISE, designee par son identifiant comme dans un deck de PNJ. C'est
+  // ce qui transforme « pose une carte de ta pioche » en « va chercher CELLE-LA ».
+  // `precise` la retire des listes « au hasard » : tirer au sort parmi une seule carte
+  // n'aurait aucun sens, et le champ « Quelle carte » est deja la juste au-dessus.
+  oneCard: { label: 'Une carte précise', arg: 'card', precise: true }
 };
+
+// LES ZONES DU JEU — d'ou une carte peut venir, ou elle peut aller.
+// « Melange dans la pioche », « Renvoie en main » et « Pose sur le plateau » sont le
+// MEME geste : prendre des cartes quelque part, les mettre ailleurs. Une seule liste
+// de zones, trois destinations ; ajouter une zone les sert toutes les trois.
+export const ZONES = {
+  defausse: { label: 'De la défausse' },
+  main: { label: 'De la main' },
+  pioche: { label: 'De la pioche' },
+  // Le plateau ne se filtre pas comme un paquet : on DESIGNE des unites, avec une
+  // cible ordinaire. Une unite renvoyee ne meurt pas — son rale ne part donc pas.
+  plateau: { label: 'Du plateau (unités en jeu)', cible: true },
+  creee: { label: 'Créées de toutes pièces', carte: true }
+};
+
+const ZONE_CIBLES = ['enemyUnit', 'allyUnit', 'allEnemyUnits', 'allAllies', 'randomEnemyUnit',
+  'randomAllyUnit', 'self', 'sameTypeAllies', 'allyType', 'enemyType', 'previous'];
+
+/**
+ * « Lesquelles » : le filtre de cartes, plus le champ que le filtre reclame. `si` dit
+ * quand ces trois champs ont un sens, `catalogue` s'ils designent le catalogue du jeu
+ * (« n'importe quel allie ») plutot qu'un paquet a soi (« tes allies »).
+ */
+const paramsFiltre = (si = () => true, catalogue = false) => [
+  {
+    k: 'quoi', type: 'choice', label: 'Lesquelles', def: 'all',
+    choices: Object.entries(CARD_FILTERS)
+      .filter(([, d]) => !(catalogue && d.precise))
+      .map(([id, d]) => [id, catalogue ? d.tout : d.label]),
+    si
+  },
+  { k: 'argType', type: 'text', label: 'Type vise', def: '', si: e => si(e) && (CARD_FILTERS[e.quoi] || {}).arg === 'type' },
+  { k: 'argKey', type: 'keyword', label: 'Mot-cle vise', si: e => si(e) && (CARD_FILTERS[e.quoi] || {}).arg === 'key' },
+  { k: 'argCard', type: 'cardRef', label: 'Quelle carte', si: e => si(e) && (CARD_FILTERS[e.quoi] || {}).arg === 'card' }
+];
+
+/**
+ * COMMENT on prend dans un paquet. Jusqu'ici c'etait toujours au hasard ; « du dessus »
+ * rend « les 2 cartes du dessus de ta pioche » dicible — le dessus d'un paquet est la
+ * FIN du tableau, c'est de la que `draw()` tire.
+ */
+const paramsOrdre = (si = () => true) => [
+  {
+    k: 'ordre', type: 'choice', label: 'Comment', def: 'hasard',
+    choices: [['hasard', 'Au hasard'], ['dessus', 'Du dessus']],
+    si
+  }
+];
+
+/**
+ * « Quelle carte fait-on apparaitre ? » — une carte PRECISE du catalogue, ou une
+ * carte AU HASARD parmi celles qui passent un filtre (toutes, les allies, les sorts,
+ * un type, un mot-cle). C'est le meme bloc pour « Cree une carte » et pour la zone
+ * « Creees de toutes pieces » des trois deplacements : le hasard leur sert des deux.
+ * Le tirage est refait a chaque exemplaire — 3 cartes au hasard, c'est 3 tirages.
+ */
+const paramsCarteCreee = (si = () => true) => [
+  {
+    k: 'choix', type: 'choice', label: 'Quelle carte', def: 'precise',
+    choices: [['precise', 'Une carte precise'], ['hasard', 'Une carte au hasard']],
+    si
+  },
+  { k: 'carte', type: 'cardRef', label: 'Carte créée', si: e => si(e) && (e.choix || 'precise') === 'precise' },
+  ...paramsFiltre(e => si(e) && e.choix === 'hasard', true)
+];
+
+/** Les parametres communs aux trois deplacements : d'ou, lesquelles, combien. */
+const paramsZone = (defautZone) => [
+  {
+    k: 'd_ou', type: 'choice', label: 'D’où viennent les cartes', def: defautZone,
+    choices: Object.entries(ZONES).map(([id, d]) => [id, d.label])
+  },
+  ...paramsCarteCreee(({ d_ou }) => (ZONES[d_ou] || {}).carte),
+  { k: 't', type: 'target', label: 'Quelles unités', allow: ZONE_CIBLES, si: ({ d_ou }) => (ZONES[d_ou] || {}).cible },
+  {
+    // Le plateau n'a pas besoin de ce champ : la cible dit deja de quel cote on prend.
+    k: 'qui', type: 'choice', label: 'Chez qui', def: 'toi',
+    choices: [['toi', 'Toi'], ['adversaire', 'L’adversaire']],
+    si: ({ d_ou }) => !(ZONES[d_ou] || {}).cible
+  },
+  // Le meme filtre, mais sur un paquet a soi : les deux blocs ne s'affichent jamais
+  // ensemble (l'un veut la zone des cartes creees, l'autre toutes les autres).
+  ...paramsFiltre(({ d_ou }) => !(ZONES[d_ou] || {}).cible && !(ZONES[d_ou] || {}).carte),
+  ...paramsOrdre(({ d_ou }) => !(ZONES[d_ou] || {}).cible && !(ZONES[d_ou] || {}).carte),
+  { k: 'n', type: 'number', label: 'Combien', def: 1, si: ({ d_ou }) => !(ZONES[d_ou] || {}).cible },
+  // « S'il en manque, on envoie des cartes de la pile de fatigue » : les cartes qui
+  // manquent sont fabriquees comme a une pioche a vide (meme plafond par tour). Par
+  // defaut non — sinon un paquet vide se mettrait a produire des cartes tout seul.
+  {
+    k: 'fatigue', type: 'bool', label: 'Compléter avec la pile de fatigue', def: false,
+    si: ({ d_ou }) => !(ZONES[d_ou] || {}).cible && !(ZONES[d_ou] || {}).carte
+  },
+  // « ET LEUR DONNE +X/+Y ». Le renfort va aux cartes QU'ON VIENT DE DEPLACER : pas de
+  // second filtre a regler, pas d'ambiguite sur qui en profite. Il s'ecrit sur la carte
+  // et la suit donc jusqu'au plateau. Un sort n'a ni attaque ni vie : il passe sans rien.
+  num('atk', 'Bonus d’attaque', 0),
+  num('hp', 'Bonus de vie', 0)
+];
 
 // Effets jouables (champ `play` d'une carte).
 export const EFFECTS = {
@@ -138,12 +244,63 @@ export const EFFECTS = {
     // combo evident « je pioche le sort qui pioche », et ca marche encore quand le deck
     // est fini — ce qui, depuis que la defausse ne se remelange plus, arrive vraiment.
     label: 'Cree une carte',
-    desc: 'Fait apparaitre une carte en main, prise dans tout le catalogue du jeu. Elle ne vient pas du deck : le deck n\'est pas touche.',
+    desc: 'Fait apparaitre une carte en main, prise dans tout le catalogue du jeu : une carte precise, ou une carte au hasard (n\'importe laquelle, ou parmi les allies, les sorts, un type, un mot-cle). Elle ne vient pas du deck : le deck n\'est pas touche.',
     params: [
-      { k: 'carte', type: 'cardRef', label: 'Carte creee' },
+      ...paramsCarteCreee(),
       num('n', 'Combien', 1),
       { k: 'lvl', type: 'number', label: 'Niveau de la carte', def: 1 }
     ],
+    implemented: true
+  },
+  renforce_les_cartes: {
+    // Le pendant du « et leur donne +X/+Y » des deplacements, mais SANS deplacer : la
+    // carte reste ou elle est et grossit. C'est le seul moyen de renforcer un allie qui
+    // n'est pas encore en jeu — `buff`, lui, ne connait que les unites du plateau.
+    label: 'Renforce des cartes',
+    desc: 'Donne +X/+Y a des cartes d\'un paquet (main, pioche, defausse), la ou elles sont. Le renfort est ecrit sur la carte : l\'unite arrivera deja grossie quand on la jouera. Un sort n\'a ni attaque ni vie et traverse sans rien recevoir.',
+    params: [
+      {
+        k: 'd_ou', type: 'choice', label: 'Où', def: 'main',
+        choices: Object.entries(ZONES).filter(([, d]) => !d.cible && !d.carte).map(([id, d]) => [id, d.label])
+      },
+      {
+        k: 'qui', type: 'choice', label: 'Chez qui', def: 'toi',
+        choices: [['toi', 'Toi'], ['adversaire', 'L’adversaire']]
+      },
+      ...paramsFiltre(),
+      ...paramsOrdre(),
+      num('n', 'Combien', 1),
+      num('atk', 'Bonus d’attaque', 1),
+      num('hp', 'Bonus de vie', 1)
+    ],
+    implemented: true
+  },
+  melange_a_la_pioche: {
+    // LA carte qui rend la regle « le deck ne se remelange pas » vivable : c'est le
+    // seul moyen de remettre des cartes dans une pioche finie. « Melange ta defausse »,
+    // « melange les Chiens de ta main », « melange une unite ciblee » : c'est la meme
+    // entree, on change juste la zone d'ou l'on prend.
+    label: 'Melange dans la pioche',
+    desc: 'Remet des cartes dans une pioche, a une place au hasard. Elles viennent de la main, de la defausse, de la pioche, du plateau, ou sont creees. Une unite prise sur le plateau ne meurt pas : elle repart dans le deck de son proprietaire.',
+    params: paramsZone('defausse'),
+    implemented: true
+  },
+  renvoie_en_main: {
+    // Le retour en main : rebond d'une unite (la sienne pour la rejouer, celle d'en
+    // face pour lui faire tout repayer), recuperation d'une carte de la defausse,
+    // recherche dans la pioche. Main pleine : la carte part a la defausse.
+    label: 'Renvoie en main',
+    desc: 'Ramene des cartes en main. Une unite renvoyee quitte le plateau sans mourir (pas de rale d\'agonie) et redevient la carte a jouer. Si la main est pleine, la carte part a la defausse.',
+    params: paramsZone('plateau'),
+    implemented: true
+  },
+  pose_sur_le_plateau: {
+    // Reanimation (depuis la defausse) et triche de cout (depuis la main) : la carte
+    // arrive en jeu sans etre payee. Elle n'est pas JOUEE pour autant, donc « A la
+    // pose » ne part pas — meme regle que pour un jeton invoque.
+    label: 'Pose sur le plateau',
+    desc: 'Fait arriver des allies directement en jeu, sans les payer. Depuis la defausse c\'est une reanimation, depuis la main une triche de cout. « A la pose » ne se declenche pas (la carte n\'est pas jouee), et les sorts sont ignores.',
+    params: paramsZone('defausse'),
     implemented: true
   },
   pioche_une_carte_de_type: {
@@ -161,12 +318,7 @@ export const EFFECTS = {
     label: 'Reduit le cout',
     desc: 'Reduit le cout des cartes de ta main qui correspondent au filtre. Un cout ne descend jamais sous 0. Les cartes piochees ensuite ne sont pas concernees.',
     params: [
-      {
-        k: 'quoi', type: 'choice', label: 'Quelles cartes', def: 'all',
-        choices: Object.entries(CARD_FILTERS).map(([id, d]) => [id, d.label])
-      },
-      { k: 'argType', type: 'text', label: 'Type vise', def: 'Chien', si: ({ quoi }) => (CARD_FILTERS[quoi] || {}).arg === 'type' },
-      { k: 'argKey', type: 'keyword', label: 'Mot-cle vise', si: ({ quoi }) => (CARD_FILTERS[quoi] || {}).arg === 'key' },
+      ...paramsFiltre(),
       num('v', 'Reduction', 1)
     ],
     implemented: true
@@ -224,7 +376,19 @@ export const EVENTS = {
   ally: { you: 'joues un allie', other: 'joue un allie' },
   heroHurt: { you: 'perds des PV', other: 'perd des PV' },
   unitDies: { you: 'perds une unite', other: 'perd une unite' },
-  attack: { you: 'attaques avec une unite', other: 'attaque avec une unite' }
+  attack: { you: 'attaques avec une unite', other: 'attaque avec une unite' },
+  // LE RENFORT D'UNE UNITE EN JEU (l'effet « Renfort »). C'est le seul evenement dont
+  // le SUJET est une unite et non un camp : `soi` remplace le libelle « Quand tu... »,
+  // et le moment n'est ecoute que par l'unite REELLEMENT renforcee (le 4e argument de
+  // `fireEvent`). Les variantes adverse / n'importe qui restent de camp : elles disent
+  // « une unite de ce cote-la a ete renforcee », et tout le monde peut l'entendre.
+  //
+  // Une aura n'est pas un renfort — elle modifie tant qu'elle dure, elle ne donne rien —
+  // ni un renfort qui n'offre qu'un mot-cle (+0/+0).
+  renfort: {
+    soi: 'Quand cette unite recoit du renfort',
+    you: 'recois du renfort', other: 'recoit du renfort'
+  }
 };
 
 export const EVENT_WHO = {
@@ -236,8 +400,10 @@ export const EVENT_WHO = {
 /** Le nom du moment qui porte « quand QUI fait EVENEMENT ». */
 export const eventSlot = (ev, who) => `on_${ev}_${who}`;
 
+// `soi` : les evenements dont le sujet est l'unite elle-meme et non le camp ne se
+// disent pas « Quand tu... » — ils portent leur propre libelle.
 const eventLabel = (ev, who) =>
-  who === 'self' ? `Quand tu ${EVENTS[ev].you}`
+  who === 'self' ? (EVENTS[ev].soi || `Quand tu ${EVENTS[ev].you}`)
     : who === 'foe' ? `Quand l’adversaire ${EVENTS[ev].other}`
       : `Quand n’importe qui ${EVENTS[ev].other}`;
 
@@ -304,14 +470,10 @@ export const STATICS = {
     desc: "Les cartes visees coutent moins (ou plus) cher tant que cette unite est en jeu. Le cout revient a la normale des qu'elle quitte le plateau.",
     params: [
       quiParam('Tes cartes', 'Les cartes de l’adversaire'),
-      {
-        k: 'quoi', type: 'choice', label: 'Quelles cartes', def: 'all',
-        choices: Object.entries(CARD_FILTERS).map(([id, d]) => [id, d.label])
-      },
-      // Pas de valeur par defaut : `staticFields` comble les trous, et un champ laisse
-      // vide ne doit surtout pas se transformer en « Chien » sans le dire.
-      { k: 'argType', type: 'text', label: 'Type vise', def: '', si: ({ quoi }) => (CARD_FILTERS[quoi] || {}).arg === 'type' },
-      { k: 'argKey', type: 'keyword', label: 'Mot-cle vise', si: ({ quoi }) => (CARD_FILTERS[quoi] || {}).arg === 'key' },
+      // Le meme bloc de filtre que partout ailleurs : pas de valeur par defaut sur le
+      // type, `staticFields` comble les trous et un champ laisse vide ne doit surtout
+      // pas se transformer en « Chien » sans le dire.
+      ...paramsFiltre(),
       sensParam('moins'),
       num('v', 'Combien', 1)
     ],
@@ -436,7 +598,13 @@ export const COUNTERS = {
   },
   handCards: { label: 'Les cartes de ta main', compute: (B, k) => B[k].hand.length },
   discardCards: { label: 'Les cartes de ta défausse', compute: (B, k) => B[k].discard.length },
-  heroMissingHp: { label: 'Les PV manquants de ton héros', compute: (B, k) => Math.max(0, B[k].maxHp - B[k].hp) }
+  deckCards: { label: 'Les cartes de ta pioche', compute: (B, k) => B[k].deck.length },
+  heroMissingHp: { label: 'Les PV manquants de ton héros', compute: (B, k) => Math.max(0, B[k].maxHp - B[k].hp) },
+  // Le seul compteur qui ne lit pas le combat mais la CARTE : son niveau de resolution,
+  // pose par resolveCard(). Pour une carte de heros c'est le niveau du personnage, pour
+  // une carte de PNJ le niveau auquel il joue ses cartes, pour un jeton celui de l'unite
+  // qui l'a invoque. D'ou le porteur (`u`) passe partout ou un nombre est calcule.
+  ownerLevel: { label: 'Le niveau du héros propriétaire', compute: (B, k, u) => (u && u.ownerLevel) || 0 }
 };
 
 /** Le nombre suivi, ou 0 si le compteur n'existe pas (mecanique a moitie decrite). */
@@ -613,7 +781,8 @@ export function costDelta(card, B, k) {
   const champs = keyFields(cle);
   // Hors combat (vitrine du deck, vue d'ensemble) il n'y a pas de compteurs a lire :
   // on ne montre alors que la part fixe, jamais un nombre invente.
-  const x = B ? amountValue(costAmount(champs), B, k, null) : Math.max(0, +champs.v || 0);
+  // On passe la carte comme porteur : c'est elle qui sait de quel niveau elle est.
+  const x = B ? amountValue(costAmount(champs), B, k, card) : Math.max(0, +champs.v || 0);
   return champs.sens === 'plus' ? x : -x;
 }
 
@@ -681,6 +850,8 @@ export function cardMatches(card, e) {
     case 'spell': return card.type !== 'ally';
     case 'ofType': return !!e.argType && keyArgs(card.keys, 'type').includes(e.argType);
     case 'withKey': return !!e.argKey && hasKey(card.keys, e.argKey);
+    // Une carte sans identifiant ne peut etre designee par personne : elle ne passe pas.
+    case 'oneCard': return !!e.argCard && card.id === e.argCard;
     default: return true;
   }
 }
@@ -690,6 +861,7 @@ export function describeFilter(e) {
   const d = CARD_FILTERS[e.quoi || 'all'] || CARD_FILTERS.all;
   if (d.arg === 'type') return `tes cartes « ${e.argType || '?'} »`;
   if (d.arg === 'key') return `tes cartes avec ${e.argKey ? keyLabel(e.argKey) : '?'}`;
+  if (d.arg === 'card') return `« ${nomDeCarte(e.argCard)} »`;
   return d.label.toLowerCase();
 }
 
@@ -703,6 +875,52 @@ export function describeAura(a) {
   const scope = (AURA_SCOPES[a.scope || 'otherAllies'] || {}).label || a.scope;
   return parts.join(', ') + ' → ' + scope.toLowerCase();
 }
+
+/**
+ * Le nom lisible d'une carte designee par son identifiant (« Cree », « Melange dans
+ * la pioche »). On ne passe pas par `cardCatalog()` de config/npcs.js : ce module
+ * importe characters.js, qui importe celui-ci — la boucle d'imports rendrait la
+ * fonction indisponible au chargement. Ici on ne lit que les donnees, deja importees.
+ */
+const nomDeCarte = id => {
+  if (!id) return '?';
+  const d = CHARACTER_DATA;
+  const trouve = (d.library || []).find(c => c && c.id === id)
+    || (d.characters || []).flatMap(ch => [...(ch.cards || []), ...(ch.switches || [])])
+      .find(c => c && c.id === id);
+  return trouve ? trouve.name : id;
+};
+
+/**
+ * Comment on nomme la carte creee de toutes pieces : « Rongeur » quand elle est
+ * choisie, « un allie « Chien » au hasard » quand elle est tiree. C'est le filtre de
+ * CARD_FILTERS, mais dit au singulier : c'est UNE carte qui apparait, pas un paquet.
+ */
+export function describeCarteCreee(e) {
+  if ((e.choix || 'precise') !== 'hasard') return `« ${nomDeCarte(e.carte)} »`;
+  const quoi = e.quoi || 'all';
+  const nom = quoi === 'ally' ? 'un allie' : quoi === 'spell' ? 'un sort' : 'une carte';
+  const precision = quoi === 'ofType' ? ` « ${e.argType || '?'} »`
+    : quoi === 'withKey' ? ` avec ${e.argKey ? keyLabel(e.argKey) : '?'}` : '';
+  return `${nom}${precision} au hasard`;
+}
+
+/** « 2 sorts de la defausse », « l'unite ciblee », « 1 × Rongeur » : la partie
+ *  « quelles cartes et d'ou » d'un deplacement, commune aux trois destinations. */
+export function describeZone(e) {
+  const z = ZONES[e.d_ou] || ZONES.defausse;
+  if (z.carte) return `${describeAmount(e.n === undefined ? 1 : e.n)} × ${describeCarteCreee(e)}`;
+  if (z.cible) return targetLabel(e.t).toLowerCase();
+  const chez = e.qui === 'adversaire' ? ' de l’adversaire' : '';
+  const zone = e.d_ou === 'main' ? 'la main' : e.d_ou === 'pioche' ? 'la pioche' : 'la defausse';
+  const ou = e.ordre === 'dessus' ? `du dessus de ${zone}` : `de ${zone}`;
+  const secours = e.fatigue ? ' (completees par la fatigue)' : '';
+  return `${describeAmount(e.n === undefined ? 1 : e.n)} × ${describeFilter(e)} ${ou}${chez}${secours}`;
+}
+
+/** « et leur donne +2/+2 » — le renfort qu'un deplacement pose sur ses cartes. */
+const bonusDeplacement = e => (e.atk || e.hp)
+  ? ` et leur donne +${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)}` : '';
 
 /** Texte lisible d'un effet, pour l'apercu du builder. */
 export function describeEffect(e) {
@@ -719,7 +937,17 @@ export function describeEffect(e) {
     case 'armor': return `${n('v')} armure`;
     case 'mana': return `+${n('v')} mana ce tour`;
     case 'mana_au_prochain_tour': return `+${n('x')} mana au prochain tour`;
-    case 'cree': return `cree ${describeAmount(e.n === undefined ? 1 : e.n)} × « ${e.carte || '?'} » en main`;
+    case 'cree': return `cree ${describeAmount(e.n === undefined ? 1 : e.n)} × ${describeCarteCreee(e)} en main`;
+    case 'melange_a_la_pioche': {
+      // Une carte prise sur le PLATEAU retourne toujours chez son proprietaire : le
+      // choix « chez qui » ne s'applique pas, et le texte ne doit pas mentir.
+      const ou = (ZONES[e.d_ou] || {}).cible ? 'sa pioche'
+        : e.qui === 'adversaire' ? 'la pioche de l’adversaire' : 'ta pioche';
+      return `melange ${describeZone(e)} dans ${ou}${bonusDeplacement(e)}`;
+    }
+    case 'renforce_les_cartes': return `+${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)} pour ${describeZone(e)}`;
+    case 'renvoie_en_main': return `renvoie ${describeZone(e)} en main${bonusDeplacement(e)}`;
+    case 'pose_sur_le_plateau': return `pose ${describeZone(e)} sur le plateau${bonusDeplacement(e)}`;
     case 'pioche_x': return `cherche ${describeAmount(e.n === undefined ? 1 : e.n)} × « ${e.carte || '?'} » dans ton deck`;
     case 'pioche_une_carte_de_type': return `cherche ${describeAmount(e.n === undefined ? 1 : e.n)} ${e.type === 'spell' ? 'sort' : 'allie'}(s) dans ton deck`;
     case 'reduit_le_cout_de': return `${describeAmount(e.v)} mana de moins pour ${describeFilter(e)} en main`;

@@ -190,7 +190,7 @@ function render() {
   const bar = el(`
     <div class="bt-bar">
       <div class="autochip ${auto ? 'on' : ''}" id="autoChip">${auto ? '▶ Auto' : '✋ Manuel'}</div>
-      <div class="grow muted">Deck ${B.p.deck.length + B.p.discard.length} · Tour ${Math.ceil(B.turnNo / 2)}</div>
+      <div class="grow muted">Pioche ${B.p.deck.length} · Défausse ${B.p.discard.length} · Tour ${Math.ceil(B.turnNo / 2)}</div>
       <button class="btn" id="endTurn" ${B.turn === 'p' && !auto ? '' : 'disabled'}>Fin du tour</button>
     </div>`);
   root.appendChild(bar);

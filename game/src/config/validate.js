@@ -8,12 +8,25 @@
 // Les registres sont passes en parametre parce que le builder connait aussi les
 // mecaniques inventees dans son brouillon, que le jeu, lui, n'a pas encore.
 import { TRIGGERS, AMPLIFIABLE, CARD_FILTERS, COUNTERS, STATICS, keyId, keyArg, keyFields,
-  isVariableAmount, targetDef, targetArg } from './mechanics.js';
+  isVariableAmount, targetDef, targetArg, describeAmount } from './mechanics.js';
 
 // ---------- PARCOURS D'UNE CARTE ----------
 // Un jeton invoque porte des mots-cles et des moments comme une carte : tout ce qui
 // inspecte une carte (validation, compte des mecaniques a coder, fichier de suivi)
 // doit donc descendre dedans, sinon une mecanique se cache dans un jeton.
+
+/**
+ * La pile de fatigue : les cartes qu'on pioche quand la pioche est vide. Comme un deck
+ * de PNJ, elle DESIGNE des cartes du catalogue — une ligne qui pointe dans le vide ne
+ * sortirait jamais, et une pile vide remet l'ancienne regle (on ne pioche plus).
+ */
+function verifiePile(db, catalogue) {
+  const out = [];
+  for (const l of db.fatigue || []) {
+    if (!catalogue.has(l.card)) out.push({ bad: true, msg: `Pile de fatigue — carte « ${l.card} » introuvable : elle ne sortira jamais.` });
+  }
+  return out;
+}
 
 /** Chaque effet d'une carte : ses moments, ses paliers, et ceux de ses jetons. */
 export function eachEffect(card, fn) {
@@ -33,6 +46,24 @@ export function eachEffect(card, fn) {
 export function eachUnit(card, fn) {
   if (card.type === 'ally') fn(card);
   eachEffect(card, e => { if (e.op === 'summon' && e.unit) fn(e.unit); });
+}
+
+/**
+ * Une carte creee de toutes pieces : soit on la designe (elle doit exister), soit on
+ * la tire au hasard (le filtre doit alors designer quelque chose — un filtre par type
+ * ou par mot-cle laisse en blanc ne tirerait jamais rien).
+ */
+function verifieCarteCreee(e, ou, nom, catalogue) {
+  const out = [];
+  if ((e.choix || 'precise') !== 'hasard') {
+    if (!e.carte) out.push({ bad: false, msg: `${ou} — « ${nom} » sans carte choisie.` });
+    else if (!catalogue.has(e.carte)) out.push({ bad: true, msg: `${ou} — la carte « ${e.carte} » de « ${nom} » n'existe pas.` });
+    return out;
+  }
+  const arg = (CARD_FILTERS[e.quoi] || {}).arg;
+  if (arg === 'type' && !e.argType) out.push({ bad: true, msg: `${ou} — « ${nom} » tire au hasard une carte d'un type sans le nommer : rien n'apparaîtra.` });
+  if (arg === 'key' && !e.argKey) out.push({ bad: true, msg: `${ou} — « ${nom} » tire au hasard une carte avec un mot-clé sans le choisir : rien n'apparaîtra.` });
+  return out;
 }
 
 // Un palier peut etre parfaitement valide et ne rien faire du tout sur SA carte :
@@ -64,9 +95,12 @@ export function validateData(DB, eff, kw) {
   // Le catalogue ou piochent les decks des PNJ : les cartes libres et celles des
   // personnages. Un deck qui pointe ailleurs ne jouera tout simplement pas la carte.
   const catalogue = new Set();
-  for (const c of DB.library || []) if (c && c.id) catalogue.add(c.id);
+  // La carte elle-meme, pas seulement son identifiant : de quoi verifier qu'un renfort
+  // ne vise pas un sort, qui n'a ni attaque ni vie.
+  const carteParId = new Map();
+  for (const c of DB.library || []) if (c && c.id) { catalogue.add(c.id); carteParId.set(c.id, c); }
   for (const ch of DB.characters || []) {
-    for (const cote of ['cards', 'switches']) for (const c of ch[cote] || []) if (c && c.id) catalogue.add(c.id);
+    for (const cote of ['cards', 'switches']) for (const c of ch[cote] || []) if (c && c.id) { catalogue.add(c.id); carteParId.set(c.id, c); }
   }
 
   // Les cartes libres : memes regles que les autres, elles finissent dans des decks.
@@ -99,6 +133,7 @@ export function validateData(DB, eff, kw) {
     }
     if (!(n.hp > 0)) out.push({ bad: true, msg: `${ou} — ${n.hp || 0} PV : le combat serait déjà fini.` });
   }
+  out.push(...verifiePile(DB, catalogue));
   const ids = new Set();
   for (const c of DB.characters) {
     if (ids.has(c.id)) out.push({ bad: true, msg: `Deux personnages ont l'identifiant « ${c.id} ».` });
@@ -122,10 +157,45 @@ export function validateData(DB, eff, kw) {
         eachEffect(card, e => {
           if (!eff[e.op]) out.push({ bad: true, msg: `${c.name} · ${card.name} — effet inconnu « ${e.op} ».` });
           else if (!eff[e.op].implemented) out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${eff[e.op].label} » reste à coder.` });
-          // « Cree » designe une carte du catalogue par son identifiant.
-          if (e.op === 'cree') {
-            if (!e.carte) out.push({ bad: false, msg: `${c.name} · ${card.name} — « Crée une carte » sans carte choisie.` });
-            else if (!catalogue.has(e.carte)) out.push({ bad: true, msg: `${c.name} · ${card.name} — la carte créée « ${e.carte} » n'existe pas.` });
+          // « Cree » designe une carte du catalogue par son identifiant — sauf au
+          // hasard, ou c'est le filtre qui doit tenir debout.
+          if (e.op === 'cree') out.push(...verifieCarteCreee(e, `${c.name} · ${card.name}`, 'Crée une carte', catalogue));
+          // Melanger dans la pioche : la carte creee doit exister, et un filtre par
+          // type ou par mot-cle sans valeur ne designerait aucune carte.
+          if (['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau'].includes(e.op)) {
+            const nom = (eff[e.op] || {}).label || e.op;
+            if (e.d_ou === 'creee') {
+              out.push(...verifieCarteCreee(e, `${c.name} · ${card.name}`, nom, catalogue));
+              // Le renfort s'ecrit sur une carte alliee : une carte creee qui est un sort
+              // (tiree parmi les sorts, ou nommee) ne le verra jamais.
+              const sortCree = (e.choix === 'hasard' && e.quoi === 'spell')
+                || (e.choix !== 'hasard' && carteParId.has(e.carte) && carteParId.get(e.carte).type !== 'ally');
+              if ((e.atk || e.hp) && sortCree)
+                out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${nom} » donne +${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)} à un sort : un sort n'a ni attaque ni vie, le bonus ne fera rien.` });
+            } else if (e.d_ou === 'plateau') {
+              if (!e.t) out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${nom} » prend sur le plateau sans cible : il ne prendra rien.` });
+              else if (e.op === 'pose_sur_le_plateau') out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${nom} » prend une unité en jeu pour la reposer : elle repart de zéro (dégâts et renforts effacés, elle ne peut plus attaquer ce tour). Voulu ?` });
+            } else {
+              const arg = (CARD_FILTERS[e.quoi] || {}).arg;
+              // Le renfort « +X/+Y » s'ecrit sur une carte alliee : un paquet filtre sur
+              // les sorts n'en verra jamais la couleur.
+              if ((e.atk || e.hp) && e.quoi === 'spell') out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${nom} » donne +${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)} à des sorts : un sort n'a ni attaque ni vie, le bonus ne fera rien.` });
+              if (arg === 'type' && !e.argType) out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${nom} » vise un type sans le nommer : il ne prendra aucune carte.` });
+              if (arg === 'key' && !e.argKey) out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${nom} » vise un mot-clé sans le choisir : il ne prendra aucune carte.` });
+              if (arg === 'card' && !e.argCard) out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${nom} » vise une carte précise sans la choisir : il ne prendra rien.` });
+              else if (arg === 'card' && !catalogue.has(e.argCard)) out.push({ bad: true, msg: `${c.name} · ${card.name} — « ${nom} » vise la carte « ${e.argCard} », qui n'existe pas.` });
+            }
+          }
+          // Renforcer des cartes : les memes pieges que les deplacements, sur un effet
+          // qui ne deplace rien.
+          if (e.op === 'renforce_les_cartes') {
+            if (!e.atk && !e.hp) out.push({ bad: false, msg: `${c.name} · ${card.name} — « Renforce des cartes » ne donne ni attaque ni vie : il ne fera rien.` });
+            if (e.quoi === 'spell') out.push({ bad: false, msg: `${c.name} · ${card.name} — « Renforce des cartes » ne vise que des sorts : un sort n'a ni attaque ni vie, le bonus ne fera rien.` });
+            const arg = (CARD_FILTERS[e.quoi] || {}).arg;
+            if (arg === 'type' && !e.argType) out.push({ bad: false, msg: `${c.name} · ${card.name} — « Renforce des cartes » vise un type sans le nommer : il ne touchera aucune carte.` });
+            if (arg === 'key' && !e.argKey) out.push({ bad: false, msg: `${c.name} · ${card.name} — « Renforce des cartes » vise un mot-clé sans le choisir : il ne touchera aucune carte.` });
+            if (arg === 'card' && !e.argCard) out.push({ bad: false, msg: `${c.name} · ${card.name} — « Renforce des cartes » vise une carte précise sans la choisir : il ne touchera rien.` });
+            else if (arg === 'card' && !catalogue.has(e.argCard)) out.push({ bad: true, msg: `${c.name} · ${card.name} — « Renforce des cartes » vise la carte « ${e.argCard} », qui n'existe pas.` });
           }
           // Une pioche ciblee qui nomme une carte inexistante ne trouvera jamais rien.
           if (e.op === 'pioche_x') {
@@ -154,6 +224,8 @@ export function validateData(DB, eff, kw) {
             const arg = (CARD_FILTERS[m.quoi] || {}).arg;
             if (arg === 'type' && !m.argType) out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — « ${d.label} » vise un type mais aucun type n'est écrit : il ne touchera aucune carte.` });
             if (arg === 'key' && !m.argKey) out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — « ${d.label} » vise un mot-clé mais aucun n'est choisi : il ne touchera aucune carte.` });
+            if (arg === 'card' && !m.argCard) out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — « ${d.label} » vise une carte précise mais aucune n'est choisie : il ne touchera rien.` });
+            else if (arg === 'card' && !catalogue.has(m.argCard)) out.push({ bad: true, msg: `${c.name} · ${card.name}${ou} — « ${d.label} » vise la carte « ${m.argCard} », qui n'existe pas.` });
           }
         });
         // Mots-cles de la carte et de ses jetons.

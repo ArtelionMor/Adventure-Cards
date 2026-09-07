@@ -57,6 +57,16 @@ export const BALANCE = {
     handMax: 8,
     maxManaCap: 10,
     autoStepMs: 750,        // rythme du mode auto (spectacle idle)
+    // Combien de cartes peuvent au maximum retourner dans une pioche pendant UN tour.
+    // Sans ce plafond, « sort a 0 mana qui se remelange et fait piocher » se rejoue sans
+    // fin dans le meme tour — la regle de non-remelange fermait cette porte, l'effet
+    // « Melange dans la pioche » la rouvre. On coupe, et le journal le dit.
+    maxRecyclageParTour: 30,
+    // Combien de fois un camp peut piocher dans la PILE DE FATIGUE pendant UN tour.
+    // La pile ne s'epuise jamais (chaque tirage en fait une copie), donc sans ce
+    // plafond « sort a 0 mana qui fait piocher » se rejouerait sans fin : c'est
+    // exactement la boucle que fermait l'ancienne regle « pioche finie, plus rien ».
+    maxPiochesAVideParTour: 20,
     // PLAFOND DE TOURS (les deux camps confondus), garde-fou de derniere ligne : le
     // combat s'arrete et celui qui a le plus de PV l'emporte. Depuis que le deck ne
     // se remelange plus, la partie se termine presque toujours bien avant.

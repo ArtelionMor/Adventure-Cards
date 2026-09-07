@@ -96,6 +96,7 @@
   .src--draft { color: var(--warn); border-color: #4a3a1a; }
   .src--draft .pastille { background: var(--warn); box-shadow: 0 0 8px rgba(245,166,35,.6); }
   .card__top { display: flex; align-items: center; gap: 8px; }
+  .card__img { width: 32px; height: 32px; object-fit: contain; flex: none; }
   .card__nm { font-weight: 700; font-size: 14px; line-height: 1.2; }
   .card__cost { margin-left: auto; width: 26px; height: 26px; flex: none; border-radius: 50%; background: #6cb8ff; color: #06203a; font-weight: 800; display: grid; place-items: center; font-size: 13px; }
   .card__cost.up { background: var(--accent-2); }
@@ -212,12 +213,24 @@ let focus = (() => {
   try { return JSON.parse(localStorage.getItem(LS_FOCUS) || 'null'); } catch { return null; }
 })();
 
-function relit() {
+/**
+ * Meme piege que sur la page d'equilibrage : `CHARACTER_DATA` est un import de module,
+ * fige au chargement. Si le builder ecrit le fichier pendant que cette page est ouverte,
+ * on afficherait les anciennes cartes sans le dire. On RE-IMPORTE donc le fichier avec
+ * une URL unique quand il n'y a pas de brouillon.
+ */
+async function relit() {
   const d = brouillon();
-  DB = d ? d.db : CHARACTER_DATA;
   depuis = d ? d.at : null;
+  if (d) { DB = d.db; return; }
+  try {
+    const frais = await import(`../game/data/characters.data.js?t=${Date.now()}`);
+    DB = frais.CHARACTER_DATA;
+  } catch {
+    DB = CHARACTER_DATA;   // page ouverte sans serveur : on garde l'import de depart
+  }
 }
-relit();
+await relit();
 
 /** Le texte d'un palier : celui du game designer, sinon on le deduit de sa structure. */
 function texteTier(t) {
@@ -271,6 +284,7 @@ function carteHTML(def, sprite, estSwitch, ou, niveau) {
   return `<div class="card ${ou ? 'card--cliquable' : ''} ${ally ? '' : 'card--spell'} ${estSwitch ? 'card--switch' : ''} ${vise ? 'card--focus' : ''}"
     ${ou ? `data-char="${esc(ou.char)}" data-side="${side}" data-slot="${ou.slot}" title="Ouvrir dans le Card Builder"` : ''}>
     <div class="card__top">
+      <img class="card__img" src="${asset(c.sprite || sprite)}" alt="">
       <span class="card__nm">${esc(c.name)}</span>
       <span class="card__cost ${c.cost !== def.cost ? 'up' : ''}" title="${c.cost !== def.cost ? 'coût réduit par un palier (base ' + def.cost + ')' : 'coût en mana'}">${c.cost}</span>
     </div>
@@ -346,7 +360,7 @@ function libresHTML() {
   if (!cartes.length) return '';
   const corps = cartes.map((c, i) => `<div class="slot">
       <div class="slot__num">${i + 1}</div>
-      ${carteHTML(c, c.sprite || 'UI/Chest.png', false, { char: '__libre', slot: i })}
+      ${carteHTML(c, 'UI/Chest.png', false, { char: '__libre', slot: i })}
     </div>`).join('');
   return `<section class="char">
     <div class="char__head">
@@ -434,9 +448,11 @@ function render() {
 let attente = null;
 addEventListener('storage', ev => {
   if (ev.key === LS_BUILDER) {
-    if (!ev.newValue) { location.reload(); return; }   // « Appliquer au jeu » : le fichier a change
+    // Brouillon efface = « Appliquer au jeu » : le fichier vient de changer, on le relit
+    // (inutile de recharger la page : on garde sa position dans la liste).
+    if (!ev.newValue) { clearTimeout(attente); attente = setTimeout(async () => { await relit(); render(); }, 120); return; }
     clearTimeout(attente);
-    attente = setTimeout(() => { relit(); render(); }, 120);
+    attente = setTimeout(async () => { await relit(); render(); }, 120);
     return;
   }
   if (ev.key === LS_FOCUS && ev.newValue) {

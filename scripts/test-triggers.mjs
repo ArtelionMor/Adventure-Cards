@@ -7,6 +7,18 @@
 import { createBattle, playCard, endTurn, attack, attackableTargets, canPlay, cardCost, draw } from '../game/src/combat/engine.js';
 import { resolveCard } from '../game/src/config/characters.js';
 import { BALANCE } from '../game/src/config/balance.js';
+// La pile de fatigue est une donnee de jeu, pas un etat de combat : les tests la
+// remplissent puis la revident, comme le designer le ferait dans le builder.
+import { CHARACTER_DATA } from '../game/data/characters.data.js';
+// Les tests qui piochent dans la pile designent de VRAIES cartes du jeu : ils lisent
+// donc leur nom et leurs stats dans le catalogue, jamais en dur — sinon renommer une
+// carte dans le builder ferait echouer le banc.
+import { cardById } from '../game/src/config/npcs.js';
+
+// LE BANC PART D'UNE PILE VIDE, quoi que le designer ait mis dans la sienne : ces tests
+// disent ce que fait le MOTEUR, pas ce que vaut l'equilibrage du moment. Sans ca, remplir
+// la pile dans le builder ferait echouer les tests de fin de pioche.
+CHARACTER_DATA.fatigue = [];
 
 let pass = 0, fail = 0;
 function check(label, got, want) {
@@ -1393,6 +1405,68 @@ console.log('\nFinir sa pioche');
   check('l adversaire peut encore agir : on continue', B.over, false);
 }
 
+console.log('\nPile de fatigue');
+{
+  // « Les cartes qu'on pioche quand on essaie de piocher avec une pioche vide » : une
+  // pile globale, editee dans le builder, qui ne s'epuise JAMAIS (chaque tirage en
+  // fabrique une copie). Pile vide = la regle d'avant, telle quelle (bloc precedent).
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1, lvl: 1 }];
+  const B = setup([]);
+  B.p.deck = []; B.p.hand = [];
+  draw(B, 'p');
+  check('pioche vide : on tire dans la pile', B.p.hand.length, 1);
+  check('et c est bien la carte de la pile', B.p.hand[0].id, 'grunt1');
+  draw(B, 'p', 2);
+  check('la pile ne s epuise pas', B.p.hand.length, 3);
+  check('le journal le dit', B.log.some(l => l.includes('pile de fatigue')), true);
+  CHARACTER_DATA.fatigue = [];
+}
+{
+  // Le niveau est celui de la LIGNE de pile : la pile n'appartient a personne, elle ne
+  // peut donc pas heriter du niveau d'un heros ou d'un PNJ.
+  CHARACTER_DATA.fatigue = [{ card: 'dog_pup', n: 1, lvl: 5 }];
+  const B = setup([]);
+  B.p.deck = []; B.p.hand = [];
+  draw(B, 'p');
+  const niv5 = resolveCard(cardById('dog_pup'), 5), niv1 = resolveCard(cardById('dog_pup'), 1);
+  check('la carte sort au niveau de sa ligne', [B.p.hand[0].atk, B.p.hand[0].hp], [niv5.atk, niv5.hp]);
+  check('et pas dans sa version niveau 1', niv5.atk !== niv1.atk || niv5.hp !== niv1.hp, true);
+  CHARACTER_DATA.fatigue = [];
+}
+{
+  // LE PLAFOND PAR TOUR. Il remplace la protection que donnait l'ancienne regle : une
+  // pioche vide rend desormais toujours une carte, donc « sort a 0 mana qui pioche »
+  // tournerait sans fin. Au-dela du plafond, la pioche ne rend plus rien.
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1 }];
+  const cap = BALANCE.combat.maxPiochesAVideParTour;
+  const B = setup([]);
+  B.p.deck = []; B.p.hand = []; B.p.discard = [];
+  draw(B, 'p', cap + 5);
+  check('le plafond du tour coupe la pioche', B.p.hand.length + B.p.discard.length, cap);
+  check('et le journal le dit', B.log.some(l => l.includes('ne peut plus piocher dans la pile')), true);
+  endTurn(B); endTurn(B);                    // retour au tour du joueur
+  const avant = B.p.hand.length + B.p.discard.length;
+  draw(B, 'p');
+  check('le plafond se remet a zero au tour suivant', B.p.hand.length + B.p.discard.length, avant + 1);
+  CHARACTER_DATA.fatigue = [];
+}
+{
+  // Deux camps a sec, mais une pile : personne n'est bloque, la partie continue.
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1 }];
+  const B = setup([]);
+  B.p.deck = []; B.e.deck = []; B.p.hand = []; B.e.hand = [];
+  endTurn(B);
+  check('avec une pile, la partie ne s arrete pas', B.over, false);
+  CHARACTER_DATA.fatigue = [];
+}
+{
+  // Et sans pile, exactement comme avant : la partie se tranche aux PV.
+  const B = setup([]);
+  B.p.deck = []; B.e.deck = []; B.p.hand = []; B.e.hand = [];
+  endTurn(B);
+  check('sans pile, on retombe sur l ancienne regle', [B.over, B.winner], [true, 'draw']);
+}
+
 console.log('\nCreer une carte');
 {
   // « Cree » ne touche pas au deck : la carte apparait en main, meme deck fini.
@@ -1417,6 +1491,487 @@ console.log('\nCreer une carte');
   play(B, 'p', 'Rate');
   check('rien n est cree', B.p.hand.length, avant - 1);
   check('et le journal le dit', B.log.some(l => l.includes("n'existe pas")), true);
+}
+{
+  // AU HASARD : on ne nomme plus la carte, on decrit le sac ou l'on pioche. Ici les
+  // allies du catalogue — donc jamais un sort.
+  const loterie = { id: 'lot', name: 'Loterie', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'cree', choix: 'hasard', quoi: 'ally', n: 3, lvl: 1 }] };
+  const B = setup([loterie]);
+  play(B, 'p', 'Loterie');
+  check('trois cartes tirees en main', B.p.hand.length, 3);
+  check('et ce sont bien des allies', B.p.hand.every(c => c.type === 'ally'), true);
+}
+{
+  // Au hasard PARMI UN TYPE : le filtre est celui de CARD_FILTERS, applique au
+  // catalogue du jeu et non a une main.
+  const meute = { id: 'meu', name: 'Appel de la meute', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'cree', choix: 'hasard', quoi: 'ofType', argType: 'Chien', n: 6, lvl: 1 }] };
+  const B = setup([meute]);
+  play(B, 'p', 'Appel de la meute');
+  check('six chiens tires', B.p.hand.length, 6);
+  check('et tous sont des Chiens', B.p.hand.every(c => (c.keys || []).includes('type:Chien')), true);
+  // Un tirage PAR EXEMPLAIRE : six copies de la meme carte seraient un tirage unique
+  // recopie (le catalogue compte assez de Chiens pour que ce soit indiscutable).
+  check('des tirages independants', new Set(B.p.hand.map(c => c.id)).size > 1, true);
+}
+{
+  // Un filtre que rien ne satisfait ne cree rien, et le journal explique lequel.
+  const chimere = { id: 'chi', name: 'Chimere', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'cree', choix: 'hasard', quoi: 'ofType', argType: 'Licorne', n: 2 }] };
+  const B = setup([chimere]);
+  play(B, 'p', 'Chimere');
+  check('rien ne correspond, rien n arrive', B.p.hand.length, 0);
+  check('et le journal nomme le sac vide', B.log.some(l => l.includes('Licorne')), true);
+}
+{
+  // Le hasard sert aussi aux trois deplacements, par la zone « creees de toutes
+  // pieces » : ici on melange deux sorts du catalogue dans sa propre pioche.
+  const bricolage = { id: 'bri', name: 'Bricolage', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'melange_a_la_pioche', d_ou: 'creee', choix: 'hasard', quoi: 'spell', qui: 'toi', n: 2, lvl: 1 }] };
+  const B = setup([bricolage]);
+  const avant = B.p.deck.length;
+  const sortsAvant = B.p.deck.filter(c => c.type !== 'ally').length;
+  play(B, 'p', 'Bricolage');
+  check('deux cartes melangees dans la pioche', B.p.deck.length, avant + 2);
+  check('et ce sont bien deux sorts', B.p.deck.filter(c => c.type !== 'ally').length, sortsAvant + 2);
+}
+
+console.log('\nMelanger dans la pioche');
+{
+  // Recycler sa defausse : c'est la porte de sortie de « finir sa pioche, c'est fini ».
+  const recycle = { id: 'rec', name: 'Recyclage', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'melange_a_la_pioche', qui: 'toi', d_ou: 'defausse', quoi: 'all', n: 2 }] };
+  const B = setup([recycle]);
+  B.p.deck = [];
+  B.p.discard = [ally('Vieux1', 1, 1), ally('Vieux2', 1, 1), ally('Vieux3', 1, 1)];
+  play(B, 'p', 'Recyclage');
+  // Le sort joue part lui aussi a la defausse : elle en avait 3, il en reste 2.
+  check('deux cartes reviennent dans le deck', B.p.deck.length, 2);
+  check('et la defausse a diminue d autant', B.p.discard.length, 2);
+  check('le deck n est plus considere comme fini', B.p.aVide, false);
+  draw(B, 'p');
+  check('on repioche vraiment', B.p.hand.length, 1);
+}
+{
+  // Depuis la main : le camp vise perd son tempo mais garde la carte pour plus tard.
+  const range = { id: 'rng', name: 'Rangement', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'melange_a_la_pioche', qui: 'toi', d_ou: 'main', quoi: 'ally', n: 5 }] };
+  const B = setup([range, ally('A', 1, 1), ally('B', 1, 1), frappe(3)]);
+  B.p.deck = [];
+  play(B, 'p', 'Rangement');
+  check('les deux allies quittent la main', B.p.hand.map(c => c.name), ['Frappe3']);
+  check('et se retrouvent dans le deck', B.p.deck.length, 2);
+}
+{
+  // Creer une carte directement dans la pioche ADVERSE : on lui impose une carte.
+  const cadeau = { id: 'cad', name: 'Cadeau', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'melange_a_la_pioche', qui: 'adversaire', d_ou: 'creee', carte: 'grunt1', n: 2 }] };
+  const B = setup([cadeau]);
+  const avant = B.e.deck.length;
+  play(B, 'p', 'Cadeau');
+  check('la pioche adverse gagne deux cartes', B.e.deck.length, avant + 2);
+  check('et ce sont les bonnes', B.e.deck.filter(c => c.id === 'grunt1').length, 2);
+  check('la notre n a pas bouge', B.p.deck.filter(c => c.id === 'grunt1').length, 0);
+}
+{
+  // Le garde-fou : une boucle « je me remets dans la pioche et je repioche » ne peut
+  // pas tourner sans fin dans un meme tour.
+  const boucle = { id: 'bcl2', name: 'Ourobore', type: 'spell', cost: 0, keys: [], text: '', tiers: [],
+    play: [{ op: 'melange_a_la_pioche', qui: 'toi', d_ou: 'defausse', quoi: 'all', n: 1 }, { op: 'draw', v: 1 }] };
+  const B = setup([boucle]);
+  B.p.deck = [];
+  B.p.discard = [];
+  let coups = 0;
+  while (B.p.hand.some(c => c.name === 'Ourobore') && coups < 200) { play(B, 'p', 'Ourobore'); coups++; }
+  check('la boucle est coupee par le plafond du tour', coups <= BALANCE.combat.maxRecyclageParTour + 1, true);
+  check('et le journal le dit', B.log.some(l => l.includes('ne peut plus remelanger')), true);
+}
+
+console.log('\nZones : renvoyer et poser');
+{
+  // La regle de base du modele : un allie EN JEU n'est pas dans la defausse. Il n'y
+  // tombe qu'en mourant. Sans ca, on reanimerait une unite encore vivante.
+  const brute = ally('Brute', 2, 2);
+  const B = setup([brute], [frappe(99)]);
+  play(B, 'p', 'Brute');
+  check('l allie joue n est pas a la defausse', B.p.discard.length, 0);
+  tuer(B, 'e', 'p', 'Brute');
+  check('il y tombe en mourant', B.p.discard.map(c => c.name), ['Brute']);
+}
+{
+  // Reanimation : depuis la defausse, directement sur le plateau, sans payer.
+  const reanime = { id: 'rea', name: 'Reanimation', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pose_sur_le_plateau', d_ou: 'defausse', qui: 'toi', quoi: 'ally', n: 1 }] };
+  const colosse = { ...ally('Colosse', 5, 5, { play: [{ op: 'dmg', t: 'enemyHero', v: 3 }] }), cost: 7 };
+  const B = setup([reanime, colosse], [frappe(99)]);
+  B.p.discard = [{ ...colosse }];
+  const avant = B.e.hp;
+  play(B, 'p', 'Reanimation');
+  check('le colosse revient en jeu sans etre paye', board(B, 'p'), ['Colosse 5/5']);
+  check('« A la pose » ne se declenche pas : la carte n est pas jouee', B.e.hp, avant);
+  check('et il a quitte la defausse', B.p.discard.length, 1);   // il ne reste que le sort
+}
+{
+  // Triche de cout : poser depuis la MAIN, sans payer le cout.
+  const triche = { id: 'tri', name: 'Passe-droit', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pose_sur_le_plateau', d_ou: 'main', qui: 'toi', quoi: 'ally', n: 1 }] };
+  const gros = { ...ally('Gros', 6, 6), cost: 9 };
+  const B = setup([triche, gros]);
+  B.p.mana = 1;
+  play(B, 'p', 'Passe-droit');
+  check('le 9 mana arrive en jeu pour 1', board(B, 'p'), ['Gros 6/6']);
+  check('et il n est plus en main', B.p.hand.length, 0);
+}
+{
+  // Un sort ne se pose pas sur le plateau : il part a la defausse, et on le dit.
+  const pose = { id: 'ps', name: 'Pose', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pose_sur_le_plateau', d_ou: 'main', qui: 'toi', quoi: 'spell', n: 1 }] };
+  const B = setup([pose, frappe(3)]);
+  play(B, 'p', 'Pose');
+  check('le sort ne se pose pas', board(B, 'p'), []);
+  check('et le journal le dit', B.log.some(l => l.includes('ne se pose pas')), true);
+}
+{
+  // Rebond : une unite ciblee repart en main SANS mourir (donc sans rale d agonie).
+  const rebond = { id: 'reb', name: 'Rebond', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'renvoie_en_main', d_ou: 'plateau', t: 'enemyUnit' }] };
+  const bombe = ally('Bombe', 2, 2, { death: [{ op: 'dmg', t: 'enemyHero', v: 5 }] });
+  const B = setup([rebond], [bombe]);
+  play(B, 'e', 'Bombe');
+  const avant = B.p.hp;
+  play(B, 'p', 'Rebond', { side: 'e', uid: B.e.board[0].uid });
+  check('l unite quitte le plateau', board(B, 'e'), []);
+  check('sans mourir : pas de rale', B.p.hp, avant);
+  check('et elle est de retour dans SA main', B.e.hand.filter(c => c.name === 'Bombe').length, 1);
+  check('pas dans la notre', B.p.hand.filter(c => c.name === 'Bombe').length, 0);
+}
+{
+  // Un jeton renvoye n'est pas une carte : il disparait, et on le dit.
+  const invoc = { id: 'inv', name: 'Invoque', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'summon', n: 1, unit: { name: 'Larve', atk: 1, hp: 1 } }] };
+  const rebond = { id: 'reb2', name: 'Rebond', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'renvoie_en_main', d_ou: 'plateau', t: 'allyUnit' }] };
+  const B = setup([invoc, rebond]);
+  play(B, 'p', 'Invoque');
+  play(B, 'p', 'Rebond', { side: 'p', uid: B.p.board[0].uid });
+  check('le jeton disparait', board(B, 'p'), []);
+  check('et rien n arrive en main', B.p.hand.length, 0);
+  check('le journal l explique', B.log.some(l => l.includes("n'est pas une carte")), true);
+}
+{
+  // Melanger une unite ciblee dans la pioche de SON proprietaire.
+  const enterre = { id: 'ent', name: 'Enterrement', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'melange_a_la_pioche', d_ou: 'plateau', t: 'enemyUnit' }] };
+  const cible = ally('Cible', 3, 3);
+  const B = setup([enterre], [cible]);
+  play(B, 'e', 'Cible');
+  const avant = B.e.deck.length;
+  play(B, 'p', 'Enterrement', { side: 'e', uid: B.e.board[0].uid });
+  check('elle quitte le plateau', board(B, 'e'), []);
+  check('et retourne dans SA pioche', B.e.deck.length, avant + 1);
+}
+{
+  // Chercher dans la pioche : « renvoie en main » depuis la zone pioche.
+  const cherche = { id: 'ch', name: 'Recherche', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'renvoie_en_main', d_ou: 'pioche', qui: 'toi', quoi: 'ofType', argType: 'Chien', n: 1 }] };
+  const chien = ally('Molosse', 2, 2, { keys: ['type:Chien'] });
+  const B = setup([cherche]);
+  B.p.deck = [ally('Autre', 1, 1), { ...chien }];
+  play(B, 'p', 'Recherche');
+  check('le chien arrive en main', B.p.hand.map(c => c.name), ['Molosse']);
+  check('et il a quitte la pioche', B.p.deck.length, 1);
+}
+
+console.log('\nEt leur donne +X/+Y');
+{
+  // « Cri de guerre : remelange ta defausse dans ta pioche, et donne-leur +2/+2 ». Le
+  // renfort va aux cartes QU'ON VIENT DE DEPLACER, et il s'ecrit sur la carte : elle
+  // reste grossie jusqu'a ce qu'on la joue. Le sort de la defausse, lui, passe sans rien.
+  const sort = { id: 'srt9', name: 'Sortilege', type: 'spell', cost: 1, keys: [], text: '', tiers: [], play: [] };
+  const faucon = { id: 'fauc', name: 'Faucon', type: 'ally', cost: 1, atk: 3, hp: 3, keys: [], text: '', tiers: [],
+    play: [{ op: 'melange_a_la_pioche', d_ou: 'defausse', qui: 'toi', quoi: 'all', n: { src: 'discardCards' }, atk: 2, hp: 2 }] };
+  const B = setup([faucon]);
+  B.p.deck = [];
+  B.p.discard = [ally('Chien', 1, 1), { ...sort }];
+  play(B, 'p', 'Faucon');
+  check('toute la defausse repart dans la pioche', [B.p.deck.length, B.p.discard.length], [2, 0]);
+  check('l allie deplace a gagne +2/+2', (() => { const c = B.p.deck.find(x => x.name === 'Chien'); return [c.atk, c.hp]; })(), [3, 3]);
+  check('le sort passe sans rien recevoir', B.p.deck.find(x => x.name === 'Sortilege').atk, undefined);
+  check('et le journal dit le renfort', B.log.some(l => l.includes('+2/+2 pour Chien')), true);
+}
+{
+  // Posee sur le plateau, la carte arrive DEJA grossie : le bonus est applique avant
+  // le depot, donc l'unite nait avec (et les auras se cumulent par-dessus, comme d'hab).
+  const rituel = { id: 'rit9', name: 'Reanimation', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pose_sur_le_plateau', d_ou: 'defausse', qui: 'toi', quoi: 'ally', n: 1, atk: 2, hp: 2 }] };
+  const B = setup([rituel]);
+  B.p.discard = [ally('Molosse', 2, 2)];
+  play(B, 'p', 'Reanimation');
+  check('l unite arrive avec le bonus', board(B, 'p'), ['Molosse 4/4']);
+}
+{
+  // Sans bonus, rien ne change et le journal n'invente pas de ligne. Le filtre « allies »
+  // n'est pas decoratif : un SORT est mis a la defausse AVANT que ses effets partent, il
+  // pourrait donc se remelanger lui-meme et on ne saurait plus quelle carte on regarde.
+  const echo = { id: 'ech9', name: 'Echo', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'melange_a_la_pioche', d_ou: 'defausse', qui: 'toi', quoi: 'ally', n: 1 }] };
+  const B = setup([echo]);
+  B.p.deck = [];
+  B.p.discard = [ally('Chien', 1, 1)];
+  play(B, 'p', 'Echo');
+  check('pas de bonus : la carte est intacte', (() => { const c = B.p.deck.find(x => x.name === 'Chien'); return [c.atk, c.hp]; })(), [1, 1]);
+  check('et rien dans le journal', B.log.some(l => l.includes('+0/+0')), false);
+}
+
+console.log('\nQuand cette unite recoit du renfort');
+// C'est un EVENEMENT, pas un mot-cle — mais le seul dont le SUJET est une unite : le
+// moment « soi » n'est ecoute que par l'unite reellement renforcee. Les variantes
+// adverse / n'importe qui, elles, restent de camp.
+const tetard = () => ally('Tetard', 1, 1, {
+  keys: ['type:Tetard'],
+  on_renfort_self: [{ op: 'buff', t: 'self', atk: 1, hp: 1 }]
+});
+const donneur = (atk, hp, key, t = 'allAllies') => ({ id: 'don', name: 'Donneur', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+  play: [{ op: 'buff', t, atk, hp, ...(key ? { key } : {}) }] });
+{
+  // Le Tetard prend le renfort PUIS son propre declencheur : +2/+2 puis +1/+1.
+  const B = setup([tetard(), ally('Gros', 2, 3), donneur(2, 2)]);
+  play(B, 'p', 'Tetard');
+  play(B, 'p', 'Gros');
+  play(B, 'p', 'Donneur');
+  check('le renfort declenche le moment', board(B, 'p'), ['Tetard 4/4', 'Gros 4/5']);
+  check('et le journal nomme le moment', B.log.some(l => l.includes('Quand cette unite recoit du renfort — Tetard')), true);
+}
+{
+  // UNE FOIS PAR PILE : le +1/+1 du declencheur ne se redeclenche pas lui-meme. Sans ce
+  // garde-fou, « quand cette unite recoit du renfort, +1/+1 » tournerait jusqu'a la
+  // limite de chaine et la carte donnerait quatre fois ce qu'elle annonce.
+  const B = setup([tetard(), donneur(1, 1)]);
+  play(B, 'p', 'Tetard');
+  play(B, 'p', 'Donneur');
+  check('un seul rebond, pas une cascade', board(B, 'p'), ['Tetard 3/3']);
+}
+{
+  // ... et pas davantage en passant par un VOISIN : le renfort donne pendant la pile ne
+  // reveille personne d'autre, sinon deux Tetards se relanceraient l'un l'autre.
+  const passeur = () => ally('Passeur', 1, 1, { on_renfort_self: [{ op: 'buff', t: 'allAllies', atk: 1, hp: 1 }] });
+  const B = setup([passeur(), tetard(), donneur(1, 1, null, 'allyUnit')]);
+  play(B, 'p', 'Passeur');
+  play(B, 'p', 'Tetard');
+  const passe = B.p.board.find(u => u.name === 'Passeur');
+  play(B, 'p', 'Donneur', { side: 'p', uid: passe.uid });
+  check('la pile ne rebondit pas d une unite a l autre', board(B, 'p'), ['Passeur 2/2', 'Tetard 2/2']);
+}
+{
+  // LE SUJET EST L'UNITE : renforcer le voisin ne reveille pas le Tetard.
+  const B = setup([tetard(), ally('Gros', 2, 3), donneur(2, 2, null, 'allyUnit')]);
+  play(B, 'p', 'Tetard');
+  play(B, 'p', 'Gros');
+  const gros = B.p.board.find(u => u.name === 'Gros');
+  play(B, 'p', 'Donneur', { side: 'p', uid: gros.uid });
+  check('le renfort du voisin ne le declenche pas', board(B, 'p'), ['Tetard 1/1', 'Gros 4/5']);
+}
+{
+  // « N'importe qui », lui, reste de CAMP : il entend le renfort du voisin.
+  const guetteur = ally('Guetteur', 1, 1, { on_renfort_any: [{ op: 'buff', t: 'self', atk: 1, hp: 0 }] });
+  const B = setup([guetteur, ally('Gros', 2, 3), donneur(2, 2, null, 'allyUnit')]);
+  play(B, 'p', 'Guetteur');
+  play(B, 'p', 'Gros');
+  const gros = B.p.board.find(u => u.name === 'Gros');
+  play(B, 'p', 'Donneur', { side: 'p', uid: gros.uid });
+  check('« n importe qui » entend le renfort du voisin', board(B, 'p'), ['Guetteur 2/1', 'Gros 4/5']);
+}
+{
+  // Un renfort qui ne donne QU'UN MOT-CLE (+0/+0) n'est pas un renfort : rien ne part.
+  const B = setup([tetard(), donneur(0, 0, 'Taunt')]);
+  play(B, 'p', 'Tetard');
+  play(B, 'p', 'Donneur');
+  check('0/0 + mot-cle : le moment ne part pas', board(B, 'p'), ['Tetard 1/1']);
+  check('mais le mot-cle est bien donne', B.p.board[0].keys.includes('Taunt'), true);
+}
+{
+  // UNE AURA N'EST PAS UN RENFORT : elle modifie tant qu'elle dure, elle ne donne rien.
+  const B = setup([tetard(), ally('Roi', 2, 2, { aura: { atk: 1, hp: 1, scope: 'otherAllies' } })]);
+  play(B, 'p', 'Tetard');
+  play(B, 'p', 'Roi');
+  check('l aura ne declenche pas le moment', board(B, 'p'), ['Tetard 2/2', 'Roi 2/2']);
+}
+{
+  // L'evenement part pour le camp de l'unite RENFORCEE : une unite d'en face renforcee
+  // par « Lui » reveille les ecouteurs adverses, pas les notres.
+  const sournois = { id: 'sou', name: 'Sournois', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'enemyUnit', v: 0 }, { op: 'buff', t: 'previous', atk: 1, hp: 1 }] };
+  const B = setup([tetard(), sournois], [ally('Cible', 1, 4)]);
+  play(B, 'p', 'Tetard');
+  play(B, 'e', 'Cible');
+  const cible = B.e.board[0];
+  play(B, 'p', 'Sournois', { side: 'e', uid: cible.uid });
+  check('l unite d en face est renforcee', board(B, 'e'), ['Cible 2/5']);
+  check('et notre Tetard n a rien recu', board(B, 'p'), ['Tetard 1/1']);
+}
+
+console.log('\nFiltre : une carte precise');
+{
+  // « Va chercher CELLE-LA » : le filtre de cartes sait desormais designer UNE carte par
+  // son identifiant, comme le fait un deck de PNJ. Depuis la pioche vers le plateau,
+  // ca fait un tuteur ; c'est le meme filtre partout ou l'on choisit « lesquelles ».
+  const appel = { id: 'app', name: 'Appel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pose_sur_le_plateau', d_ou: 'pioche', qui: 'toi', quoi: 'oneCard', argCard: 'Chien', n: 1 }] };
+  const B = setup([appel]);
+  B.p.deck = [ally('Chat', 1, 1), ally('Chien', 2, 2), ally('Corbeau', 1, 1)];
+  play(B, 'p', 'Appel');
+  check('la carte designee arrive sur le plateau', board(B, 'p'), ['Chien 2/2']);
+  check('et elle seule a quitte la pioche', B.p.deck.map(c => c.name), ['Chat', 'Corbeau']);
+}
+{
+  // Un identifiant qui ne correspond a rien ne prend rien : le filtre ne se rabat pas
+  // sur « toutes les cartes ».
+  const rate = { id: 'rte', name: 'Rate', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'renvoie_en_main', d_ou: 'pioche', qui: 'toi', quoi: 'oneCard', argCard: 'Licorne', n: 1 }] };
+  const B = setup([rate]);
+  B.p.deck = [ally('Chat', 1, 1)];
+  play(B, 'p', 'Rate');
+  check('rien ne correspond, rien ne bouge', [B.p.deck.length, B.p.hand.length], [1, 0]);
+}
+{
+  // La reduction de cout partage le meme registre de filtres : elle gagne « Une carte
+  // precise » sans une ligne de moteur en plus.
+  const remise = { id: 'rem', name: 'Remise', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'reduit_le_cout_de', quoi: 'oneCard', argCard: 'Cher', v: 2 }] };
+  const B = setup([remise, ally('Cher', 1, 1, { cost: 5 }), ally('Autre', 1, 1, { cost: 5 })]);
+  play(B, 'p', 'Remise');
+  const main = Object.fromEntries(B.p.hand.map(c => [c.name, c.cost]));
+  check('seule la carte designee baisse', [main.Cher, main.Autre], [3, 5]);
+}
+
+console.log('\nDu dessus, et completer par la fatigue');
+{
+  // « Les X cartes du dessus » : le dessus d'un paquet est la FIN du tableau, la ou
+  // `draw()` va chercher. Ici, les deux du dessus de la pioche arrivent sur le plateau.
+  const appel = { id: 'apd', name: 'Appel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pose_sur_le_plateau', d_ou: 'pioche', qui: 'toi', quoi: 'all', ordre: 'dessus', n: 2 }] };
+  const B = setup([appel]);
+  B.p.deck = [ally('Fond', 1, 1), ally('Milieu', 2, 2), ally('Dessus', 3, 3)];
+  play(B, 'p', 'Appel');
+  check('les deux du dessus sont posees', board(B, 'p'), ['Dessus 3/3', 'Milieu 2/2']);
+  check('et le fond du paquet n a pas bouge', B.p.deck.map(c => c.name), ['Fond']);
+}
+{
+  // Au hasard (le defaut) : on ne sait pas laquelle, mais elle vient bien du paquet.
+  const appel = { id: 'aph', name: 'Appel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pose_sur_le_plateau', d_ou: 'pioche', qui: 'toi', quoi: 'all', n: 1 }] };
+  const B = setup([appel]);
+  B.p.deck = [ally('Fond', 1, 1), ally('Milieu', 2, 2), ally('Dessus', 3, 3)];
+  play(B, 'p', 'Appel');
+  check('une carte du paquet est posee', [B.p.board.length, B.p.deck.length], [1, 2]);
+}
+{
+  // S'IL EN MANQUE : les cartes qui manquent sont fabriquees par la pile de fatigue,
+  // exactement comme a une pioche a vide. Pioche vide, on demande deux cartes.
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1, lvl: 1 }];
+  const appel = { id: 'apf', name: 'Appel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pose_sur_le_plateau', d_ou: 'pioche', qui: 'toi', quoi: 'all', n: 2, fatigue: true }] };
+  const B = setup([appel]);
+  B.p.deck = [];
+  play(B, 'p', 'Appel');
+  const modele = resolveCard(cardById('grunt1'), 1);
+  check('la fatigue complete le paquet vide', board(B, 'p'), Array(2).fill(`${modele.name} ${modele.atk}/${modele.hp}`));
+  check('et le journal le dit', B.log.some(l => l.includes('Il en manque')), true);
+  CHARACTER_DATA.fatigue = [];
+}
+{
+  // Sans la case cochee, un paquet vide ne fabrique rien : c'est le comportement d'avant.
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1, lvl: 1 }];
+  const appel = { id: 'aps', name: 'Appel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pose_sur_le_plateau', d_ou: 'pioche', qui: 'toi', quoi: 'all', n: 2 }] };
+  const B = setup([appel]);
+  B.p.deck = [];
+  play(B, 'p', 'Appel');
+  check('sans la case, rien n est fabrique', B.p.board.length, 0);
+  CHARACTER_DATA.fatigue = [];
+}
+
+console.log('\nRenforcer des cartes la ou elles sont');
+{
+  // Renforcer des ALLIES EN MAIN : `buff` ne connait que le plateau, celui-ci ecrit sur
+  // la carte. Le sort de la main n'a ni attaque ni vie : il traverse sans rien recevoir.
+  const cri = { id: 'cri', name: 'Cri', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'renforce_les_cartes', d_ou: 'main', qui: 'toi', quoi: 'all', n: 9, atk: 2, hp: 2 }] };
+  const sort = { id: 'srt8', name: 'Sortilege', type: 'spell', cost: 1, keys: [], text: '', tiers: [], play: [] };
+  const B = setup([cri, ally('Chien', 1, 1), ally('Chat', 2, 2), sort]);
+  play(B, 'p', 'Cri');
+  const main = Object.fromEntries(B.p.hand.map(c => [c.name, `${c.atk}/${c.hp}`]));
+  check('les allies de la main grossissent', [main.Chien, main.Chat], ['3/3', '4/4']);
+  check('le sort traverse sans rien', [main.Sortilege, B.p.hand.find(c => c.name === 'Sortilege').atk], ['undefined/undefined', undefined]);
+}
+{
+  // Renforcer dans la PIOCHE : la carte arrive grossie quand on la tire et qu'on la joue.
+  const cri = { id: 'cr2', name: 'Cri', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'renforce_les_cartes', d_ou: 'pioche', qui: 'toi', quoi: 'ally', n: 9, atk: 1, hp: 3 }] };
+  const B = setup([cri]);
+  B.p.deck = [ally('Chien', 1, 1)];
+  play(B, 'p', 'Cri');
+  draw(B, 'p');
+  play(B, 'p', 'Chien');
+  check('l unite arrive deja grossie', board(B, 'p'), ['Chien 2/4']);
+}
+{
+  // Renforcer dans la DEFAUSSE, puis reanimer : la carte revient grossie.
+  const cri = { id: 'cr3', name: 'Cri', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [
+      { op: 'renforce_les_cartes', d_ou: 'defausse', qui: 'toi', quoi: 'ally', n: 9, atk: 2, hp: 2 },
+      { op: 'pose_sur_le_plateau', d_ou: 'defausse', qui: 'toi', quoi: 'ally', n: 1 }
+    ] };
+  const B = setup([cri]);
+  B.p.discard = [ally('Mort', 1, 1)];
+  play(B, 'p', 'Cri');
+  check('la carte reanimee revient grossie', board(B, 'p'), ['Mort 3/3']);
+}
+{
+  // Renforcer CHEZ L'ADVERSAIRE reste possible (c'est un cadeau, le bot le sait) : la
+  // carte visee est bien celle d'en face, pas la notre.
+  const cadeau = { id: 'cad', name: 'Cadeau', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'renforce_les_cartes', d_ou: 'main', qui: 'adversaire', quoi: 'ally', n: 9, atk: 1, hp: 1 }] };
+  const B = setup([cadeau, ally('Chien', 1, 1)], [ally('Loup', 2, 2)]);
+  play(B, 'p', 'Cadeau');
+  check('c est la main d en face qui grossit', B.e.hand.map(c => `${c.atk}/${c.hp}`), ['3/3']);
+  check('et la notre est intacte', B.p.hand.map(c => `${c.atk}/${c.hp}`), ['1/1']);
+}
+
+console.log('\nLe niveau du proprietaire comme nombre');
+{
+  // Une carte resolue au niveau 7 : ses effets peuvent valoir 7.
+  const def = { id: 'lame', name: 'Lame du Rang', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'enemyHero', v: { src: 'ownerLevel', arg: '', plus: 0 } }] };
+  const B = setup([resolveCard(def, 7)]);
+  const avant = B.e.hp;
+  play(B, 'p', 'Lame du Rang');
+  check('le sort frappe pour le niveau du proprietaire', B.e.hp, avant - 7);
+}
+{
+  // Une caracteristique variable qui suit le niveau : l'unite arrive en 7/7.
+  const def = { ...ally('Champion', 0, 0, { keys: ['characteristique_variable:both:ownerLevel:'] }) };
+  const B = setup([resolveCard(def, 7)]);
+  play(B, 'p', 'Champion');
+  check('l unite vaut son niveau en attaque et en vie', board(B, 'p'), ['Champion 7/7']);
+}
+{
+  // Le cout aussi : une carte qui coute son niveau de moins, lue en main.
+  const def = { ...ally('Veteran', 3, 3), cost: 9, keys: ['cout_x_de_moins_de_plus:moins:0:ownerLevel:'] };
+  const B = setup([resolveCard(def, 4)]);
+  check('9 - 4 = 5', cardCost(B.p.hand[0], B, 'p'), 5);
+  B.p.mana = 5;
+  play(B, 'p', 'Veteran');
+  check('et elle se joue bien a ce prix', board(B, 'p'), ['Veteran 3/3']);
+}
+{
+  // Un jeton herite du niveau de celui qui l'invoque.
+  const def = { id: 'app', name: 'Appel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'summon', n: 1, unit: { name: 'Echo', atk: 0, hp: 5, keys: ['characteristique_variable:atk:ownerLevel:'] } }] };
+  const B = setup([resolveCard(def, 6)]);
+  play(B, 'p', 'Appel');
+  check('le jeton compte le niveau de son invocateur', board(B, 'p'), ['Echo 6/5']);
 }
 
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);

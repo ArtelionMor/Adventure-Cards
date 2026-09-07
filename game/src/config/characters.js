@@ -97,7 +97,9 @@ export function characterDeck(charId, save) {
   const st = save.chars[charId];
   return def.cards.map((base, i) => {
     const c = resolveCard(st.switches[i] && def.switches[i] ? def.switches[i] : base, st.level);
-    c.sprite = def.sprite;
+    // La carte garde SON image si elle en a une (cas d'une carte libre reprise par un
+    // heros) ; sinon elle prend celle du personnage.
+    c.sprite = def.sprite || c.sprite;
     c.owner = charId;
     return c;
   });

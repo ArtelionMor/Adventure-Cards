@@ -47,7 +47,7 @@ function typeCount(board, t) {
 function effectValue(e, ctx) {
   // Un montant variable vaut ce qu'il vaudrait maintenant : « X degats, X = tes
   // allies Chien » ne vaut rien sans meute, et beaucoup avec.
-  const n = key => amountValue(e[key], ctx.B, ctx.k, null);
+  const n = key => amountValue(e[key], ctx.B, ctx.k, ctx.carte || null);
   switch (e.op) {
     case 'dmg': {
       const v = n('v');
@@ -93,7 +93,42 @@ function effectValue(e, ctx) {
     // pas le savoir ici, on reste donc raisonnable.
     // Creer vaut un peu plus que chercher dans son deck : la carte arrive toujours,
     // meme deck fini, et on sait exactement laquelle.
-    case 'cree': return (e.n === undefined ? 1 : n('n')) * 2.2;
+    // Au hasard, on ne sait pas ce qui tombe : ca vaut un peu plus qu'une pioche,
+    // un peu moins qu'une carte qu'on a choisie.
+    case 'cree': return (e.n === undefined ? 1 : n('n')) * (e.choix === 'hasard' ? 1.5 : 2.2);
+    case 'renforce_les_cartes': {
+      // Un renfort ecrit sur des cartes qu'on jouera plus tard : ca vaut moins qu'un
+      // renfort sur le plateau (il faut encore les tirer et les payer), et c'est un
+      // cadeau si les cartes sont a l'adversaire.
+      const combien = e.n === undefined ? 1 : n('n');
+      const gain = ((e.atk === undefined ? 0 : n('atk')) * 1.1 + (e.hp === undefined ? 0 : n('hp')) * 0.6) * combien * 0.6;
+      return e.qui === 'adversaire' ? -gain : gain;
+    }
+    case 'melange_a_la_pioche':
+    case 'renvoie_en_main':
+    case 'pose_sur_le_plateau': {
+      // Trois destinations, une meme lecture : qu'est-ce que le camp vise GAGNE ?
+      //   poser en jeu > ramener en main > remettre dans la pioche (le plus lointain).
+      // Prendre dans une main ou sur un plateau coute au camp vise ce qu'on lui enleve.
+      const combien = e.n === undefined ? 1 : n('n');
+      const prix = { pose_sur_le_plateau: 2.4, renvoie_en_main: 1.8, melange_a_la_pioche: 1.4 }[e.op];
+      // « et leur donne +X/+Y » : un renfort ecrit sur la carte, qui la suit tout le
+      // combat. Il vaut pour le camp A QUI SONT les cartes — donner +2/+2 aux cartes
+      // d'en face est un cadeau, pas un bon coup.
+      const renfort = (e.atk === undefined ? 0 : n('atk')) * 1.1 + (e.hp === undefined ? 0 : n('hp')) * 0.6;
+      // Depuis le PLATEAU : on enleve un corps a son proprietaire. C'est un retrait
+      // doux quand c'est une unite adverse, une perte de tempo quand c'est la notre.
+      if ((e.t || '').length && ['plateau'].includes(e.d_ou)) {
+        const vise = ['enemyUnit', 'allEnemyUnits', 'randomEnemyUnit', 'enemyType'].includes(targetId(e.t));
+        const corps = (vise ? ctx.foeBoard : ctx.board) || [];
+        const poids = corps.reduce((a, u) => a + (u.atk || 0) * 1.1 + (u.hp || 0) * 0.3, 0) / Math.max(1, corps.length);
+        const combienUnites = ['allEnemyUnits', 'allAllies'].includes(targetId(e.t)) ? corps.length : 1;
+        // Rendre une carte a l'adversaire attenue le retrait : il pourra la rejouer.
+        return (vise ? 1 : -1) * combienUnites * (poids - prix * 0.5 - renfort);
+      }
+      const pourLeCampVise = ((e.d_ou === 'main' ? -0.6 : prix) + renfort) * combien;
+      return e.qui === 'adversaire' ? -pourLeCampVise : pourLeCampVise;
+    }
     case 'pioche_x': return (e.n === undefined ? 1 : n('n')) * 2;
     case 'pioche_une_carte_de_type': return (e.n === undefined ? 1 : n('n')) * 1.8;
     // Du mana rendu sur des cartes qu'on a deja en main : c'est du tempo pour plus tard.
@@ -115,7 +150,7 @@ function effectValue(e, ctx) {
     }
     case 'summon': {
       // Un jeton peut porter mots-cles, aura et moments : il vaut son corps entier.
-      return (e.n === undefined ? 1 : amountValue(e.n, ctx.B, ctx.k, null)) * bodyValue(e.unit || {}, ctx, 0.8);
+      return (e.n === undefined ? 1 : amountValue(e.n, ctx.B, ctx.k, ctx.carte || null)) * bodyValue(e.unit || {}, ctx, 0.8);
     }
     // Mecanique inventee dans le builder et pas encore codee : elle ne fait rien,
     // le bot ne doit donc pas surestimer la carte qui la porte.
@@ -165,7 +200,9 @@ function estimee(B, k, card) {
   const cle = (card.keys || []).find(x => keyId(x) === 'characteristique_variable');
   if (!cle) return card;
   const f = keyFields(cle);
-  let x = counterValue(f.src, B, k, null, f.arg);
+  // La carte est son propre porteur tant qu'elle est en main : c'est ce qui permet a
+  // « X = ton niveau » d'etre lu avant meme d'etre pose.
+  let x = counterValue(f.src, B, k, card, f.arg);
   // Elle n'est pas encore sur le plateau : les compteurs qui comptent les allies
   // vaudront un de plus une fois qu'elle sera posee.
   if (f.src === 'allyUnits') x += 1;
@@ -207,7 +244,7 @@ function cardValue(B, k, def) {
   const me = B[k], them = B[foe(k)];
   const card = estimee(B, k, def);
   const ctx = { allies: me.board.length, enemies: them.board.length, sameType: sameTypeCount(me.board, card),
-    board: me.board, foeBoard: them.board, B, k };
+    board: me.board, foeBoard: them.board, B, k, carte: card };
   let v = effectsValue(card.play, ctx);
 
   if (card.type === 'ally') {
@@ -341,31 +378,105 @@ function jusquAuBout(B, jeu) {
   return B.over ? B.winner : 'draw';
 }
 
-/** Le coup qui gagne le plus souvent, sur `n` parties finies par coup. */
+/**
+ * Le coup qui gagne le plus souvent, sur `n` parties finies par coup. Rend le coup ET
+ * la note de chaque candidat : c'est la seule vraie raison qu'ait ce bot de preferer
+ * une carte a une autre, et le mouchard en a besoin.
+ */
 function coupCherche(B, k, jeu) {
   const coups = coupsPossibles(B, k);
-  if (coups.length === 1) return coups[0];
-  let best = null;
-  for (const a of coups) {
-    let score = 0;
-    for (let i = 0; i < jeu.rollouts; i++) {
-      const C = cloneBattle(B);
-      applique(C, k, a);
-      const g = C.over ? C.winner : jusquAuBout(C, jeu);
-      score += g === k ? 1 : g === 'draw' ? 0.5 : 0;
+  if (coups.length === 1) return { a: coups[0], evalues: [{ coup: coups[0] }] };
+  const evalues = [];
+  // Les parties imaginees ne sont pas des decisions : on eteint le mouchard pendant.
+  enSondage++;
+  try {
+    for (const a of coups) {
+      let score = 0;
+      for (let i = 0; i < jeu.rollouts; i++) {
+        const C = cloneBattle(B);
+        applique(C, k, a);
+        const g = C.over ? C.winner : jusquAuBout(C, jeu);
+        score += g === k ? 1 : g === 'draw' ? 0.5 : 0;
+      }
+      evalues.push({ coup: a, victoires: score / jeu.rollouts });
     }
-    // A egalite on garde le premier : les cartes viennent avant « passer ».
-    if (!best || score > best.score) best = { a, score };
+  } finally { enSondage--; }
+  // A egalite on garde le premier : les cartes viennent avant « passer ».
+  let best = evalues[0];
+  for (const n of evalues) if (n.victoires > best.victoires) best = n;
+  return { a: best.coup, evalues };
+}
+
+// ------------------------------------------------------------------ mouchard
+// POURQUOI CE COUP-LA ? Le bot ne dit rien de ses raisons : le journal de combat montre
+// ce qu'il a joue, jamais ce qu'il aurait pu jouer. Ce mouchard, ETEINT PAR DEFAUT, note
+// chaque decision OU IL Y AVAIT UN CHOIX — les candidats, ce que chacun valait, celui
+// qu'il a garde. C'est ce que lit `scripts/analyse-cartes.mjs`.
+//
+// Les coups joues DANS un rollout de Monte-Carlo ne sont pas notes : ce sont des
+// milliers de parties imaginaires, pas des decisions. D'ou `enSondage`.
+let mouchard = null;
+let enSondage = 0;
+
+/** Passe une fonction pour ecouter les decisions du bot, rien pour arreter. */
+export function ecouteLesChoix(fn) { mouchard = fn || null; }
+
+/** Ce qu'un coup est, en clair. A appeler AVANT de le jouer : la main est encore la. */
+function decrisCoup(B, k, a, victoires) {
+  const note = victoires === undefined ? {} : { victoires };
+  if (!a || a.type === 'end') return { ...note, quoi: 'passer', nom: '— passer —' };
+  if (a.type === 'attack') {
+    const u = B[k].board.find(x => x.uid === a.uid);
+    return { ...note, quoi: 'attaque', nom: (u ? u.name : '?') + ' attaque' };
   }
-  return best.a;
+  const c = B[k].hand[a.index];
+  if (!c) return { ...note, quoi: 'carte', nom: '?' };
+  return {
+    ...note, quoi: 'carte', id: c.id || null, nom: c.name,
+    cout: cardCost(c, B, k),
+    // Ce que la fonction de valeur du bot pense de la carte. Pour un Monte-Carlo ce
+    // n'est PAS son critere : c'est un deuxieme avis, et leur desaccord se lit.
+    valeur: Math.round(cardValue(B, k, c) * 100) / 100
+  };
+}
+
+const memeCoup = (x, y) => !!x && !!y && x.type === y.type && x.index === y.index && x.uid === y.uid;
+
+/** Note une decision et ses candidats. Ne dit rien quand il n'y avait pas le choix. */
+function noteLaDecision(B, k, a, evalues) {
+  if (!mouchard || enSondage) return;
+  const liste = evalues || coupsPossibles(B, k).map(coup => ({ coup }));
+  if (liste.length < 2) return;                    // pas de choix : rien a expliquer
+  const candidats = liste.map(n => decrisCoup(B, k, n.coup, n.victoires));
+  const iChoisi = liste.findIndex(n => n.coup === a || memeCoup(n.coup, a));
+  mouchard({
+    tour: B.turnNo, camp: k, nom: B[k].name,
+    critere: liste.some(n => n.victoires !== undefined) ? 'victoires' : 'valeur',
+    choisi: iChoisi >= 0 ? candidats[iChoisi] : decrisCoup(B, k, a),
+    candidats
+  });
 }
 
 // ------------------------------------------------------------------- decision
-/** Renvoie UNE action a executer, ou {type:'end'} quand il n'y a plus rien a faire. */
+/**
+ * L'action a executer. C'est ici, et seulement ici, que le mouchard est nourri : la
+ * decision elle-meme (`decide`) ne sait pas qu'on l'observe.
+ */
 export function botAction(B, k, opts) {
   const jeu = reglages(B, opts);
   // Le bot qui cherche ne passe pas par les priorites : il les remplace.
-  if (jeu.rollouts > 0 && !B.over) return coupCherche(B, k, jeu);
+  if (jeu.rollouts > 0 && !B.over) {
+    const { a, evalues } = coupCherche(B, k, jeu);
+    noteLaDecision(B, k, a, evalues);
+    return a;
+  }
+  const a = decide(B, k, jeu);
+  noteLaDecision(B, k, a, null);
+  return a;
+}
+
+/** Les 4 priorites du GDD. Rend UNE action, ou {type:'end'} quand il n'y a plus rien. */
+function decide(B, k, jeu) {
   const me = B[k], them = B[foe(k)];
   const ready = me.board.filter(u => u.canAttack && u.atk > 0);
   const taunts = them.board.filter(u => hasKey(u.keys, 'Taunt'));

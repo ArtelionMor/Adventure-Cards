@@ -21,9 +21,10 @@
 //              Ils ne sont jamais parcourus a la main : staticTotal() les additionne
 //              a l'endroit exact ou la valeur est lue.
 import { BALANCE } from '../config/balance.js';
-import { cardById } from '../config/npcs.js';
+import { cardById, catalogCards, fatiguePile } from '../config/npcs.js';
 import { resolveCard } from '../config/characters.js';
-import { ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, eventSlot, keyId, keyArgs, hasKey, keyFields, counterValue, amountValue, numberParams, cardMatches, describeFilter, cardCost, staticTotal, describeStatic, targetId, targetArg, targetDef } from '../config/mechanics.js';
+import { ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, ZONES, eventSlot, keyId, keyArgs, hasKey, keyFields, counterValue, amountValue, numberParams, cardMatches, describeFilter, describeCarteCreee, cardCost, staticTotal, describeStatic, targetId, targetArg, targetDef } from '../config/mechanics.js';
+
 
 let uid = 1;
 const nextUid = () => 'u' + uid++;
@@ -57,6 +58,8 @@ function makeSide(cfg) {
     nextMana: 0,
     turns: 0,        // tours joues par ce camp, pour les caracteristiques variables
     aVide: false,    // son deck est epuise : il ne piochera plus (dit une seule fois)
+    recycle: 0,      // cartes remises dans sa pioche ce tour-ci (garde-fou anti-boucle)
+    fatigue: 0,      // pioches faites dans la pile de fatigue ce tour-ci (idem)
     spellsGame: 0,   // sorts joues par ce camp depuis le debut du combat
     spellsTurn: 0,   // ... et depuis le debut de SON tour (remis a zero a chaque tour)
   };
@@ -76,6 +79,7 @@ export function createBattle(playerCfg, enemyCfg, meta = {}) {
     // jamais en vrai — le journal, lui, se fait tronquer au bout de 120 lignes.
     fired: {},
     eventDepth: 0, // rebonds de « quand X alors Y » en cours (garde-fou anti-boucle)
+    renfortEnCours: false, // un renfort declenche par un renfort ne se redeclenche pas
     over: false,
     winner: null
   };
@@ -100,19 +104,49 @@ function say(B, msg) {
 }
 
 // ------------------------------------------------------------------ pioche
+/**
+ * PIOCHER DANS UNE PIOCHE VIDE. Le deck ne se remelange toujours pas, mais finir sa
+ * pioche ne veut plus dire « tu ne piocheras plus » : on tire alors une carte au
+ * hasard dans la PILE DE FATIGUE (`CHARACTER_DATA.fatigue`, editee dans le builder).
+ *
+ * La pile ne s'epuise pas — chaque tirage en fabrique une COPIE — d'ou le plafond par
+ * tour : sans lui, « sort a 0 mana qui fait piocher » se rejouerait sans fin, la
+ * boucle meme que fermait l'ancienne regle. Pile vide = ancienne regle, a l'identique.
+ */
+function carteDeFatigue(B, k) {
+  const pile = fatiguePile();
+  if (!pile.length) return null;
+  const s = B[k];
+  if (s.fatigue >= BALANCE.combat.maxPiochesAVideParTour) {
+    say(B, `${s.name} ne peut plus piocher dans la pile de fatigue ce tour-ci.`);
+    return null;
+  }
+  s.fatigue++;
+  const m = pile[Math.floor(Math.random() * pile.length)];
+  return { ...resolveCard(m.card, m.lvl), sprite: m.sprite };
+}
+
 export function draw(B, k, n = 1) {
   const s = B[k];
   for (let i = 0; i < n; i++) {
-    // LE DECK NE SE REMELANGE PAS. Finir sa pioche veut dire qu'on ne pioche plus :
-    //   - sans ca, « sort a 0 mana qui fait piocher » se rejoue en boucle sans fin ;
-    //   - et surtout, un deck plus epais devient un avantage. C'est ce qui recompense
-    //     le joueur qui emmene 2 ou 3 compagnons au lieu d'un seul, au lieu de lui
-    //     donner l'impression que diluer son deck est une punition.
-    // Un camp a sec ne perd pas pour autant : il joue ce qu'il a encore en main et
-    // sur le plateau. Quand plus personne ne peut rien faire, beginTurn tranche aux PV.
+    // LE DECK NE SE REMELANGE PAS : une carte tiree ne revient pas d'elle-meme. Mais
+    // une pioche vide n'est plus une impasse — on tire dans la pile de fatigue, qui
+    // est le seul endroit ou une carte se fabrique toute seule. Un deck epais reste
+    // un avantage : on tire ses bonnes cartes avant d'en etre reduit a la pile.
+    // Pile vide : un camp a sec ne perd pas pour autant, il joue ce qu'il a encore en
+    // main et sur le plateau ; quand plus personne ne peut rien, beginTurn tranche aux PV.
     if (!s.deck.length) {
-      if (!s.aVide) { s.aVide = true; say(B, `${s.name} a fini sa pioche : plus aucune carte a tirer.`); }
-      return;
+      const secours = carteDeFatigue(B, k);
+      if (!secours) {
+        if (!s.aVide) { s.aVide = true; say(B, `${s.name} a fini sa pioche : plus aucune carte a tirer.`); }
+        return;
+      }
+      if (!s.aVide) { s.aVide = true; say(B, `${s.name} a fini sa pioche : il tire dans la pile de fatigue.`); }
+      if (s.hand.length >= BALANCE.combat.handMax) { say(B, `Main pleine : ${secours.name} part a la defausse.`); s.discard.push(secours); continue; }
+      say(B, `${s.name} tire ${secours.name} de la pile de fatigue.`);
+      s.hand.push(secours);
+      fireEvent(B, k, 'draw');
+      continue;
     }
     const c = s.deck.pop();
     if (s.hand.length >= BALANCE.combat.handMax) { say(B, `Main pleine : ${c.name} part a la defausse.`); s.discard.push(c); continue; }
@@ -149,6 +183,184 @@ function drawMatching(B, k, n, convient, dit) {
   }
   if (pris < n) say(B, `Rien ${dit} a piocher dans le deck.`);
   return pris;
+}
+
+/**
+ * Remet des cartes dans une pioche, chacune a une place au hasard. C'est le seul
+ * moyen d'alimenter un deck qui ne se remelange pas — et donc la porte de sortie de
+ * la regle « finir sa pioche, c'est fini ». D'ou le plafond par tour : sans lui, un
+ * sort a 0 mana qui se remet lui-meme dans la pioche et fait piocher tournerait sans
+ * fin dans le meme tour, exactement la boucle que la regle avait fermee.
+ */
+function melangeDedans(B, k, cartes) {
+  const s = B[k];
+  let mises = 0;
+  for (const c of cartes) {
+    if (s.recycle >= BALANCE.combat.maxRecyclageParTour) {
+      say(B, `${s.name} ne peut plus remelanger de cartes ce tour-ci.`);
+      break;
+    }
+    // Une place au hasard : le dessus du deck est la fin du tableau (draw() fait pop()).
+    s.deck.splice(Math.floor(Math.random() * (s.deck.length + 1)), 0, c);
+    s.recycle++;
+    mises++;
+  }
+  // Le deck n'est plus vide : on pourra de nouveau annoncer sa fin le jour ou il l'est.
+  if (mises && s.deck.length) s.aVide = false;
+  return mises;
+}
+
+/**
+ * DEPLACER DES CARTES D'UNE ZONE A L'AUTRE. « Melange dans la pioche », « Renvoie en
+ * main » et « Pose sur le plateau » sont le meme geste, avec trois destinations :
+ * on preleve des cartes quelque part, on les depose ailleurs.
+ *
+ * Regle constante : une carte reste TOUJOURS chez son proprietaire. Prendre une unite
+ * adverse la renvoie dans SA main a lui, pas dans la notre. Le choix « chez qui » ne
+ * sert qu'aux zones de paquet (main, defausse, pioche) ; le plateau, lui, se designe
+ * avec une cible ordinaire.
+ *
+ * Une unite prelevee sur le plateau NE MEURT PAS : pas de rale d'agonie, pas de
+ * defausse. C'est ce qui distingue un rebond d'une destruction.
+ */
+function preleve(B, k, e, target, source, last) {
+  const zone = ZONES[e.d_ou] || ZONES.defausse;
+  const pris = [];
+
+  if (zone.carte) {
+    const combien = Math.max(0, e.n === undefined ? 1 : e.n);
+    for (let i = 0; i < combien; i++) {
+      const modele = modeleCree(e);
+      if (!modele) { say(B, `${rienDeTel(e)} : rien a deplacer.`); break; }
+      pris.push({ camp: e.qui === 'adversaire' ? foe(k) : k, carte: { ...resolveCard(modele, e.lvl || 1), sprite: modele.sprite || (source ? source.sprite : null) } });
+    }
+    return pris;
+  }
+
+  if (zone.cible) {
+    for (const r of recipients(B, k, e.t, target, source, last)) {
+      if (r.kind !== 'unit') continue;
+      const s2 = B[r.side];
+      if (!s2.board.includes(r.unit)) continue;
+      s2.board = s2.board.filter(u => u !== r.unit);
+      if (r.unit.card) pris.push({ camp: r.side, carte: r.unit.card, unite: r.unit });
+      else say(B, `${r.unit.name} n'est pas une carte : il disparait.`);   // un jeton
+    }
+    return pris;
+  }
+
+  // Zones de paquet. Les cartes fabriquees par la pile de fatigue n'y sont pas : le
+  // `indexOf` ne les trouve pas et il n'y a donc rien a en retirer.
+  const { camp, pile } = paquetDe(B, k, e);
+  for (const carte of choisitDansPaquet(B, k, e, pile, camp)) {
+    const at = pile.indexOf(carte);
+    if (at >= 0) pile.splice(at, 1);
+    pris.push({ camp, carte });
+  }
+  return pris;
+}
+
+/** Le paquet qu'un effet vise : la main, la pioche ou la defausse, chez l'un ou l'autre. */
+function paquetDe(B, k, e) {
+  const camp = e.qui === 'adversaire' ? foe(k) : k;
+  return { camp, pile: e.d_ou === 'main' ? B[camp].hand : e.d_ou === 'pioche' ? B[camp].deck : B[camp].discard };
+}
+
+/**
+ * CHOISIR DES CARTES DANS UN PAQUET, sans rien y toucher. Deux facons, au choix du
+ * designer : AU HASARD (personne n'est la pour choisir sur un rale d'agonie) ou DU
+ * DESSUS — le dessus d'un paquet est la FIN du tableau, c'est de la que `draw()` tire.
+ *
+ * Et quand il n'y en a pas assez, la carte peut demander a COMPLETER AVEC LA PILE DE
+ * FATIGUE : les manquantes sont fabriquees exactement comme a une pioche a vide, meme
+ * plafond par tour compris. Elles n'appartiennent a aucun paquet tant qu'on ne les y a
+ * pas mises — c'est a l'appelant de les deposer.
+ */
+function choisitDansPaquet(B, k, e, pile, camp) {
+  const combien = Math.max(0, e.n === undefined ? 1 : e.n);
+  const candidates = pile.filter(c => cardMatches(c, e));
+  const pris = [];
+  for (let i = 0; i < combien && candidates.length; i++) {
+    const at = e.ordre === 'dessus' ? candidates.length - 1 : Math.floor(Math.random() * candidates.length);
+    pris.push(candidates.splice(at, 1)[0]);
+  }
+  if (e.fatigue) {
+    for (let i = pris.length; i < combien; i++) {
+      const c = carteDeFatigue(B, camp);
+      if (!c) break;
+      say(B, `Il en manque : ${c.name} vient de la pile de fatigue.`);
+      pris.push(c);
+    }
+  }
+  return pris;
+}
+
+/**
+ * La carte qu'un effet fait apparaitre de toutes pieces : celle qu'on a choisie, ou
+ * une tiree au hasard dans le catalogue parmi celles que le filtre laisse passer.
+ * On l'appelle une fois PAR EXEMPLAIRE : « 3 cartes au hasard », c'est trois tirages
+ * differents, et non trois copies de la meme.
+ */
+function modeleCree(e) {
+  if ((e.choix || 'precise') !== 'hasard') return cardById(e.carte);
+  const sac = catalogCards().filter(c => cardMatches(c, e));
+  if (!sac.length) return null;
+  return sac[Math.floor(Math.random() * sac.length)];
+}
+
+/** Pourquoi rien n'est apparu : une carte nommee qui n'existe plus, ou un filtre
+ *  que pas une carte du catalogue ne satisfait. Les deux se disent differemment. */
+const rienDeTel = e => (e.choix || 'precise') === 'hasard'
+  ? `le catalogue n'a pas ${describeCarteCreee(e)}`
+  : `« ${e.carte || '?'} » n'existe pas`;
+
+/**
+ * LE RENFORT DES CARTES DEPLACEES. « Remelange ta defausse et donne-leur +2/+2 » : le
+ * bonus va aux cartes qu'on vient de prendre, pas a un second paquet. Il s'ecrit sur la
+ * CARTE (atk/hp), qui devient baseAtk/baseHp quand elle sera posee — la carte reste donc
+ * grossie pour tout le combat, et les auras se cumulent par-dessus comme d'habitude.
+ * On l'applique AVANT le depot : une carte posee sur le plateau arrive deja grossie.
+ * Un sort n'a ni attaque ni vie et traverse sans rien recevoir.
+ */
+function renforceCartes(B, cartes, e) {
+  const atk = e.atk || 0, hp = e.hp || 0;
+  if (!atk && !hp) return;
+  const touchees = [];
+  for (const carte of cartes) {
+    if (carte.type !== 'ally') continue;
+    // Un bonus negatif ne doit ni rendre l'attaque absurde ni faire arriver la carte
+    // deja morte : on borne, comme partout ailleurs dans le moteur.
+    carte.atk = Math.max(0, (carte.atk || 0) + atk);
+    carte.hp = Math.max(1, (carte.hp || 0) + hp);
+    touchees.push(carte.name);
+  }
+  say(B, touchees.length
+    ? `+${atk}/+${hp} pour ${touchees.join(', ')}.`
+    : `+${atk}/+${hp} : aucun allie la-dedans, le bonus ne touche rien.`);
+}
+
+/** Depose une carte dans une zone. Rend l'unite creee quand elle arrive en jeu. */
+function depose(B, camp, carte, vers) {
+  const s = B[camp];
+  if (vers === 'pioche') { melangeDedans(B, camp, [carte]); return null; }
+  if (vers === 'main') {
+    if (s.hand.length >= BALANCE.combat.handMax) {
+      s.discard.push(carte);
+      say(B, `Main pleine : ${carte.name} part a la defausse.`);
+      return null;
+    }
+    s.hand.push(carte);
+    return null;
+  }
+  // Sur le plateau : seuls les allies s'y posent, et la carte n'est pas JOUEE — « A la
+  // pose » ne part donc pas, exactement comme pour un jeton invoque.
+  if (carte.type !== 'ally') { say(B, `${carte.name} est un sort : il ne se pose pas.`); s.discard.push(carte); return null; }
+  if (s.board.length >= BALANCE.combat.boardSize) { say(B, `Le plateau de ${s.name} est plein : ${carte.name} reste de cote.`); s.discard.push(carte); return null; }
+  const u = makeUnit(carte);
+  u.card = carte;
+  s.board.push(u);
+  checkKeywords(B, u);
+  return u;
 }
 
 // -------------------------------------------------------------------- types
@@ -272,6 +484,8 @@ function resolveDeaths(B, depth = 0) {
 
   for (const { k, u } of dead) {
     say(B, `${u.name} est mis hors de combat.`);
+    // La carte rejoint la defausse maintenant : un jeton, lui, n'en a pas et disparait.
+    if (u.card) B[k].discard.push(u.card);
     if (u.death && u.death.length && !B.over) {
       B.fired.death = (B.fired.death || 0) + 1;
       say(B, `Rale d'agonie de ${u.name}.`);
@@ -291,6 +505,9 @@ function resolveDeaths(B, depth = 0) {
 function peutAgir(B, k) {
   const s = B[k];
   if (s.deck.length) return true;                       // il piochera encore
+  // Une pile de fatigue non vide se repioche a l'infini : ce camp aura toujours
+  // quelque chose a tirer (le plafond du tour ne vaut que pour le tour en cours).
+  if (fatiguePile().length) return true;
   if (s.board.some(u => u.atk > 0)) return true;        // il a de quoi frapper
   return s.hand.some(c => cardCost(c, B, k) <= s.manaCap);
 }
@@ -343,7 +560,7 @@ function fireTrigger(B, k, slot, label) {
  * fin. Au-dela de quelques rebonds on coupe, et on le dit dans le journal plutot que
  * de laisser le combat se figer.
  */
-function fireEvent(B, acteur, ev) {
+function fireEvent(B, acteur, ev, sujets = null) {
   if (B.over) return;
   if (B.eventDepth >= 4) {
     say(B, 'La chaine de declenchements est coupee (trop de rebonds).');
@@ -354,8 +571,15 @@ function fireEvent(B, acteur, ev) {
     for (const k of ['p', 'e']) {
       const qui = k === acteur ? 'self' : 'foe';
       for (const slot of [eventSlot(ev, qui), eventSlot(ev, 'any')]) {
+        // `sujets` : un evenement peut avoir pour sujet des UNITES et non un camp
+        // (« quand CETTE unite recoit du renfort »). Le moment « soi » n'est alors
+        // ecoute que par les unites concernees ; « l'adversaire » et « n'importe qui »
+        // restent de camp — ils disent « une unite de ce cote-la l'a recu ».
+        const ecoutent = sujets && slot === eventSlot(ev, 'self')
+          ? B[k].board.filter(u => sujets.includes(u))
+          : B[k].board;
         // On fige la liste : une unite qui meurt pendant la sequence ne la casse pas.
-        for (const u of [...B[k].board]) {
+        for (const u of [...ecoutent]) {
           if (B.over) return;
           if (!u[slot] || !u[slot].length) continue;
           if (!B[k].board.includes(u)) continue;   // deja partie entre-temps
@@ -382,6 +606,8 @@ export function beginTurn(B) {
   s.mana = s.maxMana;
   s.tempMana = 0;
   s.spellsTurn = 0;
+  s.recycle = 0;
+  s.fatigue = 0;
   // Mana statique (« +1 mana par tour tant que je suis la »). Comme le mana promis,
   // il n'est pas plafonne par le mana max : c'est ce que la carte annonce.
   const manaStatique = staticTotal(B, k, 'mana_du_tour');
@@ -634,22 +860,69 @@ function applyEffects(B, k, effects, target, source) {
           }
         }
         if (list.length) say(B, `Renfort : +${e.atk || 0}/+${e.hp || 0} (${list.map(u => u.name).join(', ')}).`);
+        // « QUAND CETTE UNITE RECOIT DU RENFORT » : le moment est porte par l'unite
+        // renforcee, pas par son camp — d'ou la liste d'unites passee a `fireEvent`.
+        // On part camp par camp parce qu'un renfort peut tomber en face, par « Lui ».
+        // Un renfort qui n'offre qu'un mot-cle (+0/+0) n'en est pas un : rien ne part.
+        //
+        // UNE FOIS PAR PILE. `renfortEnCours` est indispensable : sans lui, « quand cette
+        // unite recoit du renfort, +1/+1 sur elle-meme » se redonnerait du renfort a
+        // chaque rebond jusqu'au garde-fou de chaine. Un renfort donne PAR un declencheur
+        // de renfort ne relance donc pas l'evenement, quelle qu'en soit la cible.
+        if (list.length && (e.atk || e.hp) && !B.renfortEnCours) {
+          B.renfortEnCours = true;
+          try {
+            for (const camp of [...new Set(recus.map(r => r.side))]) {
+              fireEvent(B, camp, 'renfort', recus.filter(r => r.side === camp).map(r => r.unit));
+            }
+          } finally { B.renfortEnCours = false; }
+        }
         break;
       }
       case 'draw': draw(B, k, e.v); break;
       case 'cree': {
         // La carte vient du CATALOGUE (cartes libres + cartes des personnages), pas du
         // deck : rien n'est retire nulle part, elle apparait, point.
-        const modele = cardById(e.carte);
-        if (!modele) { say(B, `« ${e.carte || '?'} » n'existe pas : rien n'est cree.`); break; }
         const combien = e.n === undefined ? 1 : e.n;
-        let crees = 0;
+        const noms = [];
         for (let i = 0; i < combien; i++) {
+          // Au hasard : un tirage par exemplaire, donc des cartes differentes.
+          const modele = modeleCree(e);
+          if (!modele) { say(B, `${rienDeTel(e)} : rien n'est cree.`); break; }
           if (me.hand.length >= BALANCE.combat.handMax) { say(B, 'Main pleine : la carte creee est perdue.'); break; }
           me.hand.push({ ...resolveCard(modele, e.lvl || 1), sprite: modele.sprite || (source ? source.sprite : null) });
-          crees++;
+          noms.push(modele.name);
         }
-        if (crees) say(B, `${me.name} cree ${crees} × ${modele.name}.`);
+        if (noms.length) say(B, `${me.name} cree ${noms.length} × ${[...new Set(noms)].join(', ')}.`);
+        break;
+      }
+      case 'renforce_les_cartes': {
+        // On ne deplace rien : la carte reste ou elle est et grossit. Les cartes venues
+        // de la pile de fatigue, elles, n'etaient nulle part — on les met dans le paquet
+        // vise, deja renforcees, sinon le renfort tomberait dans le vide.
+        const { camp, pile } = paquetDe(B, k, e);
+        const cartes = choisitDansPaquet(B, k, e, pile, camp);
+        if (!cartes.length) { say(B, 'Aucune carte a renforcer.'); break; }
+        renforceCartes(B, cartes, e);
+        for (const c of cartes) if (!pile.includes(c)) pile.push(c);
+        break;
+      }
+      case 'melange_a_la_pioche':
+      case 'renvoie_en_main':
+      case 'pose_sur_le_plateau': {
+        const vers = e.op === 'melange_a_la_pioche' ? 'pioche' : e.op === 'renvoie_en_main' ? 'main' : 'plateau';
+        const pris = preleve(B, k, e, target, source, last);
+        if (!pris.length) { say(B, 'Rien a deplacer.'); break; }
+        renforceCartes(B, pris.map(x => x.carte), e);
+        const arrivees = [];
+        for (const { camp, carte } of pris) {
+          const u = depose(B, camp, carte, vers);
+          if (u) arrivees.push({ kind: 'unit', side: camp, unit: u });
+        }
+        // Les unites qui viennent d'arriver deviennent le « Lui » de l'effet suivant.
+        if (arrivees.length) last = arrivees;
+        const mot = vers === 'pioche' ? 'melangee(s) dans la pioche' : vers === 'main' ? 'renvoyee(s) en main' : 'posee(s) sur le plateau';
+        say(B, `${pris.length} carte(s) ${mot} : ${pris.map(x => x.carte.name).join(', ')}.`);
         break;
       }
       case 'pioche_x': {
@@ -688,7 +961,10 @@ function applyEffects(B, k, effects, target, source) {
         const arrives = [];
         for (let i = 0; i < (e.n || 1); i++) {
           if (me.board.length >= BALANCE.combat.boardSize) break;
-          const t = makeUnit({ ...e.unit, sprite: e.unit.sprite || (source ? source.sprite : null) });
+          // Un jeton herite du niveau de celui qui l'invoque : sans ca, « X = ton niveau »
+          // vaudrait zero sur un jeton, ce que personne n'attend.
+          const t = makeUnit({ ...e.unit, sprite: e.unit.sprite || (source ? source.sprite : null),
+            ownerLevel: e.unit.ownerLevel || (source ? source.ownerLevel : 0) });
           me.board.push(t);
           arrives.push({ kind: 'unit', side: k, unit: t });
           checkKeywords(B, t);
@@ -735,6 +1011,8 @@ function makeUnit(c) {
     // en combat de la ligne de statistiques d'origine (cf. caracteristique variable).
     printedAtk: c.atk || 0,
     printedHp: c.hp || 0,
+    // Le niveau auquel la carte a ete resolue, pour le compteur « niveau du heros ».
+    ownerLevel: c.ownerLevel || 0,
     baseKeys: keys,
     damage: 0,
     sprite: c.sprite,
@@ -776,12 +1054,17 @@ export function playCard(B, k, handIndex, target = null) {
   if (!card || !canPlay(B, k, card)) return false;
   s.mana -= cardCost(card, B, k);
   s.hand.splice(handIndex, 1);
-  s.discard.push(card);
+  // UN ALLIE EN JEU N'EST PAS DANS LA DEFAUSSE : il est sur le plateau, et sa carte
+  // voyage avec l'unite. Elle ne tombe a la defausse qu'a sa mort. Sans cette regle,
+  // « reanime un allie de ta defausse » ressusciterait une unite encore vivante et
+  // « renvoie en main » dupliquerait la carte.
+  if (card.type !== 'ally') s.discard.push(card);
   say(B, `${s.name} joue ${card.name}.`);
 
   let source = null;
   if (card.type === 'ally') {
     source = makeUnit(card);
+    source.card = card;
     s.board.push(source);
     refresh(B);
     checkKeywords(B, source);
