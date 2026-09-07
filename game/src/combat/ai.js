@@ -737,9 +737,21 @@ function decide(B, k, jeu) {
   return r || { type: 'end' };
 }
 
+/**
+ * LE COUP AU HASARD — la 4e priorite du GDD, et le dernier recours quand aucune des
+ * trois autres n'a rien trouve. Le GDD VEUT que le bot se trompe : c'est la marge de
+ * progression du joueur. Mais jouer une carte qui ne peut RIEN faire n'est pas une
+ * erreur interessante, c'est du mana brule pour rien — c'est ce qu'on lisait dans les
+ * journaux (« Loup - Souffle » lance sur un plateau vide, 48 fois sur une matrice).
+ * On tire donc au hasard parmi ce qui produit quelque chose ; si rien ne produit rien,
+ * on garde ses cartes.
+ */
 function randomAction(B, k, playable, ready) {
   const pool = [];
-  for (const x of playable) pool.push({ type: 'play', index: x.i, target: pickTarget(B, k, x.c) });
+  for (const x of playable) {
+    if (cardValue(B, k, x.c) <= 0) continue;
+    pool.push({ type: 'play', index: x.i, target: pickTarget(B, k, x.c) });
+  }
   for (const u of ready) {
     const legal = attackableTargets(B, k, u);
     pool.push({ type: 'attack', uid: u.uid, target: legal[Math.floor(Math.random() * legal.length)] });

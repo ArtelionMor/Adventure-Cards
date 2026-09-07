@@ -206,10 +206,18 @@ tendance('n envoie pas son unite mourir dans une provocation qui la mange',
 console.log('\nMelanger dans la pioche');
 
 tendance('recycle sa defausse plutot que de jouer un sort sans cible',
-  () => setup([
-    sort('Recyclage', [{ op: 'melange_a_la_pioche', qui: 'toi', d_ou: 'defausse', quoi: 'all', n: 3 }]),
-    sort('Petite Frappe', [{ op: 'dmg', t: 'enemyUnit', v: 1 }])
-  ]),
+  () => {
+    const B = setup([
+      sort('Recyclage', [{ op: 'melange_a_la_pioche', qui: 'toi', d_ou: 'defausse', quoi: 'all', n: 3 }]),
+      sort('Petite Frappe', [{ op: 'dmg', t: 'enemyUnit', v: 1 }])
+    ]);
+    // IL FAUT VRAIMENT QUELQUE CHOSE A RECYCLER. Depuis que le bot verifie la
+    // faisabilite, un recyclage sur une defausse vide ne vaut rien — et il a raison :
+    // sans ces cartes, les deux sorts de la main ne feraient rien du tout, et ne rien
+    // jouer serait le bon coup.
+    B.p.discard.push(ally('Deja mort', 2, 2), ally('Aussi', 1, 1));
+    return B;
+  },
   (B, a) => carteJouee(B, a) === 'Recyclage');
 
 tendance('ne remplit pas la pioche de l adversaire par gentillesse',
