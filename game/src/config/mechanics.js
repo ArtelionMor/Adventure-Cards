@@ -505,6 +505,26 @@ export const STATICS = {
     bon: -1, poids: 1.2,
     text: m => `Les degats subis par ${m.qui === 'adversaire' ? 'le heros adverse' : 'ton heros'} : ${describeAmount(m.v)} de ${motSens(m)}`
   },
+  // « Aura : les cartes que vous jouez se remelangent a votre pioche ». Ce n'est pas
+  // une aura au sens du moteur (une aura ne touche que les statistiques des unites en
+  // jeu) mais bien un EFFET STATIQUE : ca dure tant que le porteur est la, ca disparait
+  // avec lui. Il ne se dose pas — il est la ou il n'est pas — d'ou les deux champs
+  // figes que `staticTotal` additionne et que le builder ne montre pas.
+  //
+  // Un ALLIE joue n'est pas concerne : sa carte voyage avec l'unite et ne tombe a la
+  // defausse qu'a sa mort. La remelanger a la pose la dupliquerait (une unite sur le
+  // plateau ET une carte dans le deck).
+  cartes_jouees_remelangees: {
+    label: 'Les cartes jouees retournent dans la pioche',
+    desc: "Un sort joue est remelange dans la pioche de son proprietaire au lieu d'aller a la defausse, tant que cette unite est en jeu. Les allies ne sont pas concernes : leur carte suit l'unite et ne part a la defausse qu'a sa mort. Le plafond de recyclage par tour s'applique.",
+    params: [
+      quiParam('Toi', 'L’adversaire'),
+      { k: 'sens', type: 'choice', label: 'Sens', def: 'plus', choices: [['plus', 'De plus']], si: () => false },
+      { k: 'v', type: 'number', label: 'Valeur', def: 1, si: () => false }
+    ],
+    bon: 1, poids: 1.4,
+    text: m => `${m.qui === 'adversaire' ? 'Les sorts que joue l’adversaire retournent' : 'Les sorts que tu joues retournent'} dans la pioche`
+  },
   pioche_du_tour: {
     label: 'La pioche de debut de tour',
     desc: "La carte piochee chaque tour devient plusieurs (ou aucune). Ne touche pas les pioches ecrites sur les cartes.",

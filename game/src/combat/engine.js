@@ -1058,7 +1058,15 @@ export function playCard(B, k, handIndex, target = null) {
   // voyage avec l'unite. Elle ne tombe a la defausse qu'a sa mort. Sans cette regle,
   // « reanime un allie de ta defausse » ressusciterait une unite encore vivante et
   // « renvoie en main » dupliquerait la carte.
-  if (card.type !== 'ally') s.discard.push(card);
+  if (card.type !== 'ally') {
+    // « Les cartes que tu joues retournent dans ta pioche » : un effet statique, donc
+    // il vaut tant que son porteur tient le plateau. Le plafond de recyclage par tour
+    // s'applique — c'est lui qui empeche « sort a 0 mana qui revient » de tourner.
+    // Le sort part AVANT que ses effets se resolvent : un sort qui pioche peut donc se
+    // retirer lui-meme. C'est la meme regle que pour la defausse, et c'est visible.
+    if (staticTotal(B, k, 'cartes_jouees_remelangees') > 0) melangeDedans(B, k, [card]);
+    else s.discard.push(card);
+  }
   say(B, `${s.name} joue ${card.name}.`);
 
   let source = null;

@@ -1939,6 +1939,52 @@ console.log('\nRenforcer des cartes la ou elles sont');
   check('et la notre est intacte', B.p.hand.map(c => `${c.atk}/${c.hp}`), ['1/1']);
 }
 
+console.log('\nLes sorts joues retournent dans la pioche');
+const gardien = (qui = 'toi') => ally('Gardien', 1, 5, {
+  statics: [{ op: 'cartes_jouees_remelangees', qui }]
+});
+{
+  // L'effet statique dure tant que le porteur est la : le sort joue repart dans la
+  // pioche au lieu d'aller a la defausse.
+  const B = setup([gardien(), frappe(1)], [ally('Cible', 1, 9)]);
+  play(B, 'p', 'Gardien');
+  play(B, 'e', 'Cible');
+  B.p.deck = []; B.p.discard = [];
+  const cible = B.e.board[0];
+  play(B, 'p', 'Frappe1', { side: 'e', uid: cible.uid });
+  check('le sort repart dans la pioche', B.p.deck.map(c => c.name), ['Frappe1']);
+  check('et pas a la defausse', B.p.discard.length, 0);
+  check('son effet a bien eu lieu', B.e.board[0].hp, 8);
+}
+{
+  // Sans le porteur, rien ne change : le sort va a la defausse, comme toujours.
+  const B = setup([frappe(1)], [ally('Cible', 1, 9)]);
+  play(B, 'e', 'Cible');
+  B.p.deck = []; B.p.discard = [];
+  const cible = B.e.board[0];
+  play(B, 'p', 'Frappe1', { side: 'e', uid: cible.uid });
+  check('sans le statique, le sort va a la defausse', [B.p.deck.length, B.p.discard.length], [0, 1]);
+}
+{
+  // UN ALLIE N'EST PAS CONCERNE : sa carte voyage avec l'unite et ne tombe a la
+  // defausse qu'a sa mort. La remelanger a la pose la dupliquerait.
+  const B = setup([gardien(), ally('Chien', 1, 1)]);
+  play(B, 'p', 'Gardien');
+  B.p.deck = [];
+  play(B, 'p', 'Chien');
+  check('l allie reste sur le plateau', board(B, 'p'), ['Gardien 1/5', 'Chien 1/1']);
+  check('et rien n est remelange', B.p.deck.length, 0);
+}
+{
+  // « Chez l'adversaire » : c'est SA pioche qui se remplit, pas la notre.
+  const B = setup([gardien('adversaire')], [frappe(1)]);
+  play(B, 'p', 'Gardien');
+  B.e.deck = []; B.e.discard = [];
+  play(B, 'e', 'Frappe1', { side: 'p', uid: B.p.board[0].uid });
+  check('le sort d en face repart dans SA pioche', B.e.deck.map(c => c.name), ['Frappe1']);
+  check('et la notre n a rien recu', B.p.deck.filter(c => c.name === 'Frappe1').length, 0);
+}
+
 console.log('\nLe niveau du proprietaire comme nombre');
 {
   // Une carte resolue au niveau 7 : ses effets peuvent valoir 7.
