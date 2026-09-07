@@ -227,5 +227,25 @@ tendance('ne remplit pas la pioche de l adversaire par gentillesse',
   ]),
   (B, a) => carteJouee(B, a) === 'Banal');
 
+// ---------------------------------------------------------------------------
+console.log('\nAffaiblir l adversaire');
+
+tendance('prefere affaiblir l adversaire que se renforcer a peine',
+  () => {
+    const B = setup([
+      sort('Poison', [{ op: 'buff', t: 'enemyUnit', atk: -3, hp: -3 }]),
+      sort('Souffle', [{ op: 'buff', t: 'allAllies', atk: 0, hp: 0 }])
+    ], [ally('Brute', 4, 5)]);
+    return B;
+  },
+  (B, a) => carteJouee(B, a) === 'Poison');
+
+tendance('n offre pas de renfort a l adversaire',
+  () => setup([
+    ally('Banal', 2, 2),
+    sort('Cadeau', [{ op: 'buff', t: 'enemyUnit', atk: 3, hp: 3 }])
+  ], [ally('Brute', 4, 5)]),
+  (B, a) => carteJouee(B, a) === 'Banal');
+
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);

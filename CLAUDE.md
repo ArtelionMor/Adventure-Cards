@@ -105,9 +105,9 @@ Après un changement d'équilibrage, faire tourner `node scripts/simulate.mjs`.
 Après un changement de **cartes**, faire tourner `node scripts/check-decks.mjs` (les
 erreurs) et `node scripts/matchups.mjs` (l'équilibre entre decks) — voir « Outils ».
 Après toute modification de `game/src/combat/`, faire tourner **les trois bancs** :
-`node scripts/test-triggers.mjs` (308 tests : râles, auras, déclencheurs de tour, paliers qui
+`node scripts/test-triggers.mjs` (313 tests : râles, auras, déclencheurs de tour, paliers qui
 débloquent un moment, couture builder → moteur, mana différé, mots-clés à paramètre, capacités
-des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, pile de fatigue, création de carte (précise et au hasard), déplacements de zone (mélange, renvoi, pose), leur renfort et celui des cartes sur place, prise du dessus, complétion par la fatigue, événement de renfort, filtre « une carte précise », niveau du propriétaire, plafond de tours), `node scripts/test-ai.mjs` (19 tests : le bot
+des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, pile de fatigue, création de carte (précise et au hasard), déplacements de zone (mélange, renvoi, pose), leur renfort et celui des cartes sur place, prise du dessus, complétion par la fatigue, événement de renfort, filtre « une carte précise », niveau du propriétaire, plafond de tours), `node scripts/test-ai.mjs` (21 tests : le bot
 valorise-t-il ces mécaniques) et `node scripts/simulate.mjs` (la courbe de difficulté).
 
 ## Finir sa pioche, et la pile de fatigue
@@ -421,6 +421,20 @@ Bouclier ne protège pas (il absorbe une **perte de PV**, pas une destruction) e
 dans les destinataires sont ignorés. Conséquence assumée, identique à des dégâts mortels :
 tant que la carte n'a pas fini de se résoudre, un soin sur « Lui » rattrape encore l'unité
 détruite (c'est ce qui permet « détruis puis ranime »), et c'est testé comme tel.
+
+## Renforcer, et affaiblir
+`buff` **est** l'affaiblissement : ce sont les mêmes champs, les mêmes cibles, avec des
+nombres qui peuvent descendre sous zéro. « -2/-2 à une unité adverse » n'a donc pas
+d'effet à lui — les cibles adverses sont simplement dans la liste de `buff`.
+
+Trois conséquences que le moteur assure déjà : l'attaque ne descend **jamais sous 0**
+(`refresh` la borne), une vie tombée à 0 **tue** l'unité au prochain ramassage des morts
+(comme des dégâts), et un **héros n'est jamais concerné** (`buff` ne garde que les unités).
+
+⚠ **Un malus n'est pas un renfort** : l'événement « quand cette unité reçoit du renfort »
+ne part que sur un vrai gain (`atk > 0 || hp > 0`). Le journal dit « Affaiblissement »
+plutôt que « Renfort », et le bot **inverse le signe** sur une cible adverse — affaiblir
+en face est bon, offrir un renfort en face est un cadeau.
 
 ## Ciblage
 Tout passe par `recipients()` dans `engine.js`, qui traduit une cible en destinataires

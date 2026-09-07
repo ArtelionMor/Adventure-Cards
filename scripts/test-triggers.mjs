@@ -2023,6 +2023,42 @@ const gardien = (qui = 'toi', quoi = 'tout') => ally('Gardien', 1, 5, {
   check('et la notre n a rien recu', B.p.deck.filter(c => c.name === 'Frappe1').length, 0);
 }
 
+console.log('\nAffaiblir : un renfort negatif');
+{
+  // Les memes champs que le renfort, des nombres qui descendent sous zero, et les
+  // cibles d'en face dans la liste : « -2/-2 a une unite adverse » n'a pas besoin
+  // d'un effet a lui.
+  const poison = { id: 'poi9', name: 'Poison', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'buff', t: 'enemyUnit', atk: -2, hp: -2 }] };
+  const B = setup([poison], [ally('Brute', 4, 5)]);
+  play(B, 'e', 'Brute');
+  play(B, 'p', 'Poison', { side: 'e', uid: B.e.board[0].uid });
+  check('l unite adverse est affaiblie', board(B, 'e'), ['Brute 2/3']);
+  check('et le journal parle d affaiblissement', B.log.some(l => l.includes('Affaiblissement : -2/-2')), true);
+}
+{
+  // Une vie tombee a zero tue, comme n'importe quels degats ; l'attaque, elle, ne
+  // descend jamais sous zero (refresh la borne).
+  const poison = { id: 'poi8', name: 'Poison', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'buff', t: 'allEnemyUnits', atk: -9, hp: -1 }] };
+  const B = setup([poison], [ally('Moucheron', 1, 1), ally('Brute', 4, 5)]);
+  play(B, 'e', 'Moucheron');
+  play(B, 'e', 'Brute');
+  play(B, 'p', 'Poison');
+  check('celui qui tombe a 0 PV meurt', board(B, 'e'), ['Brute 0/4']);
+  check('et l attaque ne passe pas sous zero', B.e.board[0].atk, 0);
+}
+{
+  // UN MALUS N'EST PAS UN RENFORT : « quand cette unite recoit du renfort » ne part pas.
+  const tetard = ally('Tetard', 3, 3, { on_renfort_self: [{ op: 'buff', t: 'self', atk: 1, hp: 1 }] });
+  const poison = { id: 'poi7', name: 'Poison', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'buff', t: 'enemyUnit', atk: -1, hp: -1 }] };
+  const B = setup([poison], [tetard]);
+  play(B, 'e', 'Tetard');
+  play(B, 'p', 'Poison', { side: 'e', uid: B.e.board[0].uid });
+  check('le malus ne reveille pas le declencheur de renfort', board(B, 'e'), ['Tetard 2/2']);
+}
+
 console.log('\nLe niveau du proprietaire comme nombre');
 {
   // Une carte resolue au niveau 7 : ses effets peuvent valoir 7.

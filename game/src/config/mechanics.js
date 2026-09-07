@@ -210,10 +210,16 @@ export const EFFECTS = {
     implemented: true
   },
   buff: {
+    // UN RENFORT NEGATIF EST UN AFFAIBLISSEMENT : les memes champs, les memes cibles
+    // qu'ailleurs, et des nombres qui peuvent descendre sous zero. Les cibles adverses
+    // sont donc dans la liste — « -2/-2 a une unite adverse » n'a pas besoin d'un effet
+    // a lui. L'attaque ne descend jamais sous 0 (refresh la borne) et une vie tombee a
+    // 0 tue l'unite au prochain ramassage des morts, comme n'importe quels degats.
     label: 'Renfort',
-    desc: 'Augmente attaque/vie et peut donner un mot-cle.',
+    desc: 'Augmente attaque/vie et peut donner un mot-cle. Des nombres NEGATIFS affaiblissent : c\'est ainsi qu\'on ecrit « -2/-2 a une unite adverse ». Un heros n\'est jamais concerne.',
     params: [
-      tgt('t', 'Cible', ['allyUnit', 'allAllies', 'randomAllyUnit', 'self', 'sameTypeAllies', 'allyType', 'previous']),
+      tgt('t', 'Cible', ['allyUnit', 'allAllies', 'randomAllyUnit', 'self', 'sameTypeAllies', 'allyType',
+        'enemyUnit', 'allEnemyUnits', 'randomEnemyUnit', 'enemyType', 'previous']),
       num('atk', 'Attaque', 1), num('hp', 'Vie', 1),
       { k: 'key', type: 'keyword', label: 'Mot-cle offert (optionnel)' }
     ],
@@ -959,6 +965,9 @@ export function describeZone(e) {
 const bonusDeplacement = e => (e.atk || e.hp)
   ? ` et leur donne +${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)}` : '';
 
+/** « +2 », « -2 », « X (= tes tours joues) » : un nombre du jeu avec son signe. */
+const signe = v => (typeof v === 'number' && v < 0 ? '' : '+') + describeAmount(v || 0);
+
 /** Texte lisible d'un effet, pour l'apercu du builder. */
 export function describeEffect(e) {
   const def = ALL_EFFECTS[e.op];
@@ -969,7 +978,8 @@ export function describeEffect(e) {
     case 'dmg': return `${n('v')} degats${t}`;
     case 'detruit': return `detruit${t}`;
     case 'heal': return `soigne ${n('v')}${t}`;
-    case 'buff': return `+${n('atk')}/+${n('hp')}${e.key ? ' et ' + e.key : ''}${t}`;
+    // Un montant peut etre negatif (un affaiblissement) : on n'ecrit pas « +-2 ».
+    case 'buff': return `${signe(e.atk)}/${signe(e.hp)}${e.key ? ' et ' + e.key : ''}${t}`;
     case 'draw': return `pioche ${n('v')}`;
     case 'armor': return `${n('v')} armure`;
     case 'mana': return `+${n('v')} mana ce tour`;

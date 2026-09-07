@@ -184,13 +184,19 @@ function effectValue(e, ctx) {
     case 'mana_au_prochain_tour': return n('x') * 1.1;
     case 'buff': {
       const per = n('atk') + n('hp') * 0.6 + (e.key ? 1.2 : 0);
+      const t = targetId(e.t);
       // Un renfort « du meme type » ne vaut que le nombre d'allies etiquetes presents :
       // sans meute sur le plateau, il ne fait rien, et le bot ne doit pas le jouer.
       const cibles = e.t === 'allAllies' ? Math.max(1, ctx.allies)
-        : e.t === 'sameTypeAllies' ? Math.max(0, ctx.sameType || 0)
-          : targetId(e.t) === 'allyType' ? typeCount(ctx.board, e.t)
-            : 1;
-      return per * cibles;
+        : e.t === 'allEnemyUnits' ? Math.max(1, ctx.enemies)
+          : e.t === 'sameTypeAllies' ? Math.max(0, ctx.sameType || 0)
+            : t === 'allyType' ? typeCount(ctx.board, e.t)
+              : t === 'enemyType' ? typeCount(ctx.foeBoard, e.t)
+                : 1;
+      // EN FACE, LE SIGNE S'INVERSE : affaiblir l'adversaire de -2/-2 est bon pour nous,
+      // et lui offrir +2/+2 est un cadeau. Le bot doit lire les deux dans le bon sens.
+      const enFace = ['enemyUnit', 'allEnemyUnits', 'randomEnemyUnit', 'enemyType'].includes(t);
+      return (enFace ? -per : per) * cibles;
     }
     case 'summon': {
       // Un jeton peut porter mots-cles, aura et moments : il vaut son corps entier.

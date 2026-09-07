@@ -865,7 +865,9 @@ function applyEffects(B, k, effects, target, source) {
             if (e.key === 'Charge' && !u.attackedThisTurn) u.canAttack = true;
           }
         }
-        if (list.length) say(B, `Renfort : +${e.atk || 0}/+${e.hp || 0} (${list.map(u => u.name).join(', ')}).`);
+        const dit = v => ((v || 0) < 0 ? '' : '+') + (v || 0);
+        if (list.length) say(B, `${(e.atk || 0) < 0 || (e.hp || 0) < 0 ? 'Affaiblissement' : 'Renfort'} : `
+          + `${dit(e.atk)}/${dit(e.hp)} (${list.map(u => u.name).join(', ')}).`);
         // « QUAND CETTE UNITE RECOIT DU RENFORT » : le moment est porte par l'unite
         // renforcee, pas par son camp — d'ou la liste d'unites passee a `fireEvent`.
         // On part camp par camp parce qu'un renfort peut tomber en face, par « Lui ».
@@ -875,7 +877,9 @@ function applyEffects(B, k, effects, target, source) {
         // unite recoit du renfort, +1/+1 sur elle-meme » se redonnerait du renfort a
         // chaque rebond jusqu'au garde-fou de chaine. Un renfort donne PAR un declencheur
         // de renfort ne relance donc pas l'evenement, quelle qu'en soit la cible.
-        if (list.length && (e.atk || e.hp) && !B.renfortEnCours) {
+        // UN MALUS N'EST PAS UN RENFORT : « quand cette unite recoit du renfort » ne
+        // part que sur un vrai gain. Un -2/-2 ne reveille personne.
+        if (list.length && ((e.atk || 0) > 0 || (e.hp || 0) > 0) && !B.renfortEnCours) {
           B.renfortEnCours = true;
           try {
             for (const camp of [...new Set(recus.map(r => r.side))]) {
