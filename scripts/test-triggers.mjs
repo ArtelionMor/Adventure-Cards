@@ -1939,6 +1939,37 @@ console.log('\nRenforcer des cartes la ou elles sont');
   check('et la notre est intacte', B.p.hand.map(c => `${c.atk}/${c.hp}`), ['1/1']);
 }
 
+console.log('\nUn jeton mort va a la defausse');
+{
+  // Un jeton n'a jamais ete joue depuis une main : il n'avait pas de carte, et il
+  // disparaissait en mourant. On lui en fabrique une, fidele a ce qu'il ETAIT.
+  const invoc = { id: 'inv9', name: 'Invocation', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'summon', n: 1, unit: { name: 'Esprit', atk: 2, hp: 1, keys: ['Taunt'], death: [{ op: 'dmg', t: 'enemyHero', v: 1 }] } }] };
+  const B = setup([invoc], [frappe(99)]);
+  play(B, 'p', 'Invocation');
+  const avant = B.p.discard.length;
+  tuer(B, 'e', 'p', 'Esprit');
+  const carte = B.p.discard[B.p.discard.length - 1];
+  check('le jeton rejoint la defausse', B.p.discard.length, avant + 1);
+  check('avec ce qu il annoncait en arrivant', [carte.name, carte.type, carte.atk, carte.hp], ['Esprit', 'ally', 2, 1]);
+  check('ses mots-cles et ses moments le suivent', [carte.keys, (carte.death || []).length], [['Taunt'], 1]);
+  check('et il ne coute rien : il n a jamais eu de prix', carte.cost, 0);
+  check('mais il n a pas d identifiant', carte.id, null);
+}
+{
+  // Consequence voulue : une defausse qui se recycle recupere ses jetons.
+  const invoc = { id: 'inv8', name: 'Invocation', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'summon', n: 1, unit: { name: 'Esprit', atk: 2, hp: 1, keys: [] } }] };
+  const reanime = { id: 'rea9', name: 'Reanimation', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pose_sur_le_plateau', d_ou: 'defausse', qui: 'toi', quoi: 'ally', n: 1 }] };
+  const B = setup([invoc, reanime], [frappe(99)]);
+  B.p.discard = [];
+  play(B, 'p', 'Invocation');
+  tuer(B, 'e', 'p', 'Esprit');
+  play(B, 'p', 'Reanimation');
+  check('le jeton mort peut etre reanime', board(B, 'p'), ['Esprit 2/1']);
+}
+
 console.log('\nLe niveau du proprietaire comme nombre');
 {
   // Une carte resolue au niveau 7 : ses effets peuvent valoir 7.

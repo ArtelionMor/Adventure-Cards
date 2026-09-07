@@ -105,7 +105,7 @@ Après un changement d'équilibrage, faire tourner `node scripts/simulate.mjs`.
 Après un changement de **cartes**, faire tourner `node scripts/check-decks.mjs` (les
 erreurs) et `node scripts/matchups.mjs` (l'équilibre entre decks) — voir « Outils ».
 Après toute modification de `game/src/combat/`, faire tourner **les trois bancs** :
-`node scripts/test-triggers.mjs` (295 tests : râles, auras, déclencheurs de tour, paliers qui
+`node scripts/test-triggers.mjs` (301 tests : râles, auras, déclencheurs de tour, paliers qui
 débloquent un moment, couture builder → moteur, mana différé, mots-clés à paramètre, capacités
 des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, pile de fatigue, création de carte (précise et au hasard), déplacements de zone (mélange, renvoi, pose), leur renfort et celui des cartes sur place, prise du dessus, complétion par la fatigue, événement de renfort, filtre « une carte précise », niveau du propriétaire, plafond de tours), `node scripts/test-ai.mjs` (19 tests : le bot
 valorise-t-il ces mécaniques) et `node scripts/simulate.mjs` (la courbe de difficulté).
@@ -431,6 +431,16 @@ invoque un jeton, sinon l'éditeur s'emboîte à l'infini. Tout ce qui inspecte 
 côté builder (validation, compteur « à coder », `MECANIQUES-A-CODER.md`) passe par
 `eachEffect` / `eachUnit`, qui descendent dans les jetons : sans ça une mécanique non
 codée se cache dans un jeton.
+
+**Un jeton mort rejoint la défausse**, comme n'importe quelle unité : il n'a pas de
+carte (il n'a jamais été joué depuis une main), donc `carteDuJeton()` lui en fabrique
+une à sa mort, fidèle à ce qu'il **était en arrivant** (`printedAtk`/`printedHp`, pas
+ses renforts). Elle coûte **0** — un jeton n'a jamais eu de prix — et n'a **pas
+d'identifiant** : rien dans le catalogue ne la désigne, donc « une carte précise » ne
+la trouvera jamais et la pile de fatigue ne peut pas la resservir. Elle n'existe que
+dans cette partie. Conséquence voulue : une défausse qui se recycle récupère ses
+jetons, et « réanime un allié de ta défausse » peut les ramener. Un jeton **renvoyé en
+main**, lui, disparaît toujours — le prélèvement lit `unit.card`, qui reste nul.
 
 ## Le bot
 `ai.js` garde les 4 priorités du GDD, mais choisit par **valeur** et non par coût :
