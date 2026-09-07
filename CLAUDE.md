@@ -28,6 +28,12 @@ paquet de cartes — donc six héros font 6 solos, **15** duos et **20** trios, 
 decks et 1681 cases. L'en-tête du panneau annonce le coût (decks, cases, parties) avant
 qu'on lance. Mesuré : 1681 cases à 10 parties, bot `dur`, **16 s** sur 16 cœurs.
 
+Les puces **Masquer : 1v1 · 2v2 · 3v3 · PNJ** écartent des familles entières de matchups.
+Une case masquée n'est **pas calculée** — autant ne pas payer ce qu'on ne lira pas — et si
+on la démasque après coup elle affiche « — » : elle n'a pas été jouée, le tableau ne fait
+pas semblant. « PNJ » retire la ligne **et** la colonne. Sur 50 decks : 1275 cases, 924
+sans les mêmes tailles, 510 en retirant aussi les PNJ.
+
 ⚠ **On ne joue que le triangle.** `serie()` joue déjà la moitié des parties dans chaque
 sens, donc « A contre B » et « B contre A » mesurent exactement la même chose : la
 seconde n'apprend rien. La moitié sous la diagonale est **déduite** (`avecReflets`,
