@@ -108,6 +108,7 @@
       <option value="taux">Par taux de victoire</option>
     </select></div>
     <div class="grp" id="quoi"></div>
+    <div class="grp" id="tailles"></div>
     <span style="flex:1"></span>
     <button class="btn btn--primary" id="go">▶ Lancer</button>
     <button class="btn" id="stop" disabled>Arrêter</button>
@@ -216,7 +217,13 @@ addEventListener('storage', async ev => { if (ev.key === LS_BUILDER) { await rel
 
 // ---------- REGLAGES ----------
 const etat = Object.assign(
-  { niveau: 5, runs: 60, bot: BALANCE.ai.defaut, couleurs: 'cibles', quoi: { base: true, switch: false, mix: false, pnj: false } },
+  {
+    niveau: 5, runs: 60, bot: BALANCE.ai.defaut, couleurs: 'cibles',
+    quoi: { base: true, switch: false, mix: false, pnj: false },
+    // La TAILLE D'EQUIPE se combine avec les categories ci-dessus : « mélange » et
+    // « équipes de 3 » donnent tous les trios possibles, chacun en mode mélange.
+    tailles: { 1: true, 2: false, 3: false }
+  },
   JSON.parse(localStorage.getItem(LS) || '{}'));
 const garde = () => { try { localStorage.setItem(LS, JSON.stringify(etat)); } catch { /* pas grave */ } };
 
@@ -243,13 +250,31 @@ function majQuoi() {
     `<span class="chip ${etat.quoi[k] ? 'chip--on' : ''}" data-k="${k}" title="${esc(AIDE[k])}">${esc(lab)}</span>`).join('');
   $('#quoi').querySelectorAll('[data-k]').forEach(n => n.onclick = () => {
     etat.quoi[n.dataset.k] = !etat.quoi[n.dataset.k];
-    garde(); majQuoi();
+    garde(); majQuoi(); majCout();
   });
 }
 majQuoi();
 
-$('#lvl').oninput = () => { etat.niveau = +$('#lvl').value; $('#lvlOut').textContent = etat.niveau; garde(); };
-$('#runs').oninput = () => { etat.runs = Math.max(10, +$('#runs').value || 10); garde(); };
+// La taille d'equipe, et surtout le COUT annonce : 41 decks font 1681 cases, et mieux
+// vaut le lire avant de lancer que le decouvrir en regardant la barre.
+const TAILLES = [[1, 'Solos'], [2, 'Duos'], [3, 'Trios']];
+function majTailles() {
+  $('#tailles').innerHTML = TAILLES.map(([n, lab]) =>
+    `<span class="chip ${etat.tailles[n] ? 'chip--on' : ''}" data-t="${n}" title="Équipes de ${n} héros — se combine avec les catégories de gauche">${lab}</span>`).join('');
+  for (const n of $('#tailles').querySelectorAll('.chip')) n.onclick = () => {
+    etat.tailles[n.dataset.t] = !etat.tailles[n.dataset.t];
+    garde(); majTailles(); majQuoi();
+  };
+  majCout();
+}
+function majCout() {
+  const n = decks().length;
+  $('#mxCount').textContent = n ? `${n} deck(s) · ${n * n} cases · ${n * n * etat.runs} parties` : '';
+}
+majTailles();
+
+$('#lvl').oninput = () => { etat.niveau = +$('#lvl').value; $('#lvlOut').textContent = etat.niveau; garde(); majCout(); };
+$('#runs').oninput = () => { etat.runs = Math.max(10, +$('#runs').value || 10); garde(); majCout(); };
 $('#bot').onchange = () => { etat.bot = $('#bot').value; garde(); };
 // Changer de lecture ne relance rien : on repeint la matrice deja mesuree.
 $('#relire').onclick = async () => { await relit(); majQuoi(); toastSource(); };
@@ -265,20 +290,33 @@ $('#couleurs').onchange = () => {
 };
 
 // ---------- LES DECKS MESURES ----------
+/**
+ * LES DECKS DE LA MATRICE. Un deck n'est pas forcement un heros : le joueur en emmene
+ * un, deux ou trois, et c'est un deck different a chaque fois. On monte donc toutes les
+ * EQUIPES de la taille demandee.
+ *
+ * Ce sont des COMBINAISONS, pas des arrangements : Médor&Felix et Felix&Médor donnent
+ * exactement le meme paquet de cartes. Six heros font donc 6 solos, 15 duos et 20 trios
+ * — pas 6, 30 et 120, qui mesureraient six fois le meme deck.
+ */
 function decks() {
   const out = [];
-  for (const c of DB.characters || []) {
+  const ids = (DB.characters || []).map(c => c.id);
+  const nomDe = eq => eq.map(id => (DB.characters.find(c => c.id === id) || {}).name || id).join('&');
+  const tailles = [1, 2, 3].filter(t => etat.tailles[t]);
+  for (const taille of tailles) for (const eq of combinaisons(ids, taille)) {
+    const nom = nomDe(eq);
     // `recette` dit COMMENT remonter le camp : un worker ne peut pas recevoir une
     // fabrique (`campMelange` rend une fonction), il la refabrique de son cote.
-    if (etat.quoi.base) { const cfg = campPerso([c.id], etat.niveau, 'cards', DB); if (cfg) out.push({ nom: c.name, sous: 'base', cfg, recette: { type: 'base', id: c.id, niveau: etat.niveau } }); }
-    if (etat.quoi.switch) { const cfg = campPerso([c.id], etat.niveau, 'switches', DB); if (cfg) out.push({ nom: c.name, sous: 'switch', cfg, recette: { type: 'switch', id: c.id, niveau: etat.niveau } }); }
+    if (etat.quoi.base) { const cfg = campPerso(eq, etat.niveau, 'cards', DB); if (cfg) out.push({ nom, sous: 'base', cfg, recette: { type: 'base', ids: eq, niveau: etat.niveau } }); }
+    if (etat.quoi.switch) { const cfg = campPerso(eq, etat.niveau, 'switches', DB); if (cfg) out.push({ nom, sous: 'switch', cfg, recette: { type: 'switch', ids: eq, niveau: etat.niveau } }); }
     // Le melange n'est pas un deck fige : c'est une fabrique, retiree a chaque partie.
-    if (etat.quoi.mix) { const cfg = campMelange([c.id], etat.niveau, DB); if (cfg) out.push({ nom: c.name, sous: 'mélange', cfg, recette: { type: 'mix', id: c.id, niveau: etat.niveau } }); }
+    if (etat.quoi.mix) { const cfg = campMelange(eq, etat.niveau, DB); if (cfg) out.push({ nom, sous: 'mélange', cfg, recette: { type: 'mix', ids: eq, niveau: etat.niveau } }); }
   }
   if (etat.quoi.pnj) {
     for (const n of DB.npcs || []) {
       const cfg = campPnj(n.id, DB);
-      if (cfg && cfg.deck.length) out.push({ nom: n.name, sous: 'PNJ', cfg, recette: { type: 'pnj', id: n.id } });
+      if (cfg && cfg.deck.length) out.push({ nom: n.name, sous: 'PNJ', cfg, recette: { type: 'pnj', ids: [n.id] } });
     }
   }
   return out;

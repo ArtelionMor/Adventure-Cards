@@ -14,11 +14,16 @@
 import { campPerso, campMelange, campPnj, serie } from '../game/src/tools/arene.js';
 import { ecouteLesChoix } from '../game/src/combat/ai.js';
 
-/** Le camp decrit par une recette, reconstruit avec les donnees recues. */
+/**
+ * Le camp decrit par une recette, reconstruit avec les donnees recues. `ids` est une
+ * EQUIPE : un deck peut reunir un, deux ou trois heros, et `campPerso`/`campMelange`
+ * savent deja additionner leurs cartes, leurs PV et leur mana.
+ */
 function camp(r, db) {
-  if (r.type === 'pnj') return campPnj(r.id, db);
-  if (r.type === 'mix') return campMelange([r.id], r.niveau, db);
-  return campPerso([r.id], r.niveau, r.type === 'switch' ? 'switches' : 'cards', db);
+  const ids = r.ids || [r.id];
+  if (r.type === 'pnj') return campPnj(ids[0], db);
+  if (r.type === 'mix') return campMelange(ids, r.niveau, db);
+  return campPerso(ids, r.niveau, r.type === 'switch' ? 'switches' : 'cards', db);
 }
 
 let camps = null, runs = 10, bot = 'normal', DB = null;

@@ -21,7 +21,14 @@ et `docs/MECANIQUES-A-CODER.md` via `POST /api/write` (implémenté dans `script
 `builder/balance.html` — l'équilibrage, deux mesures qui répondent à deux questions
 différentes. **La matrice** deck contre deck, jouée dans le navigateur (bot contre bot),
 avec les cibles 33 / 50 / 66 et l'intervalle de confiance : « ce deck est-il plus fort que
-celui-là ? ». **La courbe de difficulté** : « le joueur passe-t-il ? » — toutes les
+celui-là ? ». Un deck n'est pas forcément un héros : les puces **Solos / Duos / Trios** montent
+**toutes les équipes** de cette taille et les font s'affronter. Ce sont des
+**combinaisons**, pas des arrangements — Médor&Felix et Felix&Médor donnent le même
+paquet de cartes — donc six héros font 6 solos, **15** duos et **20** trios, soit 41
+decks et 1681 cases. L'en-tête du panneau annonce le coût (decks, cases, parties) avant
+qu'on lance. Mesuré : 1681 cases à 10 parties, bot `dur`, **16 s** sur 16 cœurs.
+
+**La courbe de difficulté** : « le joueur passe-t-il ? » — toutes les
 combinaisons d'équipe contre chaque adversaire, et c'est la **pire** qui dit si une
 rencontre est un mur (une moyenne masquerait qu'une seule équipe passe). Ses **paliers**
 (les N prochains adversaires se jouent à H héros au niveau L) s'éditent **dans la page**,
