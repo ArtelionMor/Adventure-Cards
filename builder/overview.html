@@ -179,7 +179,7 @@
 <script type="module">
 import { CHARACTER_DATA } from '../game/data/characters.data.js';
 import { resolveCard } from '../game/src/config/characters.js';
-import { TRIGGERS, describeEffect, describeAura, describeStatic, keyLabel } from '../game/src/config/mechanics.js';
+import { TRIGGERS, describeEffect, describeAura, describeStatic, keyLabel, momentLabel } from '../game/src/config/mechanics.js';
 import { cardIndex } from '../game/src/config/npcs.js';
 
 const $ = s => document.querySelector(s);
@@ -270,7 +270,7 @@ function carteHTML(def, sprite, estSwitch, ou, niveau) {
   // Ce que la carte fait vraiment, moment par moment — pas seulement sa prose.
   const moments = Object.entries(TRIGGERS)
     .filter(([slot]) => (c[slot] || []).length)
-    .map(([slot, d]) => `<div class="fx"><b>${esc(d.label)}</b> ${esc(c[slot].map(describeEffect).join(' · '))}</div>`)
+    .map(([slot]) => `<div class="fx"><b>${esc(momentLabel(slot, c))}</b> ${esc(c[slot].map(describeEffect).join(' · '))}</div>`)
     .join('');
 
   const cles = (c.keys || []).map(k => `<span class="tag tag--key">${esc(keyLabel(k))}</span>`).join('');
@@ -493,7 +493,7 @@ function exportCartes() {
     const moments = {};
     for (const [slot, d] of Object.entries(TRIGGERS)) {
       if (slot === 'aura' || !(c[slot] || []).length) continue;
-      moments[d.label] = c[slot].map(describeEffect);
+      moments[momentLabel(slot, c)] = c[slot].map(describeEffect);
     }
     lignes.push({
       id: def.id || null,

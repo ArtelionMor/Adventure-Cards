@@ -9,9 +9,9 @@
 // part meme si l'unite meurt ; une aura compte pour ce qu'elle multiplie ; un
 // declencheur de tour compte plusieurs fois parce qu'il se repete.
 import { BALANCE } from '../config/balance.js';
-import { canPlay, legalTargets, attackableTargets, needsTarget, cloneBattle, playCard, attack, endTurn } from './engine.js';
-import { TRIGGERS, TARGETS, STATICS, ZONES, hasKey, keyId, keyArgs, keyFields, counterValue, amountValue, cardCost, cardMatches, staticFields, targetId, targetArg } from '../config/mechanics.js';
-import { fatiguePile } from '../config/npcs.js';
+import { canPlay, legalTargets, attackableTargets, needsTarget, needsChoice, cloneBattle, playCard, attack, endTurn } from './engine.js';
+import { TRIGGERS, TARGETS, STATICS, ZONES, hasKey, keyId, keyFields, counterValue, amountValue, cardCost, cardMatches, staticFields, targetId, targetArg, partageType, estDuType, eachSubEffect, listeEffets, typeVariable } from '../config/mechanics.js';
+import { cardById, fatiguePile, switchOf } from '../config/npcs.js';
 
 const foe = k => (k === 'p' ? 'e' : 'p');
 
@@ -29,24 +29,28 @@ function reglages(B, opts) {
 // Combien de tours on suppose qu'une unite survit : sert a chiffrer le recurrent.
 const TOURS_ESPERES = 2;
 
-// Les types portes par une carte (`keys`) ou par une unite en jeu (`baseKeys`).
-const typesOf = x => keyArgs(x.baseKeys || x.keys, 'type');
+// Les types sont lus par les memes fonctions que le moteur (config/mechanics.js) :
+// le bot doit compter la meute exactement comme le combat la resout, « Type : tous »
+// compris — sinon il jouerait une carte qui ne fait pas ce qu'il croit.
 /** Combien d'unites du plateau partagent une etiquette de type avec `x`. */
 function sameTypeCount(board, x) {
-  const mine = typesOf(x);
-  if (!mine.length) return 0;
-  return board.filter(u => u !== x && typesOf(u).some(t => mine.includes(t))).length;
+  return board.filter(u => u !== x && partageType(x, u)).length;
 }
 /** Combien d'unites d'un plateau portent le type ecrit dans une cible « allyType:X ». */
 function typeCount(board, t) {
   const voulu = targetArg(t);
-  return voulu ? (board || []).filter(u => typesOf(u).includes(voulu)).length : 0;
+  return voulu ? (board || []).filter(u => estDuType(u, voulu)).length : 0;
 }
 
 // --------------------------------------------------------------- valorisation
 const CIBLES_ENNEMIES = ['enemyUnit', 'allEnemyUnits', 'randomEnemyUnit', 'enemyType'];
 // « Elle-meme » n'est pas la : le porteur sera bien la, meme si le plateau est vide.
 const CIBLES_ALLIEES = ['allyUnit', 'allAllies', 'randomAllyUnit', 'sameTypeAllies', 'allyType'];
+// LES CIBLES SANS CAMP. Elles ne sont dans aucune des deux listes : elles prennent des
+// deux cotes, donc ni la faisabilite ni le signe ne se deduisent d'un camp. Chaque
+// effet dit ce qu'il en fait — pour un balayage, ce qu'on gagne en face moins ce qu'on
+// perd chez soi ; pour une cible designee, le bot choisit son cote (cf. pickTarget).
+const CIBLES_MIXTES = ['anyUnit', 'allUnits', 'randomUnit', 'anyType'];
 
 /**
  * L'EFFET PEUT-IL SEULEMENT SE PRODUIRE ? La valorisation chiffrait ce que la carte
@@ -65,22 +69,100 @@ function faisable(e, ctx) {
   const t = targetId(e.t);
   if (CIBLES_ENNEMIES.includes(t) && !ctx.enemies) return false;
   if (CIBLES_ALLIEES.includes(t) && !ctx.allies) return false;
+  // Sans camp impose, il suffit qu'il y ait une unite quelque part.
+  if (CIBLES_MIXTES.includes(t) && !ctx.enemies && !ctx.allies) return false;
+
+  // Un filtre dont le TYPE se lit sur une carte ne se juge pas d'avance : il ne sera
+  // connu qu'au moment ou l'effet partira. On ne condamne pas la carte pour ca.
+  if (typeVariable(e)) return true;
 
   if (e.op === 'draw') return !!me.deck.length || !!fatiguePile().length;
   if (e.op === 'pioche_x') return me.deck.some(c => c.name === e.carte);
   if (e.op === 'pioche_une_carte_de_type') return me.deck.some(c => (e.type === 'spell') === (c.type !== 'ally'));
   if (e.op === 'reduit_le_cout_de') return me.hand.some(c => cardMatches(c, e));
 
-  if (['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'renforce_les_cartes'].includes(e.op)) {
+  // Une copie sans modele ne fait rien : un paquet ou pas un seul ALLIE ne passe le
+  // filtre ne donnera jamais de quoi se transformer (on ne copie pas un sort).
+  if (e.op === 'copie') {
+    const z = ZONES[e.d_ou] || {};
+    if (z.carte || z.cible) return true;
+    return pilesVisees(B, k, e).some(pile => pile.some(c => c.type === 'ally' && cardMatches(c, e)));
+  }
+
+  if (['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'renforce_les_cartes', 'switch'].includes(e.op)) {
     const z = ZONES[e.d_ou] || {};
     if (z.carte) return true;                          // creee de toutes pieces
     if (z.cible) return true;                          // le plateau : la cible a deja tranche
     if (e.fatigue && fatiguePile().length) return true; // completee par la fatigue
-    const camp = e.qui === 'adversaire' ? B[foe(k)] : me;
-    const pile = e.d_ou === 'main' ? camp.hand : e.d_ou === 'pioche' ? camp.deck : camp.discard;
-    return pile.some(c => cardMatches(c, e));
+    return pilesVisees(B, k, e).some(pile => pile.some(c => cardMatches(c, e)));
   }
   return true;
+}
+
+/**
+ * Les paquets qu'un effet peut viser. « Chez qui » ne designe plus toujours un camp
+ * connu d'avance : « son proprietaire » suit la cible, « un joueur au hasard » tire a
+ * pile ou face. Le bot regarde alors les deux cotes plutot que de parier.
+ */
+function pilesVisees(B, k, e) {
+  const pile = camp => e.d_ou === 'main' ? B[camp].hand : e.d_ou === 'pioche' ? B[camp].deck : B[camp].discard;
+  if (e.qui === 'adversaire') return [pile(foe(k))];
+  if (e.qui === 'proprietaire' || e.qui === 'hasard') return [pile(k), pile(foe(k))];
+  return [pile(k)];
+}
+
+/**
+ * Ce que vaut POUR NOUS un effet qui touche le paquet designe par « chez qui ». Chez
+ * l'adversaire, un cadeau est une perte ; un joueur au hasard, c'est pile ou face,
+ * donc en moyenne rien. « Son proprietaire » suit la cible : on le lit comme chez soi,
+ * puisque c'est nous qui choisissons la cible.
+ */
+const signeDuPaquet = e => e.qui === 'adversaire' ? -1 : e.qui === 'hasard' ? 0 : 1;
+
+/**
+ * TOUS les effets d'une carte, y compris ceux caches dans les branches d'un « Choisir ».
+ * Les heuristiques qui cherchent « cette carte fait-elle des degats ? » passent par la :
+ * sans ca, une carte dont le retrait est dans une branche paraitrait inoffensive.
+ */
+function effetsDeLaCarte(card, choix) {
+  const out = [];
+  const descend = e => {
+    if (e.op === 'choisir') {
+      for (const b of (choix ? [e[choix]] : [e.a, e.b])) for (const x of listeEffets(b)) descend(x);
+      return;
+    }
+    out.push(e);
+  };
+  for (const e of (card && card.play) || []) descend(e);
+  return out;
+}
+
+/** Ce que vaut un corps moyen sur ce plateau — ce qu'une copie remplace. */
+const moyenneCorps = (list, ctx) => (list && list.length)
+  ? list.reduce((a, u) => a + bodyValue(u, ctx, 0.8), 0) / list.length : 0;
+
+/**
+ * Ce que vaut le MODELE d'une copie, quand on peut le savoir : une carte nommee, une
+ * unite en jeu, la moyenne des allies d'un paquet. `null` veut dire « on ne sait
+ * pas » — un tirage au hasard dans le catalogue, un paquet vide — et l'appelant
+ * s'abstient alors de trancher plutot que d'inventer un chiffre.
+ */
+function valeurDuModele(e, ctx) {
+  const z = ZONES[e.d_ou] || {};
+  if (z.carte) {
+    if ((e.choix || 'precise') !== 'hasard') {
+      const c = cardById(e.carte);
+      return c && c.type === 'ally' ? bodyValue(c, ctx, 0.8) : null;
+    }
+    return null;
+  }
+  if (z.cible) {
+    const pool = (CIBLES_ENNEMIES.includes(targetId(e.tm)) ? ctx.foeBoard : ctx.board) || [];
+    return pool.length ? moyenneCorps(pool, ctx) : null;
+  }
+  if (!ctx.B) return null;
+  const allies = pilesVisees(ctx.B, ctx.k, e).flat().filter(c => c.type === 'ally' && cardMatches(c, e));
+  return allies.length ? moyenneCorps(allies, ctx) : null;
 }
 
 /** Valeur approximative d'un effet, en "points de tempo". ctx = tailles de plateau. */
@@ -97,9 +179,22 @@ function effectValue(e, ctx) {
       // sans meute en face, la carte ne fait rien et le bot ne doit pas la jouer.
       if (targetId(e.t) === 'enemyType') return v * typeCount(ctx.foeBoard, e.t) * 0.9;
       if (targetId(e.t) === 'allyType') return -v * typeCount(ctx.board, e.t);
+      // Sans camp : un balayage compte ce qu'on gagne en face MOINS ce qu'on perd chez
+      // soi — c'est ce qui fait qu'on ne joue « degats a tout le monde » qu'en retard.
+      if (e.t === 'allUnits') return v * (ctx.enemies * 0.9 - ctx.allies);
+      if (targetId(e.t) === 'anyType') return v * (typeCount(ctx.foeBoard, e.t) * 0.9 - typeCount(ctx.board, e.t));
+      // Une unite au hasard des deux camps : une chance sur deux de se tirer dessus.
+      if (e.t === 'randomUnit') return v * (ctx.enemies - ctx.allies) / Math.max(1, ctx.enemies + ctx.allies);
+      // Designee, elle part en face — le bot choisit sa cible. Sans rien en face, il ne
+      // resterait que nos propres unites a blesser : c'est un cout.
+      if (e.t === 'anyUnit') return ctx.enemies ? v : -v;
       // Se blesser soi-meme ou blesser un allie est un cout, pas un gain : le bot
       // doit prendre une carte pareille pour ce qu'elle est.
       if (['self', 'randomAllyUnit', 'randomAllyAny'].includes(e.t)) return -v;
+      // « Les autres du meme type que Lui » : on ne sait pas encore qui sera touche,
+      // ca depend de ce que l'effet d'avant a vise. Au mieux le reste du plateau, et
+      // rien du tout quand il n'y a personne d'autre.
+      if (e.t === 'previousType') return v * 0.5 * Math.max(0, ctx.enemies - 1);
       // Une cible tiree au sort vaut un peu moins qu'une cible choisie.
       // « Lui » peut viser aussi bien un jeton adverse qu'un des notres selon ce que
       // l'effet d'avant a touche : on ne parie ni dans un sens ni dans l'autre.
@@ -113,8 +208,14 @@ function effectValue(e, ctx) {
       const poids = u => (u.atk || 0) * 1.3 + (u.hp || 0) * 0.35;
       const somme = list => (list || []).reduce((a, u) => a + poids(u), 0);
       const moyenne = list => (list && list.length ? somme(list) / list.length : 0);
-      const duType = list => (list || []).filter(u => typesOf(u).includes(targetArg(e.t)));
+      const duType = list => (list || []).filter(u => estDuType(u, targetArg(e.t)));
       switch (targetId(e.t)) {
+        // Sans camp : ce qu'on enleve en face moins ce qu'on s'enleve a soi.
+        case 'allUnits': return somme(ctx.foeBoard) - somme(ctx.board);
+        case 'anyType': return somme(duType(ctx.foeBoard)) - somme(duType(ctx.board));
+        case 'randomUnit': return (moyenne(ctx.foeBoard) - moyenne(ctx.board)) * 0.85;
+        // Designee : le bot vise la plus grosse d'en face, comme « une unite adverse ».
+        case 'anyUnit': return ctx.enemies ? Math.max(0, ...(ctx.foeBoard || []).map(poids)) : -moyenne(ctx.board);
         case 'allEnemyUnits': return somme(ctx.foeBoard);
         case 'enemyType': return somme(duType(ctx.foeBoard));
         // On designe la cible : c'est la plus grosse unite d'en face qui tombe.
@@ -146,7 +247,7 @@ function effectValue(e, ctx) {
       // cadeau si les cartes sont a l'adversaire.
       const combien = e.n === undefined ? 1 : n('n');
       const gain = ((e.atk === undefined ? 0 : n('atk')) * 1.1 + (e.hp === undefined ? 0 : n('hp')) * 0.6) * combien * 0.6;
-      return e.qui === 'adversaire' ? -gain : gain;
+      return gain * signeDuPaquet(e);
     }
     case 'melange_a_la_pioche':
     case 'renvoie_en_main':
@@ -171,8 +272,58 @@ function effectValue(e, ctx) {
         return (vise ? 1 : -1) * combienUnites * (poids - prix * 0.5 - renfort);
       }
       const pourLeCampVise = ((e.d_ou === 'main' ? -0.6 : prix) + renfort) * combien;
-      return e.qui === 'adversaire' ? -pourLeCampVise : pourLeCampVise;
+      return pourLeCampVise * signeDuPaquet(e);
     }
+    case 'copie': {
+      // Une copie est un ECHANGE : on gagne le corps du modele, on perd celui qu'on
+      // remplace. En face, le signe s'inverse — transformer une grosse unite adverse
+      // en petite chose est un retrait, lui offrir un meilleur corps est un cadeau.
+      const t = targetId(e.t);
+      const enFace = CIBLES_ENNEMIES.includes(t);
+      const corps = (enFace ? ctx.foeBoard : ctx.board) || [];
+      const modele = valeurDuModele(e, ctx);
+      if (modele === null) return 0.5;   // on ne sait pas ce qui tombe : rien de tranche
+      const remplace = t === 'self' ? bodyValue(ctx.carte || {}, ctx, 0.8) : moyenneCorps(corps, ctx);
+      const combien = ['allEnemyUnits', 'allAllies'].includes(t) ? corps.length : 1;
+      return (enFace ? -1 : 1) * (modele - remplace) * combien;
+    }
+    case 'switch': {
+      // L'autre face est CONNUE quand on switche une unite en jeu : c'est un echange,
+      // comme une copie — ce qu'on gagne moins ce qu'on perd, signe inverse en face.
+      // Dans un paquet, on ne sait pas encore quelle carte sera prise : petite utilite.
+      if (!(ZONES[e.d_ou] || {}).cible) return 0.4;
+      const t = targetId(e.t);
+      const enFace = CIBLES_ENNEMIES.includes(t);
+      const corps = (enFace ? ctx.foeBoard : ctx.board) || [];
+      if (!corps.length) return 0;
+      const gain = u => {
+        // On lit la definition, pas la carte resolue : le bot sous-estime un peu une
+        // autre face a gros paliers, plutot que d'inventer un niveau.
+        const face = switchOf((u.card || {}).id);
+        if (!face) return 0;                                  // pas d'autre face
+        return (face.type === 'ally' ? bodyValue(face, ctx, 0.8) : effectsValue(face.play, ctx))
+          - bodyValue(u, ctx, 0.8);
+      };
+      const somme = corps.reduce((a, u) => a + gain(u), 0);
+      const tout = ['allEnemyUnits', 'allAllies', 'enemyType', 'allyType', 'allUnits', 'anyType'].includes(t);
+      return (enFace ? -1 : 1) * (tout ? somme : somme / corps.length);
+    }
+    case 'prendre_le_controle': {
+      // Un corps qu'on enleve a l'adversaire ET qu'on met de notre cote : il change
+      // deux fois de camp dans le compte. Un peu moins que deux fois sa valeur, parce
+      // qu'il n'attaque pas le tour ou il arrive.
+      const t = targetId(e.t);
+      if (CIBLES_ALLIEES.includes(t) || t === 'self') return 0;   // prendre chez soi ne fait rien
+      const proies = (ctx.foeBoard || []).map(u => bodyValue(u, ctx, 0.8));
+      if (!proies.length) return 0;
+      const somme = proies.reduce((a, v) => a + v, 0);
+      const prise = ['allEnemyUnits', 'enemyType', 'allUnits', 'anyType'].includes(t) ? somme
+        : (TARGETS[t] || {}).random ? somme / proies.length
+          : Math.max(...proies);
+      return prise * 1.8;
+    }
+    // On garde la meilleure des deux branches : c'est celle que le bot jouera.
+    case 'choisir': return Math.max(brancheValue(e.a, ctx), brancheValue(e.b, ctx));
     case 'pioche_x': return (e.n === undefined ? 1 : n('n')) * 2;
     case 'pioche_une_carte_de_type': return (e.n === undefined ? 1 : n('n')) * 1.8;
     // Du mana rendu sur des cartes qu'on a deja en main : c'est du tempo pour plus tard.
@@ -187,6 +338,15 @@ function effectValue(e, ctx) {
       const t = targetId(e.t);
       // Un renfort « du meme type » ne vaut que le nombre d'allies etiquetes presents :
       // sans meute sur le plateau, il ne fait rien, et le bot ne doit pas le jouer.
+      // SANS CAMP, le signe se calcule au lieu de se lire. Un renfort qui touche tout
+      // le monde profite au camp qui a le plus d'unites ; un affaiblissement (per < 0)
+      // s'inverse alors tout seul, sans un cas de plus.
+      if (t === 'allUnits') return per * (ctx.allies - ctx.enemies);
+      if (t === 'anyType') return per * (typeCount(ctx.board, e.t) - typeCount(ctx.foeBoard, e.t));
+      if (t === 'randomUnit') return per * (ctx.allies - ctx.enemies) / Math.max(1, ctx.allies + ctx.enemies);
+      // Designee : le bot l'envoie du bon cote — renforcer chez soi, affaiblir en face —
+      // donc elle vaut ce qu'elle donne, a condition qu'il y ait quelqu'un de ce cote-la.
+      if (t === 'anyUnit') return per >= 0 ? (ctx.allies ? per : 0) : (ctx.enemies ? -per : 0);
       const cibles = e.t === 'allAllies' ? Math.max(1, ctx.allies)
         : e.t === 'allEnemyUnits' ? Math.max(1, ctx.enemies)
           : e.t === 'sameTypeAllies' ? Math.max(0, ctx.sameType || 0)
@@ -209,6 +369,8 @@ function effectValue(e, ctx) {
 }
 
 const effectsValue = (list, ctx) => (list || []).reduce((a, e) => a + effectValue(e, ctx), 0);
+/** Une branche de « Choisir » : la somme de ses effets. Vide, elle ne vaut rien. */
+const brancheValue = (v, ctx) => effectsValue(listeEffets(v), ctx);
 
 /** Une aura ne vaut rien seule : elle vaut ce qu'elle multiplie. */
 function auraValue(aura, allies, enemies, sameType) {
@@ -256,7 +418,7 @@ function estimee(B, k, card) {
   // Elle n'est pas encore sur le plateau : les compteurs qui comptent les allies
   // vaudront un de plus une fois qu'elle sera posee.
   if (f.src === 'allyUnits') x += 1;
-  if (f.src === 'alliesOfType' && typesOf(card).includes(f.arg)) x += 1;
+  if (f.src === 'alliesOfType' && estDuType(card, f.arg)) x += 1;
   const copie = { ...card };
   if (f.stat === 'atk' || f.stat === 'both') copie.atk = x;
   if (f.stat === 'hp' || f.stat === 'both') copie.hp = x;
@@ -289,15 +451,40 @@ function bodyValue(u, ctx, poidsPv) {
   return v;
 }
 
-/** Ce que vaut une carte si on la pose maintenant, dans cette position. */
-function cardValue(B, k, def) {
+/**
+ * La position, telle que la fonction de valeur la lit. Ecrite une fois : `cardValue` et
+ * le choix d'une branche doivent juger la meme chose, sinon le bot choisirait la
+ * branche B en croyant jouer la valeur de la branche A.
+ * `place` : combien de cartes tiendraient encore en main. La carte qu'on evalue va
+ * quitter la main en etant jouee, d'ou le +1.
+ */
+function contexte(B, k, card) {
   const me = B[k], them = B[foe(k)];
-  const card = estimee(B, k, def);
-  // `place` : combien de cartes tiendraient encore en main. La carte qu'on evalue va
-  // quitter la main en etant jouee, d'ou le +1.
-  const ctx = { allies: me.board.length, enemies: them.board.length, sameType: sameTypeCount(me.board, card),
+  return { allies: me.board.length, enemies: them.board.length, sameType: sameTypeCount(me.board, card),
     place: Math.max(0, BALANCE.combat.handMax - me.hand.length + 1),
     board: me.board, foeBoard: them.board, B, k, carte: card };
+}
+
+/**
+ * QUELLE BRANCHE le bot prend sur une carte « Choisir » : celle qui vaut le plus dans
+ * cette position. Le Monte-Carlo, lui, ne s'en sert pas — il essaie les deux et joue
+ * les parties jusqu'au bout (cf. `coupsPossibles`).
+ */
+export function meilleureBranche(B, k, card) {
+  const ctx = contexte(B, k, card);
+  let a = 0, b = 0;
+  for (const brut of card.play || []) eachSubEffect(brut, e => {
+    if (e.op !== 'choisir') return;
+    a += brancheValue(e.a, ctx);
+    b += brancheValue(e.b, ctx);
+  });
+  return b > a ? 'b' : 'a';
+}
+
+/** Ce que vaut une carte si on la pose maintenant, dans cette position. */
+function cardValue(B, k, def) {
+  const card = estimee(B, k, def);
+  const ctx = contexte(B, k, card);
   let v = effectsValue(card.play, ctx);
 
   if (card.type === 'ally') {
@@ -409,6 +596,14 @@ function coupsPossibles(B, k) {
   const coups = [];
   me.hand.forEach((c, i) => {
     if (!canPlay(B, k, c)) return;
+    // Une carte « Choisir » fait DEUX coups : le Monte-Carlo joue les deux branches
+    // jusqu'au bout et garde celle qui gagne le plus souvent. C'est mieux qu'une
+    // fonction de valeur, et ca ne coute qu'un candidat de plus.
+    if (needsChoice(c)) {
+      // Chaque branche a ses propres cibles : on vise avec celle qu'on essaie.
+      for (const choix of ['a', 'b']) coups.push({ type: 'play', index: i, target: pickTarget(B, k, c, choix), choix });
+      return;
+    }
     coups.push({ type: 'play', index: i, target: pickTarget(B, k, c) });
   });
   for (const u of me.board.filter(u => u.canAttack && u.atk > 0)) {
@@ -420,7 +615,7 @@ function coupsPossibles(B, k) {
 
 function applique(B, k, a) {
   if (!a || a.type === 'end') endTurn(B);
-  else if (a.type === 'play') { if (!playCard(B, k, a.index, a.target)) endTurn(B); }
+  else if (a.type === 'play') { if (!playCard(B, k, a.index, a.target, a.choix)) endTurn(B); }
   else if (a.type === 'attack') { if (!attack(B, k, a.uid, a.target)) endTurn(B); }
 }
 
@@ -556,7 +751,8 @@ function decrisCoup(B, k, a, victoires) {
   const c = B[k].hand[a.index];
   if (!c) return { ...note, quoi: 'carte', nom: '?' };
   return {
-    ...note, quoi: 'carte', id: c.id || null, nom: c.name,
+    ...note, quoi: 'carte', id: c.id || null,
+    nom: c.name + (a.choix ? ` (choix ${a.choix.toUpperCase()})` : ''),
     cout: cardCost(c, B, k),
     // Ce que la fonction de valeur du bot pense de la carte. Pour un Monte-Carlo ce
     // n'est PAS son critere : c'est un deuxieme avis, et leur desaccord se lit.
@@ -597,9 +793,27 @@ export function botAction(B, k, opts) {
     noteLaDecision(B, k, a, evalues);
     return a;
   }
-  const a = decide(B, k, jeu);
+  const a = avecChoix(B, k, decide(B, k, jeu));
   noteLaDecision(B, k, a, null);
   return a;
+}
+
+/**
+ * Une carte « Choisir » ne part jamais sans reponse. Les priorites du GDD construisent
+ * leur coup a sept endroits differents : on complete a la sortie plutot que d'ajouter
+ * la meme ligne sept fois. Le Monte-Carlo, lui, a deja tranche (les deux branches sont
+ * des coups distincts) et on ne touche pas a son choix.
+ */
+function avecChoix(B, k, a) {
+  if (!a || a.type !== 'play' || a.choix) return a;
+  const c = B[k].hand[a.index];
+  if (!c || !needsChoice(c)) return a;
+  const choix = meilleureBranche(B, k, c);
+  // La cible avait ete choisie sans savoir quelle branche partirait : si elle ne
+  // convient pas a celle-ci, on en reprend une qui convient.
+  const legales = legalTargets(B, k, c, choix);
+  const bonne = a.target && legales.some(t => t.side === a.target.side && t.uid === a.target.uid);
+  return { ...a, choix, target: bonne ? a.target : pickTarget(B, k, c, choix) };
 }
 
 /** Les 4 priorites du GDD. Rend UNE action, ou {type:'end'} quand il n'y a plus rien. */
@@ -765,12 +979,18 @@ function randomAction(B, k, playable, ready) {
   return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
 }
 
-function pickTarget(B, k, card) {
-  if (!needsTarget(card)) return null;
-  const targets = legalTargets(B, k, card);
+function pickTarget(B, k, card, choix) {
+  if (!needsTarget(card, choix)) return null;
+  const targets = legalTargets(B, k, card, choix);
   if (!targets.length) return { side: foe(k), uid: 'hero' };
 
-  const soutien = (card.play || []).some(e => e.op === 'buff' || (e.op === 'heal' && e.t === 'allyUnit'));
+  // UN SOUTIEN EST UN EFFET QUI FAIT DU BIEN, et ca se lit au SIGNE : un renfort
+  // negatif est un affaiblissement, il n'a rien a faire sur nos propres unites. La
+  // question se pose depuis qu'une cible peut n'avoir aucun camp (« une unite, alliee
+  // ou adverse ») : avant, le cote de la cible tranchait tout seul.
+  const effets = effetsDeLaCarte(card, choix);
+  const soutien = effets.some(e => e.op === 'heal'
+    || (e.op === 'buff' && (e.atk || 0) >= 0 && (e.hp || 0) >= 0));
   if (soutien) {
     const mine = targets.filter(t => t.side === k)
       .map(t => B[k].board.find(u => u.uid === t.uid)).filter(Boolean);
@@ -786,8 +1006,9 @@ function pickTarget(B, k, card) {
     }
   }
 
-  // Une destruction ne regarde pas les PV : on enleve l'unite la plus genante.
-  if ((card.play || []).some(e => e.op === 'detruit')) {
+  // Une destruction ne regarde pas les PV : on enleve l'unite la plus genante. Une
+  // prise de controle vise pareil — c'est le meme retrait, avec un corps en prime.
+  if (effets.some(e => e.op === 'detruit' || e.op === 'prendre_le_controle')) {
     const them = B[foe(k)];
     const proies = targets.filter(t => t.side === foe(k) && t.uid !== 'hero')
       .map(t => them.board.find(u => u.uid === t.uid)).filter(Boolean)
@@ -795,7 +1016,21 @@ function pickTarget(B, k, card) {
     if (proies.length) return { side: foe(k), uid: proies[0].uid };
   }
 
-  const dmg = (card.play || []).filter(e => e.op === 'dmg').reduce((a, e) => a + amountValue(e.v, B, k, null), 0);
+  // Une copie : en face on transforme la plus genante (c'est un retrait), chez soi la
+  // plus faible (c'est elle qui a le plus a gagner a changer de peau).
+  const copie = effets.find(e => e.op === 'copie');
+  if (copie) {
+    const enFace = CIBLES_ENNEMIES.includes(targetId(copie.t));
+    const camp = enFace ? foe(k) : k;
+    const unites = targets.filter(t => t.side === camp && t.uid !== 'hero')
+      .map(t => B[camp].board.find(u => u.uid === t.uid)).filter(Boolean);
+    const choisie = enFace
+      ? unites.sort((a, b) => unitThreat(B, k, b) - unitThreat(B, k, a))[0]
+      : unites.sort((a, b) => (a.atk + a.hp) - (b.atk + b.hp))[0];
+    if (choisie) return { side: camp, uid: choisie.uid };
+  }
+
+  const dmg = effets.filter(e => e.op === 'dmg').reduce((a, e) => a + amountValue(e.v, B, k, null), 0);
   if (dmg) {
     const them = B[foe(k)];
     const kill = them.board.filter(u => u.hp <= dmg)
@@ -803,6 +1038,13 @@ function pickTarget(B, k, card) {
     if (kill) return { side: foe(k), uid: kill.uid };
     const face = targets.find(t => t.uid === 'hero');
     if (face) return face;
+    // Rien a abattre, pas de heros a portee : on frappe quand meme EN FACE, et la plus
+    // genante. Sans ca, une cible sans camp (« une unite, alliee ou adverse ») partait
+    // sur la premiere de la liste — c'est-a-dire sur une des notres.
+    const proie = targets.filter(t => t.side === foe(k) && t.uid !== 'hero')
+      .map(t => them.board.find(u => u.uid === t.uid)).filter(Boolean)
+      .sort((a, b) => unitThreat(B, k, b) - unitThreat(B, k, a))[0];
+    if (proie) return { side: foe(k), uid: proie.uid };
   }
   return targets[0];
 }

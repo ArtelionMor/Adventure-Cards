@@ -4,7 +4,7 @@
 // Tout passe par de vrais chemins de code : on tue avec un sort, jamais en bidouillant
 // les PV a la main — sinon le test ne prouve rien sur le vrai jeu.
 //   node scripts/test-triggers.mjs
-import { createBattle, playCard, endTurn, attack, attackableTargets, canPlay, cardCost, draw } from '../game/src/combat/engine.js';
+import { createBattle, playCard, endTurn, attack, attackableTargets, canPlay, cardCost, draw, needsTarget, needsChoice, legalTargets } from '../game/src/combat/engine.js';
 import { resolveCard } from '../game/src/config/characters.js';
 import { BALANCE } from '../game/src/config/balance.js';
 // La pile de fatigue est une donnee de jeu, pas un etat de combat : les tests la
@@ -14,11 +14,33 @@ import { CHARACTER_DATA } from '../game/data/characters.data.js';
 // donc leur nom et leurs stats dans le catalogue, jamais en dur — sinon renommer une
 // carte dans le builder ferait echouer le banc.
 import { cardById } from '../game/src/config/npcs.js';
+// « Est-elle de ce type ? » se demande au registre, jamais en comparant les mots-cles
+// a la main : une carte « Type : tous » repond oui sans porter l'etiquette.
+import { estDuType, eventSlot, momentLabel, ALL_EFFECTS, ALL_KEYWORDS } from '../game/src/config/mechanics.js';
+// Le banc verifie aussi les regles du builder : elles vivent dans le meme registre, et
+// une carte valide signalee a tort coute autant qu'un effet qui ne part pas.
+import { validateData } from '../game/src/config/validate.js';
 
 // LE BANC PART D'UNE PILE VIDE, quoi que le designer ait mis dans la sienne : ces tests
 // disent ce que fait le MOTEUR, pas ce que vaut l'equilibrage du moment. Sans ca, remplir
 // la pile dans le builder ferait echouer les tests de fin de pioche.
 CHARACTER_DATA.fatigue = [];
+
+// L'effet « Switch » remplace une carte par celle qui occupe le meme slot de l'autre
+// cote. Le banc se donne donc un personnage a lui, avec ses deux faces, plutot que de
+// dependre des cartes que le designer a ecrites aujourd'hui.
+CHARACTER_DATA.characters.push({
+  id: 'banc', name: 'Banc d\'essai', sprite: '',
+  cards: [
+    { id: 'banc_base', name: 'Chenille', type: 'ally', cost: 1, atk: 1, hp: 1, keys: [], text: '', play: [], tiers: [] },
+    { id: 'banc_corps', name: 'Cocon', type: 'ally', cost: 1, atk: 0, hp: 4, keys: [], text: '', play: [], tiers: [] }
+  ],
+  switches: [
+    { id: 'banc_switch', name: 'Papillon', type: 'ally', cost: 1, atk: 3, hp: 2, keys: ['Charge'], text: '', play: [], tiers: [] },
+    { id: 'banc_sort', name: 'Envol', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+      play: [{ op: 'dmg', t: 'enemyHero', v: 3 }] }
+  ]
+});
 
 let pass = 0, fail = 0;
 function check(label, got, want) {
@@ -51,10 +73,10 @@ function setup(playerCards, enemyCards = [], deckJoueur = []) {
   return B;
 }
 const board = (B, k) => B[k].board.map(u => `${u.name} ${u.atk}/${u.hp}`);
-const play = (B, k, name, target = null) => {
+const play = (B, k, name, target = null, choix = null) => {
   const i = B[k].hand.findIndex(c => c.name === name);
   if (i < 0) throw new Error('carte absente de la main : ' + name);
-  if (!playCard(B, k, i, target)) throw new Error('carte injouable : ' + name);
+  if (!playCard(B, k, i, target, choix)) throw new Error('carte injouable : ' + name);
 };
 /** Tue une unite adverse avec un sort, comme le ferait un vrai joueur. */
 const tuer = (B, tueur, cibleSide, nom) => {
@@ -1510,19 +1532,22 @@ console.log('\nCreer une carte');
   const B = setup([meute]);
   play(B, 'p', 'Appel de la meute');
   check('six chiens tires', B.p.hand.length, 6);
-  check('et tous sont des Chiens', B.p.hand.every(c => (c.keys || []).includes('type:Chien')), true);
+  check('et tous sont des Chiens', B.p.hand.every(c => estDuType(c, 'Chien')), true);
   // Un tirage PAR EXEMPLAIRE : six copies de la meme carte seraient un tirage unique
   // recopie (le catalogue compte assez de Chiens pour que ce soit indiscutable).
   check('des tirages independants', new Set(B.p.hand.map(c => c.id)).size > 1, true);
 }
 {
   // Un filtre que rien ne satisfait ne cree rien, et le journal explique lequel.
+  // Le filtre est un MOT-CLE inexistant, et pas un type : depuis « Type : tous », une
+  // carte du catalogue peut repondre oui a n'importe quel type, donc aucun type ne
+  // garantit un sac vide — ce banc teste le moteur, pas les cartes du moment.
   const chimere = { id: 'chi', name: 'Chimere', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
-    play: [{ op: 'cree', choix: 'hasard', quoi: 'ofType', argType: 'Licorne', n: 2 }] };
+    play: [{ op: 'cree', choix: 'hasard', quoi: 'withKey', argKey: 'licorne_imaginaire', n: 2 }] };
   const B = setup([chimere]);
   play(B, 'p', 'Chimere');
   check('rien ne correspond, rien n arrive', B.p.hand.length, 0);
-  check('et le journal nomme le sac vide', B.log.some(l => l.includes('Licorne')), true);
+  check('et le journal nomme le sac vide', B.log.some(l => l.includes('licorne_imaginaire')), true);
 }
 {
   // Le hasard sert aussi aux trois deplacements, par la zone « creees de toutes
@@ -2138,6 +2163,906 @@ console.log('\nLe niveau du proprietaire comme nombre');
   const B = setup([resolveCard(def, 6)]);
   play(B, 'p', 'Appel');
   check('le jeton compte le niveau de son invocateur', board(B, 'p'), ['Echo 6/5']);
+}
+
+// ---------------------------------------------------------------------------
+// « Type : tous » repond oui a n'importe quelle etiquette. Il ne se code nulle part
+// dans le moteur : tout ce qui demande un type passe par `estDuType`/`partageType`,
+// donc cibles, auras, compteurs et filtres de cartes le voient d'un coup. C'est
+// exactement ce que ces tests verifient — les quatre chemins, pas la fonction.
+console.log('\nType : tous');
+{
+  const chef = ally('Chef', 2, 3, { keys: ['type:Chien'], aura: { scope: 'sameTypeAllies', atk: 1, hp: 1 } });
+  const B = setup([ally('Cameleon', 1, 1, { keys: ['type_tous'] }), ally('Corbeau', 1, 1), chef]);
+  play(B, 'p', 'Cameleon');
+  play(B, 'p', 'Corbeau');
+  play(B, 'p', 'Chef');
+  check("l'aura « meme type » touche le cameleon, pas l'unite sans type",
+    board(B, 'p'), ['Cameleon 2/2', 'Corbeau 1/1', 'Chef 2/3']);
+}
+{
+  // Dans l'autre sens : c'est lui qui porte l'aura. Une unite sans aucune etiquette
+  // ne partage rien avec personne, pas meme avec « tous ».
+  const cam = ally('Cameleon', 2, 3, { keys: ['type_tous'], aura: { scope: 'sameTypeAllies', atk: 1, hp: 0 } });
+  const B = setup([ally('Chiot', 1, 1, { keys: ['type:Chien'] }), ally('Muet', 1, 1), cam]);
+  play(B, 'p', 'Chiot');
+  play(B, 'p', 'Muet');
+  play(B, 'p', 'Cameleon');
+  check('son aura porte sur tout ce qui est etiquete, et rien d\'autre',
+    board(B, 'p'), ['Chiot 2/1', 'Muet 1/1', 'Cameleon 2/3']);
+}
+{
+  const meute = { id: 'me', name: 'Meute', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'buff', t: 'allyType:Chat', atk: 1, hp: 1 }] };
+  const B = setup([ally('Cameleon', 1, 1, { keys: ['type_tous'] }), ally('Chiot', 1, 1, { keys: ['type:Chien'] }), meute]);
+  play(B, 'p', 'Cameleon');
+  play(B, 'p', 'Chiot');
+  play(B, 'p', 'Meute');
+  check('la cible « tes allies Chat » le prend', board(B, 'p'), ['Cameleon 2/2', 'Chiot 1/1']);
+}
+{
+  const meneur = ally('Meneur', 0, 5, { keys: ['characteristique_variable:atk:alliesOfType:Chat'] });
+  const B = setup([ally('Cameleon', 1, 1, { keys: ['type_tous'] }), meneur]);
+  play(B, 'p', 'Cameleon');
+  play(B, 'p', 'Meneur');
+  check('il compte dans « tes allies d\'un type »', board(B, 'p'), ['Cameleon 1/1', 'Meneur 1/5']);
+}
+{
+  // Le filtre de cartes le voit aussi : c'est le meme `estDuType`, sur une carte en
+  // main cette fois — un chemin de plus qu'il n'a pas fallu ecrire.
+  const cam = ally('Cameleon', 1, 1, { keys: ['type_tous'] });
+  cam.cost = 3;
+  const remise = { id: 'rem', name: 'Remise', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'reduit_le_cout_de', quoi: 'ofType', argType: 'Chat', v: 2 }] };
+  const B = setup([cam, remise]);
+  play(B, 'p', 'Remise');
+  check('le filtre « tes cartes Chat » l\'allege en main', cardCost(B.p.hand[0], B, 'p'), 1);
+}
+
+{
+  // UN TYPE DONNE PAR UNE AURA compte comme celui qui est ecrit sur la carte... sauf
+  // pour decider de la PORTEE des auras, qui se lit sur les types imprimes. Sans cette
+  // exception, une aura qui donne un type elargirait la portee des auras « meme type ».
+  const chef = ally('Chef', 2, 3, { keys: ['type:Chien'], aura: { scope: 'sameTypeAllies', atk: 1, hp: 1 } });
+  const donneur = ally('Donneur', 1, 1, { aura: { scope: 'otherAllies', atk: 0, hp: 0, key: 'type_tous' } });
+  const rappel = { id: 'rp', name: 'Rappel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'buff', t: 'allyType:Chien', atk: 1, hp: 0 }] };
+  const B = setup([chef, donneur, ally('Muet', 1, 1), rappel]);
+  play(B, 'p', 'Chef');
+  play(B, 'p', 'Donneur');
+  play(B, 'p', 'Muet');
+  check("l'aura « meme type » ne s'etend pas a ce qu'elle vient d'etiqueter",
+    board(B, 'p'), ['Chef 2/3', 'Donneur 1/1', 'Muet 1/1']);
+  play(B, 'p', 'Rappel');
+  check('mais le type recu compte pour les cibles par type',
+    board(B, 'p'), ['Chef 3/3', 'Donneur 1/1', 'Muet 2/1']);
+}
+{
+  // Donne par un RENFORT : il s'ecrit sur l'unite, il reste quand la carte est partie.
+  const marque = { id: 'mq', name: 'Marque', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'buff', t: 'allyUnit', atk: 0, hp: 0, key: 'type_tous' }] };
+  const rappel = { id: 'rp2', name: 'Rappel2', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'buff', t: 'allyType:Chat', atk: 1, hp: 1 }] };
+  const B = setup([ally('Muet', 1, 1), marque, rappel]);
+  play(B, 'p', 'Muet');
+  play(B, 'p', 'Marque', { side: 'p', uid: B.p.board[0].uid });
+  play(B, 'p', 'Rappel2');
+  check('un renfort peut donner « Type : tous »', board(B, 'p'), ['Muet 2/2']);
+}
+{
+  // Et un JETON le porte comme n'importe quel mot-cle.
+  const appel = { id: 'ap2', name: 'Appel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'summon', n: 1, unit: { name: 'Echo', atk: 1, hp: 1, keys: ['type_tous'] } },
+      { op: 'buff', t: 'allyType:Chien', atk: 2, hp: 0 }] };
+  const B = setup([appel]);
+  play(B, 'p', 'Appel');
+  check('un jeton « Type : tous » est pris par une cible par type', board(B, 'p'), ['Echo 3/1']);
+}
+
+// ---------------------------------------------------------------------------
+// Plusieurs types sur la meme carte. Le moteur lisait deja toutes les valeurs d'un
+// mot-cle (`keyArgs`) : ces tests disent qu'un corbeau est bien « Corbeau » ET
+// « Oiseau » partout, et non seulement dans le premier des deux.
+console.log('\nPlusieurs types sur une carte');
+{
+  const corbeau = ally('Corbeau', 1, 1, { keys: ['type:Corbeau', 'type:Oiseau'] });
+  const B = setup([corbeau]);
+  play(B, 'p', 'Corbeau');
+  check('les deux etiquettes sont derivees sur l\'unite', B.p.board[0].types, ['Corbeau', 'Oiseau']);
+}
+{
+  const chef = ally('Rapace', 2, 3, { keys: ['type:Oiseau'], aura: { scope: 'sameTypeAllies', atk: 1, hp: 1 } });
+  const B = setup([ally('Corbeau', 1, 1, { keys: ['type:Corbeau', 'type:Oiseau'] }), ally('Chiot', 1, 1, { keys: ['type:Chien'] }), chef]);
+  play(B, 'p', 'Corbeau');
+  play(B, 'p', 'Chiot');
+  play(B, 'p', 'Rapace');
+  check('un seul type en commun suffit a partager l\'aura',
+    board(B, 'p'), ['Corbeau 2/2', 'Chiot 1/1', 'Rapace 2/3']);
+}
+{
+  const cri = { id: 'cr', name: 'Cri', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'buff', t: 'allyType:Corbeau', atk: 2, hp: 0 }] };
+  const B = setup([ally('Corbeau', 1, 1, { keys: ['type:Corbeau', 'type:Oiseau'] }), cri]);
+  play(B, 'p', 'Corbeau');
+  play(B, 'p', 'Cri');
+  check('la cible trouve le second type comme le premier', board(B, 'p'), ['Corbeau 3/1']);
+}
+
+// ---------------------------------------------------------------------------
+// LA COPIE. Deux cibles sur un meme effet (qui devient la copie, et de quoi), un
+// modele qu'on lit sans le deplacer, et une unite qui repart a neuf.
+console.log('\nCopie');
+const golem = ally('Golem', 5, 6, { keys: ['type:Golem'] });
+/** Un allie dont le cri de guerre le transforme en une carte de sa pioche. */
+const singe = (nom, type) => ally(nom, 1, 1, {
+  play: [{ op: 'copie', t: 'self', d_ou: 'pioche', quoi: 'ofType', argType: type }]
+});
+{
+  const mimique = ally('Mimique', 1, 1, { play: [{ op: 'copie', t: 'self', d_ou: 'plateau', tm: 'enemyUnit' }] });
+  const B = setup([mimique], [ally('Ogre', 4, 5)]);
+  play(B, 'e', 'Ogre');
+  check('la cible du modele est bien demandee au joueur', needsTarget(mimique), true);
+  check('et les unites adverses sont proposees', legalTargets(B, 'p', mimique).map(t => t.side), ['e']);
+  play(B, 'p', 'Mimique', { side: 'e', uid: B.e.board[0].uid });
+  check('l\'unite devient la copie de la carte ciblee', board(B, 'p'), ['Ogre 4/5']);
+  check('le modele, lui, n\'a pas bouge', board(B, 'e'), ['Ogre 4/5']);
+}
+{
+  // Une copie repart a neuf : les degats subis s'effacent, et la carte modele reste
+  // dans le paquet ou on est alle la lire.
+  const meta = { id: 'mt', name: 'Metamorphose', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'copie', t: 'allyUnit', d_ou: 'pioche', quoi: 'ofType', argType: 'Golem' }] };
+  const B = setup([ally('Blesse', 3, 5), meta], [frappe(2)], [golem]);
+  play(B, 'p', 'Blesse');
+  const u = B.p.board[0];
+  play(B, 'e', 'Frappe2', { side: 'p', uid: u.uid });
+  check('l\'unite est bien entamee', board(B, 'p'), ['Blesse 3/3']);
+  play(B, 'p', 'Metamorphose', { side: 'p', uid: u.uid });
+  check('elle devient la carte de la pioche, sans ses degats', board(B, 'p'), ['Golem 5/6']);
+  check('c\'est toujours la meme unite sur le plateau', B.p.board[0].uid, u.uid);
+  check('et le modele est reste dans la pioche', B.p.deck.filter(c => c.name === 'Golem').length, 1);
+}
+{
+  const bombe = ally('Bombe', 1, 1, { keys: ['type:Bombe'], death: [{ op: 'dmg', t: 'enemyHero', v: 3 }] });
+  const B = setup([singe('Singe', 'Bombe')], [frappe(99)], [bombe]);
+  play(B, 'p', 'Singe');
+  check('elle prend le nom et la ligne de statistiques du modele', board(B, 'p'), ['Bombe 1/1']);
+  const avant = B.e.hp;
+  tuer(B, 'e', 'p', 'Bombe');
+  check('et son rale d\'agonie', B.e.hp, avant - 3);
+}
+{
+  const foudre = ally('Foudre', 3, 3, { keys: ['Charge', 'type:Foudre'] });
+  const B = setup([singe('Singe', 'Foudre')], [], [foudre]);
+  play(B, 'p', 'Singe');
+  check('la Charge du modele permet de frapper tout de suite', B.p.board[0].canAttack, true);
+}
+{
+  // « Lui » designe l'unite qu'on vient de transformer.
+  const singeur = ally('Singeur', 1, 1, {
+    play: [{ op: 'copie', t: 'self', d_ou: 'pioche', quoi: 'ofType', argType: 'Golem' },
+      { op: 'buff', t: 'previous', atk: 1, hp: 1 }]
+  });
+  const B = setup([singeur], [], [golem]);
+  play(B, 'p', 'Singeur');
+  check('le renfort qui suit tombe sur la copie', board(B, 'p'), ['Golem 6/7']);
+}
+{
+  // Un seul modele, meme quand la cible designe plusieurs unites.
+  const foule = { id: 'fo', name: 'Foule', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'copie', t: 'allAllies', d_ou: 'pioche', quoi: 'ofType', argType: 'Golem' }] };
+  const B = setup([ally('A', 1, 1), ally('B', 2, 2), foule], [], [golem]);
+  play(B, 'p', 'A');
+  play(B, 'p', 'B');
+  play(B, 'p', 'Foule');
+  check('tout le monde devient la MEME carte', board(B, 'p'), ['Golem 5/6', 'Golem 5/6']);
+}
+{
+  // Un jeton n'a pas de carte : on copie ce qu'il annoncait en arrivant.
+  const appel = { id: 'ap', name: 'Appel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'summon', n: 1, unit: { name: 'Larve', atk: 2, hp: 2, keys: ['Taunt'] } }] };
+  const mimique = ally('Mimique', 1, 1, { play: [{ op: 'copie', t: 'self', d_ou: 'plateau', tm: 'enemyUnit' }] });
+  const B = setup([mimique], [appel]);
+  play(B, 'e', 'Appel');
+  play(B, 'p', 'Mimique', { side: 'e', uid: B.e.board[0].uid });
+  check('on peut copier un jeton', board(B, 'p'), ['Larve 2/2']);
+  check('avec ses mots-cles', B.p.board[0].keys, ['Taunt']);
+}
+{
+  // Un sort n'a ni attaque ni vie : on ne peut pas en devenir la copie.
+  const eclair = { id: 'ec', name: 'Eclair', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'enemyHero', v: 2 }] };
+  const singeur = ally('Singeur', 2, 2, { play: [{ op: 'copie', t: 'self', d_ou: 'pioche', quoi: 'spell' }] });
+  const B = setup([singeur], [], [eclair]);
+  play(B, 'p', 'Singeur');
+  check('une unite ne devient pas un sort', board(B, 'p'), ['Singeur 2/2']);
+}
+{
+  // Rien a copier : la carte le dit et ne fait rien de plus.
+  const B = setup([singe('Singe', 'Golem')]);
+  play(B, 'p', 'Singe');
+  check('sans modele dans le paquet, l\'unite reste elle-meme', board(B, 'p'), ['Singe 1/1']);
+  check('et aucune mecanique n\'est signalee comme non codee', B.pending, []);
+}
+
+// ---------------------------------------------------------------------------
+// LES CIBLES SANS CAMP. Toutes les autres obligent a choisir un cote avant de choisir
+// une unite ; celles-ci prennent des deux. Le camp n'est plus une question.
+console.log('\nCibles sans camp');
+{
+  // Designee : c'est la cible fournie qui dit de quel cote elle est. Le meme sort
+  // frappe donc chez soi comme en face.
+  const coup = { id: 'co', name: 'Coup', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'anyUnit', v: 2 }] };
+  const B = setup([ally('Mien', 2, 5), coup, { ...coup, id: 'co2', name: 'Coup2' }], [ally('Sien', 2, 5)]);
+  play(B, 'e', 'Sien');
+  play(B, 'p', 'Mien');
+  check('les deux plateaux sont proposes au joueur',
+    legalTargets(B, 'p', coup).map(t => t.side).sort(), ['e', 'p']);
+  play(B, 'p', 'Coup', { side: 'e', uid: B.e.board[0].uid });
+  play(B, 'p', 'Coup2', { side: 'p', uid: B.p.board[0].uid });
+  check('elle frappe en face...', board(B, 'e'), ['Sien 2/3']);
+  check('...comme chez soi', board(B, 'p'), ['Mien 2/3']);
+}
+{
+  // Sans personne pour designer (un rale d'agonie), le moteur tranche par la nature de
+  // l'effet : ce qui blesse part en face.
+  const bombe = ally('Bombe', 1, 1, { death: [{ op: 'dmg', t: 'anyUnit', v: 3 }] });
+  const B = setup([bombe], [ally('Cible', 1, 5), frappe(99)]);
+  play(B, 'e', 'Cible');
+  play(B, 'p', 'Bombe');
+  tuer(B, 'e', 'p', 'Bombe');
+  check('le rale choisit une unite adverse', board(B, 'e'), ['Cible 1/2']);
+}
+{
+  const orage = { id: 'or', name: 'Orage', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'allUnits', v: 1 }] };
+  const B = setup([ally('A', 1, 3), ally('B', 1, 3), orage], [ally('C', 1, 3)]);
+  play(B, 'e', 'C');
+  play(B, 'p', 'A');
+  play(B, 'p', 'B');
+  play(B, 'p', 'Orage');
+  check('« toutes les unites » n\'epargne personne, des deux cotes',
+    [...board(B, 'p'), ...board(B, 'e')], ['A 1/2', 'B 1/2', 'C 1/2']);
+}
+{
+  // « Toutes » veut dire toutes : le porteur de l'effet en est, contrairement a
+  // « Tous tes allies ».
+  const cataclysme = ally('Cataclysme', 1, 3, { play: [{ op: 'dmg', t: 'allUnits', v: 1 }] });
+  const B = setup([ally('A', 1, 3), cataclysme]);
+  play(B, 'p', 'A');
+  play(B, 'p', 'Cataclysme');
+  check('le porteur se compte dedans', board(B, 'p'), ['A 1/2', 'Cataclysme 1/2']);
+}
+{
+  // Par type, des deux cotes : une seule cible pour « tous les Chiens du plateau ».
+  const rappel = { id: 'ra', name: 'Rappel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'buff', t: 'anyType:Chien', atk: 1, hp: 1 }] };
+  const B = setup([ally('Chiot', 1, 1, { keys: ['type:Chien'] }), ally('Chat', 1, 1, { keys: ['type:Chat'] }), rappel],
+    [ally('Molosse', 2, 2, { keys: ['type:Chien'] })]);
+  play(B, 'e', 'Molosse');
+  play(B, 'p', 'Chiot');
+  play(B, 'p', 'Chat');
+  play(B, 'p', 'Rappel');
+  check('les Chiens des deux camps sont touches',
+    [...board(B, 'p'), ...board(B, 'e')], ['Chiot 2/2', 'Chat 1/1', 'Molosse 3/3']);
+}
+{
+  // Au hasard des deux camps : on ne sait pas qui, mais quelqu'un — et une seule.
+  const des = { id: 'de', name: 'Des', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'randomUnit', v: 1 }] };
+  const B = setup([ally('A', 1, 3), des], [ally('C', 1, 3)]);
+  play(B, 'e', 'C');
+  play(B, 'p', 'A');
+  play(B, 'p', 'Des');
+  const pv = [...B.p.board, ...B.e.board].map(u => u.hp).sort();
+  check('une seule unite est touchee, d\'un cote ou de l\'autre', pv, [2, 3]);
+}
+{
+  // Et la copie s'en sert comme les autres : le modele peut venir de n'importe ou.
+  const mimique = ally('Mimique', 1, 1, { play: [{ op: 'copie', t: 'self', d_ou: 'plateau', tm: 'anyUnit' }] });
+  const B = setup([ally('Totem', 4, 6), mimique]);
+  play(B, 'p', 'Totem');
+  play(B, 'p', 'Mimique', { side: 'p', uid: B.p.board[0].uid });
+  check('on copie un allie a soi avec une cible sans camp', board(B, 'p'), ['Totem 4/6', 'Totem 4/6']);
+}
+
+// ---------------------------------------------------------------------------
+// « CHEZ QUI » ne designe plus seulement un camp fixe : « son proprietaire » suit la
+// cible de l'effet, « un joueur au hasard » tire a pile ou face. C'est ce qui permet
+// « l'unite ciblee devient une carte au hasard de la pioche de SON proprietaire ».
+console.log('\nChez qui : son proprietaire, un joueur au hasard');
+/** Le sort de la carte « Camouflage » : la cible devient une carte de SA pioche. */
+const camouflage = { id: 'cam', name: 'Camouflage', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+  play: [{ op: 'copie', t: 'anyUnit', d_ou: 'pioche', qui: 'proprietaire', quoi: 'all', ordre: 'hasard' }] };
+{
+  // Visee en face : c'est la pioche de l'adversaire qu'on lit, pas la notre.
+  const B = setup([ally('Mien', 1, 1), camouflage], [ally('Sien', 1, 1)]);
+  B.p.deck = [ally('MonGolem', 5, 5)];
+  B.e.deck = [ally('SonGolem', 4, 4)];
+  play(B, 'e', 'Sien');
+  play(B, 'p', 'Mien');
+  play(B, 'p', 'Camouflage', { side: 'e', uid: B.e.board[0].uid });
+  check('l unite adverse devient une carte de SA pioche', board(B, 'e'), ['SonGolem 4/4']);
+  check('et la notre n a pas bouge', board(B, 'p'), ['Mien 1/1']);
+  check('le modele est reste dans sa pioche', B.e.deck.length, 1);
+}
+{
+  // La meme carte, visee chez soi : c'est notre pioche.
+  const B = setup([ally('Mien', 1, 1), camouflage], [ally('Sien', 1, 1)]);
+  B.p.deck = [ally('MonGolem', 5, 5)];
+  B.e.deck = [ally('SonGolem', 4, 4)];
+  play(B, 'e', 'Sien');
+  play(B, 'p', 'Mien');
+  play(B, 'p', 'Camouflage', { side: 'p', uid: B.p.board[0].uid });
+  check('visee chez soi, c est notre pioche qu on lit', board(B, 'p'), ['MonGolem 5/5']);
+}
+{
+  // « Un joueur au hasard » : on ne sait pas de quelle pioche ca sort, mais les deux
+  // sortent. Quarante tirages : deux resultats identiques quarante fois de suite
+  // seraient plus improbables qu'un bug.
+  const roulette = { id: 'rou', name: 'Roulette', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'copie', t: 'self', d_ou: 'pioche', qui: 'hasard', quoi: 'all', ordre: 'hasard' }] };
+  const vus = new Set();
+  for (let i = 0; i < 40; i++) {
+    const B = setup([ally('Cameleon', 1, 1, { play: roulette.play })]);
+    B.p.deck = [ally('AMoi', 2, 2)];
+    B.e.deck = [ally('ALui', 3, 3)];
+    play(B, 'p', 'Cameleon');
+    vus.add(B.p.board[0].name);
+  }
+  check('les deux pioches sortent', [...vus].sort(), ['ALui', 'AMoi']);
+}
+
+// ---------------------------------------------------------------------------
+// PRENDRE LE CONTROLE. L'unite change de CAMP sans changer de PROPRIETAIRE : elle se
+// bat pour toi, mais sa carte reste la sienne. C'est la seule chose du moteur qui
+// separe « de quel cote elle est » de « a qui elle est ».
+console.log('\nPrendre le controle');
+const vol = { id: 'vo', name: 'Captif', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+  play: [{ op: 'prendre_le_controle', t: 'enemyUnit' }] };
+{
+  const B = setup([vol], [ally('Ogre', 4, 5)]);
+  play(B, 'e', 'Ogre');
+  play(B, 'p', 'Captif', { side: 'e', uid: B.e.board[0].uid });
+  check('l unite passe de notre cote', board(B, 'p'), ['Ogre 4/5']);
+  check('et quitte celui d en face', board(B, 'e'), []);
+  check('elle vient d arriver : elle n attaque pas ce tour-ci', B.p.board[0].canAttack, false);
+}
+{
+  // Une unite volee qui meurt retourne dans la defausse de SON proprietaire, mais son
+  // rale d'agonie part de notre cote — c'est nous qui la controlons quand elle tombe.
+  const bombe = ally('Bombe', 1, 1, { death: [{ op: 'dmg', t: 'enemyHero', v: 3 }] });
+  // Une fois volee, l'unite est de NOTRE cote : c'est un sort qui frappe nos propres
+  // allies qui l'abat, pas « une unite adverse ».
+  const sacrifice = { id: 'sac', name: 'Sacrifice', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'allyUnit', v: 99 }] };
+  const B = setup([vol, sacrifice], [bombe]);
+  play(B, 'e', 'Bombe');
+  play(B, 'p', 'Captif', { side: 'e', uid: B.e.board[0].uid });
+  const avant = B.e.hp;
+  const u = B.p.board[0];
+  play(B, 'p', 'Sacrifice', { side: 'p', uid: u.uid });
+  check('le rale part du cote de celui qui la controle', B.e.hp, avant - 3);
+  check('mais la carte rentre chez son proprietaire', B.e.discard.some(c => c.name === 'Bombe'), true);
+  check('et pas chez nous', B.p.discard.some(c => c.name === 'Bombe'), false);
+}
+{
+  // Meme regle quand elle quitte le plateau sans mourir : elle rentre chez lui.
+  const rappel = { id: 'rap', name: 'Rappel', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'renvoie_en_main', d_ou: 'plateau', t: 'allyUnit' }] };
+  const B = setup([vol, rappel], [ally('Ogre', 4, 5)]);
+  play(B, 'e', 'Ogre');
+  play(B, 'p', 'Captif', { side: 'e', uid: B.e.board[0].uid });
+  play(B, 'p', 'Rappel', { side: 'p', uid: B.p.board[0].uid });
+  check('renvoyee en main, elle va dans SA main a lui', B.e.hand.some(c => c.name === 'Ogre'), true);
+  check('et pas dans la notre', B.p.hand.some(c => c.name === 'Ogre'), false);
+}
+{
+  // Prendre une unite deja a soi ne fait rien, et le dit.
+  const chezSoi = { id: 'cs', name: 'Rapatriement', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'prendre_le_controle', t: 'allyUnit' }] };
+  const B = setup([ally('Mien', 2, 2), chezSoi]);
+  play(B, 'p', 'Mien');
+  play(B, 'p', 'Rapatriement', { side: 'p', uid: B.p.board[0].uid });
+  check('rien ne bouge', board(B, 'p'), ['Mien 2/2']);
+}
+{
+  // Une unite volee garde son aura, et la donne desormais a NOS allies.
+  const chef = ally('Chef', 2, 3, { aura: { scope: 'otherAllies', atk: 1, hp: 0 } });
+  const B = setup([ally('Recrue', 1, 1), vol], [chef]);
+  play(B, 'e', 'Chef');
+  play(B, 'p', 'Recrue');
+  check('avant le vol, notre recrue ne recoit rien', board(B, 'p'), ['Recrue 1/1']);
+  play(B, 'p', 'Captif', { side: 'e', uid: B.e.board[0].uid });
+  check('apres le vol, l aura profite a notre camp', board(B, 'p'), ['Recrue 2/1', 'Chef 2/3']);
+}
+
+// ---------------------------------------------------------------------------
+// CHOISIR. Une seule des deux branches part — celle que le joueur designe en jouant la
+// carte. C'est le premier effet dont les parametres sont d'autres effets.
+console.log('\nChoisir');
+const modale = (nom, a, b) => ({ id: nom, name: nom, type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+  play: [{ op: 'choisir', a, b }] });
+{
+  const c = modale('Offrande', { op: 'draw', v: 1 }, { op: 'armor', v: 4 });
+  const B = setup([c, { ...c, id: 'of2', name: 'Offrande2' }]);
+  const mainAvant = B.p.hand.length;
+  play(B, 'p', 'Offrande', null, 'a');
+  check('la branche A pioche', B.p.hand.length, mainAvant - 1 + 1);
+  check('et ne donne pas d armure', B.p.armor, 0);
+  play(B, 'p', 'Offrande2', null, 'b');
+  check('la branche B donne l armure', B.p.armor, 4);
+}
+{
+  // Sans reponse — un rale d'agonie, personne n'est la pour choisir — c'est la
+  // premiere branche qui part.
+  const bombe = ally('Bombe', 1, 1, {
+    death: [{ op: 'choisir', a: { op: 'dmg', t: 'enemyHero', v: 3 }, b: { op: 'armor', v: 9 } }]
+  });
+  const B = setup([bombe], [frappe(99)]);
+  play(B, 'p', 'Bombe');
+  const avant = B.e.hp;
+  tuer(B, 'e', 'p', 'Bombe');
+  check('la premiere branche part toute seule', B.e.hp, avant - 3);
+  check('la seconde n a rien fait', B.p.armor, 0);
+}
+{
+  // « Lui » traverse une branche : la cible du choix reste celle de l'effet suivant.
+  const c = { id: 'ench', name: 'Enchainement', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'choisir', a: { op: 'summon', n: 1, unit: { name: 'Larve', atk: 1, hp: 1 } }, b: { op: 'draw', v: 1 } },
+      { op: 'buff', t: 'previous', atk: 2, hp: 2 }] };
+  const B = setup([c]);
+  play(B, 'p', 'Enchainement', null, 'a');
+  check('le renfort tombe sur ce que la branche a cree', board(B, 'p'), ['Larve 3/3']);
+}
+{
+  // Un palier « Amplifie » amplifie les DEUX branches : celle qu'on ne prend pas
+  // aujourd'hui est celle qu'on prendra demain.
+  const def = { id: 'am', name: 'Ambivalence', type: 'spell', cost: 1, keys: [], text: '',
+    play: [{ op: 'choisir', a: { op: 'dmg', t: 'enemyHero', v: 2 }, b: { op: 'heal', t: 'ownHero', v: 2 } }],
+    tiers: [{ lvl: 2, amp: 3, text: 'Effet +3' }] };
+  const B = setup([resolveCard(def, 2), { ...resolveCard(def, 2), id: 'am2', name: 'Ambivalence2' }]);
+  const avant = B.e.hp;
+  play(B, 'p', 'Ambivalence', null, 'a');
+  check('la branche A est amplifiee', B.e.hp, avant - 5);
+  B.p.hp = 10;
+  play(B, 'p', 'Ambivalence2', null, 'b');
+  check('la branche B aussi', B.p.hp, 15);
+  // Et la definition d'origine n'a pas bouge : la relire au meme niveau redonne 2+3.
+  // (`resolveCard` rend toujours une branche comme une LISTE, meme ecrite ici en un
+  // seul effet : c'est la ou l'ancienne forme est normalisee.)
+  check('la definition n a pas ete amplifiee deux fois', resolveCard(def, 2).play[0].a[0].v, 5);
+}
+{
+  // La carte previent qu'elle demande une reponse : c'est ce que l'interface lit.
+  const c = modale('Double', { op: 'draw', v: 1 }, { op: 'armor', v: 4 });
+  check('la carte reclame un choix', needsChoice(c), true);
+  check('une carte ordinaire, non', needsChoice(frappe(2)), false);
+}
+
+// ---------------------------------------------------------------------------
+// « LES AUTRES UNITES DU MEME TYPE QUE LUI ». Le type n'est pas ecrit sur la carte :
+// c'est celui de l'unite que l'effet precedent a visee. C'est ce qui rend dicible
+// « inflige 2 blessures a une unite au hasard, puis repete sur chaque unite du meme
+// type » — le type n'est connu qu'une fois le hasard tire.
+console.log('\nDu meme type que Lui');
+const chaine = { id: 'ch', name: 'Chaine', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+  play: [{ op: 'dmg', t: 'enemyUnit', v: 2 }, { op: 'dmg', t: 'previousType', v: 2 }] };
+{
+  const B = setup([chaine],
+    [ally('Molosse', 1, 9, { keys: ['type:Chien'] }), ally('Chiot', 1, 9, { keys: ['type:Chien'] }), ally('Chat', 1, 9, { keys: ['type:Chat'] })]);
+  for (const n of ['Molosse', 'Chiot', 'Chat']) play(B, 'e', n);
+  play(B, 'p', 'Chaine', { side: 'e', uid: B.e.board[0].uid });
+  check('la premiere prend 2, ses semblables aussi, les autres rien',
+    board(B, 'e'), ['Molosse 1/7', 'Chiot 1/7', 'Chat 1/9']);
+}
+{
+  // Elle repete du COTE de « Lui » : un Chien a nous ne prend rien quand c'est un
+  // Chien d'en face qui a ete frappe.
+  const B = setup([ally('Notre Chien', 1, 9, { keys: ['type:Chien'] }), chaine],
+    [ally('Leur Chien', 1, 9, { keys: ['type:Chien'] }), ally('Autre', 1, 9, { keys: ['type:Chien'] })]);
+  play(B, 'p', 'Notre Chien');
+  play(B, 'e', 'Leur Chien');
+  play(B, 'e', 'Autre');
+  play(B, 'p', 'Chaine', { side: 'e', uid: B.e.board[0].uid });
+  check('la chaine reste dans le camp de la premiere touchee', board(B, 'e'), ['Leur Chien 1/7', 'Autre 1/7']);
+  check('notre Chien n a rien pris', board(B, 'p'), ['Notre Chien 1/9']);
+}
+{
+  // Une unite sans etiquette ne partage rien : la chaine s'arrete d'elle-meme.
+  const B = setup([chaine], [ally('Muet', 1, 9), ally('Autre', 1, 9)]);
+  play(B, 'e', 'Muet');
+  play(B, 'e', 'Autre');
+  play(B, 'p', 'Chaine', { side: 'e', uid: B.e.board[0].uid });
+  check('sans type, personne ne suit', board(B, 'e'), ['Muet 1/7', 'Autre 1/9']);
+}
+{
+  // « Type : tous » repond a n'importe quelle etiquette : touche en premier, il
+  // entraine tous ceux qui en portent une — et personne d'autre.
+  const B = setup([chaine],
+    [ally('Cameleon', 1, 9, { keys: ['type_tous'] }), ally('Chiot', 1, 9, { keys: ['type:Chien'] }), ally('Muet', 1, 9)]);
+  for (const n of ['Cameleon', 'Chiot', 'Muet']) play(B, 'e', n);
+  play(B, 'p', 'Chaine', { side: 'e', uid: B.e.board[0].uid });
+  check('« tous » entraine tout ce qui est etiquete', board(B, 'e'), ['Cameleon 1/7', 'Chiot 1/7', 'Muet 1/9']);
+}
+
+{
+  // EN PREMIERE POSITION elle ne designe personne : aucun effet ne l'a precedee. La
+  // validation le dit comme bloquant ; le moteur, lui, ne fait rien et l'ecrit.
+  const seule = { id: 'sl', name: 'Seule', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'previousType', v: 2 }] };
+  const B = setup([seule], [ally('Chiot', 1, 9, { keys: ['type:Chien'] })]);
+  play(B, 'e', 'Chiot');
+  play(B, 'p', 'Seule');
+  check('sans effet avant elle, elle ne touche personne', board(B, 'e'), ['Chiot 1/9']);
+  check('et le journal le dit', B.log.some(l => l.includes('Aucune cible')), true);
+}
+
+// ---------------------------------------------------------------------------
+// UNE BRANCHE EST UNE LISTE : « inflige 2 blessures au hasard PUIS repete sur le meme
+// type » est UN choix, pas deux. C'est la carte que le designer voulait ecrire.
+console.log('\nUne branche porte plusieurs effets');
+{
+  const gobeur = ally('Gobeur', 2, 2, {
+    play: [
+      { op: 'choisir',
+        a: [{ op: 'dmg', t: 'randomEnemyUnit', v: 2 }, { op: 'dmg', t: 'previousType', v: 2 }],
+        b: [{ op: 'buff', t: 'allyUnit', atk: 1, hp: 1 }] },
+      { op: 'buff', t: 'randomAllyUnit', atk: 2, hp: 2 }
+    ]
+  });
+  const B = setup([gobeur], [ally('Chiot', 1, 9, { keys: ['type:Chien'] }), ally('Molosse', 1, 9, { keys: ['type:Chien'] })]);
+  play(B, 'e', 'Chiot');
+  play(B, 'e', 'Molosse');
+  play(B, 'p', 'Gobeur', null, 'a');
+  check('les deux effets de la branche partent', board(B, 'e'), ['Chiot 1/7', 'Molosse 1/7']);
+  check('et ce qui suit le choix part aussi', board(B, 'p'), ['Gobeur 4/4']);
+}
+{
+  // L'ancienne ecriture — une branche = UN effet, sans crochets — se lit toujours :
+  // les cartes ecrites avant que la branche devienne une liste marchent telles quelles.
+  const vieux = { id: 'vx', name: 'Ancienne', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'choisir', a: { op: 'armor', v: 3 }, b: { op: 'draw', v: 1 } }] };
+  const B = setup([vieux]);
+  play(B, 'p', 'Ancienne', null, 'a');
+  check('une branche ecrite comme un seul effet fonctionne encore', B.p.armor, 3);
+}
+
+// ---------------------------------------------------------------------------
+// UN TYPE QU'ON NE CONNAIT PAS ENCORE. Le filtre ne porte plus le type ecrit : il le
+// LIT sur une carte, la ou on lui dit de regarder. Il n'est donc connu qu'au moment ou
+// l'effet part — comme un montant variable, et resolu au meme endroit.
+console.log('\nUn type lu sur une carte');
+/** Un sort qui cree une carte du type de ce qu'il trouve dans la zone demandee. */
+const copieur = (nom, typeDe, typeQui) => ({ id: nom, name: nom, type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+  play: [{ op: 'cree', choix: 'hasard', quoi: 'ofType', typeDe, typeQui, n: 1, lvl: 1 }] });
+{
+  // Le type vient de NOTRE main : la seule etiquette qui s'y trouve est « Chien », donc
+  // la carte creee en est une.
+  const B = setup([copieur('Mimetisme', 'main', 'toi')]);
+  B.p.hand.push(ally('Appat', 1, 1, { keys: ['type:Chien'] }));
+  play(B, 'p', 'Mimetisme');
+  const creee = B.p.hand.find(c => c.name !== 'Appat');
+  check('la carte creee porte le type lu en main', creee && estDuType(creee, 'Chien'), true);
+}
+{
+  // Lu CHEZ L'ADVERSAIRE, sur son plateau : c'est son etiquette a lui qui compte.
+  const B = setup([copieur('Espionnage', 'plateau', 'adversaire')], [ally('Molosse', 1, 1, { keys: ['type:Chien'] })]);
+  play(B, 'e', 'Molosse');
+  play(B, 'p', 'Espionnage');
+  const creee = B.p.hand[0];
+  check('le type vient du plateau d en face', creee && estDuType(creee, 'Chien'), true);
+}
+{
+  // Rien a lire : aucun type, donc le filtre ne prend rien et le journal le dit.
+  const B = setup([copieur('Vide', 'defausse', 'toi')]);
+  B.p.discard = [];
+  play(B, 'p', 'Vide');
+  check('sans etiquette a lire, rien n est cree', B.p.hand.length, 0);
+}
+{
+  // Le type lu sert a N'IMPORTE QUEL filtre : ici un deplacement, pas une creation.
+  const tri = { id: 'tri', name: 'Tri', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'renvoie_en_main', d_ou: 'pioche', qui: 'toi', quoi: 'ofType', typeDe: 'plateau', typeQui: 'toi', n: 1 }] };
+  const B = setup([ally('Chiot', 1, 1, { keys: ['type:Chien'] }), tri]);
+  B.p.deck = [ally('Chat', 1, 1, { keys: ['type:Chat'] }), ally('Molosse', 2, 2, { keys: ['type:Chien'] })];
+  play(B, 'p', 'Chiot');
+  play(B, 'p', 'Tri');
+  check('le deplacement prend la carte du type lu sur le plateau',
+    B.p.hand.some(c => c.name === 'Molosse'), true);
+  check('et laisse celle d un autre type', B.p.deck.map(c => c.name), ['Chat']);
+}
+
+{
+  // UNE CIBLE QUI NOMME UN CAMP ne se laisse pas designer de l'autre cote. Ca n'arrive
+  // qu'avec deux cibles a designer sur la meme carte — elles recoivent la meme reponse
+  // — et il vaut mieux que l'effet ne fasse rien que de renforcer l'adversaire.
+  const double = { id: 'db', name: 'Double', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'dmg', t: 'enemyAny', v: 1 }, { op: 'buff', t: 'allyUnit', atk: 5, hp: 5 }] };
+  const B = setup([ally('Mien', 1, 9), double], [ally('Sien', 1, 9)]);
+  play(B, 'p', 'Mien');
+  play(B, 'e', 'Sien');
+  play(B, 'p', 'Double', { side: 'e', uid: B.e.board[0].uid });
+  check('les degats partent sur la cible designee', board(B, 'e'), ['Sien 1/8']);
+  check('mais le renfort « un de tes allies » ne va pas en face', B.e.board[0].atk, 1);
+  check('et notre unite n a rien recu non plus', board(B, 'p'), ['Mien 1/9']);
+}
+
+// ---------------------------------------------------------------------------
+// LE PALIER « CHOISIT LES DEUX ». Au-dela du niveau, la carte ne demande plus rien :
+// les deux branches partent, dans l'ordre. C'est `resolveCard` qui la DEROULE, une
+// fois pour toutes — le moteur, le bot et l'interface ne voient plus aucun choix.
+console.log('\nPalier « Choisit les deux »');
+const ambivalent = {
+  id: 'amb', name: 'Ambivalent', type: 'spell', cost: 1, keys: [], text: '',
+  play: [{ op: 'choisir', a: [{ op: 'armor', v: 3 }], b: [{ op: 'draw', v: 1 }] }],
+  tiers: [{ lvl: 5, lesDeux: true, text: 'les deux choix partent' }]
+};
+{
+  // Sous le palier : une seule branche, celle qu'on designe.
+  const B = setup([resolveCard(ambivalent, 1)]);
+  const main = B.p.hand.length;
+  play(B, 'p', 'Ambivalent', null, 'a');
+  check('avant le palier, seule la branche choisie part', [B.p.armor, B.p.hand.length], [3, main - 1]);
+}
+{
+  const carte = resolveCard(ambivalent, 5);
+  check('au palier, la carte n a plus rien a demander', needsChoice(carte), false);
+  const B = setup([carte]);
+  const main = B.p.hand.length;
+  play(B, 'p', 'Ambivalent');
+  check('les deux branches partent', [B.p.armor, B.p.hand.length], [3, main - 1 + 1]);
+}
+{
+  // Deroulee, la carte reste amplifiable : les deux branches profitent du palier.
+  const def = { ...ambivalent, id: 'am2', name: 'Ambivalent2',
+    play: [{ op: 'choisir', a: [{ op: 'dmg', t: 'enemyHero', v: 2 }], b: [{ op: 'heal', t: 'ownHero', v: 2 }] }],
+    tiers: [{ lvl: 3, lesDeux: true }, { lvl: 5, amp: 1, text: 'Effet +1' }] };
+  const B = setup([resolveCard(def, 5)]);
+  B.p.hp = 20;
+  const avant = B.e.hp;
+  play(B, 'p', 'Ambivalent2');
+  check('les deux branches deroulees sont amplifiees', [avant - B.e.hp, B.p.hp], [3, 23]);
+}
+{
+  // La definition d'origine n'est pas touchee : relue plus bas, elle choisit encore.
+  check('la carte de depart choisit toujours', needsChoice(resolveCard(ambivalent, 1)), true);
+}
+
+// ---------------------------------------------------------------------------
+// SWITCH. Chaque slot d'un personnage porte deux cartes ; l'effet echange l'une pour
+// l'autre. Dans un paquet, la carte est remplacee sur place pour tout le combat ; sur
+// le plateau, l'unite DEVIENT l'autre face — et si c'est un sort, elle s'en va en le
+// lancant. L'echange va dans les deux sens : sinon l'effet serait mort sur la moitie
+// des cartes du jeu, celles qu'on a justement equipees en switch.
+console.log('\nSwitch');
+const chenille = () => ({ id: 'banc_base', name: 'Chenille', type: 'ally', cost: 1, atk: 1, hp: 1, keys: [], text: '', play: [], tiers: [] });
+const cocon = () => ({ id: 'banc_corps', name: 'Cocon', type: 'ally', cost: 1, atk: 0, hp: 4, keys: [], text: '', play: [], tiers: [] });
+const switcheur = (t, extra = {}) => ({ id: 'sw' + (extra.id || ''), name: extra.name || 'Mue', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+  play: [{ op: 'switch', d_ou: 'plateau', t }] });
+{
+  const B = setup([chenille(), switcheur('allyUnit')]);
+  play(B, 'p', 'Chenille');
+  const uid = B.p.board[0].uid;
+  play(B, 'p', 'Mue', { side: 'p', uid });
+  check('l unite devient son autre face', board(B, 'p'), ['Papillon 3/2']);
+  check('c est toujours la meme unite sur le plateau', B.p.board[0].uid, uid);
+  check('avec les mots-cles de l autre face', B.p.board[0].keys, ['Charge']);
+}
+{
+  // Et dans l'autre sens : une carte deja switchee revient a sa base.
+  const papillon = { id: 'banc_switch', name: 'Papillon', type: 'ally', cost: 1, atk: 3, hp: 2, keys: ['Charge'], text: '', play: [], tiers: [] };
+  const B = setup([papillon, switcheur('allyUnit')]);
+  play(B, 'p', 'Papillon');
+  play(B, 'p', 'Mue', { side: 'p', uid: B.p.board[0].uid });
+  check('un switch revient a sa base', board(B, 'p'), ['Chenille 1/1']);
+}
+{
+  // L'autre face est un SORT : l'unite s'en va, le sort part et se choisit sa cible.
+  const B = setup([cocon(), switcheur('allyUnit')]);
+  play(B, 'p', 'Cocon');
+  const avant = B.e.hp;
+  play(B, 'p', 'Mue', { side: 'p', uid: B.p.board[0].uid });
+  check('l unite a quitte le plateau', board(B, 'p'), []);
+  check('et le sort de l autre face est parti', B.e.hp, avant - 3);
+  check('la carte finit a la defausse de son proprietaire', B.p.discard.some(c => c.name === 'Envol'), true);
+  check('sans passer par la mort : aucun rale n a ete compte', B.fired.death || 0, 0);
+}
+{
+  // Dans un paquet : la carte est echangee sur place, elle ne bouge pas de zone.
+  const enMain = { id: 'em', name: 'Retournement', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'switch', d_ou: 'main', qui: 'toi', quoi: 'oneCard', argCard: 'banc_base', n: 1 }] };
+  const B = setup([enMain, chenille()]);
+  play(B, 'p', 'Retournement');
+  check('la carte de la main a change de face', B.p.hand.map(c => c.name), ['Papillon']);
+  check('et elle est toujours en main', B.p.hand.length, 1);
+}
+{
+  // Une carte libre n'occupe aucun slot : elle n'a pas d'autre face, et on le dit.
+  const B = setup([ally('Orpheline', 2, 2), switcheur('allyUnit')]);
+  play(B, 'p', 'Orpheline');
+  play(B, 'p', 'Mue', { side: 'p', uid: B.p.board[0].uid });
+  check('sans autre face, rien ne change', board(B, 'p'), ['Orpheline 2/2']);
+  check('et le journal le dit', B.log.some(l => l.includes("n'a pas d'autre face")), true);
+}
+{
+  // On peut switcher EN FACE : c'est la meme mecanique, l'autre camp n'y coupe pas.
+  const B = setup([switcheur('enemyUnit')], [chenille()]);
+  play(B, 'e', 'Chenille');
+  play(B, 'p', 'Mue', { side: 'e', uid: B.e.board[0].uid });
+  check('une unite adverse se switche aussi', board(B, 'e'), ['Papillon 3/2']);
+}
+
+// ---------------------------------------------------------------------------
+// « LUI » DANS UN EVENEMENT. Un evenement a un SUJET — l'allie qu'on vient de poser,
+// l'unite qui vient d'attaquer — et ce sujet est « Lui » pour les effets du moment.
+// Sans ca, « quand tu joues un allie, les autres unites du meme type que Lui gagnent
+// +1/+1 » ne toucherait personne : la chaine commencerait vide.
+console.log('\nLe sujet d un evenement est « Lui »');
+{
+  const cohorte = ally('Cohorte', 4, 4, {
+    [eventSlot('ally', 'self')]: [{ op: 'buff', t: 'previousType', atk: 1, hp: 1 }]
+  });
+  const B = setup([cohorte, ally('Chiot', 1, 1, { keys: ['type:Chien'] }),
+    ally('Chat', 1, 1, { keys: ['type:Chat'] }), ally('Molosse', 1, 1, { keys: ['type:Chien'] })]);
+  play(B, 'p', 'Cohorte');
+  play(B, 'p', 'Chiot');
+  play(B, 'p', 'Chat');
+  check('rien tant qu il n y a pas deux fois le meme type',
+    board(B, 'p'), ['Cohorte 4/4', 'Chiot 1/1', 'Chat 1/1']);
+  play(B, 'p', 'Molosse');
+  check('le second Chien renforce le premier, et lui seul',
+    board(B, 'p'), ['Cohorte 4/4', 'Chiot 2/2', 'Chat 1/1', 'Molosse 1/1']);
+}
+{
+  // Le moment est ecoute par TOUT LE MONDE, pas seulement par le sujet : c'est la
+  // Cohorte qui porte l'effet, pas l'allie qu'on pose.
+  const espion = ally('Espion', 1, 1, {
+    [eventSlot('ally', 'foe')]: [{ op: 'dmg', t: 'previous', v: 2 }]
+  });
+  const B = setup([espion], [ally('Brute', 2, 5)]);
+  play(B, 'p', 'Espion');
+  play(B, 'e', 'Brute');
+  check('« quand l adversaire joue un allie » frappe Lui', board(B, 'e'), ['Brute 2/3']);
+}
+{
+  // Un evenement SANS sujet ne designe personne : « Lui » y reste vide.
+  const nerveux = ally('Nerveux', 1, 1, {
+    [eventSlot('draw', 'self')]: [{ op: 'dmg', t: 'previous', v: 2 }]
+  });
+  const B = setup([nerveux], [ally('Brute', 2, 5)]);
+  play(B, 'e', 'Brute');
+  play(B, 'p', 'Nerveux');
+  draw(B, 'p', 1);
+  check('une pioche n a pas de sujet : rien n est vise', board(B, 'e'), ['Brute 2/5']);
+}
+
+// ---------------------------------------------------------------------------
+// LES CIBLES D'UN « CHOISIR » SONT DANS SES BRANCHES. Sans descendre dedans, une carte
+// dont tout le contenu est dans un choix paraitrait n'avoir aucune cible : elle
+// partirait sans rien viser. Et la branche etant choisie AVANT, on ne propose que les
+// cibles qu'elle demande.
+console.log('\nCibler depuis une branche');
+const modal = ally('Modal', 2, 2, {
+  play: [{ op: 'choisir',
+    a: [{ op: 'dmg', t: 'enemyUnit', v: 2 }],
+    b: [{ op: 'buff', t: 'allyUnit', atk: 2, hp: 2 }] }]
+});
+{
+  const B = setup([ally('Mien', 1, 5), modal], [ally('Sien', 1, 5)]);
+  play(B, 'p', 'Mien');
+  play(B, 'e', 'Sien');
+  check('la carte reclame bien une cible', needsTarget(modal), true);
+  check('sans reponse, les deux camps sont proposes',
+    legalTargets(B, 'p', modal).map(t => t.side).sort(), ['e', 'p']);
+  check('branche A : seulement en face', legalTargets(B, 'p', modal, 'a').map(t => t.side), ['e']);
+  check('branche B : seulement chez soi', legalTargets(B, 'p', modal, 'b').map(t => t.side), ['p']);
+}
+{
+  // Et la carte part vraiment sur la cible designee, branche par branche.
+  const B = setup([ally('Mien', 1, 5), modal, { ...modal, id: 'm2', name: 'Modal2' }], [ally('Sien', 1, 5)]);
+  play(B, 'p', 'Mien');
+  play(B, 'e', 'Sien');
+  play(B, 'p', 'Modal', { side: 'e', uid: B.e.board[0].uid }, 'a');
+  check('branche A frappe la cible designee', board(B, 'e'), ['Sien 1/3']);
+  play(B, 'p', 'Modal2', { side: 'p', uid: B.p.board[0].uid }, 'b');
+  check('branche B renforce la notre', board(B, 'p')[0], 'Mien 3/7');
+}
+{
+  // UNE BRANCHE SUFFIT : un choix dont l'autre moitie ne trouve personne reste jouable.
+  const secours = { id: 'sec', name: 'Secours', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'choisir', a: [{ op: 'armor', v: 8 }], b: [{ op: 'dmg', t: 'enemyUnit', v: 1 }] }] };
+  const B = setup([secours]);
+  check('jouable meme sans unite a viser', canPlay(B, 'p', B.p.hand[0]), true);
+  play(B, 'p', 'Secours', null, 'a');
+  check('et la branche sans cible fait son travail', B.p.armor, 8);
+}
+
+// ---------------------------------------------------------------------------
+// LES REGLES DE VALIDATION qui dependent du registre. Elles se lisent depuis le
+// builder, ou personne ne les teste : une faute de champ (`def.event`, le drapeau, au
+// lieu de `def.ev`, l'identifiant) suffit a signaler une carte parfaitement valide.
+console.log('\nValidation : « Lui » selon le moment');
+{
+  const carte = (nom, slot) => ({
+    id: nom, name: nom, type: 'ally', cost: 1, atk: 1, hp: 1, keys: [], text: '',
+    play: [], statics: [], tiers: [], [slot]: [{ op: 'buff', t: 'previousType', atk: 1, hp: 1 }]
+  });
+  const DB = {
+    characters: [{ id: 'x', name: 'Test', switches: [], cards: [
+      carte('Cohorte', eventSlot('ally', 'self')),   // l'evenement a un sujet : c'est « Lui »
+      carte('Fautive', eventSlot('draw', 'self')),   // une pioche n'a pas de sujet
+      carte('Muette', 'play'),                       // « A la pose » non plus
+      null, null] }],
+    library: [], npcs: [], fatigue: [], starters: []
+  };
+  const dit = nom => validateData(DB, ALL_EFFECTS, ALL_KEYWORDS)
+    .some(i => i.bad && i.msg.includes(nom) && i.msg.includes('aucun effet ne le précède'));
+  check('un evenement a sujet n est pas signale', dit('Cohorte'), false);
+  check('un evenement sans sujet, si', dit('Fautive'), true);
+  check('un moment ordinaire aussi', dit('Muette'), true);
+}
+
+// ---------------------------------------------------------------------------
+// LA GARDE D'UN MOMENT — « seulement quand c'est un Chien qui attaque », « seulement
+// quand c'est cette unite-la ». L'evenement dit ce qui se produit, la garde regarde le
+// SUJET et decide si le moment part vraiment. Sans garde, il part toujours.
+console.log('\nLa garde d un moment');
+const guetteur = (nom, garde) => ally(nom, 1, 9, {
+  [eventSlot('attack', 'self')]: [{ op: 'dmg', t: 'enemyHero', v: 1 }],
+  gardes: garde ? { [eventSlot('attack', 'self')]: garde } : undefined
+});
+/** Fait attaquer une unite a nous, et rend les PV perdus par le heros adverse. */
+function attaqueAvec(B, nom) {
+  const u = B.p.board.find(x => x.name === nom);
+  u.canAttack = true;
+  const avant = B.e.hp;
+  attack(B, 'p', u.uid, { side: 'e', uid: 'hero' });
+  return avant - B.e.hp - u.atk;   // ce que le moment a ajoute, hors degats de l'attaque
+}
+{
+  const B = setup([guetteur('Guetteur'), ally('Chiot', 1, 9, { keys: ['type:Chien'] })]);
+  play(B, 'p', 'Guetteur');
+  play(B, 'p', 'Chiot');
+  check('sans garde, le moment part sur n importe qui', attaqueAvec(B, 'Chiot'), 1);
+  check('et sur le porteur aussi', attaqueAvec(B, 'Guetteur'), 1);
+}
+{
+  // « Cette unite » : le moment ne part que quand c'est LE PORTEUR qui attaque.
+  const B = setup([guetteur('Guetteur', 'moi'), ally('Chiot', 1, 9, { keys: ['type:Chien'] })]);
+  play(B, 'p', 'Guetteur');
+  play(B, 'p', 'Chiot');
+  check('un autre attaque : rien', attaqueAvec(B, 'Chiot'), 0);
+  check('le porteur attaque : ca part', attaqueAvec(B, 'Guetteur'), 1);
+}
+{
+  // « Une unite d'un type » : le sujet doit porter l'etiquette.
+  const B = setup([guetteur('Guetteur', 'type:Chien'), ally('Chiot', 1, 9, { keys: ['type:Chien'] }),
+    ally('Chat', 1, 9, { keys: ['type:Chat'] })]);
+  play(B, 'p', 'Guetteur');
+  play(B, 'p', 'Chiot');
+  play(B, 'p', 'Chat');
+  check('un Chien attaque : ca part', attaqueAvec(B, 'Chiot'), 1);
+  check('un Chat attaque : rien', attaqueAvec(B, 'Chat'), 0);
+}
+{
+  // « Du meme type que le porteur » : pas de valeur a ecrire, c'est le type de la carte.
+  const B = setup([guetteur('Meneur', 'memeType'), ally('Chiot', 1, 9, { keys: ['type:Chien'] }),
+    ally('Chat', 1, 9, { keys: ['type:Chat'] })]);
+  B.p.hand[0].keys = ['type:Chien'];
+  play(B, 'p', 'Meneur');
+  play(B, 'p', 'Chiot');
+  play(B, 'p', 'Chat');
+  check('le meme type que le porteur : ca part', attaqueAvec(B, 'Chiot'), 1);
+  check('un autre type : rien', attaqueAvec(B, 'Chat'), 0);
+}
+{
+  // La garde suit la carte a travers `resolveCard` : elle n'est pas perdue au passage.
+  const def = { ...guetteur('Garde', 'type:Chien'), id: 'gd', tiers: [{ lvl: 2, amp: 1, text: 'Effet +1' }] };
+  const c = resolveCard(def, 2);
+  check('la garde survit a la resolution', c.gardes[eventSlot('attack', 'self')], 'type:Chien');
+  check('et le libelle la dit', momentLabel(eventSlot('attack', 'self'), c).includes('Chien seulement'), true);
 }
 
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);

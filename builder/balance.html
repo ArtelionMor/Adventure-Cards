@@ -96,7 +96,11 @@
     <strong>⬇ CSV</strong> sort une ligne par matchup (à croiser dans un tableur), <strong>⬇ Journaux</strong> le déroulé complet
     d'une partie témoin de chaque case — c'est là qu'on voit <em>pourquoi</em> un deck en écrase un autre.<br>
     <strong>Personnages (mélange)</strong> est le mode le plus proche du vrai jeu : chaque slot y est tiré au sort entre sa carte
-    de base et sa carte switch, à chaque partie — « tout base » et « tout switch » ne sont que deux decks parmi les 32 qu'un joueur peut monter.
+    de base et sa carte switch, à chaque partie — « tout base » et « tout switch » ne sont que deux decks parmi les 32 qu'un joueur peut monter.<br>
+    <strong>Seuls les matchups qui peuvent vraiment se produire sont joués</strong> : une équipe n'affronte qu'une équipe de
+    <em>même taille</em> (1v1, 2v2, 3v3), un adversaire ne se joue qu'à la taille d'équipe que son <em>palier</em> lui donne
+    (réglée plus bas, dans « Courbe de difficulté »), et deux adversaires ne se rencontrent jamais. Un 2 contre 1 fausserait la
+    lecture en annonçant un déséquilibre d'une situation qui ne peut pas arriver.
   </p>
 
   <div class="ctrl">
@@ -137,7 +141,8 @@
         <b>toutes les combinaisons d'équipe</b> possibles contre chaque adversaire, et c'est la <b>pire</b> qui dit si une rencontre
         est un mur — une moyenne masquerait qu'une seule équipe passe. La meilleure, elle, dit si le combat est gagné d'avance.<br>
         Un <b>palier</b> décrit une tranche du parcours : <em>les N prochains adversaires se jouent à H héros, au niveau L</em>.
-        Ils se lisent dans l'ordre où tes adversaires sont rangés dans le builder, et le dernier ramasse tout le reste.</p>
+        Ils se lisent dans l'ordre où tes adversaires sont rangés dans le builder, et le dernier ramasse tout le reste.<br>
+        <b>La matrice s'en sert aussi</b> : c'est ce qui décide à combien de héros chaque adversaire y est affronté.</p>
       <div id="paliers"></div>
       <div class="ctrl" style="margin-top:10px">
         <button class="btn btn--sm" id="palierPlus">+ Ajouter un palier</button>
@@ -232,6 +237,17 @@ const etat = Object.assign(
   JSON.parse(localStorage.getItem(LS) || '{}'));
 const garde = () => { try { localStorage.setItem(LS, JSON.stringify(etat)); } catch { /* pas grave */ } };
 
+// LES PALIERS sont declares ICI, avant les decks, parce que la MATRICE en depend
+// desormais : ce sont eux qui disent a combien de heros se joue chaque adversaire.
+// Les valeurs de depart viennent du GAME CONFIG, comme celles de `scripts/simulate.mjs` —
+// une seule source pour la valeur d'origine, et la page les laisse ensuite editer
+// (l'editeur est plus bas, dans le panneau de la courbe de difficulte).
+const PALIERS_DEFAUT = BALANCE.simulation.paliers;
+const courbe = Object.assign(
+  { runs: 20, bot: BALANCE.ai.defaut, paliers: structuredClone(PALIERS_DEFAUT) },
+  JSON.parse(localStorage.getItem(LS + '.courbe') || '{}'));
+const gardeCourbe = () => { try { localStorage.setItem(LS + '.courbe', JSON.stringify(courbe)); } catch { /* pas grave */ } };
+
 $('#lvl').value = etat.niveau; $('#lvlOut').textContent = etat.niveau;
 $('#runs').value = etat.runs;
 $('#bot').innerHTML = Object.keys(BALANCE.ai.niveaux)
@@ -269,6 +285,48 @@ const montre = d => etat.vue[familleDe(d)] !== false;
 const FAMILLES = [['1', 'Solos'], ['2', 'Duos'], ['3', 'Trios'], ['pnj', 'Adversaires']];
 
 /**
+ * QUELS MATCHUPS PEUVENT VRAIMENT SE PRODUIRE EN PARTIE.
+ *
+ * Une matrice qui joue toutes les paires joue aussi des cases qui n'arrivent JAMAIS :
+ * un duo contre un solo, un trio contre un duo, un adversaire contre un adversaire.
+ * La lecture annoncait alors « A&B ecrase C » d'une situation impossible, et ce bruit-la
+ * noie les vrais desequilibres. Trois regles suffisent a le couper :
+ *
+ *   - heros contre heros : MEME TAILLE d'equipe (1v1, 2v2, 3v3) ;
+ *   - heros contre adversaire : la taille que le PALIER prescrit pour cet adversaire
+ *     (les premiers a 1 heros, les suivants a 2...) — ce sont les memes paliers que la
+ *     courbe de difficulte, edites dans son panneau ;
+ *   - adversaire contre adversaire : jamais. Deux PNJ ne se rencontrent pas.
+ *
+ * Une case interdite n'est pas CACHEE (ca, ce sont les puces « Afficher ») : elle n'est
+ * pas JOUEE. Rien ne la calcule, rien ne la compte dans la lecture, et le tableau
+ * affiche « — » a sa place.
+ */
+function tailleParPnj() {
+  const m = new Map();
+  for (const p of planCourbe()) for (const id of p.pnjs) m.set(id, p.heros);
+  return m;
+}
+
+const estPnj = d => d.sous === 'PNJ';
+
+function possible(a, b, paliers) {
+  if (estPnj(a) && estPnj(b)) return false;
+  if (!estPnj(a) && !estPnj(b)) return a.recette.ids.length === b.recette.ids.length;
+  const [pnj, eq] = estPnj(a) ? [a, b] : [b, a];
+  return paliers.get(pnj.recette.ids[0]) === eq.recette.ids.length;
+}
+
+/** Les cases a jouer : le triangle, moins les matchups impossibles. */
+function cellulesDe(liste) {
+  const paliers = tailleParPnj();
+  const out = [];
+  for (let i = 0; i < liste.length; i++) for (let j = i; j < liste.length; j++)
+    if (possible(liste[i], liste[j], paliers)) out.push([i, j]);
+  return out;
+}
+
+/**
  * LES PUCES D'AFFICHAGE. Elles ne montrent que les familles REELLEMENT PRESENTES dans
  * la derniere mesure : proposer de cacher les trios quand on n'en a pas mesure serait
  * un bouton qui ne fait rien.
@@ -303,10 +361,14 @@ function majTailles() {
   majCout();
 }
 function majCout() {
-  const n = decks().length;
-  const jouees = n * (n + 1) / 2;          // le triangle, diagonale comprise
+  const liste = decks();
+  const n = liste.length;
+  // Le triangle MOINS les matchups impossibles : annoncer `n(n+1)/2` mentirait
+  // maintenant que les cases 1v2, 2v3 et PNJ-contre-PNJ ne sont plus jouees.
+  const cellules = cellulesDe(liste);
+  const miroirs = cellules.filter(([i, j]) => i === j).length;
   $('#mxCount').textContent = n
-    ? `${n} deck(s) · ${jouees} cases jouées (+${n * n - jouees} par symétrie) · ${jouees * etat.runs} parties`
+    ? `${n} deck(s) · ${cellules.length} case(s) jouée(s) (+${cellules.length - miroirs} par symétrie) · ${cellules.length * etat.runs} parties`
     : '';
 }
 majTailles();
@@ -357,7 +419,11 @@ function decks() {
       if (cfg && cfg.deck.length) out.push({ nom: n.name, sous: 'PNJ', cfg, recette: { type: 'pnj', ids: [n.id] } });
     }
   }
-  return out;
+  // UN DECK SANS AUCUN ADVERSAIRE POSSIBLE N'EST PAS UNE LIGNE VIDE, c'est un deck en
+  // trop : un adversaire de palier 3 quand seuls les solos sont coches n'a personne a
+  // affronter. On le retire, plutot que d'afficher une croix de tirets.
+  const paliers = tailleParPnj();
+  return out.filter(d => out.some(o => o !== d && possible(d, o, paliers)));
 }
 
 // ---------- EXPORTS ----------
@@ -399,14 +465,9 @@ $('#logs').onclick = () => {
 //
 // Les paliers sont edites ICI, dans l'outil, et gardes avec le reste des reglages de la
 // page. Ils se lisent dans l'ordre ou les adversaires sont ranges dans le builder :
-// chaque palier prend sa tranche, le dernier ramasse le reste.
-// Les paliers de depart viennent du GAME CONFIG, comme ceux de `scripts/simulate.mjs` :
-// une seule source pour la valeur d'origine, et la page les laisse ensuite editer.
-const PALIERS_DEFAUT = BALANCE.simulation.paliers;
-const courbe = Object.assign(
-  { runs: 20, bot: BALANCE.ai.defaut, paliers: structuredClone(PALIERS_DEFAUT) },
-  JSON.parse(localStorage.getItem(LS + '.courbe') || '{}'));
-const gardeCourbe = () => { try { localStorage.setItem(LS + '.courbe', JSON.stringify(courbe)); } catch { /* pas grave */ } };
+// chaque palier prend sa tranche, le dernier ramasse le reste. Leur DECLARATION est
+// remontee tout en haut des reglages : la MATRICE les lit aussi, pour savoir a combien
+// de heros se joue chaque adversaire.
 
 $('#crRuns').value = courbe.runs;
 $('#crBot').innerHTML = Object.keys(BALANCE.ai.niveaux)
@@ -469,6 +530,9 @@ function renderPaliers() {
   }
   const total = plan.reduce((a, p) => a + p.pnjs.length * p.equipes.length, 0);
   $('#courbeCount').textContent = `${total} case(s) · ${total * courbe.runs} parties`;
+  // LA MATRICE LIT CES PALIERS AUSSI : changer « héros par équipe » change les cases
+  // qu'elle jouera contre les adversaires, donc le cout qu'elle annonce.
+  majCout();
 }
 $('#palierPlus').onclick = () => {
   courbe.paliers.push({ rencontres: 1, heros: courbe.paliers.length + 1, niveau: 5 });
@@ -663,13 +727,22 @@ $('#go').onclick = async () => {
   // pendant que cette page etait ouverte.
   await relit();
   const liste = decks();
-  if (liste.length < 2) { $('#mx').innerHTML = '<p class="stat">Il faut au moins deux decks : coche une catégorie.</p>'; return; }
+  if (liste.length < 2) {
+    $('#mx').innerHTML = '<p class="stat">Aucun matchup à jouer. Il faut deux decks qui puissent vraiment se rencontrer : '
+      + 'des équipes de <b>même taille</b>, ou un adversaire face à la taille d\'équipe que son palier lui donne '
+      + '(les paliers s\'éditent dans « Courbe de difficulté », plus bas).</p>';
+    return;
+  }
 
   enCours = true; stop = false;
   $('#go').disabled = true; $('#stop').disabled = false;
   $('#progPanel').style.display = '';
   const debut = Date.now();
-  const total = liste.length * liste.length;
+  // ON NE JOUE QUE LE TRIANGLE, moins les matchups impossibles (cf. `possible()`).
+  // Le total est celui des cases REELLEMENT jouees, sinon la barre de progression
+  // s'arreterait au milieu du chemin en croyant avoir fini.
+  const cellules = cellulesDe(liste);
+  const total = cellules.length;
   let fait = 0;
   const resultats = [];
   cartesVues = new Map();
@@ -697,9 +770,8 @@ $('#go').onclick = async () => {
   // ON NE JOUE QUE LE TRIANGLE. `serie()` joue deja la moitie des parties dans chaque
   // sens : « A contre B » et « B contre A » mesurent exactement la meme chose, donc la
   // seconde n'apprend rien. L'autre moitie du tableau sera un REFLET — affiche comme
-  // tel, jamais comme une mesure.
-  const cellules = [];
-  for (let i = 0; i < liste.length; i++) for (let j = i; j < liste.length; j++) cellules.push([i, j]);
+  // tel, jamais comme une mesure. (`cellules` est monte plus haut : le total annonce
+  // en depend.)
   const coeurs = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, cellules.length));
 
   let ouvriers = [];
@@ -840,6 +912,10 @@ function dessine(listeTout, mesuresTout) {
        <span style="color:var(--accent-2)">vert</span> = sur une cible (33 / 50 / 66 ± ${pc(TOLERANCE)}),
        <span style="color:var(--warn)">orange</span> = entre deux, <span style="color:var(--danger)">rouge</span> = écrasant.
        Un 33 % voulu est donc aussi « vert » qu'un 66 %. Passe en « par taux » pour voir la force brute.</p>`);
+  $('#mx').insertAdjacentHTML('beforeend', `<p class="stat">Les cases <strong>—</strong> n'existent pas en jeu et ne sont donc
+    <strong>pas jouées</strong> : une équipe n'affronte qu'une équipe de <strong>même taille</strong> (1v1, 2v2, 3v3), un adversaire
+    ne se joue qu'à la taille d'équipe que son <strong>palier</strong> lui donne (voir « Courbe de difficulté »), et deux adversaires
+    ne se rencontrent jamais. Sans ça, la lecture annonçait « A&amp;B écrase C » d'un 2 contre 1 qui ne peut pas arriver.</p>`);
   $('#mx').insertAdjacentHTML('beforeend', `<p class="stat">Les cases <span style="opacity:.5;font-style:italic">pâlies et penchées</span>
     sous la diagonale <strong>n'ont pas été jouées</strong> : ce sont les reflets exacts de leur symétrique, qui l'a été
     (« B contre A » vaut 1 moins « A contre B », sur les mêmes parties). Ça divise le calcul par deux sans rien perdre —
@@ -876,15 +952,20 @@ function dessine(listeTout, mesuresTout) {
       <ul class="liste">${ecrases.slice(0, 15).map(r => `<li>${esc(nom(r.a))} bat ${esc(nom(r.b))} <strong>${pc(r.taux)}</strong> ± ${pc(r.demi)}</li>`).join('')}</ul>` : ''}`;
 
   // --- force globale ---
+  // ICI ON LIT LES REFLETS, contrairement au comptage ci-dessus. Les mesures ne
+  // couvrent que le triangle : un deck n'y est `a` que face aux decks ranges APRES lui,
+  // si bien que le dernier de la liste n'aurait aucun matchup et vaudrait 50 % par
+  // defaut. Un reflet est exact (`1 - taux`) : la moyenne reste juste.
+  const tousSesMatchups = resultats.filter(r => r.a !== r.b);
   const forces = liste.map(d => {
-    const siens = horsMiroir.filter(r => r.a === d);
-    return { d, moyenne: siens.length ? siens.reduce((s, r) => s + r.taux, 0) / siens.length : 0.5 };
-  }).sort((x, y) => y.moyenne - x.moyenne);
+    const siens = tousSesMatchups.filter(r => r.a === d);
+    return { d, moyenne: siens.length ? siens.reduce((s, r) => s + r.taux, 0) / siens.length : 0.5, n: siens.length };
+  }).filter(f => f.n).sort((x, y) => y.moyenne - x.moyenne);
   $('#forcePanel').style.display = '';
   $('#force').innerHTML = forces.map(f => `
     <div class="rank">
       <span>${esc(nom(f.d))}</span>
-      <span style="color:${f.moyenne > 0.6 || f.moyenne < 0.4 ? 'var(--warn)' : 'var(--accent-2)'}">${pc(f.moyenne)}</span>
+      <span style="color:${f.moyenne > 0.6 || f.moyenne < 0.4 ? 'var(--warn)' : 'var(--accent-2)'}" title="moyenne sur ${f.n} matchup(s)">${pc(f.moyenne)}</span>
       <i style="width:${Math.round(f.moyenne * 100)}%"></i>
     </div>`).join('')
     + '<p class="stat" style="margin-top:10px">Une distribution saine : tout le monde entre 45 % et 55 % de moyenne, avec des matchups tranchés en dessous.</p>';

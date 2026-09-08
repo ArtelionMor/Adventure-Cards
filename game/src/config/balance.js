@@ -70,7 +70,12 @@ export const BALANCE = {
   },
 
   combat: {
-    boardSize: 5,
+    // COMBIEN D'UNITES TIENNENT SUR UN PLATEAU. 0 = pas de limite : une invocation ne
+    // rate plus faute de place et un allie ne « reste plus de cote ». C'est l'interface
+    // qui encaisse — l'ecran de combat descale les vignettes pour que tout tienne sans
+    // defilement. Remettre un nombre ici retablit le plafond partout (pose, invocation,
+    // jouabilite) sans toucher au moteur.
+    boardSize: 0,
     handMax: 8,
     maxManaCap: 10,
     autoStepMs: 750,        // rythme du mode auto (spectacle idle)

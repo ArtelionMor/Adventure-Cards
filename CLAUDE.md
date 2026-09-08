@@ -18,6 +18,18 @@ sur le modèle du builder de build de Teliau's Toolbelt. Il écrit `game/data/ch
 et `docs/MECANIQUES-A-CODER.md` via `POST /api/write` (implémenté dans `scripts/devserver.js`
 **et** dans `launcher/Launcher.cs` — modifier les deux).
 
+**Les images disponibles** (le portrait d'un héros, d'un PNJ ou d'une carte) viennent de
+`game/data/sprites.js`, la liste des fichiers de `Characters/`, `Machines/`, `Ressources/`
+et `UI/`. Un navigateur ne sait pas lire un dossier : c'est le serveur qui les rebalaye,
+sur `POST /api/sprites` — le bouton **🔄 Actualiser les images** de la fenêtre « Choisir un
+sprite ». À faire après avoir déposé une image ; en ligne de commande, c'est le même
+balayage avec `node scripts/gen-sprites.mjs`. La liste revient dans la réponse et remplace
+celle qu'a la page : l'import de module, lui, est figé au chargement, comme
+`CHARACTER_DATA`. Le balayage est écrit **deux fois** (`scripts/gen-sprites.mjs` pour le
+serveur de dev, `GenereSprites()` dans `launcher/Launcher.cs` pour l'exe) : les deux
+doivent produire le même fichier — même tri (ordinal, comme le `.sort()` de JavaScript),
+même mise en forme, mêmes fins de ligne.
+
 `builder/balance.html` — l'équilibrage, deux mesures qui répondent à deux questions
 différentes. **La matrice** deck contre deck, jouée dans le navigateur (bot contre bot),
 avec les cibles 33 / 50 / 66 et l'intervalle de confiance : « ce deck est-il plus fort que
@@ -25,8 +37,26 @@ celui-là ? ». Un deck n'est pas forcément un héros : les puces **Solos / Duo
 **toutes les équipes** de cette taille et les font s'affronter. Ce sont des
 **combinaisons**, pas des arrangements — Médor&Felix et Felix&Médor donnent le même
 paquet de cartes — donc six héros font 6 solos, **15** duos et **20** trios, soit 41
-decks et 1681 cases. L'en-tête du panneau annonce le coût (decks, cases, parties) avant
-qu'on lance. Mesuré : 1681 cases à 10 parties, bot `dur`, **16 s** sur 16 cœurs.
+decks. L'en-tête du panneau annonce le coût (decks, cases, parties) avant qu'on lance.
+Mesuré : 493 cases à 10 parties, bot `normal`, **7 s** sur 16 cœurs.
+
+⚠ **Elle ne joue que les matchups qui peuvent vraiment se produire en partie**, et c'est
+`possible()` qui tranche. Sans ce filtre elle jouait toutes les paires, donc aussi un duo
+contre un solo ou un trio contre un duo, et la lecture annonçait « A&B écrase C » d'une
+situation impossible — un bruit qui noie les vrais déséquilibres. Trois règles :
+
+- **héros contre héros : même taille d'équipe** (1v1, 2v2, 3v3) ;
+- **héros contre adversaire : la taille que le palier prescrit** pour cet adversaire.
+  Ce sont **les mêmes paliers que la courbe de difficulté**, édités dans son panneau —
+  d'où leur déclaration remontée tout en haut des réglages de la page. Les changer change
+  donc les cases de la matrice, et le coût annoncé se recalcule à la frappe ;
+- **adversaire contre adversaire : jamais.** Deux PNJ ne se rencontrent pas — cocher
+  « Adversaires » tout seul ne mesure donc plus rien.
+
+Une case interdite n'est **pas cachée** (ça, ce sont les puces « Afficher ») : elle n'est
+**pas jouée**. Le tableau affiche « — », rien ne la compte dans la lecture, et un deck
+qui n'a aucun adversaire possible est retiré de la liste plutôt qu'affiché en croix de
+tirets. Les 41 decks ci-dessus font ainsi **351** cases entre eux au lieu de 1681.
 
 **Deux réglages qu'il ne faut pas confondre**, et c'est pour ça qu'ils sont à deux
 endroits différents. Les puces de la **barre du haut** (base/switch/mélange, Adversaires,
@@ -42,6 +72,11 @@ seconde n'apprend rien. La moitié sous la diagonale est **déduite** (`avecRefl
 une infobulle qui dit « case non jouée ». Le CSV, lui, ne contient que les cases
 réellement mesurées, et la lecture (matchups sur cible, écrasants) compte chaque matchup
 **une** fois au lieu de deux.
+
+⚠ **La « force globale », elle, lit les reflets** — c'est la seule chose qui les lise.
+Les mesures ne couvrent que le triangle : un deck n'y est `a` que face aux decks rangés
+**après** lui, si bien que le dernier de la liste n'aurait aucun matchup et vaudrait 50 %
+par défaut. Un reflet étant exact, la moyenne reste juste.
 
 **La courbe de difficulté** : « le joueur passe-t-il ? » — toutes les
 combinaisons d'équipe contre chaque adversaire, et c'est la **pire** qui dit si une
@@ -90,6 +125,14 @@ version « à coder » écraserait la vraie et la carte ne ferait plus rien.
 Le fichier dit ce qu'elle doit faire, quelles cartes l'utilisent et où l'implémenter. Une fois codée :
 l'ajouter à `EFFECTS`/`KEYWORDS` dans `game/src/config/mechanics.js` et retirer son entrée de
 `customMechanics` dans les données.
+
+## L'ordre des effets, dans le builder
+L'ordre d'une liste d'effets **compte** — « Lui » et « Les autres unités du même type que
+Lui » regardent l'effet juste au-dessus — et il n'était modifiable qu'en supprimant tout
+pour recommencer. Chaque ligne porte donc **↑ ↓**, grisées aux extrémités. C'est
+`effectList()` qui fait l'échange (elle seule sait où est la ligne) et `effectRow` qui
+affiche les boutons quand on lui passe un `deplacer` : les moments d'une carte, ceux d'un
+jeton et les deux branches d'un « Choisir » en héritent d'un coup.
 
 ## Déplacer les cartes dans le builder
 Une vignette de carte se **glisse** : sur un autre slot (les deux cartes s'échangent, y
@@ -143,9 +186,9 @@ game config : `BALANCE.simulation`. `--paliers 1,2,3` les surcharge le temps d'u
 Après un changement de **cartes**, faire tourner `node scripts/check-decks.mjs` (les
 erreurs) et `node scripts/matchups.mjs` (l'équilibre entre decks) — voir « Outils ».
 Après toute modification de `game/src/combat/`, faire tourner **les trois bancs** :
-`node scripts/test-triggers.mjs` (321 tests : râles, auras, déclencheurs de tour, paliers qui
+`node scripts/test-triggers.mjs` (448 tests : râles, auras, déclencheurs de tour, paliers qui
 débloquent un moment, couture builder → moteur, mana différé, mots-clés à paramètre, capacités
-des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, pile de fatigue, création de carte (précise et au hasard), déplacements de zone (mélange, renvoi, pose), leur renfort et celui des cartes sur place, prise du dessus, complétion par la fatigue, événement de renfort, filtre « une carte précise », niveau du propriétaire, plafond de tours), `node scripts/test-ai.mjs` (21 tests : le bot
+des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, pile de fatigue, création de carte (précise et au hasard), déplacements de zone (mélange, renvoi, pose), leur renfort et celui des cartes sur place, prise du dessus, complétion par la fatigue, événement de renfort, filtre « une carte précise », niveau du propriétaire, plafond de tours, types multiples, « Type : tous » (posé, offert, reçu d'une aura), copie, cibles sans camp, « chez qui » qui suit la cible ou tire au sort, prise de contrôle, choix entre deux effets, chaîne par type, type lu sur une carte, palier « Choisit les deux », deux cibles désignées, switch, sujet d'un événement, cibler depuis une branche, règles de validation qui lisent le registre, garde d'un moment), `node scripts/test-ai.mjs` (31 tests : le bot
 valorise-t-il ces mécaniques) et `node scripts/simulate.mjs` (la courbe de difficulté).
 
 ## Finir sa pioche, et la pile de fatigue
@@ -211,6 +254,37 @@ Le type est une simple étiquette : il ne fait rien seul. Ce qui le rend utile, 
 référence — la cible `sameTypeAllies` et la portée d'aura du même nom, toutes deux lues sur le
 porteur de l'effet.
 
+## Les types d'une carte
+Une carte porte **autant de types qu'on veut** : un corbeau est « Corbeau » *et* « Oiseau »,
+et répond aux deux. C'est le même mot-clé `type:` posé plusieurs fois — le moteur lisait
+déjà toutes les valeurs (`keyArgs`), il ne manquait que le bouton **＋** du builder, qu'une
+entrée `multiple: true` dans `KEYWORDS` suffit à faire apparaître.
+
+Le mot-clé **« Type : tous »** (`type_tous`) est le cas limite : l'unité répond oui à
+n'importe quelle étiquette sans en nommer aucune. Il ne se code **nulle part** dans le
+moteur, et c'est la preuve que les types sont bien rangés : tout ce qui pose la question
+passe par trois fonctions de `config/mechanics.js` — `typesOf` (les étiquettes),
+`estDuType(x, t)` (« porte-t-elle celle-là ? ») et `partageType(a, b)` (« en ont-elles une
+en commun ? »). Cibles par type, portée d'aura, compteurs et filtres de cartes en héritent
+d'un coup, moteur **et** bot. Ne compare jamais un type à la main : ce serait le seul
+endroit du jeu où « tous » ne vaudrait pas.
+
+Deux règles que ces fonctions portent : une unité **sans** étiquette ne partage rien avec
+personne (sinon « les alliés du même type » toucherait tout le plateau dès qu'aucune carte
+n'est étiquetée), et « tous » partage avec quiconque en porte au moins une.
+
+**Un type se donne** : posé sur la carte, offert par un renfort (`buff`), par un palier,
+porté par un jeton, ou **donné par une aura** — les quatre menus « mot-clé offert »
+proposent « Type : tous ». Un type reçu compte comme un type imprimé : cibles par type,
+compteurs, filtres de cartes.
+
+⚠ **Une seule exception, et elle empêche une boucle** : la **portée** d'une aura « aux
+alliés du même type » se décide sur les types **imprimés** (`baseKeys`), pas sur les types
+reçus. Sans elle, une aura « aux alliés du même type, donne Type : tous » élargirait sa
+propre portée, et ce qu'une aura touche dépendrait de l'ordre des unités sur le plateau.
+C'est la fonction `imprimee(u)` d'`engine.js`, utilisée par `auraPorte()` et par elle
+seule — la règle de partage, elle, reste unique (`partageType`).
+
 ## Caractéristiques variables
 `characteristique_variable` fait valoir l'attaque et/ou les PV d'une unité un **compteur**
 (`COUNTERS` dans `config/mechanics.js` : tours joués, sorts joués, alliés d'un type, cartes
@@ -267,6 +341,31 @@ d'une liste en cours de parcours.
 Un renfort qui n'offre qu'un mot-clé (+0/+0) n'en est pas un, et une **aura** non plus —
 elle modifie tant qu'elle dure, elle ne donne rien.
 
+**Le SUJET d'un événement est « Lui »** pour les effets du moment : l'allié qu'on vient
+de poser, l'unité qui vient d'attaquer, celle qui vient d'être renforcée. C'est ce qui
+rend dicible « quand tu joues un allié, **les autres unités du même type que Lui**
+gagnent +1/+1 » — sans ça la chaîne commencerait vide et le moment ne ferait rien. Le
+registre le dit (`EVENTS[ev].sujet`), `fireEvent` passe les unités concernées et
+`applyEffects` les prend comme point de départ de `last`.
+
+**La GARDE d'un moment** — « oui, mais seulement si… ». L'événement dit ce qui se
+produit, `EVENT_WHO` de quel côté, et la garde regarde le **sujet** : est-ce *cette*
+unité (le porteur), une unité **d'un type**, une unité **du même type que le porteur** ?
+`EVENT_GARDES` les liste, `gardePasse()` dans `engine.js` tranche, et un moment sans
+garde part toujours — rien ne change pour les cartes déjà écrites.
+
+⚠ Elle ne peut pas vivre dans l'identifiant du moment : `on_attack_self` est une **clé
+du registre**, et un type écrit dedans (`on_attack_self:Chien`) ne s'y retrouverait plus
+— `resolveCard` et `makeUnit` bouclent sur `Object.keys(TRIGGERS)`. Elle vit donc à côté,
+dans `card.gardes[slot]`, écrite « id:valeur » comme un mot-clé. `momentLabel(slot, carte)`
+est ce qui l'affiche : le builder, la vue d'ensemble et la fiche de combat y passent tous.
+
+⚠ **Le sujet sert à deux choses qu'il ne faut pas confondre** : il dit qui est « Lui »
+(tous les événements qui en ont un), et il **restreint l'écoute** au seul sujet — mais
+pour le renfort seulement (« quand CETTE unité reçoit du renfort »), d'où le second
+drapeau `ecouteLeSujet`. Sans cette distinction, « quand tu joues un allié » ne serait
+entendu que par l'allié qu'on vient de poser, c'est-à-dire par personne d'utile.
+
 Le garde-fou `B.eventDepth` (4 rebonds) est obligatoire : « quand tu pioches, pioche » se
 rappellerait sans fin. Au-delà, la chaîne est coupée et le journal le dit. Un test du banc
 vérifie que le combat ne se fige pas.
@@ -302,6 +401,18 @@ Deux règles tiennent tout l'ensemble :
 1. **Une carte reste chez son propriétaire.** Renvoyer une unité adverse la met dans SA
    main à lui. Le choix « chez qui » ne sert qu'aux zones de paquet ; le plateau, lui, se
    désigne avec une cible ordinaire (`t`), qui dit déjà de quel côté on prend.
+   « Chez qui » a **quatre** réponses, et deux ne se connaissent qu'au moment où l'effet
+   part : « toi », « l'adversaire », **« son propriétaire »** (le camp de la *cible* de
+   l'effet — c'est ce qui permet « l'unité ciblée devient une carte au hasard de la
+   pioche de SON propriétaire ») et **« un joueur au hasard »** (pile ou face à chaque
+   résolution). Un seul endroit répond côté moteur : `campDuPaquet()` dans `engine.js`.
+   Les trois déplacements prennent dans un paquet et n'ont pas de cible à lire :
+   « son propriétaire » y retombe sur le camp de celui qui joue la carte, et la
+   validation le dit. Ce menu
+   propose **toutes** les cibles du registre, sans liste blanche : c'est au designer de
+   dire ce qu'il vise. Celles qui ne désignent qu'un héros ne prennent rien (un héros
+   n'est pas une carte) — le moteur les ignore et la validation le dit, plutôt que de
+   les cacher. Le registre donne juste la cible **par défaut** d'un effet neuf (`def`).
 2. **Une unité prélevée sur le plateau ne meurt pas** : pas de râle d'agonie, pas de
    passage par la défausse. C'est ce qui sépare un rebond d'une destruction.
 
@@ -375,6 +486,149 @@ moteur en plus. Un seul endroit répond « quelle carte apparaît ? » côté mo
 `modeleCree()` dans `engine.js`. Le bot valorise un tirage un peu moins qu'une carte
 choisie — il ne sait pas ce qui va tomber.
 
+## Switcher une carte
+Chaque slot d'un personnage porte **deux** cartes — la base et son switch — et c'est le
+joueur qui équipe l'une ou l'autre hors combat. L'effet `switch` les échange **en
+combat**. `switchOf(id)` (`config/npcs.js`) est le seul endroit qui répond « quelle est
+l'autre face ? », et il répond **dans les deux sens** : une base rend son switch, un
+switch rend sa base. Sans ça l'effet serait mort sur la moitié des cartes du jeu, celles
+qu'on a justement équipées en switch. Une carte libre, un jeton ou une carte de PNJ
+n'occupent aucun slot : ils n'ont pas d'autre face, et le journal le dit.
+
+Il vise **où on veut** (le même bloc `paramsSource()` que les déplacements et la copie,
+moins la zone « créées de toutes pièces » — on ne switche que ce qui existe) :
+
+- dans un **paquet** (main, pioche, défausse, chez soi ou en face), la carte est
+  remplacée **sur place** : elle ne change pas de zone et reste ainsi tout le combat ;
+- sur le **plateau**, l'unité **devient** l'autre face — c'est exactement une copie,
+  donc le même `devientCopie()` ;
+- sauf si cette autre face est un **sort** : une unité ne peut pas en devenir un, alors
+  elle quitte le plateau et le sort part à sa place, en se choisissant ses cibles tout
+  seul (`autoTarget`, comme un râle d'agonie). Elle ne **meurt** pas pour autant : pas
+  de râle, et la carte finit à la défausse de son propriétaire comme un sort joué.
+
+⚠ **Le switch se fait CHEZ CELUI QU'ON VISE, et le sort part de son côté à lui.** Viser
+une unité adverse, c'est donc lui jouer sa propre carte : si son autre face est un sort,
+il en profite. **C'est voulu** (décision du game designer, pas un oubli de filtre) —
+« Bipolarité » vise n'importe quelle unité, et mal la lancer est censé pouvoir arranger
+l'adversaire. Le côté choisi est celui du **contrôleur** de l'unité, comme pour un râle
+d'agonie ; sa carte, elle, retombe chez son **propriétaire**, comme partout ailleurs —
+les deux ne diffèrent que sur une unité volée par « Prise de contrôle ».
+
+Le bot lit un switch de plateau comme un échange (ce que vaut l'autre face moins ce que
+vaut le corps remplacé, signe inversé en face) ; dans un paquet, il ne sait pas encore
+quelle carte sera prise et s'en tient à une petite utilité.
+
+## Copier une carte
+`copie` fait qu'une unité **devient une autre carte** : ses statistiques, ses mots-clés,
+son aura, ses moments, ses statiques. Elle repart à neuf — dégâts subis et renforts reçus
+s'effacent — mais garde son identité de plateau : son `uid` (la fiche ouverte et les cibles
+en cours la suivent), sa place dans la rangée, et le fait qu'elle ait déjà attaqué ce
+tour-ci. La Charge du modèle compte, elle : sous cette forme, l'unité vient d'arriver.
+Elle n'est **pas jouée** — « À la pose » ne part pas, même règle qu'un jeton invoqué.
+
+L'effet pose **deux questions**, donc porte **deux cibles** : `t` dit *qui* devient une
+copie (« Elle-même » pour un cri de guerre, « une unité ciblée » pour un sort) et le bloc
+`paramsSource()` dit *de quoi* — exactement les mêmes zones et les mêmes filtres qu'un
+déplacement (une unité en jeu via `tm`, une carte d'un paquet au hasard ou du dessus, une
+carte du catalogue). Ajouter une zone sert donc la copie comme les trois déplacements.
+Les deux menus proposent **toutes** les cibles (même règle que les déplacements ci-dessus) ;
+seuls leurs défauts diffèrent : « Elle-même » pour l'une, « une unité adverse » pour l'autre.
+
+Le modèle n'est **pas déplacé** : on le lit, on le laisse. Copier une carte de la main
+adverse ne la lui prend pas, et la carte reste dans la pioche où on est allé la chercher —
+c'est ce qui sépare une copie d'un vol. Un **jeton** n'a pas de carte : on copie alors ce
+qu'il annonçait en arrivant (`carteDUnite()`). Un **sort** ne se copie pas sur une unité,
+qui n'a alors ni attaque ni vie — le journal le dit. Et le modèle est lu **une seule
+fois** : « tous tes alliés deviennent une copie d'une carte de ta pioche », c'est la même
+carte pour tous, pas un tirage par unité.
+
+⚠ **Le joueur ne désigne qu'UNE cible par carte**, et elle sert à toutes les cibles
+`pick` de la carte, branches d'un « Choisir » comprises. Deux cibles désignées du **même
+camp** sont une bonne carte (« soigne un allié ET renforce-le ») ; dans des **camps
+opposés**, l'une des deux ne touchera jamais rien, quel que soit le clic — la validation
+le signale comme bloquant. Le moteur ne se laisse plus abuser non plus : une cible qui
+nomme un camp (`allyUnit`, `enemyUnit`, `enemyAny`) **refuse** une désignation de l'autre
+côté, plutôt que de renforcer l'adversaire parce que le joueur a pointé là.
+
+⚠ **Un effet peut désormais porter plusieurs cibles**, et plus rien ne lit `e.t` en dur :
+`targetParams(op)` les demande au registre, `ciblesDe(e)` (`engine.js`) les déroule, et
+`needsTarget` / `legalTargets` / `autoTarget` / la validation en passent toutes par là. Le
+joueur, lui, n'en désigne **qu'une** : deux cibles `pick` sur le même effet reçoivent la
+même désignation, et la validation le signale.
+
+Le bot lit la copie comme un **échange** : ce que vaut le modèle moins ce que vaut le corps
+remplacé, signe inversé sur une unité adverse (la transformer en pire est un retrait, lui
+offrir mieux est un cadeau). Quand le modèle est un tirage au hasard dans le catalogue, il
+ne tranche pas.
+
+## Prendre le contrôle
+`prendre_le_controle` fait passer une unité de l'autre côté du plateau. C'est la seule
+mécanique du jeu qui sépare **de quel camp elle est** de **à qui elle appartient**, et
+tout tient dans une fonction d'`engine.js` : `proprio(u, camp)`.
+
+- Ce qui suit le **contrôleur** : les auras, les attaques, les cibles « tes alliés », et
+  le **râle d'agonie** — c'est toi qui la commandes quand elle tombe.
+- Ce qui suit le **propriétaire** : sa **carte**. À sa mort elle va dans SA défausse à
+  lui ; renvoyée en main, mélangée dans une pioche, elle rentre chez lui aussi.
+
+Le champ `owner` n'est écrit que par cet effet : tant que personne n'a rien volé, il
+n'existe pas et la réponse reste « le camp sur le plateau duquel elle se trouve ». Une
+unité volée arrive comme une unité qu'on vient de poser — elle n'attaque pas ce tour-ci,
+sauf Charge. Le bot la lit comme un retrait **et** un corps : il paie presque deux fois
+ce que vaut l'unité, et vise la plus gênante.
+
+## Choisir entre deux effets
+`choisir` est le premier effet dont les **paramètres sont d'autres effets** (`a` et `b`,
+type `effects`). Une seule branche part — et une branche est une **liste** : « inflige 2
+blessures au hasard PUIS répète sur le même type » est UN choix, pas deux. Le builder
+l'édite avec le même bloc qu'un moment de carte (`effectList()`, extrait de
+`triggerFields` pour être partagé), donc « + Ajouter un effet » y marche pareil.
+`listeEffets()` lit indifféremment une liste ou l'objet unique des cartes écrites avant
+que la branche en devienne une : aucune donnée à migrer.
+
+- **Le joueur** répond quand il joue la carte : `needsChoice(card)` le dit à l'UI, qui
+  ouvre une fenêtre à deux boutons **avant** de demander une cible, et
+  `playCard(B, k, i, target, choix)` transporte la réponse. Une seule réponse pour toute
+  la carte, comme il n'y a qu'une cible désignée.
+- **Les cibles d'un « Choisir » sont dans ses branches**, et `needsTarget` /
+  `legalTargets` / `canPlay` descendent dedans (`ciblesDeLaCarte(card, choix)`). Sans
+  cette descente, une carte dont tout le contenu est dans un choix paraîtrait n'avoir
+  aucune cible : elle partirait sans rien viser (un sort de dégâts retombant sur le héros
+  adverse). La réponse étant donnée **avant** la désignation, on ne propose que les cibles
+  de la branche retenue — et une carte reste jouable dès qu'**une** branche trouve une
+  cible, l'autre serait-elle dans le vide.
+- **Le bot** compare : le Monte-Carlo pousse **deux coups** (un par branche) et joue les
+  parties jusqu'au bout ; le bot à règles prend `meilleureBranche()`, et `botAction`
+  complète le coup à la sortie (`avecChoix`) plutôt que dans les sept endroits où
+  `decide` construit une pose.
+- **Personne pour choisir** (un râle d'agonie, un déclencheur de tour) : c'est la
+  première branche qui part, et la validation le dit sur la carte.
+- **Plus rien à choisir** : le palier **« Choisit les deux »** (`{lvl, lesDeux: true}`)
+  fait partir les deux branches. `resolveCard` **déroule** alors la carte — chaque
+  `choisir` est remplacé par ses deux listes bout à bout — donc le moteur, le bot et
+  l'interface ne voient plus aucun choix à poser : il n'y en a plus. Le déroulé se fait
+  avant l'amplification, si bien qu'un palier « Amplifie » sert les deux branches.
+
+⚠ Une branche étant une **liste**, la copie profonde de `resolveCard` doit la copier
+comme telle (`listeEffets(...).map(copyEffet)`) : un `{ ...branche }` en ferait un objet
+à clés numériques et la branche disparaîtrait sans un mot. C'est aussi là que les cartes
+écrites avant que la branche devienne une liste sont normalisées.
+
+Un effet qui en contient d'autres oblige tout ce qui **inspecte** un effet à descendre
+dedans : `eachSubEffect()` (`config/mechanics.js`) est ce parcours, et il sert à
+`resolveCard` (l'amplification touche les deux branches, et la copie profonde empêche
+qu'un palier modifie la définition), à la validation, au bot (« cette carte fait-elle des
+dégâts ? ») et à `needsChoice`. Le builder édite une branche avec **le même** `effectRow`
+que n'importe quel effet — et refuse d'imbriquer un « Choisir » dans un « Choisir »,
+comme un jeton refuse d'invoquer un jeton.
+
+⚠ **Le builder ne décrit plus les cartes lui-même.** Il avait sa propre copie de
+`describeEffect`, qui avait fini par mentir — chaque effet ajouté au registre y manquait,
+et l'aperçu affichait « Copie » ou « Choisir » au lieu de dire ce que fait la carte.
+`describe()` délègue maintenant au moteur et ne garde que ce que le moteur ne peut pas
+savoir : une mécanique inventée dans le brouillon.
+
 ## Filtres de cartes
 `CARD_FILTERS` (`config/mechanics.js`) dit « quelles cartes » : toutes, les alliés, les
 sorts, celles d'un type, celles portant un mot-clé, ou **une carte précise** désignée par
@@ -387,6 +641,21 @@ Le bloc de champs qui va avec (« Lesquelles » + le champ que le filtre réclam
 déplacements de zone, « Réduit le coût » et l'effet statique sur le coût. Un filtre ajouté
 les sert donc tous les trois d'un coup. Un filtre marqué `precise` est retiré des listes
 « au hasard » : tirer au sort parmi une seule carte n'aurait pas de sens.
+
+**Le type qu'un filtre vise peut être lu au lieu d'être écrit** (`TYPE_SOURCES`) : « crée
+une carte du type d'une carte de ta main », « du type d'une unité en jeu chez
+l'adversaire ». Trois champs remplacent le seul « Type visé » — d'où il vient, lequel
+(s'il est écrit), chez qui (s'il est lu : toi, l'adversaire, les deux). Le type n'est
+alors connu qu'au moment où l'effet part : `resolveAmounts()` le résout **au même endroit
+et pour la même raison** qu'un montant variable, si bien que tout ce qui lit le filtre
+ensuite ne voit qu'un type ordinaire. On tire au sort parmi les étiquettes présentes dans
+la zone (une carte qui en porte deux compte deux fois ; « Type : tous » n'en nomme aucune
+et n'en fournit donc pas).
+
+⚠ **Les effets statiques n'y ont pas droit** (`paramsFiltre(..., typeLu = false)`) : un
+statique est relu à chaque fois qu'on affiche un coût, et un type tiré au sort le ferait
+clignoter. Le bot, lui, ne condamne pas une carte dont le type n'est pas encore connu —
+`faisable()` la laisse passer.
 
 `reduit_le_cout_de` est **ponctuel** : il touche les cartes déjà en main (la réduction leur
 reste acquise pour le combat) et jamais celles piochées après. La version « aura », où le
@@ -496,6 +765,33 @@ lis-la avec `targetId` / `targetArg` / `targetDef` / `targetLabel`, jamais en co
 à la main. `allyType` et `enemyType` filtrent par type sans rien demander au porteur — un sort
 y a droit — là où `sameTypeAllies` lit le type du porteur et l'exclut du résultat.
 
+**Les cibles sans camp** — `anyUnit` (« une unité, alliée ou adverse », désignée par le
+joueur), `allUnits`, `randomUnit`, `anyType` — sont les seules où le camp ne fait pas
+partie de la question. Toutes les autres obligent à choisir un côté avant de choisir une
+unité. Deux conséquences dans le code :
+
+- **`allUnits` n'épargne pas le porteur**, contrairement à `allAllies` (« hors porteur de
+  l'effet ») : « toutes » veut dire toutes, c'est ce qu'on attend d'un balayage.
+- **Le bot ne peut plus lire le signe sur le camp de la cible.** `CIBLES_MIXTES` dans
+  `ai.js` est la troisième famille, à côté de `CIBLES_ENNEMIES` et `CIBLES_ALLIEES` :
+  un balayage vaut ce qu'on gagne en face **moins** ce qu'on perd chez soi (un
+  affaiblissement s'inverse alors tout seul, sans un cas de plus), et une cible désignée
+  vaut ce qu'elle donne du bon côté — c'est `pickTarget` qui l'y envoie. Le « soutien »
+  s'y lit désormais au **signe** de l'effet et non plus à sa cible : un renfort négatif
+  est un affaiblissement, il n'a rien à faire sur nos propres unités. Hors combat
+  (`autoTarget`, un râle d'agonie), c'est la nature de l'effet qui tranche : ce qui
+  blesse part en face, le reste va chez soi.
+
+La cible **`previousType`** (« Les autres unités du même type que Lui ») est la seule
+dont le type n'est **pas écrit sur la carte** : c'est celui de l'unité que l'effet
+précédent a visée. C'est ce qui rend dicible « inflige 2 blessures à une unité adverse au
+hasard, **puis répète sur chaque unité du même type** » — le type n'est connu qu'une fois
+le hasard tiré. Elle prend **dans le camp de « Lui »**, et ne le reprend pas (il vient de
+recevoir l'effet) ; une unité sans étiquette ne partage rien, donc la chaîne s'arrête
+d'elle-même. ⚠ Comme « Lui », elle ne désigne **rien en première position** — la
+validation le signale alors comme bloquant, parce que l'effet ne partira jamais et que
+rien, sur la carte, ne le laisse voir.
+
 La cible `previous` (« Lui ») enchaîne deux effets sur la même chose : elle rend les
 destinataires du dernier effet qui en avait — le jeton qu'on vient d'invoquer, l'unité
 qu'on vient de frapper. Pioche, armure et mana n'ont pas de destinataire et ne coupent
@@ -511,6 +807,46 @@ invoque un jeton, sinon l'éditeur s'emboîte à l'infini. Tout ce qui inspecte 
 côté builder (validation, compteur « à coder », `MECANIQUES-A-CODER.md`) passe par
 `eachEffect` / `eachUnit`, qui descendent dans les jetons : sans ça une mécanique non
 codée se cache dans un jeton.
+
+## Le plateau, et la vue inspectée
+**Le plateau n'a plus de plafond d'unités.** `BALANCE.combat.boardSize` à **0** veut dire
+« pas de limite » : une invocation ne rate plus faute de place, un allié ne « reste plus
+de côté », et un deck qui empile les jetons va jusqu'au bout de son idée. Remettre un
+nombre dans ce champ rétablit le plafond partout — pose, invocation, jouabilité passent
+toutes par `plateauPlein()` dans `engine.js`, seul endroit qui répond à la question.
+
+⚠ **C'est un changement d'équilibrage, pas de confort** : la place libre profite surtout
+à celui qui invoque. Sur `node scripts/simulate.mjs`, les deux boss ont nettement reculé
+(médiane d'`owlboss` 35 % → 65 %, `frogboss` 65 % → 90 %). À relire avant de figer la
+courbe.
+
+C'est l'**affichage** qui encaisse, et il **ne défile jamais** — un plateau qui défile
+cache la moitié du combat. Le plateau prend la hauteur de son contenu (`flex: 0 1 auto`)
+jusqu'à un plafond, et au-delà `ajustePlateau()` (`ui/battle.js`) **retrécit les
+vignettes** : il élargit le bloc de 1/échelle puis le réduit d'autant, si bien que les
+retours à la ligne se calculent sur la largeur réelle. Deux détails qui l'ont mordu :
+un bloc plus large que son plateau n'est **pas** centré par la grille (elle le recale au
+bord de départ), d'où l'ancrage en haut à gauche et le replacement par la transformation ;
+et « ça tient déjà » se **mesure** (`offsetHeight`) au lieu de se calculer, sinon des
+lignes de hauteurs inégales feraient retrécir un plateau qui tenait.
+
+**Cliquer une unité ouvre sa fiche**, en mode auto comme pendant le tour adverse : lire
+une unité ne coûte jamais un coup. Elle dit ce qui la **modifie** en ce moment et **d'où**
+ça vient (les auras nommées par leur porteur, les renforts reçus, la caractéristique
+variable) — le plateau montre « 4/5 », la fiche explique pourquoi — puis ce qu'elle
+**fait** (ses moments, son aura, ses statiques) et ses **paliers**, débloqués ou non.
+Elle se redessine à chaque `render()` : ouverte pendant le mode auto, elle suit le combat
+au lieu de mentir, et se ferme d'elle-même si l'unité meurt.
+
+Le clic n'**agit** que quand une action est déjà engagée — une carte qui attend sa cible,
+une unité qui attend sa victime. Attaquer part donc du bouton de la fiche, où le joueur
+voit enfin ce qu'il envoie au combat ; une cible illégale (une Provocation en travers) ne
+fait pas perdre le clic, elle ouvre la fiche.
+
+`aurasSur(B, k, u)` (`engine.js`) est ce qui rend la partie « d'où ça vient » possible :
+le combat ne garde que le **total** des auras (`refresh()`), pas leurs porteurs. Elle
+relit le plateau avec `auraPorte()`, **la même** règle de portée que `refresh()` — deux
+copies de cette règle divergeraient fatalement.
 
 ## Le bot
 `ai.js` garde les 4 priorités du GDD, mais choisit par **valeur** et non par coût :
@@ -625,7 +961,8 @@ des milliers de parties imaginaires, pas des décisions), et la décision elle-m
   les modules de `game/src/`.
 - `launcher/` — source C# du lanceur Windows (compilé avec le csc.exe fourni par Windows, cf. `scripts/build-exe.ps1`).
 - `scripts/` — serveur de dev, bancs de test, outils d'équilibrage (`check-decks`,
-  `matchups`, `simulate`), `lib/arene.mjs` (socle commun), build de l'exe.
+  `matchups`, `simulate`), `gen-sprites.mjs` (la liste des images), `lib/arene.mjs`
+  (socle commun), build de l'exe.
 - `docs/GDD.md` — game design doc complet.
 - `mockups/` — mockups de cartes (placeholders, pas la direction artistique finale).
 - `Characters/` — sprites de personnages (animaux : chien, chat, corbeau, renard, grenouille, chouette, lapin, panda roux, paresseux...).

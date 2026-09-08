@@ -5,18 +5,23 @@ import { CHAR_BY_ID, characterDeck } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist } from '../state.js';
 import { relicMods } from '../config/relics.js';
-import { TRIGGERS, keyLabel, hasKey, cardCost, describeStatic } from '../config/mechanics.js';
-import { createBattle, playCard, attack, endTurn, canPlay, needsTarget, legalTargets, attackableTargets } from '../combat/engine.js';
+import { TRIGGERS, COUNTERS, keyLabel, hasKey, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel } from '../config/mechanics.js';
+import { createBattle, playCard, attack, endTurn, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur } from '../combat/engine.js';
 import { botAction } from '../combat/ai.js';
-import { $, el, asset, toast } from './shell.js';
+import { $, el, asset, toast, modal, closeModal } from './shell.js';
 
 let B = null;
 let auto = true;
 let timer = null;
 let selCard = null;   // index dans la main
+let selChoix = null;  // la branche choisie sur une carte « Choisir », en attente de cible
 let selUnit = null;   // uid d'une unite prete
 let onDone = null;
 let ctx = null;
+// L'unite dont la fiche est ouverte, ou null. On la garde par identifiant et non par
+// reference : le combat continue derriere la fiche (mode auto), donc elle se redessine
+// a chaque render() et se ferme d'elle-meme si l'unite meurt.
+let insp = null;   // { side, uid }
 
 export function buildPlayerSide() {
   const ids = team();
@@ -51,6 +56,7 @@ export function openBattle(node, done) {
   ctx = node;
   onDone = done;
   selCard = selUnit = null;
+  fermeFiche();
   auto = true;
   B = createBattle(buildPlayerSide(), buildEnemySide(node.enemy), { node });
   const root = $('#battle');
@@ -78,7 +84,7 @@ function loop() {
 
 function applyAction(k, a) {
   if (!a || a.type === 'end') { endTurn(B); return; }
-  if (a.type === 'play') playCard(B, k, a.index, a.target);
+  if (a.type === 'play') playCard(B, k, a.index, a.target, a.choix);
   else if (a.type === 'attack') attack(B, k, a.uid, a.target);
 }
 
@@ -155,8 +161,7 @@ function render() {
   top.appendChild(heroNode(B.e, 'e'));
   root.appendChild(top);
 
-  const eb = el('<div class="board" id="boardE"></div>');
-  B.e.board.forEach(u => eb.appendChild(unitNode(u, 'e')));
+  const eb = plateauNode(B.e.board, 'e', 'boardE');
   root.appendChild(eb);
 
   const log = el('<div class="bt-log"></div>');
@@ -177,8 +182,7 @@ function render() {
   };
   root.appendChild(dl);
 
-  const pb = el('<div class="board" id="boardP"></div>');
-  B.p.board.forEach(u => pb.appendChild(unitNode(u, 'p')));
+  const pb = plateauNode(B.p.board, 'p', 'boardP');
   root.appendChild(pb);
 
   const bot = el('<div class="bt-side"></div>');
@@ -214,6 +218,79 @@ function render() {
   });
   highlightTargets(root);
   log.scrollTop = log.scrollHeight;
+  // Les vignettes ne sont mises a l'echelle qu'une fois tout l'ecran en place : c'est
+  // la hauteur reellement laissee au plateau par les autres blocs qui decide.
+  ajustePlateau(eb);
+  ajustePlateau(pb);
+  // La fiche ouverte suit le combat plutot que de montrer un etat perime.
+  renderInspect();
+}
+
+function plateauNode(board, side, id) {
+  const n = el(`<div class="board" id="${id}"><div class="bwrap"></div></div>`);
+  const wrap = n.firstElementChild;
+  board.forEach(u => wrap.appendChild(unitNode(u, side)));
+  return n;
+}
+
+// L'ECHELLE DES VIGNETTES. Le plateau n'a plus de plafond d'unites (boardSize = 0), et
+// il ne defile pas : quand il y a trop de monde, on retrecit. On mesure la place
+// disponible et une vignette, puis on cherche la plus GRANDE echelle a laquelle tout
+// tient. Le wrapper est elargi de 1/echelle avant d'etre reduit d'autant : les retours
+// a la ligne se calculent alors sur la largeur reelle, et le bloc reduit fait pile la
+// largeur du plateau.
+const ECHELLE_MIN = 0.28;   // en dessous, plus rien n'est lisible : on laisse deborder
+function ajustePlateau(board) {
+  const wrap = board.firstElementChild;
+  if (!wrap) return;
+  const n = wrap.children.length;
+  // On repart de l'etat « tout tient » : largeur libre, echelle 1, centrage par la
+  // grille. C'est aussi cet etat qu'on mesure juste apres.
+  wrap.style.width = '';
+  wrap.style.placeSelf = '';
+  wrap.style.setProperty('--u', 1);
+  wrap.style.setProperty('--dy', '0px');
+  if (!n) return;
+  // La boite de contenu, padding deduit (6px de chaque cote, cf. `.board`). Il faut la
+  // valeur EXACTE : trop prudent ici, on descalerait un plateau qui tenait deja — le
+  // plateau se dimensionne sur son contenu, donc « ca tient » et « ca ne tient pas »
+  // sont a un pixel l'un de l'autre. Le liftage « prete a attaquer » (3px) deborde dans
+  // le padding, que `overflow: hidden` ne coupe pas.
+  const W = board.clientWidth - 12, H = board.clientHeight - 12;
+  const gap = 6;
+  // offsetWidth/offsetHeight ignorent la transformation : c'est bien la taille a
+  // l'echelle 1 qu'on lit. La hauteur varie d'une vignette a l'autre (mots-cles,
+  // losange des moments), on prend la plus haute.
+  const uw = wrap.children[0].offsetWidth;
+  let uh = 0;
+  for (const c of wrap.children) uh = Math.max(uh, c.offsetHeight);
+  if (W <= 0 || H <= 0 || !uw || !uh) return;
+  // Ca tient deja ? On le MESURE au lieu de le calculer : les lignes n'ont pas toutes
+  // la meme hauteur, et un calcul par la plus haute ferait retrecir un plateau qui
+  // tenait. En dessous du plafond, la hauteur du plateau EST celle de son contenu, donc
+  // ce test est exact.
+  if (wrap.offsetHeight <= H) return;
+  for (let s = 0.98; s > ECHELLE_MIN; s -= 0.02) {
+    const parLigne = Math.max(1, Math.floor((W / s + gap) / (uw + gap)));
+    const lignes = Math.ceil(n / parLigne);
+    if ((lignes * (uh + gap) - gap) * s <= H) return echelle(board, wrap, W, s);
+  }
+  echelle(board, wrap, W, ECHELLE_MIN);
+}
+
+function echelle(board, wrap, W, s) {
+  // Elargi de 1/echelle, le bloc deborde du plateau — et une grille recale un element
+  // trop grand sur son bord de depart au lieu de le centrer. On l'ancre donc en haut a
+  // gauche : reduit d'autant, il fait pile la largeur du plateau.
+  wrap.style.placeSelf = 'start';
+  wrap.style.width = (W / s) + 'px';
+  wrap.style.setProperty('--u', s);
+  // La largeur posee, le bloc tient sur MOINS de lignes qu'avant — et comme le plateau
+  // se dimensionne sur son contenu, il vient de retrecir d'autant. On RELIT donc sa
+  // hauteur ici : la centrer sur celle d'avant pousserait le bloc hors du cadre, ou il
+  // serait coupe. `offsetHeight` ignore la transformation, d'ou le * s.
+  const H = board.clientHeight - 12;
+  wrap.style.setProperty('--dy', Math.max(0, (H - wrap.offsetHeight * s) / 2) + 'px');
 }
 
 function highlightTargets(root) {
@@ -228,54 +305,231 @@ function highlightTargets(root) {
 }
 
 // ------------------------------------------------------------- interactions
-function onCardClick(i) {
-  if (auto || B.turn !== 'p' || B.over) return;
-  const c = B.p.hand[i];
-  if (!canPlay(B, 'p', c)) { toast('Pas assez de mana.'); return; }
-  if (needsTarget(c) && legalTargets(B, 'p', c).length) {
-    selCard = selCard === i ? null : i;
-    selUnit = null;
-    render();
-    return;
-  }
-  playCard(B, 'p', i, null);
+/** Pose la carte et remet l'ecran a zero. Le choix de branche part avec elle. */
+function joue(i, target) {
+  playCard(B, 'p', i, target, selChoix);
   selCard = null;
+  selChoix = null;
   render();
   if (B.over) finish();
 }
 
-function onTargetClick(side, uid) {
+/**
+ * « CHOISIR » : la carte demande laquelle de ses deux branches part. On pose la
+ * question AVANT la cible — la branche peut changer ce qu'on vise. Fermer la fenetre
+ * sans repondre annule la pose : rien n'est joue, rien n'est paye.
+ */
+function demandeChoix(card, done) {
+  let choisi = null;
+  for (const e of card.play || []) eachSubEffect(e, x => { if (!choisi && x.op === 'choisir') choisi = x; });
+  if (!choisi) { done(null); return; }
+  const box = el(`<div><h3 style="margin:0 0 4px">${card.name}</h3><p class="muted" style="margin:0">Choisis un effet.</p></div>`);
+  let boutons = 0;
+  for (const cle of ['a', 'b']) {
+    const branche = choisi[cle];
+    if (!branche || !branche.op) continue;
+    const b = el('<button class="btn" style="width:100%;margin-top:8px;text-align:left"></button>');
+    b.textContent = describeEffect(branche);
+    b.onclick = () => { closeModal(); done(cle); };
+    box.appendChild(b);
+    boutons++;
+  }
+  // Une carte dont les branches sont vides (elle est en cours d'ecriture dans le
+  // builder) ne doit pas ouvrir une fenetre sans bouton, ou le joueur resterait
+  // coince : on la joue, et le journal dira que le choix ne proposait rien.
+  if (!boutons) { done(null); return; }
+  modal(box, () => {});
+}
+
+function onCardClick(i) {
   if (auto || B.turn !== 'p' || B.over) return;
-  // 1) on resout d'abord une carte en attente de cible
-  if (selCard !== null) {
+  const c = B.p.hand[i];
+  if (!canPlay(B, 'p', c)) { toast('Pas assez de mana.'); return; }
+  // Reclic sur la carte deja choisie : on annule tout, y compris sa branche.
+  if (selCard === i) { selCard = null; selChoix = null; render(); return; }
+  const suite = () => {
+    // La branche est deja choisie : on ne propose que les cibles qu'ELLE demande.
+    if (needsTarget(c, selChoix) && legalTargets(B, 'p', c, selChoix).length) {
+      selCard = i;
+      selUnit = null;
+      render();
+      return;
+    }
+    joue(i, null);
+  };
+  if (needsChoice(c)) demandeChoix(c, choix => { selChoix = choix; suite(); });
+  else suite();
+}
+
+// Le clic sur une unite OUVRE SA FICHE — c'est le comportement par defaut, valable en
+// mode auto comme pendant le tour adverse : lire une unite ne coute jamais un coup.
+// Il n'agit que quand une action est deja engagee : une carte qui attend sa cible, une
+// unite qui attend sa victime. Attaquer se declenche donc depuis la fiche, ou le joueur
+// voit enfin ce qu'il envoie au combat.
+function onTargetClick(side, uid) {
+  if (B.over) return;
+  const monTour = !auto && B.turn === 'p';
+  // 1) une carte attend sa cible : le clic la designe.
+  if (monTour && selCard !== null) {
     const c = B.p.hand[selCard];
-    const legal = legalTargets(B, 'p', c);
-    if (legal.some(t => t.side === side && t.uid === uid)) {
-      playCard(B, 'p', selCard, { side, uid });
-      selCard = null;
+    if (legalTargets(B, 'p', c, selChoix).some(t => t.side === side && t.uid === uid)) joue(selCard, { side, uid });
+    return;
+  }
+  // 2) une de nos unites attend sa victime : le clic frappe. Une cible illegale
+  //    (une Provocation en travers) ne fait pas perdre le clic : on tombe sur la fiche.
+  if (monTour && selUnit && side === 'e') {
+    const u = B.p.board.find(x => x.uid === selUnit);
+    if (u && attackableTargets(B, 'p', u).some(t => t.uid === uid)) {
+      attack(B, 'p', selUnit, { side, uid });
+      selUnit = null;
       render();
       if (B.over) finish();
+      return;
     }
-    return;
   }
-  // 2) sinon on selectionne une de nos unites prete a attaquer
-  if (side === 'p' && uid !== 'hero') {
-    const u = B.p.board.find(x => x.uid === uid);
-    if (u && u.canAttack && u.atk > 0) { selUnit = selUnit === uid ? null : uid; render(); }
-    return;
+  // 3) sinon, la fiche. Le heros n'en a pas : sa banniere affiche deja tout.
+  if (uid === 'hero') return;
+  if (!B[side].board.some(x => x.uid === uid)) return;
+  insp = { side, uid };
+  renderInspect();
+}
+
+// ------------------------------------------------------------- vue inspectee
+/** Une ligne « Titre : texte », avec sa source en gris quand il y en a une. */
+function ligne(titre, texte, source) {
+  const src = source ? ` <span class="src">— ${source}</span>` : '';
+  return el(`<div class="ln"><b>${titre}</b><span>${texte}${src}</span></div>`);
+}
+
+function bloc(titre, lignes) {
+  if (!lignes.length) return null;
+  const n = el(`<section><h4>${titre}</h4></section>`);
+  lignes.forEach(l => n.appendChild(l));
+  return n;
+}
+
+/**
+ * La fiche d'une unite : la meme unite en grand, avec
+ *   - ce qui la MODIFIE en ce moment et D'OU ca vient (auras nommees par leur porteur,
+ *     renforts recus, caracteristique variable). C'est tout l'interet de la vue
+ *     inspectee : le plateau montre « 4/5 », la fiche explique pourquoi ;
+ *   - ce qu'elle FAIT (ses moments, son aura, ses effets statiques) ;
+ *   - ses PALIERS, debloques ou non, tels que son niveau de resolution les a laisses.
+ */
+function inspectNode(u, side) {
+  const box = el('<div class="insp"></div>');
+  const blesse = u.damage ? ` · ${u.damage} dégât${u.damage > 1 ? 's' : ''} subi${u.damage > 1 ? 's' : ''}` : '';
+  box.appendChild(el(`
+    <div class="tete">
+      ${u.sprite ? `<img src="${asset(u.sprite)}" alt="">` : '<img alt="">'}
+      <div style="min-width:0">
+        <div class="nm">${u.name}</div>
+        <div class="stats"><span class="a">⚔ ${u.atk}</span> · <span class="h">❤ ${Math.max(0, u.hp)}/${u.maxHp}</span></div>
+        <div class="src">${side === 'p' ? 'Ton allié' : 'Unité adverse'}${blesse}</div>
+        <div class="chips">${u.keys.map(x => `<span class="chip">${keyLabel(x)}</span>`).join('')}</div>
+      </div>
+    </div>`));
+
+  // --- ce qui la modifie en ce moment, et par qui
+  const mods = [];
+  const dAtk = u.baseAtk - u.printedAtk, dHp = u.baseHp - u.printedHp;
+  const signe = v => (v >= 0 ? '+' : '') + v;
+  if (dAtk || dHp) mods.push(ligne('Renforts', `${signe(dAtk)}/${signe(dHp)}`, 'reçus en combat'));
+  if (u.variable) {
+    const c = COUNTERS[u.variable.src];
+    const quoi = u.variable.stat === 'both' ? 'attaque et vie' : u.variable.stat === 'hp' ? 'vie' : 'attaque';
+    const dit = (c ? c.label.toLowerCase() : u.variable.src) + (c && c.needsArg ? ` « ${u.variable.arg || '?'} »` : '');
+    mods.push(ligne('Variable', `${quoi} = ${u.variable.x}`, dit));
   }
-  // 3) sinon on attaque
-  if (selUnit) {
-    attack(B, 'p', selUnit, { side, uid });
-    selUnit = null;
-    render();
-    if (B.over) finish();
+  // Les auras : le combat n'en garde que le total, `aurasSur` retrouve les porteurs.
+  // Depuis que le plateau n'a plus de plafond, neuf Chiots donnent neuf fois la meme
+  // aura : on les compte au lieu d'ecrire neuf fois la meme ligne.
+  const parPorteur = new Map();
+  for (const a of aurasSur(B, side, u)) {
+    const dit = describeAura(a.src.aura);
+    const cle = `${a.src.name}|${a.camp}|${dit}`;
+    const vu = parPorteur.get(cle);
+    if (vu) vu.n++;
+    else parPorteur.set(cle, { n: 1, dit, nom: a.src.name, camp: a.camp });
   }
+  for (const a of parPorteur.values()) {
+    mods.push(ligne('Aura', a.dit, `${a.n > 1 ? a.n + ' × ' : ''}${a.nom} (${a.camp === side ? 'allié' : 'en face'})`));
+  }
+  if (mods.length) mods.unshift(ligne('Imprimé', `${u.printedAtk}/${u.printedHp}`, 'ce que la carte annonçait'));
+  const bMods = bloc('Ce qui la modifie', mods);
+  if (bMods) box.appendChild(bMods);
+
+  // --- ce qu'elle fait
+  const fait = Object.entries(TRIGGERS)
+    .filter(([slot]) => (u[slot] || []).length)
+    .map(([slot]) => ligne(momentLabel(slot, u), u[slot].map(describeEffect).join(' · ')));
+  if (u.aura) fait.push(ligne('Aura', describeAura(u.aura), 'portée par elle'));
+  for (const m of u.statics || []) fait.push(ligne('Statique', describeStatic(m), 'tant qu’elle est en jeu'));
+  const bFait = bloc('Ce qu’elle fait', fait);
+  if (bFait) box.appendChild(bFait);
+
+  // --- ses paliers. Un jeton n'a pas de carte : il n'en a donc pas.
+  const card = u.card;
+  if (card && (card.tiers || []).length) {
+    const n = el(`<section><h4>Paliers (niveau ${card.ownerLevel || 0})</h4></section>`);
+    for (const t of card.tiers) {
+      const on = (card.unlocked || []).includes(t.lvl);
+      n.appendChild(el(`<div class="tier ${on ? 'on' : 'off'}">Niveau ${t.lvl} — ${t.text}</div>`));
+    }
+    box.appendChild(n);
+  }
+
+  // --- etat et actions
+  const etat = [];
+  if (u.atk <= 0) etat.push('0 attaque : elle ne frappe pas');
+  else if (u.canAttack) etat.push('prête à attaquer');
+  else if (u.attackedThisTurn) etat.push('a déjà attaqué ce tour');
+  else etat.push('pas encore prête');
+  if (u.shield) etat.push('bouclier intact');
+  box.appendChild(el(`<div class="src">${etat.join(' · ')}</div>`));
+
+  const actions = el('<div class="actions"></div>');
+  const monTour = !auto && B.turn === 'p' && !B.over;
+  if (monTour && side === 'p' && u.canAttack && u.atk > 0) {
+    const choisie = selUnit === u.uid;
+    const b = el(`<button class="btn">${choisie ? '✖ Annuler' : '⚔ Attaquer'}</button>`);
+    b.onclick = () => {
+      selUnit = choisie ? null : u.uid;
+      selCard = null;
+      fermeFiche();
+      render();
+      if (selUnit) toast('Choisis la cible.');
+    };
+    actions.appendChild(b);
+  }
+  const f = el('<button class="btn ghost">Fermer</button>');
+  f.onclick = fermeFiche;
+  actions.appendChild(f);
+  box.appendChild(actions);
+  return box;
+}
+
+function fermeFiche() {
+  insp = null;
+  closeModal();
+}
+
+/** Redessine la fiche ouverte, ou la ferme si son unite n'est plus la. */
+function renderInspect() {
+  if (!insp || !B) return;
+  const u = B[insp.side].board.find(x => x.uid === insp.uid);
+  if (!u) { fermeFiche(); return; }
+  // Le combat continue derriere : on redessine sans faire sauter la lecture en cours.
+  const ancien = $('#modal .sheet');
+  const y = ancien ? ancien.scrollTop : 0;
+  const sheet = modal(inspectNode(u, insp.side), () => { insp = null; });
+  sheet.scrollTop = y;
 }
 
 // --------------------------------------------------------------- fin de combat
 function finish() {
   clearTimeout(timer);
+  fermeFiche();
   const enc = ENCOUNTERS[ctx.enemy];
   const win = B.winner === 'p';
   const r = enc.rewards;

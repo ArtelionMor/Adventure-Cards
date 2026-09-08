@@ -3,6 +3,7 @@ export const SPRITES = {
   "Characters": [
     "Big Bad Wolf Mythic.png",
     "Big Bad Wolf.png",
+    "Cameleon.png",
     "Cat Bug.png",
     "Cat Ginger.png",
     "Cat Menkoun.png",

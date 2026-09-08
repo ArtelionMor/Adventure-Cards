@@ -247,5 +247,83 @@ tendance('n offre pas de renfort a l adversaire',
   ], [ally('Brute', 4, 5)]),
   (B, a) => carteJouee(B, a) === 'Banal');
 
+// ---------------------------------------------------------------------------
+// LA COPIE EST UN ECHANGE : on gagne le corps du modele, on perd le sien. Le bot doit
+// donc lire les deux cotes — et le signe s'inverse quand c'est une unite adverse
+// qu'on transforme, exactement comme pour un renfort.
+console.log('\nCopie');
+
+tendance('se change volontiers en la grosse unite d en face',
+  () => setup([
+    ally('Banal', 2, 2),
+    ally('Mimique', 1, 1, { play: [{ op: 'copie', t: 'self', d_ou: 'plateau', tm: 'enemyUnit' }] })
+  ], [ally('Colosse', 6, 7)]),
+  (B, a) => carteJouee(B, a) === 'Mimique');
+
+tendance('ne se change pas en plus faible que soi',
+  () => setup([
+    ally('Banal', 3, 3),
+    ally('Mimique', 4, 4, { play: [{ op: 'copie', t: 'self', d_ou: 'plateau', tm: 'enemyUnit' }] })
+  ], [ally('Chetif', 0, 1)]),
+  (B, a) => carteJouee(B, a) === 'Banal');
+
+tendance('n offre pas un meilleur corps a l adversaire',
+  () => plateaux(
+    [ally('Banal', 2, 2), sort('Cadeau', [{ op: 'copie', t: 'enemyUnit', d_ou: 'plateau', tm: 'allyUnit' }])],
+    [ally('Colosse', 6, 7)], [ally('Chetif', 0, 1)]),
+  (B, a) => carteJouee(B, a) === 'Banal');
+
+// ---------------------------------------------------------------------------
+// Une cible sans camp ne dit pas au bot ou frapper : c'est a lui de trancher.
+console.log('\nCibles sans camp');
+
+tendance('envoie « une unite, alliee ou adverse » sur l adversaire quand ca fait mal',
+  () => plateaux([sort('Coup', [{ op: 'dmg', t: 'anyUnit', v: 3 }])],
+    [ally('Mien', 2, 5)], [ally('Sien', 2, 5)]),
+  (B, a) => cibleVisee(B, a) === 'Sien');
+
+tendance('et sur les siens quand ca fait du bien',
+  () => plateaux([sort('Baume', [{ op: 'buff', t: 'anyUnit', atk: 2, hp: 2 }])],
+    [ally('Mien', 2, 5)], [ally('Sien', 2, 5)]),
+  (B, a) => cibleVisee(B, a) === 'Mien');
+
+tendance('ne balaie pas le plateau quand il y perd plus que l adversaire',
+  () => plateaux([ally('Banal', 2, 2), sort('Orage', [{ op: 'dmg', t: 'allUnits', v: 3 }])],
+    [ally('Colosse', 4, 6), ally('Garde', 2, 4)], [ally('Chetif', 0, 1)]),
+  (B, a) => carteJouee(B, a) === 'Banal');
+
+// ---------------------------------------------------------------------------
+// Prendre le controle, c'est un retrait ET un corps : le bot doit le voir comme tel.
+console.log('\nPrendre le controle');
+
+tendance('prefere voler le gros corps que poser un banal',
+  () => setup([
+    ally('Banal', 3, 3),
+    sort('Captif', [{ op: 'prendre_le_controle', t: 'enemyUnit' }])
+  ], [ally('Colosse', 6, 7)]),
+  (B, a) => carteJouee(B, a) === 'Captif');
+
+tendance('vole la plus genante quand il y a le choix',
+  () => setup([sort('Captif', [{ op: 'prendre_le_controle', t: 'enemyUnit' }])],
+    [ally('Chetif', 0, 1), ally('Colosse', 6, 7)]),
+  (B, a) => cibleVisee(B, a) === 'Colosse');
+
+// ---------------------------------------------------------------------------
+// Une carte « Choisir » ne part jamais sans reponse, et la reponse est la meilleure
+// des deux branches dans cette position.
+console.log('\nChoisir');
+
+tendance('prend la branche qui vaut le plus',
+  () => setup([sort('Offrande', [{ op: 'choisir',
+    a: { op: 'armor', v: 1 },
+    b: { op: 'dmg', t: 'enemyUnit', v: 9 } }])], [ally('Brute', 4, 5)]),
+  (B, a) => a && a.type === 'play' && a.choix === 'b');
+
+tendance('et l autre quand la position a change',
+  () => setup([sort('Offrande', [{ op: 'choisir',
+    a: { op: 'armor', v: 8 },
+    b: { op: 'dmg', t: 'enemyUnit', v: 1 } }])]),
+  (B, a) => a && a.type === 'play' && a.choix === 'a');
+
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);

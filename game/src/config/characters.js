@@ -6,7 +6,7 @@
 // Un deck = 3 personnages = 15 cartes melangees dans un paquet unique.
 // Les effets et mots-cles disponibles sont decrits dans config/mechanics.js.
 import { CHARACTER_DATA } from '../../data/characters.data.js';
-import { AMPLIFIABLE, TRIGGERS, amplify } from './mechanics.js';
+import { AMPLIFIABLE, TRIGGERS, amplify, effectParams, eachSubEffect, listeEffets } from './mechanics.js';
 
 export const CHARACTERS = CHARACTER_DATA.characters;
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));
@@ -34,7 +34,19 @@ export const DEFAULT_TIERS = {
  * Le niveau est celui du PERSONNAGE proprietaire, pas de la carte.
  */
 export function resolveCard(def, level) {
-  const copy = list => (list || []).map(e => ({ ...e }));
+  // Un effet peut en CONTENIR d'autres (les deux branches de « Choisir ») : la copie
+  // descend dedans, sinon un palier « Amplifie » irait modifier la definition de la
+  // carte elle-meme, et le niveau 3 amplifierait encore le niveau 1.
+  // Une branche est une LISTE : la copier avec `{ ...e }` en ferait un objet a cles
+  // numeriques, et la branche disparaitrait sans un mot. `listeEffets` la rend toujours
+  // comme une liste — au passage, les cartes ecrites avant qu'elle en devienne une
+  // sont normalisees ici.
+  const copyEffet = e => {
+    const o = { ...e };
+    for (const p of effectParams(e.op)) if (o[p.k]) o[p.k] = listeEffets(o[p.k]).map(copyEffet);
+    return o;
+  };
+  const copy = list => (list || []).map(copyEffet);
   const c = {
     ...def,
     keys: [...(def.keys || [])],
@@ -49,11 +61,15 @@ export function resolveCard(def, level) {
   // moteur mute ces objets pendant le combat, la definition ne doit pas bouger.
   // La boucle est generique : un moment ajoute au registre suit tout seul.
   for (const slot of Object.keys(TRIGGERS)) c[slot] = copy(def[slot]);
+  // La garde d'un moment (« seulement si c'est un Chien qui attaque ») voyage avec lui.
+  c.gardes = { ...(def.gardes || {}) };
 
-  let amp = 0;
+  let amp = 0, lesDeux = false;
   for (const t of def.tiers || []) {
     if (level < t.lvl) continue;
     c.unlocked.push(t.lvl);
+    // « Choisit les deux » : au-dela de ce palier, la carte ne demande plus rien.
+    if (t.lesDeux) lesDeux = true;
     if (t.stats) { c.atk = (c.atk || 0) + (t.stats.atk || 0); c.hp = (c.hp || 0) + (t.stats.hp || 0); }
     if (t.key && !c.keys.includes(t.key)) c.keys.push(t.key);
     if (t.cost) c.cost = Math.max(0, c.cost + t.cost);
@@ -76,16 +92,27 @@ export function resolveCard(def, level) {
     if (t.statique) c.statics.push({ ...t.statique });
     if (t.amp) amp += t.amp;
   }
+  // ON DEROULE LES « CHOISIR » une fois pour toutes, avant l'amplification : les deux
+  // branches deviennent des effets ordinaires, a la suite. Le moteur, le bot et
+  // l'interface ne voient alors plus aucun choix a poser — il n'y en a plus.
+  if (lesDeux) {
+    for (const slot of Object.keys(TRIGGERS)) {
+      if (!(c[slot] || []).length) continue;
+      c[slot] = c[slot].flatMap(e => e.op === 'choisir' ? [...listeEffets(e.a), ...listeEffets(e.b)] : [e]);
+    }
+  }
   if (amp) {
     // L'amplification touche les effets de tous les moments, pas seulement la pose.
     for (const slot of Object.keys(TRIGGERS)) {
-      for (const e of c[slot] || []) {
-        if (!AMPLIFIABLE.includes(e.op)) continue; // pioche/mana/invocation : non amplifiables
+      // `eachSubEffect` descend dans les branches de « Choisir » : les deux choix sont
+      // amplifies, sinon le palier ne vaudrait que pour celui qu'on n'a pas pris.
+      for (const brut of c[slot] || []) eachSubEffect(brut, e => {
+        if (!AMPLIFIABLE.includes(e.op)) return; // pioche/mana/invocation : non amplifiables
         // amplify() sait amplifier un nombre comme un montant variable (il nourrit
         // alors son bonus a plat) sans jamais toucher a l'objet d'origine.
         if (e.op === 'buff') { if (e.atk) e.atk = amplify(e.atk, amp); if (e.hp) e.hp = amplify(e.hp, amp); }
         else e.v = amplify(e.v, amp);
-      }
+      });
     }
   }
   return c;

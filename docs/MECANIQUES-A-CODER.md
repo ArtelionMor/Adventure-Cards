@@ -1,6 +1,6 @@
 # Mécaniques à coder
 
-> Fichier généré par le Card Builder le 07/09/2026 21:28:19.
+> Fichier généré par le Card Builder le 08/09/2026 18:36:50.
 > Réécrit entièrement à chaque « Appliquer au jeu » — ne pas l'éditer à la main.
 
 Rien à coder : toutes les mécaniques utilisées par les cartes existent déjà dans le moteur.

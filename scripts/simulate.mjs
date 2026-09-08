@@ -61,7 +61,7 @@ function run(p, e, ia) {
     // simulation doit voir la meme difficulte que le joueur, sinon elle ment.
     const a = botAction(B, B.turn, B.turn === 'e' ? ia : undefined);
     if (!a || a.type === 'end') endTurn(B);
-    else if (a.type === 'play') { if (!playCard(B, B.turn, a.index, a.target)) endTurn(B); }
+    else if (a.type === 'play') { if (!playCard(B, B.turn, a.index, a.target, a.choix)) endTurn(B); }
     else if (a.type === 'attack') { if (!attack(B, B.turn, a.uid, a.target)) endTurn(B); }
   }
   for (const id of B.pending) seenPending.add(id);

@@ -21,9 +21,9 @@
 //              Ils ne sont jamais parcourus a la main : staticTotal() les additionne
 //              a l'endroit exact ou la valeur est lue.
 import { BALANCE } from '../config/balance.js';
-import { cardById, catalogCards, fatiguePile } from '../config/npcs.js';
+import { cardById, catalogCards, fatiguePile, switchOf } from '../config/npcs.js';
 import { resolveCard } from '../config/characters.js';
-import { staticMin, ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, ZONES, eventSlot, keyId, keyArgs, hasKey, keyFields, counterValue, amountValue, numberParams, cardMatches, describeFilter, describeCarteCreee, cardCost, staticTotal, describeStatic, targetId, targetArg, targetDef } from '../config/mechanics.js';
+import { staticMin, ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, ZONES, EVENTS, eventSlot, keyId, keyArg, hasKey, keyFields, counterValue, amountValue, numberParams, targetParams, cardMatches, describeFilter, describeCarteCreee, describeModele, cardCost, staticTotal, describeStatic, targetId, targetArg, targetDef, typesOf, partageType, estDuType, eachSubEffect, listeEffets, typeVariable, describeEffect, EVENT_GARDES } from '../config/mechanics.js';
 
 
 let uid = 1;
@@ -95,6 +95,11 @@ export function createBattle(playerCfg, enemyCfg, meta = {}) {
 }
 
 const foe = k => (k === 'p' ? 'e' : 'p');
+
+// Le plateau est-il plein ? `BALANCE.combat.boardSize` a 0 veut dire « pas de limite »
+// (GAME CONFIG) : la question se pose au meme endroit qu'avant, elle repond juste
+// toujours non. Un seul point de verite pour la pose, l'invocation et la jouabilite.
+const plateauPlein = s => BALANCE.combat.boardSize > 0 && s.board.length >= BALANCE.combat.boardSize;
 export const other = foe;
 // Le cout d'une carte se lit toujours ici (le mot-cle « Cout X de moins/de plus » peut
 // le faire varier d'un tour a l'autre) : l'UI et le bot le prennent au meme endroit.
@@ -243,7 +248,7 @@ function preleve(B, k, e, target, source, last) {
     for (let i = 0; i < combien; i++) {
       const modele = modeleCree(e);
       if (!modele) { say(B, `${rienDeTel(e)} : rien a deplacer.`); break; }
-      pris.push({ camp: e.qui === 'adversaire' ? foe(k) : k, carte: { ...resolveCard(modele, e.lvl || 1), sprite: modele.sprite || (source ? source.sprite : null) } });
+      pris.push({ camp: campDuPaquet(k, e), carte: { ...resolveCard(modele, e.lvl || 1), sprite: modele.sprite || (source ? source.sprite : null) } });
     }
     return pris;
   }
@@ -254,7 +259,9 @@ function preleve(B, k, e, target, source, last) {
       const s2 = B[r.side];
       if (!s2.board.includes(r.unit)) continue;
       s2.board = s2.board.filter(u => u !== r.unit);
-      if (r.unit.card) pris.push({ camp: r.side, carte: r.unit.card, unite: r.unit });
+      // Meme regle qu'a la mort : la carte rentre chez son proprietaire, pas chez
+      // celui qui la controlait.
+      if (r.unit.card) pris.push({ camp: proprio(r.unit, r.side), carte: r.unit.card, unite: r.unit });
       else say(B, `${r.unit.name} n'est pas une carte : il disparait.`);   // un jeton
     }
     return pris;
@@ -271,9 +278,27 @@ function preleve(B, k, e, target, source, last) {
   return pris;
 }
 
+/**
+ * CHEZ QUI on va chercher les cartes. « Toi » et « l'adversaire » sont fixes ; les deux
+ * autres se decident au moment ou l'effet part :
+ *   - « son proprietaire » suit la CIBLE de l'effet — c'est ce qui permet « l'unite
+ *     ciblee devient une carte au hasard de la pioche de SON proprietaire » ;
+ *   - « un joueur au hasard » tire a pile ou face a chaque resolution.
+ * Un effet sans cible a lire (les trois deplacements prennent dans un paquet, pas sur
+ * une unite) retombe sur celui qui joue la carte, et la validation le dit.
+ */
+function campDuPaquet(k, e, campCible) {
+  switch (e.qui) {
+    case 'adversaire': return foe(k);
+    case 'hasard': return Math.random() < 0.5 ? k : foe(k);
+    case 'proprietaire': return campCible || k;
+    default: return k;
+  }
+}
+
 /** Le paquet qu'un effet vise : la main, la pioche ou la defausse, chez l'un ou l'autre. */
-function paquetDe(B, k, e) {
-  const camp = e.qui === 'adversaire' ? foe(k) : k;
+function paquetDe(B, k, e, campCible) {
+  const camp = campDuPaquet(k, e, campCible);
   return { camp, pile: e.d_ou === 'main' ? B[camp].hand : e.d_ou === 'pioche' ? B[camp].deck : B[camp].discard };
 }
 
@@ -366,7 +391,7 @@ function depose(B, camp, carte, vers) {
   // Sur le plateau : seuls les allies s'y posent, et la carte n'est pas JOUEE — « A la
   // pose » ne part donc pas, exactement comme pour un jeton invoque.
   if (carte.type !== 'ally') { say(B, `${carte.name} est un sort : il ne se pose pas.`); s.discard.push(carte); return null; }
-  if (s.board.length >= BALANCE.combat.boardSize) { say(B, `Le plateau de ${s.name} est plein : ${carte.name} reste de cote.`); s.discard.push(carte); return null; }
+  if (plateauPlein(s)) { say(B, `Le plateau de ${s.name} est plein : ${carte.name} reste de cote.`); s.discard.push(carte); return null; }
   const u = makeUnit(carte);
   u.card = carte;
   s.board.push(u);
@@ -374,16 +399,142 @@ function depose(B, camp, carte, vers) {
   return u;
 }
 
+// ------------------------------------------------------------------- switch
+/**
+ * L'AUTRE FACE D'UNE CARTE, resolue au niveau de celle qu'elle remplace. Une carte
+ * libre, un jeton ou une carte de PNJ n'occupent aucun slot de personnage : ils n'ont
+ * pas d'autre face, et l'appelant le dit.
+ */
+function autreFace(carte) {
+  const def = carte && switchOf(carte.id);
+  if (!def) return null;
+  return { ...resolveCard(def, Math.max(1, carte.ownerLevel || 1)), sprite: def.sprite || carte.sprite };
+}
+
+/**
+ * SWITCHER UNE UNITE EN JEU. Elle DEVIENT l'autre face — c'est exactement une copie,
+ * donc le meme chemin — sauf quand cette autre face est un SORT : une unite ne peut pas
+ * en devenir un, alors elle s'en va et le sort part a sa place. Elle ne meurt pas pour
+ * autant (pas de rale d'agonie) : elle a change de forme, la carte finit a la defausse
+ * de son proprietaire comme n'importe quel sort joue.
+ */
+function switcheUnite(B, k, r) {
+  const carte = r.unit.card || carteDUnite(r.unit);
+  const face = autreFace(carte);
+  if (!face) { say(B, `${r.unit.name} n'a pas d'autre face.`); return null; }
+  if (face.type === 'ally') {
+    say(B, `${r.unit.name} devient ${face.name}.`);
+    devientCopie(B, r.unit, face);
+    return { kind: 'unit', side: r.side, unit: r.unit };
+  }
+  const camp = proprio(r.unit, r.side);
+  B[r.side].board = B[r.side].board.filter(u => u !== r.unit);
+  B[camp].discard.push(face);
+  say(B, `${r.unit.name} se change en ${face.name} : le sort part.`);
+  // Personne n'est la pour designer : le sort choisit ses cibles comme le fait un
+  // rale d'agonie. Il part du cote de qui CONTROLAIT l'unite.
+  if ((face.play || []).length) {
+    B.fired.play = (B.fired.play || 0) + 1;
+    applyEffects(B, r.side, face.play, autoTarget(B, r.side, face.play, null), face);
+  }
+  return null;
+}
+
+// ------------------------------------------------------- qui possede l'unite
+/**
+ * A QUI EST CETTE UNITE ? Presque toujours : au camp sur le plateau duquel elle se
+ * trouve. « Prendre le controle » est le seul cas qui separe les deux — l'unite change
+ * de camp, pas de proprietaire — et c'est lui, et lui seul, qui pose `owner`. Tant que
+ * personne n'a rien vole, ce champ n'existe pas et la reponse est « le camp d'ici ».
+ *
+ * Ce qui suit le PROPRIETAIRE : la carte quand l'unite meurt, et la carte quand elle
+ * quitte le plateau pour une main, une pioche ou une defausse.
+ * Ce qui suit le CONTROLEUR : tout le reste — le rale d'agonie, les auras, les
+ * attaques, les cibles « tes allies ».
+ */
+const proprio = (u, camp) => u.owner || camp;
+
+// -------------------------------------------------------------------- copie
+/**
+ * LE MODELE D'UNE COPIE : une carte, prise la ou on la designe — et LAISSEE sur place.
+ * Memes zones et memes filtres qu'un deplacement (c'est le meme bloc de parametres),
+ * mais rien n'est preleve : copier une carte de la main adverse ne la lui prend pas.
+ * Une cible qui designe plusieurs unites n'en donne qu'une, au hasard : une copie n'a
+ * qu'un seul modele.
+ */
+function modeleACopier(B, k, e, target, source, last, campCible) {
+  const zone = ZONES[e.d_ou] || ZONES.plateau;
+  if (zone.carte) {
+    const def = modeleCree(e);
+    // Une carte du catalogue n'appartient a personne : on la resout au niveau de
+    // celle qui copie, comme le fait un jeton invoque.
+    if (!def) return null;
+    const lvl = Math.max(1, (source && source.ownerLevel) || 1);
+    return { ...resolveCard(def, lvl), sprite: def.sprite || (source ? source.sprite : null) };
+  }
+  if (zone.cible) {
+    const r = pickOne(recipients(B, k, e.tm, target, source, last).filter(x => x.kind === 'unit'));
+    if (!r) return null;
+    return r.unit.card || carteDUnite(r.unit);
+  }
+  // `campCible` = le camp de l'unite qui se transforme : c'est lui que designe
+  // « chez son proprietaire ».
+  const { camp, pile } = paquetDe(B, k, e, campCible);
+  return choisitDansPaquet(B, k, { ...e, n: 1, fatigue: false }, pile, camp)[0] || null;
+}
+
+/**
+ * La carte qu'un JETON n'a pas. On la reconstitue avec ce qu'il annoncait en arrivant
+ * (`printedAtk`/`printedHp`) : copier un jeton renforce ne doit pas copier le renfort,
+ * pas plus que copier une carte du plateau ne copie les degats qu'elle a encaisses.
+ */
+function carteDUnite(u) {
+  const c = {
+    name: u.name, type: 'ally', cost: 0, atk: u.printedAtk, hp: u.printedHp,
+    keys: [...u.baseKeys], sprite: u.sprite, ownerLevel: u.ownerLevel,
+    aura: u.aura ? { ...u.aura } : null, statics: (u.statics || []).map(m => ({ ...m }))
+  };
+  for (const slot of Object.keys(TRIGGERS)) c[slot] = (u[slot] || []).map(x => ({ ...x }));
+  return c;
+}
+
+/**
+ * L'UNITE DEVIENT LA CARTE. On ne garde que son identite de plateau — son `uid` (les
+ * cibles en cours, la fiche ouverte et l'affichage la suivent), sa place dans la
+ * rangee, et le fait qu'elle ait deja attaque ce tour-ci. Tout le reste est remplace
+ * par une unite neuve faite du modele : degats subis et renforts recus s'effacent.
+ * Elle n'est PAS jouee : « A la pose » ne part pas, meme regle qu'un jeton invoque.
+ */
+function devientCopie(B, u, carte) {
+  const neuve = makeUnit({ ...carte, ownerLevel: carte.ownerLevel || u.ownerLevel });
+  const garde = {
+    uid: u.uid,
+    attackedThisTurn: u.attackedThisTurn,
+    // Changer de peau ne rend pas une attaque deja depensee ; la Charge du modele, en
+    // revanche, compte : sous cette forme-la, l'unite vient d'arriver.
+    canAttack: u.canAttack || neuve.canAttack
+  };
+  for (const champ of Object.keys(u)) delete u[champ];
+  Object.assign(u, neuve, garde);
+  u.card = { ...carte };
+  checkKeywords(B, u);
+}
+
+/**
+ * L'unite telle que sa CARTE l'ecrit, mots-cles derives mis de cote. Sert a une seule
+ * question : la portee d'une aura « aux allies du meme type ». Un type recu d'une aura
+ * compte partout ailleurs (cibles, compteurs, filtres) mais pas ici — sinon une aura
+ * qui donne un type elargirait sa propre portee, et ce que touche une aura dependrait
+ * de l'ordre dans lequel on parcourt le plateau.
+ */
+const imprimee = u => ({ keys: u.baseKeys });
+
 // -------------------------------------------------------------------- types
-// Le mot-cle « type:Chien » etiquette une unite. Les types viennent de `baseKeys` et
-// pas des auras : une aura ne peut pas donner de valeur a un mot-cle, donc elle ne
-// peut pas rendre une unite « Chien » — et on evite un ordre de calcul circulaire
-// (une aura qui se donnerait a elle-meme ses propres destinataires).
-const typesOf = u => keyArgs(u.baseKeys, 'type');
-const shareType = (a, b) => {
-  const ta = typesOf(a);
-  return ta.length ? typesOf(b).some(t => ta.includes(t)) : false;
-};
+// Le mot-cle « type:Chien » etiquette une unite, et une carte peut en porter
+// plusieurs. La regle vit dans config/mechanics.js (`typesOf`, `partageType`,
+// `estDuType`) parce que le bot, les compteurs et les filtres de cartes se posent la
+// meme question : deux copies de « est-ce un Chien ? » divergeraient fatalement, et
+// « Type : tous » ne vaudrait que dans la moitie du jeu.
 
 // -------------------------------------------------- caracteristique variable
 // « characteristique_variable:stat:compteur:valeur » : l'attaque et/ou les PV ne sont
@@ -403,6 +554,32 @@ const variableDe = u => {
 
 // -------------------------------------------------------------------- auras
 /**
+ * L'aura de `src` porte-t-elle sur `u` en ce moment ? `allie` dit si les deux sont du
+ * meme cote. Une aura ne se pose jamais sur son propre porteur.
+ * C'est LE seul endroit qui repond a cette question : `refresh()` s'en sert pour cumuler
+ * les bonus, la vue inspectee pour dire d'ou ils viennent — les deux ne peuvent donc pas
+ * diverger, ce qui arriverait fatalement avec deux copies de la regle.
+ */
+function auraPorte(src, u, allie) {
+  if (!src.aura || src === u) return false;
+  const scope = src.aura.scope || 'otherAllies';
+  if (allie) return scope === 'otherAllies' || (scope === 'sameTypeAllies' && partageType(imprimee(src), imprimee(u)));
+  return scope === 'enemyUnits';
+}
+
+/**
+ * Les auras qui s'appliquent a `u` (du camp `k`), avec LEUR PORTEUR. Le combat ne garde
+ * pas la trace de qui donne quoi — `refresh()` n'en range que le total — donc on relit
+ * le plateau avec la meme regle quand il faut le dire au joueur.
+ */
+export function aurasSur(B, k, u) {
+  const out = [];
+  for (const src of B[k].board) if (auraPorte(src, u, true)) out.push({ src, camp: k });
+  for (const src of B[foe(k)].board) if (auraPorte(src, u, false)) out.push({ src, camp: foe(k) });
+  return out;
+}
+
+/**
  * Recalcule les valeurs derivees de toutes les unites a partir de leurs valeurs de
  * base et des auras presentes sur le plateau. A appeler apres tout changement.
  */
@@ -417,18 +594,8 @@ function refresh(B) {
         bHp += src.aura.hp || 0;
         if (src.aura.key) bKeys.push(src.aura.key);
       };
-      // Auras alliees : elles ne se portent pas sur leur propre porteur.
-      for (const src of mine) {
-        if (!src.aura || src === u) continue;
-        const scope = src.aura.scope || 'otherAllies';
-        if (scope === 'otherAllies') take(src);
-        else if (scope === 'sameTypeAllies' && shareType(src, u)) take(src);
-      }
-      // Auras adverses qui debuffent nos unites.
-      for (const src of theirs) {
-        if (!src.aura || src.aura.scope !== 'enemyUnits') continue;
-        take(src);
-      }
+      for (const src of mine) if (auraPorte(src, u, true)) take(src);
+      for (const src of theirs) if (auraPorte(src, u, false)) take(src);
       // Socle : ce que la carte annonce, ou le compteur quand la caracteristique varie.
       let socleAtk = u.baseAtk, socleHp = u.baseHp;
       const varia = variableDe(u);
@@ -500,8 +667,11 @@ function resolveDeaths(B, depth = 0) {
     // Le porteur qui meurt ne s'applique pas a lui-meme : il a deja quitte le plateau
     // juste au-dessus, et un statique s'arrete avec son porteur — c'est sa promesse.
     if (u.card) {
-      if (staticTotal(B, k, 'cartes_jouees_remelangees', m => m.quoi !== 'sorts') > 0) melangeDedans(B, k, [u.card]);
-      else B[k].discard.push(u.card);
+      // Chez SON proprietaire : une unite volee retourne dans la defausse de celui a
+      // qui elle appartient, pas dans celle de qui la controlait.
+      const chez = proprio(u, k);
+      if (staticTotal(B, chez, 'cartes_jouees_remelangees', m => m.quoi !== 'sorts') > 0) melangeDedans(B, chez, [u.card]);
+      else B[chez].discard.push(u.card);
     }
     if (u.death && u.death.length && !B.over) {
       B.fired.death = (B.fired.death || 0) + 1;
@@ -577,6 +747,23 @@ function fireTrigger(B, k, slot, label) {
  * fin. Au-dela de quelques rebonds on coupe, et on le dit dans le journal plutot que
  * de laisser le combat se figer.
  */
+/**
+ * LA GARDE D'UN MOMENT : « oui, mais seulement si le sujet est... ». Sans garde, le
+ * moment part toujours — c'est le cas de toutes les cartes ecrites jusqu'ici. Avec une
+ * garde et sans sujet a regarder, il ne part pas : la condition ne peut pas etre vraie.
+ */
+function gardePasse(u, slot, sujets) {
+  const g = (u.gardes || {})[slot];
+  const id = keyId(g);
+  if (!g || id === 'tous' || !EVENT_GARDES[id]) return true;
+  const vus = sujets || [];
+  if (!vus.length) return false;
+  if (id === 'moi') return vus.includes(u);
+  if (id === 'type') return vus.some(x => estDuType(x, keyArg(g)));
+  if (id === 'memeType') return vus.some(x => partageType(u, x));
+  return true;
+}
+
 function fireEvent(B, acteur, ev, sujets = null) {
   if (B.over) return;
   if (B.eventDepth >= 4) {
@@ -588,21 +775,30 @@ function fireEvent(B, acteur, ev, sujets = null) {
     for (const k of ['p', 'e']) {
       const qui = k === acteur ? 'self' : 'foe';
       for (const slot of [eventSlot(ev, qui), eventSlot(ev, 'any')]) {
-        // `sujets` : un evenement peut avoir pour sujet des UNITES et non un camp
-        // (« quand CETTE unite recoit du renfort »). Le moment « soi » n'est alors
-        // ecoute que par les unites concernees ; « l'adversaire » et « n'importe qui »
-        // restent de camp — ils disent « une unite de ce cote-la l'a recu ».
-        const ecoutent = sujets && slot === eventSlot(ev, 'self')
+        // LE SUJET SERT A DEUX CHOSES, et il ne faut pas les confondre :
+        //   - il dit qui est « Lui » pour les effets du moment (tous les evenements
+        //     qui en ont un : l'allie qu'on pose, l'unite qui attaque) ;
+        //   - il RESTREINT l'ecoute au seul sujet, mais pour le renfort seulement
+        //     (« quand CETTE unite recoit du renfort »), d'ou `ecouteLeSujet`.
+        // Sans cette distinction, « quand tu joues un allie » ne serait entendu que
+        // par l'allie qu'on vient de poser — c'est-a-dire par personne d'utile.
+        const ecoutent = sujets && (EVENTS[ev] || {}).ecouteLeSujet && slot === eventSlot(ev, 'self')
           ? B[k].board.filter(u => sujets.includes(u))
           : B[k].board;
         // On fige la liste : une unite qui meurt pendant la sequence ne la casse pas.
+        // LE SUJET DE L'EVENEMENT EST « LUI » : l'allie qu'on vient de poser, l'unite
+        // qui vient d'attaquer, celle qui vient d'etre renforcee. Il est toujours du
+        // cote de l'acteur — c'est lui qui a provoque l'evenement.
+        const depart = (sujets || []).filter(u => B[acteur].board.includes(u))
+          .map(u => ({ kind: 'unit', side: acteur, unit: u }));
         for (const u of [...ecoutent]) {
           if (B.over) return;
           if (!u[slot] || !u[slot].length) continue;
           if (!B[k].board.includes(u)) continue;   // deja partie entre-temps
+          if (!gardePasse(u, slot, sujets)) continue;   // « seulement si... »
           B.fired[slot] = (B.fired[slot] || 0) + 1;
           say(B, `${TRIGGERS[slot].label} — ${u.name}.`);
-          applyEffects(B, k, u[slot], autoTarget(B, k, u[slot], u), u);
+          applyEffects(B, k, u[slot], autoTarget(B, k, u[slot], u), u, null, depart);
         }
       }
     }
@@ -672,20 +868,67 @@ export function endTurn(B) {
 // ------------------------------------------------------------------- ciblage
 const isPick = t => !!(targetDef(t) && targetDef(t).pick);
 
-/** Une carte a-t-elle besoin que le joueur designe une cible avant d'etre jouee ? */
-export function needsTarget(card) {
-  return (card.play || []).some(e => isPick(e.t));
+/**
+ * TOUTES les cibles que porte un effet. Longtemps il n'y en avait qu'une, `t`, et
+ * elle etait lue en dur ; la Copie en a deux (qui devient la copie, et de quoi). On
+ * demande donc au registre — et un effet qui gagnera une cible sera servi tout seul.
+ * Un effet inventé dans le builder, qui n'a pas declare ses parametres, garde `t`.
+ */
+const ciblesDe = e => {
+  const params = targetParams(e.op);
+  return (params.length ? params.map(p => e[p.k]) : [e.t]).filter(Boolean);
+};
+
+/**
+ * La carte demande-t-elle au joueur de CHOISIR une branche avant d'etre jouee ?
+ * On regarde aussi dans les effets imbriques : un « Choisir » peut en cacher un autre.
+ */
+export function needsChoice(card) {
+  let oui = false;
+  for (const e of card.play || []) eachSubEffect(e, x => { if (x.op === 'choisir') oui = true; });
+  return oui;
 }
 
-export function legalTargets(B, k, card) {
+/**
+ * LES CIBLES QU'UNE CARTE POSE VRAIMENT, branches comprises. Un « Choisir » cache ses
+ * effets dans ses deux branches : sans descendre dedans, une carte dont tout le contenu
+ * est dans un choix paraitrait n'avoir aucune cible — elle partirait sans rien viser.
+ * `choix` restreint a la branche retenue quand elle est connue (le joueur repond avant
+ * de designer) ; sans reponse, on prend les deux, ce qui donne la bonne question a
+ * « cette carte est-elle jouable ? ».
+ */
+function ciblesDeLaCarte(card, choix) {
+  const out = [];
+  const descend = e => {
+    if (e.op === 'choisir') {
+      const branches = choix ? [e[choix]] : [e.a, e.b];
+      for (const b of branches) for (const x of listeEffets(b)) descend(x);
+      return;
+    }
+    out.push(...ciblesDe(e));
+  };
+  for (const e of card.play || []) descend(e);
+  return out;
+}
+
+/** Une carte a-t-elle besoin que le joueur designe une cible avant d'etre jouee ? */
+export function needsTarget(card, choix) {
+  return ciblesDeLaCarte(card, choix).some(isPick);
+}
+
+export function legalTargets(B, k, card, choix) {
   const out = [];
   const me = B[k], them = B[foe(k)];
-  for (const e of card.play || []) {
-    if (e.t === 'enemyUnit') out.push(...them.board.map(u => ({ side: foe(k), uid: u.uid })));
-    else if (e.t === 'enemyAny') {
+  for (const t of ciblesDeLaCarte(card, choix)) {
+    // « Une unite, alliee ou adverse » : les deux plateaux sont designables.
+    if (t === 'anyUnit') {
+      out.push(...me.board.map(u => ({ side: k, uid: u.uid })));
+      out.push(...them.board.map(u => ({ side: foe(k), uid: u.uid })));
+    } else if (t === 'enemyUnit') out.push(...them.board.map(u => ({ side: foe(k), uid: u.uid })));
+    else if (t === 'enemyAny') {
       out.push(...them.board.map(u => ({ side: foe(k), uid: u.uid })));
       out.push({ side: foe(k), uid: 'hero' });
-    } else if (e.t === 'allyUnit') out.push(...me.board.map(u => ({ side: k, uid: u.uid })));
+    } else if (t === 'allyUnit') out.push(...me.board.map(u => ({ side: k, uid: u.uid })));
   }
   // dedoublonne
   return out.filter((t, i) => out.findIndex(o => o.side === t.side && o.uid === t.uid) === i);
@@ -697,24 +940,37 @@ export function legalTargets(B, k, card) {
  * qui depend deja du moteur (on eviterait un import circulaire).
  * Seules les cibles `pick` sont concernees : les autres se resolvent d'elles-memes.
  */
+/**
+ * L'effet fait-il du mal ? Sert quand personne n'est la pour designer une cible « une
+ * unite, alliee ou adverse » : ce qui blesse part en face, le reste va chez soi.
+ * Un renfort negatif est un affaiblissement — c'est le signe qui tranche, pas l'effet.
+ */
+const estHostile = e => e.op === 'dmg' || e.op === 'detruit'
+  || (e.op === 'buff' && ((e.atk || 0) < 0 || (e.hp || 0) < 0));
+
 function autoTarget(B, k, effects, source) {
   const me = B[k], them = B[foe(k)];
   for (const brut of effects) {
     const e = resolveAmounts(B, k, source, brut);
-    if (!isPick(e.t)) continue;
-    if (e.t === 'enemyUnit' || e.t === 'enemyAny') {
-      // Une destruction n'a pas de seuil de PV : n'importe quelle unite tombe, on
-      // prend donc la plus genante au lieu de la plus entamee.
-      const mortelles = e.op === 'detruit' ? [...them.board] : them.board.filter(u => u.hp <= (e.v || 0));
-      const kill = mortelles.sort((a, b) => b.atk - a.atk)[0];
-      if (kill) return { side: foe(k), uid: kill.uid };
-      if (e.t === 'enemyAny') return { side: foe(k), uid: 'hero' };
-      const weakest = [...them.board].sort((a, b) => a.hp - b.hp)[0];
-      return weakest ? { side: foe(k), uid: weakest.uid } : null;
-    }
-    if (e.t === 'allyUnit') {
-      const best = [...me.board].sort((a, b) => b.atk - a.atk)[0];
-      if (best) return { side: k, uid: best.uid };
+    for (const t0 of ciblesDe(e)) {
+      if (!isPick(t0)) continue;
+      // Une cible sans camp n'en designe pas moins UNE unite : on tranche le cote par
+      // la nature de l'effet, puis on retombe sur les choix habituels.
+      const t = t0 === 'anyUnit' ? (estHostile(e) ? 'enemyUnit' : 'allyUnit') : t0;
+      if (t === 'enemyUnit' || t === 'enemyAny') {
+        // Une destruction n'a pas de seuil de PV : n'importe quelle unite tombe, on
+        // prend donc la plus genante au lieu de la plus entamee.
+        const mortelles = e.op === 'detruit' ? [...them.board] : them.board.filter(u => u.hp <= (e.v || 0));
+        const kill = mortelles.sort((a, b) => b.atk - a.atk)[0];
+        if (kill) return { side: foe(k), uid: kill.uid };
+        if (t === 'enemyAny') return { side: foe(k), uid: 'hero' };
+        const weakest = [...them.board].sort((a, b) => a.hp - b.hp)[0];
+        return weakest ? { side: foe(k), uid: weakest.uid } : null;
+      }
+      if (t === 'allyUnit') {
+        const best = [...me.board].sort((a, b) => b.atk - a.atk)[0];
+        if (best) return { side: k, uid: best.uid };
+      }
     }
   }
   return null;
@@ -764,26 +1020,63 @@ function recipients(B, k, t, target, source, last) {
     case 'sameTypeAllies': {
       // Comme `allAllies` : le porteur ne se compte pas lui-meme.
       if (!source || !source.uid || !me.board.includes(source)) return [];
-      return me.board.filter(u => u !== source && shareType(source, u)).map(u => unit(k, u));
+      return me.board.filter(u => u !== source && partageType(source, u)).map(u => unit(k, u));
     }
     case 'allyType': {
       // Le type est ecrit dans la cible : aucun besoin de porteur, un sort y a droit.
       const voulu = targetArg(t);
-      return voulu ? me.board.filter(u => typesOf(u).includes(voulu)).map(u => unit(k, u)) : [];
+      return voulu ? me.board.filter(u => estDuType(u, voulu)).map(u => unit(k, u)) : [];
     }
     case 'enemyType': {
       const voulu = targetArg(t);
-      return voulu ? them.board.filter(u => typesOf(u).includes(voulu)).map(u => unit(foe(k), u)) : [];
+      return voulu ? them.board.filter(u => estDuType(u, voulu)).map(u => unit(foe(k), u)) : [];
     }
     case 'self':
       // Un sort n'est "lui-meme" de rien : la source doit etre une unite en jeu.
       return source && source.uid && me.board.includes(source) ? [unit(k, source)] : [];
+    // LES CIBLES SANS CAMP. `anyUnit` est designee par le joueur : elle tombe dans le
+    // `default` avec les autres cibles pointees, qui lit deja le cote dans `target`.
+    case 'allUnits':
+      // « Toutes » veut dire toutes : le porteur n'est pas epargne, contrairement a
+      // « Tous tes allies ».
+      return [...me.board.map(u => unit(k, u)), ...them.board.map(u => unit(foe(k), u))];
+    case 'randomUnit': {
+      const pool = [...me.board.map(u => unit(k, u)), ...them.board.map(u => unit(foe(k), u))];
+      const r = pickOne(pool);
+      return r ? [r] : [];
+    }
+    case 'anyType': {
+      const voulu = targetArg(t);
+      if (!voulu) return [];
+      return [...me.board.filter(u => estDuType(u, voulu)).map(u => unit(k, u)),
+        ...them.board.filter(u => estDuType(u, voulu)).map(u => unit(foe(k), u))];
+    }
+    case 'previousType': {
+      // Le type vient de « Lui » : on repete l'effet sur ses semblables, du meme cote
+      // que lui, sans le reprendre — il vient de le recevoir. Une unite sans etiquette
+      // ne partage rien avec personne : la chaine s'arrete d'elle-meme.
+      const bases = (last || []).filter(r => r.kind === 'unit');
+      const out = [];
+      for (const r of bases) {
+        for (const u of B[r.side].board) {
+          if (bases.some(b => b.unit === u) || out.some(o => o.unit === u)) continue;
+          if (partageType(r.unit, u)) out.push(unit(r.side, u));
+        }
+      }
+      return out;
+    }
     default: {
-      // Cibles designees par le joueur (ou par autoTarget).
+      // CIBLES DESIGNEES par le joueur (ou par autoTarget). Une cible qui NOMME un camp
+      // ne se laisse pas designer de l'autre cote : « un de tes allies » ne renforce pas
+      // une unite d'en face parce que le joueur a pointe celle-la. Ca n'arrive qu'avec
+      // deux cibles a designer sur la meme carte — elles recoivent forcement la meme
+      // reponse, et la validation le signale.
+      const attendu = t === 'allyUnit' ? k : (t === 'enemyUnit' || t === 'enemyAny') ? foe(k) : null;
+      const bonCote = target && (!attendu || target.side === attendu);
       const u = findUnit(B, target);
-      if (u) return [unit(target.side, u)];
-      if (target && target.uid === 'hero') return [hero(target.side)];
-      // Sans cible fournie, seul 'enemyAny' sait retomber sur le heros adverse.
+      if (u && bonCote) return [unit(target.side, u)];
+      if (bonCote && target.uid === 'hero') return [hero(target.side)];
+      // Sans cible utilisable, seul 'enemyAny' sait retomber sur le heros adverse.
       return t === 'enemyAny' ? [hero(foe(k))] : [];
     }
   }
@@ -799,8 +1092,33 @@ const nameOf = (B, r) => (r.kind === 'hero' ? B[r.side].name : r.unit.name);
  * La liste des champs a resoudre vient du registre : un effet qui gagne un parametre
  * numerique en profite sans qu'on touche a cette fonction.
  */
+/**
+ * LE TYPE QU'UN FILTRE VISE, quand il ne le porte pas ecrit mais le LIT sur une carte :
+ * « du type d'une carte de ta main », « d'une unite en jeu chez l'adversaire ». On tire
+ * au sort parmi les etiquettes presentes dans la zone visee — une carte qui en porte
+ * deux compte deux fois, une carte « Type : tous » n'en nomme aucune et n'en fournit
+ * donc pas. Rien a lire : le type reste vide, et le filtre ne prendra rien.
+ */
+function typeLu(B, k, e) {
+  const camps = e.typeQui === 'adversaire' ? [foe(k)] : e.typeQui === 'deux' ? [k, foe(k)] : [k];
+  const etiquettes = [];
+  for (const camp of camps) {
+    const s = B[camp];
+    const ou = e.typeDe === 'plateau' ? s.board : e.typeDe === 'main' ? s.hand
+      : e.typeDe === 'pioche' ? s.deck : s.discard;
+    for (const x of ou) etiquettes.push(...typesOf(x));
+  }
+  return etiquettes.length ? etiquettes[Math.floor(Math.random() * etiquettes.length)] : '';
+}
+
 function resolveAmounts(B, k, u, e) {
   const champs = numberParams(e.op);
+  // Un type lu sur une carte se resout ici, au meme endroit et pour la meme raison
+  // qu'un montant variable : apres, tout le moteur ne voit qu'un type ordinaire.
+  if (typeVariable(e)) {
+    const copie = { ...e, argType: typeLu(B, k, e) };
+    return champs.length ? resolveAmounts(B, k, u, { ...copie, typeDe: 'ecrit' }) : copie;
+  }
   if (!champs.length) return e;
   // Un effet statique « tes degats infligent 1 de plus » s'ajoute a chaque nombre de
   // l'effet vise, exactement comme un palier « Amplifie » — mais seulement tant que
@@ -816,11 +1134,21 @@ function resolveAmounts(B, k, u, e) {
   return copie || e;
 }
 
-function applyEffects(B, k, effects, target, source) {
+/**
+ * `choix` = la branche que le joueur a designee pour les effets « Choisir » de cette
+ * carte ('a' ou 'b'). Une seule reponse pour toute la carte : le joueur ne choisit
+ * qu'une fois, comme il ne designe qu'une cible. Sans reponse (rale d'agonie,
+ * declencheur de tour), c'est la premiere branche qui part.
+ * Rend les destinataires du dernier effet, pour que « Choisir » puisse les rendre a
+ * son tour et que « Lui » traverse une branche.
+ */
+function applyEffects(B, k, effects, target, source, choix, depart) {
   const me = B[k], them = B[foe(k)];
   // Ce que le dernier effet a vise ou cree, pour la cible « Lui ». Les effets sans
   // destinataire (pioche, armure, mana) ne l'ecrasent pas : ils ne coupent pas la chaine.
-  let last = [];
+  // `depart` amorce la chaine : un evenement a un SUJET (l'allie qu'on vient de poser,
+  // l'unite qui vient d'attaquer), et c'est « Lui » pour le premier effet du moment.
+  let last = depart || [];
   const cible = (t) => recipients(B, k, t, target, source, last);
   for (const brut of effects) {
     const e = resolveAmounts(B, k, source, brut);
@@ -950,6 +1278,84 @@ function applyEffects(B, k, effects, target, source) {
         say(B, `${pris.length} carte(s) ${mot} : ${pris.map(x => x.carte.name).join(', ')}.`);
         break;
       }
+      case 'copie': {
+        // DEUX questions, deux cibles : qui devient une copie (`t`), et de quoi (`tm`
+        // ou le paquet). Le modele est lu une seule fois : « tous tes allies
+        // deviennent une copie d'une carte de ta pioche », c'est la MEME carte pour
+        // tous, pas un tirage par unite.
+        const cibles = cible(e.t).filter(r => r.kind === 'unit');
+        if (!cibles.length) { say(B, 'Aucune unite a transformer.'); break; }
+        const modele = modeleACopier(B, k, e, target, source, last, cibles[0].side);
+        if (!modele) { say(B, `Rien a copier (${describeModele(e)}).`); break; }
+        // Un sort n'a ni attaque ni vie : une unite ne peut pas en devenir la copie.
+        if (modele.type !== 'ally') { say(B, `${modele.name} est un sort : on ne peut pas en devenir la copie.`); break; }
+        const avant = cibles.map(r => r.unit.name);
+        for (const r of cibles) devientCopie(B, r.unit, modele);
+        last = cibles;
+        say(B, `${avant.join(', ')} devient ${modele.name} ${modele.atk || 0}/${modele.hp || 0}.`);
+        break;
+      }
+      case 'switch': {
+        const zone = ZONES[e.d_ou] || ZONES.plateau;
+        if (zone.cible) {
+          const cibles = cible(e.t).filter(r => r.kind === 'unit');
+          if (!cibles.length) { say(B, 'Aucune unite a switcher.'); break; }
+          const restees = [];
+          for (const r of cibles) { const s = switcheUnite(B, k, r); if (s) restees.push(s); }
+          if (restees.length) last = restees;
+          break;
+        }
+        // Dans un paquet : on echange la carte SUR PLACE, et elle reste ainsi pour tout
+        // le combat. Rien ne bouge de zone, donc rien ne se pioche ni ne se defausse.
+        const { camp, pile } = paquetDe(B, k, e);
+        const cartes = choisitDansPaquet(B, k, { ...e, fatigue: false }, pile, camp);
+        if (!cartes.length) { say(B, 'Aucune carte a switcher.'); break; }
+        const noms = [];
+        for (const carte of cartes) {
+          const face = autreFace(carte);
+          const at = pile.indexOf(carte);
+          if (!face || at < 0) { say(B, `${carte.name} n'a pas d'autre face.`); continue; }
+          pile[at] = face;
+          noms.push(`${carte.name} → ${face.name}`);
+        }
+        if (noms.length) say(B, `Switch : ${noms.join(', ')}.`);
+        break;
+      }
+      case 'prendre_le_controle': {
+        const cibles = cible(e.t).filter(r => r.kind === 'unit');
+        if (!cibles.length) { say(B, 'Aucune unite a prendre.'); break; }
+        const pris = [];
+        for (const r of cibles) {
+          if (r.side === k) { say(B, `${r.unit.name} est deja de ton cote.`); continue; }
+          if (plateauPlein(me)) { say(B, `Le plateau de ${me.name} est plein : ${r.unit.name} reste ou elle est.`); continue; }
+          // On la pose chez soi SANS la faire mourir ni la rejouer : « A la pose » ne
+          // part pas, exactement comme pour une unite renvoyee sur le plateau.
+          r.unit.owner = proprio(r.unit, r.side);
+          B[r.side].board = B[r.side].board.filter(u => u !== r.unit);
+          me.board.push(r.unit);
+          // Elle vient d'arriver de ce cote-ci : elle n'attaque pas ce tour, sauf Charge.
+          r.unit.canAttack = hasKey(r.unit.keys, 'Charge');
+          r.unit.attackedThisTurn = false;
+          pris.push({ kind: 'unit', side: k, unit: r.unit });
+        }
+        if (pris.length) {
+          last = pris;
+          say(B, `${me.name} prend le controle de ${pris.map(r => r.unit.name).join(', ')}.`);
+        }
+        break;
+      }
+      case 'choisir': {
+        // UNE SEULE branche part, mais une branche est une LISTE : ses effets
+        // s'enchainent comme sur un moment, « Lui » compris. Le joueur l'a designee en
+        // jouant la carte ; le bot compare les deux ; sinon c'est la premiere.
+        const branche = listeEffets(choix === 'b' ? e.b : e.a);
+        if (!branche.length) { say(B, 'Ce choix ne propose rien.'); break; }
+        say(B, `Choix : ${branche.map(describeEffect).join(', ')}.`);
+        // Les destinataires de la branche deviennent ceux de « Choisir » : « Lui »
+        // continue donc de fonctionner par-dessus.
+        last = applyEffects(B, k, branche, target, source, choix) || last;
+        break;
+      }
       case 'pioche_x': {
         const cherche = normalise(e.carte);
         if (!cherche) { say(B, 'Aucune carte n\'est designee.'); break; }
@@ -985,7 +1391,7 @@ function applyEffects(B, k, effects, target, source) {
         // Les jetons qui viennent d'arriver deviennent le « lui » de l'effet suivant.
         const arrives = [];
         for (let i = 0; i < (e.n || 1); i++) {
-          if (me.board.length >= BALANCE.combat.boardSize) break;
+          if (plateauPlein(me)) break;
           // Un jeton herite du niveau de celui qui l'invoque : sans ca, « X = ton niveau »
           // vaudrait zero sur un jeton, ce que personne n'attend.
           const t = makeUnit({ ...e.unit, sprite: e.unit.sprite || (source ? source.sprite : null),
@@ -1008,8 +1414,9 @@ function applyEffects(B, k, effects, target, source) {
     }
     refresh(B);
     checkOver(B);
-    if (B.over) return;
+    if (B.over) return last;
   }
+  return last;
 }
 
 function notePending(B, id, label) {
@@ -1052,6 +1459,8 @@ function makeUnit(c) {
   // Les moments accroches a l'unite, copies depuis la carte. Generique : un moment
   // ajoute au registre est transporte sans toucher a cette fonction.
   for (const slot of Object.keys(TRIGGERS)) u[slot] = (c[slot] || []).map(e => ({ ...e }));
+  // ... et leurs gardes (« seulement quand c'est un Chien qui attaque »).
+  u.gardes = { ...(c.gardes || {}) };
   // Valeurs derivees, corrigees des le refresh() qui suit.
   u.atk = u.baseAtk;
   u.maxHp = u.baseHp;
@@ -1068,15 +1477,19 @@ export function canPlay(B, k, card) {
   // JOUABILITE, donc elle se pose ici — le bot et l'interface la voient tous les deux.
   if (s.jouees >= staticMin(B, k, 'limite_de_cartes_jouees')) return false;
   if (s.mana < cardCost(card, B, k)) return false;
-  if (card.type === 'ally' && s.board.length >= BALANCE.combat.boardSize) return false;
-  if (needsTarget(card) && legalTargets(B, k, card).length === 0) {
-    // Un sort de degats sans cible d'unite peut toujours viser le heros adverse.
-    return (card.play || []).some(e => e.t === 'enemyAny' || !isPick(e.t));
-  }
-  return true;
+  if (card.type === 'ally' && plateauPlein(s)) return false;
+  // UNE BRANCHE SUFFIT. Une carte « Choisir » dont un seul des deux choix trouve une
+  // cible reste jouable : on prendra l'autre. Sans ce detour, « gagne 8 armure OU
+  // inflige 1 degat a une unite adverse » deviendrait injouable des que le plateau
+  // d'en face est vide, alors que la premiere branche n'attend personne.
+  const viable = choix => !needsTarget(card, choix) || legalTargets(B, k, card, choix).length > 0
+    // Un sort de degats sans cible d'unite peut toujours viser le heros adverse, et
+    // une carte qui fait AUSSI autre chose (une cible qui se resout seule) part quand meme.
+    || ciblesDeLaCarte(card, choix).some(t => t === 'enemyAny' || !isPick(t));
+  return needsChoice(card) ? (viable('a') || viable('b')) : viable(null);
 }
 
-export function playCard(B, k, handIndex, target = null) {
+export function playCard(B, k, handIndex, target = null, choix = null) {
   const s = B[k];
   const card = s.hand[handIndex];
   if (!card || !canPlay(B, k, card)) return false;
@@ -1111,13 +1524,15 @@ export function playCard(B, k, handIndex, target = null) {
   if (card.type !== 'ally') { s.spellsGame++; s.spellsTurn++; }
   if ((card.play || []).length) {
     B.fired.play = (B.fired.play || 0) + 1;
-    applyEffects(B, k, card.play, target, source || card);
+    applyEffects(B, k, card.play, target, source || card, choix);
   }
   refresh(B);
   resolveDeaths(B);
   // L'evenement part une fois la carte entierement resolue : « quand tu lances un
   // sort » se declenche apres l'effet du sort, pas au milieu.
-  fireEvent(B, k, card.type === 'ally' ? 'ally' : 'spell');
+  // L'allie qu'on vient de poser est le SUJET de l'evenement : « Lui », pour les
+  // moments qui l'ecoutent.
+  fireEvent(B, k, card.type === 'ally' ? 'ally' : 'spell', source ? [source] : null);
   resolveDeaths(B);
   return true;
 }
@@ -1173,7 +1588,8 @@ export function attack(B, k, unitUid, target) {
     if (riposte > 0) damageUnit(B, k, a, riposte, d);
   }
   resolveDeaths(B);
-  fireEvent(B, k, 'attack');
+  // L'unite qui vient d'attaquer est le sujet : elle est « Lui » pour ce moment.
+  fireEvent(B, k, 'attack', [a]);
   resolveDeaths(B);
   checkOver(B);
   return true;

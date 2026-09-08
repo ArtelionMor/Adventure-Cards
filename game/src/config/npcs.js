@@ -69,6 +69,40 @@ export function catalogCards(data = CHARACTER_DATA) {
 }
 
 /**
+ * L'AUTRE FACE D'UNE CARTE. Chaque slot d'un personnage porte deux cartes — la base et
+ * son switch — et c'est le joueur qui equipe l'une ou l'autre hors combat. L'effet
+ * « Switch » les echange EN COMBAT : il a donc besoin de savoir, pour une carte, celle
+ * qui occupe le meme slot de l'autre cote.
+ *
+ * L'index va dans LES DEUX SENS : une base rend son switch, un switch rend sa base.
+ * Une carte deja switchee peut donc revenir — sans ca, l'effet serait mort sur la
+ * moitie des cartes du jeu, celles qu'on a justement equipees en switch.
+ * Une carte libre, un jeton ou une carte de PNJ n'occupent aucun slot : ils n'ont pas
+ * d'autre face, et l'effet le dira.
+ */
+let FACES = null;
+export function switchOf(id, data = CHARACTER_DATA) {
+  if (!id) return null;
+  if (data !== CHARACTER_DATA) return facesDe(data)[id] || null;
+  if (!FACES) FACES = facesDe(data);
+  return FACES[id] || null;
+}
+
+function facesDe(data) {
+  const out = {};
+  for (const ch of data.characters || []) {
+    const base = ch.cards || [], switches = ch.switches || [];
+    for (let i = 0; i < Math.max(base.length, switches.length); i++) {
+      const a = base[i], b = switches[i];
+      if (!a || !b || !a.id || !b.id) continue;
+      out[a.id] = b;
+      out[b.id] = a;
+    }
+  }
+  return out;
+}
+
+/**
  * LA PILE DE FATIGUE — « les cartes qu'on pioche quand la pioche est vide ».
  * Une seule pile pour tout le jeu (`CHARACTER_DATA.fatigue`), editee dans le builder
  * comme un deck de PNJ : des lignes qui DESIGNENT une carte du catalogue, avec un

@@ -159,6 +159,60 @@ static class Launcher
             || System.Text.RegularExpressions.Regex.IsMatch(rel, @"^docs/[\w.-]+\.md$");
     }
 
+    // LES DOSSIERS D'IMAGES, rebalayes a la demande (« Actualiser les images » dans le
+    // Card Builder). Le serveur de dev fait la meme chose en appelant
+    // scripts/gen-sprites.mjs ; ici on est en C#, donc ce balayage est ecrit deux fois.
+    // Les deux doivent produire le MEME fichier : meme ordre (ordinal, comme le .sort()
+    // de JavaScript), meme mise en forme, memes fins de ligne.
+    static readonly string[] SpriteFolders = { "Characters", "Machines", "Ressources", "UI" };
+    static readonly string[] SpriteExt = { ".png", ".jpg", ".jpeg", ".webp", ".gif" };
+
+    /** Balaye les dossiers, reecrit game/data/sprites.js, et rend le JSON de la liste. */
+    static string GenereSprites()
+    {
+        StringBuilder json = new StringBuilder("{\n");
+        bool premierDossier = true;
+        foreach (string dossier in SpriteFolders)
+        {
+            string dir = Path.Combine(Root, dossier);
+            if (!Directory.Exists(dir)) continue;
+            List<string> noms = new List<string>();
+            foreach (string f in Directory.GetFiles(dir))
+            {
+                string ext = Path.GetExtension(f).ToLowerInvariant();
+                if (Array.IndexOf(SpriteExt, ext) >= 0) noms.Add(Path.GetFileName(f));
+            }
+            noms.Sort(StringComparer.Ordinal);
+            if (!premierDossier) json.Append(",\n");
+            premierDossier = false;
+            json.Append("  ").Append(JsonTexte(dossier)).Append(": [");
+            for (int i = 0; i < noms.Count; i++)
+            {
+                json.Append(i == 0 ? "\n" : ",\n").Append("    ").Append(JsonTexte(noms[i]));
+            }
+            json.Append(noms.Count == 0 ? "]" : "\n  ]");
+        }
+        json.Append("\n}");
+
+        string contenu = "// Genere par scripts/gen-sprites.mjs — ne pas editer a la main.\n"
+            + "export const SPRITES = " + json + ";\n";
+        File.WriteAllText(Path.Combine(Root, "game", "data", "sprites.js"), contenu, new UTF8Encoding(false));
+        return json.ToString();
+    }
+
+    /** Une chaine JSON entre guillemets : les noms de fichiers passent par la. */
+    static string JsonTexte(string s)
+    {
+        StringBuilder b = new StringBuilder("\"");
+        foreach (char c in s)
+        {
+            if (c == '"' || c == '\\') b.Append('\\').Append(c);
+            else if (c < ' ') b.Append("\\u").Append(((int)c).ToString("x4"));
+            else b.Append(c);
+        }
+        return b.Append('"').ToString();
+    }
+
     static void Handle(object o)
     {
         using (TcpClient client = (TcpClient)o)
@@ -185,6 +239,24 @@ static class Launcher
                 string query = "";
                 int qm = rawPath.IndexOf('?');
                 if (qm >= 0) { query = rawPath.Substring(qm + 1); rawPath = rawPath.Substring(0, qm); }
+
+                // « J'ai ajoute une image » : on rebalaye les dossiers, on reecrit
+                // game/data/sprites.js et on rend la liste au builder, qui l'affiche
+                // sans rechargement. Rien a lire dans la requete.
+                if (parts[0] == "POST" && rawPath == "/api/sprites")
+                {
+                    try
+                    {
+                        string liste = GenereSprites();
+                        Console.WriteLine("sprites relus");
+                        Send(ns, 200, "application/json; charset=utf-8", Encoding.UTF8.GetBytes(liste));
+                    }
+                    catch (Exception ex)
+                    {
+                        Send(ns, 500, "text/plain; charset=utf-8", Encoding.UTF8.GetBytes(ex.Message));
+                    }
+                    return;
+                }
 
                 // Ecriture demandee par le Card Builder.
                 if (parts[0] == "POST" && rawPath == "/api/write")

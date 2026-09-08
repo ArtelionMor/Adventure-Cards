@@ -2,8 +2,10 @@
 // (meme arborescence que le launcher .exe, pour que les chemins d'assets soient identiques).
 //
 // Expose aussi POST /api/write?path=<chemin relatif>, utilise par le Card Builder pour
-// ecrire ses fichiers. Seuls les chemins de la liste blanche sont acceptes, et le
-// serveur n'ecoute que sur la boucle locale.
+// ecrire ses fichiers, et POST /api/sprites, qui rebalaye les dossiers d'images et
+// reecrit game/data/sprites.js (le bouton « Actualiser les images » du builder). Seuls
+// les chemins de la liste blanche sont acceptes, et le serveur n'ecoute que sur la
+// boucle locale.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -21,8 +23,23 @@ const MIME = {
 const WRITABLE = [/^game\/data\/[\w.-]+\.(js|json)$/, /^docs\/[\w.-]+\.md$/];
 const canWrite = rel => WRITABLE.some(re => re.test(rel));
 
+// Le balayage des dossiers d'images vit dans scripts/gen-sprites.mjs — une seule
+// implementation, la meme liste en ligne de commande et depuis le builder. C'est un
+// module ES, d'ou l'import dynamique (ce fichier-ci est en CommonJS).
+const genereSprites = () => import('./gen-sprites.mjs').then(m => m.genereSprites());
+
 http.createServer((req, res) => {
   const [urlPath, query] = req.url.split('?');
+
+  // « J'ai ajoute une image dans Characters/ » : on rebalaye et on rend la liste, que
+  // le builder affiche sans rechargement. Rien a lire dans la requete.
+  if (req.method === 'POST' && urlPath === '/api/sprites') {
+    genereSprites().then(sprites => {
+      console.log('sprites relus : ' + Object.entries(sprites).map(([k, v]) => k + ' ' + v.length).join(' · '));
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }).end(JSON.stringify(sprites));
+    }).catch(e => res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }).end(String(e && e.message || e)));
+    return;
+  }
 
   if (req.method === 'POST' && urlPath === '/api/write') {
     const rel = decodeURIComponent(new URLSearchParams(query || '').get('path') || '').replace(/\\/g, '/');

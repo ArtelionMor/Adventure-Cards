@@ -187,7 +187,28 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .pip { width: 11px; height: 11px; border-radius: 50%; background: #26364a; border: 1px solid #3d5570; }
 .pip.on { background: var(--mana); }
 
-.board { min-height: 92px; display: flex; gap: 6px; justify-content: center; align-items: center; padding: 6px; flex-wrap: wrap; }
+/* Le plateau n'a plus de plafond d'unites (BALANCE.combat.boardSize = 0). Il prend une
+   part elastique de la hauteur, plafonnee pour laisser vivre le journal, et il NE DEFILE
+   PAS : quand il y a trop de monde, ce sont les vignettes qui retrecissent (voir
+   `ajustePlateau` dans ui/battle.js). Un plateau qui defile cacherait la moitie du combat. */
+/* `flex: 0 1 auto` : le plateau prend la hauteur de ce qu'il contient — un plateau vide
+   ne vole pas la place du journal — jusqu'au plafond, au-dela duquel c'est l'echelle des
+   vignettes qui plie. Le padding vaut 6px partout : `ajustePlateau` s'en sert pour
+   retrouver la boite de contenu, ne le changer que des deux cotes. */
+.board { flex: 0 1 auto; min-height: 84px; max-height: 22vh; overflow: hidden; display: grid; place-items: center; padding: 6px; }
+/* Ce qui porte les vignettes, et ce qu'on met a l'echelle d'un bloc : le JS l'elargit de
+   1/echelle avant de le reduire, pour que les retours a la ligne se calculent sur la
+   largeur reellement disponible. `--u` est l'echelle, 1 quand tout tient deja. */
+.bwrap {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center;
+  /* Ancre en haut a gauche, et c'est la transformation qui replace le bloc : une fois
+     elargi de 1/echelle, il deborde du plateau, et la grille recale alors un element
+     trop grand sur le bord de depart au lieu de le centrer. A l'echelle 1 (le cas ou
+     tout tient), --u vaut 1 et --dy 0 : la transformation est l'identite et c'est bien
+     `place-items: center` du plateau qui centre. */
+  transform-origin: 0 0;
+  transform: translateY(var(--dy, 0px)) scale(var(--u, 1));
+}
 .unit {
   width: 62px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px;
   padding: 4px; display: grid; justify-items: center; gap: 2px; position: relative; cursor: pointer;
@@ -203,7 +224,7 @@ button.btn:disabled { opacity: .4; cursor: default; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 3px rgba(255,196,107,.55); } }
 .unit .kw { font-size: 9px; color: var(--ink-dim); }
 
-.bt-log { flex: 1; overflow-y: auto; padding: 6px 12px; font-size: 11px; color: var(--ink-dim); display: grid; gap: 2px; align-content: end; }
+.bt-log { flex: 1 1 0; min-height: 48px; overflow-y: auto; padding: 6px 12px; font-size: 11px; color: var(--ink-dim); display: grid; gap: 2px; align-content: end; }
 .bt-hand { display: flex; gap: 6px; padding: 8px; overflow-x: auto; background: var(--bg2); border-top: 1px solid var(--line); }
 .hcard {
   min-width: 92px; max-width: 92px; background: linear-gradient(180deg, var(--panel2), var(--panel));
@@ -222,6 +243,28 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .bt-bar .grow { flex: 1; }
 .autochip { font-size: 11px; padding: 6px 10px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); cursor: pointer; }
 .autochip.on { background: var(--accent2); color: #0d2c1d; font-weight: 700; }
+
+/* ---------- vue inspectee d'une unite ---------- */
+.insp { display: grid; gap: 10px; }
+.insp .tete { display: flex; gap: 12px; align-items: center; }
+.insp .tete img { width: 88px; height: 88px; object-fit: contain; background: var(--panel2); border: 1px solid var(--line); border-radius: 14px; padding: 4px; }
+.insp .nm { font-size: 17px; font-weight: 700; }
+.insp .stats { font-size: 20px; font-weight: 800; margin-top: 2px; }
+.insp .stats .a { color: var(--accent); }
+.insp .stats .h { color: var(--danger); }
+.insp .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.insp .chip { font-size: 10px; padding: 2px 7px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); }
+.insp h4 { margin: 0; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-dim); }
+.insp section { display: grid; gap: 4px; }
+.insp .ln { font-size: 12px; display: flex; gap: 6px; align-items: baseline; }
+.insp .ln b { font-weight: 700; color: var(--accent2); flex: none; }
+/* D'ou vient le bonus : sans la source, « +2/+2 » n'apprend rien au joueur. */
+.insp .src { color: var(--ink-dim); font-size: 11px; }
+.insp .tier { font-size: 11px; color: var(--ink-dim); }
+.insp .tier.on { color: var(--accent2); }
+.insp .tier.off::before { content: "🔒 "; }
+.insp .actions { display: flex; gap: 8px; }
+.insp .actions .btn { flex: 1; }
 
 /* ---------- modal ---------- */
 #modal { background: rgba(8,6,12,.8); align-items: center; justify-content: center; padding: 18px; }

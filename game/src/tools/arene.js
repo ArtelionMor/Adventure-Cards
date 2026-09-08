@@ -100,7 +100,7 @@ export function duel(fabriqueP, fabriqueE, opts = {}) {
     const niveau = opts[k] || opts.bot || (k === 'p' ? cfgP.ia : cfgE.ia);
     const a = botAction(B, k, niveau);
     if (!a || a.type === 'end') endTurn(B);
-    else if (a.type === 'play') { if (!playCard(B, k, a.index, a.target)) endTurn(B); }
+    else if (a.type === 'play') { if (!playCard(B, k, a.index, a.target, a.choix)) endTurn(B); }
     else if (a.type === 'attack') { if (!attack(B, k, a.uid, a.target)) endTurn(B); }
   }
   return { winner: garde >= 4000 ? 'stuck' : B.winner, B };
