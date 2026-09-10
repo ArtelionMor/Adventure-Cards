@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#0f1115" />
+<link rel="icon" href="icons/atelier-192.png" />
+<link rel="apple-touch-icon" href="icons/atelier-apple-180.png" />
+<title>Atelier — Adventure Card</title>
+<style>
+  :root {
+    --bg: #0f1115; --bg-2: #161922; --bg-3: #1d2230; --line: #2a3142;
+    --text: #e7eaf0; --muted: #9aa3b2; --accent: #7aa2ff; --accent-2: #79e3c5;
+    --accent-3: #c69bff; --warn: #f5a623; --danger: #ff6b81;
+    --shadow: 0 8px 24px rgba(0,0,0,.35); --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; }
+  body { font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding: 22px 14px 60px; }
+  .entete { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .entete img { width: 56px; height: 56px; border-radius: 14px; box-shadow: var(--shadow); image-rendering: pixelated; }
+  h1 { font-size: 26px; margin: 0; letter-spacing: -.02em;
+    background: linear-gradient(120deg, #fff 0%, var(--accent) 60%, var(--accent-2) 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .sous { color: var(--muted); font-size: 14px; margin: 0; }
+
+  /* L'etat du moment : ce qu'on veut savoir en ouvrant l'app. */
+  .etats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .etat { display: block; background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+  .etat small { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+  .etat b { font-size: 15px; font-weight: 600; }
+  .etat span { display: block; font-size: 13px; color: var(--muted); }
+  .etat--ok b { color: var(--accent-2); }
+  .etat--draft b { color: var(--warn); }
+  .etat--run b { color: var(--warn); }
+  .etat--ko b { color: var(--danger); }
+  a.etat:hover { border-color: var(--accent); }
+
+  /* Les outils : de grosses tuiles, faites pour un pouce. */
+  .tuiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .tuile { display: flex; flex-direction: column; gap: 4px; min-height: 118px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); transition: border-color .15s, transform .1s; }
+  .tuile:hover { border-color: var(--accent); }
+  .tuile:active { transform: scale(.98); }
+  .tuile .ico { font-size: 26px; line-height: 1; margin-bottom: 4px; }
+  .tuile b { font-size: 16px; }
+  .tuile span { font-size: 13px; color: var(--muted); }
+  .tuile--principale { border-color: #33406a; background: linear-gradient(160deg, #1b2337, var(--bg-2)); }
+
+  .installer { margin-top: 20px; background: var(--bg-2); border: 1px dashed var(--line); border-radius: 14px; padding: 12px 14px; font-size: 14px; color: var(--muted); }
+  .installer b { color: var(--text); }
+  .btn { background: linear-gradient(135deg, var(--accent), #5b86ff); border: 0; color: #0b1020; font-weight: 700; border-radius: 10px; padding: 10px 16px; font: inherit; font-size: 15px; cursor: pointer; margin-top: 8px; }
+  code { font-size: 13px; color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="entete">
+    <img src="icons/atelier-192.png" alt="" />
+    <div>
+      <h1>Atelier</h1>
+      <p class="sous">Adventure Card — les outils de game design</p>
+    </div>
+  </div>
+
+  <div class="etats">
+    <a class="etat" id="etatBrouillon" href="index.html"><small>Cartes</small><b>…</b><span></span></a>
+    <a class="etat" id="etatCalcul" href="lancer.html"><small>Calcul sur le serveur</small><b>…</b><span></span></a>
+  </div>
+
+  <div class="tuiles">
+    <a class="tuile tuile--principale" href="index.html"><span class="ico">🃏</span><b>Card Builder</b><span>Créer et modifier les cartes, les adversaires, la fatigue.</span></a>
+    <a class="tuile tuile--principale" href="lancer.html"><span class="ico">▶️</span><b>Lancer un calcul</b><span>Simulations et tests, calculés sur le Pi.</span></a>
+    <a class="tuile" href="overview.html"><span class="ico">🗂️</span><b>Vue d'ensemble</b><span>Toutes les cartes, résolues au niveau voulu.</span></a>
+    <a class="tuile" href="balance.html"><span class="ico">⚖️</span><b>Équilibrage</b><span>Matrice et courbe, jouées dans le navigateur.</span></a>
+    <a class="tuile" href="../docs/MECANIQUES-A-CODER.md"><span class="ico">🛠️</span><b>Mécaniques à coder</b><span>Ce que le builder a inventé et que le moteur ne fait pas encore.</span></a>
+    <a class="tuile" href="../game/index.html"><span class="ico">🎮</span><b>Jouer</b><span>Le prototype, avec les cartes appliquées au jeu.</span></a>
+  </div>
+
+  <div class="installer" id="installer" hidden></div>
+</div>
+
+<script type="module">
+const $ = s => document.querySelector(s);
+const heure = t => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+const ilYa = t => {
+  const m = Math.round((Date.now() - t) / 60000);
+  return m < 1 ? 'à l\'instant' : m < 60 ? `il y a ${m} min` : `il y a ${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`;
+};
+const pose = (el, classe, titre, detail) => {
+  el.className = 'etat' + (classe ? ' etat--' + classe : '');
+  el.querySelector('b').textContent = titre;
+  el.querySelector('span').textContent = detail;
+};
+
+// ---------- LES CARTES : brouillon en cours, ou tout est applique ? ----------
+// Le brouillon vit dans CE navigateur (celui du telephone n'est pas celui du PC).
+function rendBrouillon() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem('adventureCardBuilder.v1') || 'null'); } catch { /* pas grave */ }
+  if (d && d.db && d.db.characters) pose($('#etatBrouillon'), 'draft', 'Brouillon en cours', `modifié à ${heure(d.at)} — pas encore appliqué au jeu`);
+  else pose($('#etatBrouillon'), 'ok', 'Tout est appliqué au jeu', 'aucun brouillon dans ce navigateur');
+}
+addEventListener('storage', ev => { if (ev.key === 'adventureCardBuilder.v1') rendBrouillon(); });
+
+// ---------- LE CALCUL : en cours, ou le dernier resultat ----------
+const NOMS = { simulate: 'Courbe de difficulté', matchups: 'Matrice des matchups', 'check-decks': 'Contrôle des decks',
+  'analyse-cartes': 'Analyse des cartes', 'test-triggers': 'Banc du moteur', 'test-ai': 'Banc du bot' };
+let minuterie = null;
+async function rendCalcul() {
+  clearTimeout(minuterie);
+  const el = $('#etatCalcul');
+  let r;
+  try { r = await fetch('/api/run?depuis=999999999', { cache: 'no-store' }); }
+  catch { pose(el, 'ko', 'Serveur injoignable', 'le Pi est-il allumé ?'); return; }
+  if (r.status === 404) { pose(el, '', 'Indisponible ici', 'lancer un calcul demande le serveur du Pi'); return; }
+  const e = await r.json();
+  if (!e.id) { pose(el, '', 'Aucun calcul lancé', 'depuis le démarrage du serveur'); return; }
+  const nom = NOMS[e.outil] || e.outil;
+  if (e.enCours) { pose(el, 'run', `${nom} en cours…`, `lancé à ${heure(e.debut)}`); minuterie = setTimeout(rendCalcul, 3000); }
+  else if (e.code === 0) pose(el, 'ok', `${nom} : terminé`, ilYa(e.fin));
+  else pose(el, 'ko', `${nom} : ${typeof e.code === 'string' ? 'arrêté' : 'échec'}`, ilYa(e.fin));
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { rendBrouillon(); rendCalcul(); } });
+
+// ---------- INSTALLER L'APP ----------
+// Un navigateur ne propose l'installation que sur une page en HTTPS (ou localhost).
+// Sur le Pi, c'est `tailscale serve` qui la donne — voir CLAUDE.md.
+const installee = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+const boite = $('#installer');
+if (!installee && !isSecureContext) {
+  boite.hidden = false;
+  boite.innerHTML = 'Pour installer l\'Atelier comme une vraie app, ouvre cette page en <b>HTTPS</b> : l\'adresse '
+    + '<code>https://…ts.net</code> que donne <code>tailscale serve</code> sur le Pi. En <code>http://</code>, le navigateur refuse.';
+}
+let invite = null;
+addEventListener('beforeinstallprompt', ev => {
+  ev.preventDefault();
+  invite = ev;
+  boite.hidden = false;
+  boite.innerHTML = '<b>Installer l\'Atelier</b> : une icône sur l\'écran d\'accueil, une fenêtre à part, sans barre d\'adresse.<br>'
+    + '<button class="btn" id="btnInstaller">Installer</button>';
+  $('#btnInstaller').onclick = async () => { invite.prompt(); await invite.userChoice; boite.hidden = true; };
+});
+
+rendBrouillon();
+rendCalcul();
+</script>
+</body>
+</html>

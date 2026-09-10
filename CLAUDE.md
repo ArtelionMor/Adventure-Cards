@@ -152,6 +152,21 @@ le doubler — sur le PC, on a les scripts en ligne de commande.
 Wi-Fi ou par Tailscale. Ne jamais l'exposer à internet : `/api/write` et `/api/run`
 n'ont aucun mot de passe.
 
+## L'Atelier : les outils en une app
+`builder/accueil.html` réunit toutes les pages derrière des tuiles (builder, lancer un
+calcul, vue d'ensemble, équilibrage, mécaniques à coder, jeu), avec l'état du moment :
+un brouillon est-il en cours dans ce navigateur, où en est le dernier calcul du serveur.
+`builder/manifest.webmanifest` en fait une **PWA installable** (« Atelier », portée `/` :
+le jeu s'ouvre dans la même fenêtre). Toutes les pages du builder pointent vers ce
+manifeste, donc on installe depuis n'importe laquelle. Les icônes (`builder/icons/`) sont
+le dé de `UI/`, agrandi au plus proche voisin.
+
+⚠ **Un navigateur n'installe qu'en HTTPS** (ou sur localhost). Sur le Pi, c'est
+`tailscale serve --bg 7330` qui le donne : une adresse `https://<machine>.<tailnet>.ts.net`
+avec un vrai certificat, que **seuls les appareils du tailnet** peuvent joindre. Surtout
+pas Funnel, qui l'ouvrirait à internet. Pas de service worker non plus : rien n'est mis
+en cache, le builder relit toujours des données fraîches.
+
 ## L'ordre des effets, dans le builder
 L'ordre d'une liste d'effets **compte** — « Lui » et « Les autres unités du même type que
 Lui » regardent l'effet juste au-dessus — et il n'était modifiable qu'en supprimant tout
@@ -983,7 +998,7 @@ des milliers de parties imaginaires, pas des décisions), et la décision elle-m
   partagées avec le builder), `src/combat/` = moteur + bot, `src/tools/` = l'arène de mesure,
   `src/ui/` = écrans, `data/` = données générées par le builder.
 - `builder/` — le Card Builder, `overview.html` (vue d'ensemble) et `balance.html`
-  (matrice des matchups), `lancer.html` (lancer un calcul sur le serveur). Pages autonomes : aucune dépendance, elles importent seulement
+  (matrice des matchups), `lancer.html` (lancer un calcul sur le serveur), `accueil.html` (l'Atelier, l'app qui les réunit). Pages autonomes : aucune dépendance, elles importent seulement
   les modules de `game/src/`.
 - `launcher/` — source C# du lanceur Windows (compilé avec le csc.exe fourni par Windows, cf. `scripts/build-exe.ps1`).
 - `scripts/` — serveur de dev, bancs de test, outils d'équilibrage (`check-decks`,

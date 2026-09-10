@@ -1,0 +1,22 @@
+{
+  "id": "/builder/accueil.html",
+  "name": "Adventure Card — Atelier",
+  "short_name": "Atelier",
+  "description": "Les outils de game design d'Adventure Card : builder, vue d'ensemble, équilibrage, calculs sur le Pi.",
+  "lang": "fr",
+  "start_url": "/builder/accueil.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "icons": [
+    { "src": "icons/atelier-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/atelier-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/atelier-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Card Builder", "url": "/builder/index.html" },
+    { "name": "Lancer un calcul", "url": "/builder/lancer.html" },
+    { "name": "Équilibrage", "url": "/builder/balance.html" }
+  ]
+}
