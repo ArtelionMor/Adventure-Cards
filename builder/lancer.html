@@ -76,6 +76,8 @@
   .statut--ko { color: var(--danger); }
   .statut--run { color: var(--warn); }
 
+  .barre { height: 6px; background: var(--bg-3); }
+  .barre i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .4s; }
   pre.sortie { margin: 0; padding: 12px 14px; max-height: 70vh; overflow: auto; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; color: #d6dbe4; background: #0b0d12; border-radius: 0 0 var(--radius) var(--radius); }
   pre.sortie:empty::before { content: 'Rien pour l\2019instant.'; color: var(--muted); }
   .rouge { color: var(--danger); } .vert { color: var(--accent-2); } .jaune { color: var(--warn); }
@@ -144,6 +146,7 @@
         <button class="btn" id="telecharger" title="Enregistrer la sortie en .txt">⬇ .txt</button>
       </span>
     </div>
+    <div class="barre" id="barre" hidden><i></i></div>
     <pre class="sortie" id="sortie"></pre>
   </section>
 </div>
@@ -424,7 +427,19 @@ function rendEtat() {
   if (!e) { st.textContent = 'Aucun calcul lancé.'; return; }
   const o = OUTILS.find(x => x.id === e.outil);
   const nom = (o ? o.nom : e.outil) + (e.brouillon ? ' · brouillon' : '');
-  if (tourne) { st.classList.add('statut--run'); st.textContent = `${nom} — en cours · ${duree(Date.now() - e.debut)}`; }
+  // La progression vient des scripts (lignes-marqueurs, scripts/lib/progression.mjs) ;
+  // ceux qui n'en donnent pas restent « en cours ». Le temps restant est une simple
+  // regle de trois : les cases ne coutent pas toutes pareil, c'est un ordre d'idee.
+  const p = e.progression, pct = p && p.total ? p.fait / p.total : null;
+  const barre = $('#barre');
+  barre.hidden = !(tourne && pct !== null);
+  if (pct !== null) barre.firstElementChild.style.width = (pct * 100).toFixed(1) + '%';
+  if (tourne) {
+    st.classList.add('statut--run');
+    const ecoule = Date.now() - e.debut;
+    const reste = pct > 0.03 ? ` · reste ~${duree(ecoule / pct - ecoule)}` : '';
+    st.textContent = `${nom} — ${pct === null ? 'en cours' : Math.floor(pct * 100) + ' %'} · ${duree(ecoule)}${reste}`;
+  }
   else if (e.code === 0) { st.classList.add('statut--ok'); st.textContent = `${nom} — terminé en ${duree(e.fin - e.debut)}`; }
   else if (typeof e.code === 'string') { st.classList.add('statut--ko'); st.textContent = `${nom} — arrêté (${e.code}) après ${duree(e.fin - e.debut)}`; }
   else { st.classList.add('statut--ko'); st.textContent = `${nom} — échec (code ${e.code}) après ${duree(e.fin - e.debut)}`; }

@@ -8,16 +8,19 @@
 //
 // Les paliers (combien de heros face a quelle rencontre, a quel niveau) sont du GAME
 // CONFIG : ils vivent dans `BALANCE.simulation`, pas ici.
+//
+// Les combinaisons sont independantes : elles se jouent sur tous les coeurs
+// (scripts/lib/pool.mjs), et la partie elle-meme vit dans scripts/lib/taches-courbe.mjs.
 //   node scripts/simulate.mjs [parties par combinaison] [options]
 //     --paliers 1,2,3     combien de heros par palier, en surchargeant la config
 //     --csv fichier.csv   une ligne par combinaison, pour croiser dans un tableur
+//     --jobs 4            combinaisons en parallele (defaut : un par coeur moins un ; 1 = sans worker)
 import { writeFileSync } from 'node:fs';
-import { CHARACTERS, CHAR_BY_ID, resolveCard } from '../game/src/config/characters.js';
+import { CHARACTERS, CHAR_BY_ID } from '../game/src/config/characters.js';
 import { ENCOUNTERS } from '../game/src/config/world.js';
 import { BALANCE } from '../game/src/config/balance.js';
-import { createBattle, playCard, attack, endTurn } from '../game/src/combat/engine.js';
-import { botAction } from '../game/src/combat/ai.js';
 import { pendingMechanics } from '../game/src/config/mechanics.js';
+import { enParallele, nombreDeJobs } from './lib/pool.mjs';
 
 // ---------------------------------------------------------------- arguments
 const args = process.argv.slice(2);
@@ -29,45 +32,9 @@ const fichierCsv = valeur('csv', null);
 // « --paliers 1,2,3 » remplace le nombre de heros de chaque palier sans toucher au reste.
 const surcharge = valeur('paliers', '').split(',').filter(Boolean).map(Number);
 const PALIERS = BALANCE.simulation.paliers.map((p, i) => ({ ...p, heros: surcharge[i] || p.heros }));
-
-// ------------------------------------------------------------------ les camps
-function playerSide(teamIds, level) {
-  const chars = teamIds.map(id => CHAR_BY_ID[id]);
-  const deck = teamIds.flatMap(id =>
-    CHAR_BY_ID[id].cards.map(c => ({ ...resolveCard(c, level), sprite: CHAR_BY_ID[id].sprite })));
-  return {
-    name: chars.map(c => c.name).join('&'),
-    sprite: chars[0].sprite,
-    hp: chars.reduce((a, c) => a + c.stats.hp, 0),
-    mana: Math.max(...chars.map(c => c.stats.mana)),
-    hand: Math.max(...chars.map(c => c.stats.hand)),
-    deck
-  };
-}
-
-function enemySide(id) {
-  const e = ENCOUNTERS[id];
-  return { name: e.name, sprite: e.sprite, hp: e.hp, mana: e.mana, hand: e.hand,
-           deck: e.deck.map(c => ({ ...c })) };
-}
+const JOBS = nombreDeJobs();
 
 const seenPending = new Set();
-
-function run(p, e, ia) {
-  const B = createBattle(p, e);
-  let guard = 0;
-  while (!B.over && guard++ < 4000) {
-    // La rencontre peut demander un niveau de jeu (les boss jouent serre) : la
-    // simulation doit voir la meme difficulte que le joueur, sinon elle ment.
-    const a = botAction(B, B.turn, B.turn === 'e' ? ia : undefined);
-    if (!a || a.type === 'end') endTurn(B);
-    else if (a.type === 'play') { if (!playCard(B, B.turn, a.index, a.target, a.choix)) endTurn(B); }
-    else if (a.type === 'attack') { if (!attack(B, B.turn, a.uid, a.target)) endTurn(B); }
-  }
-  for (const id of B.pending) seenPending.add(id);
-  if (guard >= 4000) return 'stuck';
-  return B.winner;
-}
 
 // ------------------------------------------------------- les combinaisons d'equipe
 /** Toutes les equipes de `taille` heros, dans l'ordre du roster. */
@@ -114,7 +81,7 @@ for (const p of plan) {
     + ` — ${p.equipes.length} combinaison(s)`);
 }
 const total = plan.reduce((a, p) => a + p.rencontres.length * p.equipes.length, 0);
-console.log(`  ${total} case(s), ${total * RUNS} parties.\n`);
+console.log(`  ${total} case(s), ${total * RUNS} parties, ${JOBS} en parallele.\n`);
 
 let issues = 0;
 const lignes = [];   // pour le CSV : une ligne par combinaison
@@ -123,32 +90,38 @@ console.log(col('rencontre', large) + colD('combis', 8) + colD('pire', 7) + colD
   + '   ' + 'la plus faible / la plus forte');
 console.log('-'.repeat(large + 33 + 40));
 
+// Une tache par combinaison (une equipe contre une rencontre). Les equipes sont tirees
+// ICI, une fois : un worker ne refait pas l'echantillon, il joue ce qu'on lui donne.
+// Les resultats reviennent DANS L'ORDRE : une rencontre s'affiche des que sa derniere
+// equipe a fini, comme avant la parallelisation.
+const taches = [];
+for (const p of plan) for (const id of p.rencontres) for (const equipe of p.equipes)
+  taches.push({ equipe, rencontre: id, heros: p.heros, niveau: p.niveau, runs: RUNS });
+
 const debut = Date.now();
-for (const p of plan) {
-  for (const id of p.rencontres) {
-    const scores = [];
-    for (const equipe of p.equipes) {
-      let win = 0, stuck = 0;
-      for (let i = 0; i < RUNS; i++) {
-        const r = run(playerSide(equipe, p.niveau), enemySide(id), ENCOUNTERS[id].ia);
-        if (r === 'p') win++;
-        else if (r === 'stuck') stuck++;
-      }
-      if (stuck) issues++;
-      const taux = win / RUNS;
-      scores.push({ equipe, taux, stuck });
-      lignes.push([id, ENCOUNTERS[id].name, p.heros, p.niveau,
-        equipe.map(x => CHAR_BY_ID[x].name).join('&'), RUNS, win, (taux * 100).toFixed(1).replace('.', ','), stuck]);
-    }
+let scores = [];
+await enParallele(taches, new URL('./lib/taches-courbe.mjs', import.meta.url), {
+  jobs: JOBS, unite: 'combinaisons',
+  surResultat: (i, r) => {
+    const t = taches[i];
+    for (const id of r.pending) seenPending.add(id);
+    if (r.stuck) issues++;
+    const taux = r.win / RUNS;
+    scores.push({ equipe: t.equipe, taux, stuck: r.stuck });
+    lignes.push([t.rencontre, ENCOUNTERS[t.rencontre].name, t.heros, t.niveau,
+      t.equipe.map(x => CHAR_BY_ID[x].name).join('&'), RUNS, r.win, (taux * 100).toFixed(1).replace('.', ','), r.stuck]);
+    const derniere = i === taches.length - 1 || taches[i + 1].rencontre !== t.rencontre;
+    if (!derniere) return;
     scores.sort((a, b) => a.taux - b.taux);
     const pire = scores[0], meilleur = scores[scores.length - 1];
     const median = scores[Math.floor(scores.length / 2)];
     const nom = e => e.equipe.map(x => CHAR_BY_ID[x].name).join('&');
-    console.log(col(id, large) + colD(scores.length, 8) + colD(pc(pire.taux), 7)
+    console.log(col(t.rencontre, large) + colD(scores.length, 8) + colD(pc(pire.taux), 7)
       + colD(pc(median.taux), 8) + colD(pc(meilleur.taux), 10)
       + '   ' + `${nom(pire)} ${pc(pire.taux)} / ${nom(meilleur)} ${pc(meilleur.taux)}`);
+    scores = [];
   }
-}
+});
 console.log(`\n${Math.round((Date.now() - debut) / 1000)} s.`);
 
 // ------------------------------------------------------------------ ce qui cloche

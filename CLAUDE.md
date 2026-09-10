@@ -987,6 +987,21 @@ des milliers de parties imaginaires, pas des décisions), et la décision elle-m
   `--rollouts 30` affine l'écart (10 rollouts ne le mesurent qu'à 10 points près),
   `--persos`, `--pnj`, `--niv`, `--switch` choisissent le matchup, `--logs f.txt` écrit
   chaque décision (« T4 Médor — joue Meute 62 % devant : Rappel 55 %, — passer — 41 % »).
+- **Tous les cœurs.** `matchups`, `simulate` (et `analyse-cartes`, à sa façon) jouent
+  leurs cases en parallèle : `scripts/lib/pool.mjs`, une **file de travail** comme
+  `builder/balance-worker.js` (chaque worker redemande une tâche dès qu'il a fini). Une
+  tâche est une case ou une combinaison décrite par une **recette**, que le worker
+  remonte lui-même (`lib/taches-matchups.mjs`, `lib/taches-courbe.mjs`) : un deck
+  mélange est une fonction, il ne traverse pas un `postMessage`. Les résultats
+  reviennent **dans l'ordre** : l'affichage n'a pas changé. `--jobs N` règle le nombre de
+  workers (défaut : un par cœur), `--jobs 1` rejoue sans worker, pour déboguer. Mesuré
+  sur le PC avec 3 workers (les cœurs du Pi, moins un) : matrice 400 parties/case en
+  mélange 20 s → 8 s, courbe à 40 parties 16 s → 7 s.
+- **La progression** passe par `scripts/lib/progression.mjs` : une ligne réécrite en
+  terminal ; lancé par le serveur (variable `ADVENTURE_PROGRESSION`), des
+  lignes-marqueurs `@@progression 12/351` que `/api/run` retire de la sortie et rend en
+  chiffres — la barre de « Lancer un calcul », le pourcentage de l'Atelier. Un outil qui
+  n'en émet pas reste simplement « en cours ».
 - `game/src/tools/arene.js` — le socle commun (monter un camp, jouer une partie, une série,
   Wilson, les cibles 33/50/66). Il vit dans `game/` et pas dans `scripts/` **parce que la
   page du builder l'importe aussi** : une seule implémentation, donc les mêmes chiffres en

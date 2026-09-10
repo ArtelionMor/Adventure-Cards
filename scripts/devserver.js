@@ -73,7 +73,7 @@ function etatCalcul(depuis) {
   const i = Math.max(0, (Number(depuis) || 0) - c.oublie);
   return {
     id: c.id, outil: c.outil, args: c.args, brouillon: c.brouillon,
-    debut: c.debut, fin: c.fin, code: c.code, enCours: !!c.proc,
+    debut: c.debut, fin: c.fin, code: c.code, enCours: !!c.proc, progression: c.progression,
     depuis: c.oublie + Math.min(i, c.sortie.length), longueur: c.oublie + c.sortie.length,
     texte: c.sortie.slice(i)
   };
@@ -95,14 +95,16 @@ function lanceCalcul(demande) {
     brouillon = path.join(os.tmpdir(), 'adventure-card-brouillon-' + id + '.mjs');
     fs.writeFileSync(brouillon, 'export const CHARACTER_DATA = ' + JSON.stringify(demande.data) + ';\n', 'utf8');
   }
+  // ADVENTURE_PROGRESSION : les scripts ecrivent leur avancement en lignes-marqueurs
+  // (scripts/lib/progression.mjs) au lieu d'une ligne de terminal reecrite sur place.
   const proc = spawn(process.execPath, ['--import', CROCHET, outil.fichier, ...args], {
-    cwd: ROOT, env: { ...process.env, ADVENTURE_BROUILLON: brouillon || '' }, windowsHide: true
+    cwd: ROOT, env: { ...process.env, ADVENTURE_BROUILLON: brouillon || '', ADVENTURE_PROGRESSION: '1' }, windowsHide: true
   });
   const c = calcul = {
     id, outil: demande.outil, args, brouillon: !!brouillon,
-    debut: Date.now(), fin: null, code: null, proc, sortie: '', oublie: 0
+    debut: Date.now(), fin: null, code: null, proc, sortie: '', oublie: 0, progression: null
   };
-  const ajoute = texte => {
+  const garde = texte => {
     c.sortie += texte;
     if (c.sortie.length > SORTIE_MAX) {
       const n = c.sortie.length - SORTIE_MAX;
@@ -110,18 +112,49 @@ function lanceCalcul(demande) {
       c.oublie += n;
     }
   };
+  // La sortie arrive par morceaux quelconques : on la recoupe en LIGNES pour reconnaitre
+  // les marqueurs « @@progression 12/351 », qu'on retire du texte et qu'on garde en
+  // chiffres. Un bout de ligne pas encore termine attend la suite — un lecteur par flux,
+  // sinon une ligne d'erreur pourrait se glisser au milieu d'une ligne normale.
+  const lecteur = () => {
+    let reste = '';
+    return {
+      lit(texte) {
+        const lignes = (reste + texte).split('\n');
+        reste = lignes.pop();
+        let net = '';
+        for (const l of lignes) {
+          const m = /^@@progression (\d+)\/(\d+)\s*$/.exec(l);
+          if (m) c.progression = { fait: Number(m[1]), total: Number(m[2]) };
+          else net += l + '\n';
+        }
+        if (net) garde(net);
+      },
+      vide() { if (reste) garde(reste); reste = ''; }
+    };
+  };
+  const sortieStd = lecteur(), erreurs = lecteur();
   const termine = code => {
     if (!c.proc) return;
+    sortieStd.vide(); erreurs.vide();
     c.proc = null; c.code = code; c.fin = Date.now();
     if (brouillon) fs.rm(brouillon, { force: true }, () => {});
     console.log('calcul termine : ' + c.outil + ' (' + code + ', ' + Math.round((c.fin - c.debut) / 1000) + ' s)');
   };
-  proc.stdout.setEncoding('utf8');
-  proc.stderr.setEncoding('utf8');
-  proc.stdout.on('data', ajoute);
-  proc.stderr.on('data', ajoute);
-  proc.on('error', e => { ajoute('\n[erreur] ' + e.message + '\n'); termine('erreur'); });
-  proc.on('close', (code, signal) => termine(signal || code));
+  try {
+    proc.stdout.setEncoding('utf8');
+    proc.stderr.setEncoding('utf8');
+    proc.stdout.on('data', t => sortieStd.lit(t));
+    proc.stderr.on('data', t => erreurs.lit(t));
+    proc.on('error', e => { garde('\n[erreur] ' + e.message + '\n'); termine('erreur'); });
+    proc.on('close', (code, signal) => termine(signal || code));
+  } catch (e) {
+    // Rien ne doit laisser un calcul « en cours » pour toujours : le serveur refuserait
+    // alors tous les suivants, jusqu'a son redemarrage.
+    proc.kill();
+    termine('erreur');
+    throw e;
+  }
   console.log('calcul lance : ' + outil.fichier + ' ' + args.join(' ') + (brouillon ? ' (brouillon)' : ''));
 }
 

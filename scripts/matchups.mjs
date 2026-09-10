@@ -19,6 +19,8 @@
 // de corriger des cartes, verifier le matchup suspect avec la reference qui cherche
 // vraiment (`--pair a,b --fort`) : si l'ecart s'efface, le probleme etait le bot.
 //
+// Les cases sont independantes : elles se jouent sur tous les coeurs (scripts/lib/pool.mjs).
+//
 //   node scripts/matchups.mjs [parties par paire] [niveau]
 //   node scripts/matchups.mjs 200 5 --trio          equipes de 3 (20 decks, plus long)
 //   node scripts/matchups.mjs 200 5 --bots          compare les niveaux de bot entre eux
@@ -27,12 +29,15 @@
 //   node scripts/matchups.mjs 200 5 --mix           decks melanges base/switch (le cas reel)
 //   node scripts/matchups.mjs 200 5 --switch        decks tout-switch
 //   node scripts/matchups.mjs 200 5 --pnj           ajoute les adversaires (PNJ)
+//   node scripts/matchups.mjs 200 5 --jobs 4        cases en parallele (defaut : un par coeur moins un ; 1 = sans worker)
 //   node scripts/matchups.mjs 30 5 --pair dog,cat   une seule paire
 //   node scripts/matchups.mjs 20 5 --pair dog,cat --fort   ... avec le bot Monte-Carlo
 import { CHARACTERS } from '../game/src/config/characters.js';
 import { CHARACTER_DATA } from '../game/data/characters.data.js';
 import { BALANCE } from '../game/src/config/balance.js';
-import { campPerso, campMelange, campPnj, serie, duel, wilson, lecture, matriceCsv, journauxTexte, CIBLES, TOLERANCE } from '../game/src/tools/arene.js';
+import { duel, wilson, lecture, matriceCsv, journauxTexte, CIBLES, TOLERANCE } from '../game/src/tools/arene.js';
+import { camp } from './lib/taches-matchups.mjs';
+import { enParallele, nombreDeJobs } from './lib/pool.mjs';
 import { writeFileSync } from 'node:fs';
 
 const PARTIES = Number(process.argv[2] || 120);
@@ -53,6 +58,7 @@ const paireVoulue = (process.argv.find(a => a.startsWith('--pair=')) || '').slic
 const valeurDe = drapeau => (process.argv.includes(drapeau) ? process.argv[process.argv.indexOf(drapeau) + 1] : '');
 const FICHIER_CSV = valeurDe('--csv');
 const FICHIER_LOGS = valeurDe('--logs');
+const JOBS = nombreDeJobs();
 
 const gris = t => `\x1b[90m${t}\x1b[0m`;
 const vert = t => `\x1b[32m${t}\x1b[0m`;
@@ -84,19 +90,23 @@ if (voulus) for (const id of voulus) if (!ids.includes(id)) {
   console.log(`\nPersonnage inconnu : « ${id} ». Ceux qui existent : ${ids.join(', ')}\n`);
   process.exit(1);
 }
+// Un deck se decrit par sa RECETTE : c'est elle qui part aux workers, qui remontent le
+// camp eux-memes (un deck melange est une fabrique, et une fonction ne traverse pas un
+// postMessage).
+const typeDeck = MELANGE ? 'mix' : COTE === 'switches' ? 'switch' : 'base';
 const decks = (voulus ? voulus.map(id => [id]) : TRIO ? combinaisons(ids, 3) : ids.map(id => [id]))
-  .map(equipe => ({
-    ids: equipe,
-    nom: equipe.map(id => CHARACTERS.find(c => c.id === id).name).join('+'),
-    cfg: MELANGE ? campMelange(equipe, NIVEAU) : campPerso(equipe, NIVEAU, COTE)
-  }));
+  .map(equipe => {
+    const recette = { type: typeDeck, ids: equipe, niveau: NIVEAU };
+    return { ids: equipe, nom: equipe.map(id => CHARACTERS.find(c => c.id === id).name).join('+'), recette, cfg: camp(recette) };
+  });
 
 // Les adversaires du jeu entrent dans la matrice comme n'importe quel deck : c'est la
 // seule facon de savoir si une rencontre est a sa place.
 if (process.argv.includes('--pnj')) {
   for (const n of CHARACTER_DATA.npcs || []) {
-    const cfg = campPnj(n.id);
-    if (cfg) decks.push({ ids: [n.id], nom: n.name.split(' ')[0], cfg });
+    const recette = { type: 'pnj', ids: [n.id] };
+    const cfg = camp(recette);
+    if (cfg) decks.push({ ids: [n.id], nom: n.name.split(' ')[0], recette, cfg });
   }
 }
 
@@ -134,7 +144,7 @@ if (DUEL_DE_BOTS) {
 
 // ---------------------------------------------------------------- la matrice
 const quoi = MELANGE ? 'decks melanges base/switch' : COTE === 'switches' ? 'decks tout-switch' : 'decks de base';
-console.log(`\nMatchups — ${PARTIES} parties par paire, niveau ${NIVEAU}, ${quoi}, bot « ${REFERENCE} ».`);
+console.log(`\nMatchups — ${PARTIES} parties par paire, niveau ${NIVEAU}, ${quoi}, bot « ${REFERENCE} », ${JOBS} en parallele.`);
 if (MELANGE) console.log(gris('Chaque partie retire un slot sur deux : le taux est la moyenne sur tous les decks montables.'));
 if (FORT) console.log(gris('Reference Monte-Carlo : lente, mais elle joue les cartes pour ce qu\'elles valent.'));
 console.log(gris('Chaque case : victoires de la LIGNE contre la COLONNE. Moitie des parties en commencant, moitie en subissant.\n'));
@@ -144,26 +154,36 @@ const entete = ' '.repeat(largeur) + '| ' + decks.map(d => (TRIO ? d.nom.slice(0
 console.log(entete);
 console.log(gris('-'.repeat(entete.length - 10)));
 
+// Une tache par case. Elles partent sur tous les coeurs et reviennent DANS L'ORDRE : une
+// ligne s'affiche des que sa derniere case est jouee, comme avant la parallelisation.
+const debut = Date.now();
+const taches = decks.flatMap((a, i) => decks.map((b, j) => ({ i, j, parties: PARTIES, bot: REFERENCE })));
 const resultats = [];
 let avantagePremier = 0, casesMesurees = 0, bloquees = 0;
-for (const a of decks) {
-  const ligne = [];
-  for (const b of decks) {
-    const r = serie(a.cfg, b.cfg, PARTIES, { bot: REFERENCE });
+let ligne = [];
+await enParallele(taches, new URL('./lib/taches-matchups.mjs', import.meta.url), {
+  jobs: JOBS, unite: 'cases',
+  contexte: { recettes: decks.map(d => d.recette) },
+  surResultat: (k, r) => {
+    const a = decks[taches[k].i], b = decks[taches[k].j];
     const w = wilson(r.taux, r.parties - r.nulles - r.bloquees);
     resultats.push({ a, b, ...r, demi: w.demi });
     avantagePremier += r.avantagePremier;
     casesMesurees++;
     bloquees += r.bloquees;
     ligne.push(caseTexte(r.taux).padEnd(16));
+    if (taches[k].j === decks.length - 1) {
+      console.log(a.nom.padEnd(largeur) + '| ' + ligne.join(''));
+      ligne = [];
+    }
   }
-  console.log(a.nom.padEnd(largeur) + '| ' + ligne.join(''));
-}
+});
+console.log(gris(`\n  ${taches.length} cases en ${Math.round((Date.now() - debut) / 1000)} s.`));
 
 // Les exports : le CSV pour croiser les chiffres, les journaux pour comprendre.
 const meta = { niveau: NIVEAU, parties_par_case: PARTIES, bot: REFERENCE, decks: quoi };
 if (FICHIER_CSV) {
-  writeFileSync(FICHIER_CSV, '\ufeff' + matriceCsv(resultats, d => d.nom, meta), 'utf8');
+  writeFileSync(FICHIER_CSV, '﻿' + matriceCsv(resultats, d => d.nom, meta), 'utf8');
   console.log(gris(`\n  Matrice ecrite dans ${FICHIER_CSV}`));
 }
 if (FICHIER_LOGS) {

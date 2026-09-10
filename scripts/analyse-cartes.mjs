@@ -23,6 +23,7 @@
 import { writeFileSync } from 'node:fs';
 import { cpus } from 'node:os';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
+import { progression, finProgression } from './lib/progression.mjs';
 import { CHARACTER_DATA } from '../game/data/characters.data.js';
 import { campPerso, campPnj, duel } from '../game/src/tools/arene.js';
 import { ecouteLesChoix } from '../game/src/combat/ai.js';
@@ -171,11 +172,12 @@ if (jobs === 1) {
     const mien = depart; depart += n;
     return new Promise((ok, ko) => {
       const w = new Worker(new URL(import.meta.url), { workerData: { n, depart: mien }, argv: args });
-      w.on('message', q => { fusionne(q); finies += n; process.stdout.write(`\r  ${finies}/${parties} partie(s)…   `); });
+      w.on('message', q => { fusionne(q); finies += n; progression(finies, parties, 'partie(s)'); });
       w.on('error', ko);
       w.on('exit', ok);
     });
   }));
+  finProgression();
 }
 ecouteLesChoix(null);
 console.log(`\r  ${parties} partie(s) en ${Math.round((Date.now() - debut) / 1000)} s — ${campJoueur.name} gagne ${victoires}, nul/bloque ${nulles}.`);
