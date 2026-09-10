@@ -41,6 +41,7 @@
   .panel__head h2 { font-size: 15px; margin: 0; }
   .panel__head .droite { margin-left: auto; }
   .panel__body { padding: 14px 16px; }
+  .compte { font-size: 12px; color: var(--muted); }
 
   .badge { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
   .badge--draft { color: var(--warn); border-color: #4a3a1a; background: #241c14; }
@@ -61,7 +62,15 @@
   .puces { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); font: inherit; font-size: 14px; cursor: pointer; color: var(--muted); }
   .chip--on { border-color: var(--accent); color: var(--text); background: #1b2337; }
+  .chip:disabled { opacity: .45; cursor: default; }
   .aide { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* Le balayage : ce qui varie d'un calcul a l'autre dans la file. */
+  .balayage { margin-top: 14px; border-top: 1px dashed var(--line); padding-top: 12px; }
+  .balayage h3 { font-size: 13px; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .bal { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .bal input[type=number] { width: 76px; }
+  .bal span { font-size: 13px; color: var(--muted); }
 
   .commande { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; margin-top: 14px; overflow-x: auto; white-space: nowrap; }
 
@@ -70,11 +79,28 @@
   .btn:hover { border-color: var(--accent); }
   .btn--primary { background: linear-gradient(135deg, var(--accent), #5b86ff); border-color: transparent; color: #0b1020; font-weight: 700; }
   .btn--danger { border-color: #5a2430; color: var(--danger); }
+  .btn--petit { padding: 4px 10px; font-size: 13px; }
   .btn:disabled { opacity: .45; cursor: default; }
   .statut { font-size: 14px; color: var(--muted); }
   .statut--ok { color: var(--accent-2); }
   .statut--ko { color: var(--danger); }
   .statut--run { color: var(--warn); }
+
+  /* Les lignes d'une file : a lancer (panier), ou lancees (etat de chacune). */
+  .ligne { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--bg-3); font-size: 14px; }
+  .ligne:last-child { border-bottom: 0; }
+  .ligne .quoi { flex: 1; min-width: 0; }
+  .ligne .quoi small { display: block; font-size: 12px; color: var(--muted); }
+  .ligne .ico { width: 1.4em; text-align: center; }
+  .ligne--attente { opacity: .55; }
+  .ligne--encours { color: var(--warn); font-weight: 700; }
+  .ligne--fini small { color: var(--accent-2); }
+  .ligne--echec { color: var(--danger); }
+  .ligne--arrete, .ligne--annule { opacity: .5; text-decoration: line-through; }
+  .ligne--lisible { cursor: pointer; }
+  .ligne--lisible:hover .quoi { text-decoration: underline; }
+  .ligne--vue { background: #1b2337; border-radius: 8px; }
+  .vide { color: var(--muted); font-size: 14px; }
 
   .barre { height: 6px; background: var(--bg-3); }
   .barre i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .4s; }
@@ -105,8 +131,8 @@
   <h1>Lancer un calcul</h1>
   <p class="lede">
     Les outils de mesure de <code>scripts/</code>, lancés <strong>sur la machine qui sert cette page</strong> (le Pi) :
-    le téléphone ne fait qu'afficher le résultat. Le calcul continue si l'écran se met en veille ou si tu fermes la page —
-    reviens ici, la sortie reprend où elle en était. Un seul calcul à la fois.
+    le téléphone ne fait qu'afficher le résultat. On lance une <strong>file</strong> — un calcul, ou le même du niveau 1
+    au niveau 20, ou des outils différents à la suite — et elle continue si l'écran se met en veille ou si tu fermes la page.
   </p>
 
   <div class="alerte" id="indispo" hidden>
@@ -129,6 +155,7 @@
     <div class="panel__body">
       <p class="desc" id="descOutil"></p>
       <div class="champs" id="champs"></div>
+      <div class="balayage" id="balayage" hidden></div>
       <div id="choixBrouillon" style="margin-top:12px"></div>
       <div class="commande" id="commande"></div>
     </div>
@@ -136,17 +163,47 @@
 
   <section class="panel">
     <div class="panel__head">
-      <div class="actions">
+      <h2>À lancer</h2>
+      <span class="droite compte" id="panierCompte"></span>
+    </div>
+    <div class="panel__body">
+      <div id="panier"></div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn" id="ajouter" title="Mettre les réglages ci-dessus dans la liste, pour enchaîner plusieurs outils">＋ Ajouter à la liste</button>
         <button class="btn btn--primary" id="lancer">▶ Lancer</button>
-        <button class="btn btn--danger" id="arreter" hidden>■ Arrêter</button>
-        <span class="statut" id="statut"></span>
+        <button class="btn btn--petit" id="vider" hidden>Vider</button>
       </div>
+    </div>
+  </section>
+
+  <section class="panel" id="resultats">
+    <div class="panel__head">
+      <h2>File</h2>
+      <span class="statut" id="statut"></span>
       <span class="droite actions">
-        <button class="btn" id="copier" title="Copier la sortie, sans les couleurs">Copier</button>
-        <button class="btn" id="telecharger" title="Enregistrer la sortie en .txt">⬇ .txt</button>
+        <button class="btn" id="pause" hidden>⏸ Pause</button>
+        <button class="btn btn--danger" id="arreter" hidden>■ Arrêter</button>
       </span>
     </div>
     <div class="barre" id="barre" hidden><i></i></div>
+    <div class="panel__body">
+      <div id="lot"><p class="vide">Aucun calcul lancé.</p></div>
+      <div class="actions" id="recapBoite" style="margin-top:12px" hidden>
+        <button class="btn" id="recap">📋 Copier le récapitulatif</button>
+        <span class="aide">Les résumés de toute la file, à relire ou à donner à une IA.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__head">
+      <h2 id="titreSortie">Sortie</h2>
+      <span class="droite actions">
+        <button class="btn btn--petit" id="suivre" hidden>↩ Calcul en cours</button>
+        <button class="btn btn--petit" id="copier" title="Copier la sortie, sans les couleurs">Copier</button>
+        <button class="btn btn--petit" id="telecharger" title="Enregistrer la sortie en .txt">⬇ .txt</button>
+      </span>
+    </div>
     <pre class="sortie" id="sortie"></pre>
   </section>
 </div>
@@ -164,6 +221,7 @@ const toast = msg => {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 3500);
 };
+const envoie = (url, corps) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps || {}) });
 
 // ---------- LES DONNEES : le brouillon du builder d'abord ----------
 // Meme regle que l'equilibrage : tant que le builder a un brouillon, c'est lui qu'on
@@ -178,11 +236,16 @@ async function relitFichier() {
   catch { /* hors serveur : on garde l'import */ }
 }
 const brouillon = () => { const d = lit(LS_BUILDER); return d && d.db && d.db.characters ? d : null; };
+const nomPerso = id => ((donnees().characters || []).find(p => p.id === id) || {}).name || id;
+const nomPnj = id => ((donnees().npcs || []).find(n => n.id === id) || {}).name || id || '?';
 
 // ---------- LES OUTILS ----------
 // Le miroir de la liste blanche de scripts/devserver.js (OUTILS) : le serveur ne
 // lance rien d'autre, et refuse --csv / --logs, qui ecriraient un fichier chez lui.
+// `niveauCle` / `tailleCle` : le champ que le balayage fait varier. `libelle` : le nom
+// d'une ligne dans la file (et dans la notification) — « Trio vs Adversaires - niv 4 ».
 const niveauxBot = Object.keys(BALANCE.ai.niveaux);
+const TAILLES = { 1: 'Solo', 2: 'Duo', 3: 'Trio' };
 const OUTILS = [
   {
     id: 'simulate', fichier: 'scripts/simulate.mjs', nom: 'Courbe de difficulté', sous: 'le joueur passe-t-il ?', brouillon: true,
@@ -191,34 +254,46 @@ const OUTILS = [
       { cle: 'parties', label: 'Parties par combinaison', type: 'nombre', def: BALANCE.simulation.parties, min: 1, max: 1000 },
       { cle: 'paliers', label: 'Héros par palier', type: 'texte', def: '', motif: /^[0-9,]*$/, aide: 'Vide = ceux du GAME CONFIG. Ex. 1,2,3' }
     ],
-    args: v => [String(v.parties), ...(v.paliers ? ['--paliers', v.paliers] : [])]
+    args: v => [String(v.parties), ...(v.paliers ? ['--paliers', v.paliers] : [])],
+    libelle: v => `Courbe de difficulté - ${v.parties} parties${v.paliers ? ' - paliers ' + v.paliers : ''}`
   },
   {
     id: 'matchups', fichier: 'scripts/matchups.mjs', nom: 'Matrice des matchups', sous: 'qui bat qui ?', brouillon: true,
+    niveauCle: 'niveau', tailleCle: 'taille',
     desc: 'Deck contre deck, la moitié des parties dans chaque sens, avec l\'intervalle de confiance. Ne corrige jamais un écart plus petit que le ±.',
     champs: [
       { cle: 'parties', label: 'Parties par paire', type: 'nombre', def: 120, min: 2, max: 2000 },
       { cle: 'niveau', label: 'Niveau des cartes', type: 'nombre', def: 5, min: 1, max: 20 },
+      { cle: 'taille', label: 'Taille d\'équipe', type: 'choix', def: '1', options: () => [{ v: '1', t: 'Solos' }, { v: '2', t: 'Duos' }, { v: '3', t: 'Trios' }] },
       { cle: 'drapeaux', label: 'Decks', type: 'puces', champ: 'large', def: [], options: [
-        { v: '--mix', t: 'Mélange base/switch' }, { v: '--switch', t: 'Tout switch' },
-        { v: '--pnj', t: '+ Adversaires' }, { v: '--trio', t: 'Équipes de 3' }] },
+        { v: '--adversaires', t: 'Contre les adversaires seulement' }, { v: '--pnj', t: '+ Adversaires dans la matrice' },
+        { v: '--mix', t: 'Mélange base/switch' }, { v: '--switch', t: 'Tout switch' }] },
       { cle: 'paire', label: 'Une seule paire (facultatif)', type: 'paire', champ: 'large', def: ['', ''] },
       { cle: 'fort', label: 'Bot de référence', type: 'puces', champ: 'large', def: [], options: [{ v: '--fort', t: 'Monte-Carlo (lent, pour une paire)' }] }
     ],
-    args: v => [String(v.parties), String(v.niveau), ...v.drapeaux,
-      ...(v.paire[0] && v.paire[1] ? ['--pair', v.paire.join(',')] : []), ...v.fort]
+    args: v => [String(v.parties), String(v.niveau), ...(Number(v.taille) > 1 ? ['--taille', String(v.taille)] : []), ...v.drapeaux,
+      ...(v.paire[0] && v.paire[1] ? ['--pair', v.paire.join(',')] : []), ...v.fort],
+    libelle: v => {
+      const qui = v.paire[0] && v.paire[1] ? `${nomPerso(v.paire[0])} vs ${nomPerso(v.paire[1])}`
+        : `${TAILLES[v.taille] || 'Solo'} vs ${v.drapeaux.includes('--adversaires') ? 'Adversaires' : v.drapeaux.includes('--pnj') ? 'tous + Adversaires' : 'tous'}`;
+      const cartes = v.drapeaux.includes('--mix') ? ' - mélange' : v.drapeaux.includes('--switch') ? ' - switch' : '';
+      return `${qui} - niv ${v.niveau}${cartes}`;
+    }
   },
   {
     id: 'check-decks', fichier: 'scripts/check-decks.mjs', nom: 'Contrôle des decks', sous: 'les erreurs', brouillon: true,
+    niveauCle: 'niveau',
     desc: 'Les règles du builder, puis de vraies parties pour trouver ce qui ne se produit jamais : carte impayable, jamais posée, moment jamais déclenché.',
     champs: [
       { cle: 'niveau', label: 'Niveau des cartes', type: 'nombre', def: 5, min: 1, max: 20 },
       { cle: 'parties', label: 'Parties par paire', type: 'nombre', def: 6, min: 1, max: 200 }
     ],
-    args: v => [String(v.niveau), String(v.parties)]
+    args: v => [String(v.niveau), String(v.parties)],
+    libelle: v => `Contrôle des decks - niv ${v.niveau}`
   },
   {
     id: 'analyse-cartes', fichier: 'scripts/analyse-cartes.mjs', nom: 'Analyse des cartes', sous: 'ce que le bot préfère', brouillon: true,
+    niveauCle: 'niv',
     desc: 'Par carte : combien de fois jouable, combien de fois jouée, et l\'écart avec le meilleur coup du moment. Puis les cartes boudées, et ce que le bot leur a préféré.',
     champs: [
       { cle: 'parties', label: 'Parties', type: 'nombre', def: 10, min: 1, max: 500 },
@@ -232,28 +307,32 @@ const OUTILS = [
     args: v => [String(v.parties), v.bot,
       ...(v.persos.length ? ['--persos', v.persos.join(',')] : []),
       ...(v.pnj ? ['--pnj', v.pnj] : []),
-      '--niv', String(v.niv), ...(v.rollouts ? ['--rollouts', String(v.rollouts)] : []), ...v.switch]
+      '--niv', String(v.niv), ...(v.rollouts ? ['--rollouts', String(v.rollouts)] : []), ...v.switch],
+    libelle: v => `Analyse - ${v.persos.map(nomPerso).join('+') || '?'} vs ${nomPnj(v.pnj)} - niv ${v.niv}`
   },
   {
     id: 'test-triggers', fichier: 'scripts/test-triggers.mjs', nom: 'Banc du moteur', sous: 'tests du combat', brouillon: false,
     desc: 'Les tests du moteur de combat. À lancer après toute modification de game/src/combat/.',
-    champs: [], args: () => []
+    champs: [], args: () => [], libelle: () => 'Banc du moteur'
   },
   {
     id: 'test-ai', fichier: 'scripts/test-ai.mjs', nom: 'Banc du bot', sous: 'tests de l\'IA', brouillon: false,
     desc: 'Le bot valorise-t-il correctement les mécaniques ?',
-    champs: [], args: () => []
+    champs: [], args: () => [], libelle: () => 'Banc du bot'
   }
 ];
-const outilCourant = () => OUTILS.find(o => o.id === reglages.outil) || OUTILS[0];
+const outilDe = id => OUTILS.find(o => o.id === id);
+const outilCourant = () => outilDe(reglages.outil) || OUTILS[0];
 
 // ---------- REGLAGES (gardes dans le navigateur) ----------
-const reglages = Object.assign({ outil: 'simulate', brouillon: true, valeurs: {} }, lit(LS) || {});
+const reglages = Object.assign({ outil: 'simulate', brouillon: true, valeurs: {}, balayage: {}, panier: [] }, lit(LS) || {});
+reglages.balayage = reglages.balayage || {};
+reglages.panier = reglages.panier || [];
 const garde = () => { try { localStorage.setItem(LS, JSON.stringify(reglages)); } catch { /* pas grave */ } };
 const donnees = () => (reglages.brouillon && brouillon() ? brouillon().db : fichier);
 
 // Les valeurs d'un outil, defauts compris, nettoyees de ce qui n'existe plus (un
-// personnage renomme, un adversaire supprime dans le builder).
+// personnage renomme, un adversaire supprime dans le builder, une option retiree).
 function valeurs(o) {
   const v = { ...(reglages.valeurs[o.id] || {}) };
   const d = donnees();
@@ -267,6 +346,8 @@ function valeurs(o) {
     } else if (c.type === 'paire') {
       const ids = new Set(d.characters.map(p => p.id));
       v[c.cle] = (v[c.cle] || c.def).map(id => (ids.has(id) ? id : ''));
+    } else if (c.type === 'puces') {
+      v[c.cle] = (v[c.cle] || c.def).filter(x => c.options.some(opt => opt.v === x));
     } else if (v[c.cle] === undefined) {
       v[c.cle] = Array.isArray(c.def) ? [...c.def] : c.def;
     }
@@ -276,7 +357,46 @@ function valeurs(o) {
 function change(o, cle, val) {
   reglages.valeurs[o.id] = { ...valeurs(o), [cle]: val };
   garde();
+  rendBalayage();
   rendCommande();
+}
+
+// ---------- LE BALAYAGE ----------
+// Ce qui varie d'une ligne a l'autre de la file : le niveau (de … a …, par pas de …),
+// la taille d'equipe, et plus tard la config de trinket. Les lignes sont le produit des
+// deux : 3 tailles × 20 niveaux = 60 calculs.
+function balayage(o) {
+  const b = reglages.balayage[o.id] || {};
+  return {
+    niveau: { on: false, de: 1, a: 20, pas: 1, ...(b.niveau || {}) },
+    taille: { on: false, valeurs: ['1', '2', '3'], ...(b.taille || {}) }
+  };
+}
+function changeBalayage(o, quoi, val) {
+  reglages.balayage[o.id] = { ...balayage(o), [quoi]: { ...balayage(o)[quoi], ...val } };
+  garde();
+  rendBalayage();
+  rendCommande();
+}
+function niveauxDe(b) {
+  const de = Math.max(1, Math.min(20, b.de)), a = Math.max(1, Math.min(20, b.a)), pas = Math.max(1, b.pas);
+  const out = [];
+  for (let n = Math.min(de, a); n <= Math.max(de, a); n += pas) out.push(n);
+  return out;
+}
+/** Les calculs que donnent les reglages de l'outil, balayage compris. */
+function lignesDe(o) {
+  const v = valeurs(o), b = balayage(o);
+  const niveaux = o.niveauCle && b.niveau.on ? niveauxDe(b.niveau) : [v[o.niveauCle]];
+  const tailles = o.tailleCle && b.taille.on && b.taille.valeurs.length ? b.taille.valeurs : [v[o.tailleCle]];
+  const out = [];
+  for (const t of tailles) for (const n of niveaux) {
+    const w = { ...v };
+    if (o.niveauCle) w[o.niveauCle] = n;
+    if (o.tailleCle) w[o.tailleCle] = t;
+    out.push({ outil: o.id, args: o.args(w), libelle: o.libelle(w) });
+  }
+  return out;
 }
 
 // ---------- AFFICHAGE ----------
@@ -349,17 +469,69 @@ function rendChamps() {
       : '<div class="aide">Pas de brouillon en cours : on mesure le fichier appliqué au jeu.</div>';
   const bascule = $('#basculeBrouillon');
   if (bascule) bascule.onclick = () => { reglages.brouillon = !reglages.brouillon; garde(); rendTout(); };
+  rendBalayage();
   rendCommande();
+}
+
+function rendBalayage() {
+  const o = outilCourant(), boite = $('#balayage');
+  boite.hidden = !o.niveauCle && !o.tailleCle;
+  if (boite.hidden) return;
+  const b = balayage(o);
+  let html = '<h3>Faire varier (une ligne de file par valeur)</h3>';
+  if (o.niveauCle) {
+    html += `<div class="bal"><button class="chip ${b.niveau.on ? 'chip--on' : ''}" data-bal="niveau">Le niveau</button>`
+      + (b.niveau.on ? `<span>de</span><input type="number" min="1" max="20" data-nv="de" value="${b.niveau.de}" inputmode="numeric">`
+        + `<span>à</span><input type="number" min="1" max="20" data-nv="a" value="${b.niveau.a}" inputmode="numeric">`
+        + `<span>par pas de</span><input type="number" min="1" max="19" data-nv="pas" value="${b.niveau.pas}" inputmode="numeric">` : '')
+      + '</div>';
+  }
+  if (o.tailleCle) {
+    html += `<div class="bal"><button class="chip ${b.taille.on ? 'chip--on' : ''}" data-bal="taille">La taille d'équipe</button>`
+      + (b.taille.on ? ['1', '2', '3'].map(t => `<button class="chip ${b.taille.valeurs.includes(t) ? 'chip--on' : ''}" data-tl="${t}">${TAILLES[t]}s</button>`).join('') : '')
+      + '</div>';
+  }
+  // Les trinkets n'existent pas encore dans la game config : la place est prete, le
+  // bouton s'allumera quand il y aura des configs a faire varier.
+  html += '<div class="bal"><button class="chip" disabled title="Les trinkets n\'existent pas encore dans la game config">La config de trinket (à venir)</button></div>';
+  const n = lignesDe(o).length;
+  html += `<div class="aide">→ ${n} calcul${n > 1 ? 's' : ''} dans la file.</div>`;
+  boite.innerHTML = html;
+  for (const el of boite.querySelectorAll('[data-bal]')) el.onclick = () => changeBalayage(o, el.dataset.bal, { on: !b[el.dataset.bal].on });
+  for (const el of boite.querySelectorAll('[data-nv]')) el.onchange = () => {
+    const n = Math.round(Number(el.value));
+    if (Number.isFinite(n) && n >= 1 && n <= 20) changeBalayage(o, 'niveau', { [el.dataset.nv]: n });
+  };
+  for (const el of boite.querySelectorAll('[data-tl]')) el.onclick = () => {
+    const t = el.dataset.tl, vs = b.taille.valeurs;
+    changeBalayage(o, 'taille', { valeurs: vs.includes(t) ? vs.filter(x => x !== t) : [...vs, t].sort() });
+  };
 }
 
 function rendCommande() {
   const o = outilCourant();
-  const args = o.args(valeurs(o));
+  const lignes = lignesDe(o);
   const source = o.brouillon && reglages.brouillon && brouillon() ? '   # sur le brouillon' : '';
-  $('#commande').textContent = `node ${o.fichier} ${args.join(' ')}${source}`;
+  $('#commande').textContent = `node ${o.fichier} ${lignes[0].args.join(' ')}${source}`
+    + (lignes.length > 1 ? `   (+ ${lignes.length - 1} autre${lignes.length > 2 ? 's' : ''})` : '');
 }
 
-function rendTout() { rendSource(); rendOutils(); rendChamps(); rendEtat(); }
+// La liste « a lancer » : ce qu'on a mis de cote pour enchainer plusieurs outils. Vide,
+// « Lancer » envoie simplement les reglages du moment.
+function rendPanier() {
+  const p = reglages.panier;
+  $('#panier').innerHTML = p.length
+    ? p.map((l, i) => `<div class="ligne"><span class="quoi">${esc(l.libelle)}<small>${esc(outilDe(l.outil).nom)}</small></span>`
+      + `<button class="btn btn--petit" data-retire="${i}" title="Retirer">✕</button></div>`).join('')
+    : '<p class="vide">Rien de côté : « Lancer » envoie les réglages ci-dessus. « Ajouter à la liste » les met de côté pour enchaîner plusieurs outils.</p>';
+  $('#panierCompte').textContent = p.length ? `${p.length} calcul${p.length > 1 ? 's' : ''}` : '';
+  $('#vider').hidden = !p.length;
+  for (const b of document.querySelectorAll('[data-retire]')) b.onclick = () => {
+    reglages.panier.splice(Number(b.dataset.retire), 1); garde(); rendPanier(); rendBoutons();
+  };
+}
+
+function rendTout() { rendSource(); rendOutils(); rendChamps(); rendPanier(); rendEtat(); }
 
 // ---------- LA SORTIE ----------
 // Les scripts colorent leur sortie pour un terminal (codes ANSI) : on garde les
@@ -386,10 +558,12 @@ function enHtml(t) {
 }
 const texteBrut = t => lignesPropres(t).replace(/\x1b\[[\d;?]*[A-Za-z]/g, '');
 
-// ---------- LE SUIVI DU CALCUL ----------
-// On demande au serveur « la suite depuis ce que j'ai deja » : il ne renvoie que ce
-// qui manque. Un nouvel identifiant = un autre calcul, on repart de zero.
-let suivi = { id: null, recu: 0, texte: '', etat: null };
+// ---------- LE SUIVI DE LA FILE ----------
+// On demande au serveur « la suite depuis ce que j'ai deja » pour la ligne qui tourne :
+// il ne renvoie que ce qui manque. Un nouvel identifiant = une autre ligne, on repart de
+// zero. `vue` : une ligne deja finie qu'on relit a la place (on la touche dans la file).
+let suivi = { id: null, recu: 0, texte: '', etat: null, recuA: 0 };
+let vue = null;   // { i, libelle, texte }
 let minuterie = null;
 const planifie = ms => { clearTimeout(minuterie); minuterie = setTimeout(interroge, ms); };
 
@@ -399,52 +573,94 @@ async function interroge() {
   catch { $('#statut').textContent = 'Serveur injoignable, nouvel essai…'; planifie(3000); return; }
   if (r.status === 404) { indisponible(); return; }
   const e = await r.json();
-  if (e.id === null) { suivi.etat = null; rendEtat(); return; }
-  if (e.id !== suivi.id) { suivi = { id: e.id, recu: 0, texte: '', etat: null }; interroge(); return; }
+  if (e.id === null) { suivi.etat = e; rendEtat(); return; }
+  if (e.id !== suivi.id) { suivi = { id: e.id, recu: 0, texte: '', etat: null, recuA: 0 }; interroge(); return; }
   if (e.depuis !== suivi.recu) suivi.texte = '';   // le debut a ete oublie entre-temps
   suivi.texte += e.texte;
   suivi.recu = e.longueur;
   suivi.etat = e;
-  if (e.texte || !$('#sortie').innerHTML) rendSortie();
+  suivi.recuA = Date.now();
+  if (!vue && (e.texte || !$('#sortie').innerHTML)) rendSortie();
   rendEtat();
-  if (e.enCours) planifie(1000);
+  if (e.lot && e.lot.actif) planifie(1000);
 }
 
 function rendSortie() {
   const pre = $('#sortie');
   const enBas = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 40;
-  pre.innerHTML = enHtml(suivi.texte);
-  if (enBas) pre.scrollTop = pre.scrollHeight;
+  pre.innerHTML = enHtml(vue ? vue.texte : suivi.texte);
+  if (enBas || vue) pre.scrollTop = vue ? 0 : pre.scrollHeight;
+  $('#titreSortie').textContent = vue ? vue.libelle : suivi.etat && suivi.etat.libelle ? suivi.etat.libelle : 'Sortie';
+  $('#suivre').hidden = !vue;
 }
 
 const duree = ms => { const s = Math.round(ms / 1000); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`; };
+const ICONES = { attente: '·', encours: '▶', fini: '✓', echec: '✗', arrete: '■', annule: '–' };
+
 function rendEtat() {
-  const e = suivi.etat, st = $('#statut');
-  const tourne = !!(e && e.enCours);
-  $('#lancer').disabled = tourne;
-  $('#arreter').hidden = !tourne;
+  const e = suivi.etat, l = e && e.lot, st = $('#statut');
+  const actif = !!(l && l.actif);
   st.className = 'statut';
-  if (!e) { st.textContent = 'Aucun calcul lancé.'; return; }
-  const o = OUTILS.find(x => x.id === e.outil);
-  const nom = (o ? o.nom : e.outil) + (e.brouillon ? ' · brouillon' : '');
-  // La progression vient des scripts (lignes-marqueurs, scripts/lib/progression.mjs) ;
-  // ceux qui n'en donnent pas restent « en cours ». Le temps restant est une simple
-  // regle de trois : les cases ne coutent pas toutes pareil, c'est un ordre d'idee.
-  const p = e.progression, pct = p && p.total ? p.fait / p.total : null;
-  const barre = $('#barre');
-  barre.hidden = !(tourne && pct !== null);
-  if (pct !== null) barre.firstElementChild.style.width = (pct * 100).toFixed(1) + '%';
-  if (tourne) {
-    st.classList.add('statut--run');
-    const ecoule = Date.now() - e.debut;
-    const reste = pct > 0.03 ? ` · reste ~${duree(ecoule / pct - ecoule)}` : '';
-    st.textContent = `${nom} — ${pct === null ? 'en cours' : Math.floor(pct * 100) + ' %'} · ${duree(ecoule)}${reste}`;
+  $('#pause').hidden = !actif;
+  $('#arreter').hidden = !actif;
+  $('#recapBoite').hidden = !(l && l.lignes.some(x => x.resume));
+  rendBoutons();
+  if (!l) {
+    st.textContent = '';
+    $('#lot').innerHTML = '<p class="vide">Aucun calcul lancé.</p>';
+    $('#barre').hidden = true;
+    return;
   }
-  else if (e.code === 0) { st.classList.add('statut--ok'); st.textContent = `${nom} — terminé en ${duree(e.fin - e.debut)}`; }
-  else if (typeof e.code === 'string') { st.classList.add('statut--ko'); st.textContent = `${nom} — arrêté (${e.code}) après ${duree(e.fin - e.debut)}`; }
-  else { st.classList.add('statut--ko'); st.textContent = `${nom} — échec (code ${e.code}) après ${duree(e.fin - e.debut)}`; }
+  // Le temps et la progression de la FILE entiere. Le serveur donne le temps ecoule au
+  // moment de la reponse (pauses deduites) ; on le fait avancer ici entre deux reponses.
+  const tic = actif && !l.pause ? Date.now() - suivi.recuA : 0;
+  const ec = l.ecoule + tic;
+  const pct = l.progression;
+  $('#barre').hidden = !actif;
+  $('#barre').firstElementChild.style.width = (pct * 100).toFixed(1) + '%';
+  $('#pause').textContent = l.pause ? '▶ Reprendre' : '⏸ Pause';
+  $('#pause').title = l.pauseImmediate ? '' : 'Sur ce serveur (Windows), la pause laisse finir le calcul en cours';
+  const n = l.total > 1 ? ` · ${Math.min(l.faites + 1, l.total)}/${l.total}` : '';
+  if (actif && l.pause) { st.classList.add('statut--run'); st.textContent = `En pause · ${Math.floor(pct * 100)} %${n}`; }
+  else if (actif) {
+    st.classList.add('statut--run');
+    const reste = pct > 0.03 ? ` · reste ~${duree(ec / pct - ec)}` : '';
+    const sansChiffre = l.total === 1 && !e.progression;
+    st.textContent = `${sansChiffre ? 'en cours' : Math.floor(pct * 100) + ' %'}${n} · ${duree(ec)}${reste}`;
+  } else {
+    const finis = l.lignes.filter(x => x.etat === 'fini').length;
+    st.classList.add(finis === l.total ? 'statut--ok' : 'statut--ko');
+    st.textContent = `${l.arrete ? 'Arrêtée' : 'Terminée'} · ${finis}/${l.total} en ${duree(l.ecoule)}`;
+  }
+  $('#lot').innerHTML = l.lignes.map(x => {
+    const lisible = x.etat !== 'attente' && x.etat !== 'annule';
+    const detail = x.etat === 'encours' ? (e.enPause ? 'en pause' : e.progression && e.progression.total ? `${Math.floor(e.progression.fait / e.progression.total * 100)} %` : 'en cours')
+      : x.resume ? `${x.resume}${x.duree ? ' · ' + duree(x.duree) : ''}` : x.etat === 'annule' ? 'annulé' : '';
+    return `<div class="ligne ligne--${x.etat} ${lisible ? 'ligne--lisible' : ''} ${vue && vue.i === x.i ? 'ligne--vue' : ''}" data-ligne="${x.i}">`
+      + `<span class="ico">${ICONES[x.etat] || ''}</span><span class="quoi">${esc(x.libelle)}${detail ? `<small>${esc(detail)}</small>` : ''}</span></div>`;
+  }).join('');
+  for (const el of document.querySelectorAll('.ligne--lisible')) el.onclick = () => montreLigne(Number(el.dataset.ligne));
 }
-setInterval(() => { if (suivi.etat && suivi.etat.enCours) rendEtat(); }, 1000);
+setInterval(() => { const l = suivi.etat && suivi.etat.lot; if (l && l.actif && !l.pause) rendEtat(); }, 1000);
+
+function rendBoutons() {
+  const l = suivi.etat && suivi.etat.lot;
+  $('#lancer').textContent = l && l.actif ? '＋ Mettre à la suite' : '▶ Lancer';
+}
+
+// Relire une ligne finie : sa sortie complete, a la place de celle qui tourne.
+async function montreLigne(i) {
+  const e = suivi.etat;
+  if (e && e.lot && e.lot.lignes[i] && e.lot.lignes[i].etat === 'encours') { vue = null; rendSortie(); rendEtat(); return; }
+  try {
+    const r = await fetch(`/api/run/ligne?i=${i}`, { cache: 'no-store' });
+    const d = await r.json();
+    if (!r.ok) { toast(d.erreur || 'Introuvable.'); return; }
+    vue = { i, libelle: d.libelle, texte: d.texte };
+  } catch { toast('Serveur injoignable.'); return; }
+  rendSortie();
+  rendEtat();
+}
 
 function indisponible() {
   $('#indispo').hidden = false;
@@ -453,36 +669,52 @@ function indisponible() {
 }
 
 // ---------- LES BOUTONS ----------
+$('#ajouter').onclick = () => {
+  const lignes = lignesDe(outilCourant());
+  reglages.panier.push(...lignes);
+  garde();
+  rendPanier();
+  toast(`${lignes.length} calcul${lignes.length > 1 ? 's' : ''} mis de côté.`);
+};
+$('#vider').onclick = () => { reglages.panier = []; garde(); rendPanier(); };
+
 $('#lancer').onclick = async () => {
-  const o = outilCourant();
-  const corps = { outil: o.id, args: o.args(valeurs(o)) };
+  const lignes = reglages.panier.length ? reglages.panier : lignesDe(outilCourant());
+  const corps = { lignes };
   const b = brouillon();
-  if (o.brouillon && reglages.brouillon && b) corps.data = b.db;
+  if (reglages.brouillon && b && lignes.some(l => outilDe(l.outil).brouillon)) corps.data = b.db;
   $('#lancer').disabled = true;
   let r, e;
   try {
-    r = await fetch('/api/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps) });
+    r = await envoie('/api/run', corps);
     e = await r.json();
   } catch {
     toast('Serveur injoignable.'); $('#lancer').disabled = false; return;
   }
+  $('#lancer').disabled = false;
   if (r.status === 404) { indisponible(); return; }
   if (!r.ok) { toast(e.erreur || 'Refusé.'); interroge(); return; }
-  suivi = { id: null, recu: 0, texte: '', etat: null };
-  $('#sortie').innerHTML = '';
+  if (reglages.panier.length) { reglages.panier = []; garde(); rendPanier(); }
+  toast(`${lignes.length} calcul${lignes.length > 1 ? 's' : ''} dans la file.`);
+  vue = null;
   interroge();
 };
 
+$('#pause').onclick = async () => {
+  const l = suivi.etat && suivi.etat.lot;
+  try { await envoie(l && l.pause ? '/api/run/reprendre' : '/api/run/pause'); } catch { /* le suivi le dira */ }
+  planifie(200);
+};
 $('#arreter').onclick = async () => {
-  try { await fetch('/api/run/stop', { method: 'POST' }); } catch { /* le suivi le dira */ }
+  if (!confirm('Arrêter le calcul en cours et annuler la suite de la file ?')) return;
+  try { await envoie('/api/run/stop'); } catch { /* le suivi le dira */ }
   planifie(300);
 };
+$('#suivre').onclick = () => { vue = null; rendSortie(); rendEtat(); };
 
 // La page est souvent servie en http (le Pi, sur le reseau de la maison) : le
 // presse-papier moderne n'y existe pas, d'ou la vieille methode en secours.
-$('#copier').onclick = async () => {
-  const t = texteBrut(suivi.texte);
-  if (!t) { toast('Rien à copier.'); return; }
+async function copie(t) {
   try { await navigator.clipboard.writeText(t); }
   catch {
     const zone = document.createElement('textarea');
@@ -490,16 +722,31 @@ $('#copier').onclick = async () => {
     document.body.appendChild(zone); zone.select();
     document.execCommand('copy'); zone.remove();
   }
+}
+$('#copier').onclick = async () => {
+  const t = texteBrut(vue ? vue.texte : suivi.texte);
+  if (!t) { toast('Rien à copier.'); return; }
+  await copie(t);
   toast('Sortie copiée.');
+};
+// Le recapitulatif : une ligne par calcul de la file, avec son resume. C'est ce qu'on
+// relit d'un coup d'oeil — et ce qu'on donnera a l'IA locale pour l'analyse.
+$('#recap').onclick = async () => {
+  const l = suivi.etat && suivi.etat.lot;
+  if (!l) return;
+  const t = [`File du ${new Date(l.debut).toLocaleString('fr-FR')} — ${l.lignes.filter(x => x.etat === 'fini').length}/${l.total} calculs`,
+    ...l.lignes.map(x => `- ${x.libelle} : ${x.resume || x.etat}`)].join('\n');
+  await copie(t);
+  toast('Récapitulatif copié.');
 };
 
 $('#telecharger').onclick = () => {
-  const t = texteBrut(suivi.texte);
+  const t = texteBrut(vue ? vue.texte : suivi.texte);
   if (!t) { toast('Rien à enregistrer.'); return; }
-  const e = suivi.etat;
+  const nom = (vue ? vue.libelle : (suivi.etat && suivi.etat.libelle) || 'calcul').replace(/[^\w-]+/g, '-');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([t], { type: 'text/plain;charset=utf-8' }));
-  a.download = `${e ? e.outil : 'calcul'}-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.txt`;
+  a.download = `${nom}-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.txt`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
@@ -515,7 +762,9 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) inte
 
 await relitFichier();
 rendTout();
-interroge();
+await interroge();
+// Arrive par « Analyser les resultats » (la notification de fin) : droit a la file.
+if (location.hash === '#resultats') $('#resultats').scrollIntoView();
 </script>
 </body>
 </html>

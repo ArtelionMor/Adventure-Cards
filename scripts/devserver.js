@@ -37,23 +37,65 @@ const canWrite = rel => WRITABLE.some(re => re.test(rel));
 const genereSprites = () => import('./gen-sprites.mjs').then(m => m.genereSprites());
 
 // ------------------------------------------------------------------ /api/run
-// Lancer un outil de mesure SUR LA MACHINE QUI SERT LA PAGE (le Pi) et lire sa sortie
-// depuis un telephone. Le calcul tourne dans un processus a part et la page ne fait
-// que demander ou il en est (GET) : un ecran qui se met en veille ne tue donc rien, on
-// rouvre la page et on retrouve la sortie la ou elle en etait.
-// Un seul calcul a la fois : deux mesures se voleraient les coeurs.
+// Lancer des outils de mesure SUR LA MACHINE QUI SERT LA PAGE (le Pi) et lire leur
+// sortie depuis un telephone. Chaque calcul tourne dans un processus a part et la page
+// ne fait que demander ou il en est (GET) : un ecran qui se met en veille ne tue donc
+// rien, on rouvre la page et on retrouve la sortie la ou elle en etait.
+//
+// UNE FILE, PAS UN CALCUL : la page envoie une liste de calculs (des « lignes » — le
+// meme matchup du niveau 1 au niveau 20, ou des outils differents) et ils passent l'un
+// apres l'autre. Un seul a la fois : deux mesures se voleraient les coeurs. Envoyer
+// pendant que la file tourne met les nouveaux calculs a la suite.
 //
 // La liste blanche : on ne lance QUE ces scripts. `brouillon` dit si l'outil peut
 // mesurer le brouillon du builder — pas les bancs de test, qui s'appuient sur des
 // cartes precises du fichier du jeu.
 const OUTILS = {
-  simulate: { fichier: 'scripts/simulate.mjs', brouillon: true },
-  matchups: { fichier: 'scripts/matchups.mjs', brouillon: true },
-  'check-decks': { fichier: 'scripts/check-decks.mjs', brouillon: true },
-  'analyse-cartes': { fichier: 'scripts/analyse-cartes.mjs', brouillon: true },
-  'test-triggers': { fichier: 'scripts/test-triggers.mjs', brouillon: false },
-  'test-ai': { fichier: 'scripts/test-ai.mjs', brouillon: false }
+  simulate: { fichier: 'scripts/simulate.mjs', brouillon: true, nom: 'Courbe de difficulté' },
+  matchups: { fichier: 'scripts/matchups.mjs', brouillon: true, nom: 'Matrice des matchups' },
+  'check-decks': { fichier: 'scripts/check-decks.mjs', brouillon: true, nom: 'Contrôle des decks' },
+  'analyse-cartes': { fichier: 'scripts/analyse-cartes.mjs', brouillon: true, nom: 'Analyse des cartes' },
+  'test-triggers': { fichier: 'scripts/test-triggers.mjs', brouillon: false, nom: 'Banc du moteur' },
+  'test-ai': { fichier: 'scripts/test-ai.mjs', brouillon: false, nom: 'Banc du bot' }
 };
+
+// Les notifications (scripts/lib/push.mjs) : un module ES, d'ou l'import dynamique. Une
+// notification qui echoue ne doit jamais gener un calcul : on le journalise, c'est tout.
+const push = () => import('./lib/push.mjs');
+const notifie = (donnees, opts) => push().then(p => p.notifie(donnees, opts))
+  .then(b => { if (b.erreurs.length) console.log('notification refusee : ' + b.erreurs.join(' | ')); return b; })
+  .catch(e => console.log('notification impossible : ' + e.message));
+
+// CE QU'ON MET DANS LA NOTIFICATION DE FIN : deux ou trois chiffres lus dans la sortie,
+// pas un rapport — le rapport est dans la page. Chaque outil a sa phrase ; a defaut, la
+// derniere ligne (celle des bancs dit deja « 31 test(s) passe(s), 0 echec(s) »).
+function resumeCalcul(c) {
+  const lignes = c.sortie.replace(/\x1b\[[\d;?]*[A-Za-z]/g, '').split('\n')
+    .map(l => l.slice(l.lastIndexOf('\r') + 1).trim()).filter(Boolean);
+  const derniere = (lignes[lignes.length - 1] || '').slice(0, 140);
+  // Les lignes « - ... » qui suivent un titre de section (« Murs — ... »).
+  const sousLignes = titre => {
+    const i = lignes.findIndex(l => l.startsWith(titre));
+    let n = 0;
+    if (i >= 0) for (let k = i + 1; k < lignes.length && lignes[k].startsWith('- '); k++) n++;
+    return n;
+  };
+  if (c.outil === 'matchups') {
+    // Equipes contre adversaires : la moyenne, la pire et la meilleure equipe.
+    const contre = lignes.map(l => /^Contre les adversaires : (.*)$/.exec(l)).find(Boolean);
+    if (contre) return contre[1];
+    const cible = lignes.map(l => /^sur une cible.*:\s*(\d+)\s*\/\s*(\d+)/.exec(l)).find(Boolean);
+    const ecrases = lignes.map(l => /^(\d+) matchup\(s\) ecrasant/.exec(l)).find(Boolean);
+    if (cible) return `${cible[1]}/${cible[2]} matchups sur une cible · ${ecrases ? ecrases[1] : 0} écrasant(s)`;
+  }
+  if (c.outil === 'simulate') {
+    const murs = sousLignes('Murs'), offerts = sousLignes('Combats offerts');
+    const bloquees = lignes.map(l => /^(\d+) case\(s\) bloquee/.exec(l)).find(Boolean);
+    return (murs || offerts ? `${murs} mur(s), ${offerts} combat(s) offert(s)` : 'Aucun mur, aucun combat offert')
+      + (bloquees ? ` · ${bloquees[1]} case(s) bloquée(s)` : '');
+  }
+  return derniere;
+}
 // Des arguments courts, sans espace (on ne passe de toute facon pas par un shell).
 // --csv et --logs sont refuses : ils ecriraient sur le serveur un fichier choisi par
 // la page.
@@ -61,49 +103,215 @@ const ARG_OK = /^[\w.,:=+-]{1,80}$/;
 const ARG_INTERDITS = ['--csv', '--logs'];
 const SORTIE_MAX = 2000000;   // au-dela, on oublie le debut de la sortie
 const CROCHET = pathToFileURL(path.join(__dirname, 'lib', 'brouillon.mjs')).href;
+// La PAUSE suspend le processus du calcul (SIGSTOP ; ses workers sont des fils du meme
+// processus, ils s'arretent avec lui) — ce que Linux sait faire, pas Windows. Sur
+// Windows, la pause laisse finir le calcul en cours et ne lance pas le suivant.
+const PAUSE_IMMEDIATE = process.platform !== 'win32';
+const LIGNES_MAX = 200;
+const duree = ms => { const s = Math.round(ms / 1000); return s < 60 ? s + ' s' : Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0') + ' s'; };
 
-let calcul = null;   // le dernier lance, termine ou non
+// LA FILE. `lot` : la file en cours (ou la derniere), une liste de « lignes » ; chaque
+// ligne est un calcul, avec sa sortie et son etat (attente, encours, fini, echec,
+// arrete, annule). `calcul` : la ligne qui tourne, ou la derniere lancee — c'est elle
+// que la page suit en direct.
+let lot = null;
+let calcul = null;
+const lotActif = () => !!(lot && !lot.fin);
 
-// `depuis` : ce que la page a deja recu (en caracteres depuis le debut du calcul). On
-// ne renvoie que la suite, et `depuis` dans la reponse dit ou elle commence vraiment —
-// si le debut a ete oublie entre-temps, la page le voit et repart de la.
-function etatCalcul(depuis) {
-  if (!calcul) return { id: null };
-  const c = calcul;
-  const i = Math.max(0, (Number(depuis) || 0) - c.oublie);
+// Le temps de calcul, pauses deduites : c'est lui qui donne un « reste ~ » honnete.
+const ecoule = x => (x.debut ? (x.fin || Date.now()) - x.debut - x.pauseTotale - (x.pauseDepuis ? Date.now() - x.pauseDepuis : 0) : 0);
+
+function resumeLot() {
+  if (!lot) return null;
+  const faites = lot.lignes.filter(l => l.fin).length;
+  const c = calcul && calcul.proc ? calcul : null;
+  const part = c && c.progression && c.progression.total ? c.progression.fait / c.progression.total : 0;
   return {
-    id: c.id, outil: c.outil, args: c.args, brouillon: c.brouillon,
-    debut: c.debut, fin: c.fin, code: c.code, enCours: !!c.proc, progression: c.progression,
-    depuis: c.oublie + Math.min(i, c.sortie.length), longueur: c.oublie + c.sortie.length,
-    texte: c.sortie.slice(i)
+    id: lot.id, total: lot.lignes.length, faites, actif: lotActif(), pause: lot.pause, arrete: lot.arrete,
+    pauseImmediate: PAUSE_IMMEDIATE, debut: lot.debut, fin: lot.fin, ecoule: ecoule(lot),
+    progression: lot.lignes.length ? (faites + part) / lot.lignes.length : 0,
+    lignes: lot.lignes.map(l => ({ i: l.i, outil: l.outil, libelle: l.libelle, etat: l.etat, resume: l.resume, duree: l.fin ? ecoule(l) : null }))
   };
 }
 
-function lanceCalcul(demande) {
-  const outil = OUTILS[demande.outil];
-  if (!outil) throw new Error('Outil inconnu : ' + demande.outil);
-  const args = Array.isArray(demande.args) ? demande.args.map(String) : [];
-  for (const a of args) {
-    if (!ARG_OK.test(a)) throw new Error('Argument refuse : ' + a);
-    if (ARG_INTERDITS.includes(a.split('=')[0])) throw new Error('Argument refuse sur le serveur : ' + a);
-  }
-  const id = Date.now().toString(36);
-  // Le brouillon voyage avec la demande : c'est lui qu'on mesure, pas le fichier du
-  // jeu. Un fichier par calcul — l'effacement du precedent ne doit pas tomber sur lui.
+// `depuis` : ce que la page a deja recu (en caracteres depuis le debut de la ligne). On
+// ne renvoie que la suite, et `depuis` dans la reponse dit ou elle commence vraiment —
+// si le debut a ete oublie entre-temps, la page le voit et repart de la.
+function etatCalcul(depuis) {
+  if (!calcul) return { id: null, lot: resumeLot() };
+  const c = calcul;
+  const i = Math.max(0, (Number(depuis) || 0) - c.oublie);
+  return {
+    id: c.id, outil: c.outil, args: c.args, libelle: c.libelle, brouillon: !!c.brouillon,
+    debut: c.debut, fin: c.fin, code: c.code, enCours: !!c.proc, enPause: !!(lot && lot.pause && c.proc),
+    ecoule: ecoule(c), progression: c.progression,
+    depuis: c.oublie + Math.min(i, c.sortie.length), longueur: c.oublie + c.sortie.length,
+    texte: c.sortie.slice(i), lot: resumeLot()
+  };
+}
+
+// Les boutons des notifications (builder/sw.js les renvoie sur /api/run/<action>).
+const ACTIONS_EN_COURS = [{ action: 'pause', title: '⏸ Pause' }, { action: 'stop', title: '■ Arrêter' }];
+const ACTIONS_EN_PAUSE = [{ action: 'reprendre', title: '▶ Reprendre' }, { action: 'stop', title: '■ Arrêter' }];
+
+/**
+ * La demande de la page, en lignes verifiees. Elle envoie soit `{ lignes: [...], data }`
+ * (une file), soit l'ancienne forme `{ outil, args, data }` (une file d'une ligne).
+ */
+function nouvellesLignes(demande) {
+  const brutes = Array.isArray(demande.lignes) ? demande.lignes : [{ outil: demande.outil, args: demande.args, libelle: demande.libelle }];
+  if (!brutes.length) throw new Error('File vide');
+  if (brutes.length + (lotActif() ? lot.lignes.length : 0) > LIGNES_MAX) throw new Error(`Trop de calculs dans la file (${LIGNES_MAX} au plus)`);
+  const lignes = brutes.map(b => {
+    const outil = OUTILS[b.outil];
+    if (!outil) throw new Error('Outil inconnu : ' + b.outil);
+    const args = Array.isArray(b.args) ? b.args.map(String) : [];
+    for (const a of args) {
+      if (!ARG_OK.test(a)) throw new Error('Argument refuse : ' + a);
+      if (ARG_INTERDITS.includes(a.split('=')[0])) throw new Error('Argument refuse sur le serveur : ' + a);
+    }
+    const libelle = String(b.libelle || (outil.nom + (args.length ? ' ' + args.join(' ') : ''))).slice(0, 120);
+    return { outil: b.outil, args, libelle, avecBrouillon: outil.brouillon };
+  });
+  // Le brouillon voyage avec la demande : c'est lui qu'on mesure, pas le fichier du jeu.
+  // Un fichier par envoi, efface a la fin de la file.
   let brouillon = null;
-  if (demande.data && outil.brouillon) {
-    brouillon = path.join(os.tmpdir(), 'adventure-card-brouillon-' + id + '.mjs');
+  if (demande.data && lignes.some(l => l.avecBrouillon)) {
+    brouillon = path.join(os.tmpdir(), 'adventure-card-brouillon-' + Date.now().toString(36) + '.mjs');
     fs.writeFileSync(brouillon, 'export const CHARACTER_DATA = ' + JSON.stringify(demande.data) + ';\n', 'utf8');
   }
+  return lignes.map(l => ({
+    outil: l.outil, args: l.args, libelle: l.libelle, brouillon: l.avecBrouillon ? brouillon : null,
+    etat: 'attente', debut: null, fin: null, code: null, proc: null, sortie: '', oublie: 0,
+    progression: null, resume: null, pauseTotale: 0, pauseDepuis: null
+  }));
+}
+
+/** Ajoute des calculs : ils demarrent une nouvelle file, ou se mettent a la suite de celle qui tourne. */
+function ajouteALaFile(demande) {
+  const lignes = nouvellesLignes(demande);
+  const nouvelle = !lotActif();
+  if (nouvelle) {
+    lot = { id: Date.now().toString(36), lignes: [], debut: Date.now(), fin: null, pause: false, arrete: false,
+      pauseTotale: 0, pauseDepuis: null, brouillons: new Set(), dixiemes: 0, derniereNotif: 0 };
+  }
+  for (const l of lignes) {
+    l.i = lot.lignes.length;
+    l.id = lot.id + '-' + l.i;
+    lot.lignes.push(l);
+    if (l.brouillon) lot.brouillons.add(l.brouillon);
+  }
+  console.log(`file ${lot.id} : ${lignes.length} calcul(s) ajoute(s), ${lot.lignes.length} en tout`);
+  if (nouvelle) {
+    const n = lot.lignes.length;
+    notifie({ titre: n > 1 ? `File de ${n} calculs lancée` : `${OUTILS[lignes[0].outil].nom} : lancé`,
+      corps: lignes[0].libelle + (lignes[0].brouillon ? ' · brouillon' : ''), tag: 'calcul', actions: ACTIONS_EN_COURS },
+      { sujet: 'calcul' });
+  }
+  if (!(calcul && calcul.proc) && !lot.pause) suivante();
+}
+
+function suivante() {
+  if (!lot || lot.fin || lot.pause) return;
+  const l = lot.lignes.find(x => x.etat === 'attente');
+  if (l) lanceLigne(l); else finLot();
+}
+
+// LES NOTIFICATIONS DE PROGRESSION (scripts/lib/push.mjs). Toutes portent le meme tag :
+// sur le telephone, chacune remplace la precedente au lieu de s'empiler. Elles partent a
+// chaque dixieme de la FILE franchi (ou a chaque calcul fini, `force`), jamais plus d'une
+// fois toutes les 20 s, sans sonner, avec Pause et Arreter.
+function annonceAvancement(force) {
+  if (!lot || lot.fin || lot.pause || !calcul || !calcul.proc) return;
+  const r = resumeLot();
+  const dixiemes = Math.floor(r.progression * 10);
+  if (!force && (dixiemes <= lot.dixiemes || dixiemes >= 10)) return;
+  if (Date.now() - lot.derniereNotif < 20000) return;
+  lot.dixiemes = Math.max(lot.dixiemes, dixiemes);
+  lot.derniereNotif = Date.now();
+  const pct = Math.floor(r.progression * 100);
+  const reste = r.progression > 0.02 ? ` · reste ~${duree(r.ecoule / r.progression - r.ecoule)}` : '';
+  notifie(r.total > 1
+    ? { titre: calcul.libelle, corps: `${pct} % · calcul ${r.faites + 1}/${r.total}${reste}`, tag: 'calcul', actions: ACTIONS_EN_COURS }
+    : { titre: `${OUTILS[calcul.outil].nom} : ${pct} %`, corps: `${calcul.libelle}${reste}`, tag: 'calcul', actions: ACTIONS_EN_COURS },
+  { sujet: 'calcul' });
+}
+
+// LA FIN DE LA FILE : elle sonne, et propose « Analyser les resultats ». Une file d'un
+// seul calcul se dit comme avant (« Banc du bot : termine — 31 test(s) passe(s) »).
+function finLot() {
+  lot.fin = Date.now();
+  if (lot.pauseDepuis) { lot.pauseTotale += lot.fin - lot.pauseDepuis; lot.pauseDepuis = null; }
+  for (const f of lot.brouillons) fs.rm(f, { force: true }, () => {});
+  const n = lot.lignes.length;
+  const finis = lot.lignes.filter(l => l.etat === 'fini').length;
+  const echecs = lot.lignes.filter(l => l.etat === 'echec').length;
+  let titre, corps;
+  if (n === 1) {
+    const l = lot.lignes[0], nom = OUTILS[l.outil].nom;
+    titre = l.etat === 'fini' ? `${nom} : terminé` : l.etat === 'arrete' ? `${nom} : arrêté` : `${nom} : échec (${l.code})`;
+    corps = `${l.resume || l.libelle} · ${duree(ecoule(lot))}`;
+  } else {
+    titre = lot.arrete ? 'Simulations arrêtées' : `Simulations terminées${echecs ? ` · ${echecs} échec(s)` : ''}`;
+    corps = `${finis}/${n} calculs en ${duree(ecoule(lot))}`;
+  }
+  console.log(`file ${lot.id} terminee : ${finis}/${n}${lot.arrete ? ' (arretee)' : ''}`);
+  notifie({ titre, corps, tag: 'calcul', bruyante: true, url: 'lancer.html#resultats',
+    actions: finis ? [{ action: 'analyser', title: 'Analyser les résultats' }] : [] }, { urgence: 'high', sujet: 'calcul' });
+}
+
+function pauseFile() {
+  if (!lotActif() || lot.pause) return;
+  lot.pause = true;
+  lot.pauseDepuis = Date.now();
+  const tourne = calcul && calcul.proc;
+  if (PAUSE_IMMEDIATE && tourne) { calcul.proc.kill('SIGSTOP'); calcul.pauseDepuis = Date.now(); }
+  const r = resumeLot();
+  notifie({ titre: 'En pause', corps: `${tourne ? calcul.libelle : 'avant le calcul suivant'} · ${Math.floor(r.progression * 100)} % · ${r.faites}/${r.total}`
+    + (tourne && !PAUSE_IMMEDIATE ? ' (le calcul en cours va jusqu\'au bout)' : ''), tag: 'calcul', actions: ACTIONS_EN_PAUSE }, { sujet: 'calcul' });
+}
+
+function reprendFile() {
+  if (!lotActif() || !lot.pause) return;
+  lot.pause = false;
+  lot.pauseTotale += Date.now() - lot.pauseDepuis;
+  lot.pauseDepuis = null;
+  if (calcul && calcul.proc && calcul.pauseDepuis) {
+    calcul.pauseTotale += Date.now() - calcul.pauseDepuis;
+    calcul.pauseDepuis = null;
+    calcul.proc.kill('SIGCONT');
+  }
+  if (!(calcul && calcul.proc)) suivante();
+  lot.derniereNotif = 0;
+  annonceAvancement(true);
+}
+
+function arreteFile() {
+  if (!lotActif()) return;
+  lot.arrete = true;
+  if (lot.pause) { lot.pause = false; lot.pauseTotale += Date.now() - lot.pauseDepuis; lot.pauseDepuis = null; }
+  for (const l of lot.lignes) if (l.etat === 'attente') l.etat = 'annule';
+  if (calcul && calcul.proc) {
+    // Un processus suspendu ne recoit pas son arret tant qu'on ne l'a pas relance.
+    if (calcul.pauseDepuis) { calcul.pauseTotale += Date.now() - calcul.pauseDepuis; calcul.pauseDepuis = null; calcul.proc.kill('SIGCONT'); }
+    calcul.proc.kill();   // termine() -> suivante() -> plus rien en attente -> finLot()
+  } else {
+    finLot();
+  }
+}
+
+function lanceLigne(c) {
+  const outil = OUTILS[c.outil];
   // ADVENTURE_PROGRESSION : les scripts ecrivent leur avancement en lignes-marqueurs
   // (scripts/lib/progression.mjs) au lieu d'une ligne de terminal reecrite sur place.
-  const proc = spawn(process.execPath, ['--import', CROCHET, outil.fichier, ...args], {
-    cwd: ROOT, env: { ...process.env, ADVENTURE_BROUILLON: brouillon || '', ADVENTURE_PROGRESSION: '1' }, windowsHide: true
+  const proc = spawn(process.execPath, ['--import', CROCHET, outil.fichier, ...c.args], {
+    cwd: ROOT, env: { ...process.env, ADVENTURE_BROUILLON: c.brouillon || '', ADVENTURE_PROGRESSION: '1' }, windowsHide: true
   });
-  const c = calcul = {
-    id, outil: demande.outil, args, brouillon: !!brouillon,
-    debut: Date.now(), fin: null, code: null, proc, sortie: '', oublie: 0, progression: null
-  };
+  c.proc = proc;
+  c.etat = 'encours';
+  c.debut = Date.now();
+  calcul = c;
+  const suitProgression = () => annonceAvancement(false);
   const garde = texte => {
     c.sortie += texte;
     if (c.sortie.length > SORTIE_MAX) {
@@ -125,7 +333,7 @@ function lanceCalcul(demande) {
         let net = '';
         for (const l of lignes) {
           const m = /^@@progression (\d+)\/(\d+)\s*$/.exec(l);
-          if (m) c.progression = { fait: Number(m[1]), total: Number(m[2]) };
+          if (m) { c.progression = { fait: Number(m[1]), total: Number(m[2]) }; suitProgression(); }
           else net += l + '\n';
         }
         if (net) garde(net);
@@ -138,8 +346,14 @@ function lanceCalcul(demande) {
     if (!c.proc) return;
     sortieStd.vide(); erreurs.vide();
     c.proc = null; c.code = code; c.fin = Date.now();
-    if (brouillon) fs.rm(brouillon, { force: true }, () => {});
-    console.log('calcul termine : ' + c.outil + ' (' + code + ', ' + Math.round((c.fin - c.debut) / 1000) + ' s)');
+    if (c.pauseDepuis) { c.pauseTotale += c.fin - c.pauseDepuis; c.pauseDepuis = null; }
+    c.etat = code === 0 ? 'fini' : (lot.arrete || String(code).startsWith('SIG')) ? 'arrete' : 'echec';
+    c.resume = resumeCalcul(c);
+    console.log('calcul termine : ' + c.libelle + ' (' + code + ', ' + Math.round(ecoule(c) / 1000) + ' s)');
+    // Au suivant — ou a la fin de la file, qui sonne. La notification de progression
+    // part apres, pour annoncer le calcul qui vient de demarrer.
+    suivante();
+    annonceAvancement(true);
   };
   try {
     proc.stdout.setEncoding('utf8');
@@ -155,7 +369,7 @@ function lanceCalcul(demande) {
     termine('erreur');
     throw e;
   }
-  console.log('calcul lance : ' + outil.fichier + ' ' + args.join(' ') + (brouillon ? ' (brouillon)' : ''));
+  console.log('calcul lance : ' + outil.fichier + ' ' + c.args.join(' ') + (c.brouillon ? ' (brouillon)' : ''));
 }
 
 const json = (res, code, obj) =>
@@ -175,20 +389,29 @@ http.createServer((req, res) => {
     return;
   }
 
-  // Ou en est le calcul ? La page le demande toutes les secondes tant qu'il tourne.
+  // Ou en est la file ? La page le demande toutes les secondes tant qu'elle tourne.
   if (req.method === 'GET' && urlPath === '/api/run') {
     json(res, 200, etatCalcul(new URLSearchParams(query || '').get('depuis')));
     return;
   }
 
+  // La sortie complete d'une ligne de la file — une ligne deja finie, qu'on relit.
+  if (req.method === 'GET' && urlPath === '/api/run/ligne') {
+    const l = lot && lot.lignes[Number(new URLSearchParams(query || '').get('i'))];
+    if (!l) { json(res, 404, { erreur: 'Pas de calcul a ce numero dans la file' }); return; }
+    json(res, 200, { i: l.i, libelle: l.libelle, etat: l.etat, resume: l.resume, texte: l.sortie });
+    return;
+  }
+
+  // Des calculs a ajouter : ils demarrent une file, ou se mettent a la suite de celle
+  // qui tourne.
   if (req.method === 'POST' && urlPath === '/api/run') {
     let body = '';
     req.setEncoding('utf8');
     req.on('data', c => { body += c; });
     req.on('end', () => {
-      if (calcul && calcul.proc) { json(res, 409, { erreur: 'Un calcul tourne deja : ' + calcul.outil }); return; }
       try {
-        lanceCalcul(JSON.parse(body || '{}'));
+        ajouteALaFile(JSON.parse(body || '{}'));
         json(res, 200, etatCalcul(0));
       } catch (e) {
         json(res, 400, { erreur: e.message });
@@ -197,10 +420,41 @@ http.createServer((req, res) => {
     return;
   }
 
-  if (req.method === 'POST' && urlPath === '/api/run/stop') {
-    if (calcul && calcul.proc) calcul.proc.kill();
-    json(res, 200, { ok: true });
+  // Pause, reprise, arret : les boutons de la page, et ceux des notifications.
+  const commandes = { '/api/run/pause': pauseFile, '/api/run/reprendre': reprendFile, '/api/run/stop': arreteFile };
+  if (req.method === 'POST' && commandes[urlPath]) {
+    commandes[urlPath]();
+    json(res, 200, { ok: true, lot: resumeLot() });
     return;
+  }
+
+  // Les notifications : la cle publique (pour s'abonner), l'abonnement d'un appareil, son
+  // desabonnement, et un message d'essai (le bouton « Tester » de l'accueil, qui affiche
+  // ce que le service push a repondu). Voir scripts/lib/push.mjs.
+  if (urlPath.startsWith('/api/push/')) {
+    const action = urlPath.slice('/api/push/'.length);
+    if (req.method === 'GET' && action === 'cle') {
+      push().then(p => json(res, 200, { cle: p.clePublique(), abonnes: p.abonnes() }))
+        .catch(e => json(res, 500, { erreur: e.message }));
+      return;
+    }
+    if (req.method === 'POST' && ['abonne', 'desabonne', 'test'].includes(action)) {
+      let body = '';
+      req.setEncoding('utf8');
+      req.on('data', c => { body += c; });
+      req.on('end', async () => {
+        try {
+          const p = await push();
+          const d = body ? JSON.parse(body) : {};
+          if (action === 'abonne') { p.abonne(d); json(res, 200, { ok: true, abonnes: p.abonnes() }); }
+          else if (action === 'desabonne') { p.desabonne(d.endpoint); json(res, 200, { ok: true, abonnes: p.abonnes() }); }
+          else json(res, 200, await p.notifie({ titre: 'Atelier', corps: 'Les notifications marchent : tu seras prévenu quand un calcul avance et quand il finit.', tag: 'test', bruyante: true }, { urgence: 'high' }));
+        } catch (e) {
+          json(res, 400, { erreur: e.message });
+        }
+      });
+      return;
+    }
   }
 
   if (req.method === 'POST' && urlPath === '/api/write') {

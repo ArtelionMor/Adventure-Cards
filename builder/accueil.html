@@ -80,6 +80,7 @@
     <a class="tuile" href="../game/index.html"><span class="ico">🎮</span><b>Jouer</b><span>Le prototype, avec les cartes appliquées au jeu.</span></a>
   </div>
 
+  <div class="installer" id="notifs"></div>
   <div class="installer" id="installer" hidden></div>
 </div>
 
@@ -118,14 +119,20 @@ async function rendCalcul() {
   catch { pose(el, 'ko', 'Serveur injoignable', 'le Pi est-il allumé ?'); return; }
   if (r.status === 404) { pose(el, '', 'Indisponible ici', 'lancer un calcul demande le serveur du Pi'); return; }
   const e = await r.json();
-  if (!e.id) { pose(el, '', 'Aucun calcul lancé', 'depuis le démarrage du serveur'); return; }
+  const l = e.lot;
+  if (!e.id || !l) { pose(el, '', 'Aucun calcul lancé', 'depuis le démarrage du serveur'); return; }
   const nom = NOMS[e.outil] || e.outil;
-  if (e.enCours) {
-    const p = e.progression;
-    const ou = p && p.total ? `${Math.floor(p.fait / p.total * 100)} %` : 'en cours…';
-    pose(el, 'run', `${nom} : ${ou}`, `lancé à ${heure(e.debut)}`);
+  // Une FILE de calculs : on dit ou en est la file entiere, et lequel tourne.
+  const pct = l.total === 1 && !e.progression ? 'en cours…' : `${Math.floor(l.progression * 100)} %`;
+  if (l.actif) {
+    const lequel = l.total > 1 ? `calcul ${Math.min(l.faites + 1, l.total)}/${l.total} · ` : '';
+    if (l.pause) pose(el, 'draft', `En pause · ${pct}`, lequel + (e.libelle || nom));
+    else pose(el, 'run', l.total > 1 ? `${e.libelle} : ${pct}` : `${nom} : ${pct}`, `${lequel}lancé à ${heure(l.debut)}`);
     minuterie = setTimeout(rendCalcul, 3000);
+    return;
   }
+  const finis = l.lignes.filter(x => x.etat === 'fini').length;
+  if (l.total > 1) pose(el, finis === l.total ? 'ok' : 'ko', `Simulations ${l.arrete ? 'arrêtées' : 'terminées'} : ${finis}/${l.total}`, ilYa(l.fin));
   else if (e.code === 0) pose(el, 'ok', `${nom} : terminé`, ilYa(e.fin));
   else pose(el, 'ko', `${nom} : ${typeof e.code === 'string' ? 'arrêté' : 'échec'}`, ilYa(e.fin));
 }
@@ -151,8 +158,77 @@ addEventListener('beforeinstallprompt', ev => {
   $('#btnInstaller').onclick = async () => { invite.prompt(); await invite.userChoice; boite.hidden = true; };
 });
 
+// ---------- LES NOTIFICATIONS ----------
+// Le serveur previent quand un calcul avance ou se termine (scripts/lib/push.mjs), par le
+// service worker de l'Atelier (sw.js), meme app fermee. Il faut du HTTPS : l'adresse
+// …ts.net du Pi. Les boutons ne font que s'abonner ou se desabonner — le serveur garde
+// la liste des appareils abonnes.
+const versOctets = b64u => Uint8Array.from(atob(b64u.replace(/-/g, '+').replace(/_/g, '/')), ch => ch.charCodeAt(0));
+const enB64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const envoie = (url, corps) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps || {}) });
+
+async function rendNotifs() {
+  const boite = $('#notifs');
+  if (!isSecureContext || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    boite.innerHTML = '🔕 <b>Notifications</b> : il faut ouvrir l\'Atelier en <b>HTTPS</b> (l\'adresse <code>…ts.net</code> du Pi), dans un navigateur qui les gère.';
+    return;
+  }
+  let reg, sub, cle;
+  try {
+    const r = await fetch('/api/push/cle', { cache: 'no-store' });
+    if (!r.ok) { boite.innerHTML = '🔕 <b>Notifications</b> : ce serveur ne les envoie pas — il faut celui du Pi (<code>node scripts/devserver.js</code>).'; return; }
+    cle = (await r.json()).cle;
+    reg = await navigator.serviceWorker.register('sw.js');
+    sub = await reg.pushManager.getSubscription();
+  } catch (e) {
+    boite.textContent = '🔕 Notifications indisponibles : ' + e.message;
+    return;
+  }
+  // Le serveur a change de cle (son fichier a ete efface) : cet abonnement ne recevra
+  // plus rien, on le jette et on repropose.
+  const k = sub && sub.options && sub.options.applicationServerKey;
+  if (sub && k && enB64u(k) !== cle) { await sub.unsubscribe(); sub = null; }
+  if (Notification.permission === 'denied') {
+    boite.innerHTML = '🔕 <b>Notifications bloquées</b> pour ce site : autorise-les dans les réglages du navigateur, puis recharge la page.';
+    return;
+  }
+  if (sub) {
+    envoie('/api/push/abonne', sub);   // le serveur a pu l'oublier ; sans effet s'il le connait
+    boite.innerHTML = '🔔 <b>Notifications activées</b> sur cet appareil : progression et fin des calculs.<br>'
+      + '<button class="btn" id="tester">Tester</button> '
+      + '<button class="btn" id="couper" style="background:var(--bg-3);color:var(--text)">Couper</button> '
+      + '<span id="retour"></span>';
+    $('#tester').onclick = async () => {
+      $('#retour').textContent = 'envoi…';
+      const b = await (await envoie('/api/push/test')).json();
+      $('#retour').textContent = b.envoyees ? 'envoyée — regarde tes notifications.'
+        : 'rien d\'envoyé' + (b.erreurs && b.erreurs.length ? ' : ' + b.erreurs[0] : '');
+    };
+    $('#couper').onclick = async () => {
+      await envoie('/api/push/desabonne', { endpoint: sub.endpoint });
+      await sub.unsubscribe();
+      rendNotifs();
+    };
+  } else {
+    boite.innerHTML = '<b>Notifications</b> : être prévenu quand un calcul avance ou se termine, même Atelier fermé.<br>'
+      + '<button class="btn" id="activer">🔔 Activer</button>';
+    $('#activer').onclick = async () => {
+      if (await Notification.requestPermission() !== 'granted') { rendNotifs(); return; }
+      try {
+        const s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: versOctets(cle) });
+        await envoie('/api/push/abonne', s);
+      } catch (e) {
+        boite.textContent = 'Abonnement impossible : ' + e.message;
+        return;
+      }
+      rendNotifs();
+    };
+  }
+}
+
 rendBrouillon();
 rendCalcul();
+rendNotifs();
 </script>
 </body>
 </html>

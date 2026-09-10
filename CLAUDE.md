@@ -138,9 +138,23 @@ le doubler — sur le PC, on a les scripts en ligne de commande.
   matchups, check-decks, analyse-cartes et les deux bancs. Arguments courts, sans espace ;
   `--csv` et `--logs` sont refusés — ils écriraient sur le serveur un fichier choisi par
   la page.
-- **Un calcul à la fois**, dans un processus à part. La page **interroge** le serveur
-  (`GET /api/run?depuis=N` : la suite seulement) au lieu de garder une connexion ouverte :
-  un téléphone qui se met en veille ne tue rien, on rouvre la page et la sortie reprend.
+- **Une file, un calcul à la fois.** On envoie une liste de calculs (`POST /api/run`,
+  `{ lignes, data }`) — le même matchup du niveau 1 au 20, les trois tailles d'équipe,
+  des outils différents — et ils passent l'un après l'autre, chacun dans son processus.
+  Envoyer pendant que la file tourne met à la suite. La page les prépare : le
+  **balayage** (niveau de … à … par pas de …, tailles d'équipe ; la config de trinket a
+  sa place, grisée tant que les trinkets n'existent pas) et une liste « à lancer » pour
+  enchaîner des outils. Chaque ligne garde sa sortie et un **résumé** (`resumeCalcul()`) :
+  on la relit en la touchant (`GET /api/run/ligne?i=`), et « Copier le récapitulatif »
+  met tous les résumés bout à bout.
+- **Pause, reprise, arrêt** (`POST /api/run/pause`, `/reprendre`, `/stop` — aussi les
+  boutons des notifications). Sur le Pi, la pause **fige** le processus (SIGSTOP : ses
+  workers sont des fils du même processus, ils s'arrêtent avec lui) ; sous Windows, qui ne
+  sait pas faire, elle laisse finir le calcul en cours et ne lance pas le suivant. Le
+  temps affiché, et donc le « reste ~ », déduit les pauses.
+- La page **interroge** le serveur (`GET /api/run?depuis=N` : la suite seulement) au lieu
+  de garder une connexion ouverte : un téléphone qui se met en veille ne tue rien, on
+  rouvre la page et la sortie reprend.
 - **Le brouillon du builder part avec la demande.** Le serveur l'écrit dans un fichier
   temporaire, et les scripts le lisent à la place de `game/data/characters.data.js` grâce
   à `scripts/lib/brouillon.mjs` — un crochet de chargement (`node --import`, variable
@@ -164,8 +178,38 @@ le dé de `UI/`, agrandi au plus proche voisin.
 ⚠ **Un navigateur n'installe qu'en HTTPS** (ou sur localhost). Sur le Pi, c'est
 `tailscale serve --bg 7330` qui le donne : une adresse `https://<machine>.<tailnet>.ts.net`
 avec un vrai certificat, que **seuls les appareils du tailnet** peuvent joindre. Surtout
-pas Funnel, qui l'ouvrirait à internet. Pas de service worker non plus : rien n'est mis
-en cache, le builder relit toujours des données fraîches.
+pas Funnel, qui l'ouvrirait à internet. Le seul service worker, `builder/sw.js`, ne sert
+qu'aux notifications : rien n'est mis en cache, le builder relit toujours des données
+fraîches.
+
+## Les notifications (un calcul avance, un calcul est fini)
+Le serveur du Pi prévient le téléphone, **Atelier ouvert ou non** : « lancé », puis un
+pourcentage à chaque dixième franchi (au plus une fois toutes les 20 s, sans sonner),
+puis la fin — qui sonne, avec deux chiffres lus dans la sortie par `resumeCalcul()`
+(`scripts/devserver.js` : matchups sur cible et écrasants, murs et combats offerts ; à
+défaut la dernière ligne). Elles portent toutes le même tag : chacune remplace la
+précédente au lieu de s'empiler. Toucher la notification ouvre « Lancer un calcul ».
+
+Pour une **file**, la progression est celle de la file entière (« Trio vs Adversaires -
+niv 4 · 25 % · calcul 4/20 »), et un point part aussi à chaque calcul fini. Les
+notifications portent des **boutons** (deux au plus sur Android) : **Pause / Arrêter**
+pendant, **Reprendre / Arrêter** en pause, **Analyser les résultats** à la fin — c'est
+`builder/sw.js` qui les renvoie sur `/api/run/<action>` sans ouvrir l'app. Une app web ne
+peut pas poser de **widget** sur l'écran d'accueil d'Android : cette notification en
+tient lieu, et un vrai widget demandera une petite app native qui interroge le Pi.
+
+C'est du **Web Push standard, sans dépendance** : `scripts/lib/push.mjs` chiffre le
+message (RFC 8291) et signe un jeton VAPID (RFC 8292) avec `node:crypto`, puis le confie
+au service push du navigateur (celui de Google, pour Chrome). `builder/sw.js` le reçoit
+et l'affiche. On s'abonne sur l'accueil de l'Atelier (🔔 Activer, Tester, Couper), en
+HTTPS seulement. `node scripts/test-push.mjs` rejoue l'exemple de la RFC **au bit près** :
+un seul octet faux, et le téléphone jette le message sans rien dire.
+
+⚠ **Les clés VAPID et les abonnements ne sont pas dans le repo** (il est public) : ils
+vivent dans `~/.adventure-card/push.json` sur la machine du serveur, créé au premier
+besoin. L'effacer invalide tous les abonnements ; l'accueil le détecte et repropose de
+s'abonner. Une notification qui échoue ne gêne jamais le calcul : le serveur le note
+dans son journal (`journalctl -u adventure-card` sur le Pi).
 
 ## L'ordre des effets, dans le builder
 L'ordre d'une liste d'effets **compte** — « Lui » et « Les autres unités du même type que
@@ -954,7 +998,10 @@ des milliers de parties imaginaires, pas des décisions), et la décision elle-m
   Cible du designer : ~66 % quand on a le matchup, ~33 % quand on ne l'a pas, ~50 % sinon ;
   chaque case est rangée par rapport à ces cibles. Le ± affiché est l'intervalle de Wilson
   à 95 % — **ne jamais corriger un écart plus petit que lui**, c'est du bruit.
-  `--trio` pour les équipes de 3, `--bots` pour comparer les niveaux de bot entre eux,
+  `--taille 2` / `--taille 3` (ou `--trio`) pour toutes les équipes de 2 ou 3 héros,
+  `--adversaires` pour ne jouer que **les équipes contre les adversaires** (équipes en
+  lignes, PNJ en colonnes, ni équipe contre équipe ni PNJ contre PNJ — la ligne « Trio vs
+  Adversaires - niv 4 » d'une file), `--bots` pour comparer les niveaux de bot entre eux,
   `--pair a,b --fort` pour rejuger un matchup suspect avec la référence Monte-Carlo.
 - Ce que la matrice mesure vraiment : des decks **tels que le bot les joue**. Un deck que le
   bot ne sait pas piloter paraît faible. D'où `--fort` : si l'écart s'efface avec une

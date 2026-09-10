@@ -22,14 +22,16 @@
 // Les cases sont independantes : elles se jouent sur tous les coeurs (scripts/lib/pool.mjs).
 //
 //   node scripts/matchups.mjs [parties par paire] [niveau]
-//   node scripts/matchups.mjs 200 5 --trio          equipes de 3 (20 decks, plus long)
+//   node scripts/matchups.mjs 200 5 --taille 2      equipes de 2 (toutes les combinaisons)
+//   node scripts/matchups.mjs 200 5 --trio          equipes de 3 (= --taille 3)
+//   node scripts/matchups.mjs 200 5 --adversaires   les equipes contre les adversaires, et rien d'autre
 //   node scripts/matchups.mjs 200 5 --bots          compare les niveaux de bot entre eux
 //   node scripts/matchups.mjs 200 5 --csv sortie.csv   ecrit la matrice (une ligne par matchup)
 //   node scripts/matchups.mjs 200 5 --logs sortie.txt  ecrit un journal de partie par matchup
 //   node scripts/matchups.mjs 200 5 --mix           decks melanges base/switch (le cas reel)
 //   node scripts/matchups.mjs 200 5 --switch        decks tout-switch
-//   node scripts/matchups.mjs 200 5 --pnj           ajoute les adversaires (PNJ)
-//   node scripts/matchups.mjs 200 5 --jobs 4        cases en parallele (defaut : un par coeur moins un ; 1 = sans worker)
+//   node scripts/matchups.mjs 200 5 --pnj           ajoute les adversaires (PNJ) a la matrice
+//   node scripts/matchups.mjs 200 5 --jobs 4        cases en parallele (defaut : un par coeur ; 1 = sans worker)
 //   node scripts/matchups.mjs 30 5 --pair dog,cat   une seule paire
 //   node scripts/matchups.mjs 20 5 --pair dog,cat --fort   ... avec le bot Monte-Carlo
 import { CHARACTERS } from '../game/src/config/characters.js';
@@ -40,9 +42,15 @@ import { camp } from './lib/taches-matchups.mjs';
 import { enParallele, nombreDeJobs } from './lib/pool.mjs';
 import { writeFileSync } from 'node:fs';
 
+const valeurDe = drapeau => (process.argv.includes(drapeau) ? process.argv[process.argv.indexOf(drapeau) + 1] : '');
 const PARTIES = Number(process.argv[2] || 120);
 const NIVEAU = Number(process.argv[3] || 5);
-const TRIO = process.argv.includes('--trio');
+// La taille d'equipe : toutes les combinaisons de N heros (des combinaisons, pas des
+// arrangements — Medor+Felix et Felix+Medor font le meme paquet de cartes).
+const TAILLE = Math.min(3, Math.max(1, Math.round(Number(valeurDe('--taille'))) || (process.argv.includes('--trio') ? 3 : 1)));
+// « Contre les adversaires » : les equipes en lignes, les PNJ en colonnes, et rien
+// d'autre. Ni equipe contre equipe, ni PNJ contre PNJ — deux PNJ ne se rencontrent pas.
+const ADVERSAIRES = process.argv.includes('--adversaires');
 // Quelles cartes composent un deck de personnage : ses 5 cartes de base, ses 5 switch,
 // ou un melange retire a chaque partie — c'est ce dernier qui ressemble a un vrai deck.
 const MELANGE = process.argv.includes('--mix');
@@ -55,7 +63,6 @@ const FORT = process.argv.includes('--fort');
 const REFERENCE = FORT ? 'montecarlo' : BALANCE.ai.defaut;
 const paireVoulue = (process.argv.find(a => a.startsWith('--pair=')) || '').slice(7)
   || (process.argv.includes('--pair') ? process.argv[process.argv.indexOf('--pair') + 1] : '');
-const valeurDe = drapeau => (process.argv.includes(drapeau) ? process.argv[process.argv.indexOf(drapeau) + 1] : '');
 const FICHIER_CSV = valeurDe('--csv');
 const FICHIER_LOGS = valeurDe('--logs');
 const JOBS = nombreDeJobs();
@@ -94,7 +101,7 @@ if (voulus) for (const id of voulus) if (!ids.includes(id)) {
 // camp eux-memes (un deck melange est une fabrique, et une fonction ne traverse pas un
 // postMessage).
 const typeDeck = MELANGE ? 'mix' : COTE === 'switches' ? 'switch' : 'base';
-const decks = (voulus ? voulus.map(id => [id]) : TRIO ? combinaisons(ids, 3) : ids.map(id => [id]))
+const equipes = (voulus ? voulus.map(id => [id]) : combinaisons(ids, TAILLE))
   .map(equipe => {
     const recette = { type: typeDeck, ids: equipe, niveau: NIVEAU };
     return { ids: equipe, nom: equipe.map(id => CHARACTERS.find(c => c.id === id).name).join('+'), recette, cfg: camp(recette) };
@@ -102,13 +109,25 @@ const decks = (voulus ? voulus.map(id => [id]) : TRIO ? combinaisons(ids, 3) : i
 
 // Les adversaires du jeu entrent dans la matrice comme n'importe quel deck : c'est la
 // seule facon de savoir si une rencontre est a sa place.
-if (process.argv.includes('--pnj')) {
+const adversaires = [];
+if (ADVERSAIRES || process.argv.includes('--pnj')) {
   for (const n of CHARACTER_DATA.npcs || []) {
     const recette = { type: 'pnj', ids: [n.id] };
     const cfg = camp(recette);
-    if (cfg) decks.push({ ids: [n.id], nom: n.name.split(' ')[0], recette, cfg });
+    if (cfg && cfg.deck.length) adversaires.push({ ids: [n.id], nom: n.name.split(' ')[0], recette, cfg });
   }
 }
+if (ADVERSAIRES && !adversaires.length) {
+  console.log('\nAucun adversaire avec un deck : rien a mesurer en « --adversaires ».\n');
+  process.exit(1);
+}
+
+// Deux formes de matrice. Par defaut, tout le monde contre tout le monde (les PNJ y
+// entrent comme des decks avec --pnj). Avec --adversaires, les equipes en lignes et les
+// adversaires en colonnes : la seule question est « cette equipe passe-t-elle ? ».
+const decks = [...equipes, ...adversaires];
+const lignesD = ADVERSAIRES ? equipes : decks;
+const colonnesD = ADVERSAIRES ? adversaires : decks;
 
 // ------------------------------------------------------- duel de bots (option)
 if (DUEL_DE_BOTS) {
@@ -143,21 +162,24 @@ if (DUEL_DE_BOTS) {
 }
 
 // ---------------------------------------------------------------- la matrice
-const quoi = MELANGE ? 'decks melanges base/switch' : COTE === 'switches' ? 'decks tout-switch' : 'decks de base';
+const quoi = (MELANGE ? 'decks melanges base/switch' : COTE === 'switches' ? 'decks tout-switch' : 'decks de base')
+  + (TAILLE > 1 ? `, equipes de ${TAILLE}` : '') + (ADVERSAIRES ? ', contre les adversaires' : '');
 console.log(`\nMatchups — ${PARTIES} parties par paire, niveau ${NIVEAU}, ${quoi}, bot « ${REFERENCE} », ${JOBS} en parallele.`);
 if (MELANGE) console.log(gris('Chaque partie retire un slot sur deux : le taux est la moyenne sur tous les decks montables.'));
 if (FORT) console.log(gris('Reference Monte-Carlo : lente, mais elle joue les cartes pour ce qu\'elles valent.'));
 console.log(gris('Chaque case : victoires de la LIGNE contre la COLONNE. Moitie des parties en commencant, moitie en subissant.\n'));
 
-const largeur = Math.max(...decks.map(d => d.nom.length)) + 1;
-const entete = ' '.repeat(largeur) + '| ' + decks.map(d => (TRIO ? d.nom.slice(0, 6) : d.nom).padEnd(7)).join('');
+const largeur = Math.max(...lignesD.map(d => d.nom.length)) + 1;
+const entete = ' '.repeat(largeur) + '| ' + colonnesD.map(d => (d.nom.length > 7 ? d.nom.slice(0, 6) : d.nom).padEnd(7)).join('');
 console.log(entete);
-console.log(gris('-'.repeat(entete.length - 10)));
+console.log(gris('-'.repeat(Math.max(10, entete.length - 10))));
 
 // Une tache par case. Elles partent sur tous les coeurs et reviennent DANS L'ORDRE : une
 // ligne s'affiche des que sa derniere case est jouee, comme avant la parallelisation.
 const debut = Date.now();
-const taches = decks.flatMap((a, i) => decks.map((b, j) => ({ i, j, parties: PARTIES, bot: REFERENCE })));
+const indice = new Map(decks.map((d, k) => [d, k]));
+const derniereColonne = colonnesD[colonnesD.length - 1];
+const taches = lignesD.flatMap(a => colonnesD.map(b => ({ i: indice.get(a), j: indice.get(b), parties: PARTIES, bot: REFERENCE })));
 const resultats = [];
 let avantagePremier = 0, casesMesurees = 0, bloquees = 0;
 let ligne = [];
@@ -172,7 +194,7 @@ await enParallele(taches, new URL('./lib/taches-matchups.mjs', import.meta.url),
     casesMesurees++;
     bloquees += r.bloquees;
     ligne.push(caseTexte(r.taux).padEnd(16));
-    if (taches[k].j === decks.length - 1) {
+    if (b === derniereColonne) {
       console.log(a.nom.padEnd(largeur) + '| ' + ligne.join(''));
       ligne = [];
     }
@@ -220,8 +242,8 @@ if (ecrases.length) {
 }
 
 // Un deck qui gagne partout (ou nulle part) : c'est lui qu'il faut toucher en premier.
-console.log('\n  Force globale de chaque deck (moyenne de ses matchups) :\n');
-const forces = decks.map(d => {
+console.log(`\n  Force globale de chaque ${ADVERSAIRES ? 'equipe (moyenne contre les adversaires)' : 'deck (moyenne de ses matchups)'} :\n`);
+const forces = lignesD.map(d => {
   const siens = horsMiroir.filter(r => r.a === d);
   return { d, moyenne: siens.reduce((s, r) => s + r.taux, 0) / siens.length };
 }).sort((x, y) => y.moyenne - x.moyenne);
@@ -230,6 +252,15 @@ for (const f of forces) {
   const t = pc(f.moyenne).padStart(4);
   console.log(`    ${f.d.nom.padEnd(largeur)} ${f.moyenne > 0.6 || f.moyenne < 0.4 ? jaune(t) : vert(t)} ${gris(barre)}`);
 }
-console.log(gris('\n    Une cible saine : tout le monde entre 45 % et 55 % de moyenne, avec des matchups tranches en dessous.'));
-console.log(gris(`    Un matchup suspect se verifie avec une meilleure reference :`));
-console.log(gris(`      node scripts/matchups.mjs 20 ${NIVEAU} --pair ${forces[0].d.ids[0]},${forces[forces.length - 1].d.ids[0]} --fort\n`));
+if (!ADVERSAIRES) {
+  console.log(gris('\n    Une cible saine : tout le monde entre 45 % et 55 % de moyenne, avec des matchups tranches en dessous.'));
+  console.log(gris(`    Un matchup suspect se verifie avec une meilleure reference :`));
+  console.log(gris(`      node scripts/matchups.mjs 20 ${NIVEAU} --pair ${forces[0].d.ids[0]},${forces[forces.length - 1].d.ids[0]} --fort\n`));
+} else {
+  // La ligne que lit la file de calculs (resumeCalcul, dans le serveur) : contre des
+  // adversaires, les cibles 33/50/66 ne veulent rien dire — ce qui compte, c'est si les
+  // equipes passent, et laquelle bloque.
+  const moyenne = forces.reduce((s, f) => s + f.moyenne, 0) / forces.length;
+  const pire = forces[forces.length - 1], meilleure = forces[0];
+  console.log(`\n  Contre les adversaires : moyenne ${pc(moyenne)} · pire ${pire.d.nom} ${pc(pire.moyenne)} · meilleure ${meilleure.d.nom} ${pc(meilleure.moyenne)}\n`);
+}
