@@ -126,6 +126,32 @@ Le fichier dit ce qu'elle doit faire, quelles cartes l'utilisent et où l'implé
 l'ajouter à `EFFECTS`/`KEYWORDS` dans `game/src/config/mechanics.js` et retirer son entrée de
 `customMechanics` dans les données.
 
+## Lancer un calcul (sur le Pi, depuis le téléphone)
+`builder/lancer.html` lance les outils de `scripts/` **sur la machine qui sert la page**
+— le Pi, en pratique — et n'affiche que leur sortie : c'est ce qui rend l'équilibrage
+possible depuis un téléphone, dont le navigateur est bien trop lent pour `balance.html`.
+C'est `/api/run` de `scripts/devserver.js`, et lui seul : `launcher/Launcher.cs` ne l'a
+**pas** (l'exe répond 404 et la page le dit). Contrairement à `/api/write`, il n'y a pas à
+le doubler — sur le PC, on a les scripts en ligne de commande.
+
+- **Liste blanche** (`OUTILS`, dans le serveur, et son miroir dans la page) : simulate,
+  matchups, check-decks, analyse-cartes et les deux bancs. Arguments courts, sans espace ;
+  `--csv` et `--logs` sont refusés — ils écriraient sur le serveur un fichier choisi par
+  la page.
+- **Un calcul à la fois**, dans un processus à part. La page **interroge** le serveur
+  (`GET /api/run?depuis=N` : la suite seulement) au lieu de garder une connexion ouverte :
+  un téléphone qui se met en veille ne tue rien, on rouvre la page et la sortie reprend.
+- **Le brouillon du builder part avec la demande.** Le serveur l'écrit dans un fichier
+  temporaire, et les scripts le lisent à la place de `game/data/characters.data.js` grâce
+  à `scripts/lib/brouillon.mjs` — un crochet de chargement (`node --import`, variable
+  `ADVENTURE_BROUILLON`). **Aucun script n'a été modifié pour ça**, et les workers en
+  héritent (ils reçoivent les options de Node). Les bancs de test, eux, lisent toujours
+  le fichier : ils s'appuient sur des cartes précises.
+
+⚠ Le serveur écoute sur **toutes les interfaces** — c'est ce qui sert le téléphone, en
+Wi-Fi ou par Tailscale. Ne jamais l'exposer à internet : `/api/write` et `/api/run`
+n'ont aucun mot de passe.
+
 ## L'ordre des effets, dans le builder
 L'ordre d'une liste d'effets **compte** — « Lui » et « Les autres unités du même type que
 Lui » regardent l'effet juste au-dessus — et il n'était modifiable qu'en supprimant tout
@@ -957,11 +983,11 @@ des milliers de parties imaginaires, pas des décisions), et la décision elle-m
   partagées avec le builder), `src/combat/` = moteur + bot, `src/tools/` = l'arène de mesure,
   `src/ui/` = écrans, `data/` = données générées par le builder.
 - `builder/` — le Card Builder, `overview.html` (vue d'ensemble) et `balance.html`
-  (matrice des matchups). Pages autonomes : aucune dépendance, elles importent seulement
+  (matrice des matchups), `lancer.html` (lancer un calcul sur le serveur). Pages autonomes : aucune dépendance, elles importent seulement
   les modules de `game/src/`.
 - `launcher/` — source C# du lanceur Windows (compilé avec le csc.exe fourni par Windows, cf. `scripts/build-exe.ps1`).
 - `scripts/` — serveur de dev, bancs de test, outils d'équilibrage (`check-decks`,
-  `matchups`, `simulate`), `gen-sprites.mjs` (la liste des images), `lib/arene.mjs`
+  `matchups`, `simulate`), `gen-sprites.mjs` (la liste des images), `lib/brouillon.mjs` (fait mesurer le brouillon aux outils), `lib/arene.mjs`
   (socle commun), build de l'exe.
 - `docs/GDD.md` — game design doc complet.
 - `mockups/` — mockups de cartes (placeholders, pas la direction artistique finale).

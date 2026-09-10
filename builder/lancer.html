@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lancer un calcul — Adventure Card</title>
+<style>
+  :root {
+    --bg: #0f1115; --bg-2: #161922; --bg-3: #1d2230; --line: #2a3142;
+    --text: #e7eaf0; --muted: #9aa3b2; --accent: #7aa2ff; --accent-2: #79e3c5;
+    --accent-3: #c69bff; --warn: #f5a623; --danger: #ff6b81;
+    --shadow: 0 8px 24px rgba(0,0,0,.35); --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; }
+  body { font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-decoration: none; }
+
+  /* Meme barre que les autres pages, mais qui passe a la ligne sur un telephone. */
+  .tb-nav { position: sticky; top: 0; z-index: 9999; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 18px; min-height: 52px; padding: 8px 14px;
+    background: rgba(13,15,20,.86); backdrop-filter: saturate(140%) blur(10px); border-bottom: 1px solid var(--line); }
+  .tb-nav__brand { display: flex; align-items: center; gap: 8px; font-weight: 700; white-space: nowrap; }
+  .tb-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 10px rgba(122,162,255,.7); }
+  .tb-nav__links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .tb-nav__link { color: var(--muted); padding: 7px 12px; border-radius: 8px; border: 1px solid transparent; font-size: 14px; cursor: pointer; white-space: nowrap; }
+  .tb-nav__link:hover { color: var(--text); background: var(--bg-3); }
+  .tb-nav__link--active { color: var(--text); background: var(--bg-3); border-color: var(--line); }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding: 18px 14px 90px; }
+  h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -.02em;
+    background: linear-gradient(120deg, #fff 0%, var(--accent) 60%, var(--accent-2) 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .lede { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+
+  .panel { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 14px; }
+  .panel__head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .panel__head h2 { font-size: 15px; margin: 0; }
+  .panel__head .droite { margin-left: auto; }
+  .panel__body { padding: 14px 16px; }
+
+  .badge { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .badge--draft { color: var(--warn); border-color: #4a3a1a; background: #241c14; }
+  .badge--file { color: var(--accent-2); border-color: #1e4238; background: #14231f; }
+
+  /* Les outils : de gros boutons, faits pour un pouce. */
+  .outils { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .outil { text-align: left; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font: inherit; cursor: pointer; }
+  .outil b { display: block; font-size: 14px; }
+  .outil span { font-size: 12px; color: var(--muted); }
+  .outil--on { border-color: var(--accent); background: #1b2337; }
+  .desc { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+
+  .champs { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+  .champ label { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+  .champ--large { grid-column: 1 / -1; }
+  input[type=number], input[type=text], select { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; font: inherit; font-size: 16px; }
+  .puces { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); font: inherit; font-size: 14px; cursor: pointer; color: var(--muted); }
+  .chip--on { border-color: var(--accent); color: var(--text); background: #1b2337; }
+  .aide { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .commande { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; margin-top: 14px; overflow-x: auto; white-space: nowrap; }
+
+  .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .btn { background: var(--bg-3); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; font: inherit; font-size: 15px; cursor: pointer; }
+  .btn:hover { border-color: var(--accent); }
+  .btn--primary { background: linear-gradient(135deg, var(--accent), #5b86ff); border-color: transparent; color: #0b1020; font-weight: 700; }
+  .btn--danger { border-color: #5a2430; color: var(--danger); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .statut { font-size: 14px; color: var(--muted); }
+  .statut--ok { color: var(--accent-2); }
+  .statut--ko { color: var(--danger); }
+  .statut--run { color: var(--warn); }
+
+  pre.sortie { margin: 0; padding: 12px 14px; max-height: 70vh; overflow: auto; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; color: #d6dbe4; background: #0b0d12; border-radius: 0 0 var(--radius) var(--radius); }
+  pre.sortie:empty::before { content: 'Rien pour l\2019instant.'; color: var(--muted); }
+  .rouge { color: var(--danger); } .vert { color: var(--accent-2); } .jaune { color: var(--warn); }
+  .bleu { color: var(--accent); } .violet { color: var(--accent-3); } .cyan { color: #6fd3e8; }
+  .gris { color: #6b7385; } .gras { font-weight: 700; }
+
+  .alerte { border: 1px solid #5a2430; background: #2a1a1f; color: #ffd0d8; border-radius: 12px; padding: 12px 14px; font-size: 14px; margin-bottom: 14px; }
+  .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--bg-3); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; font-size: 14px; box-shadow: var(--shadow); z-index: 10000; max-width: 90vw; }
+</style>
+</head>
+<body>
+<nav class="tb-nav">
+  <span class="tb-nav__brand"><span class="tb-dot"></span>Adventure Card</span>
+  <div class="tb-nav__links">
+    <a class="tb-nav__link" href="../game/index.html">Jouer</a>
+    <a class="tb-nav__link" href="index.html">Card Builder</a>
+    <a class="tb-nav__link" href="overview.html">Vue d'ensemble</a>
+    <a class="tb-nav__link" href="balance.html">Équilibrage</a>
+    <span class="tb-nav__link tb-nav__link--active">Lancer un calcul</span>
+  </div>
+</nav>
+
+<div class="wrap">
+  <h1>Lancer un calcul</h1>
+  <p class="lede">
+    Les outils de mesure de <code>scripts/</code>, lancés <strong>sur la machine qui sert cette page</strong> (le Pi) :
+    le téléphone ne fait qu'afficher le résultat. Le calcul continue si l'écran se met en veille ou si tu fermes la page —
+    reviens ici, la sortie reprend où elle en était. Un seul calcul à la fois.
+  </p>
+
+  <div class="alerte" id="indispo" hidden>
+    Ce serveur ne sait pas lancer de calcul. Cette page a besoin de <code>node scripts/devserver.js</code>
+    (c'est lui qui tourne sur le Pi) ; <code>AdventureCard.exe</code> ne le fait pas.
+  </div>
+
+  <section class="panel">
+    <div class="panel__head">
+      <h2>Quoi</h2>
+      <span class="droite" id="source"></span>
+    </div>
+    <div class="panel__body">
+      <div class="outils" id="outils"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__head"><h2 id="titreOutil">Réglages</h2></div>
+    <div class="panel__body">
+      <p class="desc" id="descOutil"></p>
+      <div class="champs" id="champs"></div>
+      <div id="choixBrouillon" style="margin-top:12px"></div>
+      <div class="commande" id="commande"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__head">
+      <div class="actions">
+        <button class="btn btn--primary" id="lancer">▶ Lancer</button>
+        <button class="btn btn--danger" id="arreter" hidden>■ Arrêter</button>
+        <span class="statut" id="statut"></span>
+      </div>
+      <span class="droite actions">
+        <button class="btn" id="copier" title="Copier la sortie, sans les couleurs">Copier</button>
+        <button class="btn" id="telecharger" title="Enregistrer la sortie en .txt">⬇ .txt</button>
+      </span>
+    </div>
+    <pre class="sortie" id="sortie"></pre>
+  </section>
+</div>
+
+<script type="module">
+import { BALANCE } from '../game/src/config/balance.js';
+import { CHARACTER_DATA } from '../game/data/characters.data.js';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const lit = cle => { try { return JSON.parse(localStorage.getItem(cle) || 'null'); } catch { return null; } };
+const toast = msg => {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+};
+
+// ---------- LES DONNEES : le brouillon du builder d'abord ----------
+// Meme regle que l'equilibrage : tant que le builder a un brouillon, c'est lui qu'on
+// mesure — il part avec la demande, et le serveur le fait lire aux scripts a la place
+// du fichier du jeu (scripts/lib/brouillon.mjs). Ici, on ne s'en sert que pour
+// proposer les bons personnages et adversaires dans les menus.
+const LS_BUILDER = 'adventureCardBuilder.v1';
+const LS = 'adventureCardLancer.v1';
+let fichier = CHARACTER_DATA;
+async function relitFichier() {
+  try { fichier = (await import(`../game/data/characters.data.js?t=${Date.now()}`)).CHARACTER_DATA; }
+  catch { /* hors serveur : on garde l'import */ }
+}
+const brouillon = () => { const d = lit(LS_BUILDER); return d && d.db && d.db.characters ? d : null; };
+
+// ---------- LES OUTILS ----------
+// Le miroir de la liste blanche de scripts/devserver.js (OUTILS) : le serveur ne
+// lance rien d'autre, et refuse --csv / --logs, qui ecriraient un fichier chez lui.
+const niveauxBot = Object.keys(BALANCE.ai.niveaux);
+const OUTILS = [
+  {
+    id: 'simulate', fichier: 'scripts/simulate.mjs', nom: 'Courbe de difficulté', sous: 'le joueur passe-t-il ?', brouillon: true,
+    desc: 'Toutes les équipes, à la taille prévue par le palier, contre chaque rencontre du monde. C\'est la pire équipe qui dit si une rencontre est un mur.',
+    champs: [
+      { cle: 'parties', label: 'Parties par combinaison', type: 'nombre', def: BALANCE.simulation.parties, min: 1, max: 1000 },
+      { cle: 'paliers', label: 'Héros par palier', type: 'texte', def: '', motif: /^[0-9,]*$/, aide: 'Vide = ceux du GAME CONFIG. Ex. 1,2,3' }
+    ],
+    args: v => [String(v.parties), ...(v.paliers ? ['--paliers', v.paliers] : [])]
+  },
+  {
+    id: 'matchups', fichier: 'scripts/matchups.mjs', nom: 'Matrice des matchups', sous: 'qui bat qui ?', brouillon: true,
+    desc: 'Deck contre deck, la moitié des parties dans chaque sens, avec l\'intervalle de confiance. Ne corrige jamais un écart plus petit que le ±.',
+    champs: [
+      { cle: 'parties', label: 'Parties par paire', type: 'nombre', def: 120, min: 2, max: 2000 },
+      { cle: 'niveau', label: 'Niveau des cartes', type: 'nombre', def: 5, min: 1, max: 20 },
+      { cle: 'drapeaux', label: 'Decks', type: 'puces', champ: 'large', def: [], options: [
+        { v: '--mix', t: 'Mélange base/switch' }, { v: '--switch', t: 'Tout switch' },
+        { v: '--pnj', t: '+ Adversaires' }, { v: '--trio', t: 'Équipes de 3' }] },
+      { cle: 'paire', label: 'Une seule paire (facultatif)', type: 'paire', champ: 'large', def: ['', ''] },
+      { cle: 'fort', label: 'Bot de référence', type: 'puces', champ: 'large', def: [], options: [{ v: '--fort', t: 'Monte-Carlo (lent, pour une paire)' }] }
+    ],
+    args: v => [String(v.parties), String(v.niveau), ...v.drapeaux,
+      ...(v.paire[0] && v.paire[1] ? ['--pair', v.paire.join(',')] : []), ...v.fort]
+  },
+  {
+    id: 'check-decks', fichier: 'scripts/check-decks.mjs', nom: 'Contrôle des decks', sous: 'les erreurs', brouillon: true,
+    desc: 'Les règles du builder, puis de vraies parties pour trouver ce qui ne se produit jamais : carte impayable, jamais posée, moment jamais déclenché.',
+    champs: [
+      { cle: 'niveau', label: 'Niveau des cartes', type: 'nombre', def: 5, min: 1, max: 20 },
+      { cle: 'parties', label: 'Parties par paire', type: 'nombre', def: 6, min: 1, max: 200 }
+    ],
+    args: v => [String(v.niveau), String(v.parties)]
+  },
+  {
+    id: 'analyse-cartes', fichier: 'scripts/analyse-cartes.mjs', nom: 'Analyse des cartes', sous: 'ce que le bot préfère', brouillon: true,
+    desc: 'Par carte : combien de fois jouable, combien de fois jouée, et l\'écart avec le meilleur coup du moment. Puis les cartes boudées, et ce que le bot leur a préféré.',
+    champs: [
+      { cle: 'parties', label: 'Parties', type: 'nombre', def: 10, min: 1, max: 500 },
+      { cle: 'bot', label: 'Bot', type: 'choix', def: 'montecarlo', options: () => niveauxBot.map(n => ({ v: n, t: n })) },
+      { cle: 'persos', label: 'Personnages du camp joueur', type: 'persos', champ: 'large', def: null },
+      { cle: 'pnj', label: 'Adversaire', type: 'choix', def: null, options: () => (donnees().npcs || []).map(n => ({ v: n.id, t: n.name || n.id })) },
+      { cle: 'niv', label: 'Niveau des cartes', type: 'nombre', def: 5, min: 1, max: 20 },
+      { cle: 'rollouts', label: 'Rollouts par coup', type: 'nombre', def: 0, min: 0, max: 200, aide: '0 = celui du GAME CONFIG' },
+      { cle: 'switch', label: 'Cartes', type: 'puces', def: [], options: [{ v: '--switch', t: 'Switch au lieu de base' }] }
+    ],
+    args: v => [String(v.parties), v.bot,
+      ...(v.persos.length ? ['--persos', v.persos.join(',')] : []),
+      ...(v.pnj ? ['--pnj', v.pnj] : []),
+      '--niv', String(v.niv), ...(v.rollouts ? ['--rollouts', String(v.rollouts)] : []), ...v.switch]
+  },
+  {
+    id: 'test-triggers', fichier: 'scripts/test-triggers.mjs', nom: 'Banc du moteur', sous: 'tests du combat', brouillon: false,
+    desc: 'Les tests du moteur de combat. À lancer après toute modification de game/src/combat/.',
+    champs: [], args: () => []
+  },
+  {
+    id: 'test-ai', fichier: 'scripts/test-ai.mjs', nom: 'Banc du bot', sous: 'tests de l\'IA', brouillon: false,
+    desc: 'Le bot valorise-t-il correctement les mécaniques ?',
+    champs: [], args: () => []
+  }
+];
+const outilCourant = () => OUTILS.find(o => o.id === reglages.outil) || OUTILS[0];
+
+// ---------- REGLAGES (gardes dans le navigateur) ----------
+const reglages = Object.assign({ outil: 'simulate', brouillon: true, valeurs: {} }, lit(LS) || {});
+const garde = () => { try { localStorage.setItem(LS, JSON.stringify(reglages)); } catch { /* pas grave */ } };
+const donnees = () => (reglages.brouillon && brouillon() ? brouillon().db : fichier);
+
+// Les valeurs d'un outil, defauts compris, nettoyees de ce qui n'existe plus (un
+// personnage renomme, un adversaire supprime dans le builder).
+function valeurs(o) {
+  const v = { ...(reglages.valeurs[o.id] || {}) };
+  const d = donnees();
+  for (const c of o.champs) {
+    if (c.type === 'persos') {
+      const ids = new Set(d.characters.map(p => p.id));
+      v[c.cle] = (v[c.cle] || (d.starters || []).slice(0, 1)).filter(id => ids.has(id));
+    } else if (c.type === 'choix') {
+      const opts = c.options();
+      if (!opts.some(x => x.v === v[c.cle])) v[c.cle] = opts.some(x => x.v === c.def) ? c.def : (opts[0] || {}).v || '';
+    } else if (c.type === 'paire') {
+      const ids = new Set(d.characters.map(p => p.id));
+      v[c.cle] = (v[c.cle] || c.def).map(id => (ids.has(id) ? id : ''));
+    } else if (v[c.cle] === undefined) {
+      v[c.cle] = Array.isArray(c.def) ? [...c.def] : c.def;
+    }
+  }
+  return v;
+}
+function change(o, cle, val) {
+  reglages.valeurs[o.id] = { ...valeurs(o), [cle]: val };
+  garde();
+  rendCommande();
+}
+
+// ---------- AFFICHAGE ----------
+function rendSource() {
+  const b = brouillon();
+  $('#source').innerHTML = reglages.brouillon && b
+    ? `<span class="badge badge--draft">brouillon du builder · ${new Date(b.at).toLocaleTimeString('fr-FR')}</span>`
+    : '<span class="badge badge--file">fichier du jeu</span>';
+}
+
+function rendOutils() {
+  $('#outils').innerHTML = OUTILS.map(o =>
+    `<button class="outil ${o.id === reglages.outil ? 'outil--on' : ''}" data-outil="${o.id}"><b>${esc(o.nom)}</b><span>${esc(o.sous)}</span></button>`).join('');
+  for (const b of document.querySelectorAll('[data-outil]')) b.onclick = () => {
+    reglages.outil = b.dataset.outil; garde(); rendTout();
+  };
+}
+
+function rendChamps() {
+  const o = outilCourant(), v = valeurs(o), d = donnees();
+  $('#titreOutil').textContent = o.nom;
+  $('#descOutil').textContent = o.desc;
+  const persos = d.characters.map(p => ({ v: p.id, t: p.name || p.id }));
+  $('#champs').innerHTML = o.champs.length ? o.champs.map(c => {
+    const aide = c.aide ? `<div class="aide">${esc(c.aide)}</div>` : '';
+    const large = c.champ === 'large' ? ' champ--large' : '';
+    let entree = '';
+    if (c.type === 'nombre') entree = `<input type="number" data-cle="${c.cle}" min="${c.min}" max="${c.max}" value="${esc(v[c.cle])}" inputmode="numeric">`;
+    else if (c.type === 'texte') entree = `<input type="text" data-cle="${c.cle}" value="${esc(v[c.cle])}">`;
+    else if (c.type === 'choix') entree = `<select data-cle="${c.cle}">${c.options().map(x => `<option value="${esc(x.v)}" ${x.v === v[c.cle] ? 'selected' : ''}>${esc(x.t)}</option>`).join('')}</select>`;
+    else if (c.type === 'puces') entree = `<div class="puces">${c.options.map(x => `<button class="chip ${v[c.cle].includes(x.v) ? 'chip--on' : ''}" data-puce="${c.cle}" data-v="${esc(x.v)}">${esc(x.t)}</button>`).join('')}</div>`;
+    else if (c.type === 'persos') entree = `<div class="puces">${persos.map(x => `<button class="chip ${v[c.cle].includes(x.v) ? 'chip--on' : ''}" data-puce="${c.cle}" data-v="${esc(x.v)}">${esc(x.t)}</button>`).join('')}</div>`;
+    else if (c.type === 'paire') {
+      const menu = i => `<select data-paire="${c.cle}" data-i="${i}"><option value="">—</option>${persos.map(x => `<option value="${esc(x.v)}" ${x.v === v[c.cle][i] ? 'selected' : ''}>${esc(x.t)}</option>`).join('')}</select>`;
+      entree = `<div style="display:flex;gap:8px;align-items:center">${menu(0)}<span>contre</span>${menu(1)}</div>`;
+    }
+    return `<div class="champ${large}"><label>${esc(c.label)}</label>${entree}${aide}</div>`;
+  }).join('') : '<p class="desc" style="margin:0">Rien à régler.</p>';
+
+  for (const el of $('#champs').querySelectorAll('input[data-cle], select[data-cle]')) {
+    const c = o.champs.find(x => x.cle === el.dataset.cle);
+    el.oninput = el.onchange = () => {
+      if (c.type === 'nombre') {
+        const n = Math.round(Number(el.value));
+        if (Number.isFinite(n) && n >= c.min && n <= c.max) change(o, c.cle, n);
+      } else if (c.type === 'texte') {
+        if (!c.motif || c.motif.test(el.value)) change(o, c.cle, el.value.trim());
+      } else change(o, c.cle, el.value);
+    };
+  }
+  for (const b of $('#champs').querySelectorAll('[data-puce]')) b.onclick = () => {
+    const liste = valeurs(o)[b.dataset.puce];
+    const i = liste.indexOf(b.dataset.v);
+    change(o, b.dataset.puce, i >= 0 ? liste.filter(x => x !== b.dataset.v) : [...liste, b.dataset.v]);
+    b.classList.toggle('chip--on', i < 0);
+  };
+  for (const s of $('#champs').querySelectorAll('[data-paire]')) s.onchange = () => {
+    const paire = [...valeurs(o)[s.dataset.paire]];
+    paire[Number(s.dataset.i)] = s.value;
+    change(o, s.dataset.paire, paire);
+  };
+
+  // Mesurer le brouillon ou le fichier : seulement pour les outils qui le peuvent.
+  const b = brouillon();
+  $('#choixBrouillon').innerHTML = !o.brouillon
+    ? '<div class="aide">Les bancs de test lisent toujours le fichier du jeu : ils s\'appuient sur des cartes précises.</div>'
+    : b
+      ? `<button class="chip ${reglages.brouillon ? 'chip--on' : ''}" id="basculeBrouillon">Mesurer le brouillon du builder (${new Date(b.at).toLocaleTimeString('fr-FR')})</button>
+         <div class="aide">${reglages.brouillon ? 'Les cartes en cours d\'édition, pas encore appliquées au jeu.' : 'Éteint : on mesure le fichier appliqué au jeu.'}</div>`
+      : '<div class="aide">Pas de brouillon en cours : on mesure le fichier appliqué au jeu.</div>';
+  const bascule = $('#basculeBrouillon');
+  if (bascule) bascule.onclick = () => { reglages.brouillon = !reglages.brouillon; garde(); rendTout(); };
+  rendCommande();
+}
+
+function rendCommande() {
+  const o = outilCourant();
+  const args = o.args(valeurs(o));
+  const source = o.brouillon && reglages.brouillon && brouillon() ? '   # sur le brouillon' : '';
+  $('#commande').textContent = `node ${o.fichier} ${args.join(' ')}${source}`;
+}
+
+function rendTout() { rendSource(); rendOutils(); rendChamps(); rendEtat(); }
+
+// ---------- LA SORTIE ----------
+// Les scripts colorent leur sortie pour un terminal (codes ANSI) : on garde les
+// couleurs, on jette le reste, et un « \r » (une ligne de progression reecrite sur
+// place) ne garde que sa derniere version.
+const COULEURS = { 31: 'rouge', 91: 'rouge', 32: 'vert', 92: 'vert', 33: 'jaune', 93: 'jaune',
+  34: 'bleu', 94: 'bleu', 35: 'violet', 95: 'violet', 36: 'cyan', 96: 'cyan', 90: 'gris', 2: 'gris', 1: 'gras' };
+const lignesPropres = t => t.split('\n').map(l => {
+  l = l.replace(/\r+$/, '');
+  return l.includes('\r') ? l.slice(l.lastIndexOf('\r') + 1) : l;
+}).join('\n');
+function enHtml(t) {
+  t = lignesPropres(t);
+  let html = '', ouvert = false, dernier = 0;
+  for (const m of t.matchAll(/\x1b\[([\d;?]*)([A-Za-z])/g)) {
+    html += esc(t.slice(dernier, m.index));
+    dernier = m.index + m[0].length;
+    if (m[2] !== 'm') continue;
+    if (ouvert) { html += '</span>'; ouvert = false; }
+    const classes = m[1].split(';').map(c => COULEURS[c]).filter(Boolean);
+    if (classes.length) { html += `<span class="${classes.join(' ')}">`; ouvert = true; }
+  }
+  return html + esc(t.slice(dernier)) + (ouvert ? '</span>' : '');
+}
+const texteBrut = t => lignesPropres(t).replace(/\x1b\[[\d;?]*[A-Za-z]/g, '');
+
+// ---------- LE SUIVI DU CALCUL ----------
+// On demande au serveur « la suite depuis ce que j'ai deja » : il ne renvoie que ce
+// qui manque. Un nouvel identifiant = un autre calcul, on repart de zero.
+let suivi = { id: null, recu: 0, texte: '', etat: null };
+let minuterie = null;
+const planifie = ms => { clearTimeout(minuterie); minuterie = setTimeout(interroge, ms); };
+
+async function interroge() {
+  let r;
+  try { r = await fetch(`/api/run?depuis=${suivi.recu}`, { cache: 'no-store' }); }
+  catch { $('#statut').textContent = 'Serveur injoignable, nouvel essai…'; planifie(3000); return; }
+  if (r.status === 404) { indisponible(); return; }
+  const e = await r.json();
+  if (e.id === null) { suivi.etat = null; rendEtat(); return; }
+  if (e.id !== suivi.id) { suivi = { id: e.id, recu: 0, texte: '', etat: null }; interroge(); return; }
+  if (e.depuis !== suivi.recu) suivi.texte = '';   // le debut a ete oublie entre-temps
+  suivi.texte += e.texte;
+  suivi.recu = e.longueur;
+  suivi.etat = e;
+  if (e.texte || !$('#sortie').innerHTML) rendSortie();
+  rendEtat();
+  if (e.enCours) planifie(1000);
+}
+
+function rendSortie() {
+  const pre = $('#sortie');
+  const enBas = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 40;
+  pre.innerHTML = enHtml(suivi.texte);
+  if (enBas) pre.scrollTop = pre.scrollHeight;
+}
+
+const duree = ms => { const s = Math.round(ms / 1000); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`; };
+function rendEtat() {
+  const e = suivi.etat, st = $('#statut');
+  const tourne = !!(e && e.enCours);
+  $('#lancer').disabled = tourne;
+  $('#arreter').hidden = !tourne;
+  st.className = 'statut';
+  if (!e) { st.textContent = 'Aucun calcul lancé.'; return; }
+  const o = OUTILS.find(x => x.id === e.outil);
+  const nom = (o ? o.nom : e.outil) + (e.brouillon ? ' · brouillon' : '');
+  if (tourne) { st.classList.add('statut--run'); st.textContent = `${nom} — en cours · ${duree(Date.now() - e.debut)}`; }
+  else if (e.code === 0) { st.classList.add('statut--ok'); st.textContent = `${nom} — terminé en ${duree(e.fin - e.debut)}`; }
+  else if (typeof e.code === 'string') { st.classList.add('statut--ko'); st.textContent = `${nom} — arrêté (${e.code}) après ${duree(e.fin - e.debut)}`; }
+  else { st.classList.add('statut--ko'); st.textContent = `${nom} — échec (code ${e.code}) après ${duree(e.fin - e.debut)}`; }
+}
+setInterval(() => { if (suivi.etat && suivi.etat.enCours) rendEtat(); }, 1000);
+
+function indisponible() {
+  $('#indispo').hidden = false;
+  $('#lancer').disabled = true;
+  $('#statut').textContent = '';
+}
+
+// ---------- LES BOUTONS ----------
+$('#lancer').onclick = async () => {
+  const o = outilCourant();
+  const corps = { outil: o.id, args: o.args(valeurs(o)) };
+  const b = brouillon();
+  if (o.brouillon && reglages.brouillon && b) corps.data = b.db;
+  $('#lancer').disabled = true;
+  let r, e;
+  try {
+    r = await fetch('/api/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps) });
+    e = await r.json();
+  } catch {
+    toast('Serveur injoignable.'); $('#lancer').disabled = false; return;
+  }
+  if (r.status === 404) { indisponible(); return; }
+  if (!r.ok) { toast(e.erreur || 'Refusé.'); interroge(); return; }
+  suivi = { id: null, recu: 0, texte: '', etat: null };
+  $('#sortie').innerHTML = '';
+  interroge();
+};
+
+$('#arreter').onclick = async () => {
+  try { await fetch('/api/run/stop', { method: 'POST' }); } catch { /* le suivi le dira */ }
+  planifie(300);
+};
+
+// La page est souvent servie en http (le Pi, sur le reseau de la maison) : le
+// presse-papier moderne n'y existe pas, d'ou la vieille methode en secours.
+$('#copier').onclick = async () => {
+  const t = texteBrut(suivi.texte);
+  if (!t) { toast('Rien à copier.'); return; }
+  try { await navigator.clipboard.writeText(t); }
+  catch {
+    const zone = document.createElement('textarea');
+    zone.value = t; zone.style.position = 'fixed'; zone.style.opacity = '0';
+    document.body.appendChild(zone); zone.select();
+    document.execCommand('copy'); zone.remove();
+  }
+  toast('Sortie copiée.');
+};
+
+$('#telecharger').onclick = () => {
+  const t = texteBrut(suivi.texte);
+  if (!t) { toast('Rien à enregistrer.'); return; }
+  const e = suivi.etat;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([t], { type: 'text/plain;charset=utf-8' }));
+  a.download = `${e ? e.outil : 'calcul'}-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.txt`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
+// Le builder ecrit son brouillon a chaque frappe (autre onglet) : on suit.
+addEventListener('storage', async ev => {
+  if (ev.key !== LS_BUILDER) return;
+  if (!ev.newValue) await relitFichier();   // brouillon efface = « Appliquer au jeu »
+  rendTout();
+});
+// Un telephone qui se reveille : on reprend la sortie tout de suite.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) interroge(); });
+
+await relitFichier();
+rendTout();
+interroge();
+</script>
+</body>
+</html>
