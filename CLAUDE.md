@@ -211,6 +211,47 @@ besoin. L'effacer invalide tous les abonnements ; l'accueil le détecte et repro
 s'abonner. Une notification qui échoue ne gêne jamais le calcul : le serveur le note
 dans son journal (`journalctl -u adventure-card` sur le Pi).
 
+## L'analyse par une IA locale (Ollama)
+« 🧠 Analyser les résultats » (page « Lancer un calcul », et le bouton de la notification
+de fin, qui l'ouvre sur `#resultats`) donne le **récapitulatif de la dernière file** à un
+modèle de langage qui tourne **à la maison** — aucun jeton payé, rien ne sort du tailnet.
+Il rend trois parties : ce qui ressort, ce qui cloche, ce qu'il faut regarder ensuite. Il
+ne décide rien : il lit plus vite que nous une pile de chiffres et montre du doigt.
+
+- **Les machines, dans l'ordre** (`scripts/lib/ia.mjs`) : les PC à carte graphique
+  d'abord, la machine du serveur (le Pi) en dernier recours. À chaque analyse on les
+  **sonde** (`/api/tags` : répond-elle, a-t-elle le modèle ?) et la première prête fait
+  le travail — un PC éteint est simplement sauté. La liste s'édite dans la page (« Machines
+  d'analyse ») et vit dans `~/.adventure-card/ia.json` sur le serveur, **jamais dans le
+  repo**. Par défaut : Ollama sur la machine du serveur, `qwen3.5:4b`.
+- **`think: false`** : les modèles récents « réfléchissent à voix haute ». Mesuré sur le Pi
+  (`qwen3.5:4b`, 3,5 jetons/s) : 1 286 jetons et 6 min pour une réponse de deux phrases,
+  presque tout en réflexion. On la coupe.
+- **Mesuré sur le PC** (RTX 3060 12 Go, `qwen3.5:9b`) : **15 à 20 s** par analyse, 43 à
+  51 jetons/s, avec ou sans extraits. C'est lui qu'il faut en tête de liste.
+- ⚠ **Un petit modèle lit mal ce qu'on ne lui répète pas.** Sans consigne précise, il
+  lisait une hausse des taux comme des adversaires « plus résistants » (les taux sont ceux
+  des héros), « niv N » comme le niveau des adversaires (c'est celui des héros), et
+  proposait des tests avec des joueurs humains. La consigne dit le sens de chaque chiffre
+  et ne permet que des suites faisables avec nos outils, et `demande()` rappelle le sens
+  de « niv » **juste à côté des données**. Toute nouvelle sorte de ligne dans une file
+  mérite sa phrase dans `CONSIGNE`.
+- **Ce qu'on envoie dépend de la machine** : un PC reçoit les résumés **et des extraits
+  des sorties** (la fin, où sont les lectures ; 24 000 caractères au plus, contexte 16 k) ;
+  la machine du serveur ne reçoit que les résumés — sur le Pi, lire 3 000 jetons prendrait
+  déjà des minutes. Et elle est **sautée tant qu'une file tourne** : elle garderait ses
+  cœurs pour les calculs.
+- **La consigne** (`CONSIGNE`) explique au modèle comment lire nos chiffres — les cibles
+  33/50/66, l'écrasant, le bruit sous le ±, les murs et combats offerts — sinon il
+  commente un 66 % comme un déséquilibre alors que c'est la cible.
+- L'analyse tourne **à côté de la file** et vit dans `lot.analyse` (`POST
+  /api/run/analyse`) ; une notification « Analyse prête » part à la fin.
+- **Ouvrir un PC au Pi** : Ollama n'écoute que sur la machine elle-même par défaut. Sur
+  le PC : `OLLAMA_HOST=0.0.0.0:11434` (variable d'environnement de l'utilisateur, puis
+  relancer Ollama) **et** une règle de pare-feu entrante TCP 11434 limitée à
+  `100.64.0.0/10` (les adresses Tailscale). Ollama n'a pas de mot de passe : sans cette
+  limite, tout le Wi-Fi de la maison y aurait accès.
+
 ## Le widget Android
 `android/` est une **toute petite app Android native** — le seul morceau du projet qui
 n'est pas du web : une app web ne peut pas poser de widget sur l'écran d'accueil. Elle

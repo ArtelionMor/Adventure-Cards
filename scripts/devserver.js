@@ -99,6 +99,38 @@ function resumeCalcul(c) {
   }
   return derniere;
 }
+
+// L'ANALYSE DES RESULTATS (scripts/lib/ia.mjs) : un modele de langage local lit le
+// recapitulatif de la derniere file. Elle tourne a cote, sans bloquer la file ; son etat
+// vit dans `lot.analyse`, que la page et l'accueil lisent avec le reste. Quand elle est
+// prete, une notification le dit (c'est souvent plusieurs minutes sur le Pi seul).
+const ia = () => import('./lib/ia.mjs');
+
+async function lanceAnalyse() {
+  if (!lot) throw new Error('Aucune file à analyser.');
+  if (lot.analyse && lot.analyse.etat === 'encours') return;   // deja en route
+  if (!lot.lignes.some(l => l.resume)) throw new Error('Rien de terminé à analyser pour l\'instant.');
+  const cible = lot;
+  const m = await ia();
+  // Un calcul tourne : la machine du serveur garde ses coeurs pour lui.
+  const { machine, essais } = await m.premiereDisponible({ sansLocale: lotActif() });
+  if (!machine) throw new Error('Aucune machine d\'analyse disponible — ' + essais.join(' · '));
+  cible.analyse = { etat: 'encours', machine: machine.nom, modele: machine.modele, debut: Date.now(), essais };
+  console.log(`analyse lancee sur ${machine.nom} (${machine.modele})`);
+  m.analyse(machine, cible).then(r => {
+    cible.analyse = { ...cible.analyse, etat: 'fini', texte: r.texte, duree: r.duree, vitesse: r.vitesse, avecExtraits: r.avecExtraits };
+    console.log(`analyse terminee en ${Math.round(r.duree / 1000)} s`);
+    // La premiere vraie phrase, sans les titres ni la mise en forme, pour la notification.
+    const phrase = r.texte.replace(/[*#_`]/g, '').split('\n').map(s => s.trim())
+      .filter(s => s && !/^(ce qui ressort|ce qui cloche|à regarder ensuite)\s*:?$/i.test(s))[0] || '';
+    notifie({ titre: 'Analyse prête', corps: phrase.slice(0, 140), tag: 'calcul', bruyante: true, url: 'lancer.html#resultats' },
+      { urgence: 'high', sujet: 'calcul' });
+  }).catch(e => {
+    cible.analyse = { ...cible.analyse, etat: 'echec', erreur: e.message };
+    console.log('analyse impossible : ' + e.message);
+  });
+}
+
 // Des arguments courts, sans espace (on ne passe de toute facon pas par un shell).
 // --csv et --logs sont refuses : ils ecriraient sur le serveur un fichier choisi par
 // la page.
@@ -133,6 +165,7 @@ function resumeLot() {
     id: lot.id, total: lot.lignes.length, faites, actif: lotActif(), pause: lot.pause, arrete: lot.arrete,
     pauseImmediate: PAUSE_IMMEDIATE, debut: lot.debut, fin: lot.fin, ecoule: ecoule(lot),
     progression: lot.lignes.length ? (faites + part) / lot.lignes.length : 0,
+    analyse: lot.analyse || null,
     lignes: lot.lignes.map(l => ({ i: l.i, outil: l.outil, libelle: l.libelle, etat: l.etat, resume: l.resume, duree: l.fin ? ecoule(l) : null }))
   };
 }
@@ -416,6 +449,34 @@ http.createServer((req, res) => {
       try {
         ajouteALaFile(JSON.parse(body || '{}'));
         json(res, 200, etatCalcul(0));
+      } catch (e) {
+        json(res, 400, { erreur: e.message });
+      }
+    });
+    return;
+  }
+
+  // L'analyse par l'IA locale (scripts/lib/ia.mjs) : la lancer sur la derniere file, et
+  // lire / regler la liste des machines qui peuvent la faire (avec ce qu'elles repondent).
+  if (req.method === 'POST' && urlPath === '/api/run/analyse') {
+    lanceAnalyse().then(() => json(res, 200, { ok: true, lot: resumeLot() }))
+      .catch(e => json(res, 400, { erreur: e.message }));
+    return;
+  }
+  if (req.method === 'GET' && urlPath === '/api/ia') {
+    ia().then(m => m.statuts()).then(s => json(res, 200, { machines: s }))
+      .catch(e => json(res, 500, { erreur: e.message }));
+    return;
+  }
+  if (req.method === 'POST' && urlPath === '/api/ia') {
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', c => { body += c; });
+    req.on('end', async () => {
+      try {
+        const m = await ia();
+        m.enregistreMachines(JSON.parse(body || '{}').machines);
+        json(res, 200, { machines: await m.statuts() });
       } catch (e) {
         json(res, 400, { erreur: e.message });
       }

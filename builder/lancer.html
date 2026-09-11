@@ -102,6 +102,21 @@
   .ligne--vue { background: #1b2337; border-radius: 8px; }
   .vide { color: var(--muted); font-size: 14px; }
 
+  /* L'analyse par l'IA locale, et la liste des machines qui peuvent la faire. */
+  .analyse { margin-top: 14px; background: #121826; border: 1px solid #2c3a5a; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.55; }
+  .analyse h4 { margin: 12px 0 4px; font-size: 14px; color: var(--accent); }
+  .analyse h4:first-child { margin-top: 0; }
+  .analyse p { margin: 0 0 6px; }
+  .analyse ul { margin: 0 0 6px; padding-left: 20px; }
+  .analyse .meta { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .machines { margin-top: 14px; font-size: 14px; }
+  .machines summary { cursor: pointer; color: var(--muted); }
+  .machine { display: grid; grid-template-columns: 1fr 1.7fr 1.1fr auto; gap: 6px; align-items: center; margin-top: 10px; }
+  .machine input { font-size: 14px; padding: 7px 8px; }
+  .machine .etat { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin-top: -2px; }
+  .machine .etat--ok { color: var(--accent-2); }
+  @media (max-width: 560px) { .machine { grid-template-columns: 1fr 1fr; } }
+
   .barre { height: 6px; background: var(--bg-3); }
   .barre i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .4s; }
   pre.sortie { margin: 0; padding: 12px 14px; max-height: 70vh; overflow: auto; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; color: #d6dbe4; background: #0b0d12; border-radius: 0 0 var(--radius) var(--radius); }
@@ -189,9 +204,14 @@
     <div class="panel__body">
       <div id="lot"><p class="vide">Aucun calcul lancé.</p></div>
       <div class="actions" id="recapBoite" style="margin-top:12px" hidden>
+        <button class="btn btn--primary" id="analyser">🧠 Analyser les résultats</button>
         <button class="btn" id="recap">📋 Copier le récapitulatif</button>
-        <span class="aide">Les résumés de toute la file, à relire ou à donner à une IA.</span>
       </div>
+      <div class="analyse" id="analyse" hidden></div>
+      <details class="machines" id="machinesBoite">
+        <summary>Machines d'analyse (IA locale)</summary>
+        <div id="machines"><p class="vide">…</p></div>
+      </details>
     </div>
   </section>
 
@@ -582,7 +602,11 @@ async function interroge() {
   suivi.recuA = Date.now();
   if (!vue && (e.texte || !$('#sortie').innerHTML)) rendSortie();
   rendEtat();
+  // On continue d'interroger tant que la file tourne — et tant qu'une analyse est en route,
+  // plus lentement : elle se compte en secondes sur un PC, en minutes sur le Pi.
+  const analyseEnCours = e.lot && e.lot.analyse && e.lot.analyse.etat === 'encours';
   if (e.lot && e.lot.actif) planifie(1000);
+  else if (analyseEnCours) planifie(2500);
 }
 
 function rendSortie() {
@@ -599,6 +623,7 @@ const ICONES = { attente: '·', encours: '▶', fini: '✓', echec: '✗', arret
 
 function rendEtat() {
   const e = suivi.etat, l = e && e.lot, st = $('#statut');
+  rendAnalyse();
   const actif = !!(l && l.actif);
   st.className = 'statut';
   $('#pause').hidden = !actif;
@@ -751,6 +776,109 @@ $('#telecharger').onclick = () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 
+// ---------- L'ANALYSE PAR L'IA LOCALE ----------
+// Le serveur donne le recapitulatif de la file a un modele Ollama (scripts/lib/ia.mjs),
+// sur la premiere machine prete de la liste « Machines d'analyse ». La reponse arrive
+// dans `lot.analyse`, que le suivi relit comme le reste ; une notification previent quand
+// elle est prete. Le texte est du Markdown simple (titres en gras, puces) : on le met en
+// forme, sans rien interpreter d'autre — il est echappe avant.
+function enHtmlSimple(t) {
+  const gras = s => s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  let html = '', liste = false;
+  for (let l of esc(t).split('\n')) {
+    l = l.trim();
+    const puce = /^[-*•]\s+(.*)$/.exec(l);
+    if (!puce && liste) { html += '</ul>'; liste = false; }
+    if (!l) continue;
+    const titre = /^(?:#{1,4}\s*)?\*\*([^*]+)\*\*\s*:?$/.exec(l) || /^#{1,4}\s+(.+)$/.exec(l);
+    if (titre) { html += `<h4>${titre[1]}</h4>`; continue; }
+    if (puce) { if (!liste) { html += '<ul>'; liste = true; } html += `<li>${gras(puce[1])}</li>`; continue; }
+    html += `<p>${gras(l)}</p>`;
+  }
+  return html + (liste ? '</ul>' : '');
+}
+
+function rendAnalyse() {
+  const l = suivi.etat && suivi.etat.lot, a = l && l.analyse, boite = $('#analyse');
+  $('#analyser').disabled = !!(a && a.etat === 'encours');
+  $('#analyser').textContent = a && a.etat === 'fini' ? '🧠 Analyser à nouveau' : '🧠 Analyser les résultats';
+  boite.hidden = !a;
+  if (!a) return;
+  if (a.etat === 'encours') {
+    boite.innerHTML = `<p>🧠 Analyse en cours sur <b>${esc(a.machine)}</b> (${esc(a.modele)}) · ${duree(Date.now() - a.debut)}…</p>`
+      + '<div class="meta">Tu peux fermer la page : une notification préviendra quand elle sera prête.</div>';
+  } else if (a.etat === 'echec') {
+    boite.innerHTML = `<p>✗ L'analyse a échoué : ${esc(a.erreur)}</p>`;
+  } else {
+    const vitesse = a.vitesse ? ` · ${a.vitesse.toFixed(1)} mots/s` : '';
+    boite.innerHTML = enHtmlSimple(a.texte)
+      + `<div class="meta">${esc(a.machine)} · ${esc(a.modele)} · ${duree(a.duree)}${vitesse}${a.avecExtraits ? '' : ' · lu sur les résumés seulement'}`
+      + ' — une IA locale lit vite mais peut se tromper : vérifie les chiffres qu\'elle cite.</div>';
+  }
+}
+
+$('#analyser').onclick = async () => {
+  $('#analyser').disabled = true;
+  try {
+    const r = await envoie('/api/run/analyse');
+    const d = await r.json();
+    if (!r.ok) { toast(d.erreur || 'Impossible.'); $('#analyser').disabled = false; return; }
+  } catch {
+    toast('Serveur injoignable.'); $('#analyser').disabled = false; return;
+  }
+  interroge();
+};
+
+// Les machines d'analyse : essayees dans l'ordre, la premiere qui repond fait le travail.
+// La liste vit sur le serveur (~/.adventure-card/ia.json), jamais dans le repo.
+let machinesVues = [];
+async function chargeMachines() {
+  const boite = $('#machines');
+  try {
+    const r = await fetch('/api/ia', { cache: 'no-store' });
+    if (!r.ok) { boite.innerHTML = '<p class="vide">Ce serveur ne fait pas d\'analyse.</p>'; return; }
+    machinesVues = (await r.json()).machines;
+  } catch { boite.innerHTML = '<p class="vide">Serveur injoignable.</p>'; return; }
+  rendMachines();
+}
+function rendMachines() {
+  const boite = $('#machines');
+  boite.innerHTML = '<p class="aide">Essayées dans l\'ordre : la première qui répond fait l\'analyse, un PC éteint est simplement sauté. '
+    + 'Adresse d\'un PC : <code>http://son-nom-tailscale:11434</code>.</p>'
+    + machinesVues.map((m, i) => `<div class="machine" data-i="${i}">`
+      + `<input data-c="nom" value="${esc(m.nom)}" placeholder="Nom">`
+      + `<input data-c="url" value="${esc(m.url)}" placeholder="http://pc:11434" inputmode="url">`
+      + `<input data-c="modele" value="${esc(m.modele)}" placeholder="qwen3.5:9b">`
+      + `<span><button class="btn btn--petit" data-monte="${i}" ${i ? '' : 'disabled'} title="Essayer avant">↑</button> `
+      + `<button class="btn btn--petit" data-sup="${i}" title="Retirer">✕</button></span>`
+      + `<div class="etat ${m.ok ? 'etat--ok' : ''}">${m.ok === undefined ? '' : m.ok ? '✓ prête' : '✗ ' + esc(m.pourquoi || '')}${m.locale ? ' · la machine du serveur' : ''}</div>`
+      + '</div>').join('')
+    + '<div class="actions" style="margin-top:10px"><button class="btn btn--petit" id="ajouteMachine">＋ Machine</button>'
+    + '<button class="btn btn--petit btn--primary" id="enregistreMachines">Enregistrer et tester</button></div>';
+  for (const el of boite.querySelectorAll('.machine input')) el.oninput = () => {
+    machinesVues[Number(el.closest('.machine').dataset.i)][el.dataset.c] = el.value;
+  };
+  for (const b of boite.querySelectorAll('[data-monte]')) b.onclick = () => {
+    const i = Number(b.dataset.monte);
+    [machinesVues[i - 1], machinesVues[i]] = [machinesVues[i], machinesVues[i - 1]];
+    rendMachines();
+  };
+  for (const b of boite.querySelectorAll('[data-sup]')) b.onclick = () => { machinesVues.splice(Number(b.dataset.sup), 1); rendMachines(); };
+  $('#ajouteMachine').onclick = () => { machinesVues.push({ nom: 'PC', url: 'http://', modele: 'qwen3.5:9b' }); rendMachines(); };
+  $('#enregistreMachines').onclick = async () => {
+    $('#enregistreMachines').disabled = true;
+    try {
+      const r = await envoie('/api/ia', { machines: machinesVues.map(({ nom, url, modele }) => ({ nom, url, modele })) });
+      const d = await r.json();
+      if (!r.ok) { toast(d.erreur || 'Refusé.'); $('#enregistreMachines').disabled = false; return; }
+      machinesVues = d.machines;
+      toast('Machines enregistrées.');
+    } catch { toast('Serveur injoignable.'); }
+    rendMachines();
+  };
+}
+$('#machinesBoite').addEventListener('toggle', () => { if ($('#machinesBoite').open) chargeMachines(); });
+
 // Le builder ecrit son brouillon a chaque frappe (autre onglet) : on suit.
 addEventListener('storage', async ev => {
   if (ev.key !== LS_BUILDER) return;
@@ -763,8 +891,13 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) inte
 await relitFichier();
 rendTout();
 await interroge();
-// Arrive par « Analyser les resultats » (la notification de fin) : droit a la file.
-if (location.hash === '#resultats') $('#resultats').scrollIntoView();
+// Arrive par « Analyser les resultats » (la notification de fin, le widget) : droit a la
+// file — et l'analyse part toute seule si la file est finie et pas encore analysee.
+if (location.hash === '#resultats') {
+  $('#resultats').scrollIntoView();
+  const l = suivi.etat && suivi.etat.lot;
+  if (l && !l.actif && !l.analyse && l.lignes.some(x => x.resume)) $('#analyser').click();
+}
 </script>
 </body>
 </html>
