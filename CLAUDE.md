@@ -166,6 +166,41 @@ le doubler — sur le PC, on a les scripts en ligne de commande.
 Wi-Fi ou par Tailscale. Ne jamais l'exposer à internet : `/api/write` et `/api/run`
 n'ont aucun mot de passe.
 
+## Les renforts : les PC calculent aussi
+Un calcul lancé sur le Pi **ne tourne plus seulement sur le Pi** : chaque PC qui fait
+tourner `node scripts/renfort.mjs` en prend sa part, **en même temps**, case par case —
+même une seule ligne de file se partage entre toutes les machines. Pour mémoire, le PC
+fixe fait seul une matrice trois fois plus vite que le Pi (31 s contre 99 s).
+
+- **Même logique que l'analyse** : une liste de machines (« Machines de calcul
+  (renforts) » dans « Lancer un calcul », `~/.adventure-card/calcul.json`, jamais dans le
+  repo), sondées à chaque calcul (`GET /etat` du renfort) ; une machine éteinte est
+  sautée. La sortie du calcul dit qui a aidé (« Renforts : PC (16 cœurs) · écartés : … »)
+  et combien de cases chacun a jouées (« Répartition : … »).
+- **Une seule file** (`enParallele()`, `scripts/lib/pool.mjs`) : les cœurs du Pi et les
+  renforts y puisent. Un renfort reçoit des **paquets** taillés sur ses cœurs (deux tâches
+  par cœur au plus), qui rapetissent vers la fin pour qu'aucune machine ne garde les
+  dernières cases pendant que les autres attendent. Ses résultats reviennent au fil de
+  l'eau (une ligne JSON par tâche), avec un signe de vie toutes les 10 s.
+- ⚠ **Un renfort qui lâche ne perd rien** : ce qu'il n'a pas rendu revient dans la file
+  (une minute sans nouvelles = perdu), et c'est pour ça qu'un worker du Pi sans travail
+  **attend** au lieu de s'arrêter tant que des cases sont dehors. Testé : un renfort coupé
+  en plein calcul, le calcul finit complet.
+- ⚠ **Le même code et les mêmes cartes, sinon des chiffres faux sans le dire.** Une
+  empreinte des fichiers que jouent les tâches (`game/src/combat`, `config`, `tools`,
+  `scripts/lib/taches-*.mjs`, fins de ligne ramenées à `\n` — Windows et le Pi n'ont pas
+  les mêmes) doit être celle du Pi : un PC pas à jour est écarté (« pas le même code (git
+  pull) »), et c'est revérifié à chaque paquet. Les cartes mesurées (le brouillon, ou le
+  fichier du jeu) partent **en JSON** avec chaque paquet ; le renfort écrit lui-même le
+  module et joue le paquet dans un processus neuf (`scripts/lib/renfort-lot.mjs`, avec le
+  crochet du brouillon). Il n'exécute jamais de code reçu et ne joue que les modules de sa
+  liste blanche (`taches-matchups`, `taches-courbe`).
+- **Ouvrir un PC** : comme pour Ollama, une règle de pare-feu entrante TCP 7331 limitée à
+  `100.64.0.0/10`, et le renfort lancé à l'ouverture de session. Il faut Node et le
+  projet à jour sur le PC. Sans ça, qui joint le port peut occuper ses cœurs.
+- Seuls `matchups` et `simulate` passent par la file ; `analyse-cartes` et les bancs
+  restent sur la machine du calcul. `--jobs 1` rejoue sans worker ni renfort.
+
 ## L'Atelier : les outils en une app
 `builder/accueil.html` réunit toutes les pages derrière des tuiles (builder, lancer un
 calcul, vue d'ensemble, équilibrage, mécaniques à coder, jeu), avec l'état du moment :

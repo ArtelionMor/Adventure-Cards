@@ -938,6 +938,56 @@ function rendMachines() {
 }
 $('#machinesBoite').addEventListener('toggle', () => { if ($('#machinesBoite').open) chargeMachines(); });
 
+// Les machines de CALCUL — les renforts (scripts/renfort.mjs sur chaque PC). Chaque calcul
+// se partage entre la machine du serveur et toutes celles qui repondent, EN MEME TEMPS
+// (scripts/lib/pool.mjs) ; un PC eteint ou pas a jour est ecarte, et la sortie du calcul
+// le dit (« Renforts : … », « Répartition : … »). La liste vit sur le serveur
+// (~/.adventure-card/calcul.json), jamais dans le repo.
+$('#machinesBoite').insertAdjacentHTML('afterend', '<details class="machines" id="calculBoite">'
+  + '<summary>Machines de calcul (renforts)</summary><div id="renforts"><p class="vide">…</p></div></details>');
+let renfortsVus = [];
+async function chargeRenforts() {
+  const boite = $('#renforts');
+  try {
+    const r = await fetch('/api/calcul', { cache: 'no-store' });
+    if (!r.ok) { boite.innerHTML = '<p class="vide">Ce serveur ne répartit pas les calculs.</p>'; return; }
+    renfortsVus = (await r.json()).machines;
+  } catch { boite.innerHTML = '<p class="vide">Serveur injoignable.</p>'; return; }
+  rendRenforts();
+}
+function rendRenforts() {
+  const boite = $('#renforts');
+  boite.innerHTML = '<p class="aide">Chaque calcul se partage, <b>en même temps</b>, entre la machine du serveur et toutes celles-ci qui répondent. '
+    + 'Sur chaque PC : <code>node scripts/renfort.mjs</code>, avec le même code que le serveur (<code>git pull</code>). '
+    + 'Adresse : <code>http://son-nom-tailscale:7331</code>.</p>'
+    + renfortsVus.map((m, i) => `<div class="machine" data-i="${i}" style="grid-template-columns:1fr 2fr auto">`
+      + `<input data-c="nom" value="${esc(m.nom)}" placeholder="Nom">`
+      + `<input data-c="url" value="${esc(m.url)}" placeholder="http://pc:7331" inputmode="url">`
+      + `<span><button class="btn btn--petit" data-sup="${i}" title="Retirer">✕</button></span>`
+      + `<div class="etat ${m.ok ? 'etat--ok' : ''}">${m.ok === undefined ? '' : m.ok ? `✓ prête · ${m.coeurs} cœurs` : '✗ ' + esc(m.pourquoi || '')}</div>`
+      + '</div>').join('')
+    + (renfortsVus.length ? '' : '<p class="vide">Aucune : les calculs ne tournent que sur le serveur.</p>')
+    + '<div class="actions" style="margin-top:10px"><button class="btn btn--petit" id="ajouteRenfort">＋ Machine</button>'
+    + '<button class="btn btn--petit btn--primary" id="enregistreRenforts">Enregistrer et tester</button></div>';
+  for (const el of boite.querySelectorAll('.machine input')) el.oninput = () => {
+    renfortsVus[Number(el.closest('.machine').dataset.i)][el.dataset.c] = el.value;
+  };
+  for (const b of boite.querySelectorAll('[data-sup]')) b.onclick = () => { renfortsVus.splice(Number(b.dataset.sup), 1); rendRenforts(); };
+  $('#ajouteRenfort').onclick = () => { renfortsVus.push({ nom: 'PC', url: 'http://' }); rendRenforts(); };
+  $('#enregistreRenforts').onclick = async () => {
+    $('#enregistreRenforts').disabled = true;
+    try {
+      const r = await envoie('/api/calcul', { machines: renfortsVus.map(({ nom, url }) => ({ nom, url })) });
+      const d = await r.json();
+      if (!r.ok) { toast(d.erreur || 'Refusé.'); $('#enregistreRenforts').disabled = false; return; }
+      renfortsVus = d.machines;
+      toast('Machines de calcul enregistrées.');
+    } catch { toast('Serveur injoignable.'); }
+    rendRenforts();
+  };
+}
+$('#calculBoite').addEventListener('toggle', () => { if ($('#calculBoite').open) chargeRenforts(); });
+
 // Le builder ecrit son brouillon a chaque frappe (autre onglet) : on suit.
 addEventListener('storage', async ev => {
   if (ev.key !== LS_BUILDER) return;

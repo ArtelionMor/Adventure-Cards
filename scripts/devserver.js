@@ -526,6 +526,28 @@ http.createServer((req, res) => {
     });
     return;
   }
+  // Les RENFORTS de calcul (scripts/lib/renforts.mjs) : les PC qui prennent leur part des
+  // cases de chaque calcul, et ce qu'ils repondent. Meme forme que /api/ia.
+  if (req.method === 'GET' && urlPath === '/api/calcul') {
+    import('./lib/renforts.mjs').then(m => m.statuts()).then(s => json(res, 200, { machines: s }))
+      .catch(e => json(res, 500, { erreur: e.message }));
+    return;
+  }
+  if (req.method === 'POST' && urlPath === '/api/calcul') {
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', c => { body += c; if (body.length > 20000) req.destroy(); });
+    req.on('end', async () => {
+      try {
+        const m = await import('./lib/renforts.mjs');
+        m.enregistreMachines(JSON.parse(body || '{}').machines);
+        json(res, 200, { machines: await m.statuts() });
+      } catch (e) {
+        json(res, 400, { erreur: e.message });
+      }
+    });
+    return;
+  }
   if (req.method === 'GET' && urlPath === '/api/ia') {
     ia().then(m => m.statuts()).then(s => json(res, 200, { machines: s }))
       .catch(e => json(res, 500, { erreur: e.message }));
