@@ -109,6 +109,12 @@
   .analyse p { margin: 0 0 6px; }
   .analyse ul { margin: 0 0 6px; padding-left: 20px; }
   .analyse .meta { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  /* Le dialogue : on repond a l'analyse, elle relit les donnees et repond. */
+  .analyse .echange { margin-top: 12px; padding-top: 10px; border-top: 1px solid #2c3a5a; }
+  .analyse .question { background: #1d2740; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; white-space: pre-wrap; }
+  .analyse .question b { color: var(--accent); }
+  #dialogue:not([hidden]) { display: flex; gap: 8px; margin-top: 12px; align-items: flex-end; }
+  #dialogue textarea { flex: 1; min-height: 44px; resize: vertical; background: #0d1320; color: inherit; border: 1px solid #2c3a5a; border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 14px; }
   .machines { margin-top: 14px; font-size: 14px; }
   .machines summary { cursor: pointer; color: var(--muted); }
   .machine { display: grid; grid-template-columns: 1fr 1.7fr 1.1fr auto; gap: 6px; align-items: center; margin-top: 10px; }
@@ -207,7 +213,13 @@
         <button class="btn btn--primary" id="analyser">🧠 Analyser les résultats</button>
         <button class="btn" id="recap">📋 Copier le récapitulatif</button>
       </div>
-      <div class="analyse" id="analyse" hidden></div>
+      <div class="analyse" id="analyse" hidden>
+        <div id="analyseTexte"></div>
+        <form id="dialogue" hidden>
+          <textarea id="question" rows="2" maxlength="2000" placeholder="Réponds-lui : conteste un chiffre, demande pourquoi…"></textarea>
+          <button class="btn btn--primary" id="envoieQuestion" type="submit">Envoyer</button>
+        </form>
+      </div>
       <details class="machines" id="machinesBoite">
         <summary>Machines d'analyse (IA locale)</summary>
         <div id="machines"><p class="vide">…</p></div>
@@ -602,11 +614,13 @@ async function interroge() {
   suivi.recuA = Date.now();
   if (!vue && (e.texte || !$('#sortie').innerHTML)) rendSortie();
   rendEtat();
-  // On continue d'interroger tant que la file tourne — et tant qu'une analyse est en route,
-  // plus lentement : elle se compte en secondes sur un PC, en minutes sur le Pi.
-  const analyseEnCours = e.lot && e.lot.analyse && e.lot.analyse.etat === 'encours';
+  // On continue d'interroger tant que la file tourne — et tant que l'IA travaille (une
+  // analyse, ou la reponse a une question), plus lentement : elle se compte en secondes
+  // sur un PC, en minutes pour un gros modele qui reflechit.
+  const a = e.lot && e.lot.analyse;
+  const iaAuTravail = a && (a.etat === 'encours' || (a.echanges || []).some(x => x.etat === 'encours'));
   if (e.lot && e.lot.actif) planifie(1000);
-  else if (analyseEnCours) planifie(2500);
+  else if (iaAuTravail) planifie(2500);
 }
 
 function rendSortie() {
@@ -798,24 +812,58 @@ function enHtmlSimple(t) {
   return html + (liste ? '</ul>' : '');
 }
 
+// Une question du designer et sa reponse (le dialogue, POST /api/run/question).
+const rendEchange = x => `<div class="echange"><div class="question"><b>Toi :</b> ${esc(x.question)}</div>`
+  + (x.etat === 'encours' ? `<p>🧠 ${esc(x.machine)} relit les données… ${duree(Date.now() - x.debut)}</p>`
+    : x.etat === 'echec' ? `<p>✗ Pas de réponse : ${esc(x.erreur)}</p>`
+    : enHtmlSimple(x.reponse) + `<div class="meta">${esc(x.machine)} · ${esc(x.modele)} · ${duree(x.duree)}</div>`)
+  + '</div>';
+
+let analyseRendue = '';
 function rendAnalyse() {
   const l = suivi.etat && suivi.etat.lot, a = l && l.analyse, boite = $('#analyse');
   $('#analyser').disabled = !!(a && a.etat === 'encours');
   $('#analyser').textContent = a && a.etat === 'fini' ? '🧠 Analyser à nouveau' : '🧠 Analyser les résultats';
   boite.hidden = !a;
   if (!a) return;
+  let html;
   if (a.etat === 'encours') {
-    boite.innerHTML = `<p>🧠 Analyse en cours sur <b>${esc(a.machine)}</b> (${esc(a.modele)}) · ${duree(Date.now() - a.debut)}…</p>`
+    html = `<p>🧠 Analyse en cours sur <b>${esc(a.machine)}</b> (${esc(a.modele)}) · ${duree(Date.now() - a.debut)}…</p>`
       + '<div class="meta">Tu peux fermer la page : une notification préviendra quand elle sera prête.</div>';
   } else if (a.etat === 'echec') {
-    boite.innerHTML = `<p>✗ L'analyse a échoué : ${esc(a.erreur)}</p>`;
+    html = `<p>✗ L'analyse a échoué : ${esc(a.erreur)}</p>`;
   } else {
     const vitesse = a.vitesse ? ` · ${a.vitesse.toFixed(1)} mots/s` : '';
-    boite.innerHTML = enHtmlSimple(a.texte)
+    html = enHtmlSimple(a.texte)
       + `<div class="meta">${esc(a.machine)} · ${esc(a.modele)} · ${duree(a.duree)}${vitesse}${a.avecExtraits ? '' : ' · lu sur les résumés seulement'}`
-      + ' — une IA locale lit vite mais peut se tromper : vérifie les chiffres qu\'elle cite.</div>';
+      + ' — une IA locale lit vite mais peut se tromper : vérifie les chiffres qu\'elle cite, et réponds-lui.</div>'
+      + (a.echanges || []).map(rendEchange).join('');
   }
+  // Le suivi rappelle rendAnalyse a chaque interrogation : on ne redessine que ce qui a
+  // change. La zone de saisie, elle, est a cote et n'est jamais redessinee — sinon la
+  // question en train d'etre tapee disparaitrait toutes les 2,5 s.
+  if (html !== analyseRendue) { $('#analyseTexte').innerHTML = html; analyseRendue = html; }
+  $('#dialogue').hidden = a.etat !== 'fini';
+  $('#envoieQuestion').disabled = (a.echanges || []).some(x => x.etat === 'encours');
 }
+
+$('#dialogue').onsubmit = async ev => {
+  ev.preventDefault();
+  const texte = $('#question').value.trim();
+  if (!texte) return;
+  $('#envoieQuestion').disabled = true;
+  try {
+    const r = await envoie('/api/run/question', { texte });
+    const d = await r.json();
+    if (!r.ok) { toast(d.erreur || 'Refusé.'); $('#envoieQuestion').disabled = false; return; }
+    $('#question').value = '';
+  } catch {
+    toast('Serveur injoignable.'); $('#envoieQuestion').disabled = false; return;
+  }
+  interroge();
+};
+// Entree fait un retour a la ligne (on ecrit souvent sur un telephone) ; Ctrl+Entree envoie.
+$('#question').onkeydown = ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) $('#dialogue').requestSubmit(); };
 
 $('#analyser').onclick = async () => {
   $('#analyser').disabled = true;
@@ -849,14 +897,16 @@ function rendMachines() {
       + `<input data-c="nom" value="${esc(m.nom)}" placeholder="Nom">`
       + `<input data-c="url" value="${esc(m.url)}" placeholder="http://pc:11434" inputmode="url">`
       + `<input data-c="modele" value="${esc(m.modele)}" placeholder="qwen3.5:9b">`
-      + `<span><button class="btn btn--petit" data-monte="${i}" ${i ? '' : 'disabled'} title="Essayer avant">↑</button> `
+      + `<span><label title="Le modèle réfléchit avant de répondre : plus lent, mais bien plus juste pour un gros modèle (qwen3.6)">`
+      + `<input type="checkbox" data-c="reflexion" ${m.reflexion ? 'checked' : ''}> 🤔</label> `
+      + `<button class="btn btn--petit" data-monte="${i}" ${i ? '' : 'disabled'} title="Essayer avant">↑</button> `
       + `<button class="btn btn--petit" data-sup="${i}" title="Retirer">✕</button></span>`
       + `<div class="etat ${m.ok ? 'etat--ok' : ''}">${m.ok === undefined ? '' : m.ok ? '✓ prête' : '✗ ' + esc(m.pourquoi || '')}${m.locale ? ' · la machine du serveur' : ''}</div>`
       + '</div>').join('')
     + '<div class="actions" style="margin-top:10px"><button class="btn btn--petit" id="ajouteMachine">＋ Machine</button>'
     + '<button class="btn btn--petit btn--primary" id="enregistreMachines">Enregistrer et tester</button></div>';
   for (const el of boite.querySelectorAll('.machine input')) el.oninput = () => {
-    machinesVues[Number(el.closest('.machine').dataset.i)][el.dataset.c] = el.value;
+    machinesVues[Number(el.closest('.machine').dataset.i)][el.dataset.c] = el.type === 'checkbox' ? el.checked : el.value;
   };
   for (const b of boite.querySelectorAll('[data-monte]')) b.onclick = () => {
     const i = Number(b.dataset.monte);
@@ -868,7 +918,7 @@ function rendMachines() {
   $('#enregistreMachines').onclick = async () => {
     $('#enregistreMachines').disabled = true;
     try {
-      const r = await envoie('/api/ia', { machines: machinesVues.map(({ nom, url, modele }) => ({ nom, url, modele })) });
+      const r = await envoie('/api/ia', { machines: machinesVues.map(({ nom, url, modele, reflexion }) => ({ nom, url, modele, reflexion: !!reflexion })) });
       const d = await r.json();
       if (!r.ok) { toast(d.erreur || 'Refusé.'); $('#enregistreMachines').disabled = false; return; }
       machinesVues = d.machines;

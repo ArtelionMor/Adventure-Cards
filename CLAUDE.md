@@ -246,6 +246,32 @@ ne décide rien : il lit plus vite que nous une pile de chiffres et montre du do
   commente un 66 % comme un déséquilibre alors que c'est la cible.
 - L'analyse tourne **à côté de la file** et vit dans `lot.analyse` (`POST
   /api/run/analyse`) ; une notification « Analyse prête » part à la fin.
+- **Le modèle, mesuré** (même lot de test, réponses notées contre les vrais chiffres) :
+  `qwen3.6:35b-a3b` **avec réflexion** est le seul sans erreur de fait sur trois essais
+  (2 à 3 min sur le PC) ; `qwen3.5:9b` va vite (15-30 s) mais se trompe d'un essai à
+  l'autre ; la réflexion n'aide pas le 9b (3 min, et il se trompe quand même) ;
+  `nemotron-3.5-lightning` invente des chiffres. Le 35b est un **MoE** (3 milliards de
+  paramètres actifs sur 35) : 23 Go, il déborde des 12 Go de la carte sur la mémoire vive
+  et tient quand même ~30 jetons/s. La réflexion se règle **par machine** (la case 🤔,
+  champ `reflexion` de `ia.json`).
+- ⚠ **Le modèle ne sait rien du jeu qu'on ne lui dit pas.** La demande porte donc la liste
+  des adversaires dans l'ordre du monde, avec le niveau où on les atteint et le palier où
+  on les joue (`contexteDuJeu()`, lu dans `world.js` et `BALANCE.simulation`, même
+  découpage que `simulate.mjs`) : sans elle, tous les modèles lisaient le Grand-Duc (boss
+  du niveau 11) à 0 % pour des héros de niveau 5 comme un mur à corriger. Et quand seuls
+  les résumés partent, la demande le dit — sinon il affirme qu'un adversaire « n'a pas été
+  joué » au lieu d'avouer qu'il n'a pas sa colonne.
+- **Le dialogue** : sous l'analyse, on lui **répond** — contester un chiffre, demander
+  pourquoi (`POST /api/run/question`, `{ texte }`). La conversation entière (données
+  comprises) reste sur le serveur (`lot.conversation`, jamais renvoyée à la page) et repart
+  à chaque question, avec une consigne de relecture (`RELANCE`) : Ollama ne garde rien
+  d'un appel à l'autre, et c'est ce qui permet à une autre machine de reprendre si la
+  première s'est endormie. Une question à la fois, dix au plus.
+- ⚠ **Un portable qui dort n'analyse rien.** mon-mien (Windows, « veille moderne ») reste
+  joignable une dizaine de minutes après s'être endormi, puis Windows coupe le réseau ; et
+  une réponse en cours au moment où il s'endort est coupée net. Pour qu'il serve de
+  machine de calcul : ne jamais dormir sur secteur (`powercfg /change standby-timeout-ac 0`,
+  et rabattre l'écran = ne rien faire).
 - **Ouvrir un PC au Pi** : Ollama n'écoute que sur la machine elle-même par défaut. Sur
   le PC : `OLLAMA_HOST=0.0.0.0:11434` (variable d'environnement de l'utilisateur, puis
   relancer Ollama) **et** une règle de pare-feu entrante TCP 11434 limitée à

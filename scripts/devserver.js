@@ -116,9 +116,13 @@ async function lanceAnalyse() {
   const { machine, essais } = await m.premiereDisponible({ sansLocale: lotActif() });
   if (!machine) throw new Error('Aucune machine d\'analyse disponible — ' + essais.join(' · '));
   cible.analyse = { etat: 'encours', machine: machine.nom, modele: machine.modele, debut: Date.now(), essais };
+  cible.conversation = null;
   console.log(`analyse lancee sur ${machine.nom} (${machine.modele})`);
   m.analyse(machine, cible).then(r => {
-    cible.analyse = { ...cible.analyse, etat: 'fini', texte: r.texte, duree: r.duree, vitesse: r.vitesse, avecExtraits: r.avecExtraits };
+    cible.analyse = { ...cible.analyse, etat: 'fini', texte: r.texte, duree: r.duree, vitesse: r.vitesse, avecExtraits: r.avecExtraits, echanges: [] };
+    // La conversation (les donnees comprises, ~20 Ko) reste ici : elle repart avec chaque
+    // question du dialogue, mais pas dans chaque /api/run que la page interroge.
+    cible.conversation = { machine, messages: r.messages };
     console.log(`analyse terminee en ${Math.round(r.duree / 1000)} s`);
     // La premiere vraie phrase, sans les titres ni la mise en forme, pour la notification.
     const phrase = r.texte.replace(/[*#_`]/g, '').split('\n').map(s => s.trim())
@@ -129,6 +133,41 @@ async function lanceAnalyse() {
     cible.analyse = { ...cible.analyse, etat: 'echec', erreur: e.message };
     console.log('analyse impossible : ' + e.message);
   });
+}
+
+// LE DIALOGUE avec l'analyse : le designer conteste un chiffre ou demande pourquoi, l'IA
+// relit les donnees et repond. Une question a la fois, dix au plus — chacune renvoie la
+// conversation entiere, qui finirait par deborder du contexte du modele.
+const ECHANGES_MAX = 10;
+async function poseQuestion(texte) {
+  const cible = lot, a = lot && lot.analyse;
+  texte = String(texte || '').trim();
+  if (!a || a.etat !== 'fini' || !cible.conversation) throw new Error('Pas d\'analyse terminée à laquelle répondre.');
+  if (!texte) throw new Error('La question est vide.');
+  if (texte.length > 2000) throw new Error('2 000 caractères au plus.');
+  if (a.echanges.some(x => x.etat === 'encours')) throw new Error('L\'IA n\'a pas encore répondu à la question précédente.');
+  if (a.echanges.length >= ECHANGES_MAX) throw new Error(`${ECHANGES_MAX} échanges au plus : relance une analyse pour repartir à neuf.`);
+  const m = await ia();
+  // La machine de l'analyse d'abord : elle a le modele en memoire. Si elle s'est endormie
+  // entre-temps, la premiere prete de la liste reprend la conversation.
+  let machine = cible.conversation.machine;
+  if (!(await m.sonde(machine)).ok) {
+    const p = await m.premiereDisponible({ sansLocale: lotActif() });
+    if (!p.machine) throw new Error('Aucune machine d\'analyse disponible — ' + p.essais.join(' · '));
+    machine = p.machine;
+  }
+  const echange = { question: texte, etat: 'encours', machine: machine.nom, modele: machine.modele, debut: Date.now() };
+  a.echanges.push(echange);
+  m.repond(machine, cible.conversation.messages, texte).then(r => {
+    Object.assign(echange, { etat: 'fini', reponse: r.texte, duree: r.duree });
+    // « Analyser a nouveau » a pu repartir de zero entre-temps : ne pas lui greffer
+    // la fin de l'ancienne conversation.
+    if (cible.analyse === a) cible.conversation = { machine, messages: r.messages };
+    // Une reponse longue (un gros modele qui reflechit) : on previent, la page est
+    // peut-etre fermee.
+    if (r.duree > 60000) notifie({ titre: 'L\'IA t\'a répondu', corps: r.texte.replace(/[*#_`]/g, '').slice(0, 140), tag: 'calcul', bruyante: true, url: 'lancer.html#resultats' },
+      { urgence: 'high', sujet: 'calcul' });
+  }).catch(e => Object.assign(echange, { etat: 'echec', erreur: e.message }));
 }
 
 // Des arguments courts, sans espace (on ne passe de toute facon pas par un shell).
@@ -461,6 +500,19 @@ http.createServer((req, res) => {
   if (req.method === 'POST' && urlPath === '/api/run/analyse') {
     lanceAnalyse().then(() => json(res, 200, { ok: true, lot: resumeLot() }))
       .catch(e => json(res, 400, { erreur: e.message }));
+    return;
+  }
+  // Le dialogue : une reponse du designer a l'analyse ({ texte }).
+  if (req.method === 'POST' && urlPath === '/api/run/question') {
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', c => { body += c; if (body.length > 20000) req.destroy(); });
+    req.on('end', () => {
+      let texte;
+      try { texte = JSON.parse(body || '{}').texte; } catch { json(res, 400, { erreur: 'Demande illisible.' }); return; }
+      poseQuestion(texte).then(() => json(res, 200, { ok: true, lot: resumeLot() }))
+        .catch(e => json(res, 400, { erreur: e.message }));
+    });
     return;
   }
   if (req.method === 'GET' && urlPath === '/api/ia') {
