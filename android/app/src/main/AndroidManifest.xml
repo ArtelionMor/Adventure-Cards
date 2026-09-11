@@ -3,6 +3,9 @@
 
     <!-- Parler au Pi, et rien d'autre. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Savoir si le telephone en veille nous a coupe le reseau, pour ne pas afficher une
+         erreur qui n'en est pas une (accordee d'office, sans rien demander). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- usesCleartextTraffic : l'adresse normale est en https (…ts.net, par Tailscale),
          mais on laisse passer http://192.168.1.75:7330 pour depanner a la maison. -->

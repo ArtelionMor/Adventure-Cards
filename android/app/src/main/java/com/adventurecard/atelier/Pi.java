@@ -1,6 +1,7 @@
 package com.adventurecard.atelier;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.net.Uri;
 
 import org.json.JSONObject;
@@ -9,8 +10,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -21,20 +25,28 @@ import java.nio.charset.StandardCharsets;
  *
  * L'adresse est gardee dans les preferences de l'app. C'est l'ORIGINE du site
  * (https://teliau.xxxx.ts.net), jamais une page : on la nettoie a l'enregistrement.
+ *
+ * On y garde aussi le DERNIER ETAT LU, et quand : quand le Pi ne repond pas (telephone
+ * en veille, Tailscale qui se reconnecte), le widget continue d'afficher ce qu'il savait
+ * au lieu de tout effacer sous une erreur.
  */
 final class Pi {
     private static final String PREFS = "atelier";
-    private static final String CLE = "adresse";
 
     private Pi() {}
 
+    private static SharedPreferences prefs(Context c) {
+        return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    }
+
     static String adresse(Context c) {
-        String a = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(CLE, null);
+        String a = prefs(c).getString("adresse", null);
         return a == null || a.isEmpty() ? null : a;
     }
 
+    /** Une nouvelle adresse : l'etat memorise venait peut-etre d'un autre serveur, on l'oublie. */
     static void enregistre(Context c, String adresse) {
-        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(CLE, adresse).apply();
+        prefs(c).edit().putString("adresse", adresse).remove("dernier").remove("dernierA").putInt("essais", 0).apply();
     }
 
     /** « teliau.xxxx.ts.net/builder/accueil.html » -> « https://teliau.xxxx.ts.net ». Null si ce n'est pas une adresse. */
@@ -48,6 +60,24 @@ final class Pi {
         return u.getScheme() + "://" + u.getAuthority();
     }
 
+    // ---------------------------------------------------------- le dernier etat lu
+    static void memorise(Context c, JSONObject etat) {
+        prefs(c).edit().putString("dernier", etat.toString()).putLong("dernierA", System.currentTimeMillis()).putInt("essais", 0).apply();
+    }
+
+    static JSONObject dernierEtat(Context c) {
+        String s = prefs(c).getString("dernier", null);
+        try { return s == null ? null : new JSONObject(s); } catch (Exception e) { return null; }
+    }
+
+    static long dernierA(Context c) { return prefs(c).getLong("dernierA", 0); }
+
+    /** Combien de nouvelles tentatives depuis le dernier succes (le widget espace les suivantes). */
+    static int essais(Context c) { return prefs(c).getInt("essais", 0); }
+
+    static void essais(Context c, int n) { prefs(c).edit().putInt("essais", n).apply(); }
+
+    // ---------------------------------------------------------------- les requetes
     /** L'etat de la file : la meme reponse que lit la page (GET /api/run), sans la sortie. */
     static JSONObject etat(Context c) throws Exception {
         return etat(adresse(c));
@@ -79,9 +109,15 @@ final class Pi {
             if (code == 404) throw new Exception("Ce serveur ne lance pas de calculs (il faut celui du Pi).");
             if (code >= 400) throw new Exception("Le Pi a répondu " + code + ".");
             return corps;
+        } catch (UnknownHostException e) {
+            // Le nom …ts.net ne se resout que par Tailscale : sans lui (ou pendant qu'il se
+            // reconnecte, au reveil du telephone), l'adresse n'existe pas.
+            throw new Exception("Adresse introuvable : Tailscale n'est pas encore connecté.");
+        } catch (SocketTimeoutException e) {
+            throw new Exception("Le Pi met trop de temps à répondre.");
+        } catch (ConnectException e) {
+            throw new Exception("Le Pi refuse la connexion : son serveur est-il lancé ?");
         } catch (IOException e) {
-            // Pas de Tailscale, Pi eteint, switch debranche… : le message d'Android est en
-            // anglais et parle de sockets. On dit ce qui compte.
             throw new Exception("Le Pi ne répond pas (" + e.getClass().getSimpleName() + ").");
         } finally {
             if (h != null) h.disconnect();

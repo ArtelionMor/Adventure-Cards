@@ -228,6 +228,16 @@ sur celle qui tourne (en jaune), « Analyser les résultats » à la fin.
   qu'une file tourne, `WidgetFile.planifie()` le redemande toutes les ~45 s (réveil
   inexact : Android peut le retarder quand le téléphone dort) et s'arrête à la fin de la
   file. Toucher le pied du widget l'actualise ; un bouton actualise après sa commande.
+- **Quand le Pi ne répond pas, le widget garde ce qu'il savait.** Téléphone verrouillé,
+  Android coupe le réseau aux apps (Doze), et au réveil Tailscale met quelques secondes à
+  revenir : une requête à ce moment-là finit en « nom introuvable », qui ne dit rien de la
+  file. `WidgetFile.garde()` affiche donc le **dernier état lu** (mémorisé par `Pi`) avec
+  un avertissement orange dans le pied, et retente à 1, 2, 5 puis 15 min — au-delà, la
+  mise à jour des 30 min prend le relais. Quand le réseau est bloqué par la veille
+  (`reseauDisponible()`), il n'essaie même pas. L'écran « Pi injoignable » n'apparaît plus
+  que s'il n'a jamais rien lu.
+- **Versions** : `versionCode` (`android/app/build.gradle`) monte à chaque APK publiée —
+  Android refuse une mise à jour dont le numéro recule.
 - **L'adresse** (`https://….ts.net`, par Tailscale) se règle sans rien taper : le bouton
   « Régler le widget » de l'accueil de l'Atelier (sur Android seulement) ouvre l'app avec
   `atelier://config?url=<son adresse>`. Elle n'est **jamais écrite dans le repo** (public).

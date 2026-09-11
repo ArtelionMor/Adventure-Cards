@@ -8,6 +8,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.SystemClock;
 import android.text.SpannableString;
@@ -36,6 +38,13 @@ import java.util.Locale;
  * (un reveil inexact : Android peut le retarder quand le telephone dort, et c'est tres
  * bien ainsi pour la batterie) ; quand la file est finie, il cesse. Toucher le pied du
  * widget l'actualise tout de suite, et un bouton actualise apres avoir commande.
+ *
+ * QUAND LE PI NE REPOND PAS : telephone verrouille, Android coupe le reseau aux apps
+ * (Doze), et au reveil Tailscale met quelques secondes a revenir. Une erreur a ce
+ * moment-la ne dit rien de la file : le widget GARDE donc le dernier etat lu, avec un
+ * avertissement dans son pied, et retente un peu plus tard (1, 2, 5 puis 15 min — au-dela,
+ * la mise a jour des 30 min prend le relais). Quand le reseau est coupe par la veille, il
+ * n'essaie meme pas.
  */
 public class WidgetFile extends AppWidgetProvider {
     static final String RAFRAICHIR = "com.adventurecard.atelier.RAFRAICHIR";
@@ -43,6 +52,7 @@ public class WidgetFile extends AppWidgetProvider {
     static final String EXTRA_ACTION = "action";
 
     private static final long CADENCE_MS = 45_000;
+    private static final long[] REESSAIS_MS = { 60_000, 120_000, 300_000, 900_000 };
     private static final int[] LIGNES = { R.id.ligne0, R.id.ligne1, R.id.ligne2, R.id.ligne3, R.id.ligne4 };
 
     private static final int BLANC = 0xFFFFFFFF;
@@ -66,7 +76,7 @@ public class WidgetFile extends AppWidgetProvider {
 
     @Override
     public void onDisabled(Context ctx) {
-        planifie(ctx, false);   // plus aucun widget pose : plus de reveil
+        alarme(ctx, 0);   // plus aucun widget pose : plus de reveil
     }
 
     /** Demande une mise a jour (l'ecran de reglage s'en sert apres un changement d'adresse). */
@@ -80,20 +90,47 @@ public class WidgetFile extends AppWidgetProvider {
         new Thread(() -> {
             try {
                 if (Pi.adresse(app) == null) {
-                    dessine(app, null, null);
+                    dessine(app, null, null, null, true);
+                    return;
+                }
+                if (!reseauDisponible(app)) {
+                    garde(app, "Téléphone en veille, sans réseau");
                     return;
                 }
                 if (commande != null) Pi.commande(app, commande);
-                dessine(app, Pi.etat(app), null);
+                JSONObject e = Pi.etat(app);
+                Pi.memorise(app, e);
+                dessine(app, e, null, null, true);
             } catch (Exception e) {
-                dessine(app, null, e.getMessage() == null ? e.toString() : e.getMessage());
+                garde(app, e.getMessage() == null ? e.toString() : e.getMessage());
             } finally {
                 fin.finish();
             }
         }).start();
     }
 
-    static void dessine(Context ctx, JSONObject e, String erreur) {
+    /**
+     * Un echec : on laisse a l'ecran le dernier etat connu, avec un avertissement, plutot
+     * qu'une erreur qui l'efface — et on retente plus tard, de plus en plus espace.
+     */
+    private static void garde(Context ctx, String pourquoi) {
+        JSONObject dernier = Pi.dernierEtat(ctx);
+        if (dernier == null) dessine(ctx, null, pourquoi, null, false);
+        else dessine(ctx, dernier, null, "⚠ " + pourquoi + " · état de " + heure(Pi.dernierA(ctx)), false);
+        int n = Pi.essais(ctx);
+        if (n < REESSAIS_MS.length) {
+            Pi.essais(ctx, n + 1);
+            alarme(ctx, REESSAIS_MS[n]);
+        } else {
+            alarme(ctx, 0);   // la mise a jour des 30 min prend le relais
+        }
+    }
+
+    /**
+     * `planifier` : un etat frais decide lui-meme du prochain reveil (45 s si la file
+     * tourne, aucun sinon) ; un etat garde apres un echec laisse `garde` s'en charger.
+     */
+    static void dessine(Context ctx, JSONObject e, String erreur, String avertissement, boolean planifier) {
         RemoteViews v = new RemoteViews(ctx.getPackageName(), R.layout.widget_file);
         String adresse = Pi.adresse(ctx);
         boolean actif = false;
@@ -101,9 +138,8 @@ public class WidgetFile extends AppWidgetProvider {
         v.setViewVisibility(R.id.btnPause, View.GONE);
         v.setViewVisibility(R.id.btnStop, View.GONE);
         v.setViewVisibility(R.id.btnAnalyser, View.GONE);
-        v.setViewVisibility(R.id.barreEncours, View.VISIBLE);
+        v.setViewVisibility(R.id.barreEncours, View.GONE);
         v.setViewVisibility(R.id.barreFinie, View.GONE);
-        v.setProgressBar(R.id.barreEncours, 100, 0, false);
         v.setTextViewText(R.id.pct, "");
         for (int id : LIGNES) v.setViewVisibility(id, View.GONE);
 
@@ -114,7 +150,6 @@ public class WidgetFile extends AppWidgetProvider {
         } else if (erreur != null) {
             v.setTextViewText(R.id.titre, "Pi injoignable");
             ligne(v, 0, erreur, GRIS, false);
-            ligne(v, 1, "Tailscale est-il actif sur le téléphone ?", GRIS, false);
             v.setOnClickPendingIntent(R.id.titre, reglages(ctx));
         } else {
             JSONObject lot = e.optJSONObject("lot");
@@ -127,12 +162,14 @@ public class WidgetFile extends AppWidgetProvider {
             v.setOnClickPendingIntent(R.id.titre, vue(ctx, adresse + "/builder/lancer.html"));
         }
 
-        String heure = new SimpleDateFormat("HH:mm", Locale.FRANCE).format(new Date());
-        v.setTextViewText(R.id.pied, "à " + heure + (actif ? " · suivi toutes les ~45 s" : "") + " · touche pour actualiser");
+        String pied = avertissement != null ? avertissement + " · touche pour réessayer"
+            : "à " + heure(System.currentTimeMillis()) + (actif ? " · suivi toutes les ~45 s" : "") + " · touche pour actualiser";
+        v.setTextViewText(R.id.pied, pied);
+        v.setTextColor(R.id.pied, avertissement != null ? 0xFFF5A623 : 0xFF8A93A3);
         v.setOnClickPendingIntent(R.id.pied, rafraichir(ctx));
 
         AppWidgetManager.getInstance(ctx).updateAppWidget(new ComponentName(ctx, WidgetFile.class), v);
-        planifie(ctx, actif);
+        if (planifier) alarme(ctx, actif ? CADENCE_MS : 0);
     }
 
     /** La file : titre, barre, boutons, et la fenetre de cinq lignes. Rend « la file tourne-t-elle ? ». */
@@ -151,8 +188,7 @@ public class WidgetFile extends AppWidgetProvider {
 
         int pct = (int) Math.floor(lot.optDouble("progression", 0) * 100);
         int barre = actif ? R.id.barreEncours : R.id.barreFinie;
-        v.setViewVisibility(R.id.barreEncours, actif ? View.VISIBLE : View.GONE);
-        v.setViewVisibility(R.id.barreFinie, actif ? View.GONE : View.VISIBLE);
+        v.setViewVisibility(barre, View.VISIBLE);
         v.setProgressBar(barre, 100, pct, false);
         v.setTextViewText(R.id.pct, pct + "%");
 
@@ -197,6 +233,22 @@ public class WidgetFile extends AppWidgetProvider {
         v.setViewVisibility(LIGNES[k], View.VISIBLE);
     }
 
+    private static String heure(long quand) {
+        return new SimpleDateFormat("HH:mm", Locale.FRANCE).format(new Date(quand));
+    }
+
+    /**
+     * Le telephone a-t-il du reseau pour NOUS ? En veille (Doze), Android le coupe aux apps :
+     * la connexion existe, mais elle est « bloquee » pour ce widget — et toute requete
+     * finirait en erreur de nom introuvable.
+     */
+    @SuppressWarnings("deprecation")
+    private static boolean reseauDisponible(Context ctx) {
+        ConnectivityManager cm = ctx.getSystemService(ConnectivityManager.class);
+        NetworkInfo ni = cm == null ? null : cm.getActiveNetworkInfo();
+        return ni != null && ni.isConnected();
+    }
+
     // ------------------------------------------------------------ les intentions
     private static final int FLAGS = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
 
@@ -220,11 +272,11 @@ public class WidgetFile extends AppWidgetProvider {
         return PendingIntent.getActivity(ctx, 2, i, FLAGS);
     }
 
-    /** Le prochain reveil tant que la file tourne ; aucun sinon. */
-    private static void planifie(Context ctx, boolean actif) {
+    /** Le prochain reveil, dans `dans` ms ; 0 = aucun. Un seul a la fois : le dernier pose gagne. */
+    private static void alarme(Context ctx, long dans) {
         AlarmManager am = ctx.getSystemService(AlarmManager.class);
         PendingIntent pi = rafraichir(ctx);
-        if (actif) am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + CADENCE_MS, pi);
+        if (dans > 0) am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + dans, pi);
         else am.cancel(pi);
     }
 }
