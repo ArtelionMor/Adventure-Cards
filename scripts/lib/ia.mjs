@@ -140,15 +140,28 @@ async function contexteDuJeu() {
 const CONTEXTE = await contexteDuJeu().catch(() => '');
 
 /** Le recapitulatif d'une file, avec ou sans extraits des sorties. */
+// Garder le DEBUT et la FIN d'une sortie trop longue : la matrice (les cases, ce qu'on
+// cite) est au debut, la lecture (matchups sur cible, forces, murs) a la fin.
+function coupe(t, n) {
+  if (t.length <= n) return t;
+  const tete = Math.floor(n * 0.6);
+  return `${t.slice(0, tete)}\n[… ${t.length - n} caractères coupés …]\n${t.slice(-(n - tete))}`;
+}
+
 export function demande(lot, avecExtraits) {
-  const EXTRAIT_MAX = 2500, TOTAL_MAX = 24000;
+  // Le budget se PARTAGE entre les lignes : une file courte envoie ses sorties entieres
+  // (une matrice de 180 cases fait ~7 000 caracteres). Avant, chaque ligne n'envoyait que
+  // ses 2 500 derniers caracteres : la matrice sautait, et l'IA ne pouvait citer aucune
+  // case (« je n'ai pas le taux de Medor+Corax+Athena »). TOTAL_MAX (~8 000 jetons)
+  // laisse la place a la reflexion (jusqu'a ~7 000 jetons) dans un contexte de 16 k.
+  const TOTAL_MAX = 16000, PAR_LIGNE_MAX = 9000, PAR_LIGNE_MIN = 1200;
+  const avecSortie = lot.lignes.filter(l => l.sortie).length || 1;
+  const budget = Math.max(PAR_LIGNE_MIN, Math.min(PAR_LIGNE_MAX, Math.floor(TOTAL_MAX / avecSortie)));
   let total = 0;
   const blocs = lot.lignes.map(l => {
     let bloc = `### ${l.libelle} (${l.etat})\nRésumé : ${l.resume || '—'}`;
     if (avecExtraits && l.sortie && total < TOTAL_MAX) {
-      // La fin d'une sortie porte la lecture (matchups sur cible, forces, murs) : c'est
-      // elle qu'on garde quand il faut couper.
-      const extrait = sansCouleurs(l.sortie).slice(-EXTRAIT_MAX);
+      const extrait = coupe(sansCouleurs(l.sortie), Math.min(budget, TOTAL_MAX - total));
       total += extrait.length;
       bloc += `\nExtrait de la sortie :\n${extrait}`;
     }
@@ -212,7 +225,11 @@ async function discute(m, messages, { contexte, ms }) {
   return {
     texte: texte.trim(),
     duree: Date.now() - debut,
-    vitesse: fin.eval_count && fin.eval_duration ? fin.eval_count / (fin.eval_duration / 1e9) : null
+    vitesse: fin.eval_count && fin.eval_duration ? fin.eval_count / (fin.eval_duration / 1e9) : null,
+    // Jetons lus (la demande) et ecrits (reflexion comprise) : leur somme doit tenir dans
+    // le contexte, sinon Ollama oublie le debut de la demande — la consigne et les donnees.
+    lus: fin.prompt_eval_count || null,
+    ecrits: fin.eval_count || null
   };
 }
 

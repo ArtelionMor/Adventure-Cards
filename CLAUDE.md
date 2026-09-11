@@ -237,7 +237,10 @@ ne décide rien : il lit plus vite que nous une pile de chiffres et montre du do
   de « niv » **juste à côté des données**. Toute nouvelle sorte de ligne dans une file
   mérite sa phrase dans `CONSIGNE`.
 - **Ce qu'on envoie dépend de la machine** : un PC reçoit les résumés **et des extraits
-  des sorties** (la fin, où sont les lectures ; 24 000 caractères au plus, contexte 16 k) ;
+  des sorties** (le début, où est la matrice, et la fin, où sont les lectures ; 16 000 caractères au
+  plus, **partagés entre les lignes** : une file courte part entière — avant, 2 500
+  caractères de la fin par ligne, et l'IA ne pouvait citer aucune case ; le reste du
+  contexte de 16 k est pour la réflexion) ;
   la machine du serveur ne reçoit que les résumés — sur le Pi, lire 3 000 jetons prendrait
   déjà des minutes. Et elle est **sautée tant qu'une file tourne** : elle garderait ses
   cœurs pour les calculs.
