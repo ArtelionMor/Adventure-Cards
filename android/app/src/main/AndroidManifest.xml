@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Parler au Pi, et rien d'autre. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- usesCleartextTraffic : l'adresse normale est en https (…ts.net, par Tailscale),
+         mais on laisse passer http://192.168.1.75:7330 pour depanner a la maison. -->
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@android:style/Theme.DeviceDefault"
+        android:usesCleartextTraffic="true">
+
+        <!-- L'ecran de reglage : l'adresse du Pi. Il s'ouvre depuis l'icone, depuis le
+             widget pas encore regle, et depuis le lien atelier://config?url=… que donne
+             l'accueil de l'Atelier (on n'a alors rien a taper). -->
+        <activity
+            android:name=".ReglagesActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="atelier" android:host="config" />
+            </intent-filter>
+        </activity>
+
+        <!-- Le widget. -->
+        <receiver
+            android:name=".WidgetFile"
+            android:exported="false"
+            android:label="@string/widget_nom">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_file_info" />
+        </receiver>
+    </application>
+</manifest>

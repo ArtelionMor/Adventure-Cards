@@ -1,0 +1,19 @@
+// L'APP ANDROID DU WIDGET « Simulations » — voir CLAUDE.md, « Le widget Android ».
+// Une app minuscule, en Java, sans aucune bibliotheque : seul le plugin de construction
+// Android est telecharge (et il est deja dans le cache Gradle du PC).
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = 'atelier-widget'
+include ':app'

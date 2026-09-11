@@ -24,7 +24,10 @@ const MIME = {
   '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
   '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml',
   '.webp': 'image/webp', '.ico': 'image/x-icon', '.md': 'text/markdown; charset=utf-8',
-  '.webmanifest': 'application/manifest+json; charset=utf-8'
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
+  // Sans ce type, Android garde l'app du widget comme un fichier quelconque au lieu de
+  // proposer de l'installer.
+  '.apk': 'application/vnd.android.package-archive'
 };
 
 // Le builder n'a le droit d'ecrire que la, et rien d'autre.

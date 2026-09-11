@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 30 min : le plus souvent qu'Android accepte de lui-meme. Pendant une file, le widget
+     se redemande tout seul (WidgetFile.planifie), bien plus souvent. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_desc"
+    android:initialLayout="@layout/widget_file"
+    android:minWidth="250dp"
+    android:minHeight="140dp"
+    android:previewLayout="@layout/widget_file"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

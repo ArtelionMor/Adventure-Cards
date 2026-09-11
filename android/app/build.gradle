@@ -1,0 +1,30 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.adventurecard.atelier'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.adventurecard.atelier'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}
+
+// Pas de bloc `dependencies` : le widget ne parle qu'au framework Android (RemoteViews,
+// AlarmManager, HttpURLConnection, org.json). C'est ce qui garde l'APK a quelques Ko.

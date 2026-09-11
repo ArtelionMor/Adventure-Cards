@@ -1,0 +1,15 @@
+// La version du plugin Android va avec celle de Gradle (gradle/wrapper) : 8.5.2 et 8.7
+// sont deja dans le cache du PC, d'ou ce choix plutot que la toute derniere.
+//
+// Declare « a l'ancienne » (buildscript + classpath) plutot que par `plugins { id … version … }` :
+// la seconde forme cherche un marqueur de plugin que le cache n'a pas, alors que
+// l'artefact lui-meme y est — et on construit ainsi sans rien telecharger.
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.5.2'
+    }
+}

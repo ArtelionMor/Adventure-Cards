@@ -211,6 +211,45 @@ besoin. L'effacer invalide tous les abonnements ; l'accueil le détecte et repro
 s'abonner. Une notification qui échoue ne gêne jamais le calcul : le serveur le note
 dans son journal (`journalctl -u adventure-card` sur le Pi).
 
+## Le widget Android
+`android/` est une **toute petite app Android native** — le seul morceau du projet qui
+n'est pas du web : une app web ne peut pas poser de widget sur l'écran d'accueil. Elle
+reproduit les maquettes `mockups/iPhone 17 - 1.png` et `- 2.png` : titre, barre de la
+file entière (rouge pendant, verte à la fin), boutons ■ et ❚❚ / ▶, cinq lignes centrées
+sur celle qui tourne (en jaune), « Analyser les résultats » à la fin.
+
+- **En Java, sans aucune bibliothèque** (pas d'AndroidX, `android.useAndroidX=false`) :
+  `RemoteViews`, `AlarmManager`, `HttpURLConnection` et `org.json` du framework suffisent,
+  et l'APK fait quelques dizaines de Ko. Trois classes : `WidgetFile` (le widget),
+  `Pi` (les requêtes), `ReglagesActivity` (l'adresse du Pi).
+- **Rien de nouveau côté serveur** : il lit `GET /api/run` et envoie `POST
+  /api/run/pause|reprendre|stop`, exactement comme la page et les notifications.
+- **La cadence** : Android ne réveille un widget de lui-même que toutes les 30 min. Tant
+  qu'une file tourne, `WidgetFile.planifie()` le redemande toutes les ~45 s (réveil
+  inexact : Android peut le retarder quand le téléphone dort) et s'arrête à la fin de la
+  file. Toucher le pied du widget l'actualise ; un bouton actualise après sa commande.
+- **L'adresse** (`https://….ts.net`, par Tailscale) se règle sans rien taper : le bouton
+  « Régler le widget » de l'accueil de l'Atelier (sur Android seulement) ouvre l'app avec
+  `atelier://config?url=<son adresse>`. Elle n'est **jamais écrite dans le repo** (public).
+- **S'installe sans Play Store ni mode développeur** : l'accueil de l'Atelier (sur
+  Android) propose « 1. Télécharger l'app » — `builder/telechargements/widget-atelier.apk`,
+  servi par le Pi avec le type `application/vnd.android.package-archive` (sans lui,
+  Android garde un fichier quelconque) — puis « 2. Régler le widget ». Android demande
+  seulement d'autoriser Chrome à installer une app, et Play Protect prévient qu'elle est
+  inconnue. C'est le **seul `.apk` versionné** (exception dans `.gitignore`) : c'est lui
+  que le Pi sert au téléphone.
+- **Construire** : `powershell -ExecutionPolicy Bypass -File scripts\build-widget.ps1`
+  construit et dépose l'APK au bon endroit ; puis commit, push, `git pull` sur le Pi.
+  ⚠ Il est signé avec la **clé de débogage de ce PC** (`~/.android/debug.keystore`) : une
+  mise à jour ne s'installe par-dessus que si elle porte la même signature, donc une
+  construction depuis une autre machine obligerait à désinstaller l'app d'abord. À la main :
+  `android\gradlew.bat -p android assembleDebug` (le JDK 17 d'Android
+  Studio, via `JAVA_HOME`) → `android/app/build/outputs/apk/debug/app-debug.apk`. Le
+  plugin Android est déclaré par `buildscript { classpath … }` et non par
+  `plugins { id … version }` : la seconde forme cherche un marqueur de plugin absent du
+  cache, et c'est ce qui permet de construire **hors ligne**. Les sorties de Gradle et
+  les `.apk` sont dans `.gitignore`.
+
 ## L'ordre des effets, dans le builder
 L'ordre d'une liste d'effets **compte** — « Lui » et « Les autres unités du même type que
 Lui » regardent l'effet juste au-dessus — et il n'était modifiable qu'en supprimant tout

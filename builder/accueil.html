@@ -226,6 +226,29 @@ async function rendNotifs() {
   }
 }
 
+// ---------- LE WIDGET ANDROID ----------
+// L'app « Widget Atelier » (android/) doit connaitre l'adresse du Pi. Plutot que de la
+// recopier a la main, ce bouton la lui donne : un lien atelier://config?url=<cette
+// adresse>, qu'Android ouvre dans l'app. Sans l'app, Chrome revient simplement ici.
+if (/Android/i.test(navigator.userAgent)) {
+  const boite = document.createElement('div');
+  boite.className = 'installer';
+  const lien = `intent://config?url=${encodeURIComponent(location.origin)}#Intent;scheme=atelier;package=com.adventurecard.atelier;`
+    + `S.browser_fallback_url=${encodeURIComponent(location.href)};end`;
+  // L'app se telecharge ici meme (builder/telechargements/, construite par
+  // scripts/build-widget.ps1) : pas de Play Store, pas de mode developpeur. Android demande
+  // seulement d'autoriser Chrome a installer une app, et Play Protect previent qu'elle est
+  // inconnue — ce qui est vrai : elle ne vient pas du Play Store.
+  const bouton = 'display:inline-block;text-decoration:none;margin-right:6px';
+  boite.innerHTML = '📱 <b>Widget Android</b> : la file de simulations sur l\'écran d\'accueil (l\'app « Widget Atelier »).<br>'
+    + `<a class="btn" href="telechargements/widget-atelier.apk" download style="${bouton}">1. Télécharger l'app</a>`
+    + `<a class="btn" href="${lien}" style="${bouton}">2. Régler le widget</a>`
+    + '<div style="font-size:12px;margin-top:8px">Android demande d\'autoriser Chrome à installer l\'app, puis Play Protect '
+    + 'prévient qu\'elle est inconnue : c\'est normal, elle ne vient pas du Play Store (« Installer quand même »). '
+    + 'Ensuite : appui long sur l\'écran d\'accueil → Widgets → Widget Atelier.</div>';
+  $('#notifs').after(boite);
+}
+
 rendBrouillon();
 rendCalcul();
 rendNotifs();

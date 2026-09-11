@@ -3,3 +3,13 @@ node_modules/
 dist/
 .env
 *.log
+
+# L'app Android du widget : les sorties de Gradle et d'Android Studio ne se versionnent pas
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+*.apk
+# … sauf celle que l'Atelier propose au telechargement (scripts/build-widget.ps1)
+!builder/telechargements/widget-atelier.apk
