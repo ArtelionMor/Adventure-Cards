@@ -43,8 +43,9 @@ import java.util.Locale;
  * (Doze), et au reveil Tailscale met quelques secondes a revenir. Une erreur a ce
  * moment-la ne dit rien de la file : le widget GARDE donc le dernier etat lu, avec un
  * avertissement dans son pied, et retente un peu plus tard (1, 2, 5 puis 15 min — au-dela,
- * la mise a jour des 30 min prend le relais). Quand le reseau est coupe par la veille, il
- * n'essaie meme pas.
+ * la mise a jour des 30 min prend le relais). Il essaie TOUJOURS : Android dit « pas de
+ * reseau » aussi a une app qu'il juge restreinte en arriere-plan, alors que la requete
+ * passe (voir travaille).
  */
 public class WidgetFile extends AppWidgetProvider {
     static final String RAFRAICHIR = "com.adventurecard.atelier.RAFRAICHIR";
@@ -93,16 +94,18 @@ public class WidgetFile extends AppWidgetProvider {
                     dessine(app, null, null, null, true);
                     return;
                 }
-                if (!reseauDisponible(app)) {
-                    garde(app, "Téléphone en veille, sans réseau");
-                    return;
-                }
+                // On ESSAIE TOUJOURS. La 1.1 renoncait d'avance quand Android disait « pas de
+                // reseau » — mais il le dit aussi a une app qu'il range parmi les restreintes
+                // en arriere-plan (on n'ouvre jamais celle-ci), alors que la requete passe :
+                // le widget ne se connectait plus jamais. Son avis ne sert plus qu'a dire
+                // POURQUOI une requete a echoue.
                 if (commande != null) Pi.commande(app, commande);
                 JSONObject e = Pi.etat(app);
                 Pi.memorise(app, e);
                 dessine(app, e, null, null, true);
             } catch (Exception e) {
-                garde(app, e.getMessage() == null ? e.toString() : e.getMessage());
+                String pourquoi = e.getMessage() == null ? e.toString() : e.getMessage();
+                garde(app, reseauDisponible(app) ? pourquoi : "Pas de réseau pour le widget (veille ?) — " + pourquoi);
             } finally {
                 fin.finish();
             }

@@ -267,6 +267,12 @@ ne décide rien : il lit plus vite que nous une pile de chiffres et montre du do
   à chaque question, avec une consigne de relecture (`RELANCE`) : Ollama ne garde rien
   d'un appel à l'autre, et c'est ce qui permet à une autre machine de reprendre si la
   première s'est endormie. Une question à la fois, dix au plus.
+- ⚠ **Une analyse finie ne se remplace que sur demande explicite** (`POST /api/run/analyse`
+  avec `{ nouvelle: true }`, ce qu'envoie « Analyser à nouveau », après confirmation s'il y
+  a une conversation). Sans ça, un appui de trop effaçait l'analyse et le dialogue — une
+  question en attente de réponse s'est perdue ainsi. Et l'ouverture sur `#resultats`
+  (notification, widget) lance bien l'analyse d'une file finie qui n'en a pas encore :
+  `interroge()` rendait la main avant d'avoir l'état, et elle ne partait jamais.
 - ⚠ **Un portable qui dort n'analyse rien.** mon-mien (Windows, « veille moderne ») reste
   joignable une dizaine de minutes après s'être endormi, puis Windows coupe le réseau ; et
   une réponse en cours au moment où il s'endort est coupée net. Pour qu'il serve de
@@ -301,7 +307,11 @@ sur celle qui tourne (en jaune), « Analyser les résultats » à la fin.
   file. `WidgetFile.garde()` affiche donc le **dernier état lu** (mémorisé par `Pi`) avec
   un avertissement orange dans le pied, et retente à 1, 2, 5 puis 15 min — au-delà, la
   mise à jour des 30 min prend le relais. Quand le réseau est bloqué par la veille
-  (`reseauDisponible()`), il n'essaie même pas. L'écran « Pi injoignable » n'apparaît plus
+  (`reseauDisponible()`), il **essaie quand même** : la 1.1 renonçait d'avance, or Android
+  dit aussi « pas de réseau » à une app qu'il range parmi les restreintes en arrière-plan
+  (on n'ouvre jamais celle-ci) — le widget ne se connectait plus jamais. Cet avis ne sert
+  plus qu'à formuler l'erreur. Le bouton « Tester » de l'app fait la même requête au
+  premier plan : s'il répond et que le widget non, c'est ça. L'écran « Pi injoignable » n'apparaît plus
   que s'il n'a jamais rien lu.
 - **Versions** : `versionCode` (`android/app/build.gradle`) monte à chaque APK publiée —
   Android refuse une mise à jour dont le numéro recule.

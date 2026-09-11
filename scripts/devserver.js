@@ -106,9 +106,13 @@ function resumeCalcul(c) {
 // prete, une notification le dit (c'est souvent plusieurs minutes sur le Pi seul).
 const ia = () => import('./lib/ia.mjs');
 
-async function lanceAnalyse() {
+async function lanceAnalyse({ nouvelle = false } = {}) {
   if (!lot) throw new Error('Aucune file à analyser.');
   if (lot.analyse && lot.analyse.etat === 'encours') return;   // deja en route
+  // Une analyse finie ne se remplace que sur demande EXPLICITE (« Analyser a nouveau »,
+  // qui envoie { nouvelle: true }) : un appui de trop ou une page rouverte l'effacaient,
+  // et le dialogue avec elle — une question en attente de reponse s'est perdue ainsi.
+  if (lot.analyse && lot.analyse.etat === 'fini' && !nouvelle) return;
   if (!lot.lignes.some(l => l.resume)) throw new Error('Rien de terminé à analyser pour l\'instant.');
   const cible = lot;
   const m = await ia();
@@ -498,8 +502,15 @@ http.createServer((req, res) => {
   // L'analyse par l'IA locale (scripts/lib/ia.mjs) : la lancer sur la derniere file, et
   // lire / regler la liste des machines qui peuvent la faire (avec ce qu'elles repondent).
   if (req.method === 'POST' && urlPath === '/api/run/analyse') {
-    lanceAnalyse().then(() => json(res, 200, { ok: true, lot: resumeLot() }))
-      .catch(e => json(res, 400, { erreur: e.message }));
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', c => { body += c; if (body.length > 1000) req.destroy(); });
+    req.on('end', () => {
+      let nouvelle = false;
+      try { nouvelle = JSON.parse(body || '{}').nouvelle === true; } catch { /* corps vide ou illisible : pas de relance */ }
+      lanceAnalyse({ nouvelle }).then(() => json(res, 200, { ok: true, lot: resumeLot() }))
+        .catch(e => json(res, 400, { erreur: e.message }));
+    });
     return;
   }
   // Le dialogue : une reponse du designer a l'analyse ({ texte }).

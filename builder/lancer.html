@@ -606,7 +606,10 @@ async function interroge() {
   if (r.status === 404) { indisponible(); return; }
   const e = await r.json();
   if (e.id === null) { suivi.etat = e; rendEtat(); return; }
-  if (e.id !== suivi.id) { suivi = { id: e.id, recu: 0, texte: '', etat: null, recuA: 0 }; interroge(); return; }
+  // Nouvelle file (ou premier appel) : on repart de zero, et on ATTEND ce second appel —
+  // sinon `await interroge()` rendait la main avant d'avoir l'etat, et l'ouverture sur
+  // #resultats ne voyait jamais la file finie (l'analyse ne partait jamais toute seule).
+  if (e.id !== suivi.id) { suivi = { id: e.id, recu: 0, texte: '', etat: null, recuA: 0 }; return interroge(); }
   if (e.depuis !== suivi.recu) suivi.texte = '';   // le debut a ete oublie entre-temps
   suivi.texte += e.texte;
   suivi.recu = e.longueur;
@@ -866,9 +869,15 @@ $('#dialogue').onsubmit = async ev => {
 $('#question').onkeydown = ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) $('#dialogue').requestSubmit(); };
 
 $('#analyser').onclick = async () => {
+  // « Analyser a nouveau » efface l'analyse et la conversation : le serveur ne le fait que
+  // si on le lui dit (nouvelle), et on demande avant de jeter un dialogue.
+  const a = suivi.etat && suivi.etat.lot && suivi.etat.lot.analyse;
+  const nouvelle = !!(a && a.etat === 'fini');
+  if (nouvelle && (a.echanges || []).length
+    && !confirm('Relancer l\'analyse efface celle-ci et la conversation avec l\'IA. Continuer ?')) return;
   $('#analyser').disabled = true;
   try {
-    const r = await envoie('/api/run/analyse');
+    const r = await envoie('/api/run/analyse', { nouvelle });
     const d = await r.json();
     if (!r.ok) { toast(d.erreur || 'Impossible.'); $('#analyser').disabled = false; return; }
   } catch {
