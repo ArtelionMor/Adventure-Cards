@@ -241,7 +241,11 @@ if (/Android/i.test(navigator.userAgent)) {
   // inconnue — ce qui est vrai : elle ne vient pas du Play Store.
   const bouton = 'display:inline-block;text-decoration:none;margin-right:6px';
   boite.innerHTML = '📱 <b>Widget Android</b> : la file de simulations sur l\'écran d\'accueil (l\'app « Widget Atelier »).<br>'
-    + `<a class="btn" href="telechargements/widget-atelier.apk" download style="${bouton}">1. Télécharger l'app</a>`
+    // target="_blank" et pas d'attribut `download` : dans l'app Atelier installee (PWA), un
+    // lien de telechargement ne faisait RIEN de visible — on sort donc dans Chrome, qui
+    // telecharge tout seul grace au type du fichier. Le `?t=` empeche Chrome de resservir
+    // une ancienne APK deja telechargee.
+    + `<a class="btn" href="telechargements/widget-atelier.apk?t=${Date.now()}" target="_blank" rel="noopener" style="${bouton}">1. Télécharger l'app</a>`
     + `<a class="btn" href="${lien}" style="${bouton}">2. Régler le widget</a>`
     + '<div style="font-size:12px;margin-top:8px">Android demande d\'autoriser Chrome à installer l\'app, puis Play Protect '
     + 'prévient qu\'elle est inconnue : c\'est normal, elle ne vient pas du Play Store (« Installer quand même »). '
