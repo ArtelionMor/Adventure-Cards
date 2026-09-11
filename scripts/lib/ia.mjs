@@ -170,6 +170,11 @@ export function demande(lot, avecExtraits) {
 }
 
 /** Un echange avec Ollama. Rend le texte, la duree et la vitesse (jetons par seconde). */
+// EN FLUX (stream: true), meme si on ne montre rien en cours de route : sans flux, Ollama
+// n'envoie ses en-tetes qu'avec la reponse entiere, et le fetch de Node abandonne au bout
+// de 5 min d'attente (UND_ERR_HEADERS_TIMEOUT). Un gros modele qui reflechit sur un
+// portable (qwen3.6 compresse, sur mon-mien) les depasse. En flux, les en-tetes partent
+// tout de suite et les morceaux (reflexion comprise) arrivent sans cesse.
 async function discute(m, messages, { contexte, ms }) {
   const debut = Date.now();
   const r = await fetch(m.url + '/api/chat', {
@@ -177,7 +182,7 @@ async function discute(m, messages, { contexte, ms }) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: m.modele,
-      stream: false,
+      stream: true,
       think: !!m.reflexion,
       keep_alive: '10m',
       options: { temperature: 0.3, num_ctx: contexte },
@@ -186,11 +191,28 @@ async function discute(m, messages, { contexte, ms }) {
     signal: AbortSignal.timeout(ms)
   });
   if (!r.ok) throw new Error(`${m.nom} a répondu ${r.status} : ${(await r.text()).slice(0, 200)}`);
-  const d = await r.json();
+  // Une ligne JSON par morceau ; la derniere (done) porte les compteurs.
+  let texte = '', fin = null, reste = '';
+  const lit = ligne => {
+    if (!ligne.trim()) return;
+    const d = JSON.parse(ligne);
+    if (d.error) throw new Error(`${m.nom} : ${d.error}`);
+    if (d.message && d.message.content) texte += d.message.content;
+    if (d.done) fin = d;
+  };
+  const decodeur = new TextDecoder();
+  for await (const bout of r.body) {
+    reste += decodeur.decode(bout, { stream: true });
+    const lignes = reste.split('\n');
+    reste = lignes.pop();
+    lignes.forEach(lit);
+  }
+  lit(reste + decodeur.decode());
+  if (!fin) throw new Error(`${m.nom} a coupé la réponse en route.`);
   return {
-    texte: ((d.message && d.message.content) || '').trim(),
+    texte: texte.trim(),
     duree: Date.now() - debut,
-    vitesse: d.eval_count && d.eval_duration ? d.eval_count / (d.eval_duration / 1e9) : null
+    vitesse: fin.eval_count && fin.eval_duration ? fin.eval_count / (fin.eval_duration / 1e9) : null
   };
 }
 
