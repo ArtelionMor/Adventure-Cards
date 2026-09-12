@@ -134,6 +134,7 @@ async function lanceAnalyse({ nouvelle = false } = {}) {
     // La conversation (les donnees comprises, ~20 Ko) reste ici : elle repart avec chaque
     // question du dialogue, mais pas dans chaque /api/run que la page interroge.
     cible.conversation = { machine, messages: r.messages };
+    range(cible);   // l'analyse fait partie du calcul range : on le reecrit
     console.log(`analyse terminee en ${Math.round(r.duree / 1000)} s`);
     // La premiere vraie phrase, sans les titres ni la mise en forme, pour la notification.
     const phrase = r.texte.replace(/[*#_`]/g, '').split('\n').map(s => s.trim())
@@ -174,11 +175,51 @@ async function poseQuestion(texte) {
     // « Analyser a nouveau » a pu repartir de zero entre-temps : ne pas lui greffer
     // la fin de l'ancienne conversation.
     if (cible.analyse === a) cible.conversation = { machine, messages: r.messages };
+    range(cible);   // la question et sa reponse partent aussi sur la cle
     // Une reponse longue (un gros modele qui reflechit) : on previent, la page est
     // peut-etre fermee.
     if (r.duree > 60000) notifie({ titre: 'L\'IA t\'a répondu', corps: r.texte.replace(/[*#_`]/g, '').slice(0, 140), tag: 'calcul', bruyante: true, url: 'lancer.html#resultats' },
       { urgence: 'high', sujet: 'calcul' });
   }).catch(e => Object.assign(echange, { etat: 'echec', erreur: e.message }));
+}
+
+// LES CALCULS RANGES (scripts/lib/archives.mjs) : une file finie part sur la cle USB du
+// serveur — sorties completes, resumes, analyse de l'IA et dialogue. On la ROUVRE
+// ensuite ici comme si elle venait de finir, au lieu de rejouer des heures de parties
+// pour relire un chiffre. Ranger ne doit JAMAIS gener un calcul : une cle debranchee ou
+// pleine se journalise et rien de plus, comme une notification refusee.
+const archives = () => import('./lib/archives.mjs');
+
+function range(cible) {
+  if (!cible || !cible.lignes.length) return;
+  archives().then(a => a.range(cible))
+    .then(d => console.log('calcul range : ' + d))
+    .catch(e => console.log('archivage impossible : ' + e.message));
+}
+
+/** Rouvrir un calcul range : il redevient `lot`, fini, avec son analyse et son dialogue. */
+async function chargeArchive(id) {
+  if (lotActif()) throw new Error('Un calcul tourne : arrête ou attends la fin de la file avant de rouvrir un calcul rangé.');
+  const c = await (await archives()).relit(id);
+  const lignes = (c.lignes || []).map((l, i) => ({
+    outil: l.outil, args: l.args || [], libelle: l.libelle, brouillon: null,
+    etat: l.etat, debut: l.debut, fin: l.fin, code: l.code, proc: null, sortie: l.sortie || '', oublie: 0,
+    progression: null, resume: l.resume, pauseTotale: l.pauseTotale || 0, pauseDepuis: null, i, id: c.id + '-' + i
+  }));
+  if (!lignes.length) throw new Error('Ce calcul rangé est vide.');
+  // Une analyse « en cours » rangee (le serveur s'est arrete au milieu) ne reprendra
+  // jamais : on repart sans elle plutot que d'afficher un sablier eternel.
+  const analyse = c.analyse && c.analyse.etat !== 'encours' ? c.analyse : null;
+  lot = {
+    id: c.id, lignes, debut: c.debut, fin: c.fin || Date.now(), pause: false, arrete: !!c.arrete,
+    pauseTotale: c.pauseTotale || 0, pauseDepuis: null, brouillons: new Set(), dixiemes: 10, derniereNotif: Date.now(),
+    analyse, conversation: analyse ? c.conversation || null : null, archive: c.archive
+  };
+  if (analyse && !Array.isArray(analyse.echanges)) analyse.echanges = [];
+  // Plus rien ne tourne : la page repart de la file (etatCalcul rend « id: null »).
+  calcul = null;
+  console.log(`calcul rouvert : ${c.archive} (${lignes.length} ligne(s))`);
+  return resumeLot();
 }
 
 // Des arguments courts, sans espace (on ne passe de toute facon pas par un shell).
@@ -342,6 +383,7 @@ function finLot() {
     corps = `${finis}/${n} calculs en ${duree(ecoule(lot))}`;
   }
   console.log(`file ${lot.id} terminee : ${finis}/${n}${lot.arrete ? ' (arretee)' : ''}`);
+  range(lot);   // sur la cle, pour ne jamais avoir a refaire ces parties
   notifie({ titre, corps, tag: 'calcul', bruyante: true, url: 'lancer.html#resultats',
     actions: finis ? [{ action: 'analyser', title: 'Analyser les résultats' }] : [] }, { urgence: 'high', sujet: 'calcul' });
 }
@@ -533,6 +575,41 @@ http.createServer((req, res) => {
     });
     return;
   }
+  // LES CALCULS RANGES (scripts/lib/archives.mjs) : ce qu'il y a sur la cle, ou l'on
+  // range, et surtout ROUVRIR un calcul — il redevient la file courante, avec ses
+  // sorties, son analyse et son dialogue, sans rejouer une partie.
+  if (req.method === 'GET' && urlPath === '/api/archives') {
+    archives().then(a => a.etat()).then(e => json(res, 200, e))
+      .catch(e => json(res, 500, { erreur: e.message }));
+    return;
+  }
+  if (req.method === 'POST' && urlPath.startsWith('/api/archives')) {
+    const action = urlPath.slice('/api/archives'.length);
+    if (!['', '/charger', '/ranger'].includes(action)) { json(res, 404, { erreur: 'Inconnu : ' + urlPath }); return; }
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', c => { body += c; if (body.length > 2000) req.destroy(); });
+    req.on('end', async () => {
+      try {
+        const d = JSON.parse(body || '{}');
+        const a = await archives();
+        if (action === '/charger') { json(res, 200, { ok: true, lot: await chargeArchive(d.id) }); return; }
+        // « Ranger maintenant » : la cle a ete branchee apres coup, ou on veut la
+        // derniere version (l'analyse, le dialogue) sur le disque tout de suite.
+        if (action === '/ranger') {
+          if (!lot) throw new Error('Aucune file à ranger.');
+          json(res, 200, { ok: true, dossier: await a.range(lot) });
+          return;
+        }
+        await a.enregistreDossier(d.dossier);
+        json(res, 200, await a.etat());
+      } catch (e) {
+        json(res, 400, { erreur: e.message });
+      }
+    });
+    return;
+  }
+
   // Les RENFORTS de calcul (scripts/lib/renforts.mjs) : les PC qui prennent leur part des
   // cases de chaque calcul, et ce qu'ils repondent. Meme forme que /api/ia.
   if (req.method === 'GET' && urlPath === '/api/calcul') {

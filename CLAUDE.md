@@ -191,6 +191,39 @@ son serveur intégré sinon — l'exe répond alors 404 et la page le dit.
 Wi-Fi ou par Tailscale. Ne jamais l'exposer à internet : `/api/write` et `/api/run`
 n'ont aucun mot de passe.
 
+## Les calculs rangés (la clé USB du Pi)
+Un calcul fini **ne se refait plus** : quand une file se termine, le serveur l'écrit sur
+le disque choisi — la clé USB branchée sur le Pi — et la page la **rouvre** telle quelle.
+Une matrice trio, c'est des dizaines de milliers de parties : elle ne vaut pas d'être
+rejouée pour relire un chiffre trois semaines plus tard.
+
+- **Un dossier par calcul**, lisible sans l'Atelier (la clé se rebranche sur un PC) :
+  `calcul.json` (ce que le serveur doit retrouver), `recapitulatif.txt` (les résumés,
+  l'analyse et le dialogue, en clair) et un `NN-….txt` par ligne — la sortie brute, telle
+  que le terminal l'a écrite.
+- **Rouvrir** (`POST /api/archives/charger`) remet ce calcul dans la file affichée, sans
+  rejouer une partie : on relit les sorties ligne par ligne, on copie le récapitulatif, et
+  l'**IA reprend le dialogue** là où il s'était arrêté — la conversation entière part avec
+  le calcul. Refusé tant qu'une file tourne (elle serait remplacée).
+- **Ranger n'est jamais bloquant** : une clé absente ou pleine se journalise, comme une
+  notification refusée. Le rangement est réécrit quand l'analyse se termine et à chaque
+  question, sinon la clé garderait les chiffres sans ce qu'on en a dit.
+- **Où** : `~/.adventure-card/archives.json` sur la machine du serveur, **jamais dans le
+  repo**, édité dans « Lancer un calcul » (« Où ranger »). Sans réglage, on prend la
+  première clé montée (`/media`, `/mnt`, `/run/media`) ; à défaut `~/.adventure-card/calculs`
+  — ranger ne doit pas dépendre d'une clé branchée.
+- Comme `/api/run`, ce n'est **pas doublé en C#** : l'exe sans Node n'a pas ces routes, et
+  la page cache alors la section entière.
+
+⚠ **Une clé débranchée laisse son dossier derrière elle** : sous Linux, `/media/…` existe
+encore quand plus rien n'y est monté, et on remplirait la carte SD sans le voir. Le réglage
+garde donc le **point de montage**, vérifié dans `/proc/mounts` à chaque écriture : clé
+absente, rien n'est écrit et la page le dit.
+
+⚠ **Raspberry Pi OS Lite ne monte rien tout seul** (pas de bureau, pas d'automontage) : la
+clé demande une ligne dans `/etc/fstab` (par `UUID`, avec `nofail`), sinon elle est branchée
+sans être là.
+
 ## Les renforts : les PC calculent aussi
 Un calcul lancé sur le Pi **ne tourne plus seulement sur le Pi** : chaque PC qui fait
 tourner `node scripts/renfort.mjs` en prend sa part, **en même temps**, case par case —
@@ -1253,7 +1286,8 @@ des milliers de parties imaginaires, pas des décisions), et la décision elle-m
   les modules de `game/src/`.
 - `launcher/` — source C# du lanceur Windows (compilé avec le csc.exe fourni par Windows, cf. `scripts/build-exe.ps1`).
 - `scripts/` — serveur de dev, bancs de test, outils d'équilibrage (`check-decks`,
-  `matchups`, `simulate`), `gen-sprites.mjs` (la liste des images), `lib/brouillon.mjs` (fait mesurer le brouillon aux outils), `lib/arene.mjs`
+  `matchups`, `simulate`), `gen-sprites.mjs` (la liste des images), `lib/brouillon.mjs` (fait mesurer le brouillon aux outils), `lib/archives.mjs`
+  (les calculs rangés sur la clé), `lib/arene.mjs`
   (socle commun), build de l'exe.
 - `docs/GDD.md` — game design doc complet.
 - `mockups/` — mockups de cartes (placeholders, pas la direction artistique finale).

@@ -229,6 +229,23 @@
     </div>
   </section>
 
+  <!-- Les calculs deja mesures, ranges sur la cle du serveur : on en rouvre un au lieu
+       de rejouer des heures de parties pour relire un chiffre. -->
+  <section class="panel" id="archives" hidden>
+    <div class="panel__head">
+      <h2>Calculs rangés</h2>
+      <span class="droite compte" id="archivesOu"></span>
+      <button class="btn btn--petit" id="archivesRelire" title="Relire le disque">🔄</button>
+    </div>
+    <div class="panel__body">
+      <div id="archivesListe"><p class="vide">…</p></div>
+      <details class="machines" id="archivesReglage">
+        <summary>Où ranger</summary>
+        <div id="archivesRegler"></div>
+      </details>
+    </div>
+  </section>
+
   <section class="panel">
     <div class="panel__head">
       <h2 id="titreSortie">Sortie</h2>
@@ -634,7 +651,9 @@ function rendSortie() {
   pre.innerHTML = enHtml(vue ? vue.texte : suivi.texte);
   if (enBas || vue) pre.scrollTop = vue ? 0 : pre.scrollHeight;
   $('#titreSortie').textContent = vue ? vue.libelle : suivi.etat && suivi.etat.libelle ? suivi.etat.libelle : 'Sortie';
-  $('#suivre').hidden = !vue;
+  // « Calcul en cours » n'a de sens que s'il y en a un : un calcul rouvert depuis le
+  // disque n'en a aucun (le serveur rend « id: null »), il n'y a rien ou revenir.
+  $('#suivre').hidden = !vue || !(suivi.etat && suivi.etat.id);
 }
 
 const duree = ms => { const s = Math.round(ms / 1000); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`; };
@@ -649,6 +668,7 @@ function rendEtat() {
   $('#arreter').hidden = !actif;
   $('#recapBoite').hidden = !(l && l.lignes.some(x => x.resume));
   rendBoutons();
+  suitArchivage(l);
   if (!l) {
     st.textContent = '';
     $('#lot').innerHTML = '<p class="vide">Aucun calcul lancé.</p>';
@@ -990,6 +1010,118 @@ function rendRenforts() {
 }
 $('#calculBoite').addEventListener('toggle', () => { if ($('#calculBoite').open) chargeRenforts(); });
 
+// ---------- LES CALCULS RANGES (le disque du serveur, la cle USB du Pi) ----------
+// Une file finie est ecrite sur le disque choisi (scripts/lib/archives.mjs) : les
+// sorties completes, les resumes, l'analyse de l'IA et le dialogue. « Rouvrir » la
+// remet dans la file affichee ci-dessus SANS REJOUER UNE SEULE PARTIE — on relit les
+// sorties, on copie le recapitulatif, on repose une question a l'IA. Un serveur qui ne
+// sait pas ranger (l'exe sans Node) n'affiche pas la section du tout.
+let archive = null;
+let lotRange = null;
+
+const octets = n => !n ? '0 Ko'
+  : n >= 1e9 ? (n / 1e9).toFixed(1).replace('.', ',') + ' Go'
+  : n >= 1e6 ? (n / 1e6).toFixed(1).replace('.', ',') + ' Mo'
+  : Math.max(1, Math.round(n / 1000)) + ' Ko';
+const quand = t => t ? new Date(t).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+
+async function chargeArchives() {
+  try {
+    const r = await fetch('/api/archives', { cache: 'no-store' });
+    if (!r.ok) { $('#archives').hidden = true; return; }
+    archive = await r.json();
+  } catch { $('#archives').hidden = true; return; }
+  $('#archives').hidden = false;
+  rendArchives();
+}
+
+function rendArchives() {
+  const a = archive;
+  if (!a) return;
+  const perdu = a.amovible && !a.monte;
+  $('#archivesOu').innerHTML = perdu
+    ? `<span class="statut--ko">⚠ ${esc(a.montage)} n'est pas monté</span>`
+    : `${a.lots.length} calcul(s)${a.libre ? ' · ' + octets(a.libre) + ' libres' : ''}`;
+  $('#archivesListe').innerHTML = perdu
+    ? '<p class="vide">Le disque n\'est pas là : rien n\'est rangé et rien ne se relit. Rebranche la clé, ou change le dossier ci-dessous.</p>'
+    : a.lots.length ? a.lots.map(l => `<div class="ligne ligne--${l.finis === l.total ? 'fini' : 'echec'}">`
+      + '<span class="ico">📦</span>'
+      + `<span class="quoi">${esc(l.titre)}<small>${quand(l.debut)} · ${l.finis}/${l.total} calcul(s)`
+      + `${l.duree ? ' · ' + duree(l.duree) : ''}${l.analyse ? ' · 🧠 analysé' : ''}${l.echanges ? ` + ${l.echanges} question(s)` : ''}`
+      + ` · ${octets(l.taille)}</small></span>`
+      + `<button class="btn btn--petit" data-ouvre="${esc(l.id)}">Rouvrir</button></div>`).join('')
+    : '<p class="vide">Rien de rangé pour l\'instant : le prochain calcul qui finit ira ici.</p>';
+  for (const b of $('#archivesListe').querySelectorAll('[data-ouvre]')) b.onclick = () => rouvre(b.dataset.ouvre, b);
+
+  $('#archivesRegler').innerHTML = '<p class="aide">Chaque calcul fini est écrit là : un dossier par calcul, la sortie complète de chaque ligne, '
+    + 'un <code>recapitulatif.txt</code> qui se lit sans l\'Atelier (la clé se rebranche sur un PC), et l\'analyse de l\'IA. '
+    + (a.choisi ? 'Dossier choisi à la main.' : 'Dossier trouvé tout seul.') + '</p>'
+    + '<div class="machine" style="grid-template-columns:1fr auto">'
+    + `<input id="archivesChemin" value="${esc(a.dossier)}" placeholder="/media/teliau/CLE/adventure-card" inputmode="url">`
+    + '<span><button class="btn btn--petit btn--primary" id="archivesEnregistre">Enregistrer</button></span>'
+    + `<div class="etat ${!perdu ? 'etat--ok' : ''}">${perdu ? '✗ ' + esc(a.montage) + ' n\'est pas monté : rien n\'est écrit (ce serait sur la carte SD)'
+      : (a.amovible ? '✓ sur ' + esc(a.montage) : '✓ sur le disque du serveur') + (a.libre ? ` · ${octets(a.libre)} libres sur ${octets(a.total)}` : '')}</div></div>`
+    + (a.disques.length
+      ? '<p class="aide">Clés et disques montés : ' + a.disques.map(d => `<button class="chip" data-disque="${esc(d.point)}">${esc(d.point)} · ${esc(d.type)}${d.libre ? ' · ' + octets(d.libre) + ' libres' : ''}${d.ro ? ' · lecture seule' : ''}</button>`).join(' ') + '</p>'
+      : '<p class="aide">Aucune clé montée sur ce serveur. Sous Raspberry Pi OS Lite, rien ne se monte tout seul : il faut une ligne dans <code>/etc/fstab</code>.</p>')
+    + '<div class="actions" style="margin-top:10px"><button class="btn btn--petit" id="archivesRangeMaintenant">Ranger la file affichée</button>'
+    + (a.choisi ? '<button class="btn btn--petit" id="archivesAuto">Revenir au choix automatique</button>' : '') + '</div>';
+  for (const c of $('#archivesRegler').querySelectorAll('[data-disque]')) c.onclick = () => {
+    $('#archivesChemin').value = c.dataset.disque.replace(/\/+$/, '') + '/adventure-card/calculs';
+  };
+  $('#archivesEnregistre').onclick = () => regleDossier($('#archivesChemin').value);
+  if ($('#archivesAuto')) $('#archivesAuto').onclick = () => regleDossier('');
+  $('#archivesRangeMaintenant').onclick = async () => {
+    try {
+      const r = await envoie('/api/archives/ranger');
+      const d = await r.json();
+      toast(r.ok ? 'Rangé dans ' + d.dossier : d.erreur || 'Impossible.');
+    } catch { toast('Serveur injoignable.'); return; }
+    chargeArchives();
+  };
+}
+
+async function regleDossier(dossier) {
+  $('#archivesEnregistre').disabled = true;
+  try {
+    const r = await envoie('/api/archives', { dossier });
+    const d = await r.json();
+    if (!r.ok) { toast(d.erreur || 'Refusé.'); $('#archivesEnregistre').disabled = false; return; }
+    archive = d;
+    toast('Les calculs seront rangés dans ' + d.dossier);
+  } catch { toast('Serveur injoignable.'); $('#archivesEnregistre').disabled = false; return; }
+  rendArchives();
+}
+
+// ROUVRIR un calcul range : il redevient la file affichee. Rien ne tourne, donc le
+// serveur rend « id: null » et le suivi repart de la file elle-meme.
+async function rouvre(id, bouton) {
+  const l = suivi.etat && suivi.etat.lot;
+  if (l && l.actif) { toast('Un calcul tourne : attends la fin de la file.'); return; }
+  bouton.disabled = true;
+  try {
+    const r = await envoie('/api/archives/charger', { id });
+    const d = await r.json();
+    if (!r.ok) { toast(d.erreur || 'Impossible.'); bouton.disabled = false; return; }
+  } catch { toast('Serveur injoignable.'); bouton.disabled = false; return; }
+  suivi = { id: null, recu: 0, texte: '', etat: null, recuA: Date.now() };
+  vue = null;
+  await interroge();
+  if (suivi.etat && suivi.etat.lot && suivi.etat.lot.total) await montreLigne(0);
+  bouton.disabled = false;
+  $('#resultats').scrollIntoView({ behavior: 'smooth' });
+  toast('Calcul rouvert : tu peux le relire et l\'analyser.');
+}
+
+// Une file qui vient de finir part sur le disque : on relit la liste, une fois.
+function suitArchivage(l) {
+  if (!archive || !l || l.actif || lotRange === l.id) return;
+  lotRange = l.id;
+  setTimeout(chargeArchives, 1500);   // le temps que le serveur ait fini d'ecrire
+}
+
+$('#archivesRelire').onclick = chargeArchives;
+
 // Le builder ecrit son brouillon a chaque frappe (autre onglet) : on suit.
 addEventListener('storage', async ev => {
   if (ev.key !== LS_BUILDER) return;
@@ -1002,6 +1134,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) inte
 await relitFichier();
 rendTout();
 await interroge();
+chargeArchives();
 // Arrive par « Analyser les resultats » (la notification de fin, le widget) : droit a la
 // file — et l'analyse part toute seule si la file est finie et pas encore analysee.
 if (location.hash === '#resultats') {
