@@ -48,7 +48,7 @@ export function nombreDeJobs(argv = process.argv) {
 async function renfortsPour(moduleUrl) {
   const module = String(moduleUrl).split('/').pop().replace(/\.mjs$/, '');
   const R = await import('./renforts.mjs');
-  if (!R.MODULES.includes(module) || !R.machines().length) return [];
+  if (!R.moduleConnu(module) || !R.machines().length) return [];
   const statuts = await R.statuts();
   const prets = statuts.filter(m => m.ok && m.coeurs > 0);
   const ecartes = statuts.filter(m => !m.ok).map(m => `${m.nom} (${m.pourquoi})`);

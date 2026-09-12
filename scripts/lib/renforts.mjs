@@ -30,8 +30,20 @@ const MACHINES_MAX = 8;
 /** Le port d'un renfort (scripts/renfort.mjs). */
 export const PORT = 7331;
 
-/** Les modules de taches qu'un renfort accepte de jouer — et eux seuls. */
-export const MODULES = ['taches-matchups', 'taches-courbe'];
+/**
+ * LES MODULES DE TACHES qu'un renfort accepte de jouer : ceux qu'il a sur SON disque,
+ * relus a chaque demande. Un outil de mesure ecrit demain est donc partage sans qu'on
+ * ait a tenir une liste a jour ici — et sans rien relacher : un renfort ne charge jamais
+ * que ses propres fichiers `scripts/lib/taches-*.mjs` (il n'execute aucun code recu), et
+ * l'empreinte, qui les couvre tous, garantit que les deux machines ont les memes.
+ */
+export function modules() {
+  return readdirSync(join(RACINE, 'scripts', 'lib'))
+    .filter(f => /^taches-.+\.mjs$/.test(f)).map(f => f.slice(0, -4)).sort();
+}
+
+/** « Celui-la, tu sais le jouer ? » — la seule question que posent les trois appelants. */
+export const moduleConnu = nom => modules().includes(nom);
 
 export function machines() {
   try {
@@ -65,8 +77,7 @@ export function empreinte() {
   const fichiers = [];
   for (const d of ['game/src/combat', 'game/src/config', 'game/src/tools'])
     for (const f of readdirSync(join(RACINE, d)).filter(f => f.endsWith('.js')).sort()) fichiers.push(`${d}/${f}`);
-  for (const f of readdirSync(join(RACINE, 'scripts', 'lib')).filter(f => /^taches-.+\.mjs$/.test(f)).sort())
-    fichiers.push(`scripts/lib/${f}`);
+  for (const m of modules()) fichiers.push(`scripts/lib/${m}.mjs`);
   const h = createHash('sha256');
   for (const f of fichiers) h.update(`${f}\n${readFileSync(join(RACINE, f), 'utf8').replace(/\r\n/g, '\n')}\n`);
   return h.digest('hex').slice(0, 16);

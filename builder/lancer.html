@@ -370,6 +370,11 @@ const OUTILS = [
     id: 'test-ai', fichier: 'scripts/test-ai.mjs', nom: 'Banc du bot', sous: 'tests de l\'IA', brouillon: false,
     desc: 'Le bot valorise-t-il correctement les mécaniques ?',
     champs: [], args: () => [], libelle: () => 'Banc du bot'
+  },
+  {
+    id: 'test-partage', fichier: 'scripts/test-partage.mjs', nom: 'Banc du partage', sous: 'tout se partage ?', brouillon: false,
+    desc: 'Chaque outil de mesure passe-t-il par la file de tâches commune ? Un outil qui joue dans son coin n\'utilise ni les cœurs des renforts ni la file, et rien ne le dit.',
+    champs: [], args: () => [], libelle: () => 'Banc du partage'
   }
 ];
 const outilDe = id => OUTILS.find(o => o.id === id);

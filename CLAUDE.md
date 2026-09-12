@@ -252,12 +252,16 @@ fixe fait seul une matrice trois fois plus vite que le Pi (31 s contre 99 s).
   fichier du jeu) partent **en JSON** avec chaque paquet ; le renfort écrit lui-même le
   module et joue le paquet dans un processus neuf (`scripts/lib/renfort-lot.mjs`, avec le
   crochet du brouillon). Il n'exécute jamais de code reçu et ne joue que les modules de sa
-  liste blanche (`taches-matchups`, `taches-courbe`).
+  liste blanche — **celle-ci se découvre toute seule** : ce sont les
+  `scripts/lib/taches-*.mjs` qu'il a sur son disque (`modules()`), relus à chaque demande.
+  Un outil écrit demain est donc partagé sans qu'on tienne une liste à jour, et sans rien
+  relâcher : il ne charge jamais que ses propres fichiers, et l'empreinte les couvre tous.
 - **Ouvrir un PC** : comme pour Ollama, une règle de pare-feu entrante TCP 7331 limitée à
   `100.64.0.0/10`, et le renfort lancé à l'ouverture de session. Il faut Node et le
   projet à jour sur le PC. Sans ça, qui joint le port peut occuper ses cœurs.
-- Seuls `matchups` et `simulate` passent par la file ; `analyse-cartes` et les bancs
-  restent sur la machine du calcul. `--jobs 1` rejoue sans worker ni renfort.
+- **Tout ce qui joue des parties passe par la file** : `matchups`, `simulate`,
+  `analyse-cartes` et `check-decks`. Les bancs, eux, ne jouent pas de séries — ce sont des
+  tests, ils restent sur place. `--jobs 1` rejoue sans worker ni renfort.
 
 ## L'Atelier : les outils en une app
 `builder/accueil.html` réunit toutes les pages derrière des tuiles (builder, lancer un
@@ -497,6 +501,18 @@ Après toute modification de `game/src/combat/`, faire tourner **les trois bancs
 débloquent un moment, couture builder → moteur, mana différé, mots-clés à paramètre, capacités
 des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, pile de fatigue, création de carte (précise et au hasard), déplacements de zone (mélange, renvoi, pose), leur renfort et celui des cartes sur place, prise du dessus, complétion par la fatigue, événement de renfort, filtre « une carte précise », niveau du propriétaire, plafond de tours, types multiples, « Type : tous » (posé, offert, reçu d'une aura), copie, cibles sans camp, « chez qui » qui suit la cible ou tire au sort, prise de contrôle, choix entre deux effets, chaîne par type, type lu sur une carte, palier « Choisit les deux », deux cibles désignées, switch, sujet d'un événement, cibler depuis une branche, règles de validation qui lisent le registre, garde d'un moment), `node scripts/test-ai.mjs` (31 tests : le bot
 valorise-t-il ces mécaniques) et `node scripts/simulate.mjs` (la courbe de difficulté).
+
+**Tout outil qui joue des parties se partage.** Un outil de mesure ne monte JAMAIS ses
+propres workers : il découpe son travail en tâches et les donne à `enParallele()`
+(`scripts/lib/pool.mjs`), avec un module `scripts/lib/taches-<nom>.mjs` qui expose
+`prepare(contexte)` et `joue(tâche)`. C'est à cette condition qu'il tourne sur tous les
+cœurs **et** sur ceux des renforts — et un renfort reconnaît le nouveau module tout seul
+(la liste blanche, c'est le dossier). Deux contraintes à ne pas oublier : une tâche doit
+être **indépendante** des autres, et son résultat doit voyager **en JSON** (ni `Map`, ni
+`Set`, ni fonction — il traverse un `postMessage` puis le réseau). `node
+scripts/test-partage.mjs` le vérifie : il échoue sur un `new Worker` hors du pool, sur un
+outil qui joue des parties sans passer par la file, et sur un module de tâches qui rend
+autre chose que du JSON.
 
 ## Finir sa pioche, et la pile de fatigue
 **Le deck ne se remélange pas** : une carte tirée ne revient pas d'elle-même, et la
@@ -1199,7 +1215,8 @@ des milliers de parties imaginaires, pas des décisions), et la décision elle-m
   règles du builder (via `game/src/config/validate.js`, partagé avec lui — une règle
   ajoutée là s'applique aux deux), puis de vraies parties pour trouver ce qui ne se produit
   jamais : carte qu'aucun mana ne peut payer, carte jamais posée, moment jamais déclenché.
-  Les decks **base et switch** de chaque personnage y passent.
+  Les decks **base et switch** de chaque personnage y passent. Les paires se jouent
+  **en parallèle**, sur les cœurs d'ici et ceux des renforts (`lib/taches-controle.mjs`).
 - **`builder/balance.html`** — la même mesure **dans l'outil**, sur le brouillon en cours :
   on coche ce qu'on veut comparer (personnages base, switch, **mélange**, adversaires), le niveau, le
   nombre de parties et le bot, on lance, et la matrice se remplit case par case (la page
@@ -1249,23 +1266,30 @@ des milliers de parties imaginaires, pas des décisions), et la décision elle-m
   La colonne **valeur** est le deuxième avis : ce qu'en pense `cardValue()`. Le Monte-Carlo
   cherche, la fonction de valeur suppose ; quand ils divergent nettement, l'outil le dit —
   et c'est `ai.js` qu'il faut relire, pas la carte.
-  Les parties etant independantes, elles tournent **en parallele sur les coeurs** (un
-  worker par coeur, `--jobs N` pour regler, `--jobs 1` pour desactiver) : 16 parties en
-  5 s au lieu de 70. Chaque worker depouille sa part et renvoie ses compteurs, qui ne
-  sont que des sommes.
+  Les parties étant indépendantes, elles passent par la **file commune**
+  (`lib/taches-analyse.mjs`) : tous les cœurs d'ici **et ceux des renforts**. Une tâche
+  est une partie tant que ça reste raisonnable — le grain le plus fin, donc le mieux
+  réparti entre des machines inégales. Chaque tâche dépouille sa part et rend des
+  **compteurs**, et le total n'est qu'une somme : le résultat est le même qu'en un seul
+  fil, au hasard des tirages près.
   `--rollouts 30` affine l'écart (10 rollouts ne le mesurent qu'à 10 points près),
   `--persos`, `--pnj`, `--niv`, `--switch` choisissent le matchup, `--logs f.txt` écrit
   chaque décision (« T4 Médor — joue Meute 62 % devant : Rappel 55 %, — passer — 41 % »).
-- **Tous les cœurs.** `matchups`, `simulate` (et `analyse-cartes`, à sa façon) jouent
-  leurs cases en parallèle : `scripts/lib/pool.mjs`, une **file de travail** comme
+- **Tous les cœurs, partout.** `matchups`, `simulate`, `analyse-cartes` et `check-decks`
+  jouent leurs cases en parallèle : `scripts/lib/pool.mjs`, une **file de travail** comme
   `builder/balance-worker.js` (chaque worker redemande une tâche dès qu'il a fini). Une
   tâche est une case ou une combinaison décrite par une **recette**, que le worker
-  remonte lui-même (`lib/taches-matchups.mjs`, `lib/taches-courbe.mjs`) : un deck
+  remonte lui-même (`lib/taches-matchups.mjs`, `-courbe`, `-analyse`, `-controle`) : un deck
   mélange est une fonction, il ne traverse pas un `postMessage`. Les résultats
   reviennent **dans l'ordre** : l'affichage n'a pas changé. `--jobs N` règle le nombre de
   workers (défaut : un par cœur), `--jobs 1` rejoue sans worker, pour déboguer. Mesuré
   sur le PC avec 3 workers (les cœurs du Pi, moins un) : matrice 400 parties/case en
   mélange 20 s → 8 s, courbe à 40 parties 16 s → 7 s.
+- `node scripts/test-partage.mjs` — **le banc du partage** : chaque outil passe-t-il par
+  la file de tâches commune ? Un outil qui joue dans son coin n'utilise ni les cœurs des
+  renforts ni la file, et rien ne le dit — le calcul marche, il est juste trois fois trop
+  lent. C'est arrivé à `analyse-cartes`, qui montait ses propres workers pendant que les
+  PC regardaient.
 - **La progression** passe par `scripts/lib/progression.mjs` : une ligne réécrite en
   terminal ; lancé par le serveur (variable `ADVENTURE_PROGRESSION`), des
   lignes-marqueurs `@@progression 12/351` que `/api/run` retire de la sortie et rend en

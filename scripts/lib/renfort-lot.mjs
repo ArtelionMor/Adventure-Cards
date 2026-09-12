@@ -4,13 +4,13 @@
 // jamais. Il lit { module, contexte, taches } sur son entree, joue tout sur les coeurs de
 // la machine, et ecrit une ligne JSON par tache ({ k, r }) sur sa sortie, dans l'ordre.
 import { enParallele } from './pool.mjs';
-import { MODULES } from './renforts.mjs';
+import { moduleConnu } from './renforts.mjs';
 
 let texte = '';
 process.stdin.setEncoding('utf8');
 for await (const bout of process.stdin) texte += bout;
 const { module, contexte, taches } = JSON.parse(texte);
-if (!MODULES.includes(module)) throw new Error('module refusé : ' + module);
+if (!moduleConnu(module)) throw new Error('module refusé : ' + module);
 
 await enParallele(taches, new URL(`./${module}.mjs`, import.meta.url), {
   contexte,

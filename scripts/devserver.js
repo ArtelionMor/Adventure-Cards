@@ -66,7 +66,8 @@ const OUTILS = {
   'check-decks': { fichier: 'scripts/check-decks.mjs', brouillon: true, nom: 'Contrôle des decks' },
   'analyse-cartes': { fichier: 'scripts/analyse-cartes.mjs', brouillon: true, nom: 'Analyse des cartes' },
   'test-triggers': { fichier: 'scripts/test-triggers.mjs', brouillon: false, nom: 'Banc du moteur' },
-  'test-ai': { fichier: 'scripts/test-ai.mjs', brouillon: false, nom: 'Banc du bot' }
+  'test-ai': { fichier: 'scripts/test-ai.mjs', brouillon: false, nom: 'Banc du bot' },
+  'test-partage': { fichier: 'scripts/test-partage.mjs', brouillon: false, nom: 'Banc du partage' }
 };
 
 // Les notifications (scripts/lib/push.mjs) : un module ES, d'ou l'import dynamique. Une

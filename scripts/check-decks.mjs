@@ -15,7 +15,8 @@ import { CHARACTER_DATA } from '../game/data/characters.data.js';
 import { CHARACTERS, resolveCard } from '../game/src/config/characters.js';
 import { ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, cardCost, pendingMechanics } from '../game/src/config/mechanics.js';
 import { validateData } from '../game/src/config/validate.js';
-import { campPerso, campPnj, duel } from '../game/src/tools/arene.js';
+import { campPerso, campPnj } from '../game/src/tools/arene.js';
+import { enParallele } from './lib/pool.mjs';
 
 const NIVEAU = Number(process.argv[2] || 5);
 const PARTIES = Number(process.argv[3] || 6);
@@ -59,43 +60,40 @@ if (!injouables) console.log(vert('  Toutes les cartes sont payables par leur pe
 // chaque personnage, sinon une carte switch morte ne se verrait jamais.
 const equipes = [];
 for (const c of CHARACTERS) for (const cote of ['cards', 'switches']) {
-  equipes.push({ nom: `${c.name} (${cote === 'cards' ? 'base' : 'switch'})`, cote, cfg: campPerso([c.id], NIVEAU, cote) });
+  equipes.push({ nom: `${c.name} (${cote === 'cards' ? 'base' : 'switch'})`, recette: { type: 'perso', id: c.id, cote, niveau: NIVEAU } });
 }
 // Les adversaires jouent aussi : leurs decks sont des decks comme les autres, et une
 // carte libre qu'aucun PNJ ne joue jamais est une carte morte de plus.
 for (const n of CHARACTER_DATA.npcs || []) {
   const cfg = campPnj(n.id);
-  if (cfg && cfg.deck.length) equipes.push({ nom: `${n.name} (PNJ)`, cote: 'npc', cfg });
+  if (cfg && cfg.deck.length) equipes.push({ nom: `${n.name} (PNJ)`, recette: { type: 'pnj', id: n.id } });
 }
 const paires = equipes.length * (equipes.length - 1);
-console.log(`\n=== 2. Ce que ${paires * PARTIES} parties montrent vraiment (niveau ${NIVEAU}) ===\n`);
+console.log(`
+=== 2. Ce que ${paires * PARTIES} parties montrent vraiment (niveau ${NIVEAU}) ===
+`);
 
 const jouees = new Map();     // nom de carte -> combien de fois posee
 const piochees = new Map();   // nom de carte -> combien de fois vue en main
 const declenches = new Set(); // moments qui sont vraiment partis
-const compte = (m, nom) => m.set(nom, (m.get(nom) || 0) + 1);
+const ajoute = (m, nom, n) => m.set(nom, (m.get(nom) || 0) + n);
 
+// UNE PAIRE NE DEPEND D'AUCUNE AUTRE : elles passent par la file de taches commune
+// (scripts/lib/pool.mjs), donc sur tous les coeurs d'ici ET sur ceux des renforts.
 let parties = 0, bloquees = 0, tours = 0, nulles = 0;
-for (const a of equipes) {
-  for (const b of equipes) {
-    if (a === b) continue;
-    for (let i = 0; i < PARTIES; i++) {
-      const { winner, B } = duel(a.cfg, b.cfg);
-      parties++;
-      tours += B.turnNo;
-      if (winner === 'stuck') bloquees++;
-      if (winner === 'draw') nulles++;
-      for (const k of ['p', 'e']) {
-        // Une carte posee est soit a la defausse (sort joue, allie mort), soit sur le
-        // plateau (allie encore en vie, sa carte voyage avec l'unite).
-        const posees = [...B[k].discard, ...B[k].board.map(u => u.card).filter(Boolean)];
-        for (const c of posees) { compte(jouees, c.name); compte(piochees, c.name); }
-        for (const c of B[k].hand) compte(piochees, c.name);
-      }
-      for (const slot of Object.keys(B.fired)) declenches.add(slot);
-    }
+const taches = [];
+for (let i = 0; i < equipes.length; i++) for (let j = 0; j < equipes.length; j++) if (i !== j) taches.push({ i, j });
+
+await enParallele(taches, new URL('./lib/taches-controle.mjs', import.meta.url), {
+  contexte: { recettes: equipes.map(e => e.recette), partiesParPaire: PARTIES },
+  unite: 'paire(s)',
+  surResultat: (_, r) => {
+    parties += r.parties; bloquees += r.bloquees; tours += r.tours; nulles += r.nulles;
+    for (const [nom, n] of r.jouees) ajoute(jouees, nom, n);
+    for (const [nom, n] of r.piochees) ajoute(piochees, nom, n);
+    for (const slot of r.declenches) declenches.add(slot);
   }
-}
+});
 
 console.log(`  ${parties} parties, ${(tours / parties).toFixed(1)} tours en moyenne, ${nulles} nulle(s).`);
 if (bloquees) console.log(rouge(`  ${bloquees} partie(s) bloquee(s) : le moteur tourne en rond.`));

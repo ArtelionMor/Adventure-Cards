@@ -21,7 +21,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { hostname, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PORT as PORT_DEFAUT, MODULES, empreinte, moduleDeDonnees } from './lib/renforts.mjs';
+import { PORT as PORT_DEFAUT, moduleConnu, empreinte, moduleDeDonnees } from './lib/renforts.mjs';
 import { nombreDeJobs } from './lib/pool.mjs';
 
 const PORT = Number(process.env.ADVENTURE_RENFORT_PORT) || PORT_DEFAUT;
@@ -61,7 +61,7 @@ function fichierDeDonnees(donnees) {
 async function lot(req, res) {
   let p;
   try { p = JSON.parse(await litCorps(req)); } catch (e) { json(res, 400, { erreur: 'paquet illisible : ' + e.message }); return; }
-  if (!MODULES.includes(p.module)) { json(res, 400, { erreur: 'module refusé : ' + p.module }); return; }
+  if (!moduleConnu(p.module)) { json(res, 400, { erreur: 'module refusé : ' + p.module }); return; }
   if (!Array.isArray(p.taches) || !p.taches.length) { json(res, 400, { erreur: 'aucune tâche' }); return; }
   if (!p.donnees || typeof p.donnees !== 'object') { json(res, 400, { erreur: 'données manquantes' }); return; }
   // Le code a pu changer entre la sonde et ce paquet (un « git pull » en plein calcul).
@@ -96,7 +96,7 @@ async function lot(req, res) {
     const lignes = erreurs.split('\n').map(l => l.trim()).filter(l => l && !/^Node\.js v\d/.test(l));
     const derniere = (lignes.find(l => /^\w*Error\b|^Error:/.test(l)) || lignes.pop() || '').slice(0, 300);
     res.end(code === 0 ? '{"fin":true}\n' : JSON.stringify({ erreur: `le paquet a échoué (code ${code}) : ${derniere}` }) + '\n');
-    console.log(`${heure()} · ${p.taches.length} ${p.module === 'taches-courbe' ? 'combinaisons' : 'cases'} en `
+    console.log(`${heure()} · ${p.taches.length} tâche(s) de ${p.module.replace('taches-', '')} en `
       + `${Math.round((Date.now() - debut) / 1000)} s${code === 0 ? '' : ' — ÉCHEC : ' + derniere}`);
   });
   enfant.stdin.end(JSON.stringify({ module: p.module, contexte: p.contexte || {}, taches: p.taches }));

@@ -21,12 +21,9 @@
 //     --logs f.txt       ecrit le detail de chaque decision dans un fichier
 //     --tout             affiche toutes les cartes, pas seulement les remarquables
 import { writeFileSync } from 'node:fs';
-import { cpus } from 'node:os';
-import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
-import { progression, finProgression } from './lib/progression.mjs';
+import { enParallele, nombreDeJobs } from './lib/pool.mjs';
 import { CHARACTER_DATA } from '../game/data/characters.data.js';
-import { campPerso, campPnj, duel } from '../game/src/tools/arene.js';
-import { ecouteLesChoix } from '../game/src/combat/ai.js';
+import { campPerso, campPnj } from '../game/src/tools/arene.js';
 import { BALANCE } from '../game/src/config/balance.js';
 
 // ---------------------------------------------------------------- arguments
@@ -77,65 +74,12 @@ const fiche = nom => {
 let decisions = 0, avecChoix = 0;
 const lignes = [];
 
-ecouteLesChoix(d => {
-  decisions++;
-  // Seules les decisions ou une CARTE etait jouable nous interessent : « attaquer ou
-  // passer » ne dit rien sur le deck.
-  const jouables = d.candidats.filter(c => c.quoi === 'carte');
-  if (!jouables.length) return;
-  avecChoix++;
-
-  const meilleur = d.candidats.reduce((a, b) => ((b.victoires ?? -1) > (a.victoires ?? -1) ? b : a), d.candidats[0]);
-  for (const c of jouables) {
-    const f = fiche(c.nom);
-    f.propose++;
-    if (c.valeur !== undefined) { f.sommeValeur += c.valeur; f.nValeur++; }
-    // L'ECART AU MEILLEUR COUP, en points de victoire. C'est le seul chiffre du
-    // Monte-Carlo qui parle de la CARTE : le taux brut, lui, dit surtout si la position
-    // etait gagnante — une bonne carte dans une partie perdue affiche 0 %.
-    // 0 = elle valait le meilleur coup du moment.
-    if (c.victoires !== undefined && meilleur.victoires !== undefined) {
-      f.sommeEcart += meilleur.victoires - c.victoires;
-      f.nEcart++;
-    }
-    if (c.nom === d.choisi.nom) f.joue++;
-    // Ce qu'on lui a prefere : c'est le coeur de l'analyse.
-    else f.prefereA.set(d.choisi.nom, (f.prefereA.get(d.choisi.nom) || 0) + 1);
-  }
-
-  if (fichierLogs) {
-    const dit = c => `${c.nom}${c.victoires === undefined ? '' : ` ${pc(c.victoires)}`}${c.valeur === undefined ? '' : ` (valeur ${c.valeur})`}`;
-    const autres = d.candidats.filter(c => c !== d.choisi).map(dit).join(', ');
-    lignes.push(`T${d.tour} ${d.nom} — joue ${dit(d.choisi)}   devant : ${autres || '(rien d’autre)'}`);
-  }
-});
-
 // ------------------------------------------------------------------ les parties
-// UNE PARTIE NE DEPEND D'AUCUNE AUTRE : on les repartit sur les coeurs. Chaque worker
-// depouille sa part et renvoie ses compteurs ; le total n'est qu'une somme, donc le
-// resultat est le meme qu'en un seul fil (au hasard des tirages pres).
+// UNE PARTIE NE DEPEND D'AUCUNE AUTRE : elles passent par la file de taches commune
+// (scripts/lib/pool.mjs), donc sur tous les coeurs d'ici ET sur ceux des renforts.
+// Chaque tache depouille sa part et rend des COMPTEURS ; le total n'est qu'une somme, si
+// bien que le resultat est le meme qu'en un seul fil (au hasard des tirages pres).
 let victoires = 0, nulles = 0;
-
-/** Joue `n` parties. `depart` decale qui commence, pour garder l'alternance globale. */
-function joueSerie(n, depart) {
-  for (let i = 0; i < n; i++) {
-    // On alterne qui commence : l'avantage du premier tour est reel, et il fausserait
-    // les preferences si un seul camp en profitait.
-    const joueurCommence = (depart + i) % 2 === 0;
-    const { winner } = joueurCommence
-      ? duel(campJoueur, campAdverse, { bot: reglageBot })
-      : duel(campAdverse, campJoueur, { bot: reglageBot });
-    const gagne = joueurCommence ? winner === 'p' : winner === 'e';
-    if (winner === 'draw' || winner === 'stuck') nulles++;
-    else if (gagne) victoires++;
-  }
-}
-
-/** Ce qu'un worker renvoie : des compteurs, donc additionnables tels quels. */
-const paquet = () => ({
-  victoires, nulles, decisions, avecChoix, lignes,
-  cartes: [...cartes.values()].map(f => ({ ...f, prefereA: [...f.prefereA.entries()] }))
-});
 
 function fusionne(q) {
   victoires += q.victoires; nulles += q.nulles;
@@ -148,38 +92,24 @@ function fusionne(q) {
   }
 }
 
-// --- le worker : il joue sa part et renvoie ses comptes, il n'affiche rien.
-if (!isMainThread) {
-  joueSerie(workerData.n, workerData.depart);
-  parentPort.postMessage(paquet());
-  process.exit(0);
-}
+// Une tache = UNE partie tant que ca reste raisonnable : c'est le grain le plus fin, donc
+// le mieux reparti entre des machines qui n'ont ni le meme nombre de coeurs ni la meme
+// vitesse. Au-dela, on groupe pour ne pas envoyer des milliers de messages.
+const parTache = Math.max(1, Math.ceil(parties / 256));
+const taches = [];
+for (let fait = 0; fait < parties; fait += parTache) taches.push({ n: Math.min(parTache, parties - fait), depart: fait });
 
-const coeurs = Math.max(1, Number(valeur('jobs', 0)) || Math.max(1, cpus().length - 1));
-const jobs = Math.max(1, Math.min(coeurs, parties));
-
+const jobs = Math.max(1, Math.min(nombreDeJobs(), taches.length));
 console.log(`\nAnalyse : ${parties} partie(s), bot « ${niveauBot} », ${jobs} en parallèle.`);
 console.log(`  ${campJoueur.name} (niveau ${niveauCartes}, ${cote === 'cards' ? 'base' : 'switch'}) contre ${campAdverse.name}.`);
 
 const debut = Date.now();
-if (jobs === 1) {
-  joueSerie(parties, 0);
-} else {
-  // Une part par worker, le reste distribue sur les premiers.
-  let depart = 0, finies = 0;
-  const parts = Array.from({ length: jobs }, (_, i) => Math.floor(parties / jobs) + (i < parties % jobs ? 1 : 0));
-  await Promise.all(parts.map(n => {
-    const mien = depart; depart += n;
-    return new Promise((ok, ko) => {
-      const w = new Worker(new URL(import.meta.url), { workerData: { n, depart: mien }, argv: args });
-      w.on('message', q => { fusionne(q); finies += n; progression(finies, parties, 'partie(s)'); });
-      w.on('error', ko);
-      w.on('exit', ok);
-    });
-  }));
-  finProgression();
-}
-ecouteLesChoix(null);
+await enParallele(taches, new URL('./lib/taches-analyse.mjs', import.meta.url), {
+  contexte: { persos, niveau: niveauCartes, cote, pnj: pnjId, bot: reglageBot, logs: !!fichierLogs },
+  jobs,
+  unite: parTache === 1 ? 'partie(s)' : 'paquet(s)',
+  surResultat: (i, q) => fusionne(q)
+});
 console.log(`\r  ${parties} partie(s) en ${Math.round((Date.now() - debut) / 1000)} s — ${campJoueur.name} gagne ${victoires}, nul/bloque ${nulles}.`);
 console.log(`  ${decisions} decision(s) avec un choix, dont ${avecChoix} ou une carte etait jouable.\n`);
 
