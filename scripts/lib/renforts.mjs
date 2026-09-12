@@ -78,6 +78,25 @@ export function empreinte() {
   for (const d of ['game/src/combat', 'game/src/config', 'game/src/tools'])
     for (const f of readdirSync(join(RACINE, d)).filter(f => f.endsWith('.js')).sort()) fichiers.push(`${d}/${f}`);
   for (const m of modules()) fichiers.push(`scripts/lib/${m}.mjs`);
+  return hache(fichiers);
+}
+
+/**
+ * L'EMPREINTE DU RENFORT LUI-MEME — non pas le code qui JOUE, mais celui qui RECOIT.
+ *
+ * ⚠ Un « git pull » met les fichiers a jour SANS relancer le processus. Le renfort
+ * annonce alors la bonne empreinte de calcul (elle se relit sur le disque) tout en
+ * tournant sur son ancien code : il est accepte, puis refuse le paquet — c'est ce qui
+ * est arrive le jour ou la liste des modules de taches a cesse d'etre ecrite a la main.
+ * Comparee a ce qu'elle valait au demarrage, elle dit « relance-moi ».
+ */
+export function empreinteDuRenfort() {
+  return hache(['scripts/renfort.mjs', 'scripts/lib/renforts.mjs', 'scripts/lib/pool.mjs',
+    'scripts/lib/renfort-lot.mjs', 'scripts/lib/ouvrier.mjs']);
+}
+
+/** Le condense d'une liste de fichiers, fins de ligne ramenees a \n (Windows et le Pi). */
+function hache(fichiers) {
   const h = createHash('sha256');
   for (const f of fichiers) h.update(`${f}\n${readFileSync(join(RACINE, f), 'utf8').replace(/\r\n/g, '\n')}\n`);
   return h.digest('hex').slice(0, 16);
@@ -111,6 +130,11 @@ export async function sonde(m, ms = 2500) {
     const e = await r.json();
     if (e.empreinte !== empreinte()) {
       return { ok: false, coeurs: e.coeurs, pourquoi: 'pas le même code (faire « git pull » sur cette machine)' };
+    }
+    // Les fichiers sont a jour, mais le processus tourne encore sur les anciens : il
+    // refuserait le paquet. Mieux vaut le dire ici que le decouvrir a la premiere case.
+    if (e.aRedemarrer) {
+      return { ok: false, coeurs: e.coeurs, pourquoi: 'code mis à jour depuis son lancement : relancer le renfort sur cette machine' };
     }
     return { ok: true, coeurs: e.coeurs, machine: e.machine };
   } catch (e) {

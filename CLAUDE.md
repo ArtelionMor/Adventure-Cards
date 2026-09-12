@@ -256,6 +256,16 @@ fixe fait seul une matrice trois fois plus vite que le Pi (31 s contre 99 s).
   `scripts/lib/taches-*.mjs` qu'il a sur son disque (`modules()`), relus à chaque demande.
   Un outil écrit demain est donc partagé sans qu'on tienne une liste à jour, et sans rien
   relâcher : il ne charge jamais que ses propres fichiers, et l'empreinte les couvre tous.
+- ⚠ **Un `git pull` ne relance pas le renfort**, et c'est le piège qui suit le précédent :
+  le processus tourne toujours sur son ancien code alors qu'il annonce la **bonne**
+  empreinte de calcul — elle se relit sur le disque. Il était donc accepté, puis refusait
+  le paquet (« module refusé »), et le calcul finissait sans lui. Il compare maintenant le
+  code **qui reçoit** (`renfort.mjs`, `renforts`, `pool`, `renfort-lot`, `ouvrier` :
+  `empreinteDuRenfort()`) à ce qu'il valait à son lancement, le dit dans `/etat`
+  (`aRedemarrer`) et refuse d'avance : la page affiche « relancer le renfort sur cette
+  machine » au lieu d'un paquet perdu. Sur un PC : arrêter puis relancer la tâche
+  planifiée — **depuis la session de l'utilisateur**, jamais par SSH (elle mourrait à la
+  déconnexion). Modifier des cartes ou le moteur, en revanche, ne demande qu'un `git pull`.
 - **Ouvrir un PC** : comme pour Ollama, une règle de pare-feu entrante TCP 7331 limitée à
   `100.64.0.0/10`, et le renfort lancé à l'ouverture de session. Il faut Node et le
   projet à jour sur le PC. Sans ça, qui joint le port peut occuper ses cœurs.

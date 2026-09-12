@@ -21,7 +21,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { hostname, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PORT as PORT_DEFAUT, moduleConnu, empreinte, moduleDeDonnees } from './lib/renforts.mjs';
+import { PORT as PORT_DEFAUT, moduleConnu, empreinte, empreinteDuRenfort, moduleDeDonnees } from './lib/renforts.mjs';
 import { nombreDeJobs } from './lib/pool.mjs';
 
 const PORT = Number(process.env.ADVENTURE_RENFORT_PORT) || PORT_DEFAUT;
@@ -29,6 +29,10 @@ const JOBS = nombreDeJobs();
 const LOT = fileURLToPath(new URL('./lib/renfort-lot.mjs', import.meta.url));
 const CROCHET = new URL('./lib/brouillon.mjs', import.meta.url).href;
 const CORPS_MAX = 50 * 1024 * 1024;
+// Ce que valait le code du renfort AU DEMARRAGE : apres un « git pull », ce processus
+// tourne toujours sur l'ancien, et c'est la seule chose qu'il ne peut pas relire.
+const MOI = empreinteDuRenfort();
+const aRedemarrer = () => empreinteDuRenfort() !== MOI;
 let occupe = 0;
 
 const heure = () => new Date().toLocaleTimeString('fr-FR');
@@ -61,6 +65,7 @@ function fichierDeDonnees(donnees) {
 async function lot(req, res) {
   let p;
   try { p = JSON.parse(await litCorps(req)); } catch (e) { json(res, 400, { erreur: 'paquet illisible : ' + e.message }); return; }
+  if (aRedemarrer()) { json(res, 409, { erreur: 'renfort à relancer sur cette machine (son code a changé depuis son lancement)' }); return; }
   if (!moduleConnu(p.module)) { json(res, 400, { erreur: 'module refusé : ' + p.module }); return; }
   if (!Array.isArray(p.taches) || !p.taches.length) { json(res, 400, { erreur: 'aucune tâche' }); return; }
   if (!p.donnees || typeof p.donnees !== 'object') { json(res, 400, { erreur: 'données manquantes' }); return; }
@@ -105,7 +110,7 @@ async function lot(req, res) {
 const serveur = http.createServer((req, res) => {
   const chemin = req.url.split('?')[0];
   if (req.method === 'GET' && chemin === '/etat') {
-    json(res, 200, { machine: hostname(), empreinte: empreinte(), coeurs: JOBS, occupe });
+    json(res, 200, { machine: hostname(), empreinte: empreinte(), coeurs: JOBS, occupe, aRedemarrer: aRedemarrer() });
     return;
   }
   if (req.method === 'POST' && chemin === '/lot') {
