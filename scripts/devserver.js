@@ -9,7 +9,9 @@
 //
 // ⚠ Le serveur ecoute sur TOUTES les interfaces : c'est ce qui permet au Pi de servir
 // le telephone (Wi-Fi ou Tailscale). Ne jamais l'exposer a internet : /api/write ecrit
-// et /api/run lance des scripts, sans aucun mot de passe.
+// et /api/run lance des scripts, sans aucun mot de passe. ADVENTURE_HOST restreint
+// l'ecoute a une adresse — c'est ce que passe AdventureCard.exe (127.0.0.1), qui n'a
+// que sa propre machine a servir et evite ainsi la demande de pare-feu de Windows.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -19,6 +21,11 @@ const { pathToFileURL } = require('url');
 
 const ROOT = path.resolve(__dirname, '..');
 const PORT = process.env.PORT || 7330;
+// ⚠ SANS VARIABLE, ON NE PASSE PAS D'ADRESSE DU TOUT (undefined) : Node ecoute alors en
+// double pile (« :: », IPv4 comprise), exactement comme avant. Un « 0.0.0.0 » ecrit ici
+// serait une regression silencieuse : il ne prend pas IPv6, et sur le Pi « localhost »
+// resout d'abord ::1 — tailscale serve n'aurait plus rien a proxyfier.
+const HOTE = process.env.ADVENTURE_HOST || undefined;
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
@@ -642,7 +649,15 @@ http.createServer((req, res) => {
     });
     res.end(buf);
   });
-}).listen(PORT, () => {
+}).listen(PORT, HOTE, () => {
+  // AdventureCard.exe annonce deja ces adresses, et mieux que nous (il sait s'il a pu
+  // nous lancer) : sous ADVENTURE_DISCRET on ne dit plus que « je suis la », sinon la
+  // console du launcher listait le builder et l'Atelier deux fois.
+  if (process.env.ADVENTURE_DISCRET) {
+    console.log('devserver.js pret  : port ' + PORT + (HOTE ? ' sur ' + HOTE : ''));
+    return;
+  }
   console.log('Adventure Card dev  : http://localhost:' + PORT + '/game/index.html');
   console.log('Card Builder        : http://localhost:' + PORT + '/builder/index.html');
+  console.log('Atelier             : http://localhost:' + PORT + '/builder/accueil.html');
 });

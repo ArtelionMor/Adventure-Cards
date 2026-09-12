@@ -9,14 +9,38 @@ Avant de travailler sur ce projet, lis **`docs/GDD.md`** : c'est le document de 
 - Version finale : portage Godot ou Unity.
 
 ## Lancer le prototype
-`AdventureCard.exe` à la racine (serveur local + fenêtre format téléphone).
-Alternative dev : `node scripts/devserver.js` → http://localhost:7330/game/index.html
+`AdventureCard.exe` à la racine (fenêtre format téléphone). Alternative dev :
+`node scripts/devserver.js` → http://localhost:7330/game/index.html
+
+**L'exe ne sert plus les fichiers lui-même quand il peut faire mieux** : il lance
+`scripts/devserver.js` — le serveur du Pi — et ouvre la fenêtre dessus. C'est ce qui donne
+sur le PC tout ce qui ne vivait que sur le Pi : « Lancer un calcul », l'analyse par l'IA
+locale, les renforts, les notifications. Il le lance sur **127.0.0.1** (`ADVENTURE_HOST`),
+donc Windows ne demande pas d'ouvrir le pare-feu, et il le **tue en partant** (l'arbre
+entier : un calcul en cours est un processus fils). Un `devserver.js` déjà lancé à la main
+est reconnu (`/api/run` répond 200) et **réutilisé**, pas doublé.
+
+Sans Node, il se rabat sur son **serveur intégré** (le C# de `launcher/Launcher.cs`, ports
+7332+ — 7330 est à `devserver.js`, 7331 au renfort) : le jeu et le builder marchent,
+`/api/run` répond 404 et `builder/lancer.html` le dit.
+
+⚠ **L'adresse est `localhost`, jamais `127.0.0.1`** : ce sont deux origines différentes
+pour un navigateur, donc deux `localStorage`. Le brouillon du builder, les réglages de
+« Lancer un calcul » et l'autorisation des notifications sont rangés là — en `127.0.0.1`,
+l'exe ne voyait pas le brouillon commencé sous `node scripts/devserver.js`.
+
+⚠ **On ne suit pas le processus du navigateur** pour savoir quand quitter : Edge passe la
+main à un autre processus et sort aussitôt, si bien qu'attendre sa sortie couperait le
+serveur sous une fenêtre encore ouverte. C'est le **verrou du profil** qu'on interroge
+(`lockfile`, que Chromium garde ouvert en exclusif tant qu'il tourne).
 
 ## Card Builder
 `builder/index.html` (servi à `/builder/index.html`) — l'outil de game design pour les cartes,
 sur le modèle du builder de build de Teliau's Toolbelt. Il écrit `game/data/characters.data.js`
 et `docs/MECANIQUES-A-CODER.md` via `POST /api/write` (implémenté dans `scripts/devserver.js`
-**et** dans `launcher/Launcher.cs` — modifier les deux).
+**et** dans `launcher/Launcher.cs` — modifier les deux). L'exe passe maintenant la main à
+`devserver.js` quand Node est installé, donc la copie C# ne sert plus qu'au **repli** sans
+Node : elle doit rester correcte, mais ce n'est plus elle qu'on exerce tous les jours.
 
 **Les images disponibles** (le portrait d'un héros, d'un PNJ ou d'une carte) viennent de
 `game/data/sprites.js`, la liste des fichiers de `Characters/`, `Machines/`, `Ressources/`
@@ -130,9 +154,10 @@ l'ajouter à `EFFECTS`/`KEYWORDS` dans `game/src/config/mechanics.js` et retirer
 `builder/lancer.html` lance les outils de `scripts/` **sur la machine qui sert la page**
 — le Pi, en pratique — et n'affiche que leur sortie : c'est ce qui rend l'équilibrage
 possible depuis un téléphone, dont le navigateur est bien trop lent pour `balance.html`.
-C'est `/api/run` de `scripts/devserver.js`, et lui seul : `launcher/Launcher.cs` ne l'a
-**pas** (l'exe répond 404 et la page le dit). Contrairement à `/api/write`, il n'y a pas à
-le doubler — sur le PC, on a les scripts en ligne de commande.
+C'est `/api/run` de `scripts/devserver.js`, et lui seul. **Il n'est pas doublé en C#** —
+il lance des scripts Node, le réécrire n'aurait aucun sens : c'est `AdventureCard.exe` qui
+lance `devserver.js` quand Node est là (cf. « Lancer le prototype »), et qui se rabat sur
+son serveur intégré sinon — l'exe répond alors 404 et la page le dit.
 
 - **Liste blanche** (`OUTILS`, dans le serveur, et son miroir dans la page) : simulate,
   matchups, check-decks, analyse-cartes et les deux bancs. Arguments courts, sans espace ;

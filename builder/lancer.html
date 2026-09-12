@@ -151,14 +151,16 @@
 <div class="wrap">
   <h1>Lancer un calcul</h1>
   <p class="lede">
-    Les outils de mesure de <code>scripts/</code>, lancés <strong>sur la machine qui sert cette page</strong> (le Pi) :
-    le téléphone ne fait qu'afficher le résultat. On lance une <strong>file</strong> — un calcul, ou le même du niveau 1
-    au niveau 20, ou des outils différents à la suite — et elle continue si l'écran se met en veille ou si tu fermes la page.
+    Les outils de mesure de <code>scripts/</code>, lancés <strong>sur la machine qui sert cette page</strong> — le Pi
+    depuis le téléphone, le PC quand c'est lui qui sert. On lance une <strong>file</strong> — un calcul, ou le même du
+    niveau 1 au niveau 20, ou des outils différents à la suite — et elle continue si l'écran se met en veille ou si tu
+    fermes la page.
   </p>
 
   <div class="alerte" id="indispo" hidden>
-    Ce serveur ne sait pas lancer de calcul. Cette page a besoin de <code>node scripts/devserver.js</code>
-    (c'est lui qui tourne sur le Pi) ; <code>AdventureCard.exe</code> ne le fait pas.
+    Ce serveur ne sait pas lancer de calcul. Cette page a besoin de <code>node scripts/devserver.js</code> —
+    celui du Pi, et celui que lance <code>AdventureCard.exe</code> quand Node est installé. Sans Node, l'exe se
+    rabat sur son serveur intégré, qui sert les fichiers mais ne lance rien.
   </div>
 
   <section class="panel">

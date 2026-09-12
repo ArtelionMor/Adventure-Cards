@@ -1,7 +1,15 @@
-// Adventure Card - launcher Windows natif.
-// Sert le dossier du jeu via un mini serveur HTTP local (TcpListener : aucun droit admin
-// requis, contrairement a HttpListener qui demande une reservation d'URL), puis ouvre
-// Edge en mode application. Se ferme quand la fenetre du jeu est fermee.
+// Adventure Card - launcher Windows natif. Ouvre Edge en mode application sur le jeu et
+// se ferme quand la fenetre du jeu est fermee.
+//
+// DEUX SERVEURS, ET IL PREFERE LE PREMIER :
+//   1. scripts/devserver.js, le MEME que sur le Pi, lance ici quand Node est installe.
+//      C'est lui qui apporte « Lancer un calcul », l'analyse par l'IA locale, les
+//      renforts et les notifications - tout ce que le PC n'avait pas.
+//   2. a defaut, le mini serveur HTTP integre ci-dessous (TcpListener : aucun droit admin
+//      requis, contrairement a HttpListener qui demande une reservation d'URL). Il sert
+//      les fichiers, /api/write et /api/sprites : le jeu et le builder marchent, les
+//      calculs non - et builder/lancer.html le dit au lieu de rester muette.
+// Reecrire /api/run en C# n'aurait aucun sens : il lance des scripts Node.
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,6 +24,11 @@ static class Launcher
     static string Root;
     static int Port;
     static volatile bool Running = true;
+
+    // Le port de scripts/devserver.js. Le meme que sur le Pi, pour qu'une adresse notee
+    // quelque part marche des deux cotes.
+    const int PortNode = 7330;
+    static Process node;   // non nul seulement si c'est NOUS qui l'avons lance
 
     static readonly Dictionary<string, string> Mime = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -53,36 +66,192 @@ static class Launcher
             return 1;
         }
 
-        TcpListener listener;
-        Port = StartListener(out listener);
-        if (Port == 0) { Console.Error.WriteLine("Aucun port libre."); Pause(); return 1; }
+        // Une fenetre fermee a la croix ne passe pas par la fin de Main : sans ca, un
+        // devserver lance par nous survivrait au launcher et garderait le port.
+        AppDomain.CurrentDomain.ProcessExit += delegate { ArreteNode(); };
 
-        Thread server = new Thread(delegate() { Serve(listener); });
-        server.IsBackground = true;
-        server.Start();
-
-        string url = "http://127.0.0.1:" + Port + "/game/index.html";
-        Console.WriteLine("Adventure Card");
-        Console.WriteLine("Serveur local : " + url);
-        Console.WriteLine("Racine        : " + Root);
-        Console.WriteLine("Card Builder  : http://127.0.0.1:" + Port + "/builder/index.html");
-        Console.WriteLine("Ferme la fenetre du jeu pour quitter.");
-
-        Process browser = OpenBrowser(url);
-        if (browser == null)
+        // 1. LE SERVEUR COMPLET. Deja en route (lance a la main) : on le reutilise tel
+        //    quel. Sinon on le lance, si Node est installe.
+        bool complet = false;
+        if (File.Exists(Path.Combine(Root, "scripts", "devserver.js")))
         {
-            Console.WriteLine("Navigateur dedie introuvable : ouverture dans le navigateur par defaut.");
-            try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
-            Console.WriteLine("Appuie sur Entree pour arreter le serveur.");
-            Console.ReadLine();
+            if (ServeurComplet(PortNode))
+            {
+                Console.WriteLine("devserver.js deja en route sur le port " + PortNode + " : on le reutilise.");
+                complet = true;
+            }
+            else
+            {
+                string exeNode = TrouveNode();
+                if (exeNode == null)
+                {
+                    Console.WriteLine("Node introuvable : serveur integre (pas de « Lancer un calcul »).");
+                }
+                else
+                {
+                    Console.WriteLine("Demarrage de scripts/devserver.js ...");
+                    complet = LanceNode(exeNode);
+                    if (!complet) Console.WriteLine("devserver.js n'a pas repondu : repli sur le serveur integre.");
+                }
+            }
+        }
+
+        TcpListener listener = null;
+        if (complet)
+        {
+            Port = PortNode;
         }
         else
         {
-            browser.WaitForExit();
+            Port = StartListener(out listener);
+            if (Port == 0) { Console.Error.WriteLine("Aucun port libre."); Pause(); return 1; }
+            Thread server = new Thread(delegate() { Serve(listener); });
+            server.IsBackground = true;
+            server.Start();
+        }
+
+        // « localhost » ET PAS « 127.0.0.1 » : ce sont deux origines differentes pour un
+        // navigateur, donc deux localStorage. Le brouillon du builder, les reglages de
+        // « Lancer un calcul » et l'autorisation des notifications sont ranges la : avec
+        // 127.0.0.1, l'exe ne voyait pas le brouillon commence sous « node devserver.js ».
+        string racine = "http://localhost:" + Port;
+        string url = racine + "/game/index.html";
+        Console.WriteLine("Adventure Card");
+        Console.WriteLine("Jeu           : " + url);
+        Console.WriteLine("Atelier       : " + racine + "/builder/accueil.html");
+        Console.WriteLine("Card Builder  : " + racine + "/builder/index.html");
+        Console.WriteLine(complet
+            ? "Calculs       : " + racine + "/builder/lancer.html (analyse IA, renforts, notifications)"
+            : "Calculs       : indisponibles sans Node - installe-le pour les avoir.");
+        Console.WriteLine("Racine        : " + Root);
+        Console.WriteLine("Ferme la fenetre du jeu pour quitter.");
+
+        Process browser = OpenBrowser(url);
+        bool suivi = false;
+        if (browser != null)
+        {
+            // ⚠ ON NE SUIT PAS LE PROCESSUS QU'ON A LANCE. Edge passe la main a un autre
+            // processus et sort aussitot (toujours quand une fenetre utilise deja ce
+            // profil, souvent meme a froid) : attendre sa sortie couperait le serveur -
+            // et depuis qu'il y en a un, le devserver avec - sous une fenetre de jeu
+            // encore ouverte. On interroge le VERROU DU PROFIL, que Chromium garde ouvert
+            // en exclusif tant qu'il tourne : c'est vrai pour Edge comme pour Chrome.
+            for (int i = 0; i < 50 && !NavigateurOuvert(); i++) Thread.Sleep(200);  // il met un instant a paraitre
+            suivi = NavigateurOuvert();
+            while (NavigateurOuvert()) Thread.Sleep(1000);
+        }
+        if (!suivi)
+        {
+            if (browser == null)
+            {
+                Console.WriteLine("Navigateur dedie introuvable : ouverture dans le navigateur par defaut.");
+                try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
+            }
+            else Console.WriteLine("Fenetre du jeu introuvable (pas de verrou de profil).");
+            Console.WriteLine("Appuie sur Entree (ou ferme cette fenetre) pour arreter le serveur.");
+            Console.ReadLine();
         }
         Running = false;
-        try { listener.Stop(); } catch { }
+        try { if (listener != null) listener.Stop(); } catch { }
+        ArreteNode();
         return 0;
+    }
+
+    // ------------------------------------------------------------- LE SERVEUR DE NODE
+
+    /** Y a-t-il DEJA un devserver.js sur ce port ? On lui demande /api/run : le serveur
+     *  integre repondrait 404, et n'importe quoi d'autre ne repondrait pas du HTTP -
+     *  c'est ce qui le distingue d'un simple port ouvert. */
+    static bool ServeurComplet(int port)
+    {
+        try
+        {
+            using (TcpClient c = new TcpClient())
+            {
+                IAsyncResult a = c.BeginConnect(IPAddress.Loopback, port, null, null);
+                if (!a.AsyncWaitHandle.WaitOne(400)) return false;
+                c.EndConnect(a);
+                c.ReceiveTimeout = 2000;
+                NetworkStream ns = c.GetStream();
+                byte[] q = Encoding.ASCII.GetBytes("GET /api/run HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n");
+                ns.Write(q, 0, q.Length);
+                byte[] buf = new byte[32];
+                int n = ns.Read(buf, 0, buf.Length);
+                return n > 12 && Encoding.ASCII.GetString(buf, 0, n).StartsWith("HTTP/1.1 200");
+            }
+        }
+        catch { return false; }
+    }
+
+    /** node.exe : le PATH d'abord (c'est la que l'installeur le met), puis les deux
+     *  dossiers habituels - un exe lance depuis l'explorateur herite d'un PATH complet,
+     *  mais autant ne pas en dependre. */
+    static string TrouveNode()
+    {
+        string chemin = Environment.GetEnvironmentVariable("PATH");
+        if (chemin != null)
+        {
+            foreach (string d in chemin.Split(';'))
+            {
+                if (d.Trim().Length == 0) continue;
+                try
+                {
+                    string f = Path.Combine(d.Trim(), "node.exe");
+                    if (File.Exists(f)) return f;
+                }
+                catch { }   // un PATH peut contenir des caracteres interdits dans un chemin
+            }
+        }
+        string[] pistes =
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "nodejs\\node.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "nodejs\\node.exe")
+        };
+        foreach (string f in pistes) if (File.Exists(f)) return f;
+        return null;
+    }
+
+    /** Lance scripts/devserver.js et attend qu'il reponde (20 s au plus : le port peut
+     *  etre pris par autre chose, et Node sort alors tout seul). */
+    static bool LanceNode(string exeNode)
+    {
+        ProcessStartInfo psi = new ProcessStartInfo(exeNode, "scripts/devserver.js");
+        psi.WorkingDirectory = Root;
+        psi.UseShellExecute = false;   // requis pour EnvironmentVariables, et garde la console
+        psi.EnvironmentVariables["PORT"] = PortNode.ToString();
+        // LOOPBACK. Sur le Pi le serveur ecoute partout (c'est ce qui sert le telephone) ;
+        // ici il n'a que cette machine a servir, et Windows ne demande donc pas d'ouvrir
+        // le pare-feu au premier lancement.
+        psi.EnvironmentVariables["ADVENTURE_HOST"] = "127.0.0.1";
+        // Sa banniere ferait doublon avec la notre, juste en dessous.
+        psi.EnvironmentVariables["ADVENTURE_DISCRET"] = "1";
+        try { node = Process.Start(psi); }
+        catch { node = null; return false; }
+        for (int i = 0; i < 100 && !node.HasExited; i++)
+        {
+            if (ServeurComplet(PortNode)) return true;
+            Thread.Sleep(200);
+        }
+        ArreteNode();
+        return false;
+    }
+
+    /** On tue l'ARBRE : un calcul en cours est un processus fils de devserver.js, et il
+     *  garderait les coeurs de la machine. Un serveur qu'on n'a pas lance n'est pas a nous. */
+    static void ArreteNode()
+    {
+        Process p = node;
+        node = null;
+        if (p == null) return;
+        try
+        {
+            if (p.HasExited) return;
+            ProcessStartInfo psi = new ProcessStartInfo("taskkill", "/PID " + p.Id + " /T /F");
+            psi.UseShellExecute = false;
+            psi.CreateNoWindow = true;
+            Process.Start(psi).WaitForExit(5000);
+        }
+        catch { }
     }
 
     static string FindRoot(string start)
@@ -98,7 +267,8 @@ static class Launcher
 
     static int StartListener(out TcpListener listener)
     {
-        for (int p = 7331; p < 7381; p++)
+        // On demarre a 7332 : 7330 est a devserver.js, 7331 au renfort (scripts/renfort.mjs).
+        for (int p = 7332; p < 7381; p++)
         {
             try
             {
@@ -113,10 +283,33 @@ static class Launcher
         return 0;
     }
 
+    /** Le profil du navigateur du jeu : un dossier a nous, separe de celui de l'utilisateur. */
+    static string Profil()
+    {
+        return Path.Combine(Path.GetTempPath(), "AdventureCardProfile");
+    }
+
+    /** La fenetre du jeu est-elle encore ouverte ? Chromium tient « lockfile » a la racine
+     *  du profil en exclusif tant qu'il tourne : si on arrive a le prendre, il est parti. */
+    static bool NavigateurOuvert()
+    {
+        string f = Path.Combine(Profil(), "lockfile");
+        if (!File.Exists(f)) return false;
+        try
+        {
+            using (File.Open(f, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
+            return false;
+        }
+        catch (FileNotFoundException) { return false; }   // derive d'IOException : avant elle
+        catch (IOException) { return true; }
+        catch (UnauthorizedAccessException) { return true; }
+        catch { return false; }
+    }
+
     static Process OpenBrowser(string url)
     {
         // Fenetre "app" (sans barre d'adresse) au format telephone : le jeu est concu portrait.
-        string profile = Path.Combine(Path.GetTempPath(), "AdventureCardProfile");
+        string profile = Profil();
         string flags = "--app=" + url
             + " --user-data-dir=\"" + profile + "\""
             + " --window-size=430,880"
