@@ -4,6 +4,45 @@ Idle RPG mobile (F2P) : exploration overworld + combats de cartes + deckbuilding
 
 Avant de travailler sur ce projet, lis **`docs/GDD.md`** : c'est le document de conception à jour, avec toutes les mécaniques décidées (deckbuilding, monnaies, combat, architecture idle, art/anim) et les 2 seuls points encore réellement non tranchés (marqués ⚠ NON DÉCIDÉ dedans).
 
+## Vocabulaire : archétypes et niveaux de jeu
+Quand on parle d'un deck ou de la façon de le jouer, ces mots ont **ce sens-là** — dans
+les échanges, les docs, les commentaires et les analyses.
+
+**Les archétypes.** La catégorisation, c'est **Combo**, **Aggro**, **Contrôle**. On peut
+y adosser un qualificatif :
+
+- **Tempo** — essaie de prendre l'adversaire de vitesse, avec un faible niveau
+  d'interaction.
+- **MidRange** — s'adapte à son adversaire.
+- **Turbo** — ne se préoccupe pas de son adversaire.
+- **Hard** — ne fait que de la gestion : il va chercher le 1 pour 1 ou le 1 pour 2.
+- **Soft** — fait de la prophylaxie.
+- **Pillow Fort** — se blinde, puis gagne par un autre moyen. **N'existe pas encore**
+  dans le jeu : l'idée serait une carte du genre « si c'est votre 30ᵉ tour, gagnez la
+  partie » (à garder sous `BALANCE.combat.maxTurns`, sinon elle ne partirait jamais).
+- **Fatigue** — ne cherche qu'à aller à la Fatigue (la pile de fatigue, cf. « Finir sa
+  pioche ») pour y profiter d'un avantage, même minime, et gagner.
+
+**Technique, tactique, stratégie, plan** — quatre niveaux, du plus fin au plus large, à
+ne pas confondre :
+
+- **La technique** (micro) — l'habileté, physique ou mentale, à ordonner les
+  interactions. **Elle est absente de ce jeu.** Exemple dans Magic : savoir que Tangle
+  Wire peut s'engager elle-même, et ordonner les déclencheurs de son tour pour qu'elle
+  perde son marqueur « temps » avant que son effet parte — et avoir ainsi un permanent
+  de moins à engager que l'adversaire.
+- **La tactique** (méso) — se joue **en partie** : comprendre l'environnement dans
+  lequel la partie se déroule, comprendre le matchup, savoir ce qui se passe au niveau
+  technique, et ordonner ses tours pour mener le match jusqu'à la victoire.
+- **La stratégie** (pré-méta) — se joue **avant le match** : le prévoir, comprendre le
+  méta-jeu dans lequel on se place, choisir les bonnes cartes (switcher ou non certaines
+  cartes, prendre les bons trinkets), changer un héros pour un autre. Exemple : mettre
+  Athéna à la place de Médor contre le Grand-Duc, parce qu'on sait qu'il faudra forcer
+  une colère de Kamaji en menaçant avec une grosse créature.
+- **Le plan** (méta-jeu) — se joue **sur la progression** : investir plus de ressources
+  dans Médor parce qu'Athéna et Felix sont niveau 10 et lui niveau 6, qu'on perd donc
+  les matchups où c'est lui qui est fort, et qu'on veut avancer dans le jeu.
+
 ## Stack visée
 - Prototype : PWA (HTML/JS vanilla, zéro dépendance), pour valider la boucle de jeu.
 - Version finale : portage Godot ou Unity.
