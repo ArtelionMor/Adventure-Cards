@@ -10,7 +10,7 @@
 // declencheur de tour compte plusieurs fois parce qu'il se repete.
 import { BALANCE } from '../config/balance.js';
 import { canPlay, legalTargets, attackableTargets, needsTarget, needsChoice, cloneBattle, playCard, attack, endTurn } from './engine.js';
-import { TRIGGERS, TARGETS, STATICS, ZONES, hasKey, keyId, keyFields, counterValue, amountValue, cardCost, cardMatches, staticFields, targetId, targetArg, partageType, estDuType, eachSubEffect, listeEffets, typeVariable } from '../config/mechanics.js';
+import { TRIGGERS, TARGETS, STATICS, ZONES, EVENTS, EFFETS_QUI_CHAINENT, hasKey, keyId, keyFields, counterValue, amountValue, cardCost, cardMatches, staticFields, targetId, targetArg, partageType, estDuType, eachSubEffect, listeEffets, typeVariable } from '../config/mechanics.js';
 import { cardById, fatiguePile, switchOf } from '../config/npcs.js';
 
 const foe = k => (k === 'p' ? 'e' : 'p');
@@ -174,20 +174,39 @@ function effectValue(e, ctx) {
   switch (e.op) {
     case 'dmg': {
       const v = n('v');
-      if (e.t === 'allEnemyUnits') return v * Math.max(1, ctx.enemies) * 0.9;
+      // DES DEGATS VALENT CE QU'ILS ENLEVENT, PAS LEUR CHIFFRE. 5 degats sur un 1/1
+      // n'otent qu'un 1/1 : sans ce plafond, le bot lache son gros sort de gestion sur
+      // le premier venu, puisque « 5 » valait 5 quelle que soit la cible. C'est la
+      // lecture que `detruit` fait deja juste en dessous, avec le meme poids de corps.
+      const poids = u => (u.atk || 0) * 1.3 + (u.hp || 0) * 0.35;
+      // Ce que l'on gagne a frapper CETTE unite : le corps entier si elle tombe, sinon
+      // les degats poses — jamais plus que ce que l'unite vaut.
+      const gain = u => {
+        const pv = Math.max(1, u.hp || 0);
+        return v >= pv ? poids(u) : Math.min(v, poids(u));
+      };
+      const somme = list => (list || []).reduce((a, u) => a + gain(u), 0);
+      const moyenne = list => (list && list.length ? somme(list) / list.length : 0);
+      const duType = (list, t) => (list || []).filter(u => estDuType(u, targetArg(t)));
+      // Le bot choisit sa cible : c'est la meilleure prise du plateau d'en face.
+      const meilleure = list => (list && list.length ? Math.max(...list.map(gain)) : 0);
+
+      if (e.t === 'allEnemyUnits') return somme(ctx.foeBoard) * 0.9;
       // Une cible par type ne vaut que les unites qui portent vraiment l'etiquette :
       // sans meute en face, la carte ne fait rien et le bot ne doit pas la jouer.
-      if (targetId(e.t) === 'enemyType') return v * typeCount(ctx.foeBoard, e.t) * 0.9;
-      if (targetId(e.t) === 'allyType') return -v * typeCount(ctx.board, e.t);
+      if (targetId(e.t) === 'enemyType') return somme(duType(ctx.foeBoard, e.t)) * 0.9;
+      if (targetId(e.t) === 'allyType') return -somme(duType(ctx.board, e.t));
       // Sans camp : un balayage compte ce qu'on gagne en face MOINS ce qu'on perd chez
       // soi — c'est ce qui fait qu'on ne joue « degats a tout le monde » qu'en retard.
-      if (e.t === 'allUnits') return v * (ctx.enemies * 0.9 - ctx.allies);
-      if (targetId(e.t) === 'anyType') return v * (typeCount(ctx.foeBoard, e.t) * 0.9 - typeCount(ctx.board, e.t));
+      if (e.t === 'allUnits') return somme(ctx.foeBoard) * 0.9 - somme(ctx.board);
+      if (targetId(e.t) === 'anyType')
+        return somme(duType(ctx.foeBoard, e.t)) * 0.9 - somme(duType(ctx.board, e.t));
       // Une unite au hasard des deux camps : une chance sur deux de se tirer dessus.
-      if (e.t === 'randomUnit') return v * (ctx.enemies - ctx.allies) / Math.max(1, ctx.enemies + ctx.allies);
+      if (e.t === 'randomUnit')
+        return (moyenne(ctx.foeBoard) * ctx.enemies - moyenne(ctx.board) * ctx.allies) / Math.max(1, ctx.enemies + ctx.allies);
       // Designee, elle part en face — le bot choisit sa cible. Sans rien en face, il ne
       // resterait que nos propres unites a blesser : c'est un cout.
-      if (e.t === 'anyUnit') return ctx.enemies ? v : -v;
+      if (e.t === 'anyUnit') return ctx.enemies ? meilleure(ctx.foeBoard) : -v;
       // Se blesser soi-meme ou blesser un allie est un cout, pas un gain : le bot
       // doit prendre une carte pareille pour ce qu'elle est.
       if (['self', 'randomAllyUnit', 'randomAllyAny'].includes(e.t)) return -v;
@@ -199,6 +218,10 @@ function effectValue(e, ctx) {
       // « Lui » peut viser aussi bien un jeton adverse qu'un des notres selon ce que
       // l'effet d'avant a touche : on ne parie ni dans un sens ni dans l'autre.
       if (e.t === 'previous') return v * 0.5;
+      // « Une unite adverse » : designee, le bot prend la meilleure prise ; tiree au
+      // sort, il prend la moyenne — et, dans les deux cas, ce que ca ENLEVE vraiment.
+      if (CIBLES_ENNEMIES.includes(targetId(e.t)))
+        return (TARGETS[targetId(e.t)] || {}).random ? moyenne(ctx.foeBoard) * 0.85 : meilleure(ctx.foeBoard);
       return (TARGETS[targetId(e.t)] || {}).random ? v * 0.85 : v;
     }
     case 'detruit': {
@@ -368,9 +391,32 @@ function effectValue(e, ctx) {
   }
 }
 
-const effectsValue = (list, ctx) => (list || []).reduce((a, e) => a + effectValue(e, ctx), 0);
-/** Une branche de « Choisir » : la somme de ses effets. Vide, elle ne vaut rien. */
-const brancheValue = (v, ctx) => effectsValue(listeEffets(v), ctx);
+/**
+ * La somme des effets d'un moment — en suivant la chaine « Lui », comme le fait
+ * `applyEffects`. UN EFFET QUI VISE « LUI » SANS QUE PERSONNE NE LE PRECEDE NE PART
+ * JAMAIS : le compter revient a payer une carte pour ce qu'elle ne fait pas. Le bot
+ * renoncait ainsi a de tres bonnes cartes a cause d'un malus fantome.
+ * `amorce` : la chaine commence-t-elle avec quelqu'un dedans ? C'est le cas des moments
+ * d'evenement QUI ONT UN SUJET (« quand tu joues un allie » : l'allie pose est « Lui »),
+ * la meme exception que la validation.
+ */
+function effectsValue(list, ctx, amorce = false) {
+  let total = 0, chaine = amorce;
+  for (const e of list || []) {
+    const vise = targetId(e.t);
+    if ((vise === 'previous' || vise === 'previousType') && !chaine) continue;
+    total += effectValue(e, ctx);
+    // Un effet sans destinataire (pioche, mana, armure) laisse la chaine telle quelle.
+    if (EFFETS_QUI_CHAINENT.has(e.op) && faisable(e, ctx)) chaine = true;
+  }
+  return total;
+}
+/**
+ * Une branche de « Choisir » : la somme de ses effets. Vide, elle ne vaut rien.
+ * La chaine y est supposee AMORCEE : une branche herite du `last` de la liste qui la
+ * contient, et on ne sait pas d'ici ce qu'il valait. On prefere ne rien retirer.
+ */
+const brancheValue = (v, ctx) => effectsValue(listeEffets(v), ctx, true);
 
 /** Une aura ne vaut rien seule : elle vaut ce qu'elle multiplie. */
 function auraValue(aura, allies, enemies, sameType) {
@@ -481,6 +527,17 @@ export function meilleureBranche(B, k, card) {
   return b > a ? 'b' : 'a';
 }
 
+/**
+ * Ce moment commence-t-il avec quelqu'un dans « Lui » ? Oui pour un evenement A SUJET
+ * (l'allie qu'on vient de poser, l'unite qui vient d'attaquer). `def.ev` est
+ * l'identifiant de l'evenement, `def.event` n'est qu'un drapeau : les confondre revient
+ * a ne jamais appliquer l'exception.
+ */
+function aSujet(slot) {
+  const def = TRIGGERS[slot] || {};
+  return !!(def.event && (EVENTS[def.ev] || {}).sujet);
+}
+
 /** Ce que vaut une carte si on la pose maintenant, dans cette position. */
 function cardValue(B, k, def) {
   const card = estimee(B, k, def);
@@ -492,7 +549,7 @@ function cardValue(B, k, def) {
     // Les moments qui seront ajoutes plus tard comptent aussi, sans rien savoir d'eux.
     for (const slot of Object.keys(TRIGGERS)) {
       if (['play', 'death', 'turnStart', 'turnEnd'].includes(slot)) continue;
-      v += effectsValue(card[slot], ctx);
+      v += effectsValue(card[slot], ctx, aSujet(slot));
     }
   }
   return v;

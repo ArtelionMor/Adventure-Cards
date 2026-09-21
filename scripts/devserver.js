@@ -60,11 +60,16 @@ const genereSprites = () => import('./gen-sprites.mjs').then(m => m.genereSprite
 // La liste blanche : on ne lance QUE ces scripts. `brouillon` dit si l'outil peut
 // mesurer le brouillon du builder — pas les bancs de test, qui s'appuient sur des
 // cartes precises du fichier du jeu.
+// `journaux` : l'outil sait ecrire le detail de ce qu'il a joue (`--logs`). C'est LE
+// SERVEUR qui choisit le fichier, jamais la page — c'est ce qui leve l'interdit sur
+// `--logs` (cf. ARG_INTERDITS) sans rien relacher : la page ne nomme aucun chemin.
+// Un taux ne dit jamais POURQUOI ; le journal, si. On les produit donc toujours, et ils
+// sont ranges avec le calcul, a relire ou a exporter des mois plus tard.
 const OUTILS = {
   simulate: { fichier: 'scripts/simulate.mjs', brouillon: true, nom: 'Courbe de difficulté' },
-  matchups: { fichier: 'scripts/matchups.mjs', brouillon: true, nom: 'Matrice des matchups' },
+  matchups: { fichier: 'scripts/matchups.mjs', brouillon: true, journaux: true, nom: 'Matrice des matchups' },
   'check-decks': { fichier: 'scripts/check-decks.mjs', brouillon: true, nom: 'Contrôle des decks' },
-  'analyse-cartes': { fichier: 'scripts/analyse-cartes.mjs', brouillon: true, nom: 'Analyse des cartes' },
+  'analyse-cartes': { fichier: 'scripts/analyse-cartes.mjs', brouillon: true, journaux: true, nom: 'Analyse des cartes' },
   'test-triggers': { fichier: 'scripts/test-triggers.mjs', brouillon: false, nom: 'Banc du moteur' },
   'test-ai': { fichier: 'scripts/test-ai.mjs', brouillon: false, nom: 'Banc du bot' },
   'test-partage': { fichier: 'scripts/test-partage.mjs', brouillon: false, nom: 'Banc du partage' }
@@ -205,7 +210,10 @@ async function chargeArchive(id) {
   const lignes = (c.lignes || []).map((l, i) => ({
     outil: l.outil, args: l.args || [], libelle: l.libelle, brouillon: null,
     etat: l.etat, debut: l.debut, fin: l.fin, code: l.code, proc: null, sortie: l.sortie || '', oublie: 0,
-    progression: null, resume: l.resume, pauseTotale: l.pauseTotale || 0, pauseDepuis: null, i, id: c.id + '-' + i
+    progression: null, resume: l.resume, pauseTotale: l.pauseTotale || 0, pauseDepuis: null, i, id: c.id + '-' + i,
+    // Le journal range redevient telechargeable tel quel : `relit` en a donne le chemin
+    // complet. `journalTemp: false` — il n'est pas a nous, on ne l'effacera pas.
+    journal: l.journal || null, journalTemp: false
   }));
   if (!lignes.length) throw new Error('Ce calcul rangé est vide.');
   // Une analyse « en cours » rangee (le serveur s'est arrete au milieu) ne reprendra
@@ -214,7 +222,8 @@ async function chargeArchive(id) {
   lot = {
     id: c.id, lignes, debut: c.debut, fin: c.fin || Date.now(), pause: false, arrete: !!c.arrete,
     pauseTotale: c.pauseTotale || 0, pauseDepuis: null, brouillons: new Set(), dixiemes: 10, derniereNotif: Date.now(),
-    analyse, conversation: analyse ? c.conversation || null : null, archive: c.archive
+    analyse, conversation: analyse ? c.conversation || null : null, archive: c.archive,
+    commentaire: c.commentaire || ''
   };
   if (analyse && !Array.isArray(analyse.echanges)) analyse.echanges = [];
   // Plus rien ne tourne : la page repart de la file (etatCalcul rend « id: null »).
@@ -258,7 +267,9 @@ function resumeLot() {
     pauseImmediate: PAUSE_IMMEDIATE, debut: lot.debut, fin: lot.fin, ecoule: ecoule(lot),
     progression: lot.lignes.length ? (faites + part) / lot.lignes.length : 0,
     analyse: lot.analyse || null,
-    lignes: lot.lignes.map(l => ({ i: l.i, outil: l.outil, libelle: l.libelle, etat: l.etat, resume: l.resume, duree: l.fin ? ecoule(l) : null }))
+    commentaire: lot.commentaire || '',
+    lignes: lot.lignes.map(l => ({ i: l.i, outil: l.outil, libelle: l.libelle, etat: l.etat, resume: l.resume,
+      duree: l.fin ? ecoule(l) : null, journal: !!(l.journal && fs.existsSync(l.journal)) }))
   };
 }
 
@@ -311,7 +322,7 @@ function nouvellesLignes(demande) {
   return lignes.map(l => ({
     outil: l.outil, args: l.args, libelle: l.libelle, brouillon: l.avecBrouillon ? brouillon : null,
     etat: 'attente', debut: null, fin: null, code: null, proc: null, sortie: '', oublie: 0,
-    progression: null, resume: null, pauseTotale: 0, pauseDepuis: null
+    progression: null, resume: null, pauseTotale: 0, pauseDepuis: null, journal: null, journalTemp: false
   }));
 }
 
@@ -320,8 +331,13 @@ function ajouteALaFile(demande) {
   const lignes = nouvellesLignes(demande);
   const nouvelle = !lotActif();
   if (nouvelle) {
+    // Les journaux de la file PRECEDENTE ne servent plus : on les efface ici, et pas a
+    // la fin de la file — entre les deux, on les telecharge et on les relit.
+    // ⚠ SEULEMENT LES TEMPORAIRES. Le journal d'un calcul ROUVERT vit dans son dossier
+    // range : l'effacer detruirait l'archive que l'on vient de relire.
+    if (lot) for (const l of lot.lignes) if (l.journal && l.journalTemp) fs.rm(l.journal, { force: true }, () => {});
     lot = { id: Date.now().toString(36), lignes: [], debut: Date.now(), fin: null, pause: false, arrete: false,
-      pauseTotale: 0, pauseDepuis: null, brouillons: new Set(), dixiemes: 0, derniereNotif: 0 };
+      pauseTotale: 0, pauseDepuis: null, brouillons: new Set(), dixiemes: 0, derniereNotif: 0, commentaire: '' };
   }
   for (const l of lignes) {
     l.i = lot.lignes.length;
@@ -431,9 +447,15 @@ function arreteFile() {
 
 function lanceLigne(c) {
   const outil = OUTILS[c.outil];
+  // LE JOURNAL DE COMBAT. Le chemin est choisi ICI, par le serveur : `c.args` reste ce
+  // que la page a demande (c'est lui qu'on archive et qu'on rejoue), et `--logs` n'entre
+  // que dans la ligne de commande. Le fichier vit dans le repertoire temporaire jusqu'a
+  // ce que `range()` le copie a cote du calcul.
+  if (outil.journaux) { c.journal = path.join(os.tmpdir(), `adventure-card-journal-${c.id}.txt`); c.journalTemp = true; }
+  const args = c.journal ? [...c.args, '--logs', c.journal] : c.args;
   // ADVENTURE_PROGRESSION : les scripts ecrivent leur avancement en lignes-marqueurs
   // (scripts/lib/progression.mjs) au lieu d'une ligne de terminal reecrite sur place.
-  const proc = spawn(process.execPath, ['--import', CROCHET, outil.fichier, ...c.args], {
+  const proc = spawn(process.execPath, ['--import', CROCHET, outil.fichier, ...args], {
     cwd: ROOT, env: { ...process.env, ADVENTURE_BROUILLON: c.brouillon || '', ADVENTURE_PROGRESSION: '1' }, windowsHide: true
   });
   c.proc = proc;
@@ -441,6 +463,11 @@ function lanceLigne(c) {
   c.debut = Date.now();
   calcul = c;
   const suitProgression = () => annonceAvancement(false);
+  // L'outil annonce ou il a ecrit son journal (« 103 decisions detaillees dans … »). Ce
+  // chemin est un temporaire DU SERVEUR : il n'a aucun sens pour qui lit la page depuis un
+  // telephone, et il finissait dans le resume et dans la notification de fin. On le remplace
+  // par ce qu'il faut vraiment savoir — le journal se telecharge sous la file.
+  const sansChemin = texte => (c.journal ? texte.split(c.journal).join('le journal de combat') : texte);
   const garde = texte => {
     c.sortie += texte;
     if (c.sortie.length > SORTIE_MAX) {
@@ -463,7 +490,7 @@ function lanceLigne(c) {
         for (const l of lignes) {
           const m = /^@@progression (\d+)\/(\d+)\s*$/.exec(l);
           if (m) { c.progression = { fait: Number(m[1]), total: Number(m[2]) }; suitProgression(); }
-          else net += l + '\n';
+          else net += sansChemin(l) + '\n';
         }
         if (net) garde(net);
       },
@@ -501,6 +528,17 @@ function lanceLigne(c) {
   console.log('calcul lance : ' + outil.fichier + ' ' + c.args.join(' ') + (c.brouillon ? ' (brouillon)' : ''));
 }
 
+// UN FICHIER TEXTE A TELECHARGER (un journal de combat). `nom` est ce que le navigateur
+// enregistre ; `Content-Disposition: attachment` evite qu'un fichier de 2 Mo s'ouvre
+// dans l'onglet.
+function fichierTexte(res, nom, texte) {
+  res.writeHead(200, {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Content-Disposition': `attachment; filename="${nom.replace(/[^\w.-]/g, '_')}"`,
+    'Cache-Control': 'no-store'
+  }).end(texte);
+}
+
 const json = (res, code, obj) =>
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
     .end(JSON.stringify(obj));
@@ -529,6 +567,50 @@ http.createServer((req, res) => {
     const l = lot && lot.lignes[Number(new URLSearchParams(query || '').get('i'))];
     if (!l) { json(res, 404, { erreur: 'Pas de calcul a ce numero dans la file' }); return; }
     json(res, 200, { i: l.i, libelle: l.libelle, etat: l.etat, resume: l.resume, texte: l.sortie });
+    return;
+  }
+
+  // LE JOURNAL DE COMBAT d'une ligne de la file — a telecharger. `i=tout` les met bout
+  // a bout : un seul fichier a donner a relire, puisqu'on n'a pas de quoi faire un zip
+  // sans dependance. Un taux dit qu'un deck gagne ; le journal dit comment.
+  if (req.method === 'GET' && urlPath === '/api/run/journal') {
+    const q = new URLSearchParams(query || '').get('i');
+    if (!lot) { json(res, 404, { erreur: 'Aucune file.' }); return; }
+    const avec = lot.lignes.filter(l => l.journal && fs.existsSync(l.journal));
+    if (!avec.length) { json(res, 404, { erreur: 'Aucun journal dans cette file.' }); return; }
+    if (q === 'tout') {
+      const morceaux = avec.map(l => `
+
+======== ${l.libelle} ========
+
+` + fs.readFileSync(l.journal, 'utf8'));
+      fichierTexte(res, `journaux-${lot.id}.txt`, morceaux.join(''));
+      return;
+    }
+    const l = lot.lignes[Number(q)];
+    if (!l || !l.journal || !fs.existsSync(l.journal)) { json(res, 404, { erreur: 'Pas de journal pour ce calcul.' }); return; }
+    fichierTexte(res, `${l.libelle}.txt`, fs.readFileSync(l.journal, 'utf8'));
+    return;
+  }
+
+  // LE COMMENTAIRE de la file : ce qu'on a compris, ou l'on en est. Il part avec le
+  // calcul quand on le range, et revient quand on le rouvre — c'est la memoire de ce
+  // qu'on a deja tire de ces chiffres.
+  if (req.method === 'POST' && urlPath === '/api/run/commentaire') {
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', c => { body += c; if (body.length > 200000) req.destroy(); });
+    req.on('end', () => {
+      if (!lot) { json(res, 404, { erreur: 'Aucune file à commenter.' }); return; }
+      let texte;
+      try { texte = String(JSON.parse(body || '{}').texte || ''); }
+      catch { json(res, 400, { erreur: 'Demande illisible.' }); return; }
+      lot.commentaire = texte.slice(0, 100000);
+      // Ranger n'est jamais bloquant : une cle absente se journalise, le commentaire
+      // reste dans la file en memoire.
+      range(lot);
+      json(res, 200, { ok: true, lot: resumeLot() });
+    });
     return;
   }
 
@@ -584,17 +666,36 @@ http.createServer((req, res) => {
       .catch(e => json(res, 500, { erreur: e.message }));
     return;
   }
+  // Le journal de combat d'un calcul RANGE : on le telecharge sans rouvrir le calcul
+  // (rouvrir remplace la file affichee, et c'est refuse pendant qu'un calcul tourne).
+  if (req.method === 'GET' && urlPath === '/api/archives/journal') {
+    const q = new URLSearchParams(query || '');
+    archives().then(a => a.journal(q.get('id'), q.get('i')))
+      .then(j => fichierTexte(res, j.nom, fs.readFileSync(j.chemin, 'utf8')))
+      .catch(e => json(res, 404, { erreur: e.message }));
+    return;
+  }
   if (req.method === 'POST' && urlPath.startsWith('/api/archives')) {
     const action = urlPath.slice('/api/archives'.length);
-    if (!['', '/charger', '/ranger'].includes(action)) { json(res, 404, { erreur: 'Inconnu : ' + urlPath }); return; }
+    if (!['', '/charger', '/ranger', '/commentaire'].includes(action)) { json(res, 404, { erreur: 'Inconnu : ' + urlPath }); return; }
     let body = '';
     req.setEncoding('utf8');
-    req.on('data', c => { body += c; if (body.length > 2000) req.destroy(); });
+    // Le plafond vaut pour un commentaire (le plus gros corps de cette route), pas pour
+    // les quelques octets d'un « charger ».
+    req.on('data', c => { body += c; if (body.length > 200000) req.destroy(); });
     req.on('end', async () => {
       try {
         const d = JSON.parse(body || '{}');
         const a = await archives();
         if (action === '/charger') { json(res, 200, { ok: true, lot: await chargeArchive(d.id) }); return; }
+        // Commenter un calcul range : ce qu'on a compris de ces chiffres, garde avec eux.
+        // Si c'est la file affichee, on met aussi a jour la copie en memoire.
+        if (action === '/commentaire') {
+          const texte = await a.commente(d.id, d.texte);
+          if (lot && lot.archive === d.id) lot.commentaire = texte;
+          json(res, 200, { ok: true, commentaire: texte, lots: (await a.etat()).lots });
+          return;
+        }
         // « Ranger maintenant » : la cle a ete branchee apres coup, ou on veut la
         // derniere version (l'analyse, le dialogue) sur le disque tout de suite.
         if (action === '/ranger') {

@@ -115,6 +115,21 @@
   .analyse .question b { color: var(--accent); }
   #dialogue:not([hidden]) { display: flex; gap: 8px; margin-top: 12px; align-items: flex-end; }
   #dialogue textarea { flex: 1; min-height: 44px; resize: vertical; background: #0d1320; color: inherit; border: 1px solid #2c3a5a; border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 14px; }
+  /* Les journaux de combat, et le commentaire : deux boites soeurs de l'analyse. */
+  .journaux, .commentaire { margin-top: 14px; background: #121826; border: 1px solid #2c3a5a; border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+  .journaux__titre { color: var(--accent); font-weight: 600; margin-bottom: 8px; }
+  .journaux a { display: inline-block; color: inherit; text-decoration: none; background: #1d2740; border: 1px solid #2c3a5a;
+    border-radius: 10px; padding: 6px 10px; margin: 0 6px 6px 0; font-size: 13px; }
+  .journaux a:hover { border-color: var(--accent); }
+  .journaux a small { color: var(--muted); margin-left: 6px; }
+  .commentaire label { display: block; color: var(--accent); font-weight: 600; margin-bottom: 6px; }
+  .commentaire textarea { width: 100%; box-sizing: border-box; resize: vertical; background: #0d1320; color: inherit;
+    border: 1px solid #2c3a5a; border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 14px; }
+  .commentaire .actions { margin-top: 8px; display: flex; gap: 10px; align-items: center; }
+  .archive + .archive { margin-top: 6px; }
+  .archive__plus { margin: 2px 0 10px 34px; font-size: 13px; }
+  .archive__plus > summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .archive__plus .journaux, .archive__plus .commentaire { margin-top: 8px; padding: 10px 12px; }
   .machines { margin-top: 14px; font-size: 14px; }
   .machines summary { cursor: pointer; color: var(--muted); }
   .machine { display: grid; grid-template-columns: 1fr 1.7fr 1.1fr auto; gap: 6px; align-items: center; margin-top: 10px; }
@@ -144,6 +159,7 @@
     <a class="tb-nav__link" href="index.html">Card Builder</a>
     <a class="tb-nav__link" href="overview.html">Vue d'ensemble</a>
     <a class="tb-nav__link" href="balance.html">Équilibrage</a>
+    <a class="tb-nav__link" href="courbes.html">Courbes</a>
     <span class="tb-nav__link tb-nav__link--active">Lancer un calcul</span>
   </div>
 </nav>
@@ -214,6 +230,23 @@
       <div class="actions" id="recapBoite" style="margin-top:12px" hidden>
         <button class="btn btn--primary" id="analyser">🧠 Analyser les résultats</button>
         <button class="btn" id="recap">📋 Copier le récapitulatif</button>
+      </div>
+      <!-- LES JOURNAUX DE COMBAT : ce que les taux ne disent jamais. Produits a chaque
+           calcul, ranges avec lui, et telechargeables pour etre relus ailleurs. -->
+      <div class="journaux" id="journauxBoite" hidden>
+        <div class="journaux__titre">Journaux de combat</div>
+        <div id="journauxListe"></div>
+      </div>
+      <!-- LE COMMENTAIRE : ou l'on en est. Il part avec le calcul quand il est range,
+           et revient quand on le rouvre. -->
+      <div class="commentaire" id="commentaireBoite" hidden>
+        <label for="commentaire">Commentaire — ce que tu as tiré de ces chiffres</label>
+        <textarea id="commentaire" rows="3" maxlength="100000"
+          placeholder="Ce que montrent les journaux, ce qui reste à vérifier, ce que tu as déjà corrigé…"></textarea>
+        <div class="actions">
+          <button class="btn btn--petit btn--primary" id="enregistreCommentaire">Enregistrer</button>
+          <span class="compte" id="commentaireEtat"></span>
+        </div>
       </div>
       <div class="analyse" id="analyse" hidden>
         <div id="analyseTexte"></div>
@@ -664,9 +697,31 @@ function rendSortie() {
 const duree = ms => { const s = Math.round(ms / 1000); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`; };
 const ICONES = { attente: '·', encours: '▶', fini: '✓', echec: '✗', arrete: '■', annule: '–' };
 
+/**
+ * LES JOURNAUX DE COMBAT ET LE COMMENTAIRE. Le journal est produit a chaque calcul qui
+ * joue des parties : c'est la seule chose qui dise POURQUOI un taux est ce qu'il est.
+ * On ne l'affiche pas — il pese des megaoctets — on le telecharge, pour le relire ou le
+ * donner a relire ailleurs. Le commentaire, lui, garde ce qu'on en a conclu.
+ */
+let commentaireEdite = false;
+function rendJournaux(l) {
+  const avec = l ? l.lignes.filter(x => x.journal) : [];
+  $('#journauxBoite').hidden = !avec.length;
+  if (avec.length) {
+    $('#journauxListe').innerHTML = avec.map(x =>
+      `<a href="/api/run/journal?i=${x.i}" download>⬇ ${esc(x.libelle)}</a>`).join('')
+      + (avec.length > 1 ? '<a href="/api/run/journal?i=tout" download>⬇ <b>Tous les journaux</b><small>un seul fichier</small></a>' : '');
+  }
+  // On ne recopie pas par-dessus ce que le designer est en train d'ecrire : la file est
+  // relue toutes les secondes, et il perdrait sa phrase a chaque tour.
+  $('#commentaireBoite').hidden = !l;
+  if (l && !commentaireEdite && $('#commentaire').value !== (l.commentaire || '')) $('#commentaire').value = l.commentaire || '';
+}
+
 function rendEtat() {
   const e = suivi.etat, l = e && e.lot, st = $('#statut');
   rendAnalyse();
+  rendJournaux(l);
   const actif = !!(l && l.actif);
   st.className = 'statut';
   $('#pause').hidden = !actif;
@@ -807,6 +862,29 @@ $('#recap').onclick = async () => {
     ...l.lignes.map(x => `- ${x.libelle} : ${x.resume || x.etat}`)].join('\n');
   await copie(t);
   toast('Récapitulatif copié.');
+};
+
+// Le commentaire : tant qu'on ecrit, la relecture d'etat ne doit pas ecraser la phrase
+// en cours (`commentaireEdite`). L'enregistrement range aussitot le calcul sur la cle.
+$('#commentaire').oninput = () => { commentaireEdite = true; $('#commentaireEtat').textContent = 'non enregistré'; };
+$('#enregistreCommentaire').onclick = async () => {
+  const b = $('#enregistreCommentaire');
+  b.disabled = true;
+  $('#commentaireEtat').textContent = 'enregistrement…';
+  try {
+    const r = await fetch('/api/run/commentaire', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texte: $('#commentaire').value })
+    });
+    const d = await r.json();
+    if (!r.ok) { $('#commentaireEtat').textContent = d.erreur || 'refusé'; return; }
+    commentaireEdite = false;
+    $('#commentaireEtat').textContent = 'enregistré · rangé avec le calcul';
+    if (d.lot) { suivi.etat = { ...(suivi.etat || {}), lot: d.lot }; }
+    chargeArchives();
+  } catch {
+    $('#commentaireEtat').textContent = 'serveur injoignable';
+  } finally { b.disabled = false; }
 };
 
 $('#telecharger').onclick = () => {
@@ -1030,6 +1108,43 @@ const octets = n => !n ? '0 Ko'
   : Math.max(1, Math.round(n / 1000)) + ' Ko';
 const quand = t => t ? new Date(t).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
 
+/**
+ * LE VOLET D'UN CALCUL RANGE : ses journaux de combat, et son commentaire. On les lit et
+ * on les reprend SANS rouvrir le calcul — rouvrir remplace la file affichee, et c'est
+ * refuse tant qu'un calcul tourne. C'est ce qui permet de noter ce qu'on a compris
+ * pendant que la machine travaille encore.
+ */
+function voletArchive(l) {
+  const liens = (l.lignes || []).map((x, i) => ({ x, i })).filter(({ x }) => x.journal);
+  return '<details class="archive__plus"><summary>Journaux et commentaire</summary>'
+    + '<div class="journaux">'
+    + (l.journaux
+      ? liens.map(({ x, i }) => `<a href="/api/archives/journal?id=${encodeURIComponent(l.id)}&i=${i}" download>⬇ ${esc(x.libelle)}</a>`).join('')
+      : '<p class="vide">Pas de journal : ce calcul est d\'avant, ou son outil n\'en produit pas.</p>')
+    + '</div><div class="commentaire"><label>Commentaire</label>'
+    + `<textarea rows="3" maxlength="100000" data-note="${esc(l.id)}" placeholder="Ce que tu as tiré de ces chiffres…">${esc(l.commentaire || '')}</textarea>`
+    + `<div class="actions"><button class="btn btn--petit btn--primary" data-noter="${esc(l.id)}">Enregistrer</button>`
+    + '<span class="compte"></span></div></div></details>';
+}
+
+/** Enregistrer le commentaire d'un calcul range : le serveur reecrit son dossier. */
+async function noteArchive(b) {
+  const id = b.dataset.noter;
+  const zone = $('#archivesListe').querySelector(`[data-note="${CSS.escape(id)}"]`);
+  const etat = b.parentElement.querySelector('.compte');
+  b.disabled = true;
+  etat.textContent = 'enregistrement…';
+  try {
+    const r = await fetch('/api/archives/commentaire', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, texte: zone.value })
+    });
+    const d = await r.json();
+    etat.textContent = r.ok ? 'enregistré' : (d.erreur || 'refusé');
+  } catch { etat.textContent = 'serveur injoignable'; }
+  finally { b.disabled = false; }
+}
+
 async function chargeArchives() {
   try {
     const r = await fetch('/api/archives', { cache: 'no-store' });
@@ -1049,14 +1164,18 @@ function rendArchives() {
     : `${a.lots.length} calcul(s)${a.libre ? ' · ' + octets(a.libre) + ' libres' : ''}`;
   $('#archivesListe').innerHTML = perdu
     ? '<p class="vide">Le disque n\'est pas là : rien n\'est rangé et rien ne se relit. Rebranche la clé, ou change le dossier ci-dessous.</p>'
-    : a.lots.length ? a.lots.map(l => `<div class="ligne ligne--${l.finis === l.total ? 'fini' : 'echec'}">`
+    : a.lots.length ? a.lots.map(l => '<div class="archive">'
+      + `<div class="ligne ligne--${l.finis === l.total ? 'fini' : 'echec'}">`
       + '<span class="ico">📦</span>'
       + `<span class="quoi">${esc(l.titre)}<small>${quand(l.debut)} · ${l.finis}/${l.total} calcul(s)`
       + `${l.duree ? ' · ' + duree(l.duree) : ''}${l.analyse ? ' · 🧠 analysé' : ''}${l.echanges ? ` + ${l.echanges} question(s)` : ''}`
+      + `${l.journaux ? ' · 📄 ' + l.journaux + ' journal(aux)' : ''}${l.commentaire ? ' · ✎ commenté' : ''}`
       + ` · ${octets(l.taille)}</small></span>`
-      + `<button class="btn btn--petit" data-ouvre="${esc(l.id)}">Rouvrir</button></div>`).join('')
+      + `<button class="btn btn--petit" data-ouvre="${esc(l.id)}">Rouvrir</button></div>`
+      + voletArchive(l) + '</div>').join('')
     : '<p class="vide">Rien de rangé pour l\'instant : le prochain calcul qui finit ira ici.</p>';
   for (const b of $('#archivesListe').querySelectorAll('[data-ouvre]')) b.onclick = () => rouvre(b.dataset.ouvre, b);
+  for (const b of $('#archivesListe').querySelectorAll('[data-noter]')) b.onclick = () => noteArchive(b);
 
   $('#archivesRegler').innerHTML = '<p class="aide">Chaque calcul fini est écrit là : un dossier par calcul, la sortie complète de chaque ligne, '
     + 'un <code>recapitulatif.txt</code> qui se lit sans l\'Atelier (la clé se rebranche sur un PC), et l\'analyse de l\'IA. '

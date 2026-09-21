@@ -189,6 +189,98 @@ Le fichier dit ce qu'elle doit faire, quelles cartes l'utilisent et où l'implé
 l'ajouter à `EFFECTS`/`KEYWORDS` dans `game/src/config/mechanics.js` et retirer son entrée de
 `customMechanics` dans les données.
 
+## Les courbes de progression
+`builder/courbes.html` — **de combien monte une stat, et à quels niveaux**. C'est l'outil
+des **buffs d'adversaires** : la montée en difficulté des combats au fil des niveaux. Le
+modèle vit dans `game/src/config/courbes.js` (la page l'importe, le banc aussi, et le
+moteur le lira), et le banc est `node scripts/test-courbes.mjs`.
+
+Un **profil** réunit des **colonnes** — une colonne, c'est une stat qui évolue (les PV
+d'un ennemi, ses dégâts, son armure, le coût d'une carte). À chaque niveau, une ou
+plusieurs colonnes **prennent leur tour** et changent de valeur ; les autres **répliquent**
+la précédente. Chaque colonne porte deux objets **indépendants** :
+
+- un **rythme** — *quand est-ce son tour ?* `1 sur X` (avec un cap optionnel en nombre de
+  tours), `toujours` (1 sur 1), ou **des niveaux écrits à la main** (6, 14, 25) pour les
+  événements rares qu'on place soi-même, où une fréquence serait une mauvaise abstraction ;
+- une **courbe** — *quelle valeur à ce niveau-là ?* Des **keyframes** `(niveau, valeur)`
+  interpolées deux à deux, chaque segment ayant sa **forme** (linéaire, ease-in, ease-out)
+  et son **échelle** (additive : on ajoute des points ; proportionnelle : on multiplie, donc
+  on interpole dans l'espace log). Après la dernière keyframe, un booléen : **prolonger** la
+  pente du dernier segment, ou **boucler** le motif — décalé de la variation totale d'un
+  cycle (additif) ou du ratio total (proportionnel), l'axe des niveaux avançant d'une
+  longueur de cycle, ce qui fait **recoller** les cycles sans marche.
+
+⚠ **Les deux ne se touchent jamais**, et c'est la règle qui tient tout le fichier : la
+valeur d'une colonne est **toujours** celle de sa courbe au niveau où le tour tombe. Changer
+un rythme **déplace** donc les valeurs sur l'axe des niveaux — il ne peut pas déformer la
+courbe, ni faire dire à une colonne un nombre qui n'est pas sur la sienne. C'est aussi ce
+qui la rend imperméable aux rythmes des **autres** colonnes : eux ne décident que le *quand*.
+
+**La contrainte absolue : chaque ligne diffère de la précédente.** Un niveau qui ne change
+rien est un niveau qui ne se sent pas. Tout le reste en découle — le tour unique à
+distribuer par niveau, et le **tour forcé** (jaune dans l'aperçu) donné à la colonne la plus
+en retard quand personne ne bougerait. Quand plus personne ne peut rien changer, la ligne se
+répète : on ne l'invente pas, la validation le signale.
+
+**La dette, une primitive pour deux répartitions** (`ardoise()`). « Rendre des choses
+entières quand la cible, elle, ne tombe pas juste » : on garde la cible **réelle** au
+compteur, on rend l'entier, et l'écart reste dû — jamais jeté, donc jamais de dérive.
+Elle sert aux **tours** entre les colonnes (poids `1/X` normalisés, dette de départ
+`0.5·w` pour centrer la phase, la plus créancière prend le tour et rembourse 1, égalité au
+plus petit indice) **et** aux **points** entre les tours d'un segment. ⚠ Pour les valeurs,
+on **arrondit la cible cumulée et on prend les différences** — jamais l'inverse : arrondir
+l'increment ferait dériver la colonne de plusieurs points sur 40 niveaux, et une dérive ne
+se voit pas, elle se constate trop tard.
+
+⚠ **Le `X` d'un rythme est un poids RELATIF, pas une fréquence.** Les poids sont normalisés
+parce qu'il faut bien qu'un niveau change quelque chose : deux colonnes à « 1 sur 4 »
+alternent au lieu de laisser trois niveaux muets, et une colonne **seule** prend tous les
+tours quel que soit son X. Pour que le demandé et l'effectif coïncident, il faut que les
+`1/X` du profil fassent **1**. La page affiche le **rythme effectif** à côté du demandé
+(« 1 sur 8 — effectif : 1 sur 6,5 ») : l'écart se voit au lieu de se deviner.
+
+Une colonne **sort de la rotation** quand elle ne peut plus rien changer — son cap, sa liste
+finie, sa courbe plate ou bloquée par son **plancher/plafond** — et les poids sont alors
+**renormalisés sur celles qui restent** : les autres accélèrent d'autant. Les valeurs se
+rangent au choix en **absolu** ou en **modificateur cumulé** depuis la valeur de départ.
+
+**La validation** (même fonction pour le bandeau « À vérifier » et pour le banc) : un
+segment de **K tours** et de **Δvaleur** points doit vérifier `|Δvaleur| ≥ K`, sinon des
+tours rendront la valeur précédente. ⚠ **K est un nombre de TOURS, pas de niveaux** : 40
+niveaux à 1 sur 8 font 5 tours. Le message nomme les **trois leviers** — « 20 tours pour 5
+points d'écart, 15 tours seront plats : élargis la plage (3→23), espace le rythme (1 sur 8),
+ou rallonge le segment ». Elle attrape aussi les keyframes non triées ou en double, une
+échelle proportionnelle avec une keyframe à 0 ou à cheval sur le signe (un facteur ne change
+pas de signe), une borne atteinte avant la dernière keyframe, et toutes les colonnes
+épuisées avant la fin de l'horizon.
+
+**L'aperçu est toujours visible**, c'est tout l'intérêt : la courbe continue en pointillés,
+**l'escalier de ce qui sort vraiment**, les tours marqués dessus, les keyframes, et les
+segments en faute surlignés — la même règle que le bandeau (`segmentsPlats()`), jamais une
+seconde copie. En dessous, **toutes les colonnes superposées**, chacune à son échelle.
+Les keyframes s'éditent **au clavier** (des champs de saisie : on tape des chiffres précis),
+la souris ne servant qu'à sélectionner.
+
+**Les sorties.** Le **TSV** se colle dans une feuille de calcul : une ligne d'en-tête, puis
+une ligne par niveau, colonnes `id / level / stat…`, plusieurs profils à la suite. ⚠ Une
+colonne qu'un profil n'utilise pas reste **vide**, pas à zéro — zéro est une valeur, le vide
+dit « pas concerné », et une formule de feuille ne les lit pas pareil. Le **JSON**, lui, ne
+contient que les keyframes et les rythmes, **jamais les valeurs développées** : le moteur
+recalculera à la volée, parce qu'une table figée serait fausse le jour où on touche une
+keyframe, et fausse sans le dire. Tout le reste vit dans le `localStorage` de ce navigateur,
+comme le brouillon du builder.
+
+⚠ **Ce qui part porte l'`id`, pas le nom**, et ce sont deux champs séparés comme pour une
+colonne : le **nom** est pour nous (« Grand-Duc »), l'**id** pour les fichiers — la colonne
+`id` du TSV, le champ du JSON, le nom du fichier téléchargé. C'est l'id que le moteur lira
+pour retrouver son profil, donc un libellé avec espaces et accents n'y a pas sa place.
+L'id **suit le nom** tant qu'on ne l'a pas écrit à la main (s'il vaut encore le nom d'avant,
+personne n'y tient) : sans ça, renommer un profil ne changeait rien au fichier, et rien ne
+le laissait voir. Et les boutons d'export emportent **ce profil** ou **tous** selon la puce
+« Exporter » — une ligne sous la barre écrit noir sur blanc ce qui sortira et sous quel nom,
+parce qu'un export qui n'emporte pas ce qu'on croit ne se remarque que trop tard.
+
 ## Lancer un calcul (sur le Pi, depuis le téléphone)
 `builder/lancer.html` lance les outils de `scripts/` **sur la machine qui sert la page**
 — le Pi, en pratique — et n'affiche que leur sortie : c'est ce qui rend l'équilibrage
@@ -314,7 +406,7 @@ fixe fait seul une matrice trois fois plus vite que le Pi (31 s contre 99 s).
 
 ## L'Atelier : les outils en une app
 `builder/accueil.html` réunit toutes les pages derrière des tuiles (builder, lancer un
-calcul, vue d'ensemble, équilibrage, mécaniques à coder, jeu), avec l'état du moment :
+calcul, vue d'ensemble, équilibrage, courbes de progression, mécaniques à coder, jeu), avec l'état du moment :
 un brouillon est-il en cours dans ce navigateur, où en est le dernier calcul du serveur.
 `builder/manifest.webmanifest` en fait une **PWA installable** (« Atelier », portée `/` :
 le jeu s'ouvre dans la même fenêtre). Toutes les pages du builder pointent vers ce
@@ -550,6 +642,11 @@ Après toute modification de `game/src/combat/`, faire tourner **les trois bancs
 débloquent un moment, couture builder → moteur, mana différé, mots-clés à paramètre, capacités
 des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, pile de fatigue, création de carte (précise et au hasard), déplacements de zone (mélange, renvoi, pose), leur renfort et celui des cartes sur place, prise du dessus, complétion par la fatigue, événement de renfort, filtre « une carte précise », niveau du propriétaire, plafond de tours, types multiples, « Type : tous » (posé, offert, reçu d'une aura), copie, cibles sans camp, « chez qui » qui suit la cible ou tire au sort, prise de contrôle, choix entre deux effets, chaîne par type, type lu sur une carte, palier « Choisit les deux », deux cibles désignées, switch, sujet d'un événement, cibler depuis une branche, règles de validation qui lisent le registre, garde d'un moment), `node scripts/test-ai.mjs` (31 tests : le bot
 valorise-t-il ces mécaniques) et `node scripts/simulate.mjs` (la courbe de difficulté).
+
+Après toute modification de `game/src/config/courbes.js` (le modèle des courbes de
+progression), faire tourner `node scripts/test-courbes.mjs` — il vérifie les six
+promesses du modèle, dont deux qu'aucune relecture ne voit : qu'aucune ligne ne répète
+la précédente sur tout l'horizon, et qu'un arrondi ne dérive pas sur 10 000 niveaux.
 
 **Tout outil qui joue des parties se partage.** Un outil de mesure ne monte JAMAIS ses
 propres workers : il découpe son travail en tâches et les donne à `enParallele()`
@@ -1351,11 +1448,11 @@ des milliers de parties imaginaires, pas des décisions), et la décision elle-m
 
 ## Dossiers
 - `game/` — le prototype jouable. `src/config/` = game config (dont `npcs.js`, qui résout
-  les adversaires, le catalogue de cartes et la pile de fatigue, et `validate.js`, les règles de validation
-  partagées avec le builder), `src/combat/` = moteur + bot, `src/tools/` = l'arène de mesure,
+  les adversaires, le catalogue de cartes et la pile de fatigue, `validate.js`, les règles de validation
+  partagées avec le builder, et `courbes.js`, le modèle des courbes de progression), `src/combat/` = moteur + bot, `src/tools/` = l'arène de mesure,
   `src/ui/` = écrans, `data/` = données générées par le builder.
 - `builder/` — le Card Builder, `overview.html` (vue d'ensemble) et `balance.html`
-  (matrice des matchups), `lancer.html` (lancer un calcul sur le serveur), `accueil.html` (l'Atelier, l'app qui les réunit). Pages autonomes : aucune dépendance, elles importent seulement
+  (matrice des matchups), `courbes.html` (les courbes de progression), `lancer.html` (lancer un calcul sur le serveur), `accueil.html` (l'Atelier, l'app qui les réunit). Pages autonomes : aucune dépendance, elles importent seulement
   les modules de `game/src/`.
 - `launcher/` — source C# du lanceur Windows (compilé avec le csc.exe fourni par Windows, cf. `scripts/build-exe.ps1`).
 - `scripts/` — serveur de dev, bancs de test, outils d'équilibrage (`check-decks`,

@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#0f1115" />
+<link rel="icon" href="icons/atelier-192.png" />
+<link rel="apple-touch-icon" href="icons/atelier-apple-180.png" />
+<title>Courbes de progression — Adventure Card</title>
+<style>
+  :root {
+    --bg: #0f1115; --bg-2: #161922; --bg-3: #1d2230; --line: #2a3142;
+    --text: #e7eaf0; --muted: #9aa3b2; --accent: #7aa2ff; --accent-2: #79e3c5;
+    --accent-3: #c69bff; --warn: #f5a623; --danger: #ff6b81;
+    --shadow: 0 8px 24px rgba(0,0,0,.35); --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; }
+  body { font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-decoration: none; }
+
+  .tb-nav { position: sticky; top: 0; z-index: 9999; display: flex; align-items: center; gap: 18px; height: 52px; padding: 0 18px;
+    background: rgba(13,15,20,.86); backdrop-filter: saturate(140%) blur(10px); border-bottom: 1px solid var(--line); }
+  .tb-nav__brand { display: flex; align-items: center; gap: 8px; font-weight: 700; white-space: nowrap; }
+  .tb-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 10px rgba(122,162,255,.7); }
+  .tb-nav__links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .tb-nav__link { color: var(--muted); padding: 7px 12px; border-radius: 8px; border: 1px solid transparent; font-size: 14px; cursor: pointer; white-space: nowrap; }
+  .tb-nav__link:hover { color: var(--text); background: var(--bg-3); }
+  .tb-nav__link--active { color: var(--text); background: var(--bg-3); border-color: var(--line); }
+  .tb-nav__spacer { flex: 1; }
+
+  .wrap { max-width: 1500px; margin: 0 auto; padding: 24px 22px 90px; }
+  h1 { font-size: 30px; margin: 0 0 8px; letter-spacing: -.02em;
+    background: linear-gradient(120deg, #fff 0%, var(--accent) 60%, var(--accent-2) 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .lede { color: var(--muted); max-width: 96ch; font-size: 14px; margin: 0 0 18px; }
+  .lede b, .lede strong { color: var(--text); }
+
+  .ctrl { position: sticky; top: 52px; z-index: 900; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin-bottom: 18px; box-shadow: var(--shadow); }
+  .ctrl--plat { position: static; box-shadow: none; margin-bottom: 10px; }
+  .ctrl label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .ctrl .grp { display: flex; align-items: center; gap: 8px; }
+  input[type=number], input[type=text], select { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 7px 10px; font: inherit; font-size: 14px; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  .btn { background: var(--bg-3); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; font: inherit; font-size: 14px; cursor: pointer; }
+  .btn:hover { border-color: var(--accent); }
+  .btn--primary { background: linear-gradient(135deg, var(--accent), #5b86ff); border-color: transparent; color: #0b1020; font-weight: 700; }
+  .btn--sm { padding: 4px 9px; font-size: 13px; }
+  .btn--danger:hover { border-color: var(--danger); color: var(--danger); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); font-size: 13px; cursor: pointer; color: var(--muted); }
+  .chip--on { border-color: var(--accent); color: var(--text); background: #1b2337; }
+
+  .panel { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 18px; }
+  .panel__head { display: flex; align-items: center; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--line); }
+  .panel__head h2 { font-size: 15px; margin: 0; }
+  .panel__head .count { margin-left: auto; font-size: 12px; color: var(--muted); }
+  .panel__body { padding: 14px 18px; }
+  .stat { color: var(--muted); font-size: 13px; }
+  .stat b { color: var(--text); }
+  code { background: var(--bg-3); border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; font-size: 12px; color: var(--text); }
+
+  .grille { display: grid; grid-template-columns: minmax(360px, 460px) 1fr; gap: 18px; align-items: start; }
+  .colle { position: sticky; top: 124px; }
+  /* ⚠ En une seule colonne, l'aperçu ne doit PLUS coller : un bloc collant plus haut que
+     la fenêtre ne colle pas, il traîne — et il laisse derrière lui des bandes que le
+     navigateur ne repeint pas. Cette règle vient donc APRÈS celle du dessus, sinon elle
+     ne gagnerait pas. */
+  @media (max-width: 1100px) { .grille { grid-template-columns: 1fr; } .colle { position: static; } }
+  /* ⚠ Sur un téléphone, les liens de la nav passent à la ligne alors que la barre garde
+     ses 52 px : ils débordent alors SOUS elle, par-dessus les réglages, et la barre de
+     réglages collée à 52 px passe au travers. Rien ne colle plus en dessous de 760 px —
+     l'écran est trop court pour qu'un bandeau collé y gagne quoi que ce soit. */
+  @media (max-width: 760px) {
+    .tb-nav { position: static; height: auto; min-height: 52px; padding: 8px 14px; }
+    .ctrl { position: static; }
+    .wrap { padding: 16px 12px 60px; }
+  }
+
+  /* La liste des colonnes : une stat par ligne, ce qu'elle fait sous son nom. */
+  .col { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); margin-bottom: 7px; cursor: pointer; }
+  .col:hover { border-color: var(--accent); }
+  .col--on { border-color: var(--accent); background: #1b2337; }
+  .col i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .col b { font-size: 14px; }
+  .col span { display: block; font-size: 12px; color: var(--muted); }
+  .col .fl { flex: 1; min-width: 0; }
+  .col .fl b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* UNE FICHE PAR KEYFRAME, sur deux lignes — et pas un tableau. ⚠ En tableau, la ligne
+     réclamait 612 px (deux champs, deux menus, deux boutons) dans une colonne qui en offre
+     420 : les boutons et la fin du menu « Échelle » sortaient du panneau, invisibles. Les
+     champs se replient maintenant, et la forme/échelle est dite pour ce qu'elle est — le
+     réglage du SEGMENT qui part de cette keyframe, pas une propriété de la keyframe. */
+  .kfr { border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; margin-bottom: 7px; background: var(--bg); }
+  .kfr--on { border-color: var(--accent); background: #1b2337; }
+  .kfr__l { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .kfr__l + .kfr__l { margin-top: 7px; border-top: 1px dashed var(--line); padding-top: 7px; }
+  .kfr label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .kfr input[type=number] { width: 76px; padding: 5px 7px; }
+  /* `min-width: 0` est ce qui autorise un menu à rétrécir : sans lui, un <select> garde la
+     largeur de sa plus longue option et repousse tout le reste dehors. */
+  .kfr select { flex: 1 1 130px; min-width: 0; max-width: 100%; padding: 5px 7px; font-size: 13px; }
+  .kfr .fl { flex: 1 1 0; }
+
+  table.dev { border-collapse: collapse; font-size: 13px; width: 100%; }
+  table.dev th, table.dev td { border: 1px solid var(--line); padding: 3px 9px; text-align: right; white-space: nowrap; }
+  table.dev th { color: var(--muted); font-weight: 600; font-size: 12px; position: sticky; top: 0; background: var(--bg-2); z-index: 1; }
+  table.dev td.niv { text-align: left; color: var(--muted); }
+  table.dev td.bouge { color: var(--accent-2); font-weight: 700; background: #14231f; }
+  table.dev td.force { color: var(--warn); background: #241c14; }
+  table.dev td.colonne { box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent); }
+  .defile { max-height: 460px; overflow: auto; }
+
+  .avis { display: flex; gap: 9px; align-items: flex-start; padding: 8px 10px; border-radius: 10px; margin-bottom: 6px; font-size: 13px; cursor: pointer; border: 1px solid transparent; }
+  .avis--bad { background: #2a1a1f; color: #ffb3bf; border-color: #4a2630; }
+  .avis--mou { background: #241c14; color: #f3ce93; border-color: #4a3a1a; }
+  .avis--ok { background: #14231f; color: var(--accent-2); border-color: #1e4238; cursor: default; }
+
+  svg.graphe { display: block; width: 100%; height: auto; }
+  svg .axe { stroke: var(--line); stroke-width: 1; }
+  svg .grille-l { stroke: #222838; stroke-width: 1; }
+  svg text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+  svg .ideale { fill: none; stroke: var(--accent); stroke-width: 1.6; opacity: .55; stroke-dasharray: 4 3; }
+  svg .escalier { fill: none; stroke: var(--accent); stroke-width: 2; }
+  svg .tour { fill: var(--accent-2); }
+  svg .tour--force { fill: var(--warn); }
+  svg .kf { fill: var(--bg); stroke: var(--accent-3); stroke-width: 2; cursor: pointer; }
+  svg .kf--on { fill: var(--accent-3); }
+  svg .faute { fill: rgba(255,107,129,.13); stroke: rgba(255,107,129,.5); stroke-width: 1; }
+  svg .faute-t { fill: #ffb3bf; }
+  .legende { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legende i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+<nav class="tb-nav">
+  <span class="tb-nav__brand"><span class="tb-dot"></span>Adventure Card</span>
+  <div class="tb-nav__links">
+    <a class="tb-nav__link" href="accueil.html">Accueil</a>
+    <a class="tb-nav__link" href="../game/index.html">Jouer</a>
+    <a class="tb-nav__link" href="index.html">Card Builder</a>
+    <a class="tb-nav__link" href="overview.html">Vue d'ensemble</a>
+    <a class="tb-nav__link" href="balance.html">Équilibrage</a>
+    <span class="tb-nav__link tb-nav__link--active">Courbes</span>
+    <a class="tb-nav__link" href="lancer.html">Lancer un calcul</a>
+  </div>
+  <span class="tb-nav__spacer"></span>
+  <span class="stat" id="etatSauve"></span>
+</nav>
+
+<div class="wrap">
+  <h1>Courbes de progression</h1>
+  <p class="lede">
+    Une <b>colonne</b>, c'est une stat qui évolue au fil des niveaux — les PV d'un adversaire, ses dégâts, son armure, le coût
+    d'une carte. Un <b>profil</b> en réunit plusieurs. À chaque niveau, une ou plusieurs colonnes <b>prennent leur tour</b> et
+    changent de valeur ; les autres répliquent la précédente.<br>
+    Chaque colonne porte deux réglages qui ne se touchent jamais : son <b>rythme</b> dit <em>quand</em> c'est son tour, sa
+    <b>courbe</b> dit <em>quelle valeur</em> à ce niveau-là. Changer le rythme déplace donc les valeurs sur l'axe des niveaux —
+    il ne peut pas déformer la courbe.<br>
+    <strong>La contrainte absolue : chaque ligne diffère de la précédente.</strong> Un niveau qui ne change rien ne se sent pas.
+    C'est de là que vient tout le reste — un tour à distribuer par niveau, un tour <em>forcé</em> quand personne ne bougerait,
+    et la règle <b>|Δvaleur| ≥ K</b> que le bandeau « À vérifier » applique à chaque segment.
+  </p>
+
+  <div class="ctrl">
+    <div class="grp"><label>Profil</label><select id="profil"></select></div>
+    <div class="grp"><label>Nom</label><input type="text" id="profilNom" style="width:170px"></div>
+    <div class="grp"><label>Id</label><input type="text" id="profilId" style="width:120px" title="Ce qui part dans la colonne « id » du TSV, dans le JSON et dans le nom du fichier. Il suit le nom tant qu'on ne l'écrit pas à la main."></div>
+    <div class="grp"><label>Départ</label><input type="number" id="depart" min="0" max="999" style="width:72px"></div>
+    <div class="grp"><label>Horizon</label><input type="number" id="horizon" min="2" max="1000" style="width:82px"><span class="stat" id="horizonTxt"></span></div>
+    <button class="btn btn--sm" id="profilPlus">+ Profil</button>
+    <button class="btn btn--sm btn--danger" id="profilMoins">✕</button>
+    <span style="flex:1"></span>
+    <div class="grp" id="portee"><label>Exporter</label></div>
+    <button class="btn" id="copieTsv" title="Une ligne d'en-tête, puis une ligne par niveau — ça se colle tel quel dans une feuille">⧉ Copier le TSV</button>
+    <button class="btn" id="dlTsv">⬇ TSV</button>
+    <button class="btn" id="dlJson" title="Les keyframes et les rythmes, pas les valeurs développées : le moteur recalcule">⬇ JSON</button>
+    <button class="btn" id="upJson">⬆ Importer</button>
+  </div>
+  <p class="stat" id="quoiSort" style="margin:-10px 0 18px"></p>
+
+  <div class="grille">
+    <!-- LA GAUCHE : ce qu'on règle. -->
+    <div>
+      <div class="panel">
+        <div class="panel__head"><h2>Colonnes</h2><span class="count" id="colCount"></span></div>
+        <div class="panel__body">
+          <div id="colonnes"></div>
+          <button class="btn btn--sm" id="colPlus" style="margin-top:6px">+ Ajouter une colonne</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>Rythme</h2><span class="count" id="rythmeCount"></span></div>
+        <div class="panel__body" id="rythme"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>Courbe</h2><span class="count" id="courbeCount"></span></div>
+        <div class="panel__body" id="courbe"></div>
+      </div>
+    </div>
+
+    <!-- LA DROITE : ce que ça donne. Toujours visible, c'est tout l'intérêt. -->
+    <div class="colle">
+      <div class="panel">
+        <div class="panel__head"><h2 id="apercuTitre">Aperçu</h2><span class="count" id="apercuCount"></span></div>
+        <div class="panel__body">
+          <div id="apercu"></div>
+          <div class="legende">
+            <span><i style="background:var(--accent);opacity:.55"></i>la courbe continue</span>
+            <span><i style="background:var(--accent)"></i>ce qui sort vraiment (l'escalier)</span>
+            <span><i style="background:var(--accent-2);border-radius:50%"></i>un tour</span>
+            <span><i style="background:var(--warn);border-radius:50%"></i>un tour forcé</span>
+            <span><i style="background:var(--accent-3)"></i>une keyframe</span>
+            <span><i style="background:#5a2630"></i>segment en faute</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>Toutes les colonnes</h2><span class="count">chacune à son échelle</span></div>
+        <div class="panel__body"><div id="superpose"></div><div class="legende" id="superposeLeg"></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>À vérifier</h2><span class="count" id="avisCount"></span></div>
+        <div class="panel__body" id="avis"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>Développement</h2><span class="count" id="devCount"></span></div>
+        <div class="panel__body defile" id="table" style="padding:0"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { RYTHMES, FORMES, ECHELLES, STOCKAGES, colonneVide, profilVide, developpe, valide, valeurBornee,
+  keyframes, segmentsPlats, rythmeEffectif, aTaux, niveauxEcrits, resumeRythme, resumeCourbe,
+  versTSV, versJSON, depuisJSON, premierNiveau, dernierNiveau } from '../game/src/config/courbes.js';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const nb = x => Math.round(x * 10) / 10;
+
+// Une couleur par colonne, pour que la vue superposee se lise sans legende geante.
+const TEINTES = ['#7aa2ff', '#79e3c5', '#c69bff', '#f5a623', '#ff6b81', '#5ad1e6', '#b6d957', '#ff9f68'];
+const teinte = i => TEINTES[i % TEINTES.length];
+
+// ---------- CE QU'ON GARDE ----------
+// Tout vit dans CE navigateur, comme le brouillon du builder : un profil qu'on veut
+// garder pour de bon sort en JSON (le bouton de la barre), et c'est ce fichier-la que le
+// moteur lira. Rien n'est ecrit dans le repo sans qu'on le demande.
+const LS = 'adventureCardCourbes.v1';
+
+/**
+ * Le profil de demarrage. Ce ne sont PAS des valeurs d'equilibrage : trois colonnes
+ * vides sur le patron du module, juste de quoi avoir quelque chose sous les yeux en
+ * ouvrant la page. L'equilibrage, lui, se fait ici puis s'exporte.
+ */
+function profilDeDepart() {
+  const p = profilVide('adversaires', 'Adversaires');
+  p.colonnes = [
+    { ...colonneVide('hp', 'PV'), rythme: { mode: 'regulier', x: 2, cap: 0, niveaux: [] } },
+    { ...colonneVide('atk', 'Dégâts'), rythme: { mode: 'regulier', x: 4, cap: 0, niveaux: [] } },
+    { ...colonneVide('arm', 'Armure'), rythme: { mode: 'regulier', x: 8, cap: 0, niveaux: [] } }
+  ];
+  return p;
+}
+
+let etat;
+try {
+  const brut = JSON.parse(localStorage.getItem(LS) || 'null');
+  etat = brut && brut.profils && brut.profils.length
+    ? { ...brut, profils: depuisJSON(JSON.stringify({ profils: brut.profils })) }
+    : null;
+} catch { etat = null; }
+if (!etat) etat = { profils: [profilDeDepart()], profil: 'adversaires', colonne: 'hp', kf: 0, portee: 'un' };
+if (!etat.portee) etat.portee = 'un';
+
+// ---------- CE QUI SORT, ET SOUS QUEL NOM ----------
+// ⚠ Le NOM d'un profil ne part que dans le JSON : la feuille de calcul, elle, a une
+// colonne « id » — c'est elle que le moteur lira pour retrouver son profil, et un libellé
+// avec espaces et accents n'y a pas sa place. D'ou deux champs cote a cote, comme pour une
+// colonne : le nom pour nous, l'id pour les fichiers.
+const slug = s => String(s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/[^a-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'profil';
+/** Le meme, rendu unique : deux profils de meme id se confondraient dans la feuille. */
+const slugLibre = (base, sauf) => {
+  let id = base, n = 2;
+  while (etat.profils.some(p => p !== sauf && p.id === id)) id = base + n++;
+  return id;
+};
+/** Ce que les boutons d'export emportent : ce profil, ou tous. */
+const aExporter = () => (etat.portee === 'tous' ? etat.profils : [P()]);
+const nomDeFichier = ext => (etat.portee === 'tous' && etat.profils.length > 1 ? 'courbes' : P().id) + ext;
+
+const garde = () => {
+  try { localStorage.setItem(LS, JSON.stringify(etat)); $('#etatSauve').textContent = 'gardé dans ce navigateur'; }
+  catch { $('#etatSauve').textContent = 'sauvegarde impossible (stockage plein ?)'; }
+};
+
+const P = () => etat.profils.find(p => p.id === etat.profil) || etat.profils[0];
+const iCol = () => Math.max(0, P().colonnes.findIndex(c => c.id === etat.colonne));
+const C = () => P().colonnes[iCol()];
+
+let dev = null;   // le developpement du profil courant, refait a chaque rendu
+
+// ---------- LE TRACE ----------
+// Un seul constructeur de graphe : l'apercu d'une colonne et la vue superposee ne
+// different que par ce qu'on lui passe. Deux fonctions divergeraient a la premiere
+// retouche, et l'une des deux mentirait.
+const GW = 700, GH = 250, MR = 14, MT = 14, MB = 26;
+// La gouttière de gauche loge les valeurs de l'axe — donc elle n'a de raison d'être que
+// dans un graphe qui EN AFFICHE. La vue superposée n'en affiche pas (chaque colonne y est
+// à son échelle) : elle se passe des 48 px, qui n'y étaient qu'un trou.
+let ML = 48;
+
+function cadre(bornes) {
+  const { min, max } = bornes;
+  const X = L => ML + (L - dev.depart) / Math.max(1, dev.fin - dev.depart) * (GW - ML - MR);
+  const Y = v => GH - MB - (v - min) / ((max - min) || 1) * (GH - MT - MB);
+  return { X, Y };
+}
+
+/** Les min/max d'un jeu de colonnes, avec un peu d'air autour. */
+function bornesDe(indices) {
+  let min = Infinity, max = -Infinity;
+  for (const i of indices) {
+    for (const v of dev.tables[i].entiers) { min = Math.min(min, v); max = Math.max(max, v); }
+    for (const v of dev.tables[i].reels) { min = Math.min(min, v); max = Math.max(max, v); }
+  }
+  if (!isFinite(min)) { min = 0; max = 1; }
+  const air = (max - min) * 0.08 || 1;
+  return { min: min - air, max: max + air };
+}
+
+/** Le fond : la grille, les niveaux en bas, les valeurs a gauche. */
+function fond(bornes, avecValeurs = true) {
+  const { X, Y } = cadre(bornes);
+  let s = '';
+  // Les valeurs sorties sont entieres : sur une colonne qui ne bouge que de 2 points, cinq
+  // graduations donneraient cinq fois le meme nombre. On saute alors celles qui repetent.
+  let precedent = null;
+  for (let k = 0; k <= 4; k++) {
+    const v = bornes.min + (bornes.max - bornes.min) * k / 4;
+    s += `<line class="grille-l" x1="${ML}" y1="${Y(v)}" x2="${GW - MR}" y2="${Y(v)}" />`;
+    if (avecValeurs && Math.round(v) !== precedent) {
+      s += `<text x="${ML - 6}" y="${Y(v) + 4}" text-anchor="end">${Math.round(v)}</text>`;
+      precedent = Math.round(v);
+    }
+  }
+  const span = dev.fin - dev.depart;
+  const pas = span <= 20 ? 2 : span <= 60 ? 5 : span <= 150 ? 10 : Math.ceil(span / 12 / 10) * 10;
+  for (let L = dev.depart; L <= dev.fin; L += pas) {
+    s += `<line class="grille-l" x1="${X(L)}" y1="${MT}" x2="${X(L)}" y2="${GH - MB}" opacity=".5" />`;
+    s += `<text x="${X(L)}" y="${GH - MB + 15}" text-anchor="middle">${L}</text>`;
+  }
+  s += `<line class="axe" x1="${ML}" y1="${GH - MB}" x2="${GW - MR}" y2="${GH - MB}" />`;
+  s += `<line class="axe" x1="${ML}" y1="${MT}" x2="${ML}" y2="${GH - MB}" />`;
+  return s;
+}
+
+/** La courbe continue (pointillee) et l'escalier de ce qui sort vraiment. */
+function traces(i, bornes, couleur) {
+  const { X, Y } = cadre(bornes);
+  const col = P().colonnes[i];
+  const n = Math.min(500, (dev.fin - dev.depart) * 4 + 1);
+  const ideale = Array.from({ length: n }, (_, k) => {
+    const L = dev.depart + (dev.fin - dev.depart) * k / (n - 1 || 1);
+    return `${X(L).toFixed(1)},${Y(valeurBornee(col, L)).toFixed(1)}`;
+  }).join(' ');
+
+  let marche = '', prev = null;
+  for (const l of dev.lignes) {
+    const v = l.valeurs[i];
+    marche += prev === null ? `M${X(l.niveau).toFixed(1)},${Y(v).toFixed(1)}`
+      : `L${X(l.niveau).toFixed(1)},${Y(prev).toFixed(1)}L${X(l.niveau).toFixed(1)},${Y(v).toFixed(1)}`;
+    prev = v;
+  }
+  const c = couleur ? ` style="stroke:${couleur}"` : '';
+  return `<polyline class="ideale" points="${ideale}"${c} /><path class="escalier" d="${marche}"${c} />`;
+}
+
+/** L'apercu de la colonne en cours : tours, keyframes et segments en faute compris. */
+function grapheColonne(i) {
+  ML = 48;
+  const col = P().colonnes[i];
+  const bornes = bornesDe([i]);
+  const { X, Y } = cadre(bornes);
+  let s = `<svg class="graphe" viewBox="0 0 ${GW} ${GH}" preserveAspectRatio="none">`;
+
+  // Les segments en faute D'ABORD : ils sont un fond, pas un trait. La regle est celle
+  // du module — le bandeau « À vérifier » surligne exactement ce qu'il signale.
+  for (const s2 of segmentsPlats(col, dev.tours[i])) {
+    const x1 = X(Math.max(dev.depart, s2.a.niveau)), x2 = X(Math.min(dev.fin, s2.b.niveau));
+    s += `<rect class="faute" x="${x1.toFixed(1)}" y="${MT}" width="${Math.max(1, x2 - x1).toFixed(1)}" height="${GH - MT - MB}">`
+      + `<title>${esc(`${s2.tours.length} tours pour ${Math.abs(s2.delta)} points : ${s2.tours.length - Math.abs(s2.delta)} seront plats`)}</title></rect>`;
+    s += `<text class="faute-t" x="${((x1 + x2) / 2).toFixed(1)}" y="${MT + 12}" text-anchor="middle">${s2.tours.length - Math.abs(s2.delta)} tours plats</text>`;
+  }
+  s += fond(bornes);
+  s += traces(i, bornes);
+
+  // Les tours effectifs, marques sur la courbe. Un tour force est jaune : c'est le
+  // secours de la contrainte absolue, pas le rythme demande.
+  const forces = new Set(dev.lignes.filter(l => l.forces.includes(i)).map(l => l.niveau));
+  for (const L of dev.tours[i]) {
+    const v = dev.lignes.find(l => l.niveau === L).valeurs[i];
+    s += `<circle class="tour${forces.has(L) ? ' tour--force' : ''}" cx="${X(L).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="2.8">`
+      + `<title>niveau ${L} — ${v}${forces.has(L) ? ' (tour forcé : sans lui, ce niveau ne changerait rien)' : ''}</title></circle>`;
+  }
+  // Les keyframes : on peut les attraper a la souris, mais les chiffres s'ecrivent a
+  // gauche au clavier — c'est la que se reglent les valeurs precises.
+  keyframes(col).forEach((k, j) => {
+    const x = X(k.niveau), y = Y(k.valeur);
+    if (k.niveau < dev.depart || k.niveau > dev.fin) return;
+    s += `<rect class="kf${j === etat.kf ? ' kf--on' : ''}" data-kf="${j}" x="${(x - 4).toFixed(1)}" y="${(y - 4).toFixed(1)}" width="8" height="8" transform="rotate(45 ${x.toFixed(1)} ${y.toFixed(1)})">`
+      + `<title>keyframe ${j + 1} : niveau ${k.niveau}, valeur ${k.valeur}</title></rect>`;
+  });
+  return s + '</svg>';
+}
+
+/** Toutes les colonnes d'un coup, chacune ramenee a sa propre echelle. */
+function grapheToutes() {
+  ML = 14;
+  const cols = P().colonnes;
+  if (!cols.length) return '<p class="stat">Aucune colonne.</p>';
+  let s = `<svg class="graphe" viewBox="0 0 ${GW} ${GH}" preserveAspectRatio="none">`;
+  s += fond({ min: 0, max: 1 }, false);
+  cols.forEach((c, i) => { s += traces(i, bornesDe([i]), teinte(i)); });
+  return s + '</svg>';
+}
+
+// ---------- LES RENDUS ----------
+
+function rendBarre() {
+  const p = P();
+  $('#profil').innerHTML = etat.profils.map(x => `<option value="${esc(x.id)}" ${x.id === p.id ? 'selected' : ''}>${esc(x.nom)}</option>`).join('');
+  $('#profilNom').value = p.nom;
+  $('#profilId').value = p.id;
+  $('#depart').value = premierNiveau(p);
+  $('#horizon').value = p.horizon;
+  $('#horizonTxt').textContent = `niveaux ${dev.depart} → ${dev.fin}`;
+  $('#profilMoins').disabled = etat.profils.length < 2;
+
+  // La portee de l'export, et ce qu'elle donne — ecrit noir sur blanc. Sans cette ligne,
+  // on renomme un profil, on exporte, et on ne comprend pas pourquoi le fichier n'a pas
+  // bouge : c'est l'id qui part, pas le nom, et les boutons peuvent emporter tout le lot.
+  $('#portee').innerHTML = '<label>Exporter</label>'
+    + [['un', 'Ce profil'], ['tous', `Tous (${etat.profils.length})`]]
+      .map(([k, lab]) => `<span class="chip ${etat.portee === k ? 'chip--on' : ''}" data-portee="${k}">${esc(lab)}</span>`).join('');
+  for (const n of $('#portee').querySelectorAll('[data-portee]')) n.onclick = () => { etat.portee = n.dataset.portee; rend(); };
+
+  const ids = aExporter().map(x => x.id);
+  $('#quoiSort').innerHTML = `Les boutons d'export emportent <b>${etat.portee === 'tous' ? `les ${ids.length} profils` : `« ${esc(p.nom)} » seul`}</b> `
+    + `→ <code>${esc(nomDeFichier('.tsv'))}</code>, colonne <code>id</code> = ${ids.map(i => `<code>${esc(i)}</code>`).join(', ')}. `
+    + `⚠ Le <b>nom</b> ne voyage que dans le JSON : c'est l'<b>id</b> que lisent la feuille et le moteur.`;
+}
+
+function rendColonnes() {
+  const p = P();
+  $('#colCount').textContent = `${p.colonnes.length} colonne(s)`;
+  $('#colonnes').innerHTML = p.colonnes.map((c, i) => {
+    const eff = rythmeEffectif(dev, i);
+    const sortie = dev.sortieAu[i];
+    return `<div class="col ${c.id === C().id ? 'col--on' : ''}" data-i="${i}">
+      <i style="background:${teinte(i)}"></i>
+      <div class="fl">
+        <b>${esc(c.nom)} <span style="color:var(--muted);font-weight:400">· ${esc(c.id)}</span></b>
+        <span>${esc(resumeRythme(c))} — ${dev.tours[i].length} tour(s)${eff ? `, soit 1 sur ${nb(eff)} en vrai` : ''}${sortie ? ` · épuisée au niveau ${sortie}` : ''}</span>
+        <span>${esc(resumeCourbe(c))}</span>
+      </div>
+      <button class="btn btn--sm js-haut" title="Monter">↑</button>
+      <button class="btn btn--sm js-bas" title="Descendre">↓</button>
+      <button class="btn btn--sm btn--danger js-del" title="Supprimer" ${p.colonnes.length < 2 ? 'disabled' : ''}>✕</button>
+    </div>`;
+  }).join('');
+  for (const n of $('#colonnes').querySelectorAll('.col')) {
+    const i = +n.dataset.i;
+    n.onclick = ev => { if (ev.target.closest('button')) return; etat.colonne = p.colonnes[i].id; etat.kf = 0; rend(); };
+    n.querySelector('.js-haut').onclick = () => bouge(i, -1);
+    n.querySelector('.js-bas').onclick = () => bouge(i, 1);
+    n.querySelector('.js-del').onclick = () => {
+      p.colonnes.splice(i, 1);
+      if (!p.colonnes.some(c => c.id === etat.colonne)) etat.colonne = p.colonnes[0].id;
+      rend();
+    };
+  }
+}
+
+const bouge = (i, d) => {
+  const p = P(), j = i + d;
+  if (j < 0 || j >= p.colonnes.length) return;
+  [p.colonnes[i], p.colonnes[j]] = [p.colonnes[j], p.colonnes[i]];
+  rend();
+};
+
+function rendRythme() {
+  const c = C(), i = iCol(), r = c.rythme;
+  const eff = rythmeEffectif(dev, i);
+  $('#rythmeCount').textContent = `${dev.tours[i].length} tour(s)`;
+  const modes = Object.entries(RYTHMES).map(([k, v]) =>
+    `<span class="chip ${r.mode === k ? 'chip--on' : ''}" data-mode="${k}" title="${esc(v.desc)}">${esc(v.label)}</span>`).join(' ');
+  $('#rythme').innerHTML = `
+    <div class="ctrl ctrl--plat" style="margin-bottom:10px">${modes}</div>
+    ${r.mode === 'regulier' ? `<div class="ctrl ctrl--plat">
+      <div class="grp"><label>1 sur</label><input type="number" id="rx" min="1" max="200" style="width:80px" value="${r.x}"></div>
+      <div class="grp"><label>Cap (tours)</label><input type="number" id="rcap" min="0" max="999" style="width:80px" value="${r.cap || 0}" title="0 = pas de cap. Au cap, la colonne sort de la rotation et les autres accélèrent."></div>
+    </div>` : ''}
+    ${r.mode === 'toujours' ? `<div class="ctrl ctrl--plat">
+      <div class="grp"><label>Cap (tours)</label><input type="number" id="rcap" min="0" max="999" style="width:80px" value="${r.cap || 0}"></div>
+    </div>` : ''}
+    ${r.mode === 'liste' ? `<div class="ctrl ctrl--plat">
+      <div class="grp"><label>Niveaux</label><input type="text" id="rniv" style="width:240px" value="${esc(niveauxEcrits(c).join(', '))}" placeholder="6, 14, 25"></div>
+    </div>` : ''}
+    <p class="stat" style="margin:10px 0 0">${esc(RYTHMES[r.mode].desc)}</p>
+    ${aTaux(c) && eff ? `<p class="stat" style="margin:6px 0 0">Demandé : <b style="color:var(--text)">${esc(resumeRythme(c))}</b> —
+      effectif : <b style="color:var(--text)">1 sur ${nb(eff)}</b>.
+      ⚠ Les poids sont <b style="color:var(--text)">relatifs</b> : il faut bien qu'un niveau change quelque chose, donc le tour de
+      chaque niveau va à la colonne la plus en retard. Deux colonnes à « 1 sur 4 » alternent au lieu de laisser trois niveaux
+      muets. Pour que le demandé et l'effectif coïncident, il faut que les 1/X du profil fassent 1.</p>` : ''}`;
+
+  for (const n of $('#rythme').querySelectorAll('[data-mode]')) n.onclick = () => { c.rythme.mode = n.dataset.mode; rend(); };
+  const lit = (sel, fn) => { const n = $(sel); if (n) n.onchange = () => { fn(n); rend(); }; };
+  lit('#rx', n => c.rythme.x = Math.max(1, Math.round(+n.value || 1)));
+  lit('#rcap', n => c.rythme.cap = Math.max(0, Math.round(+n.value || 0)));
+  lit('#rniv', n => c.rythme.niveaux = n.value.split(/[^0-9]+/).filter(Boolean).map(Number));
+}
+
+function rendCourbe() {
+  const c = C();
+  const ks = keyframes(c);
+  $('#courbeCount').textContent = `${ks.length} keyframe(s)`;
+  const opts = (reg, v) => Object.entries(reg).map(([k, o]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${esc(o.label)}</option>`).join('');
+  $('#courbe').innerHTML = `
+    ${ks.map((k, j) => {
+      const suiv = ks[j + 1];
+      return `<div class="kfr ${j === etat.kf ? 'kfr--on' : ''}" data-j="${j}">
+        <div class="kfr__l">
+          <label>Niveau</label><input type="number" class="js-niv" value="${k.niveau}" step="1">
+          <label>Valeur</label><input type="number" class="js-val" value="${k.valeur}" step="1">
+          <span class="fl"></span>
+          <button class="btn btn--sm js-kfplus" title="Ajouter une keyframe après celle-ci">+</button>
+          <button class="btn btn--sm btn--danger js-kfdel" title="Supprimer cette keyframe" ${ks.length < 3 ? 'disabled' : ''}>✕</button>
+        </div>
+        ${suiv ? `<div class="kfr__l">
+          <span class="stat">↳ segment ${k.niveau}→${suiv.niveau}</span>
+          <select class="js-forme" title="${esc((FORMES[k.forme] || FORMES.lineaire).desc)}">${opts(FORMES, k.forme || 'lineaire')}</select>
+          <select class="js-ech" title="${esc((ECHELLES[k.echelle] || ECHELLES.additive).desc)}">${opts(ECHELLES, k.echelle || 'additive')}</select>
+        </div>` : '<div class="kfr__l"><span class="stat">↳ fin du motif — ce qui suit est réglé ci-dessous</span></div>'}
+      </div>`;
+    }).join('')}
+    <div class="ctrl ctrl--plat" style="margin-top:12px">
+      <div class="grp"><label>Après la dernière</label>
+        <span class="chip ${c.courbe.prolonger !== false ? 'chip--on' : ''}" data-queue="1" title="On continue la pente du dernier segment, indéfiniment.">Prolonger</span>
+        <span class="chip ${c.courbe.prolonger === false ? 'chip--on' : ''}" data-queue="0" title="On rejoue tout le motif, décalé : de la variation totale d'un cycle (additif) ou du ratio total (proportionnel).">Boucler</span>
+      </div>
+    </div>
+    <div class="ctrl ctrl--plat">
+      <div class="grp"><label>Plancher</label><input type="number" id="plancher" style="width:90px" value="${c.plancher ?? ''}" placeholder="aucun"></div>
+      <div class="grp"><label>Plafond</label><input type="number" id="plafond" style="width:90px" value="${c.plafond ?? ''}" placeholder="aucun"></div>
+      <div class="grp"><label>Stockage</label><select id="stockage">${opts(STOCKAGES, c.stockage || 'absolu')}</select></div>
+    </div>
+    <div class="ctrl ctrl--plat">
+      <div class="grp"><label>Nom</label><input type="text" id="colNom" style="width:150px" value="${esc(c.nom)}"></div>
+      <div class="grp"><label>Id (colonne du TSV)</label><input type="text" id="colId" style="width:120px" value="${esc(c.id)}"></div>
+    </div>
+    <p class="stat" style="margin:8px 0 0">${esc(STOCKAGES[c.stockage || 'absolu'].desc)}
+      Les valeurs sorties sont <b style="color:var(--text)">entières</b> : on arrondit la cible cumulée à chaque tour et on prend
+      les différences, jamais l'inverse — c'est ce qui empêche l'arrondi de dériver.</p>`;
+
+  for (const tr of $('#courbe').querySelectorAll('.kfr[data-j]')) {
+    const j = +tr.dataset.j, k = ks[j];
+    const champ = (sel, fn) => { const n = tr.querySelector(sel); if (n) { n.onfocus = () => { etat.kf = j; garde(); }; n.onchange = () => { fn(n); rend(); }; } };
+    champ('.js-niv', n => k.niveau = Math.round(+n.value || 0));
+    champ('.js-val', n => k.valeur = Math.round(+n.value || 0));
+    champ('.js-forme', n => k.forme = n.value);
+    champ('.js-ech', n => k.echelle = n.value);
+    tr.querySelector('.js-kfplus').onclick = () => {
+      const suiv = ks[j + 1];
+      ks.splice(j + 1, 0, { niveau: suiv ? Math.round((k.niveau + suiv.niveau) / 2) : k.niveau + 10,
+        valeur: suiv ? Math.round((k.valeur + suiv.valeur) / 2) : k.valeur + 10, forme: k.forme, echelle: k.echelle });
+      etat.kf = j + 1; rend();
+    };
+    tr.querySelector('.js-kfdel').onclick = () => { ks.splice(j, 1); etat.kf = Math.min(etat.kf, ks.length - 1); rend(); };
+  }
+  for (const n of $('#courbe').querySelectorAll('[data-queue]')) n.onclick = () => { c.courbe.prolonger = n.dataset.queue === '1'; rend(); };
+  const lit = (sel, fn) => { const n = $(sel); if (n) n.onchange = () => { fn(n); rend(); }; };
+  lit('#plancher', n => c.plancher = n.value === '' ? null : Math.round(+n.value));
+  lit('#plafond', n => c.plafond = n.value === '' ? null : Math.round(+n.value));
+  lit('#stockage', n => c.stockage = n.value);
+  lit('#colNom', n => c.nom = n.value || c.id);
+  lit('#colId', n => {
+    // L'id est une COLONNE DU TSV : ni tabulation, ni espace, et jamais deux fois le meme.
+    const propre = (n.value || 'stat').trim().replace(/\s+/g, '_').replace(/[^\w-]/g, '');
+    if (!propre || P().colonnes.some(x => x !== c && x.id === propre)) return;
+    c.id = propre; etat.colonne = propre;
+  });
+}
+
+function rendApercu() {
+  const i = iCol(), c = C();
+  $('#apercuTitre').textContent = `Aperçu — ${c.nom}`;
+  const plats = segmentsPlats(c, dev.tours[i]);
+  $('#apercuCount').textContent = plats.length ? `${plats.length} segment(s) en faute` : `${dev.tours[i].length} tour(s) sur ${dev.fin - dev.depart} niveaux`;
+  $('#apercu').innerHTML = grapheColonne(i);
+  for (const n of $('#apercu').querySelectorAll('[data-kf]')) n.onclick = () => { etat.kf = +n.dataset.kf; rend(); };
+  $('#superpose').innerHTML = grapheToutes();
+  $('#superposeLeg').innerHTML = P().colonnes.map((c2, j) =>
+    `<span><i style="background:${teinte(j)}"></i>${esc(c2.nom)} (${dev.tables[j].entiers[0]} → ${dev.tables[j].entiers[dev.tables[j].entiers.length - 1]})</span>`).join('');
+}
+
+function rendAvis() {
+  const avis = valide(P(), dev);
+  $('#avisCount').textContent = avis.length ? `${avis.filter(a => a.bad).length} bloquant(s), ${avis.filter(a => !a.bad).length} avis` : 'rien à signaler';
+  $('#avis').innerHTML = avis.length
+    ? avis.map((a, j) => `<div class="avis avis--${a.bad ? 'bad' : 'mou'}" data-col="${esc(a.col || '')}"><span>${a.bad ? '⛔' : '⚠'}</span><span>${esc(a.msg)}</span></div>`).join('')
+    : '<div class="avis avis--ok"><span>✓</span><span>Chaque niveau change quelque chose, et aucun segment ne promet de tours plats.</span></div>';
+  for (const n of $('#avis').querySelectorAll('[data-col]')) n.onclick = () => {
+    if (!n.dataset.col) return;
+    etat.colonne = n.dataset.col; rend();
+  };
+}
+
+function rendTable() {
+  const p = P(), i = iCol();
+  $('#devCount').textContent = `${dev.lignes.length} niveaux · ${p.colonnes.length} colonnes`;
+  const base = p.colonnes.map((c, j) => dev.lignes[0].valeurs[j]);
+  const mod = (c, v, j) => (c.stockage === 'modificateur' ? (v - base[j] >= 0 ? '+' : '') + (v - base[j]) : v);
+  $('#table').innerHTML = `<table class="dev">
+    <tr><th>Niv.</th>${p.colonnes.map(c => `<th>${esc(c.nom)}</th>`).join('')}</tr>
+    ${dev.lignes.map(l => `<tr><td class="niv">${l.niveau}</td>${p.colonnes.map((c, j) => {
+      const classes = [l.bougent.includes(j) ? 'bouge' : '', l.forces.includes(j) ? 'force' : '', j === i ? 'colonne' : ''].filter(Boolean).join(' ');
+      const titre = l.forces.includes(j) ? ' title="Tour forcé : sans lui, ce niveau serait identique au précédent."' : '';
+      return `<td class="${classes}"${titre}>${mod(c, l.valeurs[j], j)}</td>`;
+    }).join('')}</tr>`).join('')}
+  </table>`;
+}
+
+function rend() {
+  const p = P();
+  if (!p.colonnes.length) p.colonnes.push(colonneVide());
+  if (!p.colonnes.some(c => c.id === etat.colonne)) etat.colonne = p.colonnes[0].id;
+  etat.kf = Math.max(0, Math.min(etat.kf || 0, keyframes(C()).length - 1));
+  dev = developpe(p);
+  rendBarre(); rendColonnes(); rendRythme(); rendCourbe(); rendApercu(); rendAvis(); rendTable();
+  garde();
+}
+
+// ---------- LA BARRE ----------
+$('#profil').onchange = () => { etat.profil = $('#profil').value; etat.colonne = P().colonnes[0].id; rend(); };
+$('#profilNom').onchange = () => {
+  const p = P(), avant = p.nom;
+  p.nom = $('#profilNom').value || p.id;
+  // L'ID SUIT LE NOM tant qu'on ne l'a pas ecrit a la main : s'il vaut encore le nom
+  // d'avant, c'est que personne n'y tient — et un profil renomme doit sortir sous son
+  // nouveau nom, sinon renommer ne change rien au fichier, ce qui ne se devine pas.
+  if (p.id === slug(avant)) { p.id = slugLibre(slug(p.nom), p); etat.profil = p.id; }
+  rend();
+};
+$('#profilId').onchange = () => {
+  const p = P();
+  p.id = slugLibre(slug($('#profilId').value || p.nom), p);
+  etat.profil = p.id;
+  rend();
+};
+$('#depart').onchange = () => { P().niveauDepart = Math.max(0, Math.round(+$('#depart').value || 1)); rend(); };
+$('#horizon').onchange = () => { P().horizon = Math.max(2, Math.min(1000, Math.round(+$('#horizon').value || 40))); rend(); };
+$('#profilPlus').onclick = () => {
+  const nom = 'Profil ' + (etat.profils.length + 1);
+  const p = profilVide(slugLibre(slug(nom)), nom);
+  etat.profils.push(p); etat.profil = p.id; etat.colonne = p.colonnes[0].id; rend();
+};
+$('#profilMoins').onclick = () => {
+  if (etat.profils.length < 2 || !confirm(`Supprimer « ${P().nom} » ?`)) return;
+  etat.profils = etat.profils.filter(p => p.id !== etat.profil);
+  etat.profil = etat.profils[0].id; etat.colonne = etat.profils[0].colonnes[0].id; rend();
+};
+$('#colPlus').onclick = () => {
+  const p = P();
+  let id = 'stat', n = 2;
+  while (p.colonnes.some(c => c.id === id)) id = 'stat' + n++;
+  p.colonnes.push(colonneVide(id, 'Stat ' + (p.colonnes.length + 1)));
+  etat.colonne = id; etat.kf = 0; rend();
+};
+
+const telecharge = (nom, texte, type) => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([texte], { type }));
+  a.download = nom; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+};
+$('#dlTsv').onclick = () => telecharge(nomDeFichier('.tsv'), versTSV(aExporter()), 'text/tab-separated-values');
+$('#dlJson').onclick = () => telecharge(nomDeFichier('.courbes.json'), versJSON(aExporter()), 'application/json');
+$('#copieTsv').onclick = async () => {
+  const txt = versTSV(aExporter());
+  const dire = m => { $('#copieTsv').textContent = m; setTimeout(() => $('#copieTsv').textContent = '⧉ Copier le TSV', 1800); };
+  try { await navigator.clipboard.writeText(txt); dire('✓ copié'); }
+  catch {
+    // Sans presse-papier (http, ou refus du navigateur), on donne le fichier : le
+    // designer doit pouvoir coller dans sa feuille quoi qu'il arrive.
+    telecharge(nomDeFichier('.tsv'), txt, 'text/tab-separated-values');
+    dire('⬇ téléchargé');
+  }
+};
+$('#upJson').onclick = () => {
+  const f = document.createElement('input');
+  f.type = 'file'; f.accept = '.json,application/json';
+  f.onchange = async () => {
+    try {
+      const lus = depuisJSON(await f.files[0].text());
+      for (const p of lus) etat.profils.push({ ...p, id: slugLibre(slug(p.id || p.nom)) });
+      etat.profil = etat.profils[etat.profils.length - 1].id;
+      etat.colonne = P().colonnes[0].id;
+      rend();
+    } catch (e) { alert('Fichier illisible : ' + e.message); }
+  };
+  f.click();
+};
+
+rend();
+</script>
+</body>
+</html>

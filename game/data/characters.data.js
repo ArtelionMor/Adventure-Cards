@@ -424,7 +424,7 @@ export const CHARACTER_DATA = {
       "play": [
         {
           "op": "buff",
-          "t": "previous",
+          "t": "self",
           "atk": -7,
           "hp": -7
         }
@@ -1078,8 +1078,8 @@ export const CHARACTER_DATA = {
               }
             }
           ],
-          "atk": 2,
-          "hp": 3,
+          "atk": 1,
+          "hp": 2,
           "statics": [],
           "death": [
             {
@@ -1153,74 +1153,81 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "dog_growl",
-          "name": "Revenir",
+          "name": "Appel",
           "type": "spell",
-          "cost": 2,
+          "cost": 3,
           "keys": [
             "type:Chien"
           ],
-          "text": "Invoque deux Chiens de votre défausse.",
+          "text": "Invoque un toutou fidèle. Donne +1/+1  à tes alliés.",
           "play": [
             {
               "op": "pose_sur_le_plateau",
-              "d_ou": "defausse",
+              "d_ou": "creee",
               "choix": "precise",
-              "carte": "",
-              "quoi": "ofType",
+              "carte": "dog_pup",
+              "quoi": "all",
               "typeDe": "ecrit",
               "typeQui": "toi",
               "argCard": "",
               "t": "enemyUnit",
               "qui": "toi",
               "ordre": "hasard",
-              "n": 2,
+              "n": 1,
               "fatigue": false,
               "atk": 0,
-              "hp": 0,
-              "argType": "Chien"
+              "hp": 0
+            },
+            {
+              "op": "buff",
+              "t": "allAllies",
+              "atk": 1,
+              "hp": 1
             }
           ],
           "tiers": [
             {
               "lvl": 11,
-              "text": "Invoque un Chiot 1/1 avec \"Râle d'agonie : Invoque un Chien 2/2\".",
+              "text": "Invoque un autre Toutou fidèle.",
               "extra": {
-                "op": "summon",
+                "op": "pose_sur_le_plateau",
+                "d_ou": "creee",
+                "choix": "precise",
+                "carte": "dog_pup",
+                "quoi": "all",
+                "typeDe": "ecrit",
+                "typeQui": "toi",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "hasard",
                 "n": 1,
-                "unit": {
-                  "name": "Chiot",
-                  "atk": 1,
-                  "hp": 1,
-                  "keys": [
-                    "type:Chien"
-                  ],
-                  "death": [],
-                  "turnStart": [],
-                  "turnEnd": [],
-                  "statics": []
-                }
+                "fatigue": false,
+                "atk": 0,
+                "hp": 0
               },
               "slot": "play"
             },
             {
               "lvl": 13,
               "extra": {
-                "op": "summon",
+                "op": "pose_sur_le_plateau",
+                "d_ou": "creee",
+                "choix": "precise",
+                "carte": "dog_bite",
+                "quoi": "all",
+                "typeDe": "ecrit",
+                "typeQui": "toi",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "hasard",
                 "n": 1,
-                "unit": {
-                  "name": "Chiot",
-                  "atk": 1,
-                  "hp": 1,
-                  "keys": [
-                    "type:Chien"
-                  ],
-                  "death": [],
-                  "turnStart": [],
-                  "turnEnd": [],
-                  "statics": []
-                }
+                "fatigue": false,
+                "atk": 0,
+                "hp": 0
               },
-              "text": "Invoque un Chiot 1/1 avec \"Râle d'agonie : Invoque un Chien 2/2\"."
+              "text": "Invoque un Enragé."
             },
             {
               "lvl": 16,
@@ -1249,8 +1256,8 @@ export const CHARACTER_DATA = {
               "t": "enemyUnit",
               "qui": "toi",
               "n": 5,
-              "atk": 2,
-              "hp": 2
+              "atk": 0,
+              "hp": 0
             }
           ],
           "tiers": [
@@ -1287,34 +1294,41 @@ export const CHARACTER_DATA = {
           "keys": [
             "type:Chien"
           ],
-          "text": "Cri de guerre : invoque deux Chiots 1/1 qui ont \"Râle d'agonie : Invoque un Chien 2/2\".",
+          "text": "Cri de guerre : invoque un Toutou Fidèle et un Enragé.",
           "play": [
             {
-              "op": "summon",
-              "n": 2,
-              "unit": {
-                "name": "Chiot",
-                "atk": 1,
-                "hp": 1,
-                "keys": [
-                  "type:Chien"
-                ],
-                "statics": [],
-                "death": [
-                  {
-                    "op": "summon",
-                    "n": 1,
-                    "unit": {
-                      "name": "Chien",
-                      "atk": 2,
-                      "hp": 2,
-                      "keys": [
-                        "type:Chien"
-                      ]
-                    }
-                  }
-                ]
-              }
+              "op": "pose_sur_le_plateau",
+              "d_ou": "creee",
+              "choix": "precise",
+              "carte": "dog_pup",
+              "quoi": "all",
+              "typeDe": "ecrit",
+              "typeQui": "toi",
+              "argCard": "",
+              "t": "enemyUnit",
+              "qui": "toi",
+              "ordre": "hasard",
+              "n": 1,
+              "fatigue": false,
+              "atk": 0,
+              "hp": 0
+            },
+            {
+              "op": "pose_sur_le_plateau",
+              "d_ou": "creee",
+              "choix": "precise",
+              "carte": "dog_bite",
+              "quoi": "all",
+              "typeDe": "ecrit",
+              "typeQui": "toi",
+              "argCard": "",
+              "t": "enemyUnit",
+              "qui": "toi",
+              "ordre": "hasard",
+              "n": 1,
+              "fatigue": false,
+              "atk": 0,
+              "hp": 0
             }
           ],
           "tiers": [
@@ -1359,7 +1373,7 @@ export const CHARACTER_DATA = {
       "switches": [
         {
           "id": "dog_bite",
-          "name": "Morsure",
+          "name": "Enragé",
           "type": "ally",
           "cost": 2,
           "atk": 2,
@@ -1436,36 +1450,23 @@ export const CHARACTER_DATA = {
             },
             {
               "lvl": 12,
-              "text": "Arrive : Invoque un Chiot 1/1 avec Charge et \"Râle d'agonie : Invoque un Chient 2/2\".",
+              "text": "Cri de guerre : Invoque un Enragé.",
               "extra": {
-                "op": "summon",
+                "op": "pose_sur_le_plateau",
+                "d_ou": "creee",
+                "choix": "precise",
+                "carte": "dog_bite",
+                "quoi": "all",
+                "typeDe": "ecrit",
+                "typeQui": "toi",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "hasard",
                 "n": 1,
-                "unit": {
-                  "name": "Chiot",
-                  "atk": 1,
-                  "hp": 1,
-                  "keys": [
-                    "type:Chien",
-                    "Charge"
-                  ],
-                  "death": [
-                    {
-                      "op": "summon",
-                      "n": 1,
-                      "unit": {
-                        "name": "Chien",
-                        "atk": 2,
-                        "hp": 2,
-                        "keys": [
-                          "type:Chien"
-                        ]
-                      }
-                    }
-                  ],
-                  "turnStart": [],
-                  "turnEnd": [],
-                  "statics": []
-                }
+                "fatigue": false,
+                "atk": 0,
+                "hp": 0
               },
               "slot": "play"
             }
@@ -1638,41 +1639,58 @@ export const CHARACTER_DATA = {
           "keys": [
             "type:Chien"
           ],
-          "text": "Invoque deux Chiots avec Charge et \"Râle d'agonie : invoque un Chien 2/2\".",
+          "text": "Invoque un Alpha, un Enragé et un Toutou Fidèle.",
           "play": [
             {
-              "op": "summon",
+              "op": "pose_sur_le_plateau",
+              "d_ou": "creee",
+              "choix": "precise",
+              "carte": "dog_alpha",
+              "quoi": "all",
+              "typeDe": "ecrit",
+              "typeQui": "toi",
+              "argCard": "",
+              "t": "enemyUnit",
+              "qui": "toi",
+              "ordre": "hasard",
               "n": 1,
-              "unit": {
-                "name": "Chiot",
-                "atk": 1,
-                "hp": 1,
-                "keys": [
-                  "type:Chien",
-                  "Charge"
-                ],
-                "death": [
-                  {
-                    "op": "summon",
-                    "n": 1,
-                    "unit": {
-                      "name": "Chien",
-                      "atk": 2,
-                      "hp": 2,
-                      "keys": [
-                        "type:Chien"
-                      ]
-                    }
-                  }
-                ],
-                "statics": [],
-                "aura": {
-                  "scope": "sameTypeAllies",
-                  "atk": 1,
-                  "hp": 0,
-                  "key": ""
-                }
-              }
+              "fatigue": false,
+              "atk": 0,
+              "hp": 0
+            },
+            {
+              "op": "pose_sur_le_plateau",
+              "d_ou": "creee",
+              "choix": "precise",
+              "carte": "dog_bite",
+              "quoi": "all",
+              "typeDe": "ecrit",
+              "typeQui": "toi",
+              "argCard": "",
+              "t": "enemyUnit",
+              "qui": "toi",
+              "ordre": "hasard",
+              "n": 1,
+              "fatigue": false,
+              "atk": 0,
+              "hp": 0
+            },
+            {
+              "op": "pose_sur_le_plateau",
+              "d_ou": "creee",
+              "choix": "precise",
+              "carte": "dog_pup",
+              "quoi": "all",
+              "typeDe": "ecrit",
+              "typeQui": "toi",
+              "argCard": "",
+              "t": "enemyUnit",
+              "qui": "toi",
+              "ordre": "hasard",
+              "n": 1,
+              "fatigue": false,
+              "atk": 0,
+              "hp": 0
             }
           ],
           "tiers": [

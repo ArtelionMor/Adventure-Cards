@@ -22,7 +22,7 @@
 // encore quand plus rien n'y est monte, et on remplirait la carte SD sans le voir. Le
 // reglage garde donc le POINT DE MONTAGE, verifie a chaque ecriture : cle absente, rien
 // n'est ecrit et on le dit.
-import { readFile, writeFile, mkdir, readdir, stat, statfs, rm } from 'node:fs/promises';
+import { readFile, writeFile, copyFile, mkdir, readdir, stat, statfs, rm } from 'node:fs/promises';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
@@ -165,9 +165,13 @@ function recapitulatif(c) {
   const t = [`Adventure Card — file du ${new Date(c.debut).toLocaleString('fr-FR')}`];
   const finis = c.lignes.filter(l => l.etat === 'fini').length;
   t.push(`${finis}/${c.lignes.length} calcul(s) terminé(s) en ${duree((c.fin || Date.now()) - c.debut - (c.pauseTotale || 0))}${c.arrete ? ' (file arrêtée)' : ''}`, '');
+  // EN TETE, parce que c'est ce qu'on vient relire : ce qu'on a compris de ces chiffres,
+  // ecrit apres coup — au besoin par un modele a qui on a donne les journaux.
+  if (c.commentaire) t.push('--- Commentaire ---', c.commentaire, '');
   for (const l of c.lignes) {
     t.push(`- ${l.libelle} : ${l.resume || l.etat}${l.fin && l.debut ? ` · ${duree(l.fin - l.debut - (l.pauseTotale || 0))}` : ''}`);
     if (l.fichier) t.push(`  sortie complète : ${l.fichier}`);
+    if (l.journal) t.push(`  journal de combat : ${l.journal}`);
   }
   if (c.analyse && c.analyse.etat === 'fini') {
     t.push('', `Analyse (${c.analyse.machine} · ${c.analyse.modele} · ${duree(c.analyse.duree)}) :`, c.analyse.texte);
@@ -193,12 +197,30 @@ export async function range(lot) {
     if (sortie.length > SORTIE_MAX) sortie = sortie.slice(sortie.length - SORTIE_MAX);
     const fichier = sortie ? `${deuxChiffres(l.i + 1)}-${slug(l.libelle)}.txt` : null;
     if (fichier) await writeFile(join(dossier, fichier), sortie, 'utf8');
+    // LE JOURNAL DE COMBAT, copie tel quel a cote de la sortie. Il vit jusque-la dans le
+    // repertoire temporaire du serveur ; ici il devient durable, et lisible sans l'Atelier.
+    // Une copie qui echoue (cle pleine, journal deja efface) ne fait pas rater le rangement.
+    let journal = null;
+    if (l.journal) {
+      const nom = `${deuxChiffres(l.i + 1)}-${slug(l.libelle)}-journal.txt`;
+      const vers = join(dossier, nom);
+      // ⚠ UN CALCUL ROUVERT SE RE-RANGE DANS SON PROPRE DOSSIER (meme `nomDossier`) :
+      // son journal est deja a destination, et `copyFile` sur lui-meme le viderait.
+      if (resolve(l.journal) === resolve(vers)) journal = nom;
+      else {
+        try { await copyFile(l.journal, vers); journal = nom; }
+        catch { /* le reste du calcul vaut encore d'etre range */ }
+      }
+    }
     lignes.push({ i: l.i, outil: l.outil, args: l.args || [], libelle: l.libelle, etat: l.etat, code: l.code,
-      debut: l.debut, fin: l.fin, pauseTotale: l.pauseTotale || 0, resume: l.resume, fichier });
+      debut: l.debut, fin: l.fin, pauseTotale: l.pauseTotale || 0, resume: l.resume, fichier, journal });
   }
   const c = {
     version: 1, id: lot.id, titre: titreLot(lot), debut: lot.debut, fin: lot.fin, arrete: !!lot.arrete,
     pauseTotale: lot.pauseTotale || 0, lignes, analyse: lot.analyse || null,
+    // Ce qu'on a compris de ce calcul, ecrit a la main apres coup : il se relit, se
+    // complete, et survit a la reouverture.
+    commentaire: lot.commentaire || '',
     // La conversation avec l'IA (les donnees comprises) : c'est elle qui permet de
     // reprendre le dialogue des mois plus tard, sur une autre machine.
     conversation: lot.conversation || null
@@ -230,7 +252,9 @@ export async function liste() {
       duree: c.fin && c.debut ? c.fin - c.debut - (c.pauseTotale || 0) : null,
       analyse: !!(c.analyse && c.analyse.etat === 'fini'),
       echanges: ((c.analyse && c.analyse.echanges) || []).length,
-      lignes: (c.lignes || []).map(l => ({ libelle: l.libelle, etat: l.etat, resume: l.resume }))
+      commentaire: c.commentaire || '',
+      journaux: (c.lignes || []).filter(l => l.journal).length,
+      lignes: (c.lignes || []).map(l => ({ libelle: l.libelle, etat: l.etat, resume: l.resume, journal: !!l.journal }))
     });
   }
   return lots.sort((a, b) => (b.debut || 0) - (a.debut || 0)).slice(0, LOTS_MAX);
@@ -249,8 +273,44 @@ export async function relit(id) {
   for (const l of c.lignes || []) {
     l.sortie = '';
     if (l.fichier) { try { l.sortie = await readFile(join(dossier, l.fichier), 'utf8'); } catch { /* sortie perdue : le reste vaut encore */ } }
+    // Le journal reste SUR LE DISQUE (il pese des megaoctets : on ne le charge pas en
+    // memoire comme la sortie). On en rend le chemin, de quoi le telecharger tel quel.
+    l.journal = l.journal ? join(dossier, l.journal) : null;
   }
   return { ...c, archive: id, dossier };
+}
+
+/**
+ * COMMENTER UN CALCUL RANGE SANS LE ROUVRIR. Rouvrir remplace la file affichee, et c'est
+ * refuse tant qu'un calcul tourne : or on veut pouvoir noter ce qu'on a compris pendant
+ * que la machine travaille. On reecrit donc `calcul.json` et `recapitulatif.txt` sur
+ * place — le second pour que la cle reste lisible avec un simple editeur de texte.
+ */
+export async function commente(id, texte) {
+  const { dossier, c } = await dossierDuCalcul(id);
+  c.commentaire = String(texte || '').slice(0, 100000);
+  await writeFile(join(dossier, 'calcul.json'), JSON.stringify(c, null, 2), 'utf8');
+  await writeFile(join(dossier, 'recapitulatif.txt'), recapitulatif(c), 'utf8');
+  return c.commentaire;
+}
+
+/** Le chemin d'un journal de combat range, pour le telecharger sans rouvrir le calcul. */
+export async function journal(id, i) {
+  const { dossier, c } = await dossierDuCalcul(id);
+  const l = (c.lignes || []).find(x => x.i === Number(i));
+  if (!l || !l.journal) throw new Error('Pas de journal pour ce calcul.');
+  return { chemin: join(dossier, l.journal), nom: l.journal, libelle: l.libelle };
+}
+
+/** Le dossier d'un calcul range et son `calcul.json` — la verification faite une fois. */
+async function dossierDuCalcul(id) {
+  id = String(id || '');
+  if (!NOM_OK.test(id) || id.includes('..')) throw new Error('Calcul inconnu : ' + id);
+  const ou = await ouRanger();
+  if (ou.amovible && !ou.monte) throw new Error(`${ou.montage} n'est pas monté : rebranche la clé.`);
+  const dossier = join(ou.dossier, id);
+  try { return { dossier, c: JSON.parse(await readFile(join(dossier, 'calcul.json'), 'utf8')) }; }
+  catch { throw new Error('Calcul introuvable sur le disque : ' + id); }
 }
 
 /** Ce que la page affiche : ou l'on range, ce qu'on peut proposer, et ce qui est deja la. */

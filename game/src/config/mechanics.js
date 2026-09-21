@@ -271,6 +271,22 @@ const paramsZone = (defautZone) => [
 ];
 
 // Effets jouables (champ `play` d'une carte).
+/**
+ * QUI REMPLIT « LUI ». La cible `previous` designe les destinataires du DERNIER effet
+ * qui en avait ; un effet sans destinataire (pioche, mana, armure) ne coupe pas la
+ * chaine, il la laisse telle quelle. C'est `applyEffects` qui en decide, en ecrivant
+ * `last`, et cette liste dit la MEME chose a qui doit le savoir sans jouer le combat :
+ * le bot, pour ne pas payer un effet qui ne partira jamais (« Lui » en tete d'un moment
+ * ne designe personne, et l'effet ne fait rien).
+ * Ajouter un effet qui ecrit `last` dans le moteur = l'ajouter ici.
+ */
+export const EFFETS_QUI_CHAINENT = new Set([
+  'dmg', 'detruit', 'heal', 'buff', 'copie', 'switch', 'prendre_le_controle', 'summon',
+  'melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau',
+  // `choisir` rend ce que sa branche a vise : il chaine si la branche chaine.
+  'choisir'
+]);
+
 export const EFFECTS = {
   dmg: {
     // Les degats peuvent viser ton propre camp : c'est un cout assume, pas un bug.

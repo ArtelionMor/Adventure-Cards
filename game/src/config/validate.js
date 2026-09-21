@@ -145,6 +145,261 @@ export function tierIssue(cd, t) {
   return null;
 }
 
+/**
+ * LES REGLES D'UNE CARTE — celles qui ne regardent que la carte, pas son proprietaire.
+ * Ecrites UNE fois : une carte de personnage et une carte libre sont la meme chose pour
+ * tout ce qui suit, et la pile de fatigue comme les decks de PNJ sont faits de cartes
+ * libres. Tant qu'elles avaient leur propre passe, elles n'etaient verifiees que par une
+ * regle sur dix — c'est ainsi qu'un cri de guerre qui ne part jamais a pu passer.
+ * `proprio` n'est que le nom affiche devant la carte dans les messages.
+ */
+function verifieCarte(card, proprio, ctx) {
+  if (!card) return;
+  const { out, eff, kw, catalogue, carteParId, noms } = ctx;
+  // Un allie sans ligne de statistiques arrive en 0/0 et meurt aussitot pose.
+  // C'est invisible dans l'editeur (les champs paraissent vides) et ca casse un
+  // deck entier sans rien dire : on le signale comme bloquant.
+  if (card.type === 'ally') {
+    if (card.atk === undefined || card.hp === undefined)
+      out.push({ bad: true, msg: `${proprio} · ${card.name} — allié sans attaque ou sans vie : il arrivera en 0/0 et mourra aussitôt.` });
+    else if (card.hp <= 0 && !(card.keys || []).some(k => keyId(k) === 'characteristique_variable'))
+      out.push({ bad: true, msg: `${proprio} · ${card.name} — allié à ${card.hp} PV : il mourra en arrivant.` });
+  }
+  // Effets de la carte et de ses jetons.
+  eachEffect(card, e => {
+    if (!eff[e.op]) out.push({ bad: true, msg: `${proprio} · ${card.name} — effet inconnu « ${e.op} ».` });
+    else if (!eff[e.op].implemented) out.push({ bad: false, msg: `${proprio} · ${card.name} — « ${eff[e.op].label} » reste à coder.` });
+    // « Cree » designe une carte du catalogue par son identifiant — sauf au
+    // hasard, ou c'est le filtre qui doit tenir debout.
+    if (e.op === 'cree') out.push(...verifieCarteCreee(e, `${proprio} · ${card.name}`, 'Crée une carte', catalogue));
+    // Melanger dans la pioche : la carte creee doit exister, et un filtre par
+    // type ou par mot-cle sans valeur ne designerait aucune carte.
+    if (['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'switch'].includes(e.op)) {
+      const nom = (eff[e.op] || {}).label || e.op;
+      if (e.d_ou === 'creee') {
+        out.push(...verifieCarteCreee(e, `${proprio} · ${card.name}`, nom, catalogue));
+        // Le renfort s'ecrit sur une carte alliee : une carte creee qui est un sort
+        // (tiree parmi les sorts, ou nommee) ne le verra jamais.
+        const sortCree = (e.choix === 'hasard' && e.quoi === 'spell')
+          || (e.choix !== 'hasard' && carteParId.has(e.carte) && carteParId.get(e.carte).type !== 'ally');
+        if ((e.atk || e.hp) && sortCree)
+          out.push({ bad: false, msg: `${proprio} · ${card.name} — « ${nom} » donne +${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)} à un sort : un sort n'a ni attaque ni vie, le bonus ne fera rien.` });
+      } else if (e.d_ou === 'plateau') {
+        if (!e.t) out.push({ bad: false, msg: `${proprio} · ${card.name} — « ${nom} » prend sur le plateau sans cible : il ne prendra rien.` });
+        else if (cibleHeros(e.t)) out.push({ bad: true, msg: `${proprio} · ${card.name} — « ${nom} » vise un héros : un héros n'est pas une carte, il ne ${e.op === 'switch' ? 'se switche pas' : 'se déplace pas'}.` });
+        else if (e.op === 'pose_sur_le_plateau') out.push({ bad: false, msg: `${proprio} · ${card.name} — « ${nom} » prend une unité en jeu pour la reposer : elle repart de zéro (dégâts et renforts effacés, elle ne peut plus attaquer ce tour). Voulu ?` });
+      } else {
+        // Le renfort « +X/+Y » s'ecrit sur une carte alliee : un paquet filtre sur
+        // les sorts n'en verra jamais la couleur.
+        if ((e.atk || e.hp) && e.quoi === 'spell') out.push({ bad: false, msg: `${proprio} · ${card.name} — « ${nom} » donne +${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)} à des sorts : un sort n'a ni attaque ni vie, le bonus ne fera rien.` });
+        out.push(...verifieFiltre(e, `${proprio} · ${card.name}`, nom, catalogue, 'il ne prendra aucune carte'));
+      }
+    }
+    // Renforcer des cartes : les memes pieges que les deplacements, sur un effet
+    // qui ne deplace rien.
+    if (e.op === 'renforce_les_cartes') {
+      if (!e.atk && !e.hp) out.push({ bad: false, msg: `${proprio} · ${card.name} — « Renforce des cartes » ne donne ni attaque ni vie : il ne fera rien.` });
+      if (e.quoi === 'spell') out.push({ bad: false, msg: `${proprio} · ${card.name} — « Renforce des cartes » ne vise que des sorts : un sort n'a ni attaque ni vie, le bonus ne fera rien.` });
+      out.push(...verifieFiltre(e, `${proprio} · ${card.name}`, 'Renforce des cartes', catalogue, 'il ne touchera aucune carte'));
+    }
+
+    // PRENDRE LE CONTROLE ne prend rien chez soi (l'unite y est deja) et rien
+    // sur un heros (ce n'est pas une unite).
+    if (e.op === 'prendre_le_controle') {
+      const t = targetId(e.t);
+      if (['self', 'allyUnit', 'allAllies', 'randomAllyUnit', 'sameTypeAllies', 'allyType'].includes(t))
+        out.push({ bad: false, msg: `${proprio} · ${card.name} — « Prise de controle » vise ton propre camp : ces unités sont déjà de ton côté, rien ne se passera.` });
+      if (cibleHeros(t)) out.push({ bad: true, msg: `${proprio} · ${card.name} — « Prise de controle » vise un héros : un héros n'est pas une unité, il ne change pas de camp.` });
+    }
+    // CHOISIR : deux branches, et quelqu'un pour choisir.
+    if (e.op === 'choisir') {
+      for (const cle of ['a', 'b']) {
+        if (!listeEffets(e[cle]).length)
+          out.push({ bad: false, msg: `${proprio} · ${card.name} — « Choisir » n'a pas de ${cle === 'a' ? 'première' : 'seconde'} branche : il n'y a rien à choisir.` });
+      }
+    }
+
+    // « Chez son proprietaire » n'a de sens que s'il y a une cible a lire. Les
+    // trois deplacements prennent dans un paquet, pas sur une unite : chez eux,
+    // ce choix retombe sur le camp de celui qui joue la carte.
+    if (e.qui === 'proprietaire' && ['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'renforce_les_cartes'].includes(e.op))
+      out.push({ bad: false, msg: `${proprio} · ${card.name} — « ${(eff[e.op] || {}).label || e.op} » prend « chez son propriétaire » sans cible à lire : ce sera ton camp.` });
+
+    // LA COPIE va chercher un modele la ou un deplacement va chercher des cartes :
+    // les memes pieges de filtre, plus les deux qui lui sont propres — un modele
+    // qui ne peut etre qu'un sort (une unite ne peut pas en devenir la copie) et
+    // deux cibles a designer alors que le joueur n'en pointe qu'une.
+    if (e.op === 'copie') {
+      const ou = `${proprio} · ${card.name}`;
+      if (e.d_ou === 'creee') out.push(...verifieCarteCreee(e, ou, 'Copie', catalogue));
+      else if (e.d_ou === 'plateau') {
+        if (!e.tm) out.push({ bad: false, msg: `${ou} — « Copie » ne dit pas quelle unité sert de modèle : elle ne copiera rien.` });
+      } else {
+        if (e.quoi === 'spell') out.push({ bad: true, msg: `${ou} — « Copie » ne prend que des sorts pour modèle : une unité ne peut pas devenir un sort.` });
+        out.push(...verifieFiltre(e, ou, 'Copie', catalogue, 'elle ne trouvera aucun modèle'));
+      }
+      if (cibleHeros(e.t)) out.push({ bad: true, msg: `${ou} — « Copie » transforme un héros : un héros n'est pas une unité, il ne devient la copie de rien.` });
+      if (e.d_ou === 'plateau' && cibleHeros(e.tm)) out.push({ bad: true, msg: `${ou} — « Copie » prend un héros pour modèle : un héros n'est pas une carte, il n'y a rien à copier.` });
+      // Deux cibles A DESIGNER sur le meme effet : le joueur n'en pointe qu'une,
+      // elle servirait aux deux. La seconde (`tm`) n'est lue que si le modele
+      // vient du plateau — ailleurs c'est une valeur morte, et l'avertir serait
+      // crier au loup sur une carte parfaitement valide.
+    }
+    // Une pioche ciblee qui nomme une carte inexistante ne trouvera jamais rien.
+    if (e.op === 'pioche_x') {
+      if (!e.carte) out.push({ bad: false, msg: `${proprio} · ${card.name} — pioche ciblée sans carte choisie.` });
+      else if (!noms.has(e.carte)) out.push({ bad: true, msg: `${proprio} · ${card.name} — « ${e.carte} » n'existe dans aucun deck : la pioche ne trouvera rien.` });
+    }
+    // Un montant variable dont le compteur reclame un type, sans type : toujours 0.
+    for (const par of ((eff[e.op] || {}).params || [])) {
+      const v = e[par.k];
+      if (!isVariableAmount(v)) continue;
+      const cpt = COUNTERS[v.src];
+      if (!cpt) out.push({ bad: true, msg: `${proprio} · ${card.name} — compteur inconnu « ${v.src} » sur « ${par.label} ».` });
+      else if (cpt.needsArg && !v.arg) out.push({ bad: false, msg: `${proprio} · ${card.name} — « ${par.label} » suit « ${cpt.label} » sans valeur : le montant restera à 0.` });
+    }
+  });
+  // Effets statiques de la carte et de ses jetons : un filtre sans valeur ne
+  // designerait aucune carte, l'effet ne ferait donc rien du tout.
+  eachUnit(card, u => {
+    const ou = u === card ? '' : ` (jeton « ${u.name} »)`;
+    for (const m of u.statics || []) {
+      const d = STATICS[m.op];
+      if (!d) { out.push({ bad: true, msg: `${proprio} · ${card.name}${ou} — effet statique inconnu « ${m.op} ».` }); continue; }
+      const arg = (CARD_FILTERS[m.quoi] || {}).arg;
+      if (arg === 'type' && !m.argType) out.push({ bad: false, msg: `${proprio} · ${card.name}${ou} — « ${d.label} » vise un type mais aucun type n'est écrit : il ne touchera aucune carte.` });
+      if (arg === 'key' && !m.argKey) out.push({ bad: false, msg: `${proprio} · ${card.name}${ou} — « ${d.label} » vise un mot-clé mais aucun n'est choisi : il ne touchera aucune carte.` });
+      if (arg === 'card' && !m.argCard) out.push({ bad: false, msg: `${proprio} · ${card.name}${ou} — « ${d.label} » vise une carte précise mais aucune n'est choisie : il ne touchera rien.` });
+      else if (arg === 'card' && !catalogue.has(m.argCard)) out.push({ bad: true, msg: `${proprio} · ${card.name}${ou} — « ${d.label} » vise la carte « ${m.argCard} », qui n'existe pas.` });
+    }
+  });
+  // Mots-cles de la carte et de ses jetons.
+  eachUnit(card, u => {
+    const ou = u === card ? '' : ` (jeton « ${u.name} »)`;
+    for (const k of u.keys || []) {
+      const d = kw[keyId(k)];
+      if (!d) out.push({ bad: true, msg: `${proprio} · ${card.name}${ou} — mot-clé inconnu « ${keyId(k)} ».` });
+      else if (!d.implemented) out.push({ bad: false, msg: `${proprio} · ${card.name}${ou} — mot-clé « ${d.label} » reste à coder.` });
+      else if ((d.params || []).length && !keyArg(k)) out.push({ bad: false, msg: `${proprio} · ${card.name}${ou} — mot-clé « ${d.label} » sans valeur : il ne servira à rien.` });
+    // Une caracteristique variable qui suit un compteur reclamant un type, sans type.
+    if (keyId(k) === 'characteristique_variable') {
+      const f = keyFields(k);
+      const cpt = COUNTERS[f.src];
+      if (cpt && cpt.needsArg && !f.arg)
+        out.push({ bad: false, msg: `${proprio} · ${card.name}${ou} — « ${cpt.label} » sans valeur suivie : le compteur restera à 0.` });
+      // Vie qui n'est PAS variable et vaut 0 : l'unité meurt en arrivant.
+      if (f.stat === 'atk' && !(u.hp > 0))
+        out.push({ bad: false, msg: `${proprio} · ${card.name}${ou} — seule l'attaque varie et la vie écrite est ${u.hp || 0} : l'unité mourra en arrivant.` });
+    }
+    }
+  });
+  // DEUX CIBLES A DESIGNER SUR LA MEME CARTE : le joueur n'en pointe qu'une, et
+  // elle sert aux deux. Quand elles reclament des camps opposes, c'est pire qu'une
+  // gene — l'une des deux ne touchera jamais rien, quel que soit le clic. On
+  // regarde les branches d'un « Choisir » aussi : au palier « Choisit les deux »,
+  // elles partent ensemble.
+  // DEUX CIBLES A DESIGNER QUI PARTENT ENSEMBLE se genent : le joueur n'en pointe
+  // qu'une. Deux du MEME cote sont une bonne carte (« soigne un allie ET
+  // renforce-le ») ; des camps OPPOSES, non — quel que soit le clic, l'une des
+  // deux ne touchera rien.
+  //
+  // Les deux branches d'un « Choisir » ne partent PAS ensemble : chacune a droit
+  // a sa cible, et le joueur repond avant de designer. Sauf au palier « Choisit
+  // les deux », qui les fait partir toutes les deux — la, elles se genent.
+  {
+    const hors = [], branches = [];
+    for (const e of card.play || []) {
+      if (e.op === 'choisir') {
+        for (const cle of ['a', 'b']) {
+          const camps = [];
+          for (const x of listeEffets(e[cle])) eachSubEffect(x, y => {
+            for (const t of ciblesDeLEffet(y, eff)) if (pointee(t)) camps.push(campPointe(t));
+          });
+          branches.push(camps);
+        }
+        continue;
+      }
+      eachSubEffect(e, y => {
+        for (const t of ciblesDeLEffet(y, eff)) if (pointee(t)) hors.push(campPointe(t));
+      });
+    }
+    const lesDeux = (card.tiers || []).some(t => t.lesDeux);
+    // Ce qui part ensemble : le hors-choix avec chaque branche prise a part, ou
+    // tout d'un bloc quand le palier fait partir les deux.
+    const ensembles = lesDeux || !branches.length
+      ? [[...hors, ...branches.flat()]]
+      : branches.map(b => [...hors, ...b]);
+    if (ensembles.some(g => g.includes('moi') && g.includes('adverse')))
+      out.push({ bad: true, msg: `${proprio} · ${card.name} — deux cibles à désigner dans des camps opposés partent ensemble : le joueur n'en pointe qu'une, donc l'une des deux ne touchera jamais rien. Passe l'une en cible automatique (« au hasard », « tous »).` });
+  }
+
+  // UNE GARDE QUI NE PEUT PAS ETRE VRAIE : « seulement une unite d'un type »
+  // sans type ecrit ne laissera jamais passer le moment.
+  for (const [slot, g] of Object.entries(card.gardes || {})) {
+    if (keyId(g) === 'type' && !keyArg(g))
+      out.push({ bad: true, msg: `${proprio} · ${card.name} — « ${(TRIGGERS[slot] || {}).label || slot} » ne part que pour un type, mais aucun type n'est écrit : il ne partira jamais.` });
+  }
+
+  // « CHOISIR » ne se choisit qu'a la pose : ailleurs (rale d'agonie, debut de
+  // tour), personne n'est la pour repondre et c'est la premiere branche qui part.
+  for (const [slot, def] of Object.entries(TRIGGERS)) {
+    if (slot === 'play') continue;
+    for (const e of card[slot] || []) eachSubEffect(e, x => {
+      if (x.op === 'choisir')
+        out.push({ bad: false, msg: `${proprio} · ${card.name} — « Choisir » sur « ${def.label} » : personne n'est là pour choisir, c'est toujours la première branche qui partira.` });
+    });
+  }
+
+  // UNE CIBLE QUI SUIT L'EFFET PRECEDENT, EN PREMIERE POSITION, ne designe rien :
+  // personne ne l'a precedee. C'est bloquant, pas un avertissement — l'effet ne
+  // partira jamais, quoi qu'il arrive, et rien dans la carte ne le laisse voir.
+  // Le message nomme la cible : « Lui » et « les autres du meme type que Lui » se
+  // trompent de la meme facon, mais le designer doit lire CELLE qu'il a posee.
+  //
+  // SAUF sur un moment d'evenement QUI A UN SUJET (« quand tu joues un allie » :
+  // l'allie pose est « Lui »). La chaine y commence donc avec quelqu'un dedans,
+  // et « les autres du meme type que Lui » est exactement ce qu'on veut ecrire.
+  for (const [slot, def] of Object.entries(TRIGGERS)) {
+    // `def.ev` est l'identifiant de l'evenement ; `def.event` n'est qu'un
+    // drapeau (« ce moment en est un »). Les confondre revenait a ne jamais
+    // appliquer l'exception.
+    if (def.event && (EVENTS[def.ev] || {}).sujet) continue;
+    const premier = (card[slot] || [])[0];
+    if (premier && ['previous', 'previousType'].includes(targetId(premier.t)))
+      out.push({ bad: true, msg: `${proprio} · ${card.name} — « ${def.label} » commence par « ${targetLabel(premier.t)} » : aucun effet ne le précède, la cible sera vide et l'effet ne fera rien.` });
+  }
+  for (const t of card.tiers || []) {
+    const w = tierIssue(card, t);
+    if (w) out.push({ bad: false, msg: `${proprio} · ${card.name} — palier ${t.lvl} sans effet : ${w}` });
+  }
+  // Une cible comme « Elle-meme » n'a pas de porteur sur un sort.
+  for (const slot of Object.keys(TRIGGERS)) {
+    for (const e of card[slot] || []) {
+      // Un effet peut porter PLUSIEURS cibles (la Copie en a deux : qui devient
+      // la copie, et de quoi) : on les demande au registre plutot que de lire
+      // `t` en dur. Une mecanique inventee sans parametres garde son `t`.
+      const pars = ciblesDeLEffet(e, eff);
+      for (const t of (pars.length ? pars : [e.t]).filter(Boolean)) {
+        const tdef = targetDef(t);
+        if (tdef && tdef.allyOnly && card.type !== 'ally')
+          out.push({ bad: true, msg: `${proprio} · ${card.name} — cible « ${tdef.label} » impossible sur un sort.` });
+        // Une cible par type sans type écrit ne trouvera jamais personne.
+        if (tdef && (tdef.params || []).length && !targetArg(t))
+          out.push({ bad: false, msg: `${proprio} · ${card.name} — cible « ${tdef.label} » sans type : elle ne touchera personne.` });
+      }
+    }
+  }
+  // Un sort ne reste pas en jeu : ses moments d'unite ne partiraient jamais.
+  if (card.type !== 'ally') {
+    for (const [slot, def] of Object.entries(TRIGGERS)) {
+      if (def.allyOnly && (card[slot] || []).length)
+        out.push({ bad: true, msg: `${proprio} · ${card.name} — « ${def.label} » sur un sort ne se déclenchera jamais.` });
+    }
+    if (card.aura) out.push({ bad: true, msg: `${proprio} · ${card.name} — une aura sur un sort ne s'appliquera jamais.` });
+    if ((card.statics || []).length) out.push({ bad: true, msg: `${proprio} · ${card.name} — un effet statique sur un sort ne s'appliquera jamais (le sort ne reste pas en jeu).` });
+  }
+}
+
 export function validateData(DB, eff, kw) {
   const out = [];
   // Le catalogue ou piochent les decks des PNJ : les cartes libres et celles des
@@ -157,20 +412,29 @@ export function validateData(DB, eff, kw) {
   for (const ch of DB.characters || []) {
     for (const cote of ['cards', 'switches']) for (const c of ch[cote] || []) if (c && c.id) { catalogue.add(c.id); carteParId.set(c.id, c); }
   }
+  // Ce dont `verifieCarte` a besoin, rassemble une fois : elle sert aux cartes des
+  // personnages comme aux cartes libres.
+  // Les NOMS des cartes (« Pioche X » designe une carte par son nom, pas par son
+  // identifiant) : monte une fois, comme le catalogue, et les cartes libres y sont
+  // elles aussi — un deck de PNJ en est fait, et le nom s'y trouve donc pour de bon.
+  const noms = new Set();
+  for (const c of DB.library || []) if (c && c.name) noms.add(c.name);
+  for (const ch of DB.characters || []) {
+    for (const cote of ['cards', 'switches']) for (const c of ch[cote] || []) if (c && c.name) noms.add(c.name);
+  }
+  const ctx = { out, eff, kw, catalogue, carteParId, noms };
 
-  // Les cartes libres : memes regles que les autres, elles finissent dans des decks.
+  // Les cartes libres : MEMES REGLES QUE LES AUTRES, elles finissent dans des decks —
+  // ceux des PNJ et la pile de fatigue. Seule l'identite leur est propre (une carte de
+  // personnage tient son slot, une carte libre n'existe que par son identifiant) ; tout
+  // le reste passe par `verifieCarte`, exactement comme pour un heros.
   const vues = new Set();
   for (const c of DB.library || []) {
     if (!c) continue;
     if (!c.id) out.push({ bad: true, msg: `Cartes libres · ${c.name || '(sans nom)'} — pas d'identifiant : aucun deck ne pourra la prendre.` });
     else if (vues.has(c.id)) out.push({ bad: true, msg: `Cartes libres — deux cartes portent l'identifiant « ${c.id} ».` });
     vues.add(c.id);
-    if (c.type === 'ally' && (c.atk === undefined || c.hp === undefined))
-      out.push({ bad: true, msg: `Cartes libres · ${c.name} — allié sans attaque ou sans vie : il arrivera en 0/0.` });
-    eachEffect(c, e => {
-      if (!eff[e.op]) out.push({ bad: true, msg: `Cartes libres · ${c.name} — effet inconnu « ${e.op} ».` });
-      else if (!eff[e.op].implemented) out.push({ bad: false, msg: `Cartes libres · ${c.name} — « ${eff[e.op].label} » reste à coder.` });
-    });
+    verifieCarte(c, 'Cartes libres', ctx);
   }
 
   // Les adversaires et leurs decks.
@@ -197,254 +461,7 @@ export function validateData(DB, eff, kw) {
     for (const side of ['cards', 'switches']) {
       const n = (c[side] || []).filter(Boolean).length;
       if (n !== 5) out.push({ bad: side === 'cards', msg: `${c.name} — ${n}/5 ${side === 'cards' ? 'cartes de base' : 'cartes switch'} remplies.` });
-      (c[side] || []).forEach((card, i) => {
-        if (!card) return;
-        // Un allie sans ligne de statistiques arrive en 0/0 et meurt aussitot pose.
-        // C'est invisible dans l'editeur (les champs paraissent vides) et ca casse un
-        // deck entier sans rien dire : on le signale comme bloquant.
-        if (card.type === 'ally') {
-          if (card.atk === undefined || card.hp === undefined)
-            out.push({ bad: true, msg: `${c.name} · ${card.name} — allié sans attaque ou sans vie : il arrivera en 0/0 et mourra aussitôt.` });
-          else if (card.hp <= 0 && !(card.keys || []).some(k => keyId(k) === 'characteristique_variable'))
-            out.push({ bad: true, msg: `${c.name} · ${card.name} — allié à ${card.hp} PV : il mourra en arrivant.` });
-        }
-        // Effets de la carte et de ses jetons.
-        eachEffect(card, e => {
-          if (!eff[e.op]) out.push({ bad: true, msg: `${c.name} · ${card.name} — effet inconnu « ${e.op} ».` });
-          else if (!eff[e.op].implemented) out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${eff[e.op].label} » reste à coder.` });
-          // « Cree » designe une carte du catalogue par son identifiant — sauf au
-          // hasard, ou c'est le filtre qui doit tenir debout.
-          if (e.op === 'cree') out.push(...verifieCarteCreee(e, `${c.name} · ${card.name}`, 'Crée une carte', catalogue));
-          // Melanger dans la pioche : la carte creee doit exister, et un filtre par
-          // type ou par mot-cle sans valeur ne designerait aucune carte.
-          if (['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'switch'].includes(e.op)) {
-            const nom = (eff[e.op] || {}).label || e.op;
-            if (e.d_ou === 'creee') {
-              out.push(...verifieCarteCreee(e, `${c.name} · ${card.name}`, nom, catalogue));
-              // Le renfort s'ecrit sur une carte alliee : une carte creee qui est un sort
-              // (tiree parmi les sorts, ou nommee) ne le verra jamais.
-              const sortCree = (e.choix === 'hasard' && e.quoi === 'spell')
-                || (e.choix !== 'hasard' && carteParId.has(e.carte) && carteParId.get(e.carte).type !== 'ally');
-              if ((e.atk || e.hp) && sortCree)
-                out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${nom} » donne +${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)} à un sort : un sort n'a ni attaque ni vie, le bonus ne fera rien.` });
-            } else if (e.d_ou === 'plateau') {
-              if (!e.t) out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${nom} » prend sur le plateau sans cible : il ne prendra rien.` });
-              else if (cibleHeros(e.t)) out.push({ bad: true, msg: `${c.name} · ${card.name} — « ${nom} » vise un héros : un héros n'est pas une carte, il ne ${e.op === 'switch' ? 'se switche pas' : 'se déplace pas'}.` });
-              else if (e.op === 'pose_sur_le_plateau') out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${nom} » prend une unité en jeu pour la reposer : elle repart de zéro (dégâts et renforts effacés, elle ne peut plus attaquer ce tour). Voulu ?` });
-            } else {
-              // Le renfort « +X/+Y » s'ecrit sur une carte alliee : un paquet filtre sur
-              // les sorts n'en verra jamais la couleur.
-              if ((e.atk || e.hp) && e.quoi === 'spell') out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${nom} » donne +${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)} à des sorts : un sort n'a ni attaque ni vie, le bonus ne fera rien.` });
-              out.push(...verifieFiltre(e, `${c.name} · ${card.name}`, nom, catalogue, 'il ne prendra aucune carte'));
-            }
-          }
-          // Renforcer des cartes : les memes pieges que les deplacements, sur un effet
-          // qui ne deplace rien.
-          if (e.op === 'renforce_les_cartes') {
-            if (!e.atk && !e.hp) out.push({ bad: false, msg: `${c.name} · ${card.name} — « Renforce des cartes » ne donne ni attaque ni vie : il ne fera rien.` });
-            if (e.quoi === 'spell') out.push({ bad: false, msg: `${c.name} · ${card.name} — « Renforce des cartes » ne vise que des sorts : un sort n'a ni attaque ni vie, le bonus ne fera rien.` });
-            out.push(...verifieFiltre(e, `${c.name} · ${card.name}`, 'Renforce des cartes', catalogue, 'il ne touchera aucune carte'));
-          }
-
-          // PRENDRE LE CONTROLE ne prend rien chez soi (l'unite y est deja) et rien
-          // sur un heros (ce n'est pas une unite).
-          if (e.op === 'prendre_le_controle') {
-            const t = targetId(e.t);
-            if (['self', 'allyUnit', 'allAllies', 'randomAllyUnit', 'sameTypeAllies', 'allyType'].includes(t))
-              out.push({ bad: false, msg: `${c.name} · ${card.name} — « Prise de controle » vise ton propre camp : ces unités sont déjà de ton côté, rien ne se passera.` });
-            if (cibleHeros(t)) out.push({ bad: true, msg: `${c.name} · ${card.name} — « Prise de controle » vise un héros : un héros n'est pas une unité, il ne change pas de camp.` });
-          }
-          // CHOISIR : deux branches, et quelqu'un pour choisir.
-          if (e.op === 'choisir') {
-            for (const cle of ['a', 'b']) {
-              if (!listeEffets(e[cle]).length)
-                out.push({ bad: false, msg: `${c.name} · ${card.name} — « Choisir » n'a pas de ${cle === 'a' ? 'première' : 'seconde'} branche : il n'y a rien à choisir.` });
-            }
-          }
-
-          // « Chez son proprietaire » n'a de sens que s'il y a une cible a lire. Les
-          // trois deplacements prennent dans un paquet, pas sur une unite : chez eux,
-          // ce choix retombe sur le camp de celui qui joue la carte.
-          if (e.qui === 'proprietaire' && ['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'renforce_les_cartes'].includes(e.op))
-            out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${(eff[e.op] || {}).label || e.op} » prend « chez son propriétaire » sans cible à lire : ce sera ton camp.` });
-
-          // LA COPIE va chercher un modele la ou un deplacement va chercher des cartes :
-          // les memes pieges de filtre, plus les deux qui lui sont propres — un modele
-          // qui ne peut etre qu'un sort (une unite ne peut pas en devenir la copie) et
-          // deux cibles a designer alors que le joueur n'en pointe qu'une.
-          if (e.op === 'copie') {
-            const ou = `${c.name} · ${card.name}`;
-            if (e.d_ou === 'creee') out.push(...verifieCarteCreee(e, ou, 'Copie', catalogue));
-            else if (e.d_ou === 'plateau') {
-              if (!e.tm) out.push({ bad: false, msg: `${ou} — « Copie » ne dit pas quelle unité sert de modèle : elle ne copiera rien.` });
-            } else {
-              if (e.quoi === 'spell') out.push({ bad: true, msg: `${ou} — « Copie » ne prend que des sorts pour modèle : une unité ne peut pas devenir un sort.` });
-              out.push(...verifieFiltre(e, ou, 'Copie', catalogue, 'elle ne trouvera aucun modèle'));
-            }
-            if (cibleHeros(e.t)) out.push({ bad: true, msg: `${ou} — « Copie » transforme un héros : un héros n'est pas une unité, il ne devient la copie de rien.` });
-            if (e.d_ou === 'plateau' && cibleHeros(e.tm)) out.push({ bad: true, msg: `${ou} — « Copie » prend un héros pour modèle : un héros n'est pas une carte, il n'y a rien à copier.` });
-            // Deux cibles A DESIGNER sur le meme effet : le joueur n'en pointe qu'une,
-            // elle servirait aux deux. La seconde (`tm`) n'est lue que si le modele
-            // vient du plateau — ailleurs c'est une valeur morte, et l'avertir serait
-            // crier au loup sur une carte parfaitement valide.
-          }
-          // Une pioche ciblee qui nomme une carte inexistante ne trouvera jamais rien.
-          if (e.op === 'pioche_x') {
-            const noms = [];
-            for (const ch of DB.characters) for (const sd of ['cards', 'switches'])
-              for (const ca of ch[sd] || []) if (ca) noms.push(ca.name);
-            if (!e.carte) out.push({ bad: false, msg: `${c.name} · ${card.name} — pioche ciblée sans carte choisie.` });
-            else if (!noms.includes(e.carte)) out.push({ bad: true, msg: `${c.name} · ${card.name} — « ${e.carte} » n'existe dans aucun deck : la pioche ne trouvera rien.` });
-          }
-          // Un montant variable dont le compteur reclame un type, sans type : toujours 0.
-          for (const par of ((eff[e.op] || {}).params || [])) {
-            const v = e[par.k];
-            if (!isVariableAmount(v)) continue;
-            const cpt = COUNTERS[v.src];
-            if (!cpt) out.push({ bad: true, msg: `${c.name} · ${card.name} — compteur inconnu « ${v.src} » sur « ${par.label} ».` });
-            else if (cpt.needsArg && !v.arg) out.push({ bad: false, msg: `${c.name} · ${card.name} — « ${par.label} » suit « ${cpt.label} » sans valeur : le montant restera à 0.` });
-          }
-        });
-        // Effets statiques de la carte et de ses jetons : un filtre sans valeur ne
-        // designerait aucune carte, l'effet ne ferait donc rien du tout.
-        eachUnit(card, u => {
-          const ou = u === card ? '' : ` (jeton « ${u.name} »)`;
-          for (const m of u.statics || []) {
-            const d = STATICS[m.op];
-            if (!d) { out.push({ bad: true, msg: `${c.name} · ${card.name}${ou} — effet statique inconnu « ${m.op} ».` }); continue; }
-            const arg = (CARD_FILTERS[m.quoi] || {}).arg;
-            if (arg === 'type' && !m.argType) out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — « ${d.label} » vise un type mais aucun type n'est écrit : il ne touchera aucune carte.` });
-            if (arg === 'key' && !m.argKey) out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — « ${d.label} » vise un mot-clé mais aucun n'est choisi : il ne touchera aucune carte.` });
-            if (arg === 'card' && !m.argCard) out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — « ${d.label} » vise une carte précise mais aucune n'est choisie : il ne touchera rien.` });
-            else if (arg === 'card' && !catalogue.has(m.argCard)) out.push({ bad: true, msg: `${c.name} · ${card.name}${ou} — « ${d.label} » vise la carte « ${m.argCard} », qui n'existe pas.` });
-          }
-        });
-        // Mots-cles de la carte et de ses jetons.
-        eachUnit(card, u => {
-          const ou = u === card ? '' : ` (jeton « ${u.name} »)`;
-          for (const k of u.keys || []) {
-            const d = kw[keyId(k)];
-            if (!d) out.push({ bad: true, msg: `${c.name} · ${card.name}${ou} — mot-clé inconnu « ${keyId(k)} ».` });
-            else if (!d.implemented) out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — mot-clé « ${d.label} » reste à coder.` });
-            else if ((d.params || []).length && !keyArg(k)) out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — mot-clé « ${d.label} » sans valeur : il ne servira à rien.` });
-          // Une caracteristique variable qui suit un compteur reclamant un type, sans type.
-          if (keyId(k) === 'characteristique_variable') {
-            const f = keyFields(k);
-            const cpt = COUNTERS[f.src];
-            if (cpt && cpt.needsArg && !f.arg)
-              out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — « ${cpt.label} » sans valeur suivie : le compteur restera à 0.` });
-            // Vie qui n'est PAS variable et vaut 0 : l'unité meurt en arrivant.
-            if (f.stat === 'atk' && !(u.hp > 0))
-              out.push({ bad: false, msg: `${c.name} · ${card.name}${ou} — seule l'attaque varie et la vie écrite est ${u.hp || 0} : l'unité mourra en arrivant.` });
-          }
-          }
-        });
-        // DEUX CIBLES A DESIGNER SUR LA MEME CARTE : le joueur n'en pointe qu'une, et
-        // elle sert aux deux. Quand elles reclament des camps opposes, c'est pire qu'une
-        // gene — l'une des deux ne touchera jamais rien, quel que soit le clic. On
-        // regarde les branches d'un « Choisir » aussi : au palier « Choisit les deux »,
-        // elles partent ensemble.
-        // DEUX CIBLES A DESIGNER QUI PARTENT ENSEMBLE se genent : le joueur n'en pointe
-        // qu'une. Deux du MEME cote sont une bonne carte (« soigne un allie ET
-        // renforce-le ») ; des camps OPPOSES, non — quel que soit le clic, l'une des
-        // deux ne touchera rien.
-        //
-        // Les deux branches d'un « Choisir » ne partent PAS ensemble : chacune a droit
-        // a sa cible, et le joueur repond avant de designer. Sauf au palier « Choisit
-        // les deux », qui les fait partir toutes les deux — la, elles se genent.
-        {
-          const hors = [], branches = [];
-          for (const e of card.play || []) {
-            if (e.op === 'choisir') {
-              for (const cle of ['a', 'b']) {
-                const camps = [];
-                for (const x of listeEffets(e[cle])) eachSubEffect(x, y => {
-                  for (const t of ciblesDeLEffet(y, eff)) if (pointee(t)) camps.push(campPointe(t));
-                });
-                branches.push(camps);
-              }
-              continue;
-            }
-            eachSubEffect(e, y => {
-              for (const t of ciblesDeLEffet(y, eff)) if (pointee(t)) hors.push(campPointe(t));
-            });
-          }
-          const lesDeux = (card.tiers || []).some(t => t.lesDeux);
-          // Ce qui part ensemble : le hors-choix avec chaque branche prise a part, ou
-          // tout d'un bloc quand le palier fait partir les deux.
-          const ensembles = lesDeux || !branches.length
-            ? [[...hors, ...branches.flat()]]
-            : branches.map(b => [...hors, ...b]);
-          if (ensembles.some(g => g.includes('moi') && g.includes('adverse')))
-            out.push({ bad: true, msg: `${c.name} · ${card.name} — deux cibles à désigner dans des camps opposés partent ensemble : le joueur n'en pointe qu'une, donc l'une des deux ne touchera jamais rien. Passe l'une en cible automatique (« au hasard », « tous »).` });
-        }
-
-        // UNE GARDE QUI NE PEUT PAS ETRE VRAIE : « seulement une unite d'un type »
-        // sans type ecrit ne laissera jamais passer le moment.
-        for (const [slot, g] of Object.entries(card.gardes || {})) {
-          if (keyId(g) === 'type' && !keyArg(g))
-            out.push({ bad: true, msg: `${c.name} · ${card.name} — « ${(TRIGGERS[slot] || {}).label || slot} » ne part que pour un type, mais aucun type n'est écrit : il ne partira jamais.` });
-        }
-
-        // « CHOISIR » ne se choisit qu'a la pose : ailleurs (rale d'agonie, debut de
-        // tour), personne n'est la pour repondre et c'est la premiere branche qui part.
-        for (const [slot, def] of Object.entries(TRIGGERS)) {
-          if (slot === 'play') continue;
-          for (const e of card[slot] || []) eachSubEffect(e, x => {
-            if (x.op === 'choisir')
-              out.push({ bad: false, msg: `${c.name} · ${card.name} — « Choisir » sur « ${def.label} » : personne n'est là pour choisir, c'est toujours la première branche qui partira.` });
-          });
-        }
-
-        // UNE CIBLE QUI SUIT L'EFFET PRECEDENT, EN PREMIERE POSITION, ne designe rien :
-        // personne ne l'a precedee. C'est bloquant, pas un avertissement — l'effet ne
-        // partira jamais, quoi qu'il arrive, et rien dans la carte ne le laisse voir.
-        // Le message nomme la cible : « Lui » et « les autres du meme type que Lui » se
-        // trompent de la meme facon, mais le designer doit lire CELLE qu'il a posee.
-        //
-        // SAUF sur un moment d'evenement QUI A UN SUJET (« quand tu joues un allie » :
-        // l'allie pose est « Lui »). La chaine y commence donc avec quelqu'un dedans,
-        // et « les autres du meme type que Lui » est exactement ce qu'on veut ecrire.
-        for (const [slot, def] of Object.entries(TRIGGERS)) {
-          // `def.ev` est l'identifiant de l'evenement ; `def.event` n'est qu'un
-          // drapeau (« ce moment en est un »). Les confondre revenait a ne jamais
-          // appliquer l'exception.
-          if (def.event && (EVENTS[def.ev] || {}).sujet) continue;
-          const premier = (card[slot] || [])[0];
-          if (premier && ['previous', 'previousType'].includes(targetId(premier.t)))
-            out.push({ bad: true, msg: `${c.name} · ${card.name} — « ${def.label} » commence par « ${targetLabel(premier.t)} » : aucun effet ne le précède, la cible sera vide et l'effet ne fera rien.` });
-        }
-        for (const t of card.tiers || []) {
-          const w = tierIssue(card, t);
-          if (w) out.push({ bad: false, msg: `${c.name} · ${card.name} — palier ${t.lvl} sans effet : ${w}` });
-        }
-        // Une cible comme « Elle-meme » n'a pas de porteur sur un sort.
-        for (const slot of Object.keys(TRIGGERS)) {
-          for (const e of card[slot] || []) {
-            // Un effet peut porter PLUSIEURS cibles (la Copie en a deux : qui devient
-            // la copie, et de quoi) : on les demande au registre plutot que de lire
-            // `t` en dur. Une mecanique inventee sans parametres garde son `t`.
-            const pars = ciblesDeLEffet(e, eff);
-            for (const t of (pars.length ? pars : [e.t]).filter(Boolean)) {
-              const tdef = targetDef(t);
-              if (tdef && tdef.allyOnly && card.type !== 'ally')
-                out.push({ bad: true, msg: `${c.name} · ${card.name} — cible « ${tdef.label} » impossible sur un sort.` });
-              // Une cible par type sans type écrit ne trouvera jamais personne.
-              if (tdef && (tdef.params || []).length && !targetArg(t))
-                out.push({ bad: false, msg: `${c.name} · ${card.name} — cible « ${tdef.label} » sans type : elle ne touchera personne.` });
-            }
-          }
-        }
-        // Un sort ne reste pas en jeu : ses moments d'unite ne partiraient jamais.
-        if (card.type !== 'ally') {
-          for (const [slot, def] of Object.entries(TRIGGERS)) {
-            if (def.allyOnly && (card[slot] || []).length)
-              out.push({ bad: true, msg: `${c.name} · ${card.name} — « ${def.label} » sur un sort ne se déclenchera jamais.` });
-          }
-          if (card.aura) out.push({ bad: true, msg: `${c.name} · ${card.name} — une aura sur un sort ne s'appliquera jamais.` });
-          if ((card.statics || []).length) out.push({ bad: true, msg: `${c.name} · ${card.name} — un effet statique sur un sort ne s'appliquera jamais (le sort ne reste pas en jeu).` });
-        }
-      });
+      (c[side] || []).forEach(card => verifieCarte(card, c.name, ctx));
     }
   }
   for (const s of DB.starters || []) if (!ids.has(s)) out.push({ bad: true, msg: `Le personnage de départ « ${s} » n'existe plus.` });
