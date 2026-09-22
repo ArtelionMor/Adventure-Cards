@@ -6,7 +6,8 @@
 // serre) — la simulation doit voir la meme difficulte que le joueur, sinon elle ment.
 import { CHAR_BY_ID, resolveCard } from '../../game/src/config/characters.js';
 import { ENCOUNTERS } from '../../game/src/config/world.js';
-import { createBattle, playCard, attack, endTurn } from '../../game/src/combat/engine.js';
+import { createBattle } from '../../game/src/combat/engine.js';
+import { joue as joueLeCoup } from '../../game/src/combat/journal.js';
 import { botAction } from '../../game/src/combat/ai.js';
 
 function playerSide(teamIds, level) {
@@ -34,10 +35,11 @@ function run(p, e, ia, vues) {
   const B = createBattle(p, e);
   let guard = 0;
   while (!B.over && guard++ < 4000) {
-    const a = botAction(B, B.turn, B.turn === 'e' ? ia : undefined);
-    if (!a || a.type === 'end') endTurn(B);
-    else if (a.type === 'play') { if (!playCard(B, B.turn, a.index, a.target, a.choix)) endTurn(B); }
-    else if (a.type === 'attack') { if (!attack(B, B.turn, a.uid, a.target)) endTurn(B); }
+    const k = B.turn;
+    const a = botAction(B, k, k === 'e' ? ia : undefined);
+    // Comme partout ailleurs, l'action passe par `joue()` : c'est le seul chemin, et
+    // c'est ce qui rendra cette partie enregistrable le jour ou on le demandera.
+    if (!joueLeCoup(B, k, a, 'bot')) joueLeCoup(B, k, { type: 'end' }, 'bot');
   }
   for (const id of B.pending) vues.add(id);
   if (guard >= 4000) return 'stuck';

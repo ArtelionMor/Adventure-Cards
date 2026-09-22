@@ -3,8 +3,11 @@
 // Le bot joue volontairement au hasard une fois sur huit (GDD), donc chaque decision
 // est prise 300 fois et on regarde la tendance, pas un coup isole.
 //   node scripts/test-ai.mjs
-import { createBattle, playCard } from '../game/src/combat/engine.js';
+import { createBattle } from '../game/src/combat/engine.js';
 import { botAction } from '../game/src/combat/ai.js';
+// Monter une position, c'est jouer des cartes — et une action passe par joue(), ici
+// comme ailleurs (cf. le banc du partage). Journal eteint, c'est un appel de plus.
+import { joue } from '../game/src/combat/journal.js';
 
 let pass = 0, fail = 0;
 const TIRAGES = 300;
@@ -34,7 +37,7 @@ const side = (name, cards) => ({ name, sprite: '', hp: 30, mana: 10, hand: 1, de
 /** Comme setup(), mais avec des unites deja posees des DEUX cotes. */
 function plateaux(mainJoueur, plateauJoueur, plateauAdverse) {
   const B = setup([...plateauJoueur, ...mainJoueur], plateauAdverse);
-  for (const c of plateauJoueur) playCard(B, 'p', B.p.hand.findIndex(x => x.name === c.name), null);
+  for (const c of plateauJoueur) joue(B, 'p', { type: 'play', index: B.p.hand.findIndex(x => x.name === c.name), target: null });
   B.p.mana = B.p.maxMana = 10;
   return B;
 }
@@ -43,7 +46,7 @@ function setup(mainJoueur, plateauAdverse = [], mana = 10) {
   const B = createBattle(side('Joueur', mainJoueur), side('Adversaire', plateauAdverse), {});
   B.e.hand = plateauAdverse.map(c => ({ ...c }));
   B.e.mana = B.e.maxMana = 10;
-  for (const c of plateauAdverse) playCard(B, 'e', B.e.hand.findIndex(x => x.name === c.name), null);
+  for (const c of plateauAdverse) joue(B, 'e', { type: 'play', index: B.e.hand.findIndex(x => x.name === c.name), target: null });
   B.p.hand = mainJoueur.map(c => ({ ...c }));
   B.p.mana = B.p.maxMana = mana;
   B.turn = 'p';

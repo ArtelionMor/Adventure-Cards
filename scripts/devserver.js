@@ -72,7 +72,8 @@ const OUTILS = {
   'analyse-cartes': { fichier: 'scripts/analyse-cartes.mjs', brouillon: true, journaux: true, nom: 'Analyse des cartes' },
   'test-triggers': { fichier: 'scripts/test-triggers.mjs', brouillon: false, nom: 'Banc du moteur' },
   'test-ai': { fichier: 'scripts/test-ai.mjs', brouillon: false, nom: 'Banc du bot' },
-  'test-partage': { fichier: 'scripts/test-partage.mjs', brouillon: false, nom: 'Banc du partage' }
+  'test-partage': { fichier: 'scripts/test-partage.mjs', brouillon: false, nom: 'Banc du partage' },
+  'test-journal': { fichier: 'scripts/test-journal.mjs', brouillon: false, nom: 'Banc du journal' }
 };
 
 // Les notifications (scripts/lib/push.mjs) : un module ES, d'ou l'import dynamique. Une

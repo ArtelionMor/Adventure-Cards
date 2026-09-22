@@ -15,8 +15,9 @@
 import { CHARACTER_DATA } from '../../data/characters.data.js';
 import { resolveCard } from '../config/characters.js';
 import { npcSide } from '../config/npcs.js';
-import { createBattle, playCard, attack, endTurn } from '../combat/engine.js';
+import { createBattle } from '../combat/engine.js';
 import { botAction } from '../combat/ai.js';
+import { joue, ouvreJournal, fermeJournal } from '../combat/journal.js';
 
 /** Un camp a partir de cartes deja resolues. Le socle de tous les autres. */
 export function campDeCartes(nom, stats, cartes, sprite = '') {
@@ -86,6 +87,10 @@ export function campPnj(id, data = CHARACTER_DATA) {
  * Une partie entiere, bot contre bot. Rend { winner, B } — winner vaut 'p', 'e',
  * 'draw' ou 'stuck' (le garde-fou a saute : le moteur tourne en rond).
  * `opts.p` / `opts.e` / `opts.bot` reglent la difficulte de chaque cote.
+ *
+ * `opts.journal` enregistre la partie : le resultat porte alors `journal`, le fichier
+ * JSONL de toutes les decisions (cf. `combat/journal.js`). Sans lui, rien n'est alloue
+ * — c'est la meme fonction qui joue, enregistrement ou non.
  */
 export function duel(fabriqueP, fabriqueE, opts = {}) {
   // Un camp peut etre une fabrique (« melange base/switch ») : on la tire ici, donc
@@ -93,17 +98,31 @@ export function duel(fabriqueP, fabriqueE, opts = {}) {
   const cfgP = typeof fabriqueP === 'function' ? fabriqueP() : fabriqueP;
   const cfgE = typeof fabriqueE === 'function' ? fabriqueE() : fabriqueE;
   const B = createBattle(cfgP, cfgE, {});
+  const niveauDe = k => opts[k] || opts.bot || (k === 'p' ? cfgP.ia : cfgE.ia);
+  if (opts.journal) {
+    ouvreJournal(B, {
+      source: 'simulateur',
+      rencontre: opts.rencontre || { id: cfgE.id || cfgE.name, nom: cfgE.name },
+      data: opts.data,
+      camps: {
+        p: { controle: 'bot', niveauBot: niveauDe('p') || null },
+        e: { controle: 'bot', niveauBot: niveauDe('e') || null }
+      }
+    });
+  }
   let garde = 0;
   while (!B.over && garde++ < 4000) {
     const k = B.turn;
     // Un camp sans reglage explicite garde celui de son PNJ, s'il en a un.
-    const niveau = opts[k] || opts.bot || (k === 'p' ? cfgP.ia : cfgE.ia);
+    const niveau = niveauDe(k);
     const a = botAction(B, k, niveau);
-    if (!a || a.type === 'end') endTurn(B);
-    else if (a.type === 'play') { if (!playCard(B, k, a.index, a.target, a.choix)) endTurn(B); }
-    else if (a.type === 'attack') { if (!attack(B, k, a.uid, a.target)) endTurn(B); }
+    // Un coup refuse (une cible devenue illegale) fait passer le tour, sinon la boucle
+    // rejouerait le meme coup jusqu'au garde-fou. C'est une action de plus, et le
+    // journal l'enregistre comme telle.
+    if (!joue(B, k, a, 'bot', niveau)) joue(B, k, { type: 'end' }, 'bot', niveau);
   }
-  return { winner: garde >= 4000 ? 'stuck' : B.winner, B };
+  const journal = opts.journal ? fermeJournal(B) : null;
+  return { winner: garde >= 4000 ? 'stuck' : B.winner, B, journal };
 }
 
 /**

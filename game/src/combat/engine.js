@@ -38,6 +38,14 @@ function shuffle(a) {
 }
 
 function makeSide(cfg) {
+  // IDENTIFIANT D'INSTANCE. Deux exemplaires de la meme carte portent le meme `id` :
+  // rien ne les distinguait, et un journal qui dit « Morsure » ne dit pas LAQUELLE.
+  // `inst` est attribue une fois, au melange, et suit la carte de la pioche a la
+  // defausse — c'est la seule chose qui rende un combat relisible carte par carte
+  // (cf. combat/journal.js). Une carte fabriquee en cours de combat n'en a pas : le
+  // journal lui en donne un, prefixe par `c`.
+  const deck = shuffle(cfg.deck.map(c => ({ ...c })));
+  deck.forEach((c, i) => { c.inst = `${cfg.key}-${String(i + 1).padStart(2, '0')}`; });
   return {
     key: cfg.key,
     name: cfg.name,
@@ -49,7 +57,7 @@ function makeSide(cfg) {
     maxMana: 0,
     manaCap: Math.min(cfg.mana, BALANCE.combat.maxManaCap),
     handSize: cfg.hand,
-    deck: shuffle(cfg.deck.map(c => ({ ...c }))),
+    deck,
     discard: [],
     hand: [],
     board: [],
@@ -77,6 +85,11 @@ export function createBattle(playerCfg, enemyCfg, meta = {}) {
     turn: 'p',
     turnNo: 0,
     log: [],
+    // COMBIEN DE LIGNES ONT ETE ECRITES DEPUIS LE DEBUT, `B.log` fut-il tronque. Le
+    // journal de decisions decoupe le texte en tranches (« ce qui s'est dit depuis la
+    // decision precedente ») : sans ce compteur, un combat de plus de 400 lignes lui
+    // ferait perdre les premieres sans qu'il s'en apercoive.
+    logTotal: 0,
     pending: [],   // mecaniques rencontrees mais pas encore codees
     // Combien de fois chaque moment s'est declenche. Sert aux outils hors-jeu
     // (scripts/check-decks.mjs) a reperer un moment ecrit sur une carte qui ne part
@@ -107,6 +120,7 @@ export { cardCost };
 
 function say(B, msg) {
   B.log.push(msg);
+  B.logTotal = (B.logTotal || 0) + 1;
   // Assez long pour qu'un combat entier tienne dedans : c'est ce journal qu'on
   // telecharge pour comprendre une partie, et la fin seule ne dit jamais pourquoi.
   if (B.log.length > 400) B.log.shift();
@@ -703,8 +717,12 @@ function peutAgir(B, k) {
  * Fin de partie aux points de vie : le plus haut total l'emporte, egalite = match nul.
  * Cote joueur, l'UI compte le match nul comme une defaite (c'est la regle du jeu).
  */
-function finParPv(B, raison) {
+function finParPv(B, raison, code) {
   B.over = true;
+  // POURQUOI le combat s'arrete, en un mot que relit une machine. La phrase de `raison`
+  // est pour l'ecran ; `B.finRaison` est ce qu'ecrit le journal de decisions, et ce que
+  // lira la pipeline d'analyse — « le combat s'eternise » n'est pas un identifiant.
+  B.finRaison = code;
   B.winner = B.p.hp === B.e.hp ? 'draw' : (B.p.hp > B.e.hp ? 'p' : 'e');
   say(B, `${raison} : ` + (B.winner === 'draw'
     ? `egalite a ${B.p.hp} PV, match nul.`
@@ -715,6 +733,7 @@ function checkOver(B) {
   if (B.over) return;
   if (B.p.hp <= 0 || B.e.hp <= 0) {
     B.over = true;
+    B.finRaison = 'pv';
     B.winner = B.e.hp <= 0 && B.p.hp > 0 ? 'p' : B.p.hp <= 0 && B.e.hp > 0 ? 'e' : 'draw';
     say(B, B.winner === 'p' ? 'Victoire !' : B.winner === 'e' ? 'Defaite...' : 'Match nul.');
   }
@@ -813,7 +832,7 @@ export function beginTurn(B) {
   const s = B[k];
   B.turnNo++;
   // Le combat ne peut pas durer indefiniment : voir BALANCE.combat.maxTurns.
-  if (B.turnNo > BALANCE.combat.maxTurns) { finParPv(B, `le combat s'eternise (${BALANCE.combat.maxTurns} tours)`); return; }
+  if (B.turnNo > BALANCE.combat.maxTurns) { finParPv(B, `le combat s'eternise (${BALANCE.combat.maxTurns} tours)`, 'plafondTours'); return; }
   s.turns++;
   s.maxMana = Math.min(s.maxMana + 1, s.manaCap);
   s.mana = s.maxMana;
@@ -852,7 +871,7 @@ export function beginTurn(B) {
   if (B.over) return;
   // Plus personne ne peut rien faire (plus de pioche, rien de jouable, rien qui
   // frappe) : inutile de tourner dans le vide, on tranche aux PV.
-  if (!peutAgir(B, 'p') && !peutAgir(B, 'e')) { finParPv(B, 'plus personne ne peut jouer'); return; }
+  if (!peutAgir(B, 'p') && !peutAgir(B, 'e')) { finParPv(B, 'plus personne ne peut jouer', 'plusPersonneNePeutJouer'); return; }
   say(B, `— Tour de ${s.name} (${s.mana} mana) —`);
   fireTrigger(B, k, 'turnStart', 'Debut de tour');
 }
@@ -1544,7 +1563,11 @@ export function playCard(B, k, handIndex, target = null, choix = null) {
  * `meta` (la rencontre, ses recompenses) n'est jamais modifie : on le partage.
  */
 export function cloneBattle(B) {
-  const { meta, ...reste } = B;
+  // `journal` ne suit JAMAIS la copie, pour deux raisons : il tient des WeakMap et une
+  // fonction, que `structuredClone` refuse ; et une copie est une hypothese — les
+  // milliers de parties imaginees par le Monte-Carlo n'ont rien a faire dans le
+  // journal de la vraie partie.
+  const { meta, journal, ...reste } = B;
   const copie = structuredClone(reste);
   copie.meta = meta;
   return copie;

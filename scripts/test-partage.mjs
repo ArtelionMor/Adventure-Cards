@@ -7,7 +7,7 @@
 //
 //   node scripts/test-partage.mjs
 //
-// Les quatre regles, et pourquoi :
+// Les cinq regles, et pourquoi :
 //   1. un seul endroit fabrique des workers : scripts/lib/pool.mjs. Ailleurs, c'est une
 //      parallelisation qui ne voit pas les renforts ;
 //   2. un script qui JOUE DES PARTIES (il importe l'arene) passe par `enParallele` ;
@@ -16,6 +16,8 @@
 //      celle-la, et l'empreinte du code les couvre tous) ;
 //   4. un module de taches exporte `joue`, et son resultat voyage en JSON (il traverse un
 //      postMessage, puis le reseau jusqu'a un PC) : ni Map, ni Set, ni fonction.
+//   5. un fichier qui demande son coup au bot (`botAction`) l'applique par `joue()` —
+//      sans quoi le combat ne s'enregistre pas (cf. game/src/combat/journal.js).
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -73,6 +75,29 @@ for (const nom of modules()) {
   const rendu = /return\s*{[^}]*}/s.exec(src.slice(src.lastIndexOf('export function joue')));
   verifie(`${nom} rend du JSON`, !rendu || !/new (Map|Set)\b/.test(rendu[0]),
     'son resultat contient une Map ou un Set : ils ne survivent pas au voyage jusqu\'a un renfort.');
+}
+
+// --- 5. Une action de combat ne s'applique qu'a UN endroit : `joue()`.
+// Meme raison que les workers : une boucle de partie ecrite dans son coin marche tres
+// bien, elle n'enregistre simplement rien — le journal de decisions (game/src/combat/
+// journal.js) ne voit pas passer ses coups, et on ne s'en apercoit qu'en ouvrant un
+// fichier a moitie vide. Le signe qu'on traque est precis : un fichier qui DEMANDE au
+// bot ce qu'il faut jouer (`botAction`) et qui applique ensuite le coup lui-meme.
+// Celui-la joue des parties. Un banc qui monte une position a la main, lui, appelle le
+// moteur sans jamais demander son avis au bot : il n'est pas concerne.
+const APPLIQUE = [/\bplayCard\s*\(/, /\battack\s*\(/, /\bendTurn\s*\(/];
+const BOUCLES = [
+  ...scripts.map(f => `scripts/${f}`),
+  ...readdirSync(join(RACINE, 'scripts', 'lib')).map(f => `scripts/lib/${f}`),
+  ...readdirSync(join(RACINE, 'game', 'src', 'ui')).map(f => `game/src/ui/${f}`),
+  ...readdirSync(join(RACINE, 'game', 'src', 'tools')).map(f => `game/src/tools/${f}`)
+];
+for (const f of BOUCLES) {
+  if (f === 'scripts/test-partage.mjs') continue;   // il cite les motifs qu'il cherche
+  const src = lit(f);
+  if (!/\bbotAction\s*\(/.test(src)) continue;
+  verifie(`${f} passe par joue()`, !APPLIQUE.some(m => m.test(src)),
+    'il demande son coup au bot puis l\'applique lui-meme : ce combat ne s\'enregistrera pas. Passer par joue() de game/src/combat/journal.js.');
 }
 
 // --- Le bilan, comme les autres bancs.

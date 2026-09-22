@@ -291,7 +291,7 @@ lance `devserver.js` quand Node est là (cf. « Lancer le prototype »), et qui 
 son serveur intégré sinon — l'exe répond alors 404 et la page le dit.
 
 - **Liste blanche** (`OUTILS`, dans le serveur, et son miroir dans la page) : simulate,
-  matchups, check-decks, analyse-cartes et les deux bancs. Arguments courts, sans espace ;
+  matchups, check-decks, analyse-cartes et les bancs de test. Arguments courts, sans espace ;
   `--csv` et `--logs` sont refusés — ils écriraient sur le serveur un fichier choisi par
   la page.
 - **Une file, un calcul à la fois.** On envoie une liste de calculs (`POST /api/run`,
@@ -642,6 +642,11 @@ Après toute modification de `game/src/combat/`, faire tourner **les trois bancs
 débloquent un moment, couture builder → moteur, mana différé, mots-clés à paramètre, capacités
 des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, pile de fatigue, création de carte (précise et au hasard), déplacements de zone (mélange, renvoi, pose), leur renfort et celui des cartes sur place, prise du dessus, complétion par la fatigue, événement de renfort, filtre « une carte précise », niveau du propriétaire, plafond de tours, types multiples, « Type : tous » (posé, offert, reçu d'une aura), copie, cibles sans camp, « chez qui » qui suit la cible ou tire au sort, prise de contrôle, choix entre deux effets, chaîne par type, type lu sur une carte, palier « Choisit les deux », deux cibles désignées, switch, sujet d'un événement, cibler depuis une branche, règles de validation qui lisent le registre, garde d'un moment), `node scripts/test-ai.mjs` (31 tests : le bot
 valorise-t-il ces mécaniques) et `node scripts/simulate.mjs` (la courbe de difficulté).
+
+Après toute modification de `game/src/combat/journal.js` (ou de ce qui enregistre un
+combat), faire tourner `node scripts/test-journal.mjs` — il relit des combats enregistrés
+ligne à ligne. Et `node scripts/test-partage.mjs`, qui vérifie en plus qu'aucune boucle de
+partie n'applique un coup sans passer par `joue()`.
 
 Après toute modification de `game/src/config/courbes.js` (le modèle des courbes de
 progression), faire tourner `node scripts/test-courbes.mjs` — il vérifie les six
@@ -1356,6 +1361,90 @@ les coups joués **dans** un rollout de Monte-Carlo ne sont pas notés (`enSonda
 des milliers de parties imaginaires, pas des décisions), et la décision elle-même (`decide`,
 `coupCherche`) ne sait pas qu'on l'observe — `botAction` est la seule enveloppe qui note.
 
+## Le journal de décisions de combat
+`game/src/combat/journal.js` enregistre un combat de façon qu'on puisse, **pour chaque
+décision**, reconstituer tout ce qui était possible et ce qui a été choisi. `B.log` dit ce
+qui a été joué ; il ne dit jamais ce qui a été **écarté** — or c'est exactement ce qu'il
+faut pour apprendre au bot à jouer comme le game designer (« tu avais ces sept coups, le
+bot aurait pris celui-ci, tu as pris celui-là : pourquoi ? »).
+
+**Un fichier par combat, au format JSONL** : une ligne = un objet JSON = un événement, avec
+`t` (le type), `v` (la version du schéma) et `i` (son rang, à partir de 0). Un `debut`
+(config, empreinte des données, les 15 cartes en entier, ordre de pioche, mains de départ),
+N `decision`, un `fin`. **Ajouter un champ ne change pas `v`** ; renommer, supprimer ou
+changer le sens d'un champ l'incrémente, et se note dans l'historique en bas du fichier.
+
+Une **décision**, c'est une photo complète des deux camps *avant* l'action — main adverse et
+ordre des pioches compris — plus `coupsLegaux` (tout ce qui était jouable, **une entrée par
+carte ET par cible**, là où le bot n'en garde qu'une), `coup` (ce qui est parti),
+`evaluationBot` et les lignes de `B.log` écrites depuis la décision précédente. Le bloc
+`vue` dit à côté ce que celui qui décidait pouvait **savoir** : l'analyse ne doit reprocher
+à un joueur que ce qu'il pouvait voir.
+
+⚠ **`joue(B, k, action, controle, niveau)` est l'unique point d'entrée des actions** — le
+jeu, l'arène et les scripts y passent tous, et `node scripts/test-partage.mjs` le vérifie
+(un fichier qui demande son coup au bot et l'applique lui-même est refusé). Journal éteint,
+`joue()` ne fait qu'appeler l'action : **zéro allocation, zéro copie**. C'est la condition
+pour que l'idle d'un joueur ne paie pas un outil de game design.
+
+⚠ **Deux identifiants, et ils ne se ressemblent pas.** `id` est celui de la carte (le même
+pour les trois exemplaires de Morsure) ; **`inst`** est celui de l'**exemplaire**, posé par
+`makeSide` au mélange et stable tout le combat. Sans lui, un journal qui dit « Morsure » ne
+dit pas laquelle. Une carte **fabriquée** en combat (pile de fatigue, « Crée une carte ») et
+une carte **copiée** (qui porterait l'identifiant de son modèle) en reçoivent un neuf,
+préfixé par `c` — `instDe()` est le seul endroit qui répond, et il passe par l'**identité**
+de l'objet, seule chose qui reste vraie entre deux cartes rigoureusement identiques.
+
+⚠ **La ligne est figée avant que l'action parte.** `etat` tient des références vers les
+effets des cartes, et l'action va modifier le combat : on sérialise donc la ligne d'abord,
+puis on ajoute `ok` — ce que `playCard`/`attack` ont renvoyé — à la chaîne déjà close. Il
+se range **à côté** de `coup`, pas dedans : le coup est ce qu'on a voulu faire, `ok` ce que
+le moteur en a fait.
+
+**`evaluationBot`, c'est ce qui rend le fichier utile.** Pour une décision du bot, c'est ce
+que le mouchard (`ecouteLesChoix`) vient de noter — d'où le `coup` **brut** ajouté à côté de
+chaque candidat, que `analyse-cartes` ignore et dont le journal a besoin. Pour une décision
+**humaine**, `evalue(B, k, niveau)` (dans `ai.js`) rejoue la même réflexion sur une
+`cloneBattle`, **sans** jouer le coup : c'est ce champ, et lui seul, qui permet de repérer
+automatiquement les décisions où l'humain et le bot divergent. `ecouteLesChoix` rend
+l'écouteur **précédent** — il n'y a qu'un mouchard, et deux outils peuvent vouloir écouter.
+
+⚠ **`cloneBattle` ne copie jamais le journal** : il tient une WeakMap et une fonction (que
+`structuredClone` refuse), et surtout une copie est une **hypothèse** — les milliers de
+parties imaginées par le Monte-Carlo n'ont rien à faire dans le journal de la vraie partie.
+
+⚠ **Une cible qui ne désigne rien s'écrit `null`.** Quand une carte demande une cible
+qu'aucune unité ne peut remplir, le bot pointe le héros adverse et l'interface ne pointe
+rien : le journal les écrit pareil, sinon le même coup s'écrirait de deux façons et ne se
+retrouverait pas dans ses propres `coupsLegaux`.
+
+⚠ **`B.logTotal` compte tout ce qui a été dit**, `B.log` ne garde que les 400 dernières
+lignes : c'est la différence des deux qui dit lesquelles sont neuves. Sans ce compteur, un
+combat de plus de 400 lignes perdrait ses premières phrases **sans le dire**.
+
+**Activation.** Éteint par défaut. Dans le jeu : `?journal=1` dans l'adresse — et il se
+**retient** (`localStorage`), sinon il faudrait le retaper à chaque ouverture de l'app
+installée ; `?journal=0` l'éteint. Un **⏺ rouge** reste visible pendant le combat (une
+partie ne s'enregistre pas dans le dos du joueur) et l'écran de résultat porte
+« ⬇ Télécharger le journal de décisions ». Dans l'arène : `duel(a, b, { journal: true })`,
+qui rend le fichier dans `journal`. Mesuré : **4 ko par décision**, soit 150 à 400 ko par
+combat — le JSONL se compresse très bien, on n'optimisera qu'après une mesure réelle.
+
+`node scripts/test-journal.mjs [parties]` est le banc : il joue des parties enregistrées et
+relit chaque fichier — les `i` se suivent, le fichier commence par `debut` et finit par
+`fin`, une `decision` par action tentée, chaque `coup` figure dans ses `coupsLegaux`, un
+`inst` ne désigne jamais deux cartes, l'`etatFinal` concorde avec le vainqueur, et **aucune
+ligne de `B.log` n'est perdue ni dupliquée** — il force pour ça un combat de plus de 400
+lignes, le seul cas où le journal texte est tronqué.
+
+**Pas encore fait, dans l'ordre prévu** : l'envoi automatique au serveur de l'Atelier
+(`POST /api/journal`, un dossier `journaux/` sur le Pi, que lira la pipeline Python/SQL) ;
+le script qui extrait les décisions humaines divergentes, triées par écart de note ; le
+format de « coup du designer » qui transforme une décision annotée en cas de test du banc
+du bot. ⚠ Le serveur refuse les options qui écrivent un fichier choisi par la page
+(`--csv`, `--logs`) : faire sortir les journaux du simulateur depuis l'Atelier demandera
+une décision, pas seulement du code.
+
 ## Outils d'équilibrage
 - `node scripts/check-decks.mjs [niveau] [parties]` — **les erreurs**. Deux passes : les
   règles du builder (via `game/src/config/validate.js`, partagé avec lui — une règle
@@ -1449,7 +1538,7 @@ des milliers de parties imaginaires, pas des décisions), et la décision elle-m
 ## Dossiers
 - `game/` — le prototype jouable. `src/config/` = game config (dont `npcs.js`, qui résout
   les adversaires, le catalogue de cartes et la pile de fatigue, `validate.js`, les règles de validation
-  partagées avec le builder, et `courbes.js`, le modèle des courbes de progression), `src/combat/` = moteur + bot, `src/tools/` = l'arène de mesure,
+  partagées avec le builder, et `courbes.js`, le modèle des courbes de progression), `src/combat/` = moteur + bot + le journal de décisions, `src/tools/` = l'arène de mesure,
   `src/ui/` = écrans, `data/` = données générées par le builder.
 - `builder/` — le Card Builder, `overview.html` (vue d'ensemble) et `balance.html`
   (matrice des matchups), `courbes.html` (les courbes de progression), `lancer.html` (lancer un calcul sur le serveur), `accueil.html` (l'Atelier, l'app qui les réunit). Pages autonomes : aucune dépendance, elles importent seulement

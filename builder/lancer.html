@@ -408,6 +408,15 @@ const OUTILS = [
     id: 'test-partage', fichier: 'scripts/test-partage.mjs', nom: 'Banc du partage', sous: 'tout se partage ?', brouillon: false,
     desc: 'Chaque outil de mesure passe-t-il par la file de tâches commune ? Un outil qui joue dans son coin n\'utilise ni les cœurs des renforts ni la file, et rien ne le dit.',
     champs: [], args: () => [], libelle: () => 'Banc du partage'
+  },
+  {
+    id: 'test-journal', fichier: 'scripts/test-journal.mjs', nom: 'Banc du journal', sous: 'les combats enregistrés', brouillon: false,
+    desc: 'Le journal de décisions se relit-il ? Des parties enregistrées, puis relues ligne à ligne : coups légaux, identifiants de cartes, texte du combat, état final.',
+    champs: [
+      { cle: 'parties', label: 'Parties enregistrées', type: 'nombre', def: 50, min: 1, max: 500 }
+    ],
+    args: v => [String(v.parties)],
+    libelle: v => `Banc du journal - ${v.parties} parties`
   }
 ];
 const outilDe = id => OUTILS.find(o => o.id === id);

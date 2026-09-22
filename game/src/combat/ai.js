@@ -647,8 +647,12 @@ function meilleureAttaque(B, k, ready) {
 // Le combat etant une chaine de Markov (l'etat suffit a decrire la suite), une partie
 // terminee depuis la position obtenue est un echantillon honnete de ce qui nous attend.
 
-/** Tous les coups jouables maintenant : les cartes, les attaques, et passer. */
-function coupsPossibles(B, k) {
+/**
+ * Tous les coups jouables maintenant : les cartes, les attaques, et passer.
+ * Exporte parce que le journal de decisions pose la meme question que le bot — « que
+ * pouvait-on jouer a cet instant ? » — et qu'il ne doit pas y repondre autrement.
+ */
+export function coupsPossibles(B, k) {
   const me = B[k];
   const coups = [];
   me.hand.forEach((c, i) => {
@@ -794,8 +798,43 @@ function coupCherche(B, k, jeu) {
 let mouchard = null;
 let enSondage = 0;
 
-/** Passe une fonction pour ecouter les decisions du bot, rien pour arreter. */
-export function ecouteLesChoix(fn) { mouchard = fn || null; }
+/**
+ * Passe une fonction pour ecouter les decisions du bot, rien pour arreter.
+ * Rend l'ecouteur PRECEDENT : il n'y a qu'un mouchard, et deux outils peuvent vouloir
+ * ecouter (le journal d'une partie, et `evalue()` juste en dessous). Celui qui branche
+ * le sien rebranche l'ancien en partant, au lieu de le faire disparaitre sans un mot.
+ */
+export function ecouteLesChoix(fn) {
+  const avant = mouchard;
+  mouchard = fn || null;
+  return avant;
+}
+
+/**
+ * CE QUE LE BOT AURAIT JOUE A TA PLACE, sans jouer quoi que ce soit. Sur une COPIE du
+ * combat : `botAction` ne modifie rien, mais le Monte-Carlo, lui, joue des milliers de
+ * parties a partir de l'etat qu'on lui donne — et il le ferait dans la vraie partie.
+ *
+ * Rend les coups TELS QUE LE BOT LES VOIT (index de main, cible) : les convertir est
+ * l'affaire de l'appelant, et il doit le faire contre le combat REEL, dont la main a
+ * le meme contenu dans le meme ordre. C'est ce qui permet au journal de comparer une
+ * decision humaine a celle du bot, decision par decision.
+ */
+export function evalue(B, k, niveau) {
+  const copie = cloneBattle(B);
+  let vu = null;
+  const avant = ecouteLesChoix(info => { vu = info; });
+  let choisi = null;
+  try { choisi = botAction(copie, k, niveau); }
+  finally { ecouteLesChoix(avant); }
+  return {
+    niveau: typeof niveau === 'string' ? niveau : (niveau && niveau.nom) || BALANCE.ai.defaut,
+    choisi,
+    // Le mouchard se tait quand il n'y avait pas le choix : on garde quand meme le coup.
+    candidats: vu ? vu.candidats : [],
+    critere: vu ? vu.critere : null
+  };
+}
 
 /** Ce qu'un coup est, en clair. A appeler AVANT de le jouer : la main est encore la. */
 function decrisCoup(B, k, a, victoires) {
@@ -824,7 +863,10 @@ function noteLaDecision(B, k, a, evalues) {
   if (!mouchard || enSondage) return;
   const liste = evalues || coupsPossibles(B, k).map(coup => ({ coup }));
   if (liste.length < 2) return;                    // pas de choix : rien a expliquer
-  const candidats = liste.map(n => decrisCoup(B, k, n.coup, n.victoires));
+  // `coup` : le coup BRUT a cote de sa description. L'analyse des cartes ne lit que la
+  // description (un nom, une valeur) ; le journal de decisions, lui, doit pouvoir dire
+  // QUELLE carte et QUELLE cible — il lui faut le coup lui-meme.
+  const candidats = liste.map(n => ({ ...decrisCoup(B, k, n.coup, n.victoires), coup: n.coup }));
   const iChoisi = liste.findIndex(n => n.coup === a || memeCoup(n.coup, a));
   mouchard({
     // Le combat lui-meme : l'ecouteur peut ainsi ecrire la decision DANS le journal
@@ -832,7 +874,7 @@ function noteLaDecision(B, k, a, evalues) {
     b: B,
     tour: B.turnNo, camp: k, nom: B[k].name,
     critere: liste.some(n => n.victoires !== undefined) ? 'victoires' : 'valeur',
-    choisi: iChoisi >= 0 ? candidats[iChoisi] : decrisCoup(B, k, a),
+    choisi: iChoisi >= 0 ? candidats[iChoisi] : { ...decrisCoup(B, k, a), coup: a },
     candidats
   });
 }

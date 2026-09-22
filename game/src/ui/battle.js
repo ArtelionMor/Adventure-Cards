@@ -6,8 +6,9 @@ import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist } from '../state.js';
 import { relicMods } from '../config/relics.js';
 import { TRIGGERS, COUNTERS, keyLabel, hasKey, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel } from '../config/mechanics.js';
-import { createBattle, playCard, attack, endTurn, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur } from '../combat/engine.js';
+import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur } from '../combat/engine.js';
 import { botAction } from '../combat/ai.js';
+import { joue as joueLeCoup, ouvreJournal, fermeJournal, nomDeFichier } from '../combat/journal.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
 
 let B = null;
@@ -22,6 +23,24 @@ let ctx = null;
 // reference : le combat continue derriere la fiche (mode auto), donc elle se redessine
 // a chaque render() et se ferme d'elle-meme si l'unite meurt.
 let insp = null;   // { side, uid }
+// Le fichier JSONL du dernier combat enregistre, garde jusqu'a l'ecran de resultat :
+// c'est la qu'on le telecharge (le journal est ferme des que le combat l'est).
+let dernierJournal = null;
+
+// ------------------------------------------------ enregistrement des combats
+// ETEINT PAR DEFAUT, et il doit le rester : enregistrer coute une copie d'etat par
+// decision, et l'idle d'un joueur n'a pas a payer pour un outil de game design.
+// Il n'y a pas (encore) d'ecran d'options de developpement : l'interrupteur, c'est
+// `?journal=1` dans l'adresse — et il se RETIENT, sinon il faudrait le retaper a
+// chaque ouverture de l'app installee. `?journal=0` l'eteint.
+const CLE_JOURNAL = 'adventureCard.journalCombats';
+function enregistreLesCombats() {
+  try {
+    const p = new URLSearchParams(location.search).get('journal');
+    if (p !== null) localStorage.setItem(CLE_JOURNAL, p === '1' || p === 'true' ? '1' : '0');
+    return localStorage.getItem(CLE_JOURNAL) === '1';
+  } catch { return false; }   // navigation privee, stockage refuse : on n'enregistre pas
+}
 
 export function buildPlayerSide() {
   const ids = team();
@@ -58,7 +77,29 @@ export function openBattle(node, done) {
   selCard = selUnit = null;
   fermeFiche();
   auto = true;
+  dernierJournal = null;
   B = createBattle(buildPlayerSide(), buildEnemySide(node.enemy), { node });
+  if (enregistreLesCombats()) {
+    const enc = ENCOUNTERS[node.enemy] || {};
+    ouvreJournal(B, {
+      source: 'jeu',
+      rencontre: { id: node.id, nom: enc.name || node.enemy, adversaire: node.enemy },
+      camps: {
+        // L'equipe, niveau par niveau et switch par switch : c'est ce qui permet de
+        // remonter le deck exact des mois plus tard, quand la sauvegarde aura bouge.
+        p: {
+          // Le camp du joueur. Qui a REELLEMENT decide se lit decision par decision :
+          // le pilote automatique joue pour lui tant qu'il n'a pas repris la main.
+          controle: 'humain',
+          equipe: team().map(id => ({ id, niveau: save.chars[id].level, switches: [...save.chars[id].switches] })),
+          reliques: [...(save.relics || [])]
+        },
+        e: { controle: 'bot', niveauBot: enc.ia || null }
+      }
+    });
+    // Le nom du fichier porte l'heure de DEBUT du combat : on le prend maintenant.
+    dernierJournal = { nom: nomDeFichier(node), texte: null };
+  }
   const root = $('#battle');
   root.style.alignItems = '';
   root.style.justifyContent = '';
@@ -73,19 +114,15 @@ function loop() {
   const isBot = B.turn === 'e' || auto;
   if (!isBot) return;                       // au joueur de jouer
   timer = setTimeout(() => {
+    const k = B.turn;
     // L'adversaire peut jouer a un autre niveau que le pilote automatique du joueur :
     // c'est le champ `ia` de la rencontre (GAME CONFIG), un boss a le droit d'etre dur.
-    const a = botAction(B, B.turn, B.turn === 'e' ? (ENCOUNTERS[ctx.enemy] || {}).ia : undefined);
-    applyAction(B.turn, a);
+    const niveau = k === 'e' ? (ENCOUNTERS[ctx.enemy] || {}).ia : undefined;
+    const a = botAction(B, k, niveau);
+    if (!joueLeCoup(B, k, a, 'bot', niveau || null)) joueLeCoup(B, k, { type: 'end' }, 'bot', niveau || null);
     render();
     if (B.over) finish(); else loop();
   }, BALANCE.combat.autoStepMs);
-}
-
-function applyAction(k, a) {
-  if (!a || a.type === 'end') { endTurn(B); return; }
-  if (a.type === 'play') playCard(B, k, a.index, a.target, a.choix);
-  else if (a.type === 'attack') attack(B, k, a.uid, a.target);
 }
 
 // ------------------------------------------------------------------ rendu
@@ -167,6 +204,9 @@ function render() {
   const log = el('<div class="bt-log"></div>');
   B.log.slice(-40).forEach(l => log.appendChild(el(`<div>${l}</div>`)));
   root.appendChild(log);
+  // Enregistrement en cours : le joueur doit le SAVOIR, une partie ne s'enregistre pas
+  // dans son dos. Le point rouge reste visible tout le combat.
+  if (B.journal) root.appendChild(el('<div class="src" style="align-self:flex-end;color:#e05a5a">⏺ combat enregistré</div>'));
   // Le journal complet, telechargeable : l'ecran n'en montre que la fin, et c'est
   // justement le debut du combat qu'on relit quand on cherche a comprendre.
   const dl = el('<button class="btn ghost" style="font-size:11px;padding:4px 10px;align-self:flex-end">⬇ journal</button>');
@@ -207,7 +247,7 @@ function render() {
   };
   bar.querySelector('#endTurn').onclick = () => {
     selCard = selUnit = null;
-    endTurn(B);
+    joueLeCoup(B, 'p', { type: 'end' }, 'humain');
     render();
     loop();
   };
@@ -307,7 +347,7 @@ function highlightTargets(root) {
 // ------------------------------------------------------------- interactions
 /** Pose la carte et remet l'ecran a zero. Le choix de branche part avec elle. */
 function joue(i, target) {
-  playCard(B, 'p', i, target, selChoix);
+  joueLeCoup(B, 'p', { type: 'play', index: i, target, choix: selChoix }, 'humain');
   selCard = null;
   selChoix = null;
   render();
@@ -380,7 +420,7 @@ function onTargetClick(side, uid) {
   if (monTour && selUnit && side === 'e') {
     const u = B.p.board.find(x => x.uid === selUnit);
     if (u && attackableTargets(B, 'p', u).some(t => t.uid === uid)) {
-      attack(B, 'p', selUnit, { side, uid });
+      joueLeCoup(B, 'p', { type: 'attack', uid: selUnit, target: { side, uid } }, 'humain');
       selUnit = null;
       render();
       if (B.over) finish();
@@ -530,6 +570,9 @@ function renderInspect() {
 function finish() {
   clearTimeout(timer);
   fermeFiche();
+  // Le journal se ferme avec le combat : c'est la derniere ligne (`fin`) qui rend le
+  // fichier verifiable — nombre de decisions, etat final, vainqueur.
+  if (B.journal && dernierJournal) dernierJournal.texte = fermeJournal(B);
   const enc = ENCOUNTERS[ctx.enemy];
   const win = B.winner === 'p';
   const r = enc.rewards;
@@ -551,6 +594,22 @@ function finish() {
     }
     save.world.cleared[ctx.id] = true;
     persist();
+  }
+
+  // Le journal de DECISIONS, en JSONL : ce que le joueur avait, ce qu'il pouvait
+  // jouer, ce que le bot aurait joue a sa place. Premiere version : on le telecharge
+  // a la main depuis l'ecran de resultat (l'envoi automatique au serveur viendra).
+  if (dernierJournal && dernierJournal.texte) {
+    const bj = el('<button class="btn ghost" style="margin-bottom:8px">⬇ Télécharger le journal de décisions</button>');
+    bj.onclick = () => {
+      const url = URL.createObjectURL(new Blob([dernierJournal.texte], { type: 'application/x-ndjson' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = dernierJournal.nom;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    };
+    box.appendChild(bj);
   }
 
   const btn = el('<button class="btn">Continuer</button>');
