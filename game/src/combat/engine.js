@@ -389,8 +389,16 @@ function renforceCartes(B, cartes, e) {
     : `+${atk}/+${hp} : aucun allie la-dedans, le bonus ne touche rien.`);
 }
 
-/** Depose une carte dans une zone. Rend l'unite creee quand elle arrive en jeu. */
-function depose(B, camp, carte, vers) {
+/**
+ * Depose une carte dans une zone. Rend l'unite creee quand elle arrive en jeu.
+ *
+ * EXPORTE pour une seule raison : monter une position de toutes pieces (le banc de
+ * situations, `tools/situation.js`). C'est exactement ce qu'il faut pour ca — une
+ * carte deposee n'est PAS jouee, « A la pose » ne part pas, donc le plateau qu'on
+ * decrit est le plateau qu'on obtient. Dans une vraie partie, personne ne l'appelle
+ * directement : elle est le bout du chemin `preleve()` → `depose()`.
+ */
+export function depose(B, camp, carte, vers) {
   const s = B[camp];
   if (vers === 'pioche') { melangeDedans(B, camp, [carte]); return null; }
   if (vers === 'main') {
@@ -596,8 +604,12 @@ export function aurasSur(B, k, u) {
 /**
  * Recalcule les valeurs derivees de toutes les unites a partir de leurs valeurs de
  * base et des auras presentes sur le plateau. A appeler apres tout changement.
+ *
+ * EXPORTE pour la meme raison que `depose` : un outil qui monte une position pose des
+ * unites sans passer par le flux normal, et personne n'a alors recalcule les auras.
+ * Le moteur, lui, s'en charge tout seul a chaque evenement de plateau.
  */
-function refresh(B) {
+export function refresh(B) {
   for (const k of ['p', 'e']) {
     const mine = B[k].board, theirs = B[foe(k)].board;
     for (const u of mine) {

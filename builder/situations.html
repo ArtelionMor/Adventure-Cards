@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#0f1115" />
+<link rel="icon" href="icons/atelier-192.png" />
+<link rel="apple-touch-icon" href="icons/atelier-apple-180.png" />
+<title>Banc de situations — Adventure Card</title>
+<style>
+  :root {
+    --bg: #0f1115; --bg-2: #161922; --bg-3: #1d2230; --line: #2a3142;
+    --text: #e7eaf0; --muted: #9aa3b2; --accent: #7aa2ff; --accent-2: #79e3c5;
+    --accent-3: #c69bff; --warn: #f5a623; --danger: #ff6b81;
+    --shadow: 0 8px 24px rgba(0,0,0,.35); --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; }
+  body { font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-decoration: none; }
+
+  .tb-nav { position: sticky; top: 0; z-index: 9999; display: flex; align-items: center; gap: 18px; height: 52px; padding: 0 18px;
+    background: rgba(13,15,20,.86); backdrop-filter: saturate(140%) blur(10px); border-bottom: 1px solid var(--line); }
+  .tb-nav__brand { display: flex; align-items: center; gap: 8px; font-weight: 700; white-space: nowrap; }
+  .tb-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 10px rgba(122,162,255,.7); }
+  .tb-nav__links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .tb-nav__link { color: var(--muted); padding: 7px 12px; border-radius: 8px; border: 1px solid transparent; font-size: 14px; cursor: pointer; }
+  .tb-nav__link:hover { color: var(--text); background: var(--bg-3); }
+  .tb-nav__link--active { color: var(--text); background: var(--bg-3); border-color: var(--line); }
+
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 24px 22px 90px; }
+  h1 { font-size: 30px; margin: 0 0 8px; letter-spacing: -.02em;
+    background: linear-gradient(120deg, #fff 0%, var(--accent) 60%, var(--accent-2) 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .lede { color: var(--muted); max-width: 92ch; font-size: 14px; margin: 0 0 18px; }
+
+  input, select, textarea { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 7px 10px; font: inherit; font-size: 14px; }
+  textarea { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; resize: vertical; }
+  .btn { background: var(--bg-3); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; font: inherit; font-size: 14px; cursor: pointer; }
+  .btn:hover:not(:disabled) { border-color: var(--accent); }
+  .btn--primary { background: linear-gradient(135deg, var(--accent), #5b86ff); border-color: transparent; color: #0b1020; font-weight: 700; }
+  .btn--sm { padding: 5px 10px; font-size: 13px; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); font-size: 13px; cursor: pointer; color: var(--muted); }
+  .chip--on { border-color: var(--accent); color: var(--text); background: #1b2337; }
+
+  .panel { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 18px; }
+  .panel__head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .panel__head h2 { font-size: 15px; margin: 0; }
+  .panel__head .droite { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .panel__body { padding: 16px 18px; }
+
+  .fiche { display: grid; gap: 8px; }
+  .fiche .q { color: var(--text); }
+  .fiche .r { color: var(--muted); font-size: 13.5px; }
+  .fiche b { color: var(--accent-2); font-weight: 600; }
+  .soucis { color: var(--danger); font-size: 13px; margin-top: 8px; white-space: pre-wrap; }
+
+  /* --- le combat --- */
+  .cote { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; background: var(--bg); }
+  .cote--actif { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(122,162,255,.25); }
+  .cote__tete { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .cote__tete b { font-size: 15px; }
+  .pv { color: var(--accent-2); font-variant-numeric: tabular-nums; }
+  .mana { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .petit { color: var(--muted); font-size: 12.5px; }
+
+  .rangee { display: flex; gap: 8px; flex-wrap: wrap; min-height: 56px; align-content: flex-start; }
+  .rangee:empty::after { content: "— plateau vide —"; color: #4a5162; font-size: 12.5px; }
+
+  .u, .c { border: 1px solid var(--line); border-radius: 10px; padding: 7px 9px; background: var(--bg-2); min-width: 104px; max-width: 168px; cursor: default; font-size: 12.5px; }
+  .u__n, .c__n { font-weight: 600; font-size: 13px; line-height: 1.25; }
+  .u__s { color: var(--accent-2); font-variant-numeric: tabular-nums; margin-top: 3px; }
+  .u__k, .c__k { color: var(--muted); font-size: 11.5px; margin-top: 2px; line-height: 1.3; }
+  .u--prete { border-color: var(--accent-2); }
+  .u--sel { border-color: var(--warn); box-shadow: 0 0 0 1px var(--warn); }
+  .u--cible, .c--cible { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); cursor: pointer; }
+  .c { cursor: pointer; }
+  .c--injouable { opacity: .45; cursor: default; }
+  .c--sel { border-color: var(--warn); box-shadow: 0 0 0 1px var(--warn); }
+  .c__c { display: inline-block; min-width: 18px; text-align: center; border-radius: 5px; background: var(--bg-3); color: var(--accent); font-weight: 700; padding: 0 4px; margin-right: 5px; }
+  .heroCible { display: inline-block; margin-top: 6px; }
+
+  .frise { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .frise__pas { border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; font-size: 12px; color: var(--muted); background: var(--bg); cursor: pointer; white-space: nowrap; }
+  .frise__pas--ici { border-color: var(--accent); color: var(--text); background: #1b2337; }
+  .frise__pas--futur { opacity: .45; }
+
+  .jrn { max-height: 190px; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; color: var(--muted); }
+  .jrn div { padding: 1px 0; }
+  .avis { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+  .avis table { border-collapse: collapse; width: 100%; }
+  .avis td { padding: 2px 8px 2px 0; }
+  .avis .note { color: var(--accent-2); font-variant-numeric: tabular-nums; text-align: right; }
+  .avis .pris { color: var(--warn); }
+  .vide { color: var(--muted); font-size: 13.5px; }
+</style>
+</head>
+<body>
+
+<nav class="tb-nav">
+  <div class="tb-nav__brand"><span class="tb-dot"></span> Adventure Card</div>
+  <div class="tb-nav__links">
+    <a class="tb-nav__link" href="accueil.html">Accueil</a>
+    <a class="tb-nav__link" href="../game/index.html">Jouer</a>
+    <a class="tb-nav__link" href="index.html">Card Builder</a>
+    <a class="tb-nav__link" href="overview.html">Vue d'ensemble</a>
+    <a class="tb-nav__link" href="balance.html">Équilibrage</a>
+    <span class="tb-nav__link tb-nav__link--active">Situations</span>
+    <a class="tb-nav__link" href="courbes.html">Courbes</a>
+    <a class="tb-nav__link" href="lancer.html">Lancer un calcul</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <h1>Banc de situations</h1>
+  <p class="lede">
+    Monter une position de toutes pièces et la jouer, sans avoir à jouer les tours d'avant.
+    Les deux mains sont visibles — c'est un banc, pas une partie. Chaque action laisse un
+    point sur la frise : on revient en arrière et on essaie autre chose.
+    <b>⚠ Le moteur tire sans graine</b> : revenir en arrière <i>restaure</i> un état, il ne
+    <i>rejoue</i> pas — les tirages qui suivront seront d'autres tirages. C'est le but.
+    Le texte des fiches est dans <a href="../docs/SITUATIONS-A-TESTER.md">docs/SITUATIONS-A-TESTER.md</a>.
+  </p>
+
+  <div class="panel">
+    <div class="panel__head">
+      <h2>La situation</h2>
+      <select id="choix" style="min-width:340px"></select>
+      <div class="droite">
+        <button class="btn" id="editer">✎ Modifier</button>
+        <button class="btn btn--primary" id="monter">Monter la position</button>
+      </div>
+    </div>
+    <div class="panel__body">
+      <div class="fiche" id="fiche"></div>
+      <div id="editeur" style="display:none;margin-top:14px">
+        <p class="petit" style="margin:0 0 6px">
+          La fiche, telle que <code>game/data/situations.js</code> la décrit — le format y est
+          commenté. Modifie ce que tu veux (cartes, PV, mana, tour), monte, et recopie-la
+          dans le fichier si elle mérite d'être gardée.
+        </p>
+        <textarea id="json" rows="16" spellcheck="false"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn--primary btn--sm" id="monterJson">Monter cette fiche</button>
+          <button class="btn btn--sm" id="copier">⧉ Copier</button>
+          <button class="btn btn--sm" id="annulerEdit">Fermer</button>
+        </div>
+      </div>
+      <div class="soucis" id="soucis"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panneauCombat" style="display:none">
+    <div class="panel__head">
+      <h2 id="titreCombat">Le combat</h2>
+      <div class="droite">
+        <span class="chip" id="botP">bot : toi</span>
+        <span class="chip" id="botE">bot : en face</span>
+        <button class="btn btn--sm" id="coupBot">▶ un coup du bot</button>
+        <select id="niveauAvis" title="Le bot auquel on se compare"></select>
+        <button class="btn btn--sm" id="avis">🤔 Que jouerait le bot ?</button>
+      </div>
+    </div>
+    <div class="panel__body">
+      <div class="frise" id="frise" style="margin-bottom:14px"></div>
+      <div id="plateau"></div>
+      <div id="blocAvis" style="margin:12px 0"></div>
+      <div class="jrn" id="jrn"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { SITUATIONS, FAMILLES, monteSituation } from '../game/src/tools/situation.js';
+import { BALANCE } from '../game/src/config/balance.js';
+import {
+  canPlay, needsTarget, needsChoice, legalTargets, attackableTargets,
+  cloneBattle, cardCost
+} from '../game/src/combat/engine.js';
+import { joue } from '../game/src/combat/journal.js';
+import { botAction, evalue } from '../game/src/combat/ai.js';
+import { describeEffect, keyLabel, TRIGGERS, momentLabel } from '../game/src/config/mechanics.js';
+
+const $ = s => document.querySelector(s);
+
+// ------------------------------------------------------------------ l'etat
+// `etats` : un instantane APRES chaque action, le premier etant la position montee.
+// `curseur` pointe celui qu'on regarde, `B` en est une copie vivante — on ne joue
+// jamais dans un instantane, sinon revenir en arriere ne rendrait plus l'etat d'avant.
+let fiche = null;
+let B = null;
+let etats = [], libelles = [], curseur = 0;
+let selCarte = null, selChoix = null, selUnite = null;
+let bot = { p: false, e: false };
+let minuteur = null;
+
+// ------------------------------------------------------------- la liste des fiches
+const parFamille = f => SITUATIONS.filter(s => s.famille === f);
+$('#choix').innerHTML = Object.entries(FAMILLES).map(([f, nom]) =>
+  `<optgroup label="${f} — ${nom}">` +
+  parFamille(f).map(s => `<option value="${s.id}">${s.id} · ${s.titre}</option>`).join('') +
+  '</optgroup>').join('');
+
+function montreFiche() {
+  const s = SITUATIONS.find(x => x.id === $('#choix').value);
+  if (!s) return;
+  $('#fiche').innerHTML =
+    `<div class="q"><b>La question.</b> ${s.question}</div>` +
+    `<div class="r"><b>Ce qu'on regarde.</b> ${s.regarde}</div>` +
+    `<div class="petit">niveau ${s.niveau} · tour ${s.tour} · à ${s.qui === 'p' ? 'toi' : 'en face'} de jouer</div>`;
+  $('#json').value = JSON.stringify(s, null, 2);
+}
+$('#choix').onchange = () => { montreFiche(); $('#soucis').textContent = ''; };
+montreFiche();
+
+$('#editer').onclick = () => {
+  const ouvert = $('#editeur').style.display !== 'none';
+  $('#editeur').style.display = ouvert ? 'none' : 'block';
+};
+$('#annulerEdit').onclick = () => { $('#editeur').style.display = 'none'; };
+$('#copier').onclick = () => navigator.clipboard.writeText($('#json').value);
+
+// ------------------------------------------------------------------ monter
+$('#monter').onclick = () => monte(SITUATIONS.find(x => x.id === $('#choix').value));
+$('#monterJson').onclick = () => {
+  try { monte(JSON.parse($('#json').value)); }
+  catch (e) { $('#soucis').textContent = 'La fiche n\'est pas du JSON valide : ' + e.message; }
+};
+
+function monte(f) {
+  if (!f) return;
+  const r = monteSituation(f);
+  $('#soucis').textContent = r.soucis.length
+    ? 'À corriger dans la fiche :\n  · ' + r.soucis.join('\n  · ') : '';
+  if (!r.B) return;
+  fiche = f;
+  B = r.B;
+  etats = [cloneBattle(B)];
+  libelles = ['la position'];
+  curseur = 0;
+  selCarte = selUnite = selChoix = null;
+  $('#panneauCombat').style.display = '';
+  $('#titreCombat').textContent = `${f.id} · ${f.titre}`;
+  $('#blocAvis').innerHTML = '';
+  dessine();
+}
+
+// ----------------------------------------------------------------- les actions
+/**
+ * Jouer un coup. On coupe le futur : repartir d'un tour passe et jouer autrement
+ * efface ce qui avait suivi — c'est ce qu'on veut, l'ancienne suite n'a plus de sens.
+ */
+function agis(coup, controle) {
+  if (!B || B.over) return;
+  const dit = ditCoup(coup);
+  joue(B, B.turn, coup, controle);
+  etats = etats.slice(0, curseur + 1);
+  libelles = libelles.slice(0, curseur + 1);
+  etats.push(cloneBattle(B));
+  libelles.push(dit);
+  curseur = etats.length - 1;
+  selCarte = selUnite = selChoix = null;
+  $('#blocAvis').innerHTML = '';
+  dessine();
+  planifieLeBot();
+}
+
+/** Ce qu'un coup est, en clair — a lire AVANT de le jouer : la main est encore la. */
+function ditCoup(a) {
+  const k = B.turn, qui = k === 'p' ? 'toi' : 'lui';
+  if (!a || a.type === 'end') return `${qui} passe`;
+  if (a.type === 'attack') {
+    const u = B[k].board.find(x => x.uid === a.uid);
+    const c = a.target && (a.target.uid === 'hero' ? 'le héros' : (B[a.target.side].board.find(x => x.uid === a.target.uid) || {}).name);
+    return `${qui} : ${u ? u.name : '?'} → ${c || '?'}`;
+  }
+  const c = B[k].hand[a.index];
+  return `${qui} : ${c ? c.name : '?'}${a.choix ? ' (' + a.choix.toUpperCase() + ')' : ''}`;
+}
+
+function vaA(i) {
+  curseur = Math.max(0, Math.min(i, etats.length - 1));
+  B = cloneBattle(etats[curseur]);
+  selCarte = selUnite = selChoix = null;
+  $('#blocAvis').innerHTML = '';
+  arreteLeBot();
+  dessine();
+}
+
+// ------------------------------------------------------------------- le bot
+$('#botP').onclick = () => { bot.p = !bot.p; dessine(); planifieLeBot(); };
+$('#botE').onclick = () => { bot.e = !bot.e; dessine(); planifieLeBot(); };
+$('#coupBot').onclick = () => unCoupDuBot();
+
+function unCoupDuBot() {
+  if (!B || B.over) return;
+  const k = B.turn;
+  const a = botAction(B, k, niveauDe(k));
+  agis(a || { type: 'end' }, 'bot');
+}
+/** Le niveau du bot pour ce camp : celui du PNJ quand la fiche en nomme un. */
+function niveauDe(k) {
+  const cote = (fiche && fiche[k]) || {};
+  if (!cote.pnj) return undefined;
+  const enc = B.meta && B.meta.ia;
+  return cote.niveauBot || enc || undefined;
+}
+const arreteLeBot = () => { clearTimeout(minuteur); minuteur = null; };
+function planifieLeBot() {
+  arreteLeBot();
+  if (!B || B.over || !bot[B.turn]) return;
+  minuteur = setTimeout(unCoupDuBot, BALANCE.combat.autoStepMs);
+}
+
+// À QUEL BOT SE COMPARER. Ce n'est pas un detail : le bot a regles ne note que les
+// CARTES (une attaque ressort « — »), la ou le Monte-Carlo finit la partie pour chaque
+// coup et donne un pourcentage a tous — attaques comprises. Il est lent, mais sur UNE
+// decision on l'attend volontiers, et c'est la seule reference qui juge un ordre
+// d'attaques. D'ou le choix, plutot qu'un niveau impose.
+$('#niveauAvis').innerHTML = Object.keys(BALANCE.ai.niveaux)
+  .map(n => `<option value="${n}"${n === BALANCE.ai.defaut ? ' selected' : ''}>${n}</option>`).join('');
+
+// « Que jouerait le bot ? » — sur une COPIE, sans rien jouer. C'est tout l'interet du
+// banc : comparer ton coup au sien avant de le jouer, pas apres.
+$('#avis').onclick = () => {
+  if (!B || B.over) return;
+  const k = B.turn;
+  // ⚠ `evalue` est SYNCHRONE et le Monte-Carlo joue des milliers de parties : sans ce
+  // detour par le prochain tour de boucle, le navigateur n'aurait jamais l'occasion de
+  // peindre le message et la page paraitrait figee.
+  $('#blocAvis').innerHTML = '<div class="avis petit">Le bot réfléchit…</div>';
+  setTimeout(() => rendAvis(k), 0);
+};
+
+function rendAvis(k) {
+  const e = evalue(B, k, $('#niveauAvis').value || BALANCE.ai.defaut);
+  const cands = (e.candidats || []).slice().sort((a, b) => (b.victoires ?? b.valeur ?? -1) - (a.victoires ?? a.valeur ?? -1));
+  const pris = e.choisi;
+  const memeCoup = c => c.coup === pris || (pris && c.coup && c.coup.type === pris.type && c.coup.index === pris.index && c.coup.uid === pris.uid);
+  $('#blocAvis').innerHTML = `<div class="avis">
+    <div style="margin-bottom:6px">Le bot <b>${e.niveau}</b> jouerait : <b class="pris">${ditCoup(pris)}</b>
+      <span class="petit">— critère : ${e.critere === 'victoires' ? 'parties gagnées' : 'valeur estimée'}</span></div>
+    ${cands.length ? '<table>' + cands.map(c =>
+      `<tr><td class="${memeCoup(c) ? 'pris' : ''}">${c.nom || '?'}</td>
+           <td class="note">${c.victoires !== undefined ? Math.round(c.victoires * 100) + ' %' : (c.valeur !== undefined ? c.valeur : '—')}</td></tr>`).join('') + '</table>'
+      : '<div class="petit">Il n\'avait pas le choix : un seul coup possible.</div>'}
+  </div>`;
+};
+
+// ------------------------------------------------------------------- le rendu
+function dessine() {
+  if (!B) return;
+  // La frise : un point par action, le futur en gris tant qu'on ne l'a pas efface.
+  $('#frise').innerHTML =
+    `<button class="btn btn--sm" id="debut" ${curseur ? '' : 'disabled'}>⏮</button>` +
+    `<button class="btn btn--sm" id="recule" ${curseur ? '' : 'disabled'}>◀</button>` +
+    libelles.map((l, i) =>
+      `<span class="frise__pas ${i === curseur ? 'frise__pas--ici' : ''} ${i > curseur ? 'frise__pas--futur' : ''}" data-i="${i}">${l}</span>`).join('') +
+    `<button class="btn btn--sm" id="avance" ${curseur < etats.length - 1 ? '' : 'disabled'}>▶</button>`;
+  $('#debut').onclick = () => vaA(0);
+  $('#recule').onclick = () => vaA(curseur - 1);
+  $('#avance').onclick = () => vaA(curseur + 1);
+  $('#frise').querySelectorAll('[data-i]').forEach(n => n.onclick = () => vaA(+n.dataset.i));
+
+  $('#botP').className = 'chip' + (bot.p ? ' chip--on' : '');
+  $('#botE').className = 'chip' + (bot.e ? ' chip--on' : '');
+  $('#coupBot').disabled = !!B.over;
+  $('#avis').disabled = !!B.over;
+
+  $('#plateau').innerHTML = '';
+  $('#plateau').appendChild(coteNode('e'));
+  $('#plateau').appendChild(coteNode('p'));
+  if (B.over) {
+    const qui = B.winner === 'p' ? 'Tu gagnes.' : B.winner === 'e' ? 'Tu perds.' : 'Match nul.';
+    $('#plateau').insertAdjacentHTML('afterbegin',
+      `<div class="cote" style="border-color:var(--warn)"><b>Combat terminé — ${qui}</b>
+       <span class="petit">Reviens en arrière pour essayer autre chose.</span></div>`);
+  }
+  $('#jrn').innerHTML = B.log.map(l => `<div>${echappe(l)}</div>`).join('');
+  $('#jrn').scrollTop = $('#jrn').scrollHeight;
+}
+
+const echappe = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+function coteNode(k) {
+  const s = B[k], actif = B.turn === k && !B.over;
+  const n = document.createElement('div');
+  n.className = 'cote' + (actif ? ' cote--actif' : '');
+  const ciblesHeros = cibleLegale(k, 'hero');
+  n.innerHTML = `
+    <div class="cote__tete">
+      <b>${echappe(s.name)}</b>
+      <span class="pv">❤ ${s.hp}/${s.maxHp}</span>
+      <span class="mana">◆ ${s.mana}/${s.maxMana}</span>
+      ${s.armor ? `<span class="petit">🛡 ${s.armor}</span>` : ''}
+      <span class="petit">pioche ${s.deck.length} · défausse ${s.discard.length} · ${s.turns} tour(s) joué(s)</span>
+      ${actif ? '<span class="petit" style="color:var(--accent)">à lui de jouer</span>' : ''}
+    </div>
+    <div class="rangee" data-rangee="${k}"></div>
+    <div class="heroCible"></div>
+    <div class="rangee" data-main="${k}" style="margin-top:10px"></div>`;
+
+  const rangee = n.querySelector(`[data-rangee="${k}"]`);
+  for (const u of s.board) rangee.appendChild(uniteNode(u, k));
+
+  if (ciblesHeros) {
+    const h = document.createElement('button');
+    h.className = 'btn btn--sm u--cible';
+    h.textContent = `▸ viser ${s.name}`;
+    h.onclick = () => clicCible(k, 'hero');
+    n.querySelector('.heroCible').appendChild(h);
+  }
+
+  const main = n.querySelector(`[data-main="${k}"]`);
+  if (!s.hand.length) main.innerHTML = '<span class="petit">— main vide —</span>';
+  for (const [i, c] of s.hand.entries()) main.appendChild(carteNode(c, k, i));
+
+  if (actif) {
+    const fin = document.createElement('button');
+    fin.className = 'btn btn--sm';
+    fin.style.marginTop = '10px';
+    fin.textContent = 'Fin du tour';
+    fin.onclick = () => agis({ type: 'end' }, 'humain');
+    n.appendChild(fin);
+  }
+  return n;
+}
+
+function uniteNode(u, k) {
+  const n = document.createElement('div');
+  const prete = k === B.turn && u.canAttack && u.atk > 0;
+  n.className = 'u' + (prete ? ' u--prete' : '') + (selUnite === u.uid ? ' u--sel' : '')
+    + (cibleLegale(k, u.uid) ? ' u--cible' : '');
+  n.innerHTML = `<div class="u__n">${echappe(u.name)}</div>
+    <div class="u__s">⚔ ${u.atk} · ❤ ${u.hp}/${u.maxHp}</div>
+    ${u.keys.length ? `<div class="u__k">${u.keys.map(keyLabel).map(echappe).join(' ')}</div>` : ''}
+    ${moments(u) ? `<div class="u__k">${echappe(moments(u))}</div>` : ''}`;
+  n.title = detail(u);
+  n.onclick = () => {
+    if (cibleLegale(k, u.uid)) { clicCible(k, u.uid); return; }
+    if (prete && !B.over) { selUnite = selUnite === u.uid ? null : u.uid; selCarte = null; dessine(); }
+  };
+  return n;
+}
+
+function carteNode(c, k, i) {
+  const monTour = B.turn === k && !B.over;
+  const jouable = monTour && canPlay(B, k, c);
+  const n = document.createElement('div');
+  n.className = 'c' + (jouable ? '' : ' c--injouable') + (selCarte && selCarte.k === k && selCarte.i === i ? ' c--sel' : '');
+  n.innerHTML = `<div class="c__n"><span class="c__c">${cardCost(c, B, k)}</span>${echappe(c.name)}</div>
+    ${c.type === 'ally' ? `<div class="u__s">⚔ ${c.atk || 0} · ❤ ${c.hp || 0}</div>` : '<div class="c__k">sort</div>'}
+    ${(c.keys || []).length ? `<div class="c__k">${c.keys.map(keyLabel).map(echappe).join(' ')}</div>` : ''}`;
+  n.title = detail(c);
+  if (jouable) n.onclick = () => clicCarte(k, i);
+  return n;
+}
+
+const moments = x => Object.keys(TRIGGERS).filter(s => s !== 'play' && (x[s] || []).length)
+  .map(s => TRIGGERS[s].label).concat(x.aura ? ['Aura'] : []).join(' · ');
+
+function detail(x) {
+  const out = [];
+  if (x.text) out.push(x.text);
+  for (const slot of Object.keys(TRIGGERS)) {
+    if (!(x[slot] || []).length) continue;
+    out.push(`${momentLabel(slot, x)} : ${x[slot].map(describeEffect).join(' · ')}`);
+  }
+  return out.join('\n');
+}
+
+// --------------------------------------------------------------- le ciblage
+/** Cette unite (ou ce heros) est-elle une cible legale de ce qui attend une cible ? */
+function cibleLegale(side, uid) {
+  if (B.over) return false;
+  if (selCarte) {
+    const c = B[selCarte.k].hand[selCarte.i];
+    return c && legalTargets(B, selCarte.k, c, selChoix).some(t => t.side === side && t.uid === uid);
+  }
+  if (selUnite) {
+    const u = B[B.turn].board.find(x => x.uid === selUnite);
+    return !!u && attackableTargets(B, B.turn, u).some(t => t.side === side && t.uid === uid);
+  }
+  return false;
+}
+
+function clicCible(side, uid) {
+  if (selCarte) { agis({ type: 'play', index: selCarte.i, target: { side, uid }, choix: selChoix }, 'humain'); return; }
+  if (selUnite) agis({ type: 'attack', uid: selUnite, target: { side, uid } }, 'humain');
+}
+
+function clicCarte(k, i) {
+  const c = B[k].hand[i];
+  if (selCarte && selCarte.i === i) { selCarte = selChoix = null; dessine(); return; }
+  selUnite = null;
+  const suite = () => {
+    if (needsTarget(c, selChoix) && legalTargets(B, k, c, selChoix).length) {
+      selCarte = { k, i };
+      dessine();
+      return;
+    }
+    agis({ type: 'play', index: i, target: null, choix: selChoix }, 'humain');
+  };
+  // « Choisir » : on repond AVANT de viser, la branche decide ce qu'on peut viser.
+  if (needsChoice(c)) demandeChoix(c, r => { selChoix = r; suite(); });
+  else { selChoix = null; suite(); }
+}
+
+function demandeChoix(carte, done) {
+  const branches = [];
+  for (const e of carte.play || []) if (e.op === 'choisir') { branches.push(e); break; }
+  const ch = branches[0];
+  if (!ch) { done(null); return; }
+  const dit = b => (Array.isArray(b) ? b : [b]).filter(Boolean).map(describeEffect).join(' · ');
+  const a = dit(ch.a), b = dit(ch.b);
+  if (!a && !b) { done(null); return; }
+  const r = window.prompt(`${carte.name} — quelle branche ?\n\nA : ${a || '(vide)'}\nB : ${b || '(vide)'}\n\nTape A ou B :`, 'A');
+  if (r === null) return;                       // annulé : rien n'est joué, rien n'est payé
+  done(r.trim().toLowerCase().startsWith('b') ? 'b' : 'a');
+}
+</script>
+</body>
+</html>

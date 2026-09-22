@@ -159,6 +159,7 @@
     <a class="tb-nav__link" href="index.html">Card Builder</a>
     <a class="tb-nav__link" href="overview.html">Vue d'ensemble</a>
     <a class="tb-nav__link" href="balance.html">Équilibrage</a>
+    <a class="tb-nav__link" href="situations.html">Situations</a>
     <a class="tb-nav__link" href="courbes.html">Courbes</a>
     <span class="tb-nav__link tb-nav__link--active">Lancer un calcul</span>
   </div>
@@ -417,6 +418,11 @@ const OUTILS = [
     ],
     args: v => [String(v.parties)],
     libelle: v => `Banc du journal - ${v.parties} parties`
+  },
+  {
+    id: 'test-situations', fichier: 'scripts/test-situations.mjs', nom: 'Banc des situations', sous: 'les positions montées', brouillon: false,
+    desc: 'Chaque fiche de situations.js se monte-t-elle encore ? Une carte renommée dans le builder fait jouer une position qui n\'est pas celle qu\'on croit — et rien ne le dit. À relancer après avoir touché aux cartes.',
+    champs: [], args: () => [], libelle: () => 'Banc des situations'
   }
 ];
 const outilDe = id => OUTILS.find(o => o.id === id);
