@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#0f1115" />
+<link rel="icon" href="icons/atelier-192.png" />
+<title>Versions — Atelier</title>
+<style>
+  :root {
+    --bg: #0f1115; --bg-2: #161922; --bg-3: #1d2230; --line: #2a3142;
+    --text: #e7eaf0; --muted: #9aa3b2; --accent: #7aa2ff; --accent-2: #79e3c5;
+    --accent-3: #c69bff; --warn: #f5a623; --danger: #ff6b81; --ok: #5fd38d;
+    --shadow: 0 8px 24px rgba(0,0,0,.35); --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; }
+  body { font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 16px 14px 80px; }
+  .haut { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .haut a.retour { color: var(--muted); font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -.02em; }
+  h2 { font-size: 16px; margin: 22px 0 8px; }
+  .muted { color: var(--muted); }
+  small, .petit { font-size: 12.5px; color: var(--muted); }
+  .carte { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+  .carte.clic { cursor: pointer; transition: border-color .15s; }
+  .carte.clic:hover { border-color: var(--accent); }
+  .bandeau { border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px; border: 1px solid var(--line); background: var(--bg-2); }
+  .bandeau.ok { border-color: #2c5a45; } .bandeau.warn { border-color: #6b4d12; background: #221a0c; } .bandeau.ko { border-color: #6b2230; background: #22101a; }
+  .bandeau b { display: block; margin-bottom: 2px; }
+  button, .btn { font: inherit; font-size: 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-3); color: var(--text); padding: 9px 13px; cursor: pointer; min-height: 40px; }
+  button:hover { border-color: var(--accent); }
+  button.primaire { background: linear-gradient(135deg, var(--accent), #5b86ff); color: #0b1020; font-weight: 700; border: 0; }
+  button.danger { border-color: #6b2230; color: var(--danger); }
+  button.mini { padding: 5px 9px; min-height: 30px; font-size: 13px; }
+  button:disabled { opacity: .5; cursor: default; }
+  input, textarea, select { font: inherit; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; width: 100%; }
+  textarea { min-height: 64px; resize: vertical; }
+  .ligne { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .ligne > .grow { flex: 1 1 220px; }
+  .badge { display: inline-block; font-size: 11.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .badge.nommee { border-color: #34508f; color: var(--accent); } .badge.auto { color: var(--muted); }
+  .badge.ajoutee { border-color: #2c5a45; color: var(--ok); } .badge.retiree { border-color: #6b2230; color: var(--danger); }
+  .badge.modifiee { border-color: #6b4d12; color: var(--warn); } .badge.deplacee { border-color: #4b3a7a; color: var(--accent-3); }
+  .titre-v { font-size: 17px; font-weight: 650; }
+  .onglets { display: flex; gap: 6px; margin: 14px 0 10px; overflow-x: auto; }
+  .onglets button { white-space: nowrap; }
+  .onglets button.actif { border-color: var(--accent); color: var(--accent); }
+  .entite { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; background: var(--bg-2); }
+  .entite .nom { font-weight: 600; }
+  .entite ul { margin: 6px 0 0; padding-left: 18px; }
+  .entite li { margin: 2px 0; }
+  .detail { margin-top: 6px; font-size: 13px; background: var(--bg); border-radius: 8px; padding: 8px; overflow-x: auto; }
+  .detail div { white-space: nowrap; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; }
+  .avant { color: var(--danger); } .apres { color: var(--ok); }
+  .groupe-titre { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 16px 0 6px; }
+  .comm { border-left: 3px solid var(--accent); background: var(--bg); border-radius: 8px; padding: 7px 10px; margin: 6px 0; font-size: 14px; white-space: pre-wrap; }
+  .comm small { display: block; }
+  .kpi-grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 8px 0; }
+  .kpi { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .kpi small { display: block; } .kpi b { font-size: 18px; }
+  .barre { display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 13.5px; }
+  .barre .nom { width: 130px; flex: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .barre .piste { flex: 1; height: 14px; background: var(--bg); border-radius: 7px; position: relative; overflow: hidden; }
+  .barre .rempli { height: 100%; border-radius: 7px; }
+  .barre .repere { position: absolute; top: 0; bottom: 0; width: 1px; background: #ffffff55; }
+  .barre .val { width: 96px; flex: none; text-align: right; font-variant-numeric: tabular-nums; }
+  .delta-p { color: var(--ok); } .delta-m { color: var(--danger); }
+  .heat-wrap { overflow-x: auto; padding-bottom: 6px; }
+  table.heat { border-collapse: collapse; font-size: 11px; }
+  table.heat td, table.heat th { width: 30px; height: 26px; text-align: center; padding: 0; border: 1px solid var(--bg); }
+  table.heat th.nom { width: auto; min-width: 150px; max-width: 210px; text-align: left; padding: 0 8px 0 4px; font-weight: 500; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+  table.heat th.col { color: var(--muted); font-weight: 500; }
+  table.heat td.vide { background: repeating-linear-gradient(45deg, #1a1e29, #1a1e29 4px, #151821 4px, #151821 8px); }
+  table.tri { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  table.tri th, table.tri td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  table.tri th:first-child, table.tri td:first-child { text-align: left; }
+  table.tri th { color: var(--muted); font-weight: 500; cursor: pointer; user-select: none; }
+  .cache { display: none !important; }
+  @media (max-width: 560px) { .barre .nom { width: 96px; } .barre .val { width: 84px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="haut">
+    <a class="retour" href="accueil.html">← Atelier</a>
+    <h1>Versions</h1>
+  </div>
+  <div id="app"><p class="muted">Chargement…</p></div>
+</div>
+
+<script type="module">
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const quand = t => t ? new Date(t).toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+const pct = (x, d = 0) => (x * 100).toFixed(d).replace('.', ',') + ' %';
+const LS_BROUILLON = 'adventureCardBuilder.v1';
+const TYPES = { heros: 'Héros', carte: 'Cartes', adversaire: 'Adversaires', fatigue: 'Pile de fatigue', reglage: 'Réglages' };
+
+// ------------------------------------------------------------------ appels
+async function api(chemin, corps) {
+  const r = await fetch('/api/versions' + chemin, corps === undefined ? { cache: 'no-store' } : { method: 'POST', body: JSON.stringify(corps) });
+  let d = null;
+  try { d = await r.json(); } catch { /* pas du JSON : serveur sans Node */ }
+  if (!r.ok) throw new Error((d && d.erreur) || ('HTTP ' + r.status));
+  return d;
+}
+
+// ------------------------------------------------------------------ état de la page
+const S = { liste: [], courant: null, auMax: 60, voirAuto: false, id: null, version: null, onglet: 'changements',
+  contre: 'precedente', diff: null, archives: null, precedente: null, message: null, erreur: null };
+
+async function charge() {
+  try {
+    const r = await api('');
+    S.liste = r.versions; S.courant = r.courant; S.auMax = r.auMax; S.erreur = null;
+  } catch (e) {
+    S.erreur = e.message;
+  }
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (h && S.liste.some(v => v.id === h)) await ouvre(h, false); else { S.id = null; S.version = null; rend(); }
+}
+
+async function ouvre(id, pousse = true) {
+  S.id = id; S.diff = null; S.contre = 'precedente'; S.precedente = null;
+  if (pousse) location.hash = id;
+  try {
+    S.version = await api('/une?id=' + id);
+    const noms = S.liste.filter(v => v.type === 'nommee' && v.rang < S.version.rang);
+    S.precedente = noms.length ? await api('/une?id=' + noms[0].id) : null;
+  } catch (e) { S.version = null; S.message = { sorte: 'ko', t: e.message }; }
+  rend();
+  chargeDiff();
+}
+async function chargeDiff() {
+  if (!S.id) return;
+  try { S.diff = await api(`/diff?id=${S.id}&contre=${encodeURIComponent(S.contre)}`); } catch (e) { S.diff = { erreur: e.message }; }
+  rend();
+}
+addEventListener('hashchange', () => { const h = decodeURIComponent(location.hash.slice(1)); if (!h) { S.id = null; S.version = null; rend(); } else if (h !== S.id) ouvre(h, false); });
+
+// ------------------------------------------------------------------ rendu
+function rend() {
+  const app = $('#app');
+  if (S.erreur) {
+    app.innerHTML = `<div class="bandeau ko"><b>Les versions ne sont pas disponibles ici.</b>
+      Elles demandent le serveur Node (<code>node scripts/devserver.js</code>) : l'exe sans Node n'a pas ces routes. <br><small>${esc(S.erreur)}</small></div>`;
+    return;
+  }
+  app.innerHTML = (S.message ? `<div class="bandeau ${S.message.sorte || ''}">${S.message.t}</div>` : '') + (S.id && S.version ? vueDetail() : vueListe());
+  branche();
+}
+
+function bandeauBrouillon() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(LS_BROUILLON) || 'null'); } catch { /* rien */ }
+  if (!(d && d.db && d.db.characters)) return '';
+  return `<div class="bandeau warn"><b>Un brouillon du Card Builder existe dans ce navigateur.</b>
+    S'il est « appliqué au jeu » après un retour en arrière, il <b>réécrira ses cartes par-dessus</b>. Ouvre le builder, recharge-le (F5) et jette le brouillon — ou jette-le d'ici.
+    <div class="ligne" style="margin-top:8px"><button data-act="jeter-brouillon" class="mini danger">Jeter le brouillon</button><a class="btn mini" href="index.html" style="display:inline-block;padding:5px 9px">Ouvrir le builder</a></div></div>`;
+}
+
+function bandeauEtat() {
+  const c = S.courant; if (!c) return '';
+  if (c.egale) return `<div class="bandeau ok"><b>Le jeu est exactement « ${esc(c.egale.titre)} ».</b><small>Aucun changement depuis cette version.</small></div>`;
+  if (c.depuis) return `<div class="bandeau warn"><b>Le jeu a ${c.depuis.total} changement${c.depuis.total > 1 ? 's' : ''} depuis « ${esc(c.depuis.titre)} ».</b>
+    <small>${resumeTypes(c.depuis.parType)} — pas encore enregistrés comme version. Le prochain « Appliquer au jeu » garde de toute façon une photo de l'état actuel.</small></div>`;
+  return `<div class="bandeau warn"><b>L'état actuel du jeu n'est dans aucune version.</b><small>Enregistre-le pour avoir un point de départ à comparer.</small></div>`;
+}
+const resumeTypes = pt => Object.entries(pt || {}).map(([k, n]) => `${n} ${({ heros: 'héros', carte: n > 1 ? 'cartes' : 'carte', adversaire: n > 1 ? 'adversaires' : 'adversaire', fatigue: 'fatigue', reglage: n > 1 ? 'réglages' : 'réglage' })[k] || k}`).join(', ');
+
+function vueListe() {
+  const proch = S.liste.filter(v => v.type === 'nommee').length;
+  const nommees = S.liste.filter(v => v.type === 'nommee'), autos = S.liste.filter(v => v.type === 'auto');
+  const prochain = `V0.${nommees.length + 1}`;
+  return `${bandeauEtat()}${bandeauBrouillon()}
+  <div class="carte">
+    <div class="titre-v" style="margin-bottom:8px">Enregistrer l'état actuel du jeu</div>
+    <div class="ligne"><input id="nTitre" class="grow" placeholder="${esc(prochain)} : ce qui a changé en quelques mots" maxlength="200" />
+    <button class="primaire" data-act="creer">Enregistrer la version</button></div>
+    <textarea id="nDesc" placeholder="Pourquoi ces changements ? (facultatif)" style="margin-top:8px"></textarea>
+    <small>Une version est une photo complète des cartes. Ce qui a changé se calcule en comparant deux photos : rien n'est à tenir à jour.</small>
+  </div>
+  <h2>Versions <span class="muted">(${nommees.length})</span></h2>
+  ${nommees.length ? nommees.map(ligneVersion).join('') : '<p class="muted">Aucune version enregistrée. La première servira de point de départ : il faut deux versions pour voir ce qui a changé.</p>'}
+  <h2 class="ligne" style="justify-content:space-between"><span>Photos automatiques <span class="muted">(${autos.length}/${S.auMax})</span></span>
+    <button class="mini" data-act="voir-auto">${S.voirAuto ? 'Masquer' : 'Afficher'}</button></h2>
+  <small>Prises par le serveur juste avant d'écraser les cartes (« Appliquer au jeu », retour en arrière). Le filet de sécurité : renomme-en une pour la garder.</small>
+  ${S.voirAuto ? autos.map(ligneVersion).join('') || '<p class="muted">Aucune.</p>' : ''}`;
+}
+
+function ligneVersion(v) {
+  const r = v.resume;
+  return `<div class="carte clic" data-act="ouvrir" data-id="${esc(v.id)}">
+    <div class="ligne" style="justify-content:space-between"><span class="titre-v">${esc(v.titre)}</span><span class="badge ${v.type}">${v.type === 'nommee' ? 'version' : 'auto'}</span></div>
+    <small>${quand(v.cree)} · ${v.stats.heros} héros, ${v.stats.cartes} cartes</small>
+    <div class="petit" style="margin-top:4px">${r ? `${r.total} changement${r.total > 1 ? 's' : ''} depuis la photo précédente${r.total ? ' — ' + esc(resumeTypes(r.parType)) : ''}` : 'photo de départ'}
+      ${v.nbCommentaires ? ` · 💬 ${v.nbCommentaires}` : ''}${(v.calculs || []).length ? ` · 📊 ${v.calculs.length} mesure${v.calculs.length > 1 ? 's' : ''}` : ''}</div>
+  </div>`;
+}
+
+// ------------------------------------------------------------------ détail d'une version
+function vueDetail() {
+  const v = S.version;
+  const onglet = (id, nom, n) => `<button data-act="onglet" data-o="${id}" class="${S.onglet === id ? 'actif' : ''}">${nom}${n ? ` (${n})` : ''}</button>`;
+  const commsVersion = (v.commentaires || []).filter(c => c.cible === 'version');
+  return `<p><a href="#" data-act="liste" class="muted">← Toutes les versions</a></p>
+  ${bandeauEtat()}${bandeauBrouillon()}
+  <div class="carte">
+    <div class="ligne" style="justify-content:space-between"><span class="titre-v" id="titreV">${esc(v.titre)}</span><span class="badge ${v.type}">${v.type === 'nommee' ? 'version' : 'photo auto'}</span></div>
+    <small>${quand(v.cree)} · ${v.stats.heros} héros · ${v.stats.cartes} cartes · ${v.stats.adversaires} adversaires</small>
+    ${v.description ? `<div class="comm" style="border-color:var(--accent-3)">${esc(v.description)}</div>` : ''}
+    <div class="ligne" style="margin-top:10px">
+      <button class="mini" data-act="renommer">✎ Renommer / décrire</button>
+      <button class="mini" data-act="copier">📋 Copier le journal des changements</button>
+      <button class="mini danger" data-act="restaurer-tout">↩ Revenir à cette version</button>
+      <button class="mini danger" data-act="supprimer">Supprimer</button>
+    </div>
+  </div>
+  <div class="onglets">${onglet('changements', 'Changements')}${onglet('mesures', 'Mesures', (v.calculs || []).length)}${onglet('commentaires', 'Commentaires', (v.commentaires || []).length)}</div>
+  ${S.onglet === 'changements' ? ongletChangements() : S.onglet === 'mesures' ? ongletMesures() : ongletCommentaires(commsVersion)}`;
+}
+
+function ongletChangements() {
+  const d = S.diff, v = S.version;
+  const opts = `<option value="precedente" ${S.contre === 'precedente' ? 'selected' : ''}>la version précédente${S.precedente ? ' — ' + esc(S.precedente.titre) : ''}</option>
+    <option value="courant" ${S.contre === 'courant' ? 'selected' : ''}>→ l'état actuel du jeu (ce qui a bougé depuis)</option>
+    ${S.liste.filter(x => x.id !== v.id).map(x => `<option value="${esc(x.id)}" ${S.contre === x.id ? 'selected' : ''}>${esc(x.titre)}${x.type === 'auto' ? ' (auto)' : ''}</option>`).join('')}`;
+  let corps;
+  if (!d) corps = '<p class="muted">Comparaison en cours…</p>';
+  else if (d.erreur) corps = `<div class="bandeau ko">${esc(d.erreur)}</div>`;
+  else if (d.premiere) corps = '<p class="muted">C\'est la première version : rien à comparer. Enregistre-en une seconde après tes changements, et ils apparaîtront ici.</p>';
+  else if (!d.total) corps = '<p class="muted">Aucune différence.</p>';
+  else {
+    const de = S.liste.find(x => x.id === d.de), vers = d.vers === 'courant' ? 'l\'état actuel' : (S.liste.find(x => x.id === d.vers) || {}).titre;
+    const parType = {};
+    for (const e of d.entites) (parType[e.type] = parType[e.type] || []).push(e);
+    corps = `<p class="petit">De <b>${esc(de ? de.titre : d.de)}</b> à <b>${esc(vers)}</b> — ${d.total} élément${d.total > 1 ? 's' : ''} : ${esc(resumeTypes(d.parType))}.</p>`
+      + Object.keys(TYPES).filter(t => parType[t]).map(t => `<div class="groupe-titre">${TYPES[t]} (${parType[t].length})</div>${parType[t].map(e => blocEntite(e, de)).join('')}`).join('');
+  }
+  return `<div class="ligne" style="margin-bottom:8px"><span class="muted">Comparer avec</span><select id="selContre" class="grow">${opts}</select></div>${corps}`;
+}
+
+function blocEntite(e, de) {
+  const comms = (S.version.commentaires || []).filter(c => c.cible === e.cle);
+  const lignes = e.groupes.map(g => `<li>${esc(g.resume)}
+      <a href="#" class="petit" data-act="detail" data-k="${esc(e.cle)}|${esc(g.cle)}">détail</a>
+      <div class="detail cache" id="det-${esc(btoa(unescape(encodeURIComponent(e.cle + '|' + g.cle))).replace(/=/g, ''))}">${g.lignes.map(l =>
+        `<div>${esc(l.chemin)} : <span class="avant">${l.avant === undefined ? '∅' : esc(JSON.stringify(l.avant))}</span> → <span class="apres">${l.apres === undefined ? '∅' : esc(JSON.stringify(l.apres))}</span></div>`).join('')}</div></li>`).join('');
+  const proprio = e.proprio ? ` <span class="muted">· ${esc(e.proprio)}${e.cote && e.cote !== 'libre' ? '/' + e.cote : ''}</span>` : '';
+  return `<div class="entite">
+    <div class="ligne" style="justify-content:space-between"><span><span class="nom">${esc(e.nom)}</span>${proprio}</span><span class="badge ${e.statut}">${({ ajoutee: 'ajoutée', retiree: 'retirée', modifiee: 'modifiée', deplacee: 'déplacée' })[e.statut]}</span></div>
+    ${lignes ? `<ul>${lignes}</ul>` : `<div class="petit">${esc(e.resume)}</div>`}
+    ${comms.map(commHtml).join('')}
+    <div class="ligne" style="margin-top:8px">
+      <button class="mini" data-act="comm-ouvre" data-k="${esc(e.cle)}">💬 Commenter</button>
+      ${de ? `<button class="mini" data-act="restaurer-un" data-k="${esc(e.cle)}" data-de="${esc(de.id)}" title="Remet cet élément comme il était dans « ${esc(de.titre)} », sans toucher au reste">↩ Rétablir (${esc(de.titre.length > 28 ? de.titre.slice(0, 27) + '…' : de.titre)})</button>` : ''}
+    </div>
+    <div class="cache" data-boite="${esc(e.cle)}" style="margin-top:6px"><textarea placeholder="Ce que tu penses de ce changement…"></textarea><div class="ligne" style="margin-top:6px"><button class="mini primaire" data-act="comm-envoie" data-k="${esc(e.cle)}">Ajouter</button></div></div>
+  </div>`;
+}
+const commHtml = c => `<div class="comm"><small>${quand(c.at)}${c.modifie ? ' (modifié)' : ''}
+    · <a href="#" data-act="comm-modifie" data-c="${esc(c.id)}">modifier</a> · <a href="#" data-act="comm-retire" data-c="${esc(c.id)}">retirer</a></small>${esc(c.texte)}</div>`;
+
+function ongletCommentaires(commsVersion) {
+  const v = S.version, tous = v.commentaires || [];
+  const surEntites = tous.filter(c => c.cible !== 'version');
+  const parCible = {};
+  for (const c of surEntites) (parCible[c.cible] = parCible[c.cible] || []).push(c);
+  return `<div class="carte"><textarea id="commVersion" placeholder="Un commentaire sur cette version entière : ce qu'on voulait faire, ce qu'on en retient…"></textarea>
+    <div class="ligne" style="margin-top:8px"><button class="primaire mini" data-act="comm-envoie" data-k="version">Ajouter</button></div></div>
+    ${commsVersion.map(commHtml).join('')}
+    ${Object.keys(parCible).length ? '<div class="groupe-titre">Sur un changement précis</div>' : ''}
+    ${Object.entries(parCible).map(([k, cs]) => `<div class="entite"><div class="nom">${esc(k.replace(/^[a-z]+:/, ''))} <span class="badge">${esc(k.split(':')[0])}</span></div>${cs.map(commHtml).join('')}</div>`).join('')}
+    ${!tous.length ? '<p class="muted">Aucun commentaire. Tu peux aussi commenter chaque changement depuis l\'onglet « Changements ».</p>' : ''}`;
+}
+
+// ------------------------------------------------------------------ les mesures
+function ongletMesures() {
+  const v = S.version;
+  const calculs = v.calculs || [];
+  const lies = new Set(calculs.map(c => c.archive));
+  let choix = '<p class="petit">Chargement des calculs rangés…</p>';
+  if (S.archives) {
+    if (S.archives.erreur) choix = `<p class="petit">Calculs rangés indisponibles : ${esc(S.archives.erreur)}</p>`;
+    else {
+      const suivante = S.liste.filter(x => x.type === 'nommee' && x.rang > v.rang)[0];
+      const fin = suivante ? suivante.cree : Infinity;
+      const dispo = (S.archives.lots || []).filter(l => !lies.has(l.id));
+      choix = dispo.length ? `<select id="selCalcul">${dispo.map(l => {
+        const apres = l.debut >= v.cree - 60000 && l.debut < fin;
+        return `<option value="${esc(l.id)}">${apres ? '★ ' : ''}${esc(l.titre)} — ${quand(l.debut)}</option>`;
+      }).join('')}</select><small>★ = lancé pendant que cette version était celle du jeu (après sa création, avant la suivante).</small>`
+        : '<p class="petit">Aucun autre calcul rangé. Lance un calcul dans « Lancer un calcul » : il apparaîtra ici une fois fini.</p>';
+    }
+  }
+  const lier = `<div class="carte"><div class="titre-v" style="margin-bottom:6px">Lier un calcul à cette version</div>
+    <div class="ligne"><div class="grow">${choix}</div><button class="primaire" data-act="lier" ${S.archives && !S.archives.erreur && (S.archives.lots || []).some(l => !lies.has(l.id)) ? '' : 'disabled'}>Lier</button></div>
+    <small>Les chiffres sont lus dans la sortie du calcul et gardés <b>avec la version</b> : le calcul peut disparaître de la clé, ils restent.</small></div>`;
+  if (!calculs.length) return lier + '<p class="muted">Aucune mesure liée. Lance la matrice des trios (<code>matchups --taille 3 --mix</code>) et l\'analyse des cartes, puis lie-les ici.</p>';
+  return lier + calculs.map(c => vueCalcul(c)).join('');
+}
+
+function vueCalcul(c) {
+  const prec = S.precedente && (S.precedente.calculs || []);
+  const blocs = (c.kpi || []).map(l => {
+    if (l.matchups) return vueMatchups(l, prec);
+    if (l.cartes) return vueCartes(l);
+    return `<div class="entite"><div class="nom">${esc(l.libelle)}</div><div class="petit">${esc(l.resume || '—')}</div></div>`;
+  }).join('');
+  return `<div class="carte"><div class="ligne" style="justify-content:space-between"><span class="titre-v">${esc(c.titre)}</span>
+    <button class="mini" data-act="delier" data-a="${esc(c.archive)}">Délier</button></div>
+    <small>lié ${quand(c.lieLe)} · calcul du ${quand(c.debut)}</small>${blocs}</div>`;
+}
+
+const couleur = t => t === null ? '' : `hsl(${Math.round(Math.max(0, Math.min(1, t)) * 120)}, 55%, ${28 + Math.abs(t - .5) * 10}%)`;
+
+function vueMatchups(l, prec) {
+  const m = l.matchups;
+  // La même mesure dans la version précédente (même libellé, ou à défaut même niveau/taille) : de quoi lire les écarts.
+  let avant = null;
+  for (const c of prec || []) for (const k of c.kpi || []) if (k.matchups && !avant && (k.libelle === l.libelle || (k.matchups.niveau === m.niveau && k.matchups.taille === m.taille))) avant = k.matchups;
+  const dPrec = nom => { const a = avant && avant.heros.find(h => h.nom === nom); return a ? a : null; };
+  const entete = `<div class="kpi-grille">
+    <div class="kpi"><small>Mesure</small><b>niv. ${m.niveau ?? '?'}</b><small>trios · ${m.parties ?? '?'} parties/case</small></div>
+    ${m.sur_cible ? `<div class="kpi"><small>Matchups sur une cible</small><b>${m.sur_cible.n} / ${m.sur_cible.sur}</b><small>${pct(m.sur_cible.n / m.sur_cible.sur)}${avant && avant.sur_cible ? ` (avant ${pct(avant.sur_cible.n / avant.sur_cible.sur)})` : ''}</small></div>` : ''}
+    <div class="kpi"><small>Matchups écrasants</small><b>${m.nb_ecrasants ?? m.ecrasants.length}</b>${avant ? `<small>avant ${avant.nb_ecrasants ?? avant.ecrasants.length}</small>` : ''}</div>
+    ${m.avantage !== undefined ? `<div class="kpi"><small>Avantage du premier</small><b>${pct(m.avantage)}</b></div>` : ''}
+    ${m.precision ? `<div class="kpi"><small>Bruit par case</small><b>± ${pct(m.precision)}</b></div>` : ''}</div>`;
+  const barres = `<div class="groupe-titre">Taux de victoire par héros <span class="petit">(moyenne des trios qui le contiennent — la barre blanche est 50 %)</span></div>`
+    + m.heros.map(h => {
+      const a = dPrec(h.nom), dl = a ? (h.taux - a.taux) * 100 : null;
+      return `<div class="barre"><span class="nom" title="${esc(h.nom)}">${esc(h.nom)}</span><span class="piste"><span class="rempli" style="width:${Math.round(h.taux * 100)}%;background:${couleur(h.taux)}"></span><span class="repere" style="left:50%"></span></span>
+        <span class="val">${pct(h.taux, 1)}${dl !== null && Math.abs(dl) >= .05 ? ` <span class="${dl > 0 ? 'delta-p' : 'delta-m'}">${dl > 0 ? '+' : ''}${dl.toFixed(1).replace('.', ',')}</span>` : ''}</span></div>`;
+    }).join('') + (avant ? '<div class="petit">Les écarts en vert / rouge sont comparés à la version précédente (même mesure).</div>' : '');
+  const force = m.force.length ? `<div class="groupe-titre">Force globale des trios</div>` + m.force.map((f, i) =>
+    `<div class="barre"><span class="nom" title="${esc(f.deck)}">${esc(f.deck)}</span><span class="piste"><span class="rempli" style="width:${Math.round(f.taux * 100)}%;background:${couleur(f.taux)}"></span><span class="repere" style="left:50%"></span></span><span class="val">${pct(f.taux)}</span></div>`).join('') : '';
+  const heat = `<div class="groupe-titre">Heatmap — victoires de la <b>ligne</b> contre la <b>colonne</b></div><div class="heat-wrap"><table class="heat"><tr><th class="nom"></th>${m.equipes.map((_, i) => `<th class="col">${i + 1}</th>`).join('')}</tr>`
+    + m.matrice.map((row, i) => `<tr><th class="nom" title="${esc(m.equipes[i])}">${i + 1}. ${esc(m.equipes[i])}</th>${row.map((t, j) =>
+      t === null ? `<td class="vide" title="${esc(m.equipes[i])} contre ${esc(m.equipes[j] || '?')} : non joué"></td>`
+        : `<td style="background:${couleur(t)}" title="${esc(m.equipes[i])} contre ${esc(m.equipes[j] || '?')} : ${pct(t)}">${Math.round(t * 100)}</td>`).join('')}</tr>`).join('')
+    + `</table></div><div class="petit">Cases hachurées : non jouées (la moitié sous la diagonale est le reflet de l'autre).</div>`;
+  const ecr = m.ecrasants.length ? `<div class="groupe-titre">Les plus écrasants (${m.nb_ecrasants ?? m.ecrasants.length} au total)</div>` + m.ecrasants.slice(0, 8).map(e =>
+    `<div class="petit"><b>${esc(e.gagnant)}</b> bat ${esc(e.perdant)} · ${pct(e.taux)} ± ${pct(e.marge)}</div>`).join('') : '';
+  return `<div class="entite"><div class="nom">${esc(l.libelle)}</div>${entete}${barres}${force}${heat}${ecr}</div>`;
+}
+
+function vueCartes(l) {
+  const a = l.cartes;
+  const fiables = a.cartes.filter(c => c.proposee >= 5);
+  const tri = [...fiables].sort((x, y) => y.preferee - x.preferee || y.jouee - x.jouee);
+  const ligne = c => `<tr><td>${esc(c.nom)}</td><td>${c.proposee}</td><td>${c.jouee}</td><td>${pct(c.preferee)}</td><td>${c.ecart === null ? '—' : c.ecart.toFixed(1).replace('.', ',')}</td><td>${c.valeur.toFixed(1).replace('.', ',')}</td></tr>`;
+  const tete = '<tr><th>Carte</th><th>proposée</th><th>jouée</th><th>préférée</th><th>écart</th><th>valeur</th></tr>';
+  return `<div class="entite"><div class="nom">${esc(l.libelle)}</div><div class="petit">${esc(a.contexte || '')} · ${a.parties ?? '?'} parties · cartes proposées au moins 5 fois</div>
+    <div class="groupe-titre">Les cartes que le bot préfère</div><table class="tri">${tete}${tri.slice(0, 10).map(ligne).join('')}</table>
+    <div class="groupe-titre">Les cartes qu'il boude</div><table class="tri">${tete}${tri.slice(-10).reverse().map(ligne).join('')}</table>
+    <div class="petit" style="margin-top:6px">« Préférée » = part des fois où elle était jouable et a été choisie. « Écart » (bot Monte-Carlo seulement) = points de victoire perdus face au meilleur coup.</div></div>`;
+}
+
+// ------------------------------------------------------------------ journal en texte (à coller ou donner à une IA)
+function journalTexte() {
+  const v = S.version, d = S.diff;
+  const L = [`# ${v.titre}`, `Photo du ${quand(v.cree)} — ${v.stats.heros} héros, ${v.stats.cartes} cartes.`];
+  if (v.description) L.push('', v.description);
+  for (const c of (v.commentaires || []).filter(c => c.cible === 'version')) L.push('', `> ${c.texte.replace(/\n/g, '\n> ')}`);
+  if (d && !d.erreur && !d.premiere) {
+    const de = S.liste.find(x => x.id === d.de);
+    L.push('', `## Changements${de ? ' depuis « ' + de.titre + ' »' : ''} (${d.total})`);
+    for (const e of d.entites) {
+      L.push(`- **${e.nom}**${e.proprio ? ' (' + e.proprio + ')' : ''} — ${e.statut} : ${e.resume}`);
+      for (const c of (v.commentaires || []).filter(c => c.cible === e.cle)) L.push(`  - 💬 ${c.texte.replace(/\n/g, ' ')}`);
+    }
+  }
+  for (const c of v.calculs || []) {
+    L.push('', `## Mesure : ${c.titre}`);
+    for (const k of c.kpi || []) {
+      if (k.matchups) { L.push(`### ${k.libelle}`, `Niveau ${k.matchups.niveau}, trios, ${k.matchups.parties} parties/case. ${k.matchups.sur_cible ? `Sur cible : ${k.matchups.sur_cible.n}/${k.matchups.sur_cible.sur}. ` : ''}Écrasants : ${k.matchups.nb_ecrasants ?? k.matchups.ecrasants.length}.`, 'Héros : ' + k.matchups.heros.map(h => `${h.nom} ${pct(h.taux, 1)}`).join(', ')); }
+      else if (k.cartes) L.push(`### ${k.libelle}`, 'Cartes préférées : ' + [...k.cartes.cartes].filter(c => c.proposee >= 5).sort((a, b) => b.preferee - a.preferee).slice(0, 8).map(c => `${c.nom} ${pct(c.preferee)}`).join(', '));
+      else L.push(`- ${k.libelle} : ${k.resume}`);
+    }
+  }
+  return L.join('\n');
+}
+
+// ------------------------------------------------------------------ actions
+function branche() {
+  const app = $('#app');
+  const sel = $('#selContre'); if (sel) sel.onchange = () => { S.contre = sel.value; S.diff = null; rend(); chargeDiff(); };
+  app.onclick = async ev => {
+    const el = ev.target.closest('[data-act]'); if (!el) return;
+    const act = el.dataset.act;
+    if (el.tagName === 'A') ev.preventDefault();
+    try {
+      if (act === 'ouvrir') { S.message = null; S.onglet = 'changements'; await ouvre(el.dataset.id); }
+      else if (act === 'liste') { S.id = null; S.version = null; S.message = null; location.hash = ''; rend(); }
+      else if (act === 'voir-auto') { S.voirAuto = !S.voirAuto; rend(); }
+      else if (act === 'onglet') { S.onglet = el.dataset.o; rend(); if (S.onglet === 'mesures' && !S.archives) chargeArchives(); }
+      else if (act === 'creer') {
+        const titre = $('#nTitre').value.trim(), description = $('#nDesc').value;
+        el.disabled = true;
+        const r = await api('/creer', { titre, description });
+        S.message = { sorte: 'ok', t: r.nouvelle ? `Version « ${esc(r.version.titre)} » enregistrée.` : r.promue ? `Cet état était déjà gardé en photo automatique : il devient « ${esc(r.version.titre)} ».` : `Cet état est déjà la version « ${esc(r.version.titre)} ».` };
+        await charge();
+      }
+      else if (act === 'renommer') {
+        const v = S.version, titre = prompt('Titre de la version', v.titre); if (titre === null) return;
+        const description = prompt('Description (facultative)', v.description || ''); if (description === null) return;
+        await api('/renommer', { id: v.id, titre, description }); await charge(); await ouvre(v.id, false);
+      }
+      else if (act === 'copier') {
+        await navigator.clipboard.writeText(journalTexte());
+        S.message = { sorte: 'ok', t: 'Journal copié (titre, description, changements, commentaires, mesures) — prêt à coller ou à donner à une IA.' }; rend();
+      }
+      else if (act === 'supprimer') {
+        if (!confirm(`Supprimer « ${S.version.titre} » ? Ses commentaires et ses mesures partent avec.`)) return;
+        await api('/supprimer', { id: S.id }); S.message = { sorte: 'ok', t: 'Version supprimée.' }; S.id = null; S.version = null; location.hash = ''; await charge();
+      }
+      else if (act === 'restaurer-tout') {
+        if (!confirm(`Revenir à « ${S.version.titre} » ?\n\nTOUTES les cartes du jeu redeviennent celles de cette version. L'état actuel est gardé en photo automatique avant, tu pourras y revenir.`)) return;
+        await restaure({ id: S.id });
+      }
+      else if (act === 'restaurer-un') {
+        const de = S.liste.find(x => x.id === el.dataset.de);
+        if (!confirm(`Rétablir cet élément comme dans « ${de ? de.titre : el.dataset.de} » ?\n\nLe reste du jeu ne bouge pas. L'état actuel est gardé en photo automatique avant.`)) return;
+        await restaure({ id: el.dataset.de, cle: el.dataset.k });
+      }
+      else if (act === 'detail') { const [k, g] = el.dataset.k.split('|'); const d = document.getElementById('det-' + btoa(unescape(encodeURIComponent(k + '|' + g))).replace(/=/g, '')); if (d) d.classList.toggle('cache'); }
+      else if (act === 'comm-ouvre') { const b = app.querySelector(`[data-boite="${CSS.escape(el.dataset.k)}"]`); if (b) { b.classList.toggle('cache'); const t = b.querySelector('textarea'); if (t) t.focus(); } }
+      else if (act === 'comm-envoie') {
+        const k = el.dataset.k;
+        const t = k === 'version' ? $('#commVersion') : app.querySelector(`[data-boite="${CSS.escape(k)}"] textarea`);
+        if (!t || !t.value.trim()) return;
+        await api('/commenter', { id: S.id, cible: k, texte: t.value });
+        S.version = await api('/une?id=' + S.id); rend();
+      }
+      else if (act === 'comm-retire') { if (!confirm('Retirer ce commentaire ?')) return; await api('/commentaire/retirer', { id: S.id, commentaire: el.dataset.c }); S.version = await api('/une?id=' + S.id); rend(); }
+      else if (act === 'comm-modifie') {
+        const c = (S.version.commentaires || []).find(x => x.id === el.dataset.c); const t = prompt('Modifier le commentaire', c ? c.texte : ''); if (t === null) return;
+        await api('/commentaire/modifier', { id: S.id, commentaire: el.dataset.c, texte: t }); S.version = await api('/une?id=' + S.id); rend();
+      }
+      else if (act === 'lier') {
+        const a = $('#selCalcul'); if (!a) return; el.disabled = true; el.textContent = 'Lecture…';
+        await api('/lier', { id: S.id, archive: a.value });
+        S.version = await api('/une?id=' + S.id); S.message = null; rend();
+      }
+      else if (act === 'delier') { await api('/delier', { id: S.id, archive: el.dataset.a }); S.version = await api('/une?id=' + S.id); rend(); }
+      else if (act === 'jeter-brouillon') { if (!confirm('Jeter le brouillon du Card Builder de ce navigateur ? Ses modifications non appliquées sont perdues.')) return; try { localStorage.removeItem(LS_BROUILLON); } catch { /* rien */ } rend(); }
+    } catch (e) {
+      S.message = { sorte: 'ko', t: esc(e.message) }; rend();
+    }
+  };
+}
+
+async function restaure(corps) {
+  const r = await api('/restaurer', corps);
+  S.message = { sorte: 'ok', t: `<b>Rétabli : ${esc(r.fait)}.</b> ${r.sauvegarde ? `L'état d'avant est gardé : « ${esc(r.sauvegarde.titre)} ». ` : ''}<br>
+    Si le Card Builder ou le jeu est ouvert, <b>recharge-le (F5)</b> et jette son brouillon avant de rien appliquer.` };
+  await charge(); if (S.id) await ouvre(S.id, false);
+}
+
+async function chargeArchives() {
+  try { const r = await fetch('/api/archives', { cache: 'no-store' }); S.archives = r.ok ? await r.json() : { erreur: 'HTTP ' + r.status }; }
+  catch (e) { S.archives = { erreur: e.message }; }
+  rend();
+}
+
+charge();
+</script>
+</body>
+</html>

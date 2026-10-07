@@ -28,7 +28,7 @@ const PORT = process.env.PORT || 7330;
 const HOTE = process.env.ADVENTURE_HOST || undefined;
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
+  '.css': 'text/css; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8',
   '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml',
   '.webp': 'image/webp', '.ico': 'image/x-icon', '.md': 'text/markdown; charset=utf-8',
   '.webmanifest': 'application/manifest+json; charset=utf-8',
@@ -197,6 +197,14 @@ async function poseQuestion(texte) {
 // pour relire un chiffre. Ranger ne doit JAMAIS gener un calcul : une cle debranchee ou
 // pleine se journalise et rien de plus, comme une notification refusee.
 const archives = () => import('./lib/archives.mjs');
+
+// LES VERSIONS DU JEU (scripts/lib/versions.mjs) : des photos nommees de characters.data.js,
+// leurs differences, les commentaires, les chiffres de la mesure associee, et le retour en
+// arriere. Rangees HORS du repo (~/.adventure-card/versions). Comme /api/run : Node seulement,
+// pas double en C# — l'exe sans Node n'a pas ces routes et la page le dit.
+const versions = () => import('./lib/versions.mjs');
+const FICHIER_DONNEES = 'game/data/characters.data.js';
+const lisDonnees = () => { try { return fs.readFileSync(path.join(ROOT, FICHIER_DONNEES), 'utf8'); } catch { return ''; } };
 
 function range(cible) {
   if (!cible || !cible.lignes.length) return;
@@ -794,15 +802,72 @@ http.createServer((req, res) => {
     }
   }
 
+  // ---- LES VERSIONS DU JEU ----
+  if (urlPath === '/api/versions' || urlPath.startsWith('/api/versions/')) {
+    const action = urlPath.slice('/api/versions'.length);
+    const q = new URLSearchParams(query || '');
+    const repond = p => p.then(r => json(res, 200, r)).catch(e => json(res, 400, { erreur: e.message }));
+    if (req.method === 'GET') {
+      if (action === '') { repond(versions().then(async v => ({ disponible: true, versions: await v.liste(), courant: await v.etatCourant(lisDonnees()), auMax: v.AUTO_MAX }))); return; }
+      if (action === '/une') { repond(versions().then(v => v.lis(q.get('id')))); return; }
+      if (action === '/diff') { repond(versions().then(v => v.difference(q.get('id'), q.get('contre') || 'precedente', lisDonnees()))); return; }
+      if (action === '/donnees') { repond(versions().then(v => v.donnees(q.get('id')))); return; }
+      json(res, 404, { erreur: 'Inconnu : ' + urlPath }); return;
+    }
+    if (req.method === 'POST') {
+      let body = '';
+      req.setEncoding('utf8');
+      req.on('data', c => { body += c; if (body.length > 200000) req.destroy(); });
+      req.on('end', () => {
+        let d;
+        try { d = JSON.parse(body || '{}'); } catch { json(res, 400, { erreur: 'Demande illisible.' }); return; }
+        repond(versions().then(async v => {
+          if (action === '/creer') {
+            const r = await v.capture({ texte: lisDonnees(), titre: String(d.titre || '').trim().slice(0, 200), description: String(d.description || '').slice(0, 20000), type: 'nommee' });
+            console.log('version ' + (r.nouvelle ? 'creee' : r.promue ? 'promue' : 'deja la') + ' : ' + r.version.id + ' ' + r.version.titre);
+            return r;
+          }
+          if (action === '/renommer') return v.renomme(d.id, { titre: d.titre, description: d.description });
+          if (action === '/commenter') return v.commente(d.id, d.cible, d.texte);
+          if (action === '/commentaire/retirer') { await v.retireCommentaire(d.id, d.commentaire); return { ok: true }; }
+          if (action === '/commentaire/modifier') return v.modifieCommentaire(d.id, d.commentaire, d.texte);
+          if (action === '/lier') return v.lieCalcul(d.id, d.archive);
+          if (action === '/delier') { await v.delieCalcul(d.id, d.archive); return { ok: true }; }
+          if (action === '/supprimer') { await v.supprime(d.id, lisDonnees()); return { ok: true }; }
+          if (action === '/restaurer') {
+            // Calcule d'abord (une erreur ici n'ecrit rien), PUIS photo de securite de l'etat
+            // actuel, PUIS ecriture : on ne perd jamais ce qu'on s'apprete a remplacer.
+            const courant = lisDonnees();
+            const r = await v.pourRestaurer(d.id, d.cle || null, courant);
+            const avant = await v.sauvegardeAvantEcriture(courant, r.texte, 'retour');
+            fs.writeFileSync(path.join(ROOT, FICHIER_DONNEES), r.texte, 'utf8');
+            console.log('retour en arriere : ' + d.id + (d.cle ? ' (' + d.cle + ')' : '') + ' — ' + r.fait);
+            return { ok: true, fait: r.fait, sauvegarde: avant ? { id: avant.id, titre: avant.titre } : null, courant: await v.etatCourant(r.texte) };
+          }
+          throw new Error('Inconnu : ' + urlPath);
+        }));
+      });
+      return;
+    }
+  }
+
   if (req.method === 'POST' && urlPath === '/api/write') {
     const rel = decodeURIComponent(new URLSearchParams(query || '').get('path') || '').replace(/\\/g, '/');
     if (!canWrite(rel)) { res.writeHead(403).end('Chemin non autorise : ' + rel); return; }
     let body = '';
     req.setEncoding('utf8');
     req.on('data', c => { body += c; });
-    req.on('end', () => {
+    req.on('end', async () => {
       const file = path.join(ROOT, rel);
       fs.mkdirSync(path.dirname(file), { recursive: true });
+      // LE FILET DE SECURITE : avant d'ecraser les cartes du jeu, on garde l'etat qu'on va
+      // remplacer (une fois : s'il est deja dans une version, rien n'est ajoute). Un onglet
+      // perime du builder a deja efface six heros — c'est ce qui permet de les retrouver.
+      // Ne bloque jamais l'ecriture : sans Node recent ou sans disque, on ecrit quand meme.
+      if (rel === FICHIER_DONNEES) {
+        try { const v = await versions(); await v.sauvegardeAvantEcriture(lisDonnees(), body, 'ecriture'); }
+        catch (e) { console.log('sauvegarde avant ecriture impossible : ' + e.message); }
+      }
       fs.writeFileSync(file, body, 'utf8');
       console.log('ecrit : ' + rel + ' (' + body.length + ' caracteres)');
       res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }).end('ok');

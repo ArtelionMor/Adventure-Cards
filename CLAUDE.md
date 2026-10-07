@@ -355,6 +355,42 @@ absente, rien n'est écrit et la page le dit.
 clé demande une ligne dans `/etc/fstab` (par `UUID`, avec `nofail`), sinon elle est branchée
 sans être là.
 
+## Les versions du jeu (retour en arrière, commentaires, mesures)
+`builder/versions.html` — **des états nommés des cartes** (« V0.3 : Modification Chat & Archétype
+Oiseau »), avec ce qui a changé, ce qu'on en dit, les chiffres de la mesure qui lui correspond, et
+le moyen d'y revenir. Une **version est une photo complète** de `game/data/characters.data.js` ; le
+« qu'est-ce qui a changé ? » **n'est jamais stocké**, il se recalcule en comparant deux photos
+(`scripts/lib/diff-donnees.mjs`, module pur importé par la page et le serveur) — par **identité**
+(un héros, une carte, un adversaire, la fatigue) et par **clé** (un palier se retrouve par son
+niveau, une ligne de deck par sa carte), jamais par ligne de texte.
+
+- **Stockage** (`scripts/lib/versions.mjs`) : `~/.adventure-card/versions/` (`ADVENTURE_VERSIONS`),
+  **jamais dans le repo** ; un dossier par version, `version.json` (titre, commentaires, mesures)
+  + `donnees.js` (le fichier tel quel : on peut le recopier à la main dans `game/data/`).
+- **Le filet de sécurité** : `POST /api/write` sur `characters.data.js` garde d'abord l'état qu'il
+  va écraser, en **photo automatique** (une fois par état : même empreinte = rien d'ajouté ; 60 au
+  plus, les nommées et les commentées ne sont jamais purgées). C'est ce qui aurait sauvé les six
+  V2 effacées par un onglet périmé du builder. Il ne bloque jamais l'écriture.
+- ⚠ **Il n'y a PAS de garde contre l'onglet périmé** (refuser d'écrire si le builder est parti d'une
+  vieille lecture) : le builder lit le fichier par import de module, pas en texte, il faudrait
+  modifier `applyToGame`. Le filet récupère l'ancien état, il n'empêche pas l'écrasement.
+- **Revenir en arrière** (`POST /api/versions/restaurer`) : tout le jeu, ou **un seul élément**
+  (`cle` = `carte:<id>`, `hero:<id>`, `pnj:<id>`, `fatigue`, `reglage:<nom>`). Le serveur calcule
+  d'abord (une erreur n'écrit rien), photographie l'état actuel, puis écrit. Rétablir un héros rend
+  ses statistiques et garde ses cartes (elles ont leur propre entrée) ; un héros retiré revient
+  avec toutes les siennes. Propriété testée : rétablir un à un tout ce qui diffère redonne
+  l'original, ordre compris.
+- **Les mesures** (`scripts/lib/kpi.mjs`) : « Lier un calcul » relit la **sortie texte** d'un calcul
+  rangé (`matchups` → matrice, force, écrasants, taux par héros ; `analyse-cartes` → cartes
+  préférées/boudées) et garde les chiffres **avec la version** : le calcul peut quitter la clé.
+  ⚠ C'est du **parsing de texte** : si un outil change sa mise en forme, `kpi.mjs` doit suivre —
+  `node scripts/test-versions.mjs` rejoue des sorties types et casse si ça dérive.
+- Pas doublé en C# (Node seulement, comme `/api/run`) : sans Node la page le dit.
+- Banc : `node scripts/test-versions.mjs` (44 tests, dossier temporaire, serveur sur port libre,
+  ne touche ni `~/.adventure-card` ni le fichier du jeu).
+- Une IA qui reprend ce travail : **« Copier le journal des changements »** sort en Markdown le
+  titre, la description, les changements, les commentaires et les mesures d'une version.
+
 ## Les renforts : les PC calculent aussi
 Un calcul lancé sur le Pi **ne tourne plus seulement sur le Pi** : chaque PC qui fait
 tourner `node scripts/renfort.mjs` en prend sa part, **en même temps**, case par case —
@@ -406,7 +442,7 @@ fixe fait seul une matrice trois fois plus vite que le Pi (31 s contre 99 s).
 
 ## L'Atelier : les outils en une app
 `builder/accueil.html` réunit toutes les pages derrière des tuiles (builder, lancer un
-calcul, vue d'ensemble, équilibrage, courbes de progression, mécaniques à coder, jeu), avec l'état du moment :
+calcul, vue d'ensemble, équilibrage, versions, courbes de progression, mécaniques à coder, jeu), avec l'état du moment :
 un brouillon est-il en cours dans ce navigateur, où en est le dernier calcul du serveur.
 `builder/manifest.webmanifest` en fait une **PWA installable** (« Atelier », portée `/` :
 le jeu s'ouvre dans la même fenêtre). Toutes les pages du builder pointent vers ce
