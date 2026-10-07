@@ -340,6 +340,18 @@ function verifieCarte(card, proprio, ctx) {
       out.push({ bad: true, msg: `${proprio} · ${card.name} — « ${(TRIGGERS[slot] || {}).label || slot} » ne part que pour un type, mais aucun type n'est écrit : il ne partira jamais.` });
   }
 
+  // UNE GARDE SUR UN EVENEMENT SANS SUJET : « quand tu perds une unite, SI C'EST UN CHIEN »
+  // n'existe pas. Seuls les evenements qui ont une unite pour sujet (`EVENTS[ev].sujet` :
+  // jouer un allie, attaquer, recevoir du renfort) ont quelqu'un a regarder. Pour les
+  // autres (pioche, sort, PV perdus, unite perdue) `gardePasse` ne trouve aucun sujet et
+  // refuse TOUJOURS : le moment ne partira jamais, et rien sur la carte ne le laisse voir.
+  for (const [slot, g] of Object.entries(card.gardes || {})) {
+    if (!g || keyId(g) === 'tous') continue;
+    const m = /^on_(.+)_(self|foe|any)$/.exec(slot);
+    if (m && EVENTS[m[1]] && !EVENTS[m[1]].sujet)
+      out.push({ bad: true, msg: `${proprio} · ${card.name} — « ${(TRIGGERS[slot] || {}).label || slot} » n'a pas de sujet à regarder : une garde (« seulement si… ») n'y laisse jamais rien passer, le moment ne partira jamais. Retire la garde.` });
+  }
+
   // « CHOISIR » ne se choisit qu'a la pose : ailleurs (rale d'agonie, debut de
   // tour), personne n'est la pour repondre et c'est la premiere branche qui part.
   for (const [slot, def] of Object.entries(TRIGGERS)) {

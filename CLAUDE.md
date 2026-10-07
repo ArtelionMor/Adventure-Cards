@@ -625,6 +625,30 @@ builder. `ENCOUNTERS` est assemblé à partir des deux (`npcSide(id)` + les réc
 garde exactement la forme qu'attendaient l'UI et les scripts. Une carte de deck introuvable
 est ignorée à la résolution (le jeu ne casse pas) et signalée par la validation.
 
+## Taille d'équipe : jamais de solo, on ne mesure que les trios et plus
+**Le joueur n'est jamais seul.** Une équipe fait au moins **3 héros** en partie ; un héros
+seul (ou un duo) n'existe que dans le **tutoriel**, où le joueur apprend le jeu. Décision
+du game designer (7 octobre 2026), qui vaut pour tout ce qui suit :
+
+- **On ne teste, ne mesure et n'équilibre que des trios et plus.** Matrices, courbe de
+  difficulté, analyses, mesures de fatigue : pas de solo ni de duo. Leurs résultats sont
+  connus d'avance (en solo, 99 % des parties vont jusqu'à la pile de fatigue : 5 cartes par
+  héros, c'est structurel) et ils ne disent rien de ce que vit un joueur.
+- **Un chiffre solo ou duo ne justifie aucune modification de carte.** Un héros « faible
+  seul » (Miracle, dont les effets « même type » veulent des coéquipiers) n'est pas un
+  problème ; un héros « fort seul » non plus. Ce qui compte, c'est le héros **dans un trio**.
+- **Conséquence pour le contenu : plus de héros, pas plus de cartes par héros.** Les
+  seconds et troisièmes decks d'un archétype (un 2ᵉ chien, un 2ᵉ chat…) sont de nouveaux
+  héros, pour des stratégies plus concentrées sans toucher à la règle des 5 + 5 cartes.
+- **Dans les outils** : utiliser `--taille 3` (ou `--trio`) avec `matchups.mjs`, la puce
+  **Trios** du builder, et des paliers à 3 héros ou plus pour `simulate.mjs`
+  (`--paliers 3,3,3`). Les cases solo/duo restent dans le code, mais ne se lancent plus
+  pour juger une carte. Les défauts actuels (`--taille` à 1 dans `matchups.mjs`, paliers
+  1 → 3 dans `BALANCE.simulation`) **n'ont pas encore été alignés** sur cette règle.
+- **Une validation reste à lever** : `check-decks.mjs` signale « injouable quand il part
+  seul » (Neuf Vies, 14 mana pour 8 max). Cet avertissement ne compte plus tant que la
+  carte est jouable dans un trio.
+
 ## Règle de travail
 **Aucune valeur d'équilibrage en dehors de `game/src/config/`.** Le GDD dit que la
 cadence de déblocage et les coûts sont pilotés par le game designer (l'utilisateur) :
@@ -1535,7 +1559,9 @@ d'autre ne le dit.
   Cible du designer : ~66 % quand on a le matchup, ~33 % quand on ne l'a pas, ~50 % sinon ;
   chaque case est rangée par rapport à ces cibles. Le ± affiché est l'intervalle de Wilson
   à 95 % — **ne jamais corriger un écart plus petit que lui**, c'est du bruit.
-  `--taille 2` / `--taille 3` (ou `--trio`) pour toutes les équipes de 2 ou 3 héros,
+  `--taille 3` (ou `--trio`) pour toutes les équipes de 3 héros — **la seule taille qu'on
+  mesure** (cf. « Taille d'équipe : jamais de solo »), `--taille 1` / `--taille 2` n'existent
+  que pour le débogage,
   `--adversaires` pour ne jouer que **les équipes contre les adversaires** (équipes en
   lignes, PNJ en colonnes, ni équipe contre équipe ni PNJ contre PNJ — la ligne « Trio vs
   Adversaires - niv 4 » d'une file), `--bots` pour comparer les niveaux de bot entre eux,
@@ -1597,6 +1623,23 @@ d'autre ne le dit.
   Wilson, les cibles 33/50/66). Il vit dans `game/` et pas dans `scripts/` **parce que la
   page du builder l'importe aussi** : une seule implémentation, donc les mêmes chiffres en
   ligne de commande et dans l'outil. Tout nouvel outil de mesure passe par là.
+
+## Les paliers de niveau
+**`docs/GRAMMAIRE-DES-PALIERS.md`** — comment écrire les paliers d'une carte pour qu'une montée
+de niveau **se sente** : cinq sortes (Éveil, Verbe, Pivot, Sommet), le chiffre accompagne le
+verbe, aucun niveau muet de 2 à 20, jamais plus de 3 cartes qui changent au même niveau. À lire
+avant de toucher aux `tiers` d'une carte, et **à relancer avant/après** :
+`node scripts/audit-paliers.mjs [--hero a,b] [--json] [--strict]` (ne joue aucune partie : il
+mesure la part de verbes, les niveaux muets, les coûts morts, les paliers par défaut recopiés).
+
+⚠ **Une garde (`card.gardes[slot]`) n'a de sens que sur un événement qui a un sujet** (jouer un
+allié, attaquer, recevoir du renfort). « Quand tu perds une unité » n'en a pas : une garde de type
+y bloque le moment **pour toujours**, sans un mot. `validate.js` le signale en erreur bloquante.
+
+⚠ **Un déclencheur qui se nourrit lui-même explose** quand le plateau n'a pas de plafond
+(`boardSize` à 0) : « quand tu perds une unité, invoque un 1/1 » + une aura adverse −0/−1 = chaque
+invocation meurt et en invoque une autre, et avec deux invocations par mort le plateau double à
+chaque étage. Pas d'aura négative sur les PV adverses, pas de double invocation sur ce déclencheur.
 
 ## Dossiers
 - `game/` — le prototype jouable. `src/config/` = game config (dont `npcs.js`, qui résout
