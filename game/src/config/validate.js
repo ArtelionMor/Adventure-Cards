@@ -7,8 +7,15 @@
 //   bad: false = avertissement, a regarder mais jouable
 // Les registres sont passes en parametre parce que le builder connait aussi les
 // mecaniques inventees dans son brouillon, que le jeu, lui, n'a pas encore.
-import { TRIGGERS, EVENTS, AMPLIFIABLE, CARD_FILTERS, COUNTERS, STATICS, keyId, keyArg, keyFields,
+//
+// Un constat peut aussi porter `ou` (« carte:<id> », « pnj:<id> ») et `regle` : c'est
+// ce qui permet de l'IGNORER (cf. « Les constats ignores », plus bas). Un constat
+// ignore reste dans la liste, avec `ignore` (la raison donnee) : il ne bloque plus
+// rien, mais il ne disparait pas sans laisser de trace. Ne filtre jamais sur `bad`
+// seul : passe par `bloque(s)`.
+import { TRIGGERS, EVENTS, AMPLIFIABLE, CARD_FILTERS, COUNTERS, STATICS, keyId, keyArg, keyFields, cardCost,
   isVariableAmount, targetDef, targetId, targetArg, targetLabel, describeAmount, effectParams, eachSubEffect, listeEffets, typeVariable } from './mechanics.js';
+import { resolveCard } from './characters.js';
 
 /**
  * Les cibles qu'un effet porte VRAIMENT. Un parametre de cible peut etre hors sujet
@@ -412,8 +419,38 @@ function verifieCarte(card, proprio, ctx) {
   }
 }
 
-export function validateData(DB, eff, kw) {
+// ---------- LES CONSTATS IGNORES ----------
+// Certaines erreurs n'en sont pas pour le game designer : « Neuf Vies coûte 14, Felix
+// plafonne à 8 » est vrai d'un héros SEUL, et le joueur ne l'est jamais (cf. CLAUDE.md,
+// « Taille d'équipe »). `DB.ignores` les liste, une entrée par constat :
+//   { ou: 'carte:felix_ninelives', regle: 'cout-solo', pourquoi: 'jouable en trio' }
+// `ou` est l'IDENTIFIANT de ce qui est visé, pas son nom : renommer la carte ne fait pas
+// revenir le constat. `regle` est un code stable quand la regle en declare un
+// (`cout-solo`, `deck-court`), sinon le texte du constat sans son « Proprio · Carte — ».
+// Dans ce second cas, ce qu'on ignore est CE constat-là : si la carte change et que le
+// message change avec elle, il revient — c'est voulu, ce n'est plus ce qu'on a jugé.
+// Un ignore qui ne correspond plus a rien est signale (avertissement) : on le retire.
+
+/** Le code d'un constat, faute de code declare : son texte sans le « Proprio · Carte — ». */
+const texteSeul = msg => { const i = msg.indexOf(' — '); return i < 0 ? msg : msg.slice(i + 3); };
+/** Un constat qui bloque vraiment : bloquant ET pas ignore. */
+export const bloque = s => !!s.bad && s.ignore === undefined;
+/** L'entree de `DB.ignores` qui couvre ce constat, s'il y en a une. */
+export const ignoreDe = (DB, s) => (DB.ignores || []).find(g => g.ou === s.ou && g.regle === s.regle) || null;
+
+export function validateData(DB, eff, kw, { niveau = 5 } = {}) {
   const out = [];
+  // Ce que `f` ajoute a la liste est rattache a `ou` (et recoit un code s'il n'en a pas) :
+  // c'est ce qui le rend ignorable. Les regles n'ont pas a s'en soucier une par une.
+  const sur = (ou, f) => {
+    const depuis = out.length;
+    f();
+    if (!ou) return;
+    for (let i = depuis; i < out.length; i++) {
+      if (!out[i].ou) out[i].ou = ou;
+      if (!out[i].regle) out[i].regle = texteSeul(out[i].msg);
+    }
+  };
   // Le catalogue ou piochent les decks des PNJ : les cartes libres et celles des
   // personnages. Un deck qui pointe ailleurs ne jouera tout simplement pas la carte.
   const catalogue = new Set();
@@ -446,24 +483,24 @@ export function validateData(DB, eff, kw) {
     if (!c.id) out.push({ bad: true, msg: `Cartes libres · ${c.name || '(sans nom)'} — pas d'identifiant : aucun deck ne pourra la prendre.` });
     else if (vues.has(c.id)) out.push({ bad: true, msg: `Cartes libres — deux cartes portent l'identifiant « ${c.id} ».` });
     vues.add(c.id);
-    verifieCarte(c, 'Cartes libres', ctx);
+    sur(c.id && 'carte:' + c.id, () => verifieCarte(c, 'Cartes libres', ctx));
   }
 
   // Les adversaires et leurs decks.
   const idsPnj = new Set();
-  for (const n of DB.npcs || []) {
+  for (const n of DB.npcs || []) sur(n.id && 'pnj:' + n.id, () => {
     const ou = `PNJ ${n.name || n.id}`;
     if (!n.id) out.push({ bad: true, msg: `${ou} — pas d'identifiant.` });
     else if (idsPnj.has(n.id)) out.push({ bad: true, msg: `Deux adversaires ont l'identifiant « ${n.id} ».` });
     idsPnj.add(n.id);
     const cartes = (n.deck || []).reduce((a, l) => a + (l.n || 1), 0);
     if (!cartes) out.push({ bad: true, msg: `${ou} — deck vide : il n'aura rien à jouer.` });
-    else if (cartes < 8) out.push({ bad: false, msg: `${ou} — ${cartes} carte(s) seulement : il tournera vite à la fatigue.` });
+    else if (cartes < 8) out.push({ bad: false, regle: 'deck-court', msg: `${ou} — ${cartes} carte(s) seulement : il tournera vite à la fatigue.` });
     for (const l of n.deck || []) {
       if (!catalogue.has(l.card)) out.push({ bad: true, msg: `${ou} — carte « ${l.card} » introuvable : elle sera ignorée dans son deck.` });
     }
     if (!(n.hp > 0)) out.push({ bad: true, msg: `${ou} — ${n.hp || 0} PV : le combat serait déjà fini.` });
-  }
+  });
   out.push(...verifiePile(DB, catalogue));
   const ids = new Set();
   for (const c of DB.characters) {
@@ -473,9 +510,27 @@ export function validateData(DB, eff, kw) {
     for (const side of ['cards', 'switches']) {
       const n = (c[side] || []).filter(Boolean).length;
       if (n !== 5) out.push({ bad: side === 'cards', msg: `${c.name} — ${n}/5 ${side === 'cards' ? 'cartes de base' : 'cartes switch'} remplies.` });
-      (c[side] || []).forEach(card => verifieCarte(card, c.name, ctx));
+      (c[side] || []).forEach(card => sur(card && card.id && 'carte:' + card.id, () => {
+        verifieCarte(card, c.name, ctx);
+        // Un cout superieur au mana max du personnage : la carte ne sort jamais de la main
+        // quand il joue SEUL. Lu au niveau `niveau` (un palier peut baisser le cout), et
+        // sans combat (`cardCost` hors combat ne compte que la part fixe : « coûte 1 de
+        // moins par tour joué » n'y est pas — d'où Minuit, qu'on ignore plutôt).
+        const plafond = Math.min((c.stats || {}).mana || 0, 10);
+        if (!card || !plafond) return;
+        const cout = cardCost(resolveCard(card, niveau), null, 'p');
+        if (cout > plafond) out.push({ bad: true, regle: 'cout-solo',
+          msg: `${c.name} · ${card.name} — coûte ${cout} au niveau ${niveau}, or ${c.name} plafonne à ${plafond} mana : injouable quand il part seul.` });
+      }));
     }
   }
   for (const s of DB.starters || []) if (!ids.has(s)) out.push({ bad: true, msg: `Le personnage de départ « ${s} » n'existe plus.` });
+
+  // Les constats ignores : marques (pas retires), et les ignores orphelins signales.
+  for (const s of out) { const g = ignoreDe(DB, s); if (g) s.ignore = g.pourquoi || ''; }
+  for (const g of DB.ignores || []) {
+    if (!out.some(s => s.ou === g.ou && s.regle === g.regle))
+      out.push({ bad: false, orphelin: g, msg: `Constat ignoré qui ne se produit plus (${g.ou}) : « ${g.regle} ». Tu peux retirer cet ignore.` });
+  }
   return out;
 }

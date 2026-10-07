@@ -681,9 +681,29 @@ du game designer (7 octobre 2026), qui vaut pour tout ce qui suit :
   (`--paliers 3,3,3`). Les cases solo/duo restent dans le code, mais ne se lancent plus
   pour juger une carte. Les défauts actuels (`--taille` à 1 dans `matchups.mjs`, paliers
   1 → 3 dans `BALANCE.simulation`) **n'ont pas encore été alignés** sur cette règle.
-- **Une validation reste à lever** : `check-decks.mjs` signale « injouable quand il part
-  seul » (Neuf Vies, 14 mana pour 8 max). Cet avertissement ne compte plus tant que la
-  carte est jouable dans un trio.
+- **« Injouable quand il part seul »** (règle `cout-solo` de `validate.js`) ne compte plus
+  tant que la carte est jouable dans un trio : Neuf Vies et Minuit sont **ignorées** (cf.
+  « Ignorer un constat »).
+
+## Ignorer un constat de validation
+Une erreur de validation qui n'en est pas une pour le game designer s'**ignore**, avec une
+raison : le bouton **Ignorer** sur la ligne du bandeau « À vérifier » du builder. Elle part
+dans `CHARACTER_DATA.ignores` (`{ ou: 'carte:<id>', regle, pourquoi }`), donc avec les
+cartes, dans les versions et dans le repo — et `check-decks.mjs` lit la même liste.
+
+- Un constat ignoré **ne bloque plus** (ni « Appliquer au jeu », ni le code de sortie de
+  `check-decks`) mais **reste affiché**, en retrait, avec sa raison et un bouton **Rétablir**.
+  Ignorer n'est pas oublier. Côté code : ne filtre jamais sur `s.bad` seul, passe par
+  `bloque(s)` (`validate.js`).
+- `ou` est l'**identifiant** (`carte:<id>`, `pnj:<id>`) : renommer la carte ne fait pas
+  revenir le constat. `regle` est un code stable quand la règle en déclare un (`cout-solo`,
+  `deck-court`), sinon le **texte du constat** sans son « Proprio · Carte — » : on ignore
+  alors CE constat-là, et s'il change avec la carte, il revient. C'est voulu.
+- Seuls les constats rattachés à une carte ou un PNJ s'ignorent (les autres n'ont pas de
+  bouton). Un ignore qui ne correspond plus à rien est signalé (« Retirer »).
+- `cout-solo` vit dans `validate.js` (il était dans `check-decks`, que le builder ne voit
+  pas) et lit la carte au niveau `{ niveau }` passé à `validateData` (5 par défaut, celui de
+  `check-decks` sinon). Hors combat : « coûte 1 de moins par tour joué » n'y compte pas.
 
 ## Règle de travail
 **Aucune valeur d'équilibrage en dehors de `game/src/config/`.** Le GDD dit que la
@@ -1573,6 +1593,7 @@ d'autre ne le dit.
   règles du builder (via `game/src/config/validate.js`, partagé avec lui — une règle
   ajoutée là s'applique aux deux), puis de vraies parties pour trouver ce qui ne se produit
   jamais : carte qu'aucun mana ne peut payer, carte jamais posée, moment jamais déclenché.
+  Les constats ignorés (`CHARACTER_DATA.ignores`) s'affichent en gris et ne comptent pas.
   Les decks **base et switch** de chaque personnage y passent. Les paires se jouent
   **en parallèle**, sur les cœurs d'ici et ceux des renforts (`lib/taches-controle.mjs`).
 - **`builder/balance.html`** — la même mesure **dans l'outil**, sur le brouillon en cours :

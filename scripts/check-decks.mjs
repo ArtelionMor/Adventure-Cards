@@ -13,8 +13,8 @@
 //   node scripts/check-decks.mjs [niveau] [parties par paire]
 import { CHARACTER_DATA } from '../game/data/characters.data.js';
 import { CHARACTERS, resolveCard } from '../game/src/config/characters.js';
-import { ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, cardCost, pendingMechanics } from '../game/src/config/mechanics.js';
-import { validateData } from '../game/src/config/validate.js';
+import { ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, pendingMechanics } from '../game/src/config/mechanics.js';
+import { validateData, bloque } from '../game/src/config/validate.js';
 import { campPerso, campPnj } from '../game/src/tools/arene.js';
 import { enParallele } from './lib/pool.mjs';
 
@@ -24,36 +24,22 @@ const PARTIES = Number(process.argv[3] || 6);
 const rouge = t => `\x1b[31m${t}\x1b[0m`;
 const jaune = t => `\x1b[33m${t}\x1b[0m`;
 const vert = t => `\x1b[32m${t}\x1b[0m`;
+const gris = t => `\x1b[90m${t}\x1b[0m`;
 
 // ------------------------------------------------------------------ passe 1
 console.log('\n=== 1. Regles de construction (les memes que le builder) ===\n');
-const soucis = validateData(CHARACTER_DATA, ALL_EFFECTS, ALL_KEYWORDS);
-const bloquants = soucis.filter(s => s.bad);
-const avertis = soucis.filter(s => !s.bad);
+const soucis = validateData(CHARACTER_DATA, ALL_EFFECTS, ALL_KEYWORDS, { niveau: NIVEAU });
+// « Coûte plus que le mana de son héros » est une regle de validate.js depuis qu'on peut
+// l'ignorer (Neuf Vies, Minuit : injouables seuls, jouables en trio) — elle y est lue au
+// meme niveau que les parties ci-dessous.
+const bloquants = soucis.filter(bloque);
+const avertis = soucis.filter(s => !s.bad && s.ignore === undefined);
+const ignores = soucis.filter(s => s.ignore !== undefined);
 for (const s of bloquants) console.log(rouge('  ERREUR    ') + s.msg);
 for (const s of avertis) console.log(jaune('  attention ') + s.msg);
-if (!soucis.length) console.log(vert('  Rien a signaler.'));
-
-// Un cout superieur au mana max du personnage : la carte ne sortira jamais de la main
-// quand il joue seul. Le builder ne peut pas le voir (il ne connait pas le mana du
-// proprietaire au moment ou l'on tape le cout) ; d'ici, si.
-console.log('');
-let injouables = 0;
-for (const ch of CHARACTERS) {
-  const plafond = Math.min(ch.stats.mana, 10);
-  for (const side of ['cards', 'switches']) {
-    for (const def of ch[side] || []) {
-      if (!def) continue;
-      const c = resolveCard(def, NIVEAU);
-      const cout = cardCost(c, null, 'p');
-      if (cout > plafond) {
-        injouables++;
-        console.log(rouge('  ERREUR    ') + `${ch.name} · ${c.name} — coute ${cout}, or ${ch.name} plafonne a ${plafond} mana : injouable quand il part seul.`);
-      }
-    }
-  }
-}
-if (!injouables) console.log(vert('  Toutes les cartes sont payables par leur personnage.'));
+if (!bloquants.length && !avertis.length) console.log(vert('  Rien a signaler.'));
+// Un constat ignore se montre quand meme, en gris : ignorer n'est pas oublier.
+for (const s of ignores) console.log(gris('  ignoré    ' + s.msg + (s.ignore ? ' — ' + s.ignore : '')));
 
 // ------------------------------------------------------------------ passe 2
 // Les cartes switch sont la moitie du jeu : on monte un deck de chaque cote pour
@@ -145,6 +131,6 @@ if (jamais.length) {
 // ------------------------------------------------------------------ resume
 const todo = pendingMechanics();
 if (todo.length) console.log(jaune(`\n  ${todo.length} mecanique(s) restent a coder — voir docs/MECANIQUES-A-CODER.md`));
-const erreurs = bloquants.length + injouables + bloquees;
-console.log(`\n${erreurs} erreur(s), ${avertis.length + mortes.length + jamais.length} avertissement(s).\n`);
+const erreurs = bloquants.length + bloquees;
+console.log(`\n${erreurs} erreur(s), ${avertis.length + mortes.length + jamais.length} avertissement(s)${ignores.length ? `, ${ignores.length} ignoré(s)` : ''}.\n`);
 process.exit(erreurs ? 1 : 0);

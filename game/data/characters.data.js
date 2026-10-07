@@ -738,19 +738,19 @@ export const CHARACTER_DATA = {
       "deck": [
         {
           "card": "grunt1",
-          "n": 2
+          "n": 5
         },
         {
           "card": "grunt2",
-          "n": 1
+          "n": 5
         },
         {
           "card": "bolt",
-          "n": 1
+          "n": 5
         },
         {
           "card": "card_bjidas",
-          "n": 1
+          "n": 5
         }
       ],
       "ia": "naif"
@@ -766,23 +766,23 @@ export const CHARACTER_DATA = {
       "deck": [
         {
           "card": "grunt2",
-          "n": 1
+          "n": 5
         },
         {
           "card": "rush1",
-          "n": 1
+          "n": 5
         },
         {
           "card": "bolt",
-          "n": 1
+          "n": 5
         },
         {
           "card": "card_i5eghg",
-          "n": 1
+          "n": 5
         },
         {
           "card": "wall1",
-          "n": 1
+          "n": 5
         },
         {
           "card": "card_ta7prz",
@@ -802,23 +802,23 @@ export const CHARACTER_DATA = {
       "deck": [
         {
           "card": "grunt2",
-          "n": 1
+          "n": 5
         },
         {
           "card": "grunt3",
-          "n": 2
+          "n": 5
         },
         {
           "card": "bolt",
-          "n": 1
+          "n": 5
         },
         {
           "card": "wall1",
-          "n": 2
+          "n": 5
         },
         {
           "card": "card_y5uc9s",
-          "n": 1
+          "n": 5
         }
       ]
     },
@@ -7834,6 +7834,18 @@ export const CHARACTER_DATA = {
           }
         }
       ]
+    }
+  ],
+  "ignores": [
+    {
+      "ou": "carte:cat_nine",
+      "regle": "cout-solo",
+      "pourquoi": "Coût alternatif décroissant"
+    },
+    {
+      "ou": "carte:owl2_midnight",
+      "regle": "cout-solo",
+      "pourquoi": "Coût alternatif décroissant"
     }
   ]
 };

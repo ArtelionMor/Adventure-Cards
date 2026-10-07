@@ -169,6 +169,13 @@
   .issues { display: flex; flex-direction: column; gap: 6px; }
   .issue { font-size: 13px; padding: 8px 10px; border-radius: 9px; background: #241c14; border: 1px solid #4a3a1a; color: var(--warn); }
   .issue--bad { background: #2a1a1f; border-color: #4a2733; color: var(--danger); }
+  .issue { display: flex; gap: 8px; align-items: flex-start; }
+  .issue > span { flex: 1; }
+  .issue__btn { flex: none; font-size: 11px; padding: 2px 8px; border-radius: 7px; border: 1px solid currentColor; background: transparent; color: inherit; cursor: pointer; opacity: .8; }
+  .issue__btn:hover { opacity: 1; }
+  /* Un constat ignore reste visible, en retrait : ignorer n'est pas oublier. */
+  .issue--ignore { background: transparent; border-style: dashed; border-color: #3a3f4a; color: var(--muted, #8a93a3); }
+  .issue__pourquoi { display: block; font-size: 11px; opacity: .8; margin-top: 2px; }
 
   /* modal */
   .modal { position: fixed; inset: 0; background: rgba(6,8,12,.72); display: none; align-items: center; justify-content: center; padding: 24px; z-index: 10000; }
@@ -316,7 +323,7 @@ import { CHARACTER_DATA } from '../game/data/characters.data.js';
 import { effectParams, listeEffets, EVENT_GARDES, momentLabel, EFFECTS, KEYWORDS, TARGETS, AMPLIFIABLE, TRIGGERS, TOKEN_TRIGGERS, BASE_TRIGGERS, EVENTS, EVENT_WHO, eventSlot, AURA_SCOPES, STATICS, CARD_FILTERS, ZONES, COUNTERS, IMPLEMENTED_AS, keyId, keyArg, keyLabel, keyFields, keyFrom, targetId, targetArg, targetDef, isVariableAmount, describeAmount, describeStatic, describeEffect } from '../game/src/config/mechanics.js';
 import { DEFAULT_TIERS } from '../game/src/config/characters.js';
 import { BALANCE } from '../game/src/config/balance.js';
-import { validateData, eachEffect, eachUnit, tierIssue } from '../game/src/config/validate.js';
+import { validateData, bloque, eachEffect, eachUnit, tierIssue } from '../game/src/config/validate.js';
 
 // ---------- ETAT ----------
 const LS_KEY = 'adventureCardBuilder.v1';
@@ -508,7 +515,7 @@ async function writeFile(path, content) {
 }
 
 async function applyToGame() {
-  const issues = validate().filter(i => i.bad);
+  const issues = validate().filter(bloque);
   if (issues.length && !confirm(issues.length + ' problème(s) bloquant(s) détecté(s). Appliquer quand même ?')) return;
   const btn = $('#applyBtn');
   btn.disabled = true; btn.textContent = 'Écriture…';
@@ -2226,12 +2233,40 @@ function closeModal() { $('#modal').classList.remove('modal--on'); $('#modalBox'
 $('#modal').onclick = e => { if (e.target.id === 'modal') closeModal(); };
 
 // ---------- VALIDATION UI ----------
+// Un constat rattache a quelque chose (`ou` + `regle`, cf. validate.js) peut etre IGNORE :
+// il part dans DB.ignores avec la raison donnee, ne bloque plus « Appliquer au jeu », et
+// reste affiche en bas, en retrait, avec de quoi le retablir. `check-decks` lit la meme liste.
 function renderIssues() {
   const list = validate();
+  const actifs = list.filter(i => i.ignore === undefined);
+  const ignores = list.filter(i => i.ignore !== undefined);
   const panel = $('#issuesPanel');
   panel.style.display = list.length ? '' : 'none';
-  $('#issueCount').textContent = list.length + ' point(s)';
-  $('#issues').innerHTML = list.map(i => `<div class="issue ${i.bad ? 'issue--bad' : ''}">${esc(i.msg)}</div>`).join('');
+  $('#issueCount').textContent = actifs.length + ' point(s)' + (ignores.length ? ` · ${ignores.length} ignoré(s)` : '');
+  const ligne = (i, k) => {
+    const classe = i.ignore !== undefined ? 'issue--ignore' : i.bad ? 'issue--bad' : '';
+    const bouton = i.ignore !== undefined ? `<button class="issue__btn" data-retablir="${k}">Rétablir</button>`
+      : i.orphelin ? `<button class="issue__btn" data-retablir="${k}">Retirer</button>`
+      : i.ou && i.regle ? `<button class="issue__btn" data-ignorer="${k}" title="Ce constat n'en est pas un : ne plus le compter">Ignorer</button>` : '';
+    const pourquoi = i.ignore ? `<span class="issue__pourquoi">Ignoré : ${esc(i.ignore)}</span>` : '';
+    return `<div class="issue ${classe}"><span>${esc(i.msg)}${pourquoi}</span>${bouton}</div>`;
+  };
+  const tous = [...actifs, ...ignores];
+  $('#issues').innerHTML = tous.map(ligne).join('');
+  $('#issues').querySelectorAll('[data-ignorer]').forEach(b => b.onclick = () => {
+    const i = tous[b.dataset.ignorer];
+    const pourquoi = prompt('Pourquoi ignorer ce constat ? (gardé avec lui, relu par check-decks)\n\n' + i.msg, '');
+    if (pourquoi === null) return;
+    DB.ignores = [...(DB.ignores || []), { ou: i.ou, regle: i.regle, pourquoi: pourquoi.trim() }];
+    save(); renderIssues();
+  });
+  $('#issues').querySelectorAll('[data-retablir]').forEach(b => b.onclick = () => {
+    const i = tous[b.dataset.retablir];
+    const g = i.orphelin || { ou: i.ou, regle: i.regle };
+    DB.ignores = (DB.ignores || []).filter(x => !(x.ou === g.ou && x.regle === g.regle));
+    if (!DB.ignores.length) delete DB.ignores;
+    save(); renderIssues();
+  });
 }
 
 // ---------- RENDU GLOBAL ----------

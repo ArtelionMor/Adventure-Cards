@@ -13,3 +13,6 @@ android/.idea/
 *.apk
 # … sauf celle que l'Atelier propose au telechargement (scripts/build-widget.ps1)
 !builder/telechargements/widget-atelier.apk
+
+# Ce que sort le bouton « Exporter JSON » du builder, quand on le telecharge dans le repo
+game/data/adventure-card-data.json
