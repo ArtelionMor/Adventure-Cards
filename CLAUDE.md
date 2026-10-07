@@ -63,17 +63,11 @@ Sans Node, il se rabat sur son **serveur intégré** (le C# de `launcher/Launche
 7332+ — 7330 est à `devserver.js`, 7331 au renfort) : le jeu et le builder marchent,
 `/api/run` répond 404 et `builder/lancer.html` le dit.
 
-**L'Atelier installé par Chrome** (la PWA de `localhost:7330`) ne sait lancer aucun
-programme : seul, il tombe sur « site inaccessible ». Le raccourci **« Atelier »** du menu
-Démarrer, à épingler à sa place, lance `scripts/atelier.vbs` : il réutilise le serveur
-s'il répond (`/api/run`, même test que l'exe), sinon démarre `devserver.js` sans fenêtre
-sur 127.0.0.1 (journal : `%LOCALAPPDATA%\adventure-card-serveur.log`), puis ouvre l'app.
-Le serveur **reste ouvert** à la fermeture (Chrome ne dit pas quand une app se ferme).
-Le raccourci se crée — et son icône se change — avec
-`powershell -ExecutionPolicy Bypass -File scripts\raccourci-atelier.ps1 [-Icone x.ico]` ;
-il porte l'AppUserModelID de l'app Chrome, pour que la fenêtre se range sous l'icône
-épinglée. ⚠ Comme pour l'exe : après un `git pull` qui touche le serveur, il faut l'arrêter
-pour que le prochain lancement reprenne le code neuf.
+**L'Atelier installé par Chrome se prend sur le Pi** (`https://<machine>.<tailnet>.ts.net`,
+cf. « L'Atelier »), pas sur `localhost:7330` : une app web ne sait lancer aucun programme,
+et celle de `localhost` tombe sur « site inaccessible » dès qu'aucun serveur ne tourne sur
+le PC. Le Pi, lui, sert en permanence et se relance au démarrage. Conséquence à garder en
+tête : « Appliquer au jeu » écrit alors les cartes **sur le Pi**, à rapatrier par git.
 
 ⚠ **L'adresse est `localhost`, jamais `127.0.0.1`** : ce sont deux origines différentes
 pour un navigateur, donc deux `localStorage`. Le brouillon du builder, les réglages de

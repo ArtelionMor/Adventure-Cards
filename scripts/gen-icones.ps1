@@ -9,7 +9,6 @@
 #   atelier-apple-180    iOS remplit la transparence en noir : fond plein, comme le maskable ;
 #   atelier-badge-96     la petite icone de la barre d'etat Android : Android n'en lit QUE la
 #                        transparence, donc une silhouette blanche du logo.
-# Le raccourci Windows a son propre .ico : scripts\raccourci-atelier.ps1.
 param([string]$Logo = '')
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
