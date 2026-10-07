@@ -25,6 +25,8 @@
 //   node scripts/matchups.mjs 200 5 --taille 2      equipes de 2 (toutes les combinaisons)
 //   node scripts/matchups.mjs 200 5 --trio          equipes de 3 (= --taille 3)
 //   node scripts/matchups.mjs 200 5 --adversaires   les equipes contre les adversaires, et rien d'autre
+//   node scripts/matchups.mjs 200 5 --archetypes    type contre type : les 2 heros d'un type (dog + dog2)
+//                                                   + 1 heros au hasard hors de ce type, tire a chaque partie
 //   node scripts/matchups.mjs 200 5 --bots          compare les niveaux de bot entre eux
 //   node scripts/matchups.mjs 200 5 --csv sortie.csv   ecrit la matrice (une ligne par matchup)
 //   node scripts/matchups.mjs 200 5 --logs sortie.txt  ecrit un journal de partie par matchup
@@ -51,6 +53,8 @@ const TAILLE = Math.min(3, Math.max(1, Math.round(Number(valeurDe('--taille'))) 
 // « Contre les adversaires » : les equipes en lignes, les PNJ en colonnes, et rien
 // d'autre. Ni equipe contre equipe, ni PNJ contre PNJ — deux PNJ ne se rencontrent pas.
 const ADVERSAIRES = process.argv.includes('--adversaires');
+// Les types entre eux : les deux heros d'un type + un troisieme au hasard (voir plus bas).
+const ARCHETYPES = process.argv.includes('--archetypes');
 // Quelles cartes composent un deck de personnage : ses 5 cartes de base, ses 5 switch,
 // ou un melange retire a chaque partie — c'est ce dernier qui ressemble a un vrai deck.
 const MELANGE = process.argv.includes('--mix');
@@ -101,11 +105,29 @@ if (voulus) for (const id of voulus) if (!ids.includes(id)) {
 // camp eux-memes (un deck melange est une fabrique, et une fonction ne traverse pas un
 // postMessage).
 const typeDeck = MELANGE ? 'mix' : COTE === 'switches' ? 'switch' : 'base';
-const equipes = (voulus ? voulus.map(id => [id]) : combinaisons(ids, TAILLE))
+// « PAR TYPE » (--archetypes) : un type, ce sont ses heros — `dog` et sa deuxieme version
+// `dog2`. Chaque equipe aligne les DEUX heros d'un type, plus un troisieme tire au sort a
+// chaque partie parmi ceux des AUTRES types : c'est ce qu'apporte un archetype quand il
+// est double, quel que soit le coequipier. Le nom de ligne (« Médor&Croc&? ») ne porte
+// pas de « + » : la lecture des versions (kpi.mjs) le prendrait pour trois heros.
+const typeDe = id => id.replace(/\d+$/, '');
+const equipes = ARCHETYPES
+  ? [...new Set(ids.map(typeDe))]
+    .map(t => ids.filter(id => typeDe(id) === t))
+    .filter(duo => duo.length === 2)
+    .map(duo => {
+      const recette = { type: typeDeck, ids: duo, niveau: NIVEAU, hasard: ids.filter(id => typeDe(id) !== typeDe(duo[0])) };
+      return { ids: duo, nom: duo.map(id => CHARACTERS.find(c => c.id === id).name).join('&') + '&?', recette, cfg: camp(recette) };
+    })
+  : (voulus ? voulus.map(id => [id]) : combinaisons(ids, TAILLE))
   .map(equipe => {
     const recette = { type: typeDeck, ids: equipe, niveau: NIVEAU };
     return { ids: equipe, nom: equipe.map(id => CHARACTERS.find(c => c.id === id).name).join('+'), recette, cfg: camp(recette) };
   });
+if (ARCHETYPES && equipes.length < 2) {
+  console.log('\nIl faut au moins deux types qui ont chacun deux heros (« dog » et « dog2 ») pour --archetypes.\n');
+  process.exit(1);
+}
 
 // Les adversaires du jeu entrent dans la matrice comme n'importe quel deck : c'est la
 // seule facon de savoir si une rencontre est a sa place.
@@ -163,7 +185,8 @@ if (DUEL_DE_BOTS) {
 
 // ---------------------------------------------------------------- la matrice
 const quoi = (MELANGE ? 'decks melanges base/switch' : COTE === 'switches' ? 'decks tout-switch' : 'decks de base')
-  + (TAILLE > 1 ? `, equipes de ${TAILLE}` : '') + (ADVERSAIRES ? ', contre les adversaires' : '');
+  + (ARCHETYPES ? ', equipes de 3 (les 2 heros d\'un type + 1 au hasard hors de ce type)'
+    : TAILLE > 1 ? `, equipes de ${TAILLE}` : '') + (ADVERSAIRES ? ', contre les adversaires' : '');
 console.log(`\nMatchups — ${PARTIES} parties par paire, niveau ${NIVEAU}, ${quoi}, bot « ${REFERENCE} », ${JOBS} en parallele.`);
 if (MELANGE) console.log(gris('Chaque partie retire un slot sur deux : le taux est la moyenne sur tous les decks montables.'));
 if (FORT) console.log(gris('Reference Monte-Carlo : lente, mais elle joue les cartes pour ce qu\'elles valent.'));

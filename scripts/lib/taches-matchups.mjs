@@ -6,8 +6,17 @@
 // postMessage. Meme principe, et memes fonctions d'arene, que builder/balance-worker.js.
 import { campPerso, campMelange, campPnj, serie } from '../../game/src/tools/arene.js';
 
-/** Le camp decrit par une recette. Le script principal s'en sert aussi, pour les noms. */
+/** Le camp decrit par une recette. Le script principal s'en sert aussi, pour les noms.
+ *  `hasard` (une liste d'ids) ajoute UN heros de plus, tire au sort a chaque partie : la
+ *  recette devient une fabrique, comme un deck melange, et le taux est la moyenne sur
+ *  tous les coequipiers possibles (`--archetypes`). */
 export function camp(r) {
+  if (r.hasard && r.hasard.length) {
+    return () => {
+      const c = camp({ ...r, ids: [...r.ids, r.hasard[Math.floor(Math.random() * r.hasard.length)]], hasard: null });
+      return typeof c === 'function' ? c() : c;
+    };
+  }
   if (r.type === 'pnj') return campPnj(r.ids[0]);
   if (r.type === 'mix') return campMelange(r.ids, r.niveau);
   return campPerso(r.ids, r.niveau, r.type === 'switch' ? 'switches' : 'cards');
