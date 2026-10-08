@@ -85,14 +85,17 @@ img { image-rendering: auto; }
 }
 .world-hint.on { opacity: 1; }
 
+/* La manette est FLOTTANTE : le JS la pose (left/top) sous le doigt et la cache au relache.
+   Son rayon (62 px) est repris tel quel par `RAYON` dans ui/overworld.js. Elle ne recoit
+   aucun toucher : c'est le canvas qui ecoute, la manette n'est que le dessin. */
 .joystick {
-  position: absolute; left: 18px; bottom: 18px; width: 108px; height: 108px;
-  border-radius: 50%; background: rgba(255,255,255,.06); border: 1px solid var(--line);
-  touch-action: none;
+  position: absolute; width: 124px; height: 124px; box-sizing: border-box;
+  border-radius: 50%; background: rgba(255,255,255,.07); border: 1.5px solid rgba(255,255,255,.28);
+  pointer-events: none; z-index: 5;
 }
 .joystick i {
   position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px;
-  border-radius: 50%; background: rgba(255,255,255,.22);
+  border-radius: 50%; background: rgba(255,255,255,.34);
 }
 .interact {
   position: absolute; right: 20px; bottom: 40px; background: var(--accent); color: #3a2a10;
@@ -178,7 +181,8 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .overlay { position: absolute; inset: 0; background: rgba(10,8,15,.94); z-index: 20; display: flex; flex-direction: column; }
 #battle { padding: 0; }
 .bt-side { display: grid; gap: 6px; padding: 8px 10px; }
-.bt-hero { display: flex; align-items: center; gap: 8px; }
+.bt-hero { display: flex; align-items: center; gap: 8px; position: relative; border-radius: 12px; }
+.bt-hero .hnm { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .bt-hero img { width: 42px; height: 42px; object-fit: contain; }
 .hpbar { flex: 1; height: 14px; background: #3a1f26; border-radius: 8px; overflow: hidden; position: relative; }
 .hpbar i { display: block; height: 100%; background: linear-gradient(90deg, #ff5f6d, #ff9a6b); }
@@ -224,7 +228,6 @@ button.btn:disabled { opacity: .4; cursor: default; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 3px rgba(255,196,107,.55); } }
 .unit .kw { font-size: 9px; color: var(--ink-dim); }
 
-.bt-log { flex: 1 1 0; min-height: 48px; overflow-y: auto; padding: 6px 12px; font-size: 11px; color: var(--ink-dim); display: grid; gap: 2px; align-content: end; }
 .bt-hand { display: flex; gap: 6px; padding: 8px; overflow-x: auto; background: var(--bg2); border-top: 1px solid var(--line); }
 .hcard {
   min-width: 92px; max-width: 92px; background: linear-gradient(180deg, var(--panel2), var(--panel));
@@ -244,11 +247,125 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .autochip { font-size: 11px; padding: 6px 10px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); cursor: pointer; }
 .autochip.on { background: var(--accent2); color: #0d2c1d; font-weight: 700; }
 
+/* ---------- les gestes : tap = agir, appui long = lire ---------- */
+/* Seul le noeud EXTERNE recoit le toucher : ses enfants sont redessines (une unite change de
+   chiffres), et un enfant touche disparaitrait sous le doigt (cf. `monteLaCoque`, ui/battle.js).
+   Le menu du navigateur (« enregistrer l'image ») est coupe : l'appui long est a nous. */
+[data-geste] { touch-action: manipulation; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.unit > *, .hcard > *, .zcard > *, .bt-hero > * { pointer-events: none; }
+.bt-hand { touch-action: pan-x; }
+
+/* ---------- l'action engagee : le masque noir ---------- */
+/* Tout s'eteint sauf l'acteur et ses cibles, qui restent en couleur et contoures. C'est un
+   filtre par element et non un calque : les unites vivent dans un bloc mis a l'echelle
+   (`.bwrap`), et un element ne peut pas passer AU-DESSUS d'un calque quand son parent a une
+   transformation. */
+.bt-mid { position: relative; flex: 1 1 0; min-height: 48px; display: flex; flex-direction: column; }
+.bt-bandeau { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 6; max-width: 92%; text-align: center; background: rgba(10,8,15,.94); border: 1px solid var(--accent); border-radius: 14px; padding: 6px 14px; font-size: 13px; font-weight: 600; pointer-events: none; }
+.bt-bandeau small { display: block; font-size: 11px; font-weight: 400; color: var(--ink-dim); }
+#battle.spot .bt-bandeau { display: block; }
+#battle [data-geste], #battle .bt-bar { transition: filter .15s; }
+#battle.spot [data-geste]:not(.lit), #battle.spot .bt-bar { filter: brightness(.22) saturate(.2); }
+#battle.spot .lit { filter: none; outline: 2px solid var(--accent); outline-offset: 1px; position: relative; z-index: 2; box-shadow: 0 0 14px rgba(255,196,107,.6); }
+#battle.spot .lit.acteur { outline-color: var(--accent2); box-shadow: 0 0 14px rgba(127,214,166,.6); }
+#battle.spot .lit:not(.acteur) { animation: halo 1s ease-in-out infinite; }
+@keyframes halo { 50% { box-shadow: 0 0 0 4px rgba(255,196,107,.4), 0 0 20px rgba(255,196,107,.85); } }
+
+/* L'apercu sous chaque cible : ce qu'il lui arriverait (ui/apercu.js). */
+.pv { font-size: 11px; font-weight: 700; line-height: 1.2; }
+.pv:empty { display: none; }
+.pv .l1, .pv .l2 { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.pv .bon { color: var(--accent2); }
+.pv .mal { color: var(--danger); }
+.pv img.mort { width: 16px; height: 16px; object-fit: contain; }
+/* En HAUT de la vignette, sur le dessin : les chiffres et les mots-cles du bas restent lisibles. */
+.unit .pv { position: absolute; left: 2px; right: 2px; top: 2px; z-index: 3; display: grid; gap: 1px; justify-items: center; padding: 3px 2px; border-radius: 7px; background: rgba(10,8,15,.94); }
+.bt-hero .pv { display: inline-flex; gap: 8px; align-items: center; padding: 1px 8px; border-radius: 8px; background: rgba(10,8,15,.94); }
+
+/* La lecture (appui long) : flotte au-dessus de tout et ne recoit aucun toucher — le doigt qui
+   lit reste sur sa carte, et la lecture se ferme quand il se leve. */
+.lecture { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(8,6,12,.72); pointer-events: none; }
+.lecture .sheet { box-shadow: 0 0 0 1px var(--accent); }
+.lecture .sheet > .src { color: var(--ink-dim); font-size: 11px; text-align: center; }
+
+/* ---------- les icones (ui/icones.js) ---------- */
+/* Un fichier `Icons/<Nom>.png` quand il existe, un signe de remplacement sinon. */
+.ico { width: var(--s, 20px); height: var(--s, 20px); object-fit: contain; display: inline-block; vertical-align: middle; flex: none; }
+.ico.g { display: inline-flex; align-items: center; justify-content: center; font-size: calc(var(--s, 20px) * .8); line-height: 1; color: var(--accent); font-style: normal; }
+
+/* ---------- le bouton du journal, dans la barre ---------- */
+.ib { position: relative; width: 42px; height: 42px; padding: 0; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line); color: var(--ink); display: flex; align-items: center; justify-content: center; cursor: pointer; flex: none; }
+.ib .bdg { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; background: var(--danger); color: #2a0e12; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+
+/* ---------- le journal graphique (ui/journal.js) ---------- */
+/* Un panneau qui tient entre le heros adverse et la barre (le JS lui donne `top` et `bottom`), ouvert par
+   l'icone de la barre. Chaque racine d'evenements est une SCENE ; ses consequences s'y rangent en retrait. */
+.jr { position: absolute; left: 0; right: 0; top: 58px; bottom: 56px; z-index: 7; background: #1c1626; border-top: 2px solid var(--line); border-bottom: 2px solid var(--line); display: flex; flex-direction: column; }
+.revue { position: absolute; inset: 0; z-index: 35; background: var(--bg); }
+.revue > .jr { top: 0; bottom: 0; border: 0; }
+.jr-tete { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: var(--bg2); border-bottom: 1px solid var(--line); flex: none; }
+.jr-tete h4 { flex: 1 1 100%; margin: 0; font-size: 15px; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.jr-onglets { display: flex; gap: 6px; }
+.jr-onglets button { font: inherit; font-size: 12px; padding: 6px 12px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); color: var(--ink); cursor: pointer; }
+.jr-onglets button.on { background: var(--accent); border-color: var(--accent); color: #3a2a10; font-weight: 700; }
+.jr-extra { display: flex; gap: 8px; align-items: center; margin-left: auto; font-size: 12px; }
+.jr-extra .rec { color: #e05a5a; }
+.jr-dl { font: inherit; font-size: 12px; padding: 5px 9px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--line); color: var(--ink-dim); cursor: pointer; }
+.jr-x { width: 36px; height: 36px; padding: 0; border-radius: 10px; background: var(--panel2); border: 1px solid var(--line); color: var(--ink); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.jr-corps { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+.jr-corps.f-p .jr-s[data-camp="e"], .jr-corps.f-e .jr-s[data-camp="p"] { display: none; }
+.jr-s { background: var(--panel); border: 1px solid var(--line); border-left: 6px solid var(--ally); border-radius: 14px; padding: 8px; flex: none; }
+.jr-s[data-camp="e"] { border-left-color: var(--danger); }
+.jr-s.r-tour, .jr-s.r-fin { background: none; border: 0; padding: 4px 2px 0; }
+.jr-tour { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-dim); border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.jr-tour small { margin-left: auto; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--mana); }
+.jr-tour .jr-sp { width: 28px; height: 28px; }
+.jr-fin { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 800; padding: 10px; border-radius: 14px; border: 2px solid var(--line); }
+.jr-fin small { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--ink-dim); }
+.jr-fin.gagne { border-color: var(--accent2); color: var(--accent2); }
+.jr-fin.perdu { border-color: var(--danger); color: var(--danger); }
+/* Le duel : deux panneaux et les epees. Le cout en haut a droite, l'attaque en bas a gauche, la vie
+   en bas a droite — l'ancienne barree, la nouvelle en rouge dessous (la maquette du game designer). */
+.jr-duel { display: flex; align-items: center; gap: 4px; }
+.jr-u { position: relative; flex: 1 1 0; max-width: 130px; aspect-ratio: 5 / 6; background: var(--panel2); border: 2px solid var(--line); border-radius: 12px; overflow: hidden; }
+.jr-u .jr-sp { position: absolute; left: 50%; top: 14%; width: 58%; height: 50%; transform: translateX(-50%); }
+.jr-u .nm { position: absolute; left: 7px; top: 4px; max-width: 62%; font-size: 11px; line-height: 1.15; color: var(--ink-dim); }
+.jr-u .co { position: absolute; top: 3px; right: 8px; font-size: 17px; font-weight: 800; color: var(--mana); }
+.jr-u .a { position: absolute; left: 9px; bottom: 4px; font-size: 26px; font-weight: 800; color: var(--accent); }
+.jr-u .h { position: absolute; right: 9px; bottom: 3px; display: grid; justify-items: center; line-height: 1.02; }
+.jr-u .h s { font-size: 16px; color: var(--ink-dim); text-decoration-color: var(--danger); text-decoration-thickness: 2px; }
+.jr-u .h b { font-size: 26px; font-weight: 800; color: var(--danger); }
+.jr-u .h em { font-size: 26px; font-style: normal; font-weight: 800; color: var(--ink); }
+.jr-u.mort .jr-sp { filter: grayscale(1) brightness(.55); }
+.jr-u .dead { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(16,10,22,.45); }
+.jr-u .bq { position: absolute; left: 7px; top: 38%; }
+.jr-mid { flex: none; width: 54px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+/* Les lignes, et leurs consequences en retrait. */
+.jr-l { font-size: 13px; line-height: 1.4; color: var(--ink); }
+.jr-l small { font-size: 12px; color: var(--ink-dim); }
+.jr-t { display: flex; align-items: center; gap: 8px; }
+.jr-t > span { min-width: 0; }
+.jr-sous { margin: 6px 0 0 12px; padding-left: 10px; border-left: 2px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.jr-joue { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.jr-joue .fl { color: var(--ink-dim); font-size: 18px; }
+.jr-s .mal { color: var(--danger); font-weight: 800; }
+.jr-s .bien { color: var(--accent2); font-weight: 800; }
+.puce { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); font-size: 11px; color: var(--ink-dim); white-space: nowrap; }
+.puce.plus { color: var(--accent); border-color: var(--accent); }
+.jr-mc { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; background: var(--bg); border: 1px solid var(--line); border-top: 3px solid var(--ally); border-radius: 9px; padding: 2px 8px 2px 4px; }
+.jr-mc.sort { border-top-color: var(--spell); }
+.jr-mc.cache { border-top-color: var(--line); color: var(--ink-dim); }
+.jr-mc i { width: 20px; height: 20px; border-radius: 50%; background: var(--mana); color: #06203a; font-style: normal; font-weight: 800; font-size: 12px; display: flex; align-items: center; justify-content: center; flex: none; }
+.jr-sp { width: 24px; height: 24px; object-fit: contain; flex: none; }
+.jr-mu { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
+
 /* ---------- la defausse, et sa fenetre de zone ---------- */
 /* « Defausse N » est un bouton : discret, sauf quand un sort a Reprise attend d'etre relance. */
 .zlink { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
-.zlink.pret { color: var(--accent); font-weight: 700; text-decoration-style: solid; animation: pulse 1.6s ease-in-out infinite; }
-@keyframes pulse { 50% { opacity: .55; } }
+.zlink.pret { color: var(--accent); font-weight: 700; text-decoration-style: solid; animation: fondu 1.6s ease-in-out infinite; }
+/* Ce nom n'est PAS « pulse » : deux @keyframes du meme nom, la derniere ecrase la premiere, et
+   les unites ciblables (`pulse`, plus haut) clignotaient alors en opacite au lieu d'avoir un halo. */
+@keyframes fondu { 50% { opacity: .55; } }
 
 /* La fenetre de zone (ui/zone.js) : ce qui est pertinent est eclaire, le reste grise. */
 .zone { display: grid; gap: 12px; }

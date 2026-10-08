@@ -11,6 +11,12 @@ import { botAction } from '../combat/ai.js';
 import { joue as joueLeCoup, ouvreJournal, fermeJournal, nomDeFichier } from '../combat/journal.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
 import { ouvreZone } from './zone.js';
+import { installeGestes } from './gestes.js';
+import { apercuAttaque, apercuCarte, pilule } from './apercu.js';
+import { creeJournal } from './journal.js';
+import { icone } from './icones.js';
+import { gardeCombat } from './combats.js';
+import { ouvreRevue } from './revue.js';
 
 let B = null;
 let auto = true;
@@ -21,13 +27,23 @@ let selChoix = null;  // la branche choisie sur une carte « Choisir », en atte
 let selUnit = null;   // uid d'une unite prete
 let onDone = null;
 let ctx = null;
-// L'unite dont la fiche est ouverte, ou null. On la garde par identifiant et non par
-// reference : le combat continue derriere la fiche (mode auto), donc elle se redessine
-// a chaque render() et se ferme d'elle-meme si l'unite meurt.
-let insp = null;   // { side, uid }
+// Ce que le doigt est en train de LIRE (appui long), ou null : { kind: 'unit', side, uid } ou
+// { kind: 'carte', carte, camp }. Comme la fenetre de zone, la lecture se redessine a chaque
+// render() : maintenue pendant le mode auto, elle suit le combat au lieu de mentir.
+let lecture = null;
 // La fenetre de la defausse est-elle ouverte ? Comme la fiche, elle se redessine a chaque
 // render() : ouverte pendant le mode auto, elle suit le combat au lieu de mentir.
 let zoneOuverte = false;
+// Ce que la fenetre de zone montre en ce moment (sa signature, ses groupes) : on ne la
+// redessine QUE si cela a change — un doigt pose sur une carte ne doit pas la voir remplacee.
+let zoneSig = null;
+let zoneGroupes = [];
+// Les noeuds de l'ecran qui ne bougent pas pendant un combat (voir `monteLaCoque`).
+let coque = null;
+// L'apercu de chaque cible possible du coup engage : « camp:uid » -> { cible, acteur }.
+// Vide tant qu'aucune action n'est engagee (voir ui/apercu.js).
+let apercus = new Map();
+let gestesPoses = false;
 // Le fichier JSONL du dernier combat enregistre, garde jusqu'a l'ecran de resultat :
 // c'est la qu'on le telecharge (le journal est ferme des que le combat l'est).
 let dernierJournal = null;
@@ -81,11 +97,20 @@ export function openBattle(node, done) {
   onDone = done;
   selCard = selUnit = null;
   selZone = 'main';
+  selChoix = null;
   zoneOuverte = false;
-  fermeFiche();
+  zoneSig = null;
+  zoneGroupes = [];
+  apercus = new Map();
+  coque = null;
+  fermeLecture();
+  poseLesGestes();
+  closeModal();
   auto = true;
   dernierJournal = null;
-  B = createBattle(buildPlayerSide(), buildEnemySide(node.enemy), { node });
+  // `evenements` : le combat se raconte en donnees (combat/evenements.js), c'est ce que lit le
+  // journal graphique. Seul le jeu l'allume — ni le bot, ni les simulations n'en paient le prix.
+  B = createBattle(buildPlayerSide(), buildEnemySide(node.enemy), { node, evenements: true });
   if (enregistreLesCombats()) {
     const enc = ENCOUNTERS[node.enemy] || {};
     ouvreJournal(B, {
@@ -145,145 +170,257 @@ function moments(x) {
   return out;
 }
 
-function unitNode(u, side) {
-  const n = el(`
-    <div class="unit ${hasKey(u.keys, 'Taunt') ? 'taunt' : ''} ${side === 'p' && u.canAttack && u.atk > 0 ? 'ready' : ''}"
-         data-uid="${u.uid}" data-side="${side}">
+// LES NOEUDS QUI NE BOUGENT PAS. L'ecran ne se reconstruit plus a chaque pas : le heros, les
+// plateaux, la main et la barre sont crees UNE FOIS par combat (`monteLaCoque`), puis
+// `render()` ne fait que les mettre a jour — une unite garde son noeud tant qu'elle est la
+// (`syncListe`), et son contenu n'est retouche que s'il a change. C'est ce qui garde le
+// defilement de la main entre deux pas du mode auto, et c'est ce qui laisse un doigt pose
+// sur une unite la toucher encore 750 ms plus tard : les enfants d'une unite ou d'une carte
+// ne recoivent aucun toucher (`pointer-events: none`), le noeud touche est toujours le
+// noeud externe, qui ne disparait pas.
+/**
+ * Met `liste` en correspondance avec les enfants de `wrap`, dans l'ordre : un noeud par
+ * element (retrouve par `cle`), cree s'il manque, retire s'il n'y a plus d'element.
+ * `maj(noeud, element, rang)` redit l'etat du noeud.
+ */
+function syncListe(wrap, liste, cle, cree, maj) {
+  const noeuds = wrap._n || (wrap._n = new Map());
+  const vus = new Set();
+  let prec = null;
+  liste.forEach((x, rang) => {
+    const k = cle(x);
+    let n = noeuds.get(k);
+    if (!n) { n = cree(x); noeuds.set(k, n); }
+    maj(n, x, rang);
+    // On ne deplace un noeud que s'il n'est pas deja a sa place : le deplacer coupe parfois
+    // le geste d'un doigt pose dessus.
+    const attendu = prec ? prec.nextSibling : wrap.firstChild;
+    if (attendu !== n) wrap.insertBefore(n, attendu);
+    prec = n;
+    vus.add(k);
+  });
+  for (const [k, n] of noeuds) if (!vus.has(k)) { n.remove(); noeuds.delete(k); }
+}
+
+function majUnite(n, u, side) {
+  n.dataset.side = side;
+  n.dataset.uid = u.uid;
+  const ap = pilule(apercus.get(`${side}:${u.uid}`));
+  const sig = [u.sprite || '', u.atk, u.hp, u.keys.join(','), moments(u).length ? 1 : 0, ap].join('|');
+  if (n._sig !== sig) {
+    n._sig = sig;
+    n.innerHTML = `
       ${u.sprite ? `<img src="${asset(u.sprite)}" alt="">` : '<img alt="">'}
       <div class="s"><span class="a">${u.atk}</span> / <span class="h">${u.hp}</span></div>
       ${u.keys.length ? `<div class="kw">${u.keys.map(keyLabel).join(' ')}</div>` : ''}
       ${moments(u).length ? `<div class="kw" style="color:var(--accent2)">◆</div>` : ''}
-    </div>`);
-  if (selUnit === u.uid) n.classList.add('sel');
-  return n;
+      ${ap ? `<div class="pv">${ap}</div>` : ''}`;
+  }
+  n.classList.toggle('taunt', hasKey(u.keys, 'Taunt'));
+  n.classList.toggle('ready', side === 'p' && u.canAttack && u.atk > 0);
+  n.classList.toggle('sel', selUnit === u.uid);
 }
 
-function heroNode(s, k) {
+function heroNode(k) {
+  const n = el(`
+    <div class="bt-hero" data-geste="hero" data-side="${k}" data-uid="hero">
+      <img alt="">
+      <div style="flex:1">
+        <div class="hnm"><span class="hn"></span><span class="pv"></span></div>
+        <div class="hpbar"><i></i><b></b></div>
+      </div>
+      <div class="manapips"></div>
+    </div>`);
+  return {
+    n, img: n.querySelector('img'), nom: n.querySelector('.hn'), pv: n.querySelector('.pv'),
+    fill: n.querySelector('.hpbar i'), txt: n.querySelector('.hpbar b'), pips: n.querySelector('.manapips')
+  };
+}
+
+function majHero(h, s, k) {
   const pct = Math.max(0, s.hp / s.maxHp * 100);
+  const src = asset(s.sprite);
+  if (h.img.getAttribute('src') !== src) h.img.setAttribute('src', src);
+  h.nom.textContent = `${s.name} ${s.armor ? '🛡' + s.armor : ''}${s.nextMana ? ' ⧗+' + s.nextMana : ''}`;
+  h.fill.style.width = `${pct}%`;
+  h.txt.textContent = `${Math.max(0, s.hp)} / ${s.maxHp}`;
   // Le mana peut depasser le plafond (mana promis au tour precedent) : on affiche
   // alors les cristaux en trop plutot que de les faire disparaitre.
-  const pips = Array.from({ length: Math.max(s.manaCap, s.mana) }, (_, i) =>
-    `<i class="pip ${i < s.mana ? 'on' : ''}"></i>`).join('');
-  return el(`
-    <div class="bt-hero" data-side="${k}" data-uid="hero">
-      <img src="${asset(s.sprite)}" alt="">
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:600">${s.name} ${s.armor ? '🛡' + s.armor : ''}${s.nextMana ? ' ⧗+' + s.nextMana : ''}</div>
-        <div class="hpbar"><i style="width:${pct}%"></i><b>${Math.max(0, s.hp)} / ${s.maxHp}</b></div>
-      </div>
-      <div class="manapips">${pips}</div>
-    </div>`);
+  const n = Math.max(s.manaCap, s.mana);
+  const sigPips = `${n}:${s.mana}`;
+  if (h.sigPips !== sigPips) {
+    h.sigPips = sigPips;
+    h.pips.innerHTML = Array.from({ length: n }, (_, i) => `<i class="pip ${i < s.mana ? 'on' : ''}"></i>`).join('');
+  }
+  const ap = pilule(apercus.get(`${k}:hero`));
+  if (h.sigPv !== ap) { h.sigPv = ap; h.pv.innerHTML = ap; }
 }
 
-function handNode() {
-  const wrap = el('<div class="bt-hand"></div>');
-  B.p.hand.forEach((c, i) => {
-    const ok = canPlay(B, 'p', c) && B.turn === 'p' && !auto;
-    // Le cout affiche est celui qu'on va vraiment payer : le mot-cle « Cout X de
-    // moins/de plus » peut le faire bouger d'un tour a l'autre, on le signale.
-    const cout = cardCost(c, B, 'p');
-    const n = el(`
-      <div class="hcard ${c.type === 'spell' ? 'spell' : ''} ${ok ? '' : 'no'} ${selCard === i && selZone === 'main' ? 'sel' : ''}">
-        <div class="cost" ${cout !== c.cost ? `title="coût de base ${c.cost}" style="color:var(--accent2)"` : ''}>${cout}</div>
-        ${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}
-        <div class="nm">${c.name}</div>
-        <div class="tx">${c.text || ''}</div>
-        ${moments(c).length ? `<div class="tx" style="color:var(--accent2)">◆ ${moments(c).join(' · ')}</div>` : ''}
-        ${c.type === 'ally' ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}
-      </div>`);
-    n.onclick = () => onCardClick(i);
-    wrap.appendChild(n);
-  });
-  return wrap;
+function majCarte(n, c, i) {
+  n.dataset.i = i;
+  const ok = canPlay(B, 'p', c) && B.turn === 'p' && !auto;
+  // Le cout affiche est celui qu'on va vraiment payer : le mot-cle « Cout X de
+  // moins/de plus » peut le faire bouger d'un tour a l'autre, on le signale.
+  const cout = cardCost(c, B, 'p');
+  const sig = [c.name, cout, c.cost, c.sprite || '', c.text || '', c.type, c.atk, c.hp, moments(c).join('·')].join('|');
+  if (n._sig !== sig) {
+    n._sig = sig;
+    n.innerHTML = `
+      <div class="cost" ${cout !== c.cost ? `title="coût de base ${c.cost}" style="color:var(--accent2)"` : ''}>${cout}</div>
+      ${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}
+      <div class="nm">${c.name}</div>
+      <div class="tx">${c.text || ''}</div>
+      ${moments(c).length ? `<div class="tx" style="color:var(--accent2)">◆ ${moments(c).join(' · ')}</div>` : ''}
+      ${c.type === 'ally' ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}`;
+  }
+  n.classList.toggle('spell', c.type === 'spell');
+  n.classList.toggle('no', !ok);
+  n.classList.toggle('sel', selCard === i && selZone === 'main');
 }
 
-function render() {
-  const root = $('#battle');
+function plateauNode(id) {
+  return el(`<div class="board" id="${id}"><div class="bwrap"></div></div>`);
+}
+
+/** Construit, une fois par combat, tout ce qui ne bouge pas. */
+function monteLaCoque(root) {
   root.innerHTML = '';
+  const c = {};
+  const haut = el('<div class="bt-side"></div>');
+  c.heroE = heroNode('e');
+  haut.appendChild(c.heroE.n);
+  root.appendChild(haut);
 
-  const top = el('<div class="bt-side"></div>');
-  top.appendChild(heroNode(B.e, 'e'));
-  root.appendChild(top);
+  c.boardE = plateauNode('boardE');
+  root.appendChild(c.boardE);
 
-  const eb = plateauNode(B.e.board, 'e', 'boardE');
-  root.appendChild(eb);
-
-  const log = el('<div class="bt-log"></div>');
-  B.log.slice(-40).forEach(l => log.appendChild(el(`<div>${l}</div>`)));
-  root.appendChild(log);
+  // La zone entre les deux plateaux : elle porte le bandeau d'instruction (l'action engagee) et
+  // ne recouvre ni l'acteur, ni les cibles. Le journal n'est plus du texte qui mange un tiers de
+  // l'ecran : il a son panneau, qu'on ouvre avec l'icone de la barre (ui/journal.js).
+  c.mid = el('<div class="bt-mid"></div>');
+  root.appendChild(c.mid);
+  c.journal = creeJournal({
+    evts: () => B.evts,
+    heros: { p: { sprite: B.p.sprite }, e: { sprite: B.e.sprite } },
+    revele: false,   // en direct, on ne voit pas ce que l'adversaire a en main
+    onFerme: () => { if (coque) majBarre(); }
+  });
   // Enregistrement en cours : le joueur doit le SAVOIR, une partie ne s'enregistre pas
-  // dans son dos. Le point rouge reste visible tout le combat.
-  if (B.journal) root.appendChild(el('<div class="src" style="align-self:flex-end;color:#e05a5a">⏺ combat enregistré</div>'));
-  // Le journal complet, telechargeable : l'ecran n'en montre que la fin, et c'est
-  // justement le debut du combat qu'on relit quand on cherche a comprendre.
-  const dl = el('<button class="btn ghost" style="font-size:11px;padding:4px 10px;align-self:flex-end">⬇ journal</button>');
+  // dans son dos. Le point rouge reste dans l'en-tete du journal.
+  if (B.journal) c.journal.extra(el('<span class="rec" title="Ce combat est enregistré (journal de décisions)">⏺</span>'));
+  // Le journal en TEXTE, telechargeable : c'est l'outil du game designer, plus celui du joueur.
+  const dl = el('<button class="jr-dl" title="Télécharger le journal en texte">⬇ texte</button>');
   dl.onclick = () => {
     const texte = [`${B.p.name} contre ${B.e.name} — tour ${B.turnNo}`,
       `PV ${B.p.hp}/${B.p.maxHp} contre ${B.e.hp}/${B.e.maxHp}`, ''].concat(B.log).join('\n');
-    const url = URL.createObjectURL(new Blob(['\ufeff' + texte], { type: 'text/plain;charset=utf-8' }));
+    const url = URL.createObjectURL(new Blob(['﻿' + texte], { type: 'text/plain;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;
     a.download = `combat-${B.e.name.replace(/\s+/g, '-')}.txt`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   };
-  root.appendChild(dl);
+  c.journal.extra(dl);
+  root.appendChild(c.journal.n);
 
-  const pb = plateauNode(B.p.board, 'p', 'boardP');
-  root.appendChild(pb);
+  c.boardP = plateauNode('boardP');
+  root.appendChild(c.boardP);
 
-  const bot = el('<div class="bt-side"></div>');
-  bot.appendChild(heroNode(B.p, 'p'));
-  root.appendChild(bot);
+  const bas = el('<div class="bt-side"></div>');
+  c.heroP = heroNode('p');
+  bas.appendChild(c.heroP.n);
+  root.appendChild(bas);
 
-  root.appendChild(handNode());
+  c.main = el('<div class="bt-hand"></div>');
+  root.appendChild(c.main);
 
-  // Des sorts a REPRISE a relancer maintenant : le bouton de la defausse le dit, sinon on
-  // ne penserait pas a l'ouvrir. A ton tour et en mode manuel seulement — sinon rien ne se
-  // joue d'un clic.
-  const nbReprises = !auto && B.turn === 'p' && !B.over ? reprisesPossibles(B, 'p').length : 0;
-  const bar = el(`
+  c.bar = el(`
     <div class="bt-bar">
-      <div class="autochip ${auto ? 'on' : ''}" id="autoChip">${auto ? '▶ Auto' : '✋ Manuel'}</div>
-      <div class="grow muted">Pioche ${B.p.deck.length} · <button class="zlink ${nbReprises ? 'pret' : ''}" id="defBtn" title="Voir la défausse">Défausse ${B.p.discard.length}${nbReprises ? ' ↺' + nbReprises : ''}</button> · Tour ${Math.ceil(B.turnNo / 2)}</div>
-      <button class="btn" id="endTurn" ${B.turn === 'p' && !auto ? '' : 'disabled'}>Fin du tour</button>
+      <div class="autochip" id="autoChip"></div>
+      <button class="ib" id="logBtn" aria-label="Journal du combat">${icone('Log', 24)}<b class="bdg hidden"></b></button>
+      <div class="grow muted"><span class="npioche"></span> · <button class="zlink" id="defBtn" title="Voir la défausse"></button> · <span class="ntour"></span></div>
+      <button class="btn" id="endTurn">Fin du tour</button>
     </div>`);
-  root.appendChild(bar);
-
-  bar.querySelector('#defBtn').onclick = ouvreDefausse;
-  bar.querySelector('#autoChip').onclick = () => {
+  root.appendChild(c.bar);
+  c.chip = c.bar.querySelector('#autoChip');
+  c.def = c.bar.querySelector('#defBtn');
+  c.fin = c.bar.querySelector('#endTurn');
+  c.npioche = c.bar.querySelector('.npioche');
+  c.ntour = c.bar.querySelector('.ntour');
+  c.logBtn = c.bar.querySelector('#logBtn');
+  c.badge = c.bar.querySelector('.bdg');
+  c.logBtn.onclick = () => {
+    reinitSelection();
+    c.journal.bascule();
+    render();
+  };
+  c.def.onclick = ouvreDefausse;
+  c.chip.onclick = () => {
     auto = !auto;
-    selCard = selUnit = null;
+    reinitSelection();
     render();
     loop();
   };
-  bar.querySelector('#endTurn').onclick = () => {
-    selCard = selUnit = null;
+  c.fin.onclick = () => {
+    reinitSelection();
     joueLeCoup(B, 'p', { type: 'end' }, 'humain');
     render();
     loop();
   };
 
-  // clics de ciblage / attaque
-  root.querySelectorAll('[data-uid]').forEach(n => {
-    n.addEventListener('click', () => onTargetClick(n.dataset.side, n.dataset.uid));
-  });
-  highlightTargets(root);
-  log.scrollTop = log.scrollHeight;
-  // Les vignettes ne sont mises a l'echelle qu'une fois tout l'ecran en place : c'est
-  // la hauteur reellement laissee au plateau par les autres blocs qui decide.
-  ajustePlateau(eb);
-  ajustePlateau(pb);
-  // La fiche ouverte suit le combat plutot que de montrer un etat perime.
-  renderInspect();
-  renderZone();
+  // Le bandeau qui dit ce qu'on attend du joueur pendant une action engagee.
+  c.bandeau = el('<div class="bt-bandeau"></div>');
+  c.mid.appendChild(c.bandeau);
+  coque = c;
 }
 
-function plateauNode(board, side, id) {
-  const n = el(`<div class="board" id="${id}"><div class="bwrap"></div></div>`);
-  const wrap = n.firstElementChild;
-  board.forEach(u => wrap.appendChild(unitNode(u, side)));
-  return n;
+function majBarre() {
+  const c = coque;
+  // Des sorts a REPRISE a relancer maintenant : le bouton de la defausse le dit, sinon on
+  // ne penserait pas a l'ouvrir. A ton tour et en mode manuel seulement — sinon rien ne se
+  // joue d'un clic.
+  const nbReprises = !auto && B.turn === 'p' && !B.over ? reprisesPossibles(B, 'p').length : 0;
+  c.chip.textContent = auto ? '▶ Auto' : '✋ Manuel';
+  c.chip.classList.toggle('on', auto);
+  c.npioche.textContent = `Pioche ${B.p.deck.length}`;
+  c.def.textContent = `Défausse ${B.p.discard.length}${nbReprises ? ' ↺' + nbReprises : ''}`;
+  c.def.classList.toggle('pret', !!nbReprises);
+  c.ntour.textContent = `Tour ${Math.ceil(B.turnNo / 2)}`;
+  c.fin.disabled = !(B.turn === 'p' && !auto);
+  // Le badge de l'icone du journal : combien de scenes depuis la derniere fois qu'on l'a ouvert.
+  const nl = c.journal.nonLus();
+  c.badge.textContent = nl > 9 ? '9+' : String(nl);
+  c.badge.classList.toggle('hidden', !nl);
+  // Le panneau tient entre le heros adverse et la barre : on lui donne la place qu'ils laissent.
+  c.journal.n.style.top = c.heroE.n.parentElement.offsetHeight + 'px';
+  c.journal.n.style.bottom = c.bar.offsetHeight + 'px';
+}
+
+function render() {
+  const root = $('#battle');
+  if (!coque) monteLaCoque(root);
+  const c = coque;
+  // Une action engagee ne survit pas a un changement de tour ni de mode : on la rend.
+  if (!peutEngager()) reinitSelection();
+
+  majHero(c.heroE, B.e, 'e');
+  majHero(c.heroP, B.p, 'p');
+  syncListe(c.boardE.firstElementChild, B.e.board, u => u.uid, () => el('<div class="unit" data-geste="unit"></div>'), (n, u) => majUnite(n, u, 'e'));
+  syncListe(c.boardP.firstElementChild, B.p.board, u => u.uid, () => el('<div class="unit" data-geste="unit"></div>'), (n, u) => majUnite(n, u, 'p'));
+
+  // Le journal ne redessine que les scenes qui ont recu un evenement (et rien s'il est ferme).
+  c.journal.maj();
+
+  syncListe(c.main, B.p.hand, carte => carte, () => el('<div class="hcard" data-geste="main"></div>'), majCarte);
+  majBarre();
+  majFocus();
+  // Les vignettes ne sont mises a l'echelle qu'une fois tout l'ecran en place : c'est
+  // la hauteur reellement laissee au plateau par les autres blocs qui decide.
+  ajustePlateau(c.boardE);
+  ajustePlateau(c.boardP);
+  // La lecture ouverte suit le combat plutot que de montrer un etat perime.
+  renderLecture();
+  renderZone();
 }
 
 // L'ECHELLE DES VIGNETTES. Le plateau n'a plus de plafond d'unites (boardSize = 0), et
@@ -346,28 +483,81 @@ function echelle(board, wrap, W, s) {
   wrap.style.setProperty('--dy', Math.max(0, (H - wrap.offsetHeight * s) / 2) + 'px');
 }
 
-function highlightTargets(root) {
-  if (auto || B.turn !== 'p') return;
-  let list = [];
-  if (selCard !== null) list = legalTargets(B, 'p', carteChoisie());
-  else if (selUnit) list = attackableTargets(B, 'p', B.p.board.find(u => u.uid === selUnit));
-  for (const t of list) {
-    const n = root.querySelector(`[data-side="${t.side}"][data-uid="${t.uid}"]`);
-    if (n) n.classList.add('targetable');
+// ------------------------------------------------------------ l'action engagee
+// TAP = AGIR, APPUI LONG = LIRE (decision du game designer, 8 octobre 2026). Toucher une
+// carte jouable ou une unite prete ENGAGE une action : un masque noir tombe sur l'ecran,
+// seuls l'acteur et ses cibles restent en couleur et contoures, et chaque cible dit ce qui lui
+// arriverait (ui/apercu.js). Toucher une cible joue le coup ; toucher le fond, ou n'importe
+// quoi d'autre, l'annule. Lire une carte ou une unite, c'est la maintenir (ui/gestes.js).
+
+/** Peut-on engager une action ? Seulement a son tour, en manuel, tant que le combat dure. */
+const peutEngager = () => !!B && !B.over && !auto && B.turn === 'p';
+/** Une action est-elle engagee (une carte attend sa cible, ou une unite sa victime) ? */
+const engage = () => peutEngager() && (selCard !== null || !!selUnit);
+
+function reinitSelection() {
+  selCard = selUnit = null;
+  selZone = 'main';
+  selChoix = null;
+  apercus = new Map();
+}
+
+/** Rend la main au joueur : plus d'action engagee, plus de masque. */
+function annule() {
+  reinitSelection();
+  render();
+}
+
+/** Calcule l'apercu de chaque cible de l'action qu'on vient d'engager. */
+function calculeApercus() {
+  apercus = new Map();
+  if (selCard !== null) {
+    apercus = apercuCarte(B, 'p', selCard, selZone, selChoix, legalTargets(B, 'p', carteChoisie(), selChoix));
+  } else if (selUnit) {
+    const u = B.p.board.find(x => x.uid === selUnit);
+    if (u) apercus = apercuAttaque(B, 'p', selUnit, attackableTargets(B, 'p', u));
   }
 }
 
+/** Le masque : l'acteur et ses cibles en couleur, le reste s'eteint (CSS, `#battle.spot`). */
+function majFocus() {
+  const c = coque, root = $('#battle');
+  const actif = engage();
+  root.classList.toggle('spot', actif);
+  root.querySelectorAll('.lit').forEach(n => n.classList.remove('lit', 'acteur'));
+  if (!actif) { c.bandeau.textContent = ''; return; }
+  const noeudDe = (side, uid) => uid === 'hero'
+    ? (side === 'e' ? c.heroE.n : c.heroP.n)
+    : (side === 'e' ? c.boardE : c.boardP).firstElementChild._n.get(uid);
+  let acteur = null, cibles = [], texte = '';
+  if (selCard !== null) {
+    const carte = carteChoisie();
+    cibles = legalTargets(B, 'p', carte, selChoix);
+    texte = `${carte.name} : choisis une cible`;
+    if (selZone === 'main') acteur = c.main._n.get(carte);
+  } else {
+    const u = B.p.board.find(x => x.uid === selUnit);
+    cibles = attackableTargets(B, 'p', u);
+    texte = `${u.name} attaque : choisis une cible`;
+    acteur = noeudDe('p', u.uid);
+  }
+  if (acteur) acteur.classList.add('lit', 'acteur');
+  for (const t of cibles) {
+    const n = noeudDe(t.side, t.uid);
+    if (n) n.classList.add('lit');
+  }
+  c.bandeau.innerHTML = `${texte}<small>Touche le fond pour annuler</small>`;
+}
+
 // ------------------------------------------------------------- interactions
-/** Pose la carte et remet l'ecran a zero. Le choix de branche part avec elle. */
 /** La carte choisie, qu'elle vienne de la main ou de la defausse (une Reprise). */
 const carteChoisie = () => (selCard === null ? null : (selZone === 'defausse' ? B.p.discard : B.p.hand)[selCard]);
 
+/** Pose la carte et remet l'ecran a zero. Le choix de branche part avec elle. */
 function joue(i, target) {
   // `zone` n'est ecrit que pour une Reprise : le coup d'une carte de la main garde sa forme.
   joueLeCoup(B, 'p', { type: 'play', index: i, ...(selZone === 'defausse' ? { zone: 'defausse' } : {}), target, choix: selChoix }, 'humain');
-  selCard = null;
-  selZone = 'main';
-  selChoix = null;
+  reinitSelection();
   render();
   if (B.over) finish();
 }
@@ -401,20 +591,28 @@ function demandeChoix(card, done) {
   modal(box, () => {});
 }
 
+/** Pourquoi une carte ne se joue pas maintenant, dit au joueur. */
+function raisonCarte(c, zone) {
+  const cout = cardCost(c, B, 'p', zone);
+  if (B.p.mana < cout) return `Pas assez de mana (${cout} requis, ${B.p.mana} disponible${B.p.mana > 1 ? 's' : ''}).`;
+  return 'Cette carte ne peut pas être jouée maintenant.';
+}
+
 function onCardClick(i, zone = 'main') {
   if (auto || B.turn !== 'p' || B.over) return;
   const c = (zone === 'defausse' ? B.p.discard : B.p.hand)[i];
-  if (!c || !canPlay(B, 'p', c, zone)) { toast('Pas assez de mana.'); return; }
+  if (!c) return;
+  if (!canPlay(B, 'p', c, zone)) { toast(raisonCarte(c, zone)); return; }
   // Reclic sur la carte deja choisie : on annule tout, y compris sa branche.
-  if (selCard === i && selZone === zone) { selCard = null; selChoix = null; selZone = 'main'; render(); return; }
+  if (selCard === i && selZone === zone) { annule(); return; }
+  selChoix = null;
   const suite = () => {
     // La branche est deja choisie : on ne propose que les cibles qu'ELLE demande.
     if (needsTarget(c, selChoix) && legalTargets(B, 'p', c, selChoix).length) {
       selCard = i;
       selZone = zone;
       selUnit = null;
-      // Une carte de la defausse n'a pas de vignette « choisie » dans la main : on le dit.
-      if (zone === 'defausse') toast(`Reprise : ${c.name} — choisis la cible.`);
+      calculeApercus();
       render();
       return;
     }
@@ -425,39 +623,114 @@ function onCardClick(i, zone = 'main') {
   else suite();
 }
 
-// Le clic sur une unite OUVRE SA FICHE — c'est le comportement par defaut, valable en
-// mode auto comme pendant le tour adverse : lire une unite ne coute jamais un coup.
-// Il n'agit que quand une action est deja engagee : une carte qui attend sa cible, une
-// unite qui attend sa victime. Attaquer se declenche donc depuis la fiche, ou le joueur
-// voit enfin ce qu'il envoie au combat.
-function onTargetClick(side, uid) {
-  if (B.over) return;
-  const monTour = !auto && B.turn === 'p';
-  // 1) une carte attend sa cible : le clic la designe.
-  if (monTour && selCard !== null) {
-    const c = carteChoisie();
-    if (legalTargets(B, 'p', c, selChoix).some(t => t.side === side && t.uid === uid)) joue(selCard, { side, uid });
-    return;
+/** Pourquoi cette unite n'attaque pas maintenant, ou '' si elle peut. */
+function raisonUnite(u) {
+  if (u.atk <= 0) return `${u.name} n'a pas d'attaque.`;
+  if (u.attackedThisTurn) return `${u.name} a déjà attaqué ce tour.`;
+  if (!u.canAttack) return `${u.name} vient d'arriver : elle n'est pas encore prête.`;
+  if (!attackableTargets(B, 'p', u).length) return `${u.name} n'a aucune cible possible.`;
+  return '';
+}
+
+/** Une unite ou un heros est touche : designer sa cible, engager une attaque, ou annuler. */
+function tapeUnite(side, uid) {
+  if (B.over || !peutEngager()) return;   // en auto ou au tour adverse, le tap ne fait rien : on lit en maintenant
+  if (engage() && designe(side, uid)) return;
+  const u = side === 'p' ? B.p.board.find(x => x.uid === uid) : null;
+  if (!u) { if (engage()) annule(); return; }
+  // Une de nos unites : elle prend la place de l'acteur, si elle peut attaquer.
+  const raison = raisonUnite(u);
+  if (raison) { if (engage()) annule(); toast(raison); return; }
+  if (selUnit === uid) { annule(); return; }
+  selUnit = uid;
+  selCard = null;
+  selZone = 'main';
+  selChoix = null;
+  calculeApercus();
+  render();
+}
+
+/** Le coup engage vise (side, uid) : on le joue s'il est legal. Rend true si le toucher a servi. */
+function designe(side, uid) {
+  if (selCard !== null) {
+    if (!legalTargets(B, 'p', carteChoisie(), selChoix).some(t => t.side === side && t.uid === uid)) return false;
+    joue(selCard, { side, uid });
+    return true;
   }
-  // 2) une de nos unites attend sa victime : le clic frappe. Une cible illegale
-  //    (une Provocation en travers) ne fait pas perdre le clic : on tombe sur la fiche.
-  if (monTour && selUnit && side === 'e') {
-    const u = B.p.board.find(x => x.uid === selUnit);
-    if (u && attackableTargets(B, 'p', u).some(t => t.uid === uid)) {
-      joueLeCoup(B, 'p', { type: 'attack', uid: selUnit, target: { side, uid } }, 'humain');
-      selUnit = null;
-      render();
-      if (B.over) finish();
-      return;
-    }
+  const u = B.p.board.find(x => x.uid === selUnit);
+  if (u && side === 'e' && attackableTargets(B, 'p', u).some(t => t.uid === uid)) {
+    joueLeCoup(B, 'p', { type: 'attack', uid: selUnit, target: { side, uid } }, 'humain');
+    reinitSelection();
+    render();
+    if (B.over) finish();
+    return true;
   }
-  // 3) sinon, la fiche. Le heros n'en a pas : sa banniere affiche deja tout.
-  if (uid === 'hero') return;
-  if (!B[side].board.some(x => x.uid === uid)) return;
-  // Une seule fenetre a la fois : la fiche prend la place de celle de la defausse.
-  zoneOuverte = false;
-  insp = { side, uid };
-  renderInspect();
+  return false;
+}
+
+/**
+ * EN AUTO, TOUCHER L'ECRAN REND LA MAIN AU JOUEUR (decision du game designer, 8 octobre 2026) :
+ * c'est ce qui rend le bouton Auto/Manuel inutile a trouver. Le tap qui reprend la main ne fait
+ * QUE ca — il n'agit pas en meme temps : un tap distrait sur la fenetre de la defausse ne doit
+ * pas relancer une Reprise. Lire (appui long) ne reprend pas la main : on regarde jouer le bot,
+ * et on lit ce qu'on ne comprend pas.
+ */
+function reprendLaMain() {
+  if (!B || B.over || !auto) return false;
+  auto = false;
+  reinitSelection();
+  render();
+  loop();
+  toast('Tu reprends la main (mode Manuel).');
+  return true;
+}
+
+/** Ce qu'un tap fait, selon le noeud `[data-geste]` touche. */
+function tape(n) {
+  if (reprendLaMain()) return;
+  const d = n.dataset;
+  if (d.geste === 'unit') tapeUnite(d.side, d.uid);
+  else if (d.geste === 'hero') {
+    if (engage() && !designe(d.side, 'hero')) annule();
+  } else if (d.geste === 'main') {
+    if (engage() && selCard === +d.i && selZone === 'main') { annule(); return; }
+    onCardClick(+d.i);
+  } else if (d.geste === 'zone') {
+    const x = (zoneGroupes[+d.g] || { cartes: [] }).cartes.find(y => y.i === +d.i);
+    // Seule la defausse du joueur se joue (groupe 0), et seulement une carte eclairee.
+    if (!x || +d.g !== 0 || x.etat !== 'on') return;
+    closeModal();
+    onCardClick(+d.i, 'defausse');
+  }
+}
+
+/** Un appui long commence : on ouvre la lecture de ce qu'il touche. */
+function lisCe(n) {
+  const d = n.dataset;
+  if (d.geste === 'unit') lecture = { kind: 'unit', side: d.side, uid: d.uid };
+  else if (d.geste === 'main') lecture = { kind: 'carte', carte: B.p.hand[+d.i], camp: 'p' };
+  else if (d.geste === 'zone') {
+    const g = zoneGroupes[+d.g];
+    const x = g && g.cartes.find(y => y.i === +d.i);
+    if (x) lecture = { kind: 'carte', carte: x.carte, camp: g.camp };
+  }
+  renderLecture();
+}
+
+/** Les ecouteurs, poses une fois pour toutes sur les elements qui ne changent jamais. */
+function poseLesGestes() {
+  if (gestesPoses) return;
+  gestesPoses = true;
+  const gestes = { tap: tape, lire: lisCe, finLire: fermeLecture };
+  installeGestes($('#battle'), gestes);
+  installeGestes($('#modal'), gestes);
+  // Toucher le fond (ni une carte, ni une unite, ni un bouton) annule l'action engagee — ou,
+  // en Auto, rend la main au joueur.
+  $('#battle').addEventListener('pointerup', ev => {
+    if (ev.target.closest('[data-geste], button')) return;
+    if (engage()) annule();
+    else reprendLaMain();
+  });
 }
 
 // ------------------------------------------------------- la fenetre de la defausse
@@ -468,16 +741,18 @@ function onTargetClick(side, uid) {
  * d'abord. Elle montre aussi ton exil et la defausse adverse, en lecture seule.
  */
 function ouvreDefausse() {
-  insp = null;
+  fermeLecture();
+  reinitSelection();
   zoneOuverte = true;
-  renderZone();
+  zoneSig = null;
+  render();
 }
 
 function renderZone() {
   if (!zoneOuverte || !B) return;
   const monTour = !auto && B.turn === 'p' && !B.over;
   const recentes = pile => [...pile.keys()].reverse();
-  const lecture = pile => recentes(pile).map(i => ({ carte: pile[i], i, etat: 'vue' }));
+  const lecturePile = pile => recentes(pile).map(i => ({ carte: pile[i], i, etat: 'vue' }));
   const moi = recentes(B.p.discard).map(i => {
     const carte = B.p.discard[i];
     const reprise = carte.type !== 'ally' && hasKey(carte.keys, 'reprise');
@@ -487,25 +762,31 @@ function renderZone() {
     const ok = canPlay(B, 'p', carte, 'defausse');
     return { carte, i, cout, etat: ok ? 'on' : 'off', note: ok ? '↺ relancer' : (B.p.mana < cout ? '↺ pas assez de mana' : '↺ pas maintenant') };
   });
-  const groupes = [{ titre: 'Ta défausse', cartes: moi }];
-  if (B.p.exile.length) groupes.push({ titre: 'Ton exil', cartes: lecture(B.p.exile) });
-  groupes.push({ titre: 'Défausse adverse', cartes: lecture(B.e.discard) });
+  // `camp` n'est pas lu par la fenetre : c'est la lecture (appui long) qui en a besoin, pour
+  // afficher le cout de la carte du bon cote.
+  const groupes = [{ titre: 'Ta défausse', camp: 'p', cartes: moi }];
+  if (B.p.exile.length) groupes.push({ titre: 'Ton exil', camp: 'p', cartes: lecturePile(B.p.exile) });
+  groupes.push({ titre: 'Défausse adverse', camp: 'e', cartes: lecturePile(B.e.discard) });
   const aReprise = B.p.discard.some(c => c.type !== 'ally' && hasKey(c.keys, 'reprise'));
   const aide = !aReprise ? ''
     : monTour ? 'Touche un sort éclairé pour le relancer : il coûte son prix, puis il est exilé.'
       : 'Les sorts à Reprise se relancent à ton tour, en mode manuel.';
-  // Le combat continue derriere : on redessine sans faire sauter la lecture en cours.
+  zoneGroupes = groupes;
+  // Le combat continue derriere : on ne redessine QUE si la fenetre a change, sinon un doigt
+  // pose sur une carte la verrait remplacee au pas suivant du mode auto.
+  const sig = JSON.stringify([aide, groupes.map(g => [g.titre, g.cartes.map(x => [x.carte.inst ?? x.carte.name, x.carte.atk, x.carte.hp, x.etat, x.cout, x.note])])]);
+  if (sig === zoneSig && !$('#modal').classList.contains('hidden')) return;
+  zoneSig = sig;
   const ancien = $('#modal .sheet');
   const y = ancien ? ancien.scrollTop : 0;
   const sheet = ouvreZone({
     titre: 'Défausse', aide, groupes,
-    onChoix: (g, i) => { if (g === 0) onCardClick(i, 'defausse'); },
-    onClose: () => { zoneOuverte = false; }
+    onClose: () => { zoneOuverte = false; zoneSig = null; zoneGroupes = []; }
   });
   sheet.scrollTop = y;
 }
 
-// ------------------------------------------------------------- vue inspectee
+// ------------------------------------------------------------- lecture (appui long)
 /** Une ligne « Titre : texte », avec sa source en gris quand il y en a une. */
 function ligne(titre, texte, source) {
   const src = source ? ` <span class="src">— ${source}</span>` : '';
@@ -519,6 +800,27 @@ function bloc(titre, lignes) {
   return n;
 }
 
+/** Ce qu'une carte ou une unite FAIT : ses moments, son aura, ses effets statiques. */
+function blocFait(x) {
+  const fait = Object.entries(TRIGGERS)
+    .filter(([slot]) => (x[slot] || []).length)
+    .map(([slot]) => ligne(momentLabel(slot, x), x[slot].map(describeEffect).join(' · ')));
+  if (x.aura) fait.push(ligne('Aura', describeAura(x.aura), 'portée par elle'));
+  for (const m of x.statics || []) fait.push(ligne('Statique', describeStatic(m), 'tant qu’elle est en jeu'));
+  return bloc('Ce qu’elle fait', fait);
+}
+
+/** Les PALIERS d'une carte, debloques ou non, tels que son niveau de resolution les a laisses. */
+function blocPaliers(card) {
+  if (!card || !(card.tiers || []).length) return null;
+  const n = el(`<section><h4>Paliers (niveau ${card.ownerLevel || 0})</h4></section>`);
+  for (const t of card.tiers) {
+    const on = (card.unlocked || []).includes(t.lvl);
+    n.appendChild(el(`<div class="tier ${on ? 'on' : 'off'}">Niveau ${t.lvl} — ${t.text}</div>`));
+  }
+  return n;
+}
+
 /**
  * La fiche d'une unite : la meme unite en grand, avec
  *   - ce qui la MODIFIE en ce moment et D'OU ca vient (auras nommees par leur porteur,
@@ -526,6 +828,8 @@ function bloc(titre, lignes) {
  *     inspectee : le plateau montre « 4/5 », la fiche explique pourquoi ;
  *   - ce qu'elle FAIT (ses moments, son aura, ses effets statiques) ;
  *   - ses PALIERS, debloques ou non, tels que son niveau de resolution les a laisses.
+ * Elle s'ouvre en MAINTENANT l'unite (ui/gestes.js) et se referme quand on la lache : elle
+ * n'a donc ni bouton « Attaquer » ni bouton « Fermer ».
  */
 function inspectNode(u, side) {
   const box = el('<div class="insp"></div>');
@@ -570,27 +874,13 @@ function inspectNode(u, side) {
   const bMods = bloc('Ce qui la modifie', mods);
   if (bMods) box.appendChild(bMods);
 
-  // --- ce qu'elle fait
-  const fait = Object.entries(TRIGGERS)
-    .filter(([slot]) => (u[slot] || []).length)
-    .map(([slot]) => ligne(momentLabel(slot, u), u[slot].map(describeEffect).join(' · ')));
-  if (u.aura) fait.push(ligne('Aura', describeAura(u.aura), 'portée par elle'));
-  for (const m of u.statics || []) fait.push(ligne('Statique', describeStatic(m), 'tant qu’elle est en jeu'));
-  const bFait = bloc('Ce qu’elle fait', fait);
+  // --- ce qu'elle fait, puis ses paliers. Un jeton n'a pas de carte : il n'en a donc pas.
+  const bFait = blocFait(u);
   if (bFait) box.appendChild(bFait);
+  const bPaliers = blocPaliers(u.card);
+  if (bPaliers) box.appendChild(bPaliers);
 
-  // --- ses paliers. Un jeton n'a pas de carte : il n'en a donc pas.
-  const card = u.card;
-  if (card && (card.tiers || []).length) {
-    const n = el(`<section><h4>Paliers (niveau ${card.ownerLevel || 0})</h4></section>`);
-    for (const t of card.tiers) {
-      const on = (card.unlocked || []).includes(t.lvl);
-      n.appendChild(el(`<div class="tier ${on ? 'on' : 'off'}">Niveau ${t.lvl} — ${t.text}</div>`));
-    }
-    box.appendChild(n);
-  }
-
-  // --- etat et actions
+  // --- etat
   const etat = [];
   if (u.atk <= 0) etat.push('0 attaque : elle ne frappe pas');
   else if (u.canAttack) etat.push('prête à attaquer');
@@ -598,56 +888,85 @@ function inspectNode(u, side) {
   else etat.push('pas encore prête');
   if (u.shield) etat.push('bouclier intact');
   box.appendChild(el(`<div class="src">${etat.join(' · ')}</div>`));
-
-  const actions = el('<div class="actions"></div>');
-  const monTour = !auto && B.turn === 'p' && !B.over;
-  if (monTour && side === 'p' && u.canAttack && u.atk > 0) {
-    const choisie = selUnit === u.uid;
-    const b = el(`<button class="btn">${choisie ? '✖ Annuler' : '⚔ Attaquer'}</button>`);
-    b.onclick = () => {
-      selUnit = choisie ? null : u.uid;
-      selCard = null;
-      fermeFiche();
-      render();
-      if (selUnit) toast('Choisis la cible.');
-    };
-    actions.appendChild(b);
-  }
-  const f = el('<button class="btn ghost">Fermer</button>');
-  f.onclick = fermeFiche;
-  actions.appendChild(f);
-  box.appendChild(actions);
   return box;
 }
 
-function fermeFiche() {
-  insp = null;
-  closeModal();
+/** La fiche d'une CARTE (main, defausse, exil) : ce que la vignette n'a pas la place de dire. */
+function ficheCarte(c, camp) {
+  const box = el('<div class="insp"></div>');
+  const cout = cardCost(c, B, camp);
+  const ally = c.type === 'ally';
+  box.appendChild(el(`
+    <div class="tete">
+      ${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : '<img alt="">'}
+      <div style="min-width:0">
+        <div class="nm">${c.name}</div>
+        <div class="stats">${ally ? `<span class="a">⚔ ${c.atk}</span> · <span class="h">❤ ${c.hp}</span>` : 'Sort'}</div>
+        <div class="src">Coût ${cout}${cout !== c.cost ? ` (de base ${c.cost})` : ''} · ${ally ? 'Allié' : 'Sort'}</div>
+        <div class="chips">${(c.keys || []).map(x => `<span class="chip">${keyLabel(x)}</span>`).join('')}</div>
+      </div>
+    </div>`));
+  if (c.text) box.appendChild(ligne('Texte', c.text));
+  const bFait = blocFait(c);
+  if (bFait) box.appendChild(bFait);
+  const bPaliers = blocPaliers(c);
+  if (bPaliers) box.appendChild(bPaliers);
+  return box;
 }
 
-/** Redessine la fiche ouverte, ou la ferme si son unite n'est plus la. */
-function renderInspect() {
-  if (!insp || !B) return;
-  const u = B[insp.side].board.find(x => x.uid === insp.uid);
-  if (!u) { fermeFiche(); return; }
-  // Le combat continue derriere : on redessine sans faire sauter la lecture en cours.
-  const ancien = $('#modal .sheet');
-  const y = ancien ? ancien.scrollTop : 0;
-  const sheet = modal(inspectNode(u, insp.side), () => { insp = null; });
-  sheet.scrollTop = y;
+/** Le panneau de lecture : flotte au-dessus de tout, ne recoit aucun toucher (le doigt qui lit reste sur sa carte). */
+function panneauLecture() {
+  let p = $('#lecture');
+  if (!p) {
+    p = el('<div id="lecture" class="lecture hidden"></div>');
+    $('#app').appendChild(p);
+  }
+  return p;
+}
+
+function fermeLecture() {
+  lecture = null;
+  const p = $('#lecture');
+  if (p) { p.classList.add('hidden'); p.replaceChildren(); }
+}
+
+/** Redessine la lecture ouverte, ou la ferme si ce qu'elle lisait n'est plus la. */
+function renderLecture() {
+  if (!lecture || !B) return;
+  let contenu = null;
+  if (lecture.kind === 'unit') {
+    const u = B[lecture.side].board.find(x => x.uid === lecture.uid);
+    if (u) contenu = inspectNode(u, lecture.side);
+  } else if (lecture.carte) {
+    contenu = ficheCarte(lecture.carte, lecture.camp);
+  }
+  if (!contenu) { fermeLecture(); return; }
+  const sheet = el('<div class="sheet"></div>');
+  sheet.appendChild(contenu);
+  sheet.appendChild(el('<div class="src">Relâche pour fermer</div>'));
+  const p = panneauLecture();
+  p.replaceChildren(sheet);
+  p.classList.remove('hidden');
 }
 
 // --------------------------------------------------------------- fin de combat
 function finish() {
   clearTimeout(timer);
   zoneOuverte = false;
-  fermeFiche();
+  fermeLecture();
+  closeModal();
+  coque = null;
   // Le journal se ferme avec le combat : c'est la derniere ligne (`fin`) qui rend le
   // fichier verifiable — nombre de decisions, etat final, vainqueur.
   if (B.journal && dernierJournal) dernierJournal.texte = fermeJournal(B);
   const enc = ENCOUNTERS[ctx.enemy];
   const win = B.winner === 'p';
   const r = enc.rewards;
+  // Le combat est GARDE (les derniers) : c'est lui qu'on rouvre en AFK pour comprendre.
+  const idRecit = gardeCombat({
+    nom: enc.name, gagnant: B.winner, tours: Math.ceil(B.turnNo / 2), equipe: B.p.name,
+    heros: { p: B.p.sprite, e: B.e.sprite }, evts: B.evts
+  });
 
   const box = el(`<div>
     <h2>${win ? 'Victoire' : 'Defaite'}</h2>
@@ -684,9 +1003,16 @@ function finish() {
     box.appendChild(bj);
   }
 
+  if (idRecit) {
+    const br = el(`<button class="btn ghost" style="margin-bottom:8px;display:flex;align-items:center;gap:8px;justify-content:center">${icone('Log', 20)} Revoir le combat</button>`);
+    br.onclick = () => ouvreRevue(idRecit);
+    box.appendChild(br);
+  }
+
   const btn = el('<button class="btn">Continuer</button>');
   btn.onclick = () => {
     $('#battle').classList.add('hidden');
+    $('#battle').classList.remove('spot');
     $('#battle').innerHTML = '';
     B = null;
     if (onDone) onDone(win);
@@ -694,6 +1020,7 @@ function finish() {
   box.appendChild(btn);
 
   const root = $('#battle');
+  root.classList.remove('spot');
   root.innerHTML = '';
   const sheet = el('<div class="sheet" style="margin:auto"></div>');
   sheet.appendChild(box);

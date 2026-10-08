@@ -4,6 +4,9 @@ import { RELIC_BY_ID } from '../config/relics.js';
 import { BALANCE } from '../config/balance.js';
 import { save, resetSave, partyLevel } from '../state.js';
 import { $, el, asset, CURRENCY_NAME } from './shell.js';
+import { listeCombats } from './combats.js';
+import { ouvreRevue } from './revue.js';
+import { icone } from './icones.js';
 
 export function renderBag() {
   const root = $('#screen-bag');
@@ -38,6 +41,27 @@ export function renderBag() {
     rel.appendChild(list);
   }
   wrap.appendChild(rel);
+
+  // Les derniers combats : on peut les REVOIR (le journal graphique), surtout quand le jeu a
+  // tourne tout seul et qu'on se demande pourquoi on n'avance pas.
+  const combats = listeCombats();
+  const cb = el('<div class="card-panel"><h3>Derniers combats</h3></div>');
+  if (!combats.length) cb.appendChild(el('<div class="muted">Aucun combat gardé pour l\'instant.</div>'));
+  else {
+    const list = el('<div class="cardlist"></div>');
+    for (const c of combats) {
+      const issue = c.gagnant === 'p' ? 'Victoire' : c.gagnant === 'draw' ? 'Match nul' : 'Défaite';
+      const quand = new Date(c.t).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      const row = el(`<div class="gcard ${c.gagnant === 'p' ? '' : 'spell'}">
+        ${c.heros && c.heros.e ? `<img class="port" src="${asset(c.heros.e)}" alt="">` : '<span></span>'}
+        <div><div class="nm">${c.nom} · ${issue}</div><div class="tx">${c.equipe} · ${c.tours} tours · ${quand}</div></div>
+        <button class="btn ghost" style="display:flex;gap:6px;align-items:center">${icone('Log', 18)} Revoir</button></div>`);
+      row.querySelector('button').onclick = () => ouvreRevue(c.id);
+      list.appendChild(row);
+    }
+    cb.appendChild(list);
+  }
+  wrap.appendChild(cb);
 
   const info = el(`<div class="card-panel">
     <h3>Prototype</h3>

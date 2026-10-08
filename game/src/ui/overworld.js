@@ -50,25 +50,47 @@ export function initWorld() {
   });
   addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 
+  // LE JOYSTICK FLOTTANT : il naît la ou le doigt se pose, n'importe ou sur la carte, et
+  // disparait quand on le leve. Le point de depart est le centre de la manette : on lit
+  // ensuite de combien le doigt s'en est eloigne. Les boutons (« Entrer », « Marchander »)
+  // sont des elements a part, au-dessus du canvas : toucher l'un d'eux ne pose pas de manette.
   const j = $('#joystick');
   const knob = j.querySelector('i');
-  const setKnob = (dx, dy) => { knob.style.transform = `translate(${dx * 30}px, ${dy * 30}px)`; };
-  j.addEventListener('pointerdown', e => {
-    stick.active = true; stick.id = e.pointerId; j.setPointerCapture(e.pointerId);
-    move(e);
+  j.classList.add('hidden');
+  const RAYON = 62;    // moitie du diametre de la manette (cf. `.joystick` dans styles.css)
+  const COURSE = 40;   // eloignement du doigt pour la pleine vitesse (le bouton va jusque-la)
+  const ZONE_MORTE = 0.12;
+  const monde = $('#screen-world');
+  let origine = null;
+  const setKnob = (dx, dy) => { knob.style.transform = `translate(${dx * COURSE}px, ${dy * COURSE}px)`; };
+  cv.addEventListener('pointerdown', e => {
+    if (stick.active || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    stick.active = true; stick.id = e.pointerId; cv.setPointerCapture(e.pointerId);
+    const r = monde.getBoundingClientRect();
+    origine = { x: e.clientX, y: e.clientY };
+    j.style.left = (e.clientX - r.left - RAYON) + 'px';
+    j.style.top = (e.clientY - r.top - RAYON) + 'px';
+    setKnob(0, 0);
+    j.classList.remove('hidden');
   });
-  j.addEventListener('pointermove', e => { if (stick.active && e.pointerId === stick.id) move(e); });
-  const stop = () => { stick.active = false; stick.x = stick.y = 0; setKnob(0, 0); };
-  j.addEventListener('pointerup', stop);
-  j.addEventListener('pointercancel', stop);
+  cv.addEventListener('pointermove', e => { if (stick.active && e.pointerId === stick.id) move(e); });
+  const stop = e => {
+    if (e && e.pointerId !== stick.id) return;
+    stick.active = false; stick.id = null; stick.x = stick.y = 0;
+    j.classList.add('hidden');
+  };
+  cv.addEventListener('pointerup', stop);
+  cv.addEventListener('pointercancel', stop);
+  cv.addEventListener('contextmenu', e => e.preventDefault());
   function move(e) {
-    const r = j.getBoundingClientRect();
-    let dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
-    let dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+    let dx = (e.clientX - origine.x) / COURSE;
+    let dy = (e.clientY - origine.y) / COURSE;
     const m = Math.hypot(dx, dy);
     if (m > 1) { dx /= m; dy /= m; }
-    stick.x = dx; stick.y = dy;
     setKnob(dx, dy);
+    // Une manette qui bouge d'un pixel ne doit pas faire avancer le personnage.
+    if (m < ZONE_MORTE) { stick.x = stick.y = 0; return; }
+    stick.x = dx; stick.y = dy;
   }
 
   $('#interactBtn').onclick = interact;
@@ -229,50 +251,121 @@ function draw(t) {
     label(cx, open ? n.name : `${n.name} · niv. ${n.reqLevel}`, sx + ts / 2, sy - 6);
   }
 
-  // points d'interet
+  // points d'interet et joueur, DU PLUS LOIN AU PLUS PROCHE : un batiment fait plusieurs
+  // cases de haut, et le joueur qui passe derriere (au nord de sa porte) doit etre cache par
+  // lui, pas dessine par-dessus. Chaque element dit ou sont ses PIEDS (`y`, en cases).
+  // Les noms sont ecrits apres, tous ensemble : un nom ne doit jamais etre recouvert.
+  const items = [], noms = [];
   for (const n of WORLD.nodes) {
     if (n.type === 'gate') continue;
     const sx = n.x * ts - camx, sy = n.y * ts - camy;
-    if (sx < -120 || sy < -120 || sx > W + 120 || sy > H + 120) continue;
-    const done = save.world.cleared[n.id];
-    const bob = Math.sin(t / 500 + n.x) * 3;
+    const unites = tailleDe(n);
+    // Un grand objet depasse de sa case de tous les cotes : on ne l'ecarte qu'une fois sorti
+    // de l'ecran en entier. Les autres gardent la marge d'avant.
+    const marge = unites ? unites * WORLD.unite * ts + 40 : 120;
+    if (sx < -marge || sy < -120 || sx > W + marge || sy > H + marge) continue;
+    // Les pieds d'un batiment sont sur sa porte (le centre de sa case) : le joueur qui se
+    // tient devant la porte est devant lui, celui qui la franchit passe derriere.
+    items.push({ y: n.y + (unites ? .5 : .92), draw: () => dessinePoint(n, sx, sy, t, unites, noms) });
+  }
+  const leader = CHAR_BY_ID[save.team.find(Boolean) || 'dog'];
+  items.push({ y: w.py + .38, draw: () => {
+    const px = w.px * ts - camx, py = w.py * ts - camy;
+    cx.save();
+    cx.globalAlpha = .35; cx.fillStyle = '#000';
+    cx.beginPath(); cx.ellipse(px, py + ts * .38, ts * .3, ts * .11, 0, 0, 7); cx.fill();
+    cx.restore();
+    const pim = img(leader.sprite);
+    const ps = ts * 1.35;
+    if (pim && pim.complete && pim.naturalWidth) {
+      cx.drawImage(pim, px - ps / 2, py + ts * .4 - ps + Math.sin(t / 220) * 2, ps, ps);
+    }
+  } });
+  items.sort((a, b) => a.y - b.y);
+  for (const it of items) it.draw();
+  for (const l of noms) label(cx, l.text, l.x, l.y);
+}
 
+/** La taille d'un point d'interet en unites de personnage (cf. `WORLD.tailles`), ou 0 : il garde son dessin d'avant. */
+function tailleDe(n) {
+  return n.taille ?? WORLD.tailles[n.type] ?? 0;
+}
+
+// La zone VISIBLE d'une image (celle qui n'est pas transparente), en fractions de sa taille.
+// La taille d'un batiment se mesure dessus, pas sur le fichier : une image a marges larges
+// ferait sinon un batiment plus petit que son voisin, a taille egale. Mesure a 256 px, une
+// fois par image.
+const zonesVisibles = new Map();
+function zoneVisible(im) {
+  if (zonesVisibles.has(im)) return zonesVisibles.get(im);
+  const N = 256;
+  const c = document.createElement('canvas');
+  c.width = c.height = N;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.drawImage(im, 0, 0, N, N);
+  const d = g.getImageData(0, 0, N, N).data;
+  let x0 = N, y0 = N, x1 = -1, y1 = -1;
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      if (d[(y * N + x) * 4 + 3] <= 20) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  }
+  // Image entierement transparente : on la prend en entier plutot que de diviser par zero.
+  const z = x1 < 0 ? { x0: 0, y0: 0, x1: 1, y1: 1 } : { x0: x0 / N, y0: y0 / N, x1: (x1 + 1) / N, y1: (y1 + 1) / N };
+  zonesVisibles.set(im, z);
+  return z;
+}
+
+/** Dessine un point d'interet ; son nom est ajoute a `noms`, ecrit plus tard par-dessus tout. */
+function dessinePoint(n, sx, sy, t, unites, noms) {
+  const ts = WORLD.tile;
+  const done = save.world.cleared[n.id];
+  const im = img(nodeSprite(n));
+  const pret = im && im.complete && im.naturalWidth;
+
+  if (unites && pret) {
+    // Un BATIMENT : sa hauteur visible vaut `unites` personnages, sa largeur suit, et le bas
+    // du dessin se pose sur le bas de sa case (la porte). Il ne flotte pas.
+    const z = zoneVisible(im);
+    const sw = (z.x1 - z.x0) * im.naturalWidth, sh = (z.y1 - z.y0) * im.naturalHeight;
+    const hh = unites * WORLD.unite * ts, ww = hh * sw / sh;
+    const cxp = sx + ts / 2, bas = sy + ts;
     cx.save();
     cx.globalAlpha = .3;
     cx.fillStyle = '#000';
-    cx.beginPath(); cx.ellipse(sx + ts / 2, sy + ts * .92, ts * .34, ts * .12, 0, 0, 7); cx.fill();
+    cx.beginPath(); cx.ellipse(cxp, bas - ts * .08, ww * .42, ts * .22, 0, 0, 7); cx.fill();
     cx.restore();
-
-    const im = img(nodeSprite(n));
-    if (im && im.complete && im.naturalWidth) {
-      cx.save();
-      if (done && (n.type === 'chest')) cx.globalAlpha = .4;
-      const s = ts * (n.type === 'boss' ? 1.7 : 1.25);
-      cx.drawImage(im, sx + ts / 2 - s / 2, sy + ts - s + bob, s, s);
-      cx.restore();
-    } else {
-      cx.fillStyle = '#d8c6f0';
-      cx.beginPath(); cx.arc(sx + ts / 2, sy + ts / 2 + bob, ts * .3, 0, 7); cx.fill();
-    }
-    if (n.type === 'teleport') {
-      cx.strokeStyle = '#9ad7ff'; cx.lineWidth = 3;
-      cx.beginPath(); cx.arc(sx + ts / 2, sy + ts / 2, ts * .5, 0, 7); cx.stroke();
-    }
-    label(cx, n.name + (n.reqLevel ? ` · niv.${n.reqLevel}` : ''), sx + ts / 2, sy - 4);
+    cx.drawImage(im, z.x0 * im.naturalWidth, z.y0 * im.naturalHeight, sw, sh, cxp - ww / 2, bas - hh, ww, hh);
+    noms.push({ text: n.name + (n.reqLevel ? ` · niv.${n.reqLevel}` : ''), x: cxp, y: bas - hh - 4 });
+    return;
   }
 
-  // joueur
-  const leader = CHAR_BY_ID[save.team.find(Boolean) || 'dog'];
-  const px = w.px * ts - camx, py = w.py * ts - camy;
+  const bob = Math.sin(t / 500 + n.x) * 3;
   cx.save();
-  cx.globalAlpha = .35; cx.fillStyle = '#000';
-  cx.beginPath(); cx.ellipse(px, py + ts * .38, ts * .3, ts * .11, 0, 0, 7); cx.fill();
+  cx.globalAlpha = .3;
+  cx.fillStyle = '#000';
+  cx.beginPath(); cx.ellipse(sx + ts / 2, sy + ts * .92, ts * .34, ts * .12, 0, 0, 7); cx.fill();
   cx.restore();
-  const pim = img(leader.sprite);
-  const ps = ts * 1.35;
-  if (pim && pim.complete && pim.naturalWidth) {
-    cx.drawImage(pim, px - ps / 2, py + ts * .4 - ps + Math.sin(t / 220) * 2, ps, ps);
+
+  if (pret) {
+    cx.save();
+    if (done && (n.type === 'chest')) cx.globalAlpha = .4;
+    const s = ts * (n.type === 'boss' ? 1.7 : 1.25);
+    cx.drawImage(im, sx + ts / 2 - s / 2, sy + ts - s + bob, s, s);
+    cx.restore();
+  } else {
+    cx.fillStyle = '#d8c6f0';
+    cx.beginPath(); cx.arc(sx + ts / 2, sy + ts / 2 + bob, ts * .3, 0, 7); cx.fill();
   }
+  if (n.type === 'teleport') {
+    cx.strokeStyle = '#9ad7ff'; cx.lineWidth = 3;
+    cx.beginPath(); cx.arc(sx + ts / 2, sy + ts / 2, ts * .5, 0, 7); cx.stroke();
+  }
+  noms.push({ text: n.name + (n.reqLevel ? ` · niv.${n.reqLevel}` : ''), x: sx + ts / 2, y: sy - 4 });
 }
 
 function label(ctx, text, x, y) {

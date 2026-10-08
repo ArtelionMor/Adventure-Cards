@@ -69,6 +69,13 @@ export const BALANCE = {
     }
   },
 
+  // L'INTERFACE DE COMBAT. Ce ne sont pas des regles de jeu, mais le « toucher » : ce qui
+  // fait qu'un geste se lit comme un tap (agir) ou comme un appui long (lire).
+  ui: {
+    appuiLongMs: 400,       // au-dela de cette duree, le doigt pose LIT la carte au lieu d'agir
+    toleranceDoigtPx: 10    // un doigt qui glisse de plus que ca fait defiler, il ne lit ni n'agit
+  },
+
   combat: {
     // COMBIEN D'UNITES TIENNENT SUR UN PLATEAU. 0 = pas de limite : une invocation ne
     // rate plus faute de place et un allie ne « reste plus de cote ». C'est l'interface

@@ -29,6 +29,18 @@ export const WORLD = {
   tile: 46,
   spawn: { x: 9, y: 37 },
 
+  // ECHELLE DES OBJETS DU MONDE (decision du game designer, 8 octobre 2026) : la TAILLE D'UN
+  // PERSONNAGE VAUT 1, et un batiment en vaut 7 — c'est la porte du batiment qui en donne la
+  // mesure, elle fait a peu pres la hauteur d'un personnage. La hauteur dont on parle est la
+  // hauteur VISIBLE du dessin (les marges transparentes de l'image ne comptent pas) : le jeu
+  // la mesure sur chaque sprite, ce n'est donc pas la taille du fichier image qui decide.
+  // `unite` = cette hauteur de reference, en cases : le chien, dessine a 1,35 case, mesure
+  // 56 % de son image, soit 0,76 case. `tailles` donne, par type de point d'interet, sa
+  // hauteur en unites ; un point peut aussi porter `taille` pour faire exception. Un type qui
+  // n'y figure pas garde le dessin d'avant (un carre de 1,25 case, 1,7 pour un boss).
+  unite: 0.76,
+  tailles: { shop: 7 },
+
   // Biomes : rectangles peints dans l'ordre, le dernier gagne.
   regions: [
     { name: 'Clairiere', x: 0, y: 24, w: 34, h: 26, ground: TILE.GRASS, density: 0.06 },
