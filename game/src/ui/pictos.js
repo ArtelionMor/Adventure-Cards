@@ -28,6 +28,10 @@ const MOMENTS = { death: 'Deathrattle', turnStart: 'TurnStart', turnEnd: 'TurnEn
 /** L'icone d'un mot-cle (`Taunt:...`), ou null (un type n'en a pas). */
 export const iconeDeCle = k => CLES[keyId(k)] || null;
 
+/** L'icone d'un effet (`op`), « Trigger » s'il est inconnu ; celle d'un moment (slot de `TRIGGERS`), ou null. */
+export const iconeDeOp = op => OPS[op] || 'Trigger';
+export const iconeDeMoment = slot => MOMENTS[slot] || null;
+
 /** Un montant a cote de l'icone : le nombre s'il est fixe, « X » s'il depend d'un compteur. */
 const montant = v => (typeof v === 'number' ? (v > 1 || v < 0 ? v : null) : v && typeof v === 'object' ? 'X' : null);
 

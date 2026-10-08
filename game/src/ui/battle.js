@@ -21,6 +21,7 @@ import { ouvreRevue } from './revue.js';
 import { creeFx } from './effets.js';
 import { montreFin } from './fin.js';
 import { ligneDePictos } from './pictos.js';
+import { ligneIco, lignesDeFait, lignesDeRenforts } from './fiche.js';
 
 let B = null;
 let auto = true;
@@ -978,25 +979,9 @@ function bloc(titre, lignes) {
   return n;
 }
 
-/** Ce qu'une carte ou une unite FAIT : ses moments, son aura, ses effets statiques. */
+/** Ce qu'une carte ou une unite FAIT, une ligne par chose, chacune avec son icone (voir ui/fiche.js). */
 function blocFait(x) {
-  const fait = Object.entries(TRIGGERS)
-    .filter(([slot]) => (x[slot] || []).length)
-    .map(([slot]) => ligne(momentLabel(slot, x), x[slot].map(describeEffect).join(' · ')));
-  if (x.aura) fait.push(ligne('Aura', describeAura(x.aura), 'portée par elle'));
-  for (const m of x.statics || []) fait.push(ligne('Statique', describeStatic(m), 'tant qu’elle est en jeu'));
-  return bloc('Ce qu’elle fait', fait);
-}
-
-/** Les PALIERS d'une carte, debloques ou non, tels que son niveau de resolution les a laisses. */
-function blocPaliers(card) {
-  if (!card || !(card.tiers || []).length) return null;
-  const n = el(`<section><h4>Paliers (niveau ${card.ownerLevel || 0})</h4></section>`);
-  for (const t of card.tiers) {
-    const on = (card.unlocked || []).includes(t.lvl);
-    n.appendChild(el(`<div class="tier ${on ? 'on' : 'off'}">Niveau ${t.lvl} — ${t.text}</div>`));
-  }
-  return n;
+  return bloc('Ce qu’elle fait', lignesDeFait(x));
 }
 
 /**
@@ -1017,7 +1002,7 @@ function inspectNode(u, side) {
       ${u.sprite ? `<img src="${asset(u.sprite)}" alt="">` : '<img alt="">'}
       <div style="min-width:0">
         <div class="nm">${u.name}</div>
-        <div class="stats"><span class="a">⚔ ${u.atk}</span> · <span class="h">❤ ${Math.max(0, u.hp)}/${u.maxHp}</span></div>
+        <div class="stats"><span class="a">${icone('Attack', 20)} ${u.atk}</span> · <span class="h">${icone('Health', 20)} ${Math.max(0, u.hp)}/${u.maxHp}</span></div>
         <div class="src">${side === 'p' ? 'Ton allié' : 'Unité adverse'}${blesse}</div>
         <div class="chips">${u.keys.map(x => `<span class="chip">${keyLabel(x)}</span>`).join('')}</div>
       </div>
@@ -1027,12 +1012,13 @@ function inspectNode(u, side) {
   const mods = [];
   const dAtk = u.baseAtk - u.printedAtk, dHp = u.baseHp - u.printedHp;
   const signe = v => (v >= 0 ? '+' : '') + v;
-  if (dAtk || dHp) mods.push(ligne('Renforts', `${signe(dAtk)}/${signe(dHp)}`, 'reçus en combat'));
+  // Chaque renfort avec sa SOURCE (lue dans le recit du combat), comme la liste de bonus de Hearthstone.
+  mods.push(...lignesDeRenforts(B, u, side, dAtk, dHp));
   if (u.variable) {
     const c = COUNTERS[u.variable.src];
     const quoi = u.variable.stat === 'both' ? 'attaque et vie' : u.variable.stat === 'hp' ? 'vie' : 'attaque';
     const dit = (c ? c.label.toLowerCase() : u.variable.src) + (c && c.needsArg ? ` « ${u.variable.arg || '?'} »` : '');
-    mods.push(ligne('Variable', `${quoi} = ${u.variable.x}`, dit));
+    mods.push(ligneIco('Static', 'Variable', `${quoi} = ${u.variable.x}`, dit));
   }
   // Les auras : le combat n'en garde que le total, `aurasSur` retrouve les porteurs.
   // Depuis que le plateau n'a plus de plafond, neuf Chiots donnent neuf fois la meme
@@ -1046,7 +1032,7 @@ function inspectNode(u, side) {
     else parPorteur.set(cle, { n: 1, dit, nom: a.src.name, camp: a.camp });
   }
   for (const a of parPorteur.values()) {
-    mods.push(ligne('Aura', a.dit, `${a.n > 1 ? a.n + ' × ' : ''}${a.nom} (${a.camp === side ? 'allié' : 'en face'})`));
+    mods.push(ligneIco('Aura', 'Aura', a.dit, `${a.n > 1 ? a.n + ' × ' : ''}${a.nom} (${a.camp === side ? 'allié' : 'en face'})`));
   }
   if (mods.length) mods.unshift(ligne('Imprimé', `${u.printedAtk}/${u.printedHp}`, 'ce que la carte annonçait'));
   const bMods = bloc('Ce qui la modifie', mods);
@@ -1055,8 +1041,6 @@ function inspectNode(u, side) {
   // --- ce qu'elle fait, puis ses paliers. Un jeton n'a pas de carte : il n'en a donc pas.
   const bFait = blocFait(u);
   if (bFait) box.appendChild(bFait);
-  const bPaliers = blocPaliers(u.card);
-  if (bPaliers) box.appendChild(bPaliers);
 
   // --- etat
   const etat = [];
@@ -1079,7 +1063,7 @@ function ficheCarte(c, camp) {
       ${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : '<img alt="">'}
       <div style="min-width:0">
         <div class="nm">${c.name}</div>
-        <div class="stats">${ally ? `<span class="a">⚔ ${c.atk}</span> · <span class="h">❤ ${c.hp}</span>` : 'Sort'}</div>
+        <div class="stats">${ally ? `<span class="a">${icone('Attack', 20)} ${c.atk}</span> · <span class="h">${icone('Health', 20)} ${c.hp}</span>` : 'Sort'}</div>
         <div class="src">Coût ${cout}${cout !== c.cost ? ` (de base ${c.cost})` : ''} · ${ally ? 'Allié' : 'Sort'}</div>
         <div class="chips">${(c.keys || []).map(x => `<span class="chip">${keyLabel(x)}</span>`).join('')}</div>
       </div>
@@ -1087,8 +1071,6 @@ function ficheCarte(c, camp) {
   if (c.text) box.appendChild(ligne('Texte', c.text));
   const bFait = blocFait(c);
   if (bFait) box.appendChild(bFait);
-  const bPaliers = blocPaliers(c);
-  if (bPaliers) box.appendChild(bPaliers);
   return box;
 }
 

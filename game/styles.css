@@ -540,3 +540,12 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .tr-grille { grid-template-columns: repeat(4, 1fr); gap: 5px; }
 .tr-grille button.large { grid-column: span 4; }
 .tr-grille button, .tr-tete button { min-height: 32px; font-size: 11px; }
+
+/* ---------- la fiche (appui long) : une icone par chose ---------- */
+.insp .ln.li { display: flex; align-items: flex-start; gap: 8px; padding: 3px 0; }
+.insp .lico { flex: none; width: 24px; height: 24px; display: grid; place-items: center; color: var(--accent2); }
+.insp .ltx { min-width: 0; line-height: 1.3; }
+.insp .ltx b { margin-right: 4px; }
+.insp .stats .ico { vertical-align: -3px; }
+.insp .stats .a .ico { color: var(--accent); }
+.insp .stats .h .ico { color: var(--danger); }
