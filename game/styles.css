@@ -524,3 +524,19 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .fx-carte.effet.fin   { border-color: #6ec1ff; box-shadow: 0 0 16px rgba(110,193,255,.6), 0 6px 22px rgba(0,0,0,.6); }
 .fx-carte.effet.regle { border-color: #c69bff; box-shadow: 0 0 16px rgba(198,155,255,.6), 0 6px 22px rgba(0,0,0,.6); }
 .fx-carte.effet .pic { height: 24px; }
+
+/* ---------- le panneau de triche (telephone) : 5 touchers sur « Tour N » ---------- */
+.triche { display: none; position: absolute; left: 0; right: 0; bottom: 60px; z-index: 55; max-height: 52%; overflow-y: auto; background: rgba(10,8,15,.97); border-top: 2px solid var(--accent); padding: 8px 10px 12px; }
+.triche.ouvert { display: block; }
+.tr-tete { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.tr-tete b { color: var(--accent); }
+.tr-res { flex: 1; font-size: 12px; color: var(--ink-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-grille { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.tr-grille button, .tr-tete button { font: inherit; font-size: 12px; min-height: 38px; padding: 4px 6px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); cursor: pointer; }
+.tr-grille button.large { grid-column: span 3; }
+.tr-grille button.danger { border-color: #6b2230; color: var(--danger); }
+.ntour { display: inline-block; padding: 8px 2px; }
+.triche { max-height: 38%; }
+.tr-grille { grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.tr-grille button.large { grid-column: span 4; }
+.tr-grille button, .tr-tete button { min-height: 32px; font-size: 11px; }

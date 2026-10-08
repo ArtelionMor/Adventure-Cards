@@ -248,6 +248,40 @@ function installeTriche() {
   }
 }
 
+// LE PANNEAU DE TRICHE (telephone) : les memes commandes que `AC.triche`, en boutons. On l'ouvre en touchant
+// CINQ FOIS le « Tour N » de la barre (2 s au plus) ; il n'existe pour personne d'autre, rien ne l'affiche.
+function panneauTriche() {
+  const scenes = [['Dégâts', 'degats'], ['Gros coup', 'gros'], ['Unité', 'unite'], ['Bouclier', 'bouclier'], ['Venin', 'venin'], ['Annulé', 'annule'],
+    ['Armure', 'armure'], ['Soin', 'soin'], ['Mana', 'mana'], ['Mana +', 'manaplus'], ['Renfort', 'renfort'], ['Tour', 'tour'], ['Invoque', 'invoque'], ['Carte jouée', 'carte']];
+  const effets = [['Effet : mort', 'death'], ['Effet : début', 'turnStart'], ['Effet : fin', 'turnEnd'], ['Effet : règle', 'autre']];
+  let camp = 'p', ralenti = 1;
+  const n = el(`<div class="triche">
+    <div class="tr-tete"><b>Triche</b><span class="tr-res"></span><button class="tr-ferme">Fermer</button></div>
+    <div class="tr-grille"></div></div>`);
+  const grille = n.querySelector('.tr-grille'), res = n.querySelector('.tr-res');
+  const T = () => window.AC && window.AC.triche;
+  const bouton = (texte, fn, classe = '') => {
+    const b = el(`<button class="${classe}"></button>`);
+    b.textContent = texte;
+    b.onclick = () => { try { const r = fn(); res.textContent = r === undefined ? '' : String(r); } catch (e) { res.textContent = e.message; } };
+    grille.appendChild(b);
+    return b;
+  };
+  const cb = bouton('Camp : toi', () => { camp = camp === 'p' ? 'e' : 'p'; cb.textContent = camp === 'p' ? 'Camp : toi' : 'Camp : adversaire'; }, 'large');
+  for (const [t, nom] of scenes) bouton(t, () => T().voir(nom, camp));
+  for (const [t, m] of effets) bouton(t, () => T().effet(m, camp));
+  bouton('Aura +1/+1', () => T().aura(camp));
+  bouton('+1 mana', () => T().mana(1));
+  bouton('Pioche', () => T().pioche(1));
+  const rb = bouton('Ralenti ×1', () => { ralenti = ralenti === 1 ? 5 : ralenti === 5 ? 10 : 1; window.AC.fx.ralenti = ralenti; rb.textContent = `Ralenti ×${ralenti}`; });
+  bouton('Gagner (paie)', () => T().gagne(), 'danger');
+  bouton('Perdre', () => T().perd(), 'danger');
+  n.querySelector('.tr-ferme').onclick = () => n.classList.remove('ouvert');
+  // Le panneau est a lui : un toucher ici n'est ni une action de jeu ni un « toucher le fond ».
+  for (const e of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) n.addEventListener(e, ev => ev.stopPropagation());
+  return n;
+}
+
 function loop() {
   clearTimeout(timer);
   if (!B || B.over) return;
@@ -469,6 +503,18 @@ function monteLaCoque(root) {
   c.ntour = c.bar.querySelector('.ntour');
   c.logBtn = c.bar.querySelector('#logBtn');
   c.badge = c.bar.querySelector('.bdg');
+  // Cinq touchers sur « Tour N » ouvrent le panneau de triche.
+  c.triche = panneauTriche();
+  root.appendChild(c.triche);
+  let touches = [];
+  c.ntour.addEventListener('pointerdown', ev => {
+    ev.stopPropagation();
+    const t = Date.now();
+    touches = touches.filter(x => t - x < 2000);
+    touches.push(t);
+    if (touches.length >= 5) { touches = []; c.triche.classList.toggle('ouvert'); }
+  });
+  for (const e of ['pointerup', 'pointercancel']) c.ntour.addEventListener(e, ev => ev.stopPropagation());
   c.logBtn.onclick = () => {
     reinitSelection();
     c.journal.bascule();
