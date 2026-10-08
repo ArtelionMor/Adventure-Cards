@@ -1843,7 +1843,9 @@ function newEffect(op, eff) {
     }
     // Une branche de « Choisir » part avec un effet dedans : une branche vide ne
     // ferait rien, et le designer verrait un bloc sans rien a lire.
-    else if (p.type === 'effects') e[p.k] = [newEffect(Object.keys(eff)[0], eff)];
+    // Sauf une branche FACULTATIVE (le troisieme choix) : elle part vide, et tant
+    // qu'elle l'est, la carte reste un choix a deux.
+    else if (p.type === 'effects') e[p.k] = p.facultatif ? [] : [newEffect(Object.keys(eff)[0], eff)];
     else if (p.type === 'unit') e[p.k] = { name: 'Jeton', atk: 1, hp: 1, keys: [] };
   }
   return e;

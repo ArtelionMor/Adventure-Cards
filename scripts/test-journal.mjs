@@ -132,17 +132,22 @@ function controle(fichier, actions, queue, total) {
   // Un `inst` ne designe qu'UNE carte pour tout le combat : c'est toute sa raison
   // d'etre. On verifie qu'il ne change jamais de nom en route — c'est ainsi qu'une
   // carte copiee qui garderait l'identifiant de son modele se ferait prendre.
+  // UNE EXCEPTION VOULUE : la carte Miroir. Elle DEVIENT la derniere carte jouee en
+  // face, en gardant son identifiant (c'est le meme exemplaire qui change de visage), et
+  // son mot-cle `miroir` la suit partout, plateau compris. On la compte donc sous le nom
+  // « Miroir » : deux cartes qui partageraient son identifiant se feraient quand meme prendre.
   const nomDe = new Map();
-  const stable = (inst, nom) => {
+  const stable = (inst, nom, cles = []) => {
+    if (cles.includes('miroir')) nom = 'Miroir';
     if (!nomDe.has(inst)) { nomDe.set(inst, nom); return true; }
     return nomDe.get(inst) === nom;
   };
   let identifiantsOk = true;
-  for (const c of [...debut.camps.p.deck, ...debut.camps.e.deck]) identifiantsOk &&= stable(c.inst, c.nom);
+  for (const c of [...debut.camps.p.deck, ...debut.camps.e.deck]) identifiantsOk &&= stable(c.inst, c.nom, c.cles);
   for (const d of decisions) {
     for (const k of ['p', 'e']) {
-      for (const c of d.etat[k].main) identifiantsOk &&= stable(c.inst, c.nom);
-      for (const u of d.etat[k].plateau) if (u.inst) identifiantsOk &&= stable(u.inst, u.nom);
+      for (const c of d.etat[k].main) identifiantsOk &&= stable(c.inst, c.nom, c.cles);
+      for (const u of d.etat[k].plateau) if (u.inst) identifiantsOk &&= stable(u.inst, u.nom, u.cles);
     }
   }
   verifieUneFois('un `inst` ne designe qu\'une carte', identifiantsOk,

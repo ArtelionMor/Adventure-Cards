@@ -14,7 +14,7 @@
 // rien, mais il ne disparait pas sans laisser de trace. Ne filtre jamais sur `bad`
 // seul : passe par `bloque(s)`.
 import { TRIGGERS, EVENTS, AMPLIFIABLE, CARD_FILTERS, COUNTERS, STATICS, keyId, keyArg, keyFields, cardCost,
-  isVariableAmount, targetDef, targetId, targetArg, targetLabel, describeAmount, effectParams, eachSubEffect, listeEffets, typeVariable } from './mechanics.js';
+  isVariableAmount, targetDef, targetId, targetArg, targetLabel, describeAmount, effectParams, eachSubEffect, listeEffets, branchesDe, typeVariable } from './mechanics.js';
 import { resolveCard } from './characters.js';
 
 /**
@@ -87,6 +87,9 @@ export function eachUnit(card, fn) {
  */
 function verifieCarteCreee(e, ou, nom, catalogue) {
   const out = [];
+  // « La carte de Lui » ne se connait qu'en jeu : rien a verifier ici (une chaine qui
+  // commence par « Lui », elle, est signalee avec les cibles).
+  if (e.choix === 'lui') return out;
   if ((e.choix || 'precise') !== 'hasard') {
     if (!e.carte) out.push({ bad: false, msg: `${ou} — « ${nom} » sans carte choisie.` });
     else if (!catalogue.has(e.carte)) out.push({ bad: true, msg: `${ou} — la carte « ${e.carte} » de « ${nom} » n'existe pas.` });
@@ -317,7 +320,7 @@ function verifieCarte(card, proprio, ctx) {
     const hors = [], branches = [];
     for (const e of card.play || []) {
       if (e.op === 'choisir') {
-        for (const cle of ['a', 'b']) {
+        for (const cle of branchesDe(e)) {
           const camps = [];
           for (const x of listeEffets(e[cle])) eachSubEffect(x, y => {
             for (const t of ciblesDeLEffet(y, eff)) if (pointee(t)) camps.push(campPointe(t));

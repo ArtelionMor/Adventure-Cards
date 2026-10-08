@@ -210,7 +210,9 @@ const paramsOrdre = (si = () => true) => [
 const paramsCarteCreee = (si = () => true) => [
   {
     k: 'choix', type: 'choice', label: 'Quelle carte', def: 'precise',
-    choices: [['precise', 'Une carte precise'], ['hasard', 'Une carte au hasard']],
+    // « La carte de Lui » : celle de l'unite que l'effet precedent a visee — apres une
+    // Copie, le modele copie. Comme la cible « Lui », elle ne designe rien en premier.
+    choices: [['precise', 'Une carte precise'], ['hasard', 'Une carte au hasard'], ['lui', 'La carte de Lui']],
     si
   },
   { k: 'carte', type: 'cardRef', label: 'Carte créée', si: e => si(e) && (e.choix || 'precise') === 'precise' },
@@ -464,12 +466,14 @@ export const EFFECTS = {
   // deux branches part, celle que le joueur designe au moment de jouer la carte.
   choisir: {
     label: 'Choisir',
-    desc: 'Le joueur choisit LAQUELLE des deux branches part, au moment ou il joue la carte. Le bot compare les deux et garde la meilleure. Quand personne n’est la pour choisir (un rale d’agonie, un declencheur de tour), c’est la premiere qui part.',
+    desc: 'Le joueur choisit LAQUELLE des branches part (deux, ou trois si la troisieme est remplie), au moment ou il joue la carte. Le bot les compare et garde la meilleure. Quand personne n’est la pour choisir (un rale d’agonie, un declencheur de tour), c’est la premiere qui part.',
     // Chaque branche est une LISTE d'effets, comme un moment de carte : « inflige 2
     // blessures au hasard PUIS repete sur le meme type » est un choix, pas deux.
+    // `facultatif` : le builder ne la remplit pas d'office (cf. `branchesDe`).
     params: [
       { k: 'a', type: 'effects', label: 'Premier choix' },
-      { k: 'b', type: 'effects', label: 'Second choix' }
+      { k: 'b', type: 'effects', label: 'Second choix' },
+      { k: 'c', type: 'effects', label: 'Troisième choix (facultatif)', facultatif: true }
     ],
     implemented: true
   },
@@ -949,6 +953,25 @@ export const effectParams = op => ((ALL_EFFECTS[op] || {}).params || []).filter(
  */
 export const listeEffets = v => Array.isArray(v) ? v.filter(e => e && e.op) : (v && v.op ? [v] : []);
 
+/**
+ * LES BRANCHES D'UN « CHOISIR ». `a` et `b` toujours, `c` seulement s'il porte quelque
+ * chose : le troisieme choix est facultatif, et toutes les cartes ecrites avant lui
+ * n'en ont pas. Tout ce qui parcourt les branches (moteur, bot, interface, validation,
+ * journal, « Choisit les deux ») passe par ici — une liste ecrite en dur a un endroit
+ * ferait d'une carte a trois choix une carte a deux, sans un mot.
+ */
+export const BRANCHES = ['a', 'b', 'c'];
+export const branchesDe = e => BRANCHES.filter(k => k !== 'c' || listeEffets(e && e[k]).length);
+/** Les reponses possibles a la question d'une carte : les branches de son premier « Choisir ». */
+export function choixDeLaCarte(card) {
+  let r = null;
+  for (const e of card.play || []) eachSubEffect(e, x => { if (!r && x.op === 'choisir') r = branchesDe(x); });
+  return r || ['a', 'b'];
+}
+/** La branche qui part pour une reponse donnee. Une reponse inconnue (ou une branche
+ *  absente) retombe sur la premiere, comme quand personne n'est la pour choisir. */
+export const brancheChoisie = (e, choix) => listeEffets(branchesDe(e).includes(choix) ? e[choix] : e.a);
+
 /** Un effet et ceux qu'il contient, de proche en proche. */
 export function eachSubEffect(e, fn) {
   if (!e || !e.op) return;
@@ -992,6 +1015,14 @@ export const KEYWORDS = {
   type_tous: {
     label: 'Type : tous',
     desc: 'Cette unite est de TOUS les types a la fois : elle repond a « les allies Chien », aux auras « meme type », aux compteurs et aux filtres par type, quel que soit le type demande.',
+    implemented: true
+  },
+  // Une CARTE, pas un passif : elle ne fait quelque chose que dans la main de qui la
+  // tient. Tout le reste de sa definition (cout, effets) est remplace par ce qu'elle
+  // reflete — `reflete()` dans engine.js.
+  miroir: {
+    label: 'Miroir',
+    desc: 'En main, cette carte devient la carte que l’adversaire vient de jouer, avec 1 mana de moins, et change a chaque nouvelle carte qu’il joue. Elle arrive en main vierge et ne se joue pas tant qu’il n’a rien joue depuis.',
     implemented: true
   },
   elusif: {
@@ -1292,6 +1323,7 @@ const nomDeCarte = id => {
  * CARD_FILTERS, mais dit au singulier : c'est UNE carte qui apparait, pas un paquet.
  */
 export function describeCarteCreee(e) {
+  if (e.choix === 'lui') return 'une copie de la carte de Lui';
   if ((e.choix || 'precise') !== 'hasard') return `« ${nomDeCarte(e.carte)} »`;
   const quoi = e.quoi || 'all';
   const nom = quoi === 'ally' ? 'un allie' : quoi === 'spell' ? 'un sort' : 'une carte';
@@ -1382,7 +1414,7 @@ export function describeEffect(e) {
     case 'switch': return `switche ${describeZone(e)}`;
     // Une branche vide ne dit rien plutot que « undefined » : la carte est en cours
     // d'ecriture, pas cassee.
-    case 'choisir': return `au choix : ${brancheTexte(e.a)} OU ${brancheTexte(e.b)}`;
+    case 'choisir': return `au choix : ${branchesDe(e).map(b => brancheTexte(e[b])).join(' OU ')}`;
     // Une branche est une liste : ses effets s'enchainent, comme sur un moment.
     case 'copie': return `${targetLabel(e.t).toLowerCase()} devient une copie ${de(describeModele(e))}`;
     case 'pioche_x': return `cherche ${describeAmount(e.n === undefined ? 1 : e.n)} × « ${e.carte || '?'} » dans ton deck`;

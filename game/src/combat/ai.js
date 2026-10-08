@@ -10,7 +10,7 @@
 // declencheur de tour compte plusieurs fois parce qu'il se repete.
 import { BALANCE } from '../config/balance.js';
 import { canPlay, legalTargets, attackableTargets, needsTarget, needsChoice, cloneBattle, playCard, attack, endTurn } from './engine.js';
-import { TRIGGERS, TARGETS, STATICS, ZONES, EVENTS, EFFETS_QUI_CHAINENT, hasKey, keyId, keyFields, counterValue, amountValue, cardCost, cardMatches, staticFields, targetId, targetArg, partageType, estDuType, eachSubEffect, listeEffets, typeVariable } from '../config/mechanics.js';
+import { branchesDe, choixDeLaCarte, TRIGGERS, TARGETS, STATICS, ZONES, EVENTS, EFFETS_QUI_CHAINENT, hasKey, keyId, keyFields, counterValue, amountValue, cardCost, cardMatches, staticFields, targetId, targetArg, partageType, estDuType, eachSubEffect, listeEffets, typeVariable } from '../config/mechanics.js';
 import { cardById, fatiguePile, switchOf } from '../config/npcs.js';
 
 const foe = k => (k === 'p' ? 'e' : 'p');
@@ -128,7 +128,7 @@ function effetsDeLaCarte(card, choix) {
   const out = [];
   const descend = e => {
     if (e.op === 'choisir') {
-      for (const b of (choix ? [e[choix]] : [e.a, e.b])) for (const x of listeEffets(b)) descend(x);
+      for (const b of (choix ? [e[choix]] : branchesDe(e).map(x => e[x]))) for (const x of listeEffets(b)) descend(x);
       return;
     }
     out.push(e);
@@ -346,7 +346,7 @@ function effectValue(e, ctx) {
       return prise * 1.8;
     }
     // On garde la meilleure des deux branches : c'est celle que le bot jouera.
-    case 'choisir': return Math.max(brancheValue(e.a, ctx), brancheValue(e.b, ctx));
+    case 'choisir': return Math.max(...branchesDe(e).map(b => brancheValue(e[b], ctx)));
     case 'pioche_x': return (e.n === undefined ? 1 : n('n')) * 2;
     case 'pioche_une_carte_de_type': return (e.n === undefined ? 1 : n('n')) * 1.8;
     // Du mana rendu sur des cartes qu'on a deja en main : c'est du tempo pour plus tard.
@@ -518,13 +518,15 @@ function contexte(B, k, card) {
  */
 export function meilleureBranche(B, k, card) {
   const ctx = contexte(B, k, card);
-  let a = 0, b = 0;
+  // Une valeur par reponse possible ; a egalite, la premiere (l'ordre de BRANCHES).
+  const valeur = {};
   for (const brut of card.play || []) eachSubEffect(brut, e => {
     if (e.op !== 'choisir') return;
-    a += brancheValue(e.a, ctx);
-    b += brancheValue(e.b, ctx);
+    for (const b of branchesDe(e)) valeur[b] = (valeur[b] || 0) + brancheValue(e[b], ctx);
   });
-  return b > a ? 'b' : 'a';
+  let meilleure = 'a';
+  for (const b of choixDeLaCarte(card)) if ((valeur[b] || 0) > (valeur[meilleure] || 0)) meilleure = b;
+  return meilleure;
 }
 
 /**
@@ -662,7 +664,7 @@ export function coupsPossibles(B, k) {
     // fonction de valeur, et ca ne coute qu'un candidat de plus.
     if (needsChoice(c)) {
       // Chaque branche a ses propres cibles : on vise avec celle qu'on essaie.
-      for (const choix of ['a', 'b']) coups.push({ type: 'play', index: i, target: pickTarget(B, k, c, choix), choix });
+      for (const choix of choixDeLaCarte(c)) coups.push({ type: 'play', index: i, target: pickTarget(B, k, c, choix), choix });
       return;
     }
     coups.push({ type: 'play', index: i, target: pickTarget(B, k, c) });

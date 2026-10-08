@@ -33,7 +33,7 @@
 // changer le sens d'un champ incremente `v` — et se note dans l'historique, en bas.
 import { BALANCE } from '../config/balance.js';
 import { CHARACTER_DATA } from '../../data/characters.data.js';
-import { TRIGGERS, cardCost } from '../config/mechanics.js';
+import { TRIGGERS, cardCost, choixDeLaCarte } from '../config/mechanics.js';
 import { canPlay, needsChoice, needsTarget, legalTargets, attackableTargets, playCard, attack, endTurn, other } from './engine.js';
 import { evalue, ecouteLesChoix } from './ai.js';
 
@@ -236,7 +236,7 @@ function coupsLegaux(j, B, k) {
     // coup, lui, porte l'identifiant attribue par le journal.
     const inst = instDe(j, k, c);
     // Une carte « Choisir » fait deux coups : les branches n'ont pas les memes cibles.
-    for (const choix of needsChoice(c) ? ['a', 'b'] : [null]) {
+    for (const choix of needsChoice(c) ? choixDeLaCarte(c) : [null]) {
       const cibles = needsTarget(c, choix) ? legalTargets(B, k, c, choix) : [];
       // Aucune cible a designer (elle se resout seule, ou la branche vise en face) :
       // la carte part quand meme, cible nulle — c'est ce que recoit `playCard`.

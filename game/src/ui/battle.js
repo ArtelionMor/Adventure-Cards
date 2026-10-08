@@ -5,7 +5,7 @@ import { CHAR_BY_ID, characterDeck } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist } from '../state.js';
 import { relicMods } from '../config/relics.js';
-import { TRIGGERS, COUNTERS, keyLabel, hasKey, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel } from '../config/mechanics.js';
+import { TRIGGERS, COUNTERS, keyLabel, hasKey, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel, branchesDe, listeEffets } from '../config/mechanics.js';
 import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur } from '../combat/engine.js';
 import { botAction } from '../combat/ai.js';
 import { joue as joueLeCoup, ouvreJournal, fermeJournal, nomDeFichier } from '../combat/journal.js';
@@ -365,11 +365,13 @@ function demandeChoix(card, done) {
   if (!choisi) { done(null); return; }
   const box = el(`<div><h3 style="margin:0 0 4px">${card.name}</h3><p class="muted" style="margin:0">Choisis un effet.</p></div>`);
   let boutons = 0;
-  for (const cle of ['a', 'b']) {
-    const branche = choisi[cle];
-    if (!branche || !branche.op) continue;
+  // Une branche est une LISTE d'effets (l'ancienne forme, un effet seul, se lit
+  // pareil) : le bouton les dit tous, a la suite. Deux ou trois choix (`branchesDe`).
+  for (const cle of branchesDe(choisi)) {
+    const branche = listeEffets(choisi[cle]);
+    if (!branche.length) continue;
     const b = el('<button class="btn" style="width:100%;margin-top:8px;text-align:left"></button>');
-    b.textContent = describeEffect(branche);
+    b.textContent = branche.map(describeEffect).join(', puis ');
     b.onclick = () => { closeModal(); done(cle); };
     box.appendChild(b);
     boutons++;

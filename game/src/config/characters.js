@@ -6,7 +6,7 @@
 // Un deck = 3 personnages = 15 cartes melangees dans un paquet unique.
 // Les effets et mots-cles disponibles sont decrits dans config/mechanics.js.
 import { CHARACTER_DATA } from '../../data/characters.data.js';
-import { AMPLIFIABLE, TRIGGERS, amplify, effectParams, eachSubEffect, listeEffets } from './mechanics.js';
+import { AMPLIFIABLE, TRIGGERS, amplify, effectParams, eachSubEffect, listeEffets, branchesDe } from './mechanics.js';
 
 export const CHARACTERS = CHARACTER_DATA.characters;
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));
@@ -98,7 +98,7 @@ export function resolveCard(def, level) {
   if (lesDeux) {
     for (const slot of Object.keys(TRIGGERS)) {
       if (!(c[slot] || []).length) continue;
-      c[slot] = c[slot].flatMap(e => e.op === 'choisir' ? [...listeEffets(e.a), ...listeEffets(e.b)] : [e]);
+      c[slot] = c[slot].flatMap(e => e.op === 'choisir' ? branchesDe(e).flatMap(b => listeEffets(e[b])) : [e]);
     }
   }
   if (amp) {

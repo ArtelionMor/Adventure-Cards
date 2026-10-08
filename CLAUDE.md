@@ -1052,6 +1052,34 @@ moteur en plus. Un seul endroit répond « quelle carte apparaît ? » côté mo
 `modeleCree()` dans `engine.js`. Le bot valorise un tirage un peu moins qu'une carte
 choisie — il ne sait pas ce qui va tomber.
 
+Une **troisième façon** : **« la carte de Lui »** (`choix: 'lui'`), celle de l'unité que
+l'effet précédent a visée. Après une Copie, « Lui » est l'unité qui vient de se
+transformer, et sa carte est le **modèle copié** : « devient une copie d'une unité, puis
+crée une copie de la carte de Lui » met en main la carte qu'on vient d'imiter (Caméléon,
+niveau 5). Cette carte est déjà en jeu, donc déjà résolue : `carteNeuve()` la recopie
+telle quelle — sans son `inst` (c'est une carte neuve) — au lieu de la résoudre une
+seconde fois. Comme la cible « Lui », elle ne désigne rien en premier effet.
+
+## La carte Miroir
+Le mot-clé **`miroir`** (la carte libre « Miroir », que le Caméléon génère) : **en main**,
+la carte **devient** celle que l'adversaire vient de jouer, avec **1 mana de moins**
+(jamais sous 0), et change à chaque nouvelle carte qu'il joue. Ce n'est pas un passif de
+héros — décision du game designer : pas de passif pour l'instant, tout passe par des cartes.
+
+- ⚠ **Elle ne change QUE quand l'adversaire joue** (`retiensJouee()` → `reflete()`, dans
+  `playCard`). Un Miroir qui arrive en main — pioché, créé — arrive **vierge** et le reste
+  jusqu'à la prochaine carte d'en face, même si l'adversaire a déjà joué avant. Vierge, il
+  ne se joue pas (`canPlay`). C'est cette règle, et **pas un plafond**, qui ferme la boucle
+  « Découverte reflétée à 0 mana qui crée un Miroir qui redevient Découverte » : un
+  plafond serait arbitraire et incompréhensible pour le joueur. Une future carte « les
+  Miroirs reflètent aussi tes cartes » la rouvrira, et c'est voulu : un combo infini rare,
+  qui dépend de l'adversaire, n'est pas un problème. Le bot, lui, devra savoir s'arrêter.
+- On la **réécrit sur place** (même objet) : son `inst` reste, le journal la suit carte par
+  carte, et elle garde son mot-clé — renvoyée en main, elle reflète de nouveau. Le banc du
+  journal compte donc tout exemplaire `miroir` sous le nom « Miroir ».
+- `refletDe` dit quelle carte jouée elle reflète : elle n'est refaite que pour une
+  nouvelle carte, sinon un renfort reçu en main s'effacerait.
+
 ## Switcher une carte
 Chaque slot d'un personnage porte **deux** cartes — la base et son switch — et c'est le
 joueur qui équipe l'une ou l'autre hors combat. L'effet `switch` les échange **en
@@ -1144,9 +1172,14 @@ unité volée arrive comme une unité qu'on vient de poser — elle n'attaque pa
 sauf Charge. Le bot la lit comme un retrait **et** un corps : il paie presque deux fois
 ce que vaut l'unité, et vise la plus gênante.
 
-## Choisir entre deux effets
+## Choisir entre deux effets (ou trois)
 `choisir` est le premier effet dont les **paramètres sont d'autres effets** (`a` et `b`,
-type `effects`). Une seule branche part — et une branche est une **liste** : « inflige 2
+type `effects`, et un **troisième choix `c` facultatif** — Découverte s'en sert). Tout ce
+qui parcourt les branches passe par `branchesDe(e)` / `choixDeLaCarte(card)` /
+`brancheChoisie(e, choix)` (`config/mechanics.js`) : `c` n'existe que s'il est rempli, si
+bien que les cartes écrites avant lui restent des choix à deux, et une réponse inconnue
+retombe sur la première branche. « Choisit les deux » fait partir **toutes** les
+branches. Une seule branche part — et une branche est une **liste** : « inflige 2
 blessures au hasard PUIS répète sur le même type » est UN choix, pas deux. Le builder
 l'édite avec le même bloc qu'un moment de carte (`effectList()`, extrait de
 `triggerFields` pour être partagé), donc « + Ajouter un effet » y marche pareil.
@@ -1629,7 +1662,11 @@ d'autre ne le dit.
   que pour le débogage,
   `--adversaires` pour ne jouer que **les équipes contre les adversaires** (équipes en
   lignes, PNJ en colonnes, ni équipe contre équipe ni PNJ contre PNJ — la ligne « Trio vs
-  Adversaires - niv 4 » d'une file), `--bots` pour comparer les niveaux de bot entre eux,
+  Adversaires - niv 4 » d'une file), `--archetypes` pour **type contre type** (chaque
+  équipe aligne les deux héros d'un type — `dog` + `dog2`, le type étant l'id sans son
+  chiffre final — et un troisième tiré au sort à chaque partie hors de ce type : le taux
+  est la moyenne sur tous les coéquipiers possibles), `--bots` pour comparer les niveaux
+  de bot entre eux,
   `--pair a,b --fort` pour rejuger un matchup suspect avec la référence Monte-Carlo.
 - Ce que la matrice mesure vraiment : des decks **tels que le bot les joue**. Un deck que le
   bot ne sait pas piloter paraît faible. D'où `--fort` : si l'écart s'efface avec une

@@ -3065,5 +3065,118 @@ function attaqueAvec(B, nom) {
   check('et le libelle la dit', momentLabel(eventSlot('attack', 'self'), c).includes('Chien seulement'), true);
 }
 
+console.log('\nLa carte Miroir');
+const miroir = () => ({ id: 'miroir', name: 'Miroir', type: 'spell', cost: 0, keys: ['miroir'], text: '', tiers: [], play: [] });
+{
+  // Avant que l'adversaire ait joue quoi que ce soit : rien a refleter, rien a jouer.
+  const B = setup([miroir()]);
+  check('un Miroir qui n\'a rien reflete ne se joue pas', canPlay(B, 'p', B.p.hand[0]), false);
+}
+{
+  // L'adversaire joue un allie : le Miroir DEVIENT cet allie, 1 mana de moins.
+  const B = setup([miroir()], [ally('Ours', 5, 6, { cost: 4 })]);
+  const inst = B.p.hand[0].inst = 'p-99';
+  B.turn = 'e';
+  play(B, 'e', 'Ours');
+  const m = B.p.hand[0];
+  check('il devient la carte jouee en face', [m.name, m.type, m.atk, m.hp], ['Ours', 'ally', 5, 6]);
+  check('avec 1 mana de moins', m.cost, 3);
+  check('il garde son identite (inst) et son mot-cle', [m.inst, m.keys.includes('miroir')], [inst, true]);
+  B.turn = 'p';
+  play(B, 'p', 'Ours');
+  check('et il se joue comme elle', board(B, 'p'), ['Ours 5/6']);
+}
+{
+  // Il suit : une nouvelle carte en face le refait.
+  const B = setup([miroir()], [ally('Ours', 5, 6, { cost: 4 }), eclair(3, 'Foudre')]);
+  B.turn = 'e';
+  play(B, 'e', 'Ours');
+  play(B, 'e', 'Foudre', { side: 'p', hero: true });
+  check('il devient la DERNIERE carte jouee', [B.p.hand[0].name, B.p.hand[0].type], ['Foudre', 'spell']);
+  check('un sort a 1 mana tombe a 0, pas en dessous', B.p.hand[0].cost, 0);
+}
+{
+  // Il ne change QUE quand l'adversaire joue : pioche APRES la carte adverse, il arrive
+  // vierge, et c'est la prochaine carte d'en face qui le remplit.
+  const B = setup([], [ally('Ours', 5, 6, { cost: 4 }), ally('Loup', 2, 2)]);
+  B.turn = 'e';
+  play(B, 'e', 'Ours');
+  B.p.deck.push(miroir());
+  draw(B, 'p', 1);
+  const m = B.p.hand[B.p.hand.length - 1];
+  check('pioche apres coup : il arrive vierge', [m.name, canPlay(B, 'p', m)], ['Miroir', false]);
+  play(B, 'e', 'Loup');
+  check("et se remplit a la carte suivante d'en face", m.name, 'Loup');
+}
+{
+  // Ce sont les cartes de l'ADVERSAIRE qu'il reflete, jamais les siennes.
+  const B = setup([miroir(), ally('Loup', 2, 2)]);
+  play(B, 'p', 'Loup');
+  check('ses propres cartes ne comptent pas', B.p.hand[0].name, 'Miroir');
+}
+
+{
+  // LA BOUCLE FERMEE SANS PLAFOND. L'adversaire joue « Decouverte » (cree un Miroir) a
+  // 1 mana ; mon Miroir la reflete a 0 ; je la joue : elle me cree un Miroir — VIERGE,
+  // puisque personne n'a rien joue en face depuis. Il n'y a donc rien a rejouer.
+  const decouverte = { id: 'dec', name: 'Decouverte', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'cree', choix: 'precise', carte: 'miroir', n: 1 }] };
+  const B = setup([miroir()], [decouverte]);
+  B.turn = 'e';
+  play(B, 'e', 'Decouverte');
+  B.turn = 'p';
+  check('le Miroir reflete Decouverte a 0 mana', [B.p.hand[0].name, cardCost(B.p.hand[0], B, 'p')], ['Decouverte', 0]);
+  play(B, 'p', 'Decouverte');
+  const neuf = B.p.hand[B.p.hand.length - 1];
+  check("le Miroir qu'elle cree est vierge : la boucle s'arrete d'elle-meme", [neuf.name, canPlay(B, 'p', neuf)], ['Miroir', false]);
+}
+
+console.log('\nChoisir entre trois');
+const triple = (lesDeux = false) => ({ id: 'tri', name: 'Triple', type: 'spell', cost: 1, keys: [], text: '',
+  tiers: lesDeux ? [{ lvl: 2, lesDeux: true }] : [],
+  play: [{ op: 'choisir', a: [{ op: 'armor', v: 1 }], b: [{ op: 'armor', v: 10 }], c: [{ op: 'armor', v: 100 }] }] });
+{
+  const B = setup([triple()]);
+  play(B, 'p', 'Triple', null, 'c');
+  check('la troisieme branche part quand on la choisit', B.p.armor, 100);
+}
+{
+  const c = resolveCard(triple(true), 2);
+  const B = setup([c]);
+  check('« Choisit les deux » fait partir les TROIS', [needsChoice(c), (play(B, 'p', 'Triple'), B.p.armor)], [false, 111]);
+}
+{
+  // Une carte ecrite avant le troisieme choix (pas de `c`) reste un choix a deux, et une
+  // reponse « c » sur elle retombe sur la premiere branche.
+  const B = setup([modale('Duo', { op: 'armor', v: 1 }, { op: 'armor', v: 10 })]);
+  play(B, 'p', 'Duo', null, 'c');
+  check('pas de troisieme branche : « c » retombe sur la premiere', B.p.armor, 1);
+}
+
+console.log('\nCreer la carte de Lui');
+{
+  // « Devient une copie d'une unite adverse, PUIS crée une copie de la carte de Lui » :
+  // la main recoit la carte que l'on vient de copier, pas celle du copieur.
+  const copieur = ally('Copieur', 1, 1, { play: [
+    { op: 'copie', t: 'self', d_ou: 'plateau', tm: 'randomEnemyUnit' },
+    { op: 'cree', choix: 'lui', n: 1 }
+  ] });
+  const B = setup([copieur], [ally('Ours', 5, 6, { cost: 4 })]);
+  B.turn = 'e'; play(B, 'e', 'Ours'); B.turn = 'p';
+  const avant = B.p.hand.length;
+  play(B, 'p', 'Copieur');
+  const cree = B.p.hand[B.p.hand.length - 1];
+  check('le copieur est devenu l\'Ours', board(B, 'p'), ['Ours 5/6']);
+  check('et la main recoit une carte Ours', [B.p.hand.length - avant, cree.name, cree.atk, cree.hp, cree.cost], [0, 'Ours', 5, 6, 4]);
+  check('une carte NEUVE : sans l\'identifiant d\'exemplaire du modele', cree.inst, undefined);
+}
+{
+  // Sans rien dans « Lui » (premier effet), rien n'apparait — et le journal le dit.
+  const seul = { id: 'seul', name: 'Seul', type: 'spell', cost: 1, keys: [], text: '', tiers: [], play: [{ op: 'cree', choix: 'lui', n: 1 }] };
+  const B = setup([seul]);
+  play(B, 'p', 'Seul');
+  check('rien dans « Lui » : rien n\'est cree', [B.p.hand.length, B.log.some(l => l.includes('aucune unite dans'))], [0, true]);
+}
+
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);

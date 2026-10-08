@@ -23,7 +23,7 @@
 import { BALANCE } from '../config/balance.js';
 import { cardById, catalogCards, fatiguePile, switchOf } from '../config/npcs.js';
 import { resolveCard } from '../config/characters.js';
-import { staticMin, ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, ZONES, EVENTS, eventSlot, keyId, keyArg, hasKey, keyFields, counterValue, amountValue, numberParams, targetParams, cardMatches, describeFilter, describeCarteCreee, describeModele, cardCost, staticTotal, describeStatic, targetId, targetArg, targetDef, typesOf, partageType, estDuType, eachSubEffect, listeEffets, typeVariable, describeEffect, EVENT_GARDES } from '../config/mechanics.js';
+import { staticMin, ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, ZONES, EVENTS, eventSlot, keyId, keyArg, hasKey, keyFields, counterValue, amountValue, numberParams, targetParams, cardMatches, describeFilter, describeCarteCreee, describeModele, cardCost, staticTotal, describeStatic, targetId, targetArg, targetDef, typesOf, partageType, estDuType, eachSubEffect, listeEffets, branchesDe, brancheChoisie, typeVariable, describeEffect, EVENT_GARDES } from '../config/mechanics.js';
 
 
 let uid = 1;
@@ -260,9 +260,9 @@ function preleve(B, k, e, target, source, last) {
   if (zone.carte) {
     const combien = Math.max(0, e.n === undefined ? 1 : e.n);
     for (let i = 0; i < combien; i++) {
-      const modele = modeleCree(e);
+      const modele = modeleCree(e, last);
       if (!modele) { say(B, `${rienDeTel(e)} : rien a deplacer.`); break; }
-      pris.push({ camp: campDuPaquet(k, e), carte: { ...resolveCard(modele, e.lvl || 1), sprite: modele.sprite || (source ? source.sprite : null) } });
+      pris.push({ camp: campDuPaquet(k, e), carte: carteNeuve(modele, e.lvl || 1, source) });
     }
     return pris;
   }
@@ -351,16 +351,38 @@ function choisitDansPaquet(B, k, e, pile, camp) {
  * On l'appelle une fois PAR EXEMPLAIRE : « 3 cartes au hasard », c'est trois tirages
  * differents, et non trois copies de la meme.
  */
-function modeleCree(e) {
+function modeleCree(e, last) {
+  // « LA CARTE DE LUI » : celle de l'unite que l'effet precedent a visee ou transformee
+  // (apres une Copie, c'est le modele copie). Elle est en jeu, donc deja resolue :
+  // `carteNeuve` la recopie telle quelle au lieu de la resoudre une seconde fois.
+  if (e.choix === 'lui') {
+    const r = (last || []).find(x => x && x.kind === 'unit');
+    if (!r) return null;
+    return { ...(r.unit.card || carteDUnite(r.unit)), dejaResolue: true };
+  }
   if ((e.choix || 'precise') !== 'hasard') return cardById(e.carte);
   const sac = catalogCards().filter(c => cardMatches(c, e));
   if (!sac.length) return null;
   return sac[Math.floor(Math.random() * sac.length)];
 }
 
+/**
+ * La carte qui APPARAIT, faite d'un modele. Un modele du catalogue se resout au niveau
+ * demande ; la carte de « Lui » l'est deja et se recopie — sans son `inst` (c'est une
+ * carte neuve, le journal lui en donnera un) ni son reflet de Miroir.
+ */
+function carteNeuve(modele, lvl, source) {
+  if (modele.dejaResolue) {
+    const { dejaResolue, inst, refletDe, ...carte } = modele;
+    return structuredClone(carte);
+  }
+  return { ...resolveCard(modele, lvl), sprite: modele.sprite || (source ? source.sprite : null) };
+}
+
 /** Pourquoi rien n'est apparu : une carte nommee qui n'existe plus, ou un filtre
  *  que pas une carte du catalogue ne satisfait. Les deux se disent differemment. */
-const rienDeTel = e => (e.choix || 'precise') === 'hasard'
+const rienDeTel = e => e.choix === 'lui' ? 'aucune unite dans « Lui »'
+  : (e.choix || 'precise') === 'hasard'
   ? `le catalogue n'a pas ${describeCarteCreee(e)}`
   : `« ${e.carte || '?'} » n'existe pas`;
 
@@ -419,6 +441,54 @@ export function depose(B, camp, carte, vers) {
   s.board.push(u);
   checkKeywords(B, u);
   return u;
+}
+
+// ------------------------------------------------------------------- miroir
+/**
+ * LA CARTE MIROIR (mot-cle `miroir`). EN MAIN, elle devient la carte que l'adversaire
+ * vient de jouer, avec 1 mana de moins — et elle suit : chaque nouvelle carte qu'il joue
+ * la refait. Ce n'est pas un passif de heros : c'est une carte, qui se pioche, se cree
+ * (« Crée une carte : Miroir ») et se joue comme les autres.
+ *
+ * - ELLE NE CHANGE QUE QUAND L'ADVERSAIRE JOUE. Un Miroir qui arrive en main (pioche,
+ *   creation) arrive VIERGE et le reste jusqu'a la prochaine carte d'en face — meme si
+ *   l'adversaire a deja joue avant. C'est ce qui ferme la boucle « Decouverte reflechie a
+ *   0 mana qui recree un Miroir qui redevient Decouverte » SANS plafond : un plafond
+ *   serait arbitraire et incomprehensible pour le joueur (decision du game designer).
+ *   Une future carte « les Miroirs reflechissent aussi tes cartes » rouvrira la boucle :
+ *   c'est voulu, un combo infini rare et dependant de l'adversaire n'est pas un probleme.
+ * - Vierge, elle n'a rien a refleter : elle garde sa forme d'origine et ne se joue pas
+ *   (`canPlay`).
+ * - On la REECRIT SUR PLACE (meme objet) : son `inst` et son identite restent, donc le
+ *   journal la suit carte par carte, et la main ne change pas d'ordre.
+ * - Elle garde le mot-cle : renvoyee en main plus tard, elle reflete de nouveau. Sur le
+ *   plateau ou dans la defausse, il ne fait rien.
+ * - `refletDe` retient QUELLE carte jouee elle reflete : on ne la refait que pour une
+ *   nouvelle carte, sinon un renfort recu en main serait efface a chaque pioche.
+ */
+function reflete(B, k) {
+  const modele = B[foe(k)].derniere;
+  if (!modele) return;
+  for (const c of B[k].hand) {
+    if (!hasKey(c.keys, 'miroir') || c.refletDe === modele.marque) continue;
+    const inst = c.inst;
+    for (const cle of Object.keys(c)) delete c[cle];
+    Object.assign(c, structuredClone(modele.carte), {
+      keys: [...(modele.carte.keys || []).filter(x => keyId(x) !== 'miroir'), 'miroir'],
+      cost: Math.max(0, (modele.carte.cost || 0) - 1),
+      refletDe: modele.marque
+    });
+    if (inst !== undefined) c.inst = inst;
+    say(B, `Un Miroir de ${B[k].name} devient ${c.name}.`);
+  }
+}
+
+/** Retient la carte qu'un camp vient de jouer, telle qu'elle etait au moment de partir. */
+function retiensJouee(B, k, card) {
+  const { inst, refletDe, ...carte } = card;
+  B.marques = (B.marques || 0) + 1;
+  B[k].derniere = { carte: structuredClone(carte), marque: B.marques };
+  reflete(B, foe(k));
 }
 
 // ------------------------------------------------------------------- switch
@@ -487,12 +557,11 @@ const proprio = (u, camp) => u.owner || camp;
 function modeleACopier(B, k, e, target, source, last, campCible) {
   const zone = ZONES[e.d_ou] || ZONES.plateau;
   if (zone.carte) {
-    const def = modeleCree(e);
+    const def = modeleCree(e, last);
     // Une carte du catalogue n'appartient a personne : on la resout au niveau de
     // celle qui copie, comme le fait un jeton invoque.
     if (!def) return null;
-    const lvl = Math.max(1, (source && source.ownerLevel) || 1);
-    return { ...resolveCard(def, lvl), sprite: def.sprite || (source ? source.sprite : null) };
+    return carteNeuve(def, Math.max(1, (source && source.ownerLevel) || 1), source);
   }
   if (zone.cible) {
     const r = pickOne(recipients(B, k, e.tm, target, source, last).filter(x => x.kind === 'unit'));
@@ -932,7 +1001,7 @@ function ciblesDeLaCarte(card, choix) {
   const out = [];
   const descend = e => {
     if (e.op === 'choisir') {
-      const branches = choix ? [e[choix]] : [e.a, e.b];
+      const branches = choix ? [e[choix]] : branchesDe(e).map(b => e[b]);
       for (const b of branches) for (const x of listeEffets(b)) descend(x);
       return;
     }
@@ -1271,10 +1340,10 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         const noms = [];
         for (let i = 0; i < combien; i++) {
           // Au hasard : un tirage par exemplaire, donc des cartes differentes.
-          const modele = modeleCree(e);
+          const modele = modeleCree(e, last);
           if (!modele) { say(B, `${rienDeTel(e)} : rien n'est cree.`); break; }
           if (me.hand.length >= BALANCE.combat.handMax) { say(B, 'Main pleine : la carte creee est perdue.'); break; }
-          me.hand.push({ ...resolveCard(modele, e.lvl || 1), sprite: modele.sprite || (source ? source.sprite : null) });
+          me.hand.push(carteNeuve(modele, e.lvl || 1, source));
           noms.push(modele.name);
         }
         if (noms.length) say(B, `${me.name} cree ${noms.length} × ${[...new Set(noms)].join(', ')}.`);
@@ -1379,7 +1448,7 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         // UNE SEULE branche part, mais une branche est une LISTE : ses effets
         // s'enchainent comme sur un moment, « Lui » compris. Le joueur l'a designee en
         // jouant la carte ; le bot compare les deux ; sinon c'est la premiere.
-        const branche = listeEffets(choix === 'b' ? e.b : e.a);
+        const branche = brancheChoisie(e, choix);
         if (!branche.length) { say(B, 'Ce choix ne propose rien.'); break; }
         say(B, `Choix : ${branche.map(describeEffect).join(', ')}.`);
         // Les destinataires de la branche deviennent ceux de « Choisir » : « Lui »
@@ -1508,6 +1577,8 @@ export function canPlay(B, k, card) {
   // JOUABILITE, donc elle se pose ici — le bot et l'interface la voient tous les deux.
   if (s.jouees >= staticMin(B, k, 'limite_de_cartes_jouees')) return false;
   if (s.mana < cardCost(card, B, k)) return false;
+  // Un Miroir vierge (rien joue en face depuis qu'il est arrive en main) n'est rien.
+  if (hasKey(card.keys, 'miroir') && card.refletDe === undefined) return false;
   if (card.type === 'ally' && plateauPlein(s)) return false;
   // UNE BRANCHE SUFFIT. Une carte « Choisir » dont un seul des deux choix trouve une
   // cible reste jouable : on prendra l'autre. Sans ce detour, « gagne 8 armure OU
@@ -1541,6 +1612,9 @@ export function playCard(B, k, handIndex, target = null, choix = null) {
     else s.discard.push(card);
   }
   say(B, `${s.name} joue ${card.name}.`);
+  // Les Miroirs d'en face la refletent tout de suite — avant ses effets, qui peuvent
+  // justement leur faire quitter la main (une defausse, un renvoi).
+  retiensJouee(B, k, card);
 
   let source = null;
   if (card.type === 'ally') {
