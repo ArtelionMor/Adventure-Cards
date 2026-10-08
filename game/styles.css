@@ -552,3 +552,7 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .fx-v { position: absolute; }
 .tr-grille select.large { grid-column: span 4; min-height: 34px; background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; font-size: 12px; }
 .fx-ban-txt { font-size: 22px; font-weight: 900; letter-spacing: 3px; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
+
+/* ---------- un halo qui reste tant que le porteur d'une AURA est en jeu (opacity/transform seulement) ---------- */
+.unit.porte-aura::before { content: ""; position: absolute; inset: -4px; border-radius: 14px; border: 2px solid rgba(255,196,107,.75); box-shadow: 0 0 10px rgba(255,196,107,.55); pointer-events: none; animation: auraPulse 2.4s ease-in-out infinite; }
+@keyframes auraPulse { 0%, 100% { opacity: .35; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }

@@ -1,7 +1,7 @@
 // Ecran de combat. Le mode auto est l'etat par defaut : le jeu est idle d'abord,
 // le mode manuel est une reprise en main volontaire (GDD).
 import { BALANCE } from '../config/balance.js';
-import { CHAR_BY_ID, characterDeck } from '../config/characters.js';
+import { CHAR_BY_ID, CHARACTERS, characterDeck } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist } from '../state.js';
 import { relicMods } from '../config/relics.js';
@@ -21,7 +21,7 @@ import { ouvreRevue } from './revue.js';
 import { creeFx } from './effets.js';
 import { montreFin } from './fin.js';
 import { ligneDePictos } from './pictos.js';
-import { SIGNATURES } from './vfx.js';
+import { fabrique } from './vfx-scenes.js';
 import { cardById } from '../config/npcs.js';
 import { ligneIco, lignesDeFait, lignesDeRenforts } from './fiche.js';
 
@@ -233,21 +233,18 @@ function installeTriche() {
     },
     // Le VFX d'une carte (ui/vfx.js) : `vfx('cat_pounce', 'p')` joue la carte pour de faux — son lancer, puis ce qu'elle
     // cause (des degats sur le heros d'en face, un renfort sur ton premier allie, ou l'arrivee de ton premier allie).
-    vfx(id = 'cat_pounce', k = 'p') {
+    vfx(id = 'cat_pounce', k = 'p', moment = 'jouer') {
       const c = cardById(id);
-      if (!c) return `carte inconnue : ${Object.keys(SIGNATURES).join(', ')}`;
+      if (!c) return `carte inconnue : voir AC.triche.vfxListe()`;
       const cp = camp(k), autre = cp === 'p' ? 'e' : 'p';
-      const sig = SIGNATURES[id] || {};
       const u = B[cp].board[0];
-      const cible = c.type === 'spell' && sig.vers !== 'allies' && sig.vers !== 'main' && sig.vers !== 'pioche' ? refHeros(B, autre) : null;
-      const i = evt(B, { t: 'joue', camp: cp, carte: refCarte({ ...c, inst: 0 }), paye: c.cost, zone: 'main', cible, choix: null }, null);
-      if (cible) evt(B, { t: 'degats', cible, n: 2, perdu: 2, avant: B[autre].hp, apres: B[autre].hp - 2 }, i);
-      else if (u && c.type === 'ally') evt(B, { t: 'invoque', via: 'carte', camp: cp, unite: refUnite(u, cp) }, i);
-      else if (u && sig.vers === 'allies') evt(B, { t: 'renfort', atk: 1, hp: 1, cle: null, cible: refUnite(u, cp) }, i);
+      const src = u ? { ...refUnite(u, cp), id: c.id, nom: c.name } : refHeros(B, cp);
+      const ev = (e, cause = null) => evt(B, e, cause);
+      fabrique(c, moment, { ev, src, allies: B[cp].board.slice(1).map(x => refUnite(x, cp)), ennemis: B[autre].board.map(x => refUnite(x, autre)), heroP: refHeros(B, cp), heroE: refHeros(B, autre) });
       render();
       return 'ok';
     },
-    vfxListe: () => Object.keys(SIGNATURES).map(id => { const c = cardById(id); return { id, nom: c ? c.name : id }; }),
+    vfxListe: () => CHARACTERS.flatMap(h => [...h.cards, ...(h.switches || [])].map(c => ({ id: c.id, nom: `${h.name} · ${c.name}` }))),
     // Un allie gagne +1/+1 sans evenement : c'est ce que l'ecran lit comme une aura.
     aura(k = 'p') {
       const u = B && B[camp(k)].board[0];
@@ -297,7 +294,10 @@ function panneauTriche() {
   const choix = el('<select class="large"></select>');
   for (const c of (T() ? T().vfxListe() : [])) choix.appendChild(new Option(`${c.nom} (${c.id})`, c.id));
   grille.appendChild(choix);
-  bouton('Jouer ce VFX', () => T().vfx(choix.value, camp), 'large');
+  const quand = el('<select class="large"></select>');
+  for (const [v, l] of [['jouer', 'Quand on la joue / la pose'], ['attaque', 'Quand elle attaque'], ['mort', 'Quand elle meurt'], ['debut', 'Début de tour'], ['fin', 'Fin de tour'], ['regle', 'Sa règle « quand X »']]) quand.appendChild(new Option(l, v));
+  grille.appendChild(quand);
+  bouton('Jouer ce VFX', () => T().vfx(choix.value, camp, quand.value), 'large');
   bouton('+1 mana', () => T().mana(1));
   bouton('Pioche', () => T().pioche(1));
   const rb = bouton('Ralenti ×1', () => { ralenti = ralenti === 1 ? 5 : ralenti === 5 ? 10 : 1; window.AC.fx.ralenti = ralenti; rb.textContent = `Ralenti ×${ralenti}`; });
@@ -389,6 +389,7 @@ function majUnite(n, u, side) {
       ${ap ? `<div class="pv">${ap}</div>` : ''}`;
   }
   n.classList.toggle('taunt', hasKey(u.keys, 'Taunt'));
+  n.classList.toggle('porte-aura', !!u.aura);   // un halo qui reste tant que le porteur d'une aura est en jeu
   n.classList.toggle('ready', side === 'p' && u.canAttack && u.atk > 0);
   n.classList.toggle('sel', selUnit === u.uid);
 }

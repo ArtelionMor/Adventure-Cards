@@ -18,7 +18,7 @@ import { cardById } from '../config/npcs.js';
 import { asset } from './shell.js';
 import { icone } from './icones.js';
 import { ligneDePictos, iconeDeCle } from './pictos.js';
-import { creeBriques, SIGNATURES } from './vfx.js';
+import { creeBriques, signatureDe } from './vfx.js';
 import { t as texte } from '../config/textes.js';
 
 const F = () => BALANCE.ui.fx;
@@ -89,6 +89,22 @@ export function creeFx(acces) {
       }
     }
     photos = nv;
+  }
+
+  /** Un DOUBLE d'une unite vivante, pose sur la couche d'effets (que le plateau ne coupe pas) a l'endroit exact de l'original. */
+  function cloneUnite(n) {
+    const a = rectDe(n), sc = echelleDe(n);
+    const g = n.cloneNode(true);
+    g.removeAttribute('data-geste');
+    g.classList.remove('sel', 'ready', 'lit', 'acteur', 'targetable');
+    const env = document.createElement('div');
+    env.className = 'fx-pos';
+    Object.assign(env.style, { left: a.x + 'px', top: a.y + 'px', width: a.w + 'px', height: a.h + 'px' });
+    // `cssText` REMPLACE le style en ligne : si l'original est cache (`visibility`), son double ne l'est pas.
+    g.style.cssText = `position:absolute;left:0;top:0;width:${a.w / sc}px;transform-origin:0 0;transform:scale(${sc});margin:0`;
+    env.appendChild(g);
+    acces.couche().appendChild(env);
+    return env;
   }
 
   /** Un fantome : le noeud d'une unite morte, remis ou elle etait. */
@@ -271,16 +287,7 @@ export function creeFx(acces) {
     let porteur = n, env = null;
     if (vivant) {
       if (caches.has(n)) return;   // sa carte n'a pas fini d'arriver
-      const g = n.cloneNode(true);
-      g.removeAttribute('data-geste');
-      g.classList.remove('sel', 'ready', 'lit', 'acteur', 'targetable');
-      const sc = echelleDe(n);
-      env = document.createElement('div');
-      env.className = 'fx-pos';
-      Object.assign(env.style, { left: a.x + 'px', top: a.y + 'px', width: a.w + 'px', height: a.h + 'px' });
-      g.style.cssText = `position:absolute;left:0;top:0;width:${a.w / sc}px;transform-origin:0 0;transform:scale(${sc});margin:0`;
-      env.appendChild(g);
-      acces.couche().appendChild(env);
+      env = cloneUnite(n);
       n.style.visibility = 'hidden';
       enElan.add(n);
       porteur = env;
@@ -304,7 +311,7 @@ export function creeFx(acces) {
 
   // ------------------------------------------------------------ ce qu'on montre
   // LES VFX PAR CARTE (ui/vfx.js) : la signature d'une carte (`SIGNATURES[id]`) assemble des briques. `lance` en joue une.
-  const briques = creeBriques({ anime, T, ephemere, couche: () => acces.couche(), F, eclair, anneau, etincelles, secoueEcran });
+  const briques = creeBriques({ anime, T, ephemere, couche: () => acces.couche(), F, eclair, anneau, etincelles, secoueEcran, apres, cloneUnite, rectMain: () => rectDe(acces.main()) });
   function lance(brique, options, vers, de) {
     const b = briques[brique];
     if (!b) return 0;
@@ -323,6 +330,7 @@ export function creeFx(acces) {
     const camp = ev.camp, autre = camp === 'p' ? 'e' : 'p';
     const rect = n => (n ? [rectDe(n)] : []);
     switch (sig.vers) {
+      case 'soi': return rect(acces.heros(camp));
       case 'allies': return rect(acces.plateau(camp));
       case 'ennemis': return rect(acces.plateau(autre));
       case 'main': return rect(camp === 'p' ? acces.main() : acces.heros('e'));
@@ -367,7 +375,8 @@ export function creeFx(acces) {
     if (!n || !(ev.soigne > 0)) return;
     const r = rectDe(n);
     chiffre(r, `+${ev.soigne}${icone('Heal', 22)}`, COULEUR.soin, 1);
-    if (sig && sig.arrivee) lance(sig.arrivee[0], sig.arrivee[1], [r]); else etincelles(r, COULEUR.soin, 5);
+    const art = sig && (sig.soin || sig.arrivee);
+    if (art) lance(art[0], art[1], [r]); else etincelles(r, COULEUR.soin, 5);
   }
 
   function renfort(ev, rang, sig) {
@@ -382,7 +391,8 @@ export function creeFx(acces) {
     const ic = ev.cle && iconeDeCle(ev.cle);
     if (ic) texte += icone(ic, 20);
     chiffre(r, texte, COULEUR.renfort, .85, rang * 0);
-    if (sig && sig.arrivee) lance(sig.arrivee[0], sig.arrivee[1], [r]); else etincelles(r, COULEUR.renfort, 5);
+    const art = sig && (sig.renfort || sig.arrivee);
+    if (art) lance(art[0], art[1], [r]); else etincelles(r, COULEUR.renfort, 5);
   }
 
   /** La mort : le fantome tremble, s'eclaire puis se brise. */
@@ -394,6 +404,8 @@ export function creeFx(acces) {
     const r = rectDe(env);
     eclair(r);
     etincelles(r, '#fff', 10);
+    const sg = signatureDe(u.id);
+    if (sg && sg.mort) lance(sg.mort[0], sg.mort[1], [r]);
     const ic = pose('fx-mort', icone('Dead', 46), r);
     anime(ic, [
       { transform: 'translate(-50%,-50%) scale(.3)', opacity: 0 },
@@ -486,6 +498,34 @@ export function creeFx(acces) {
     marque(total);
   }
 
+  /** METAMORPHOSE (copie) : les unites touchees se REPLIENT et disparaissent, puis REVIENNENT transformees (le noeud montre deja leur nouveau visage). */
+  function metamorphose(unites) {
+    const f = F();
+    for (const u of unites) {
+      const n = acces.unite(u.camp, u.uid);
+      if (!n || caches.has(n)) continue;   // pas encore la : son pop la montrera
+      lance('souffle', { couleur: '#8fe9ff' }, [rectDe(n)]);
+      anime(n, [{ transform: 'scale(1) rotate(0deg)', opacity: 1 }, { transform: 'scale(.15) rotate(25deg)', opacity: 0 }], { duration: T(f.metaOutMs), easing: 'ease-in', fill: 'forwards' });
+      apres(f.metaOutMs, () => { n.getAnimations().forEach(an => an.cancel()); n.style.visibility = 'hidden'; caches.add(n); });
+      apres(f.metaOutMs + f.metaTenueMs, () => pop(u.camp, u.uid, { entree: ['facettes', {}] }));
+    }
+  }
+
+  /** SWITCH d'une unite : elle se retourne comme une carte et montre son autre face. */
+  function retourne(unite) {
+    const n = acces.unite(unite.camp, unite.uid);
+    if (!n) return;
+    anime(n, [{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)', offset: .5 }, { transform: 'scaleX(1)' }], { duration: T(460), easing: 'ease-in-out', fill: 'none' });
+    lance('facettes', {}, [rectDe(n)]);
+  }
+
+  /** Ce que fait l'unite qui ATTAQUE, selon sa carte (traînee, fantome, venin…). */
+  function lanceAttaque(nom, options, ev) {
+    const n = noeudDe(ev.src), nc = noeudDe(ev.cible);
+    if (!n || !nc) return;
+    lance(nom, { ...(options || {}), noeud: n }, [rectDe(nc)], centreDe(rectDe(n)));
+  }
+
   /** L'arrivee d'une unite : elle rebondit, avec un petit nuage d'eclats. */
   function pop(camp, uid, sig) {
     const f = F();
@@ -551,6 +591,13 @@ export function creeFx(acces) {
       switch (ev.t) {
         case 'attaque': {
           apres(t, () => elan(ev.src, ev.cible));
+          // Ce que SA CARTE fait quand elle attaque : traînee de vitesse (Charge), rémanence fantome (Passe-Murailles), venin a l'impact.
+          const sa = signatureDe(ev.src.id);
+          if (sa && sa.attaque) {
+            const liste = Array.isArray(sa.attaque[0]) ? sa.attaque : [sa.attaque];
+            const tImpact = t + f.elanMs * f.elanImpact;
+            for (const [nom, opt] of liste) apres(opt && opt.quand === 'impact' ? tImpact : t, () => lanceAttaque(nom, opt, ev));
+          }
           t += f.elanMs * f.elanImpact;
           groupe = null;
           impact.set(ev.i, t);
@@ -570,7 +617,7 @@ export function creeFx(acces) {
           apres(t, () => carteJouee(ev));
           t += f.volMs + f.tenueMs;
           // Sa signature : ce qui PART de la carte, des qu'elle s'est montree au centre.
-          const sig = SIGNATURES[ev.carte.id];
+          const sig = signatureDe(ev.carte.id);
           if (sig) {
             sigs.set(ev.i, sig);
             if (sig.lancer) { apres(t, () => lance(sig.lancer[0], sig.lancer[1], visees(sig, ev))); t += f.lancerMs; }
@@ -583,14 +630,42 @@ export function creeFx(acces) {
           // Les pictogrammes viennent de ce que ce declenchement a provoque (ses enfants dans le recit).
           const enfants = lot.filter(e => e.cause === ev.i);
           apres(t, () => carteEffet(ev, enfants));
-          t += f.effetVolMs + f.effetTenueMs * .6;
+          // Et l'animation de CE moment-la, propre a la carte : son rale d'agonie, son debut de tour, sa regle.
+          const sg = signatureDe(ev.src.id);
+          const sub = sg && sg.declenche && (sg.declenche[ev.moment] || (String(ev.moment).startsWith('on_') ? sg.declenche.regle : null));
+          if (sub) {
+            sigs.set(ev.i, sub);
+            if (sub.lancer) apres(t + f.effetVolMs, () => { const n = noeudDe(ev.src); lance(sub.lancer[0], sub.lancer[1], visees(sub, ev), n ? centreDe(rectDe(n)) : undefined); });
+          }
+          t += f.effetVolMs + f.effetTenueMs * .6 + (sub && sub.lancer ? f.lancerMs * .6 : 0);
           groupe = null;
           break;
         }
         case 'invoque': {
           const at = heure(ev);
           apres(at, () => pop(ev.unite.camp, ev.unite.uid, sigs.get(ev.cause)));
+          // Une unite a AURA : l'onde part d'elle vers chacun de ceux qu'elle protege (le halo qui reste est du CSS).
+          const own = ev.unite.id ? signatureDe(ev.unite.id) : null;
+          if (own && own.aura) {
+            apres(at + f.popMs * .7, () => {
+              const n = acces.unite(ev.unite.camp, ev.unite.uid);
+              if (!n) return;
+              const autres = acces.unites(ev.unite.camp).filter(x => x !== n).map(rectDe);
+              lance(own.aura[0], own.aura[1], autres, centreDe(rectDe(n)));
+            });
+          }
           marque(at + f.popMs);
+          break;
+        }
+        case 'transforme': {
+          if (ev.mode === 'copie' && (ev.unites || []).length) {
+            apres(t, () => metamorphose(ev.unites));
+            t += f.metaOutMs + f.metaTenueMs + f.popMs * .5;
+          } else if (ev.mode === 'switch' && ev.unite) {
+            apres(t, () => retourne(ev.unite));
+            t += 460;
+          }
+          groupe = null;
           break;
         }
         case 'tour': {

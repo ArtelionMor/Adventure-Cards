@@ -1,15 +1,27 @@
-// LES VFX DES CARTES : chaque carte a SA signature visuelle, assemblee a partir de briques communes.
+// LES VFX DES CARTES : chaque carte a SA signature visuelle, COHERENTE AVEC CE QU'ELLE FAIT ET QUAND.
 //
-// Une SIGNATURE (`SIGNATURES[idDeLaCarte]`) dit trois choses, toutes facultatives :
-//   - `lancer`  : ce qui PART de la carte quand on la joue (un eclair, des plumes, une langue…) vers `vers` ;
-//   - `arrivee` : ce que la CIBLE subit (griffures, boue, faisceau…), a la place des etincelles par defaut ;
-//   - `entree`  : l'arrivee d'une unite que cette carte a posee (convocation, bulles, nuit…).
-// Chaque entree est `[brique, options]`. Une carte sans signature garde les effets generiques de `effets.js`.
+// Une SIGNATURE dit ce qui s'anime a chaque moment de la vie de la carte, tout est facultatif :
+//   - `lancer`    : ce qui PART de la carte quand on la joue (un eclair, des plumes, une langue…), vers `vers` ;
+//   - `arrivee`   : ce que la CIBLE subit (degats : griffures, boue, faisceau…) ; `soin` et `renfort` : idem pour
+//                   un soin ou un renfort. A defaut, les etincelles par defaut ;
+//   - `entree`    : l'arrivee de l'unite que la carte a posee (convocation, bulles, nuit…) ;
+//   - `attaque`   : quand l'unite ATTAQUE (traînee de vitesse pour Charge, rémanence fantome pour Passe-Murailles,
+//                   venin a l'impact) — une entree ou une LISTE d'entrees ;
+//   - `mort`      : quand l'unite MEURT (une ame qui s'eleve…) ;
+//   - `declenche` : quand son effet SE DECLENCHE sans qu'on la joue — `death` (rale d'agonie), `turnStart`,
+//                   `turnEnd`, `regle` (« quand X alors Y ») — chacun est une sous-signature {lancer, arrivee, entree…} ;
+//   - `aura`      : l'onde d'une aura, quand son porteur arrive (le halo qui reste est du CSS, `.porte-aura`).
+// Chaque entree est `[brique, options]`.
+//
+// Les signatures sont DERIVEES de la carte (`signatureAuto` : ses effets, ses mots-cles, ses moments, le theme de son
+// heros) : une carte dont le texte change change donc d'animation toute seule, et les 120 cartes (base et switch) en ont
+// une. `SIGNATURES` ne garde que les ECARTS voulus par le game designer ; il gagne sur le calcul (`signatureDe`).
 // La liste, avec le raisonnement carte par carte, est dans `docs/VFX-CARTES.md`. Tout est procedural (CSS/WAAPI,
 // transform et opacity seulement) et facile a remplacer le jour ou le game designer livre ses dessins.
 //
 // `vers` (ce que vise un lancer qui n'a pas de cible designee) : 'ennemi' (le heros adverse), 'allies' (ton
-// plateau), 'ennemis' (le plateau adverse), 'main' (ta main), 'pioche' (ta pioche), 'defausse'.
+// plateau), 'ennemis' (le plateau adverse), 'main' (ta main), 'pioche' (ta pioche), 'defausse', 'soi' (ton heros).
+import { CHARACTERS } from '../config/characters.js';
 import { icone } from './icones.js';
 
 const C = {
@@ -19,7 +31,7 @@ const C = {
 
 export const SIGNATURES = {
   // ---- Médor (Chien, Gardien)
-  dog_pup:   { entree: ['convocation', { couleur: '#e8c98f' }] },
+  dog_pup:   { entree: ['convocation', { couleur: '#e8c98f' }], mort: ['ame', { couleur: '#e8c98f' }] },
   dog_guard: { entree: ['convocation', { couleur: C.gris, lourd: true }] },
   dog_growl: { lancer: ['ondes', { couleur: C.or }], vers: 'allies', arrivee: ['souffle', { couleur: C.or }], entree: ['convocation', { couleur: '#e8c98f' }] },
   dog_lick:  { lancer: ['souffle', { couleur: C.bleu }], vers: 'allies', entree: ['convocation', { couleur: C.cyan }] },
@@ -33,14 +45,14 @@ export const SIGNATURES = {
   // ---- Corax (Corbeau, Filou)
   crow_peck:   { lancer: ['plumes', { couleur: C.noir, n: 6 }], vers: 'ennemi', arrivee: ['griffures', { couleur: C.rouge }] },
   crow_scout:  { entree: ['convocation', { couleur: C.gris }] },
-  crow_murder: { lancer: ['plumes', { couleur: C.blanc, n: 8 }], vers: 'ennemi', arrivee: ['souffle', { couleur: C.blanc }] },
+  crow_murder: { lancer: ['plumes', { couleur: C.blanc, n: 8 }], vers: 'ennemis', arrivee: ['souffle', { couleur: C.blanc }] },
   crow_omen:   { lancer: ['yeux', { couleur: C.or }], vers: 'pioche' },
   crow_raven:  { entree: ['nuit', { lourd: true, couleur: C.noir }] },
   // ---- Bulle (Grenouille, Venin)
   frog_tad:    { entree: ['bulles', { couleur: C.vert }] },
   frog_tongue: { lancer: ['langue', { couleur: C.rose }], vers: 'ennemi', arrivee: ['gouttes', { couleur: C.vert }] },
   frog_venom:  { entree: ['convocation', { couleur: C.vert }], arrivee: ['gouttes', { couleur: C.vert }] },
-  frog_swamp:  { lancer: ['boue', { couleur: C.boue }], vers: 'ennemi', arrivee: ['boue', { couleur: C.boue }] },
+  frog_swamp:  { lancer: ['boue', { couleur: C.boue }], vers: 'ennemis', arrivee: ['boue', { couleur: C.boue }] },
   frog_toad:   { entree: ['convocation', { couleur: C.vert, lourd: true }] },
   // ---- Athéna (Chouette, Contrôle)
   owl_study:   { lancer: ['spirale', { couleur: C.or, n: 6 }], vers: 'main' },
@@ -89,7 +101,11 @@ export const SIGNATURES = {
   cam2_mirror: { lancer: ['facettes', {}], vers: 'main' },
   cam2_choir:  { entree: ['facettes', {}] },
   cam2_shed:   { lancer: ['souffle', { couleur: C.cyan }], vers: 'allies' },
-  cam2_ball:   { lancer: ['confettis', {}], vers: 'allies', arrivee: ['confettis', {}] }
+  cam2_ball:   { lancer: ['confettis', {}], vers: 'allies', arrivee: ['confettis', {}] },
+  // ---- Les ECARTS voulus (cartes ou le calcul automatique ne dit pas assez)
+  dog_alpha:  { lancer: ['halo', { couleur: C.or }], vers: 'allies', arrivee: ['montee', { symbole: 'Buff', couleur: C.or }], entree: ['convocation', { couleur: C.or, lourd: true }] },
+  dog2_alpha: { lancer: ['halo', { couleur: C.rouge }], vers: 'allies', arrivee: ['montee', { symbole: 'Buff', couleur: C.rouge }], entree: ['convocation', { couleur: C.rouge, lourd: true }] },
+  fox_king:   { lancer: ['facettes', {}], vers: 'allies' }
 };
 
 /** Ce que fait chaque brique, en une phrase (le wiki de l'Atelier l'affiche). */
@@ -113,7 +129,13 @@ export const BRIQUES_DOC = {
   bulles: "Des bulles qui montent de la cible.",
   vent: "Des colonnes de vent qui montent de la cible.",
   boue: "Une boule de boue qui grossit et s'étale sur la cible.",
-  confettis: "Des confettis dorés qui retombent."
+  confettis: "Des confettis dorés qui retombent.",
+  trainee: "Des traits de vitesse derrière une unité qui charge (Charge).",
+  fantome: "Des images translucides laissées en arrière : l'unité passe à travers (Passe-Murailles).",
+  ame: "Une âme qui s'élève là où l'unité est morte (râle d'agonie).",
+  halo: "L'onde d'une aura ou d'un renfort collectif : un anneau part du porteur et touche chaque allié.",
+  montee: "Des icônes qui montent de la cible (soin, renfort, armure, mana).",
+  retour: "Une carte qui vole de la cible vers ta main (une unité renvoyée)."
 };
 
 /**
@@ -122,7 +144,7 @@ export const BRIQUES_DOC = {
  * Chacune rend sa duree (ms, vitesse x1) pour que le film sache quand elle est finie.
  */
 export function creeBriques(a) {
-  const { anime, T, ephemere, couche, F } = a;
+  const { anime, T, ephemere, couche, F } = a;   // + a.apres, a.cloneUnite, a.rectMain (voir effets.js)
   const centre = r => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
   const alea = (min, max) => min + Math.random() * (max - min);
 
@@ -436,7 +458,230 @@ export function creeBriques(a) {
         }
       }
       return 840;
+    },
+    /** Des traits de vitesse derriere une unite qui CHARGE (Charge). */
+    trainee({ de, vers, couleur = C.blanc }) {
+      const q = vers && vers[0] ? centre(vers[0]) : { x: de.x, y: de.y - 60 };
+      const dx = q.x - de.x, dy = q.y - de.y, long = Math.hypot(dx, dy) || 1, ux = dx / long, uy = dy / long;
+      for (let i = -2; i <= 2; i++) {
+        const p = { x: de.x - uy * i * 9, y: de.y + ux * i * 9 };
+        const l = 34 + (2 - Math.abs(i)) * 8;
+        segment(p, { x: p.x - ux * l, y: p.y - uy * l }, { couleur, epaisseur: 2, ms: 320, delai: 30 + Math.abs(i) * 25, lueur: false });
+      }
+      return 460;
+    },
+    /** Des images qui restent en arriere, translucides : l'unite passe A TRAVERS (Passe-Murailles, Elusif). */
+    fantome({ noeud, de, vers, couleur = C.cyan }) {
+      if (!noeud || !a.cloneUnite) return 0;
+      const q = vers && vers[0] ? centre(vers[0]) : { x: de.x, y: de.y - 60 };
+      for (let i = 1; i <= 3; i++) {
+        const g = a.cloneUnite(noeud);
+        if (!g) continue;
+        g.style.boxShadow = `0 0 12px ${couleur}`;
+        g.style.borderRadius = '10px';
+        const dx = (q.x - de.x) * i * .2, dy = (q.y - de.y) * i * .2;
+        anime(g, [
+          { transform: 'translate(0,0)', opacity: 0 },
+          { transform: `translate(${dx}px, ${dy}px)`, opacity: .5 - i * .1, offset: .3 },
+          { transform: `translate(${dx * 1.5}px, ${dy * 1.5}px)`, opacity: 0 }
+        ], { duration: T(560), delay: T(i * 80), easing: 'ease-out' });
+        vie(g, 560 + i * 80);
+      }
+      return 800;
+    },
+    /** Une ame qui s'eleve de l'endroit ou l'unite est morte. */
+    ame({ vers, couleur = '#e9e6f2' }) {
+      for (const r of vers) {
+        const c = centre(r);
+        for (let i = 0; i < 3; i++) {
+          const s = 15 - i * 3, x = c.x + (i - 1) * 12;
+          const d = noeud('fx-v', { width: s + 'px', height: s + 'px', borderRadius: '50%', background: couleur, boxShadow: `0 0 14px ${couleur}` });
+          anime(d, [
+            { transform: `translate(${x - s / 2}px, ${c.y}px) scale(.5)`, opacity: 0 },
+            { transform: `translate(${x + 8 - s / 2}px, ${c.y - 32}px) scale(1)`, opacity: .9, offset: .4 },
+            { transform: `translate(${x - 6 - s / 2}px, ${c.y - 84}px) scale(.6)`, opacity: 0 }
+          ], { duration: T(950), delay: T(i * 130), easing: 'ease-out' });
+          vie(d, 950 + i * 130);
+        }
+      }
+      return 1100;
+    },
+    /** L'onde d'une AURA : un anneau part du porteur et touche chacun de ceux qu'il protege, l'un apres l'autre. */
+    halo({ de, vers, couleur = C.or }) {
+      a.anneau({ x: de.x - 22, y: de.y - 22, w: 44, h: 44 }, couleur, 2);
+      for (const r of vers || []) {
+        const c = centre(r);
+        const dist = Math.hypot(c.x - de.x, c.y - de.y);
+        a.apres(Math.min(520, 120 + dist * 1.1), () => a.anneau(r, couleur));
+      }
+      return 800;
+    },
+    /** Des icones qui MONTENT de la cible (soin, renfort, armure, mana). */
+    montee({ vers, symbole = 'Buff', couleur = C.or, n = 3 }) {
+      for (const r of vers) {
+        for (let i = 0; i < n; i++) {
+          const x = r.x + r.w * (.2 + .3 * i) - 11;
+          const d = noeud('fx-v', { color: couleur, filter: 'drop-shadow(0 0 3px rgba(0,0,0,.6))' }, icone(symbole, 22));
+          anime(d, [
+            { transform: `translate(${x}px, ${r.y + r.h * .7}px)`, opacity: 0 },
+            { transform: `translate(${x}px, ${r.y + r.h * .3}px)`, opacity: 1, offset: .35 },
+            { transform: `translate(${x}px, ${r.y - 22}px)`, opacity: 0 }
+          ], { duration: T(760), delay: T(i * 110), easing: 'ease-out' });
+          vie(d, 760 + i * 110);
+        }
+        a.etincelles(r, couleur, 4);
+      }
+      return 1000;
+    },
+    /** Une carte qui vole de la cible vers ta main (une unite renvoyee). */
+    retour({ vers }) {
+      if (!a.rectMain) return 0;
+      const m = centre(a.rectMain());
+      for (const r of vers) {
+        const c = centre(r);
+        const d = noeud('fx-v', { width: '24px', height: '32px', borderRadius: '4px', border: `2px solid ${C.or}`, background: 'rgba(54,44,71,.9)', boxShadow: `0 0 10px ${C.or}` });
+        const t = (p, s) => `translate(${p.x - 12}px, ${p.y - 16}px) scale(${s})`;
+        anime(d, [{ transform: t(c, 1.6), opacity: 0 }, { transform: t(c, 1.6), opacity: 1, offset: .15 }, { transform: t(m, .7), opacity: 0 }], { duration: T(620), easing: 'ease-in-out' });
+        vie(d, 620);
+      }
+      return 640;
     }
   };
   return briques;
+}
+
+// ============================================================ LA DERIVATION : une signature depuis la carte elle-meme
+// Le THEME d'un heros (sa famille) : sa couleur, le projectile de ses degats directs, ce que la cible subit.
+const THEMES = {
+  Chien: { c: '#e8c98f', proj: null, impact: 'souffle', ic: C.or },
+  Chat: { c: C.rose, proj: null, impact: 'griffures', ic: C.rose },
+  Corbeau: { c: C.gris, proj: 'plumes', impact: 'souffle', ic: C.gris },
+  Faucon: { c: C.blanc, proj: 'plumes', impact: 'souffle', ic: C.blanc },
+  Grenouille: { c: C.vert, proj: 'boue', impact: 'gouttes', ic: C.vert },
+  Chouette: { c: C.violet, proj: 'yeux', impact: 'faisceau', ic: C.or },
+  Hibou: { c: C.bleu, proj: 'yeux', impact: 'faisceau', ic: C.bleu },
+  Cameleon: { c: C.cyan, proj: 'spirale', impact: 'facettes', ic: C.cyan },
+  defaut: { c: C.or, proj: null, impact: 'souffle', ic: C.or }
+};
+
+const ENNEMIS = ['allEnemyUnits', 'randomEnemyUnit', 'enemyUnits', 'enemyUnit', 'allUnits', 'randomEnemyAny'];
+const ALLIES = ['allAllies', 'sameTypeAllies', 'otherAllies', 'allyUnit', 'randomAllyUnit', 'randomAllyAny', 'self'];
+
+/** Ce qu'une LISTE D'EFFETS fait voir : un lancer, une arrivee, une entree — selon chaque effet et le theme. */
+function deOps(ops, th) {
+  const s = {};
+  for (const e of ops || []) {
+    const t = e.t || e.target;   // la cible d'un effet s'ecrit `t` dans les donnees des cartes
+    const versEnnemis = ENNEMIS.includes(t), versAllies = ALLIES.includes(t), versToi = t === 'ownHero';
+    switch (e.op) {
+      case 'dmg':
+        if (!s.lancer && th.proj) { s.lancer = [th.proj, { couleur: th.c }]; s.vers = versEnnemis ? 'ennemis' : 'ennemi'; }
+        s.arrivee = s.arrivee || [th.impact, { couleur: th.ic }];
+        if (!s.vers) s.vers = versEnnemis ? 'ennemis' : 'ennemi';
+        break;
+      case 'heal':
+        s.soin = s.soin || ['montee', { symbole: 'Heal', couleur: C.vert }];
+        break;
+      case 'buff': case 'renforce_les_cartes':
+        if (!s.lancer) {
+          const tous = versAllies && t !== 'self' && t !== 'allyUnit' && t !== 'randomAllyUnit';
+          s.lancer = tous ? ['halo', { couleur: C.or }] : ['ondes', { couleur: C.or }];
+          s.vers = e.op === 'renforce_les_cartes' ? 'main' : 'allies';
+        }
+        s.renfort = s.renfort || ['montee', { symbole: 'Buff', couleur: C.or }];
+        break;
+      case 'armor':
+        if (!s.lancer) { s.lancer = ['montee', { symbole: 'Armor', couleur: C.bleu }]; s.vers = 'soi'; }
+        break;
+      case 'mana': case 'mana_au_prochain_tour':
+        if (!s.lancer) { s.lancer = ['montee', { symbole: 'Mana', couleur: C.bleu }]; s.vers = 'soi'; }
+        break;
+      case 'reduit_le_cout_de':
+        if (!s.lancer) { s.lancer = ['montee', { symbole: 'Mana', couleur: C.bleu }]; s.vers = 'main'; }
+        break;
+      case 'draw':
+        if (!s.lancer) { s.lancer = ['spirale', { couleur: th.c, n: 4 }]; s.vers = 'main'; }
+        break;
+      case 'cree':
+        if (!s.lancer) { s.lancer = ['spirale', { couleur: th.c, n: 5 }]; s.vers = 'main'; }
+        break;
+      case 'melange_a_la_pioche':
+        if (!s.lancer) { s.lancer = ['spirale', { couleur: C.bleu, n: 5 }]; s.vers = 'pioche'; }
+        break;
+      case 'summon': case 'pose_sur_le_plateau':
+        s.entree = s.entree || ['convocation', { couleur: th.c }];
+        if (!s.lancer) { s.lancer = ['ondes', { couleur: th.c }]; s.vers = 'allies'; }
+        break;
+      case 'detruit':
+        if (t === 'allEnemyUnits' || t === 'allUnits') { s.lancer = ['nuit', { couleur: C.noir }]; s.vers = 'ennemis'; }
+        else if (!s.lancer) { s.lancer = [th.proj || 'yeux', { couleur: th.c }]; s.vers = 'ennemi'; }
+        s.arrivee = s.arrivee || ['faisceau', { couleur: C.violet }];
+        break;
+      case 'copie': case 'switch':
+        s.lancer = s.lancer || ['facettes', {}]; s.vers = s.vers || 'allies';
+        break;
+      case 'renvoie_en_main':
+        if (!s.lancer) { s.lancer = ['spirale', { couleur: th.c, n: 5 }]; s.vers = 'main'; }
+        break;
+      case 'prendre_le_controle':
+        if (!s.lancer) { s.lancer = ['spirale', { couleur: C.violet, n: 7 }]; s.vers = 'allies'; }
+        break;
+      case 'choisir':
+        s.lancer = s.lancer || ['yeux', { couleur: C.or }]; s.vers = s.vers || 'soi';
+        break;
+      default: break;
+    }
+    if (versToi && !s.vers) s.vers = 'soi';
+  }
+  return s;
+}
+
+/** La signature qu'on DEDUIT d'une carte : ses effets (a la pose, a la mort, en debut/fin de tour, sur evenement), ses mots-cles, son aura. */
+export function signatureAuto(card, espece) {
+  const th = THEMES[espece] || THEMES.defaut;
+  const s = deOps(card.play, th);
+  if (card.type === 'ally') s.entree = s.entree || ['convocation', { couleur: th.c, lourd: (card.cost || 0) >= 5 }];
+  // Ce qu'elle fait QUAND ELLE ATTAQUE : ses mots-cles.
+  const attaque = [];
+  const cles = (card.keys || []).map(k => String(k).split(':')[0]);
+  if (cles.includes('Charge')) attaque.push(['trainee', { couleur: th.c === C.blanc ? C.cyan : C.blanc }]);
+  if (cles.includes('passe_murailles')) attaque.push(['fantome', { couleur: C.cyan }]);
+  if (cles.includes('Venin')) attaque.push(['gouttes', { couleur: C.vert, quand: 'impact' }]);
+  if (attaque.length) s.attaque = attaque;
+  // Quand elle MEURT, puis ce que sa mort declenche.
+  const declenche = {};
+  if ((card.death || []).length) { s.mort = ['ame', { couleur: th.c }]; declenche.death = deOps(card.death, th); }
+  if ((card.turnStart || []).length) declenche.turnStart = deOps(card.turnStart, th);
+  if ((card.turnEnd || []).length) declenche.turnEnd = deOps(card.turnEnd, th);
+  // Les regles « quand X alors Y » : tout champ `on_*` qui porte des effets.
+  for (const [k, v] of Object.entries(card)) {
+    if (k.startsWith('on_') && Array.isArray(v) && v.length) { declenche[k] = deOps(v, th); declenche.regle = declenche.regle || declenche[k]; }
+  }
+  if (Object.keys(declenche).length) s.declenche = declenche;
+  if (card.aura) s.aura = ['halo', { couleur: th.c }];
+  return s;
+}
+
+let index = null;
+/** `id` -> { carte, espece } pour les 120 cartes (base et switch). */
+function carteDe(id) {
+  if (!index) {
+    index = new Map();
+    for (const h of CHARACTERS) for (const c of [...h.cards, ...(h.switches || [])]) index.set(c.id, { carte: c, espece: h.species });
+  }
+  return index.get(id) || null;
+}
+
+const memo = new Map();
+/** La signature d'une carte : ce qu'on en deduit, puis les ECARTS voulus (`SIGNATURES`) par-dessus. `null` si on ne connait pas la carte. */
+export function signatureDe(id) {
+  if (!id) return null;
+  if (memo.has(id)) return memo.get(id);
+  const k = carteDe(id);
+  if (!k && !SIGNATURES[id]) { memo.set(id, null); return null; }
+  const auto = k ? signatureAuto(k.carte, k.espece) : {};
+  const ecart = SIGNATURES[id] || {};
+  const sig = { ...auto, ...ecart, declenche: { ...(auto.declenche || {}), ...(ecart.declenche || {}) } };
+  memo.set(id, sig);
+  return sig;
 }

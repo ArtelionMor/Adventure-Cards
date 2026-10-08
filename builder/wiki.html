@@ -88,7 +88,8 @@ import { icone } from '../game/src/ui/icones.js';
 import { ligneDePictos, CLES, OPS, MOMENTS } from '../game/src/ui/pictos.js';
 import { lignesDeFait } from '../game/src/ui/fiche.js';
 import { creeFx } from '../game/src/ui/effets.js';
-import { SIGNATURES, BRIQUES_DOC } from '../game/src/ui/vfx.js';
+import { signatureDe, BRIQUES_DOC } from '../game/src/ui/vfx.js';
+import { fabrique, momentsDe, fauxUnite } from '../game/src/ui/vfx-scenes.js';
 import { refCarte, refUnite, refHeros } from '../game/src/combat/evenements.js';
 import { asset } from '../game/src/ui/shell.js';
 
@@ -102,10 +103,13 @@ let fx = null, couche, heroN = {}, boards = {}, mid, hand, pile, defBtn;
 const SPR_P = CHARACTERS[0].sprite, SPR_E = ENCOUNTERS.wolf.sprite;
 let UNITES;
 
-function nouvellesUnites() {
+function nouvellesUnites(carte, h) {
   const u = (uid, nom, atk, hp, keys) => ({ uid, name: nom, sprite: SPR_P, atk, hp, maxHp: hp, keys, card: null });
+  const moi = carte && carte.type === 'ally'
+    ? { ...u(2, carte.name, carte.atk || 1, carte.hp || 1, carte.keys || []), sprite: carte.sprite || (h && h.sprite) || SPR_P, aura: !!carte.aura }
+    : u(2, 'Molosse', 3, 4, ['Charge']);
   return {
-    p: [u(1, 'Toutou Fidèle', 2, 3, ['Taunt']), u(2, 'Molosse', 3, 4, ['Charge'])],
+    p: [u(1, 'Toutou Fidèle', 2, 3, ['Taunt']), moi],
     e: [{ ...u(11, 'Corbeau', 3, 3, ['Venin']), sprite: SPR_E }, { ...u(12, 'Louveteau', 2, 4, []), sprite: SPR_E }]
   };
 }
@@ -118,16 +122,16 @@ function noeudHeros(camp) {
 }
 function noeudUnite(u, camp) {
   const n = document.createElement('div');
-  n.className = 'unit';
+  n.className = 'unit' + (u.aura ? ' porte-aura' : '');
   n.dataset.side = camp; n.dataset.uid = u.uid; n.dataset.atk = u.atk; n.dataset.hp = u.hp;
   n.innerHTML = `<img alt="" src="${asset(u.sprite)}"><div class="un">${esc(u.name)}</div><div class="s"><span class="a">${u.atk}</span> / <span class="h">${u.hp}</span></div>${ligneDePictos(u, { effets: false, taille: 16, max: 3 })}`;
   return n;
 }
 
-function monteScene() {
+function monteScene(carte, h) {
   if (fx) fx.vide();
   evts.length = 0;
-  UNITES = nouvellesUnites();
+  UNITES = nouvellesUnites(carte, h);
   scene.innerHTML = '';
   const hautE = document.createElement('div'); hautE.className = 'bt-side';
   heroN.e = noeudHeros('e'); hautE.appendChild(heroN.e); scene.appendChild(hautE);
@@ -158,8 +162,8 @@ const heros = c => ({ ...refHeros({ [c]: { name: c, sprite: c === 'p' ? SPR_P : 
 const ru = (c, k = 0) => refUnite(UNITES[c][k], c);
 
 /** Joue des evenements fabriques sur la scene. `avant` s'execute entre la photo et le film (pour retirer une unite, etc.). */
-function joue(construit, avant) {
-  monteScene();
+function joue(construit, avant, carte, h) {
+  monteScene(carte, h);
   fx = fx || creeFx(acces);
   fx.reglage.ralenti = Number($('#vitesse').value);
   fx.vide();
@@ -199,6 +203,10 @@ const SCENES = {
     joue(() => { const i = ev({ t: 'joue', camp: 'p', carte: { k: 'carte', nom: 'Molosse', id: 'dog_guard', sprite: null, type: 'ally', cout: 2, atk: 3, hp: 4, keys: ['Charge'] }, paye: 2, zone: 'main', cible: null, choix: null });
       ev({ t: 'invoque', via: 'carte', camp: 'p', unite: ru('p', 1) }, i); });
   } },
+  meta: { titre: 'Métamorphose (copie)', doc: 'Les unités touchées se replient et disparaissent, puis reviennent transformées.', run() {
+    joue(() => ev({ t: 'transforme', mode: 'copie', de: ['x'], modele: null, unites: [ru('p', 0), ru('p', 1)] }));
+  } },
+  switchU: { titre: 'Switch d\'une unité', doc: 'L\'unité se retourne comme une carte et montre son autre face.', run() { joue(() => ev({ t: 'transforme', mode: 'switch', de: 'x', unite: ru('p', 0) })); } },
   mort: { titre: 'Mort', doc: 'Le coup fatal, puis l\'unité se brise avec l\'icône de mort.', run() {
     joue(() => { const i = ev({ t: 'attaque', camp: 'p', src: ru('p', 1), cible: ru('e', 1) });
       const d = ev({ t: 'degats', camp: 'p', src: ru('p', 1), cible: ru('e', 1), n: 5, perdu: 4, avant: 4, apres: 0 }, i);
@@ -215,16 +223,14 @@ function sceneEffet(moment) {
     ev({ t: 'degats', cible: heros('e'), n: 2, perdu: 2, avant: 30, apres: 28 }, i); });
 }
 
-/** Jouer une carte du jeu pour de faux : son lancer, sa cible, ce qu'elle cause. */
-function sceneCarte(c) {
-  const sig = SIGNATURES[c.id] || {};
+/** Un moment de la vie d'une carte, rejoue sur la scene : `jouer`, `attaque`, `mort`, `debut`, `fin`, `regle`. */
+function sceneMoment(c, h, moment) {
+  const ally = c.type === 'ally';
   joue(() => {
-    const cible = c.type === 'spell' && !['allies', 'main', 'pioche'].includes(sig.vers) ? heros('e') : null;
-    const i = ev({ t: 'joue', camp: 'p', carte: refCarte({ ...c, inst: 0 }), paye: c.cost, zone: 'main', cible, choix: null });
-    if (cible) ev({ t: 'degats', cible, n: 2, perdu: 2, avant: 30, apres: 28 }, i);
-    else if (c.type === 'ally') ev({ t: 'invoque', via: 'carte', camp: 'p', unite: ru('p', 1) }, i);
-    else if (sig.vers === 'allies') ev({ t: 'renfort', atk: 1, hp: 1, cle: null, cible: ru('p', 0) }, i);
-  });
+    const uid = UNITES.p[1].uid;
+    const src = ally ? fauxUnite({ ...c, sprite: c.sprite || h.sprite }, 'p', uid) : ru('p', 1);
+    fabrique(c, moment, { ev, src, allies: [ru('p', 0)], ennemis: [ru('e', 0), ru('e', 1)], heroP: heros('p'), heroE: heros('e') });
+  }, moment === 'mort' && ally ? () => acces.unite('p', UNITES.p[1].uid).remove() : null, c, h);
 }
 
 // ============================================================ les onglets
@@ -258,7 +264,7 @@ function detailCarte() {
   const r = choisie && trouveCarte(choisie);
   document.querySelectorAll('.wk-carte').forEach(n => n.classList.toggle('sel', n.dataset.id === choisie));
   if (!r) { zone.innerHTML = '<div class="vide">Touche une carte pour voir ce qu\'elle fait et jouer son animation.</div>'; return; }
-  const { c, h } = r, ally = c.type === 'ally', sig = SIGNATURES[c.id];
+  const { c, h } = r, ally = c.type === 'ally', sig = signatureDe(c.id);
   const f = document.createElement('div');
   f.className = 'fiche';
   f.innerHTML = `<div class="tete">
@@ -270,15 +276,27 @@ function detailCarte() {
   const lignes = lignesDeFait(c);
   if (lignes.length) lignes.forEach(l => rows.appendChild(l)); else rows.innerHTML = '<div class="src">Rien de plus que ses statistiques.</div>';
   if ((c.tiers || []).length) f.insertAdjacentHTML('beforeend', `<h3>Paliers de niveau</h3>${c.tiers.map(t => `<div class="ln src">Niveau ${t.lvl} — ${esc(t.text || '')}</div>`).join('')}`);
-  f.insertAdjacentHTML('beforeend', '<h3>Animation</h3>');
+  f.insertAdjacentHTML('beforeend', '<h3>Animations (une par moment de la carte)</h3>');
   const anim = document.createElement('div');
-  const decrit = ([nom, o], quand) => `<div class="ln"><b>${quand}</b> <span class="src">— ${esc(nom)}${o && o.lourd ? ' (lourd)' : ''} : ${esc(BRIQUES_DOC[nom] || '')}</span></div>`;
-  anim.innerHTML = sig ? [sig.lancer && decrit(sig.lancer, 'Lancer'), sig.arrivee && decrit(sig.arrivee, 'Arrivée sur la cible'), sig.entree && decrit(sig.entree, 'Entrée de l\'unité')].filter(Boolean).join('')
-    : '<div class="src">Pas de signature : cette carte garde les effets génériques (impact, chiffres, invocation).</div>';
-  const b = document.createElement('button');
-  b.className = 'btn-j'; b.textContent = '▶ Jouer la carte sur la scène';
-  b.onclick = () => sceneCarte(c);
-  anim.appendChild(b);
+  const nom = e => (Array.isArray(e[0]) ? e : [e]).map(([n, o]) => `${esc(n)}${o && o.lourd ? ' (lourd)' : ''}`).join(' + ');
+  const decrit = (e, quand) => e ? `<div class="src"> · ${quand} : <b>${nom(e)}</b> — ${esc((Array.isArray(e[0]) ? e : [e]).map(([n]) => BRIQUES_DOC[n] || '').join(' '))}</div>` : '';
+  const sousSig = x => x ? [decrit(x.lancer, 'part de la carte'), decrit(x.arrivee, 'sur la cible'), decrit(x.soin, 'sur le soigné'), decrit(x.renfort, 'sur le renforcé'), decrit(x.entree, 'arrivée de l\'unité')].join('') : '';
+  const resume = {
+    jouer: () => sousSig(sig) + (sig && sig.aura ? decrit(sig.aura, 'onde d\'aura') : ''),
+    attaque: () => decrit(sig && sig.attaque, 'pendant l\'attaque'),
+    mort: () => decrit(sig && sig.mort, 'à sa mort') + sousSig(sig && sig.declenche && sig.declenche.death),
+    debut: () => sousSig(sig && sig.declenche && sig.declenche.turnStart),
+    fin: () => sousSig(sig && sig.declenche && sig.declenche.turnEnd),
+    regle: () => sousSig(sig && sig.declenche && sig.declenche.regle)
+  };
+  for (const [m, lib] of momentsDe(c)) {
+    const bloc = document.createElement('div');
+    bloc.className = 'ln';
+    const det = (resume[m] ? resume[m]() : '') || '<div class="src"> · animations génériques (impact, chiffres, apparition)</div>';
+    bloc.innerHTML = `<button class="btn-j" data-m="${m}">▶ ${esc(lib)}</button>${det}`;
+    bloc.querySelector('button').onclick = () => sceneMoment(c, h, m);
+    anim.appendChild(bloc);
+  }
   f.appendChild(anim);
   zone.innerHTML = '';
   zone.appendChild(f);

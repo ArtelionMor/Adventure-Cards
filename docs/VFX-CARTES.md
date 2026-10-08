@@ -7,6 +7,13 @@
 > Les pictogrammes viennent du pack Kenney « Board Game Icons » (CC0, dans `Kenney_board-game-icons/`),
 > cités par leur nom de fichier.
 
+## Le modèle : une animation par MOMENT (9 octobre 2026, retour du game designer)
+Une animation doit être **cohérente avec ce que la carte fait et QUAND** : le Toutou Fidèle s'anime à son arrivée *et* à sa mort (c'est là que son effet part),
+le Chat de Gouttière quand il attaque (Charge, Passe-Murailles), un porteur d'aura a son halo, la Métamorphose ultime fait disparaître les unités puis les fait revenir transformées.
+Les signatures sont donc **calculées depuis les données de la carte** (`signatureAuto`, dans `ui/vfx.js`) : ses effets, ses mots-clés, ses moments, le thème de son héros ;
+les 120 cartes (base **et** switch) en ont une, et une carte dont le texte change change d'animation toute seule. `SIGNATURES` ne garde que les écarts voulus.
+Le tableau « carte par carte » ci-dessous est l'intention de départ pour les 60 cartes de base ; le **wiki** de l'Atelier montre, pour chaque carte, ce que fait chacun de ses moments.
+
 ## Principes
 1. **Un effet se lit sans texte.** Le symbole (pictogramme) apparaît au-dessus de la cible avec le chiffre,
    la couleur dit la nature (rouge dégâts, vert soin/croissance, bleu mana/armure, violet venin/ombre, or renfort).
