@@ -244,6 +244,40 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .autochip { font-size: 11px; padding: 6px 10px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); cursor: pointer; }
 .autochip.on { background: var(--accent2); color: #0d2c1d; font-weight: 700; }
 
+/* ---------- la defausse, et sa fenetre de zone ---------- */
+/* « Defausse N » est un bouton : discret, sauf quand un sort a Reprise attend d'etre relance. */
+.zlink { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.zlink.pret { color: var(--accent); font-weight: 700; text-decoration-style: solid; animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .55; } }
+
+/* La fenetre de zone (ui/zone.js) : ce qui est pertinent est eclaire, le reste grise. */
+.zone { display: grid; gap: 12px; }
+.zone h3 { margin: 0; font-size: 17px; }
+.zone .muted { margin: 0; font-size: 12px; color: var(--ink-dim); }
+.zone .src { color: var(--ink-dim); font-size: 11px; }
+.zgrp { display: grid; gap: 6px; }
+.zgrp h4 { margin: 0; display: flex; gap: 6px; align-items: center; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-dim); }
+.zgrp h4 .n { padding: 0 7px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); font-size: 10px; letter-spacing: 0; }
+.zcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 10px 6px; }
+.zcard {
+  position: relative; display: grid; gap: 3px; align-content: start; min-height: 92px; padding: 8px 6px 6px;
+  background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--line);
+  border-top: 3px solid var(--ally); border-radius: 10px;
+}
+.zcard.spell { border-top-color: var(--spell); }
+.zcard img { width: 100%; height: 36px; object-fit: contain; }
+.zcard .nm { font-size: 10px; font-weight: 700; line-height: 1.15; }
+.zcard .tx { font-size: 9px; color: var(--ink-dim); line-height: 1.15; }
+.zcard .cost { position: absolute; top: -6px; left: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--mana); color: #06203a; font-weight: 800; font-size: 11px; display: grid; place-items: center; }
+.zcard .st { font-size: 11px; font-weight: 800; justify-self: end; }
+.zcard .chips { display: flex; flex-wrap: wrap; gap: 3px; }
+.zcard .chip { font-size: 8px; padding: 1px 5px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); }
+.zcard .note { font-size: 9px; font-weight: 700; color: var(--accent); }
+/* Eclairee : on peut la jouer d'un geste. Grisee : sans objet ici. */
+.zcard.on { outline: 2px solid var(--accent); box-shadow: 0 0 14px rgba(255,196,107,.4); cursor: pointer; }
+.zcard.off { opacity: .32; filter: grayscale(.85); }
+.zcard.off .note { color: var(--ink-dim); }
+
 /* ---------- vue inspectee d'une unite ---------- */
 .insp { display: grid; gap: 10px; }
 .insp .tete { display: flex; gap: 12px; align-items: center; }

@@ -6,15 +6,17 @@ import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist } from '../state.js';
 import { relicMods } from '../config/relics.js';
 import { TRIGGERS, COUNTERS, keyLabel, hasKey, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel, branchesDe, listeEffets } from '../config/mechanics.js';
-import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur } from '../combat/engine.js';
+import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur, reprisesPossibles } from '../combat/engine.js';
 import { botAction } from '../combat/ai.js';
 import { joue as joueLeCoup, ouvreJournal, fermeJournal, nomDeFichier } from '../combat/journal.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
+import { ouvreZone } from './zone.js';
 
 let B = null;
 let auto = true;
 let timer = null;
-let selCard = null;   // index dans la main
+let selCard = null;   // index dans la main — ou dans la defausse, voir `selZone`
+let selZone = 'main'; // d'ou part la carte choisie : 'main', ou 'defausse' (une Reprise)
 let selChoix = null;  // la branche choisie sur une carte « Choisir », en attente de cible
 let selUnit = null;   // uid d'une unite prete
 let onDone = null;
@@ -23,6 +25,9 @@ let ctx = null;
 // reference : le combat continue derriere la fiche (mode auto), donc elle se redessine
 // a chaque render() et se ferme d'elle-meme si l'unite meurt.
 let insp = null;   // { side, uid }
+// La fenetre de la defausse est-elle ouverte ? Comme la fiche, elle se redessine a chaque
+// render() : ouverte pendant le mode auto, elle suit le combat au lieu de mentir.
+let zoneOuverte = false;
 // Le fichier JSONL du dernier combat enregistre, garde jusqu'a l'ecran de resultat :
 // c'est la qu'on le telecharge (le journal est ferme des que le combat l'est).
 let dernierJournal = null;
@@ -75,6 +80,8 @@ export function openBattle(node, done) {
   ctx = node;
   onDone = done;
   selCard = selUnit = null;
+  selZone = 'main';
+  zoneOuverte = false;
   fermeFiche();
   auto = true;
   dernierJournal = null;
@@ -176,7 +183,7 @@ function handNode() {
     // moins/de plus » peut le faire bouger d'un tour a l'autre, on le signale.
     const cout = cardCost(c, B, 'p');
     const n = el(`
-      <div class="hcard ${c.type === 'spell' ? 'spell' : ''} ${ok ? '' : 'no'} ${selCard === i ? 'sel' : ''}">
+      <div class="hcard ${c.type === 'spell' ? 'spell' : ''} ${ok ? '' : 'no'} ${selCard === i && selZone === 'main' ? 'sel' : ''}">
         <div class="cost" ${cout !== c.cost ? `title="coût de base ${c.cost}" style="color:var(--accent2)"` : ''}>${cout}</div>
         ${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}
         <div class="nm">${c.name}</div>
@@ -231,14 +238,19 @@ function render() {
 
   root.appendChild(handNode());
 
+  // Des sorts a REPRISE a relancer maintenant : le bouton de la defausse le dit, sinon on
+  // ne penserait pas a l'ouvrir. A ton tour et en mode manuel seulement — sinon rien ne se
+  // joue d'un clic.
+  const nbReprises = !auto && B.turn === 'p' && !B.over ? reprisesPossibles(B, 'p').length : 0;
   const bar = el(`
     <div class="bt-bar">
       <div class="autochip ${auto ? 'on' : ''}" id="autoChip">${auto ? '▶ Auto' : '✋ Manuel'}</div>
-      <div class="grow muted">Pioche ${B.p.deck.length} · Défausse ${B.p.discard.length} · Tour ${Math.ceil(B.turnNo / 2)}</div>
+      <div class="grow muted">Pioche ${B.p.deck.length} · <button class="zlink ${nbReprises ? 'pret' : ''}" id="defBtn" title="Voir la défausse">Défausse ${B.p.discard.length}${nbReprises ? ' ↺' + nbReprises : ''}</button> · Tour ${Math.ceil(B.turnNo / 2)}</div>
       <button class="btn" id="endTurn" ${B.turn === 'p' && !auto ? '' : 'disabled'}>Fin du tour</button>
     </div>`);
   root.appendChild(bar);
 
+  bar.querySelector('#defBtn').onclick = ouvreDefausse;
   bar.querySelector('#autoChip').onclick = () => {
     auto = !auto;
     selCard = selUnit = null;
@@ -264,6 +276,7 @@ function render() {
   ajustePlateau(pb);
   // La fiche ouverte suit le combat plutot que de montrer un etat perime.
   renderInspect();
+  renderZone();
 }
 
 function plateauNode(board, side, id) {
@@ -336,7 +349,7 @@ function echelle(board, wrap, W, s) {
 function highlightTargets(root) {
   if (auto || B.turn !== 'p') return;
   let list = [];
-  if (selCard !== null) list = legalTargets(B, 'p', B.p.hand[selCard]);
+  if (selCard !== null) list = legalTargets(B, 'p', carteChoisie());
   else if (selUnit) list = attackableTargets(B, 'p', B.p.board.find(u => u.uid === selUnit));
   for (const t of list) {
     const n = root.querySelector(`[data-side="${t.side}"][data-uid="${t.uid}"]`);
@@ -346,9 +359,14 @@ function highlightTargets(root) {
 
 // ------------------------------------------------------------- interactions
 /** Pose la carte et remet l'ecran a zero. Le choix de branche part avec elle. */
+/** La carte choisie, qu'elle vienne de la main ou de la defausse (une Reprise). */
+const carteChoisie = () => (selCard === null ? null : (selZone === 'defausse' ? B.p.discard : B.p.hand)[selCard]);
+
 function joue(i, target) {
-  joueLeCoup(B, 'p', { type: 'play', index: i, target, choix: selChoix }, 'humain');
+  // `zone` n'est ecrit que pour une Reprise : le coup d'une carte de la main garde sa forme.
+  joueLeCoup(B, 'p', { type: 'play', index: i, ...(selZone === 'defausse' ? { zone: 'defausse' } : {}), target, choix: selChoix }, 'humain');
   selCard = null;
+  selZone = 'main';
   selChoix = null;
   render();
   if (B.over) finish();
@@ -383,20 +401,24 @@ function demandeChoix(card, done) {
   modal(box, () => {});
 }
 
-function onCardClick(i) {
+function onCardClick(i, zone = 'main') {
   if (auto || B.turn !== 'p' || B.over) return;
-  const c = B.p.hand[i];
-  if (!canPlay(B, 'p', c)) { toast('Pas assez de mana.'); return; }
+  const c = (zone === 'defausse' ? B.p.discard : B.p.hand)[i];
+  if (!c || !canPlay(B, 'p', c, zone)) { toast('Pas assez de mana.'); return; }
   // Reclic sur la carte deja choisie : on annule tout, y compris sa branche.
-  if (selCard === i) { selCard = null; selChoix = null; render(); return; }
+  if (selCard === i && selZone === zone) { selCard = null; selChoix = null; selZone = 'main'; render(); return; }
   const suite = () => {
     // La branche est deja choisie : on ne propose que les cibles qu'ELLE demande.
     if (needsTarget(c, selChoix) && legalTargets(B, 'p', c, selChoix).length) {
       selCard = i;
+      selZone = zone;
       selUnit = null;
+      // Une carte de la defausse n'a pas de vignette « choisie » dans la main : on le dit.
+      if (zone === 'defausse') toast(`Reprise : ${c.name} — choisis la cible.`);
       render();
       return;
     }
+    selZone = zone;
     joue(i, null);
   };
   if (needsChoice(c)) demandeChoix(c, choix => { selChoix = choix; suite(); });
@@ -413,7 +435,7 @@ function onTargetClick(side, uid) {
   const monTour = !auto && B.turn === 'p';
   // 1) une carte attend sa cible : le clic la designe.
   if (monTour && selCard !== null) {
-    const c = B.p.hand[selCard];
+    const c = carteChoisie();
     if (legalTargets(B, 'p', c, selChoix).some(t => t.side === side && t.uid === uid)) joue(selCard, { side, uid });
     return;
   }
@@ -432,8 +454,55 @@ function onTargetClick(side, uid) {
   // 3) sinon, la fiche. Le heros n'en a pas : sa banniere affiche deja tout.
   if (uid === 'hero') return;
   if (!B[side].board.some(x => x.uid === uid)) return;
+  // Une seule fenetre a la fois : la fiche prend la place de celle de la defausse.
+  zoneOuverte = false;
   insp = { side, uid };
   renderInspect();
+}
+
+// ------------------------------------------------------- la fenetre de la defausse
+/**
+ * LA DEFAUSSE, vue par la fenetre de zone (ui/zone.js). Les sorts a REPRISE que tu peux
+ * relancer MAINTENANT sont eclaires, le reste est grise — mais seulement a ton tour et en
+ * mode manuel : sinon rien ne se joue d'un clic, et eclairer mentirait. La plus recente
+ * d'abord. Elle montre aussi ton exil et la defausse adverse, en lecture seule.
+ */
+function ouvreDefausse() {
+  insp = null;
+  zoneOuverte = true;
+  renderZone();
+}
+
+function renderZone() {
+  if (!zoneOuverte || !B) return;
+  const monTour = !auto && B.turn === 'p' && !B.over;
+  const recentes = pile => [...pile.keys()].reverse();
+  const lecture = pile => recentes(pile).map(i => ({ carte: pile[i], i, etat: 'vue' }));
+  const moi = recentes(B.p.discard).map(i => {
+    const carte = B.p.discard[i];
+    const reprise = carte.type !== 'ally' && hasKey(carte.keys, 'reprise');
+    const cout = cardCost(carte, B, 'p', reprise ? 'defausse' : 'main');
+    if (!monTour) return { carte, i, cout, etat: 'vue', note: reprise ? '↺ Reprise' : '' };
+    if (!reprise) return { carte, i, cout, etat: 'off' };
+    const ok = canPlay(B, 'p', carte, 'defausse');
+    return { carte, i, cout, etat: ok ? 'on' : 'off', note: ok ? '↺ relancer' : (B.p.mana < cout ? '↺ pas assez de mana' : '↺ pas maintenant') };
+  });
+  const groupes = [{ titre: 'Ta défausse', cartes: moi }];
+  if (B.p.exile.length) groupes.push({ titre: 'Ton exil', cartes: lecture(B.p.exile) });
+  groupes.push({ titre: 'Défausse adverse', cartes: lecture(B.e.discard) });
+  const aReprise = B.p.discard.some(c => c.type !== 'ally' && hasKey(c.keys, 'reprise'));
+  const aide = !aReprise ? ''
+    : monTour ? 'Touche un sort éclairé pour le relancer : il coûte son prix, puis il est exilé.'
+      : 'Les sorts à Reprise se relancent à ton tour, en mode manuel.';
+  // Le combat continue derriere : on redessine sans faire sauter la lecture en cours.
+  const ancien = $('#modal .sheet');
+  const y = ancien ? ancien.scrollTop : 0;
+  const sheet = ouvreZone({
+    titre: 'Défausse', aide, groupes,
+    onChoix: (g, i) => { if (g === 0) onCardClick(i, 'defausse'); },
+    onClose: () => { zoneOuverte = false; }
+  });
+  sheet.scrollTop = y;
 }
 
 // ------------------------------------------------------------- vue inspectee
@@ -571,6 +640,7 @@ function renderInspect() {
 // --------------------------------------------------------------- fin de combat
 function finish() {
   clearTimeout(timer);
+  zoneOuverte = false;
   fermeFiche();
   // Le journal se ferme avec le combat : c'est la derniere ligne (`fin`) qui rend le
   // fichier verifiable — nombre de decisions, etat final, vainqueur.

@@ -9,11 +9,21 @@
 // part meme si l'unite meurt ; une aura compte pour ce qu'elle multiplie ; un
 // declencheur de tour compte plusieurs fois parce qu'il se repete.
 import { BALANCE } from '../config/balance.js';
-import { canPlay, legalTargets, attackableTargets, needsTarget, needsChoice, cloneBattle, playCard, attack, endTurn } from './engine.js';
-import { branchesDe, choixDeLaCarte, TRIGGERS, TARGETS, STATICS, ZONES, EVENTS, EFFETS_QUI_CHAINENT, hasKey, keyId, keyFields, counterValue, amountValue, cardCost, cardMatches, staticFields, targetId, targetArg, partageType, estDuType, eachSubEffect, listeEffets, typeVariable } from '../config/mechanics.js';
+import { canPlay, legalTargets, attackableTargets, needsTarget, needsChoice, cloneBattle, playCard, attack, endTurn, placeEnMain, carteDuCoup } from './engine.js';
+import { cibleCompte, branchesDe, choixDeLaCarte, TRIGGERS, TARGETS, STATICS, ZONES, EVENTS, EFFETS_QUI_CHAINENT, hasKey, keyId, keyFields, counterValue, amountValue, cardCost, cardMatches, staticFields, targetId, targetArg, partageType, estDuType, eachSubEffect, listeEffets, typeVariable } from '../config/mechanics.js';
 import { cardById, fatiguePile, switchOf } from '../config/npcs.js';
 
 const foe = k => (k === 'p' ? 'e' : 'p');
+
+/**
+ * UN COUP « JOUER CETTE CARTE ». `x` est { i, zone } : la place de la carte, dans la main
+ * (le defaut) ou dans la defausse — une REPRISE. `zone` n'est ecrit que pour celle-ci, si
+ * bien que tous les coups d'avant la Reprise gardent exactement la meme forme.
+ */
+const jouer = (x, target, choix) => ({
+  type: 'play', index: x.i, ...(x.zone === 'defausse' ? { zone: 'defausse' } : {}),
+  target, ...(choix ? { choix } : {})
+});
 
 /**
  * Le niveau de jeu du bot. Il vient du GAME CONFIG (`BALANCE.ai`) : c'est une valeur
@@ -66,7 +76,8 @@ function faisable(e, ctx) {
   const B = ctx.B, k = ctx.k;
   if (!B) return true;                       // hors combat : on ne sait rien
   const me = B[k];
-  const t = targetId(e.t);
+  // Un `t` hors sujet (reste du builder sur un deplacement depuis la defausse) ne compte pas.
+  const t = cibleCompte(e) ? targetId(e.t) : '';
   if (CIBLES_ENNEMIES.includes(t) && !ctx.enemies) return false;
   if (CIBLES_ALLIEES.includes(t) && !ctx.allies) return false;
   // Sans camp impose, il suffit qu'il y ait une unite quelque part.
@@ -75,6 +86,8 @@ function faisable(e, ctx) {
   // Un filtre dont le TYPE se lit sur une carte ne se juge pas d'avance : il ne sera
   // connu qu'au moment ou l'effet partira. On ne condamne pas la carte pour ca.
   if (typeVariable(e)) return true;
+  // « La carte concernee par l'evenement » n'existe qu'au moment ou l'evenement part.
+  if (e.quoi === 'sujet') return true;
 
   if (e.op === 'draw') return !!me.deck.length || !!fatiguePile().length;
   if (e.op === 'pioche_x') return me.deck.some(c => c.name === e.carte);
@@ -89,7 +102,7 @@ function faisable(e, ctx) {
     return pilesVisees(B, k, e).some(pile => pile.some(c => c.type === 'ally' && cardMatches(c, e)));
   }
 
-  if (['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'renforce_les_cartes', 'switch'].includes(e.op)) {
+  if (['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'renforce_les_cartes', 'switch', 'met_a_la_defausse', 'exile'].includes(e.op)) {
     const z = ZONES[e.d_ou] || {};
     if (z.carte) return true;                          // creee de toutes pieces
     if (z.cible) return true;                          // le plateau : la cible a deja tranche
@@ -297,6 +310,17 @@ function effectValue(e, ctx) {
       const pourLeCampVise = ((e.d_ou === 'main' ? -0.6 : prix) + renfort) * combien;
       return pourLeCampVise * signeDuPaquet(e);
     }
+    case 'met_a_la_defausse':
+    case 'exile': {
+      // Une meule ne gagne rien a elle seule : une carte meulee n'est ni gagnee ni
+      // perdue, elle change de paquet. Le bot ne la paie donc pas ; ce que vaut vraiment
+      // une meule (nourrir une Charogne, atteindre la fatigue) viendra avec les cartes
+      // qui s'en servent. Ce qu'il sait deja : perdre une carte de SA main coute, en
+      // faire perdre une a l'adversaire rapporte, et exiler une defausse est presque neutre.
+      const combien = e.n === undefined ? 1 : n('n');
+      const prix = e.d_ou === 'main' ? 1.6 : e.op === 'exile' ? 0.3 : 0;
+      return (prix * combien * -signeDuPaquet(e)) || 0;
+    }
     case 'copie': {
       // Une copie est un ECHANGE : on gagne le corps du modele, on perd celui qu'on
       // remplace. En face, le signe s'inverse — transformer une grosse unite adverse
@@ -444,7 +468,8 @@ function staticsValue(u, ctx) {
     const x = amountValue(m.v, ctx.B, ctx.k, null);
     // Bon pour le camp vise ? Puis : ce camp, est-ce le notre ou celui d'en face ?
     const pourLeVise = (m.sens === 'plus' ? 1 : -1) * (d.bon || 1);
-    v += x * (d.poids || 1) * pourLeVise * (m.qui === 'adversaire' ? -1 : 1);
+    // Un statique limite aux sorts lances depuis la defausse (Reprise) sert bien moins souvent.
+    v += x * (d.poids || 1) * pourLeVise * (m.qui === 'adversaire' ? -1 : 1) * (m.zone === 'defausse' ? 0.5 : 1);
   }
   return v;
 }
@@ -460,7 +485,7 @@ function estimee(B, k, card) {
   const f = keyFields(cle);
   // La carte est son propre porteur tant qu'elle est en main : c'est ce qui permet a
   // « X = ton niveau » d'etre lu avant meme d'etre pose.
-  let x = counterValue(f.src, B, k, card, f.arg);
+  let x = counterValue(f.src, B, k, card, f.arg) + (+f.plus || 0);
   // Elle n'est pas encore sur le plateau : les compteurs qui comptent les allies
   // vaudront un de plus une fois qu'elle sera posee.
   if (f.src === 'allyUnits') x += 1;
@@ -507,7 +532,7 @@ function bodyValue(u, ctx, poidsPv) {
 function contexte(B, k, card) {
   const me = B[k], them = B[foe(k)];
   return { allies: me.board.length, enemies: them.board.length, sameType: sameTypeCount(me.board, card),
-    place: Math.max(0, BALANCE.combat.handMax - me.hand.length + 1),
+    place: placeEnMain(me) + 1,
     board: me.board, foeBoard: them.board, B, k, carte: card };
 }
 
@@ -564,7 +589,7 @@ function unitThreat(B, k, u) {
   // Les effets valorises ici sont ceux de l'unite ADVERSE : ses montants variables
   // se comptent depuis son camp a elle.
   const ctx = { allies: them.board.length, enemies: B[k].board.length, sameType: memeType,
-    place: Math.max(0, BALANCE.combat.handMax - them.hand.length),
+    place: placeEnMain(them),
     board: them.board, foeBoard: B[k].board, B, k: foe(k) };
   let p = u.atk * 1.3 + u.hp * 0.35;
   if (hasKey(u.keys, 'Venin')) p += 2;
@@ -595,7 +620,7 @@ const directDamage = (B, k, card) =>
 function meilleurPaquet(B, k, playable) {
   const mana = Math.max(0, B[k].mana);
   const objets = playable
-    .map(x => ({ ...x, cout: Math.max(0, cardCost(x.c, B, k)), valeur: cardValue(B, k, x.c) }))
+    .map(x => ({ ...x, cout: Math.max(0, cardCost(x.c, B, k, x.zone)), valeur: cardValue(B, k, x.c) }))
     .filter(x => x.valeur > 0);
   const table = Array.from({ length: mana + 1 }, () => ({ valeur: 0, choix: [] }));
   for (const o of objets) {
@@ -657,18 +682,20 @@ function meilleureAttaque(B, k, ready) {
 export function coupsPossibles(B, k) {
   const me = B[k];
   const coups = [];
-  me.hand.forEach((c, i) => {
-    if (!canPlay(B, k, c)) return;
+  const ajoute = (c, i, zone) => {
     // Une carte « Choisir » fait DEUX coups : le Monte-Carlo joue les deux branches
     // jusqu'au bout et garde celle qui gagne le plus souvent. C'est mieux qu'une
     // fonction de valeur, et ca ne coute qu'un candidat de plus.
     if (needsChoice(c)) {
       // Chaque branche a ses propres cibles : on vise avec celle qu'on essaie.
-      for (const choix of choixDeLaCarte(c)) coups.push({ type: 'play', index: i, target: pickTarget(B, k, c, choix), choix });
+      for (const choix of choixDeLaCarte(c)) coups.push(jouer({ i, zone }, pickTarget(B, k, c, choix), choix));
       return;
     }
-    coups.push({ type: 'play', index: i, target: pickTarget(B, k, c) });
-  });
+    coups.push(jouer({ i, zone }, pickTarget(B, k, c)));
+  };
+  me.hand.forEach((c, i) => { if (canPlay(B, k, c)) ajoute(c, i, 'main'); });
+  // LA REPRISE : un sort de la defausse est un coup comme un autre — et gratuit en cartes.
+  me.discard.forEach((c, i) => { if (canPlay(B, k, c, 'defausse')) ajoute(c, i, 'defausse'); });
   for (const u of me.board.filter(u => u.canAttack && u.atk > 0)) {
     for (const t of attackableTargets(B, k, u)) coups.push({ type: 'attack', uid: u.uid, target: t });
   }
@@ -678,7 +705,7 @@ export function coupsPossibles(B, k) {
 
 function applique(B, k, a) {
   if (!a || a.type === 'end') endTurn(B);
-  else if (a.type === 'play') { if (!playCard(B, k, a.index, a.target, a.choix)) endTurn(B); }
+  else if (a.type === 'play') { if (!playCard(B, k, a.index, a.target, a.choix, a.zone)) endTurn(B); }
   else if (a.type === 'attack') { if (!attack(B, k, a.uid, a.target)) endTurn(B); }
 }
 
@@ -691,10 +718,11 @@ function applique(B, k, a) {
 function coupLeger(B, k) {
   const me = B[k];
   const jouables = [];
-  me.hand.forEach((c, i) => { if (canPlay(B, k, c)) jouables.push(i); });
+  me.hand.forEach((c, i) => { if (canPlay(B, k, c)) jouables.push({ c, i, zone: 'main' }); });
+  me.discard.forEach((c, i) => { if (canPlay(B, k, c, 'defausse')) jouables.push({ c, i, zone: 'defausse' }); });
   if (jouables.length) {
-    const i = jouables[Math.floor(Math.random() * jouables.length)];
-    return { type: 'play', index: i, target: pickTarget(B, k, me.hand[i]) };
+    const x = jouables[Math.floor(Math.random() * jouables.length)];
+    return jouer(x, pickTarget(B, k, x.c));
   }
   const prets = me.board.filter(u => u.canAttack && u.atk > 0);
   if (prets.length) {
@@ -780,7 +808,7 @@ function coupCherche(B, k, jeu) {
   // Attaquer et passer coutent zero, donc rien ne passe devant une attaque gratuite.
   // Un candidat ecarte tot a moins de parties derriere lui : c'est voulu, il perdait.
   const taux = e => (e.n ? e.somme / e.n : 0);
-  const cout = a => (a.type === 'play' ? Math.max(0, cardCost(B[k].hand[a.index], B, k)) : 0);
+  const cout = a => (a.type === 'play' ? Math.max(0, cardCost(carteDuCoup(B, k, a), B, k, a.zone)) : 0);
   let best = evalues[0];
   for (const e of evalues) {
     const ecart = taux(e) - taux(best);
@@ -846,19 +874,20 @@ function decrisCoup(B, k, a, victoires) {
     const u = B[k].board.find(x => x.uid === a.uid);
     return { ...note, quoi: 'attaque', nom: (u ? u.name : '?') + ' attaque' };
   }
-  const c = B[k].hand[a.index];
+  const c = carteDuCoup(B, k, a);
   if (!c) return { ...note, quoi: 'carte', nom: '?' };
   return {
     ...note, quoi: 'carte', id: c.id || null,
-    nom: c.name + (a.choix ? ` (choix ${a.choix.toUpperCase()})` : ''),
-    cout: cardCost(c, B, k),
+    nom: c.name + (a.zone === 'defausse' ? ' (Reprise)' : '') + (a.choix ? ` (choix ${a.choix.toUpperCase()})` : ''),
+    cout: cardCost(c, B, k, a.zone),
     // Ce que la fonction de valeur du bot pense de la carte. Pour un Monte-Carlo ce
     // n'est PAS son critere : c'est un deuxieme avis, et leur desaccord se lit.
     valeur: Math.round(cardValue(B, k, c) * 100) / 100
   };
 }
 
-const memeCoup = (x, y) => !!x && !!y && x.type === y.type && x.index === y.index && x.uid === y.uid;
+const memeCoup = (x, y) => !!x && !!y && x.type === y.type && x.index === y.index && x.uid === y.uid
+  && (x.zone || 'main') === (y.zone || 'main');
 
 /** Note une decision et ses candidats. Ne dit rien quand il n'y avait pas le choix. */
 function noteLaDecision(B, k, a, evalues) {
@@ -907,7 +936,7 @@ export function botAction(B, k, opts) {
  */
 function avecChoix(B, k, a) {
   if (!a || a.type !== 'play' || a.choix) return a;
-  const c = B[k].hand[a.index];
+  const c = carteDuCoup(B, k, a);
   if (!c || !needsChoice(c)) return a;
   const choix = meilleureBranche(B, k, c);
   // La cible avait ete choisie sans savoir quelle branche partirait : si elle ne
@@ -922,7 +951,12 @@ function decide(B, k, jeu) {
   const me = B[k], them = B[foe(k)];
   const ready = me.board.filter(u => u.canAttack && u.atk > 0);
   const taunts = them.board.filter(u => hasKey(u.keys, 'Taunt'));
-  const playable = me.hand.map((c, i) => ({ c, i })).filter(x => canPlay(B, k, x.c));
+  const playable = [
+    ...me.hand.map((c, i) => ({ c, i, zone: 'main' })).filter(x => canPlay(B, k, x.c)),
+    // LA REPRISE : un sort de la defausse se joue comme une carte de la main, sans carte a
+    // depenser — il n'y a donc aucune raison de le traiter a part.
+    ...me.discard.map((c, i) => ({ c, i, zone: 'defausse' })).filter(x => canPlay(B, k, x.c, 'defausse'))
+  ];
 
   // --- 1. victoire immediate -----------------------------------------------
   // Qui peut vraiment toucher le heros : une provocation arrete la plupart des
@@ -934,13 +968,13 @@ function decide(B, k, jeu) {
   const burnCards = playable.filter(x => brulure(x.c) > 0);
   let burn = 0, mana = me.mana;
   for (const x of burnCards.sort((a, b) => brulure(b.c) - brulure(a.c))) {
-    const cout = cardCost(x.c, B, k);
+    const cout = cardCost(x.c, B, k, x.zone);
     if (mana >= cout) { burn += brulure(x.c); mana -= cout; }
   }
   if (them.hp <= faceDamage + burn - them.armor) {
     const b = burnCards.sort((a, b) => brulure(b.c) - brulure(a.c))[0];
     if (b && them.hp > faceDamage - them.armor) {
-      return { type: 'play', index: b.i, target: { side: foe(k), uid: 'hero' } };
+      return jouer(b, { side: foe(k), uid: 'hero' });
     }
     const frappeur = ready.find(u => attackableTargets(B, k, u).some(t => t.uid === 'hero'));
     if (frappeur) return { type: 'attack', uid: frappeur.uid, target: { side: foe(k), uid: 'hero' } };
@@ -957,7 +991,7 @@ function decide(B, k, jeu) {
   // paquet payable ce tour-ci. Poser un 5 mana en laissant deux 2 mana en main est
   // une erreur classique, et c'est celle qui coute le plus cher.
   const candidats = jeu.malin ? meilleurPaquet(B, k, playable) : playable;
-  const dansLePaquet = x => candidats.some(c => c.i === x.i);
+  const dansLePaquet = x => candidats.some(c => c.i === x.i && c.zone === x.zone);
 
   // On pose l'allie qui rapporte le plus dans cette position, pas le plus cher.
   const allies = playable.filter(x => x.c.type === 'ally').filter(dansLePaquet)
@@ -965,7 +999,7 @@ function decide(B, k, jeu) {
   // Le bot naif pose TOUJOURS un allie avant de regarder le reste : tant qu'il en a
   // un en main, ses sorts de pioche dorment jusqu'a la fin du combat. Le bot malin
   // compare les deux — poser un corps reste souvent mieux, mais plus systematiquement.
-  if (allies.length && !jeu.malin) return { type: 'play', index: allies[0].i, target: pickTarget(B, k, allies[0].c) };
+  if (allies.length && !jeu.malin) return jouer(allies[0], pickTarget(B, k, allies[0].c));
 
   const utility = playable.filter(dansLePaquet)
     // Tout ce qui n'est pas du pur retrait developpe : pioche, mana, armure, soin,
@@ -988,10 +1022,10 @@ function decide(B, k, jeu) {
     // le tour suivant et force l'adversaire a s'en occuper. D'ou la prime de tempo.
     const valeurAllie = cardValue(B, k, allies[0].c) * 1.15;
     if (!utile || valeurAllie >= cardValue(B, k, utile.c)) {
-      return { type: 'play', index: allies[0].i, target: pickTarget(B, k, allies[0].c) };
+      return jouer(allies[0], pickTarget(B, k, allies[0].c));
     }
   }
-  if (utile) return { type: 'play', index: utile.i, target: pickTarget(B, k, utile.c) };
+  if (utile) return jouer(utile, pickTarget(B, k, utile.c));
 
   // --- 3. freiner l'adversaire ---------------------------------------------
   // Sort de degats sur une unite qu'on peut tuer : on vise la plus genante.
@@ -1003,9 +1037,9 @@ function decide(B, k, jeu) {
     // Un bot malin garde son gros retrait : bruler 6 degats sur un 1/1 est un cadeau.
     // Sans menace qui en vaille la peine, la carte reste en main pour le tour suivant.
     const vautLeCoup = !jeu.malin || !kill || unitThreat(B, k, kill) >= dmg * 0.8;
-    if (kill && vautLeCoup) return { type: 'play', index: x.i, target: { side: foe(k), uid: kill.uid } };
+    if (kill && vautLeCoup) return jouer(x, { side: foe(k), uid: kill.uid });
     if ((x.c.play || []).some(e => e.t === 'allEnemyUnits') && them.board.length >= 2) {
-      return { type: 'play', index: x.i, target: null };
+      return jouer(x, null);
     }
   }
   // Destruction : elle n'a pas de seuil de PV a atteindre, elle ne passe donc pas par
@@ -1014,7 +1048,7 @@ function decide(B, k, jeu) {
   for (const x of playable) {
     if (!(x.c.play || []).some(e => e.op === 'detruit')) continue;
     if (!them.board.length || cardValue(B, k, x.c) <= 0) continue;
-    return { type: 'play', index: x.i, target: pickTarget(B, k, x.c) };
+    return jouer(x, pickTarget(B, k, x.c));
   }
   // Attaques. Le bot malin compare TOUTES les paires (attaquant, cible) avant de
   // frapper, et s'abstient quand rien de bon n'est possible — mieux vaut garder une
@@ -1071,7 +1105,7 @@ function randomAction(B, k, playable, ready) {
   const pool = [];
   for (const x of playable) {
     if (cardValue(B, k, x.c) <= 0) continue;
-    pool.push({ type: 'play', index: x.i, target: pickTarget(B, k, x.c) });
+    pool.push(jouer(x, pickTarget(B, k, x.c)));
   }
   for (const u of ready) {
     const legal = attackableTargets(B, k, u);

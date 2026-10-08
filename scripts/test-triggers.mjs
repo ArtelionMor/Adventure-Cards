@@ -4,7 +4,7 @@
 // Tout passe par de vrais chemins de code : on tue avec un sort, jamais en bidouillant
 // les PV a la main — sinon le test ne prouve rien sur le vrai jeu.
 //   node scripts/test-triggers.mjs
-import { createBattle, playCard, endTurn, attack, attackableTargets, canPlay, cardCost, draw, needsTarget, needsChoice, legalTargets } from '../game/src/combat/engine.js';
+import { createBattle, playCard, endTurn, attack, attackableTargets, canPlay, cardCost, draw, needsTarget, needsChoice, legalTargets, refresh, placeEnMain, reprisesPossibles, carteDuCoup } from '../game/src/combat/engine.js';
 import { resolveCard } from '../game/src/config/characters.js';
 import { BALANCE } from '../game/src/config/balance.js';
 // La pile de fatigue est une donnee de jeu, pas un etat de combat : les tests la
@@ -16,10 +16,10 @@ import { CHARACTER_DATA } from '../game/data/characters.data.js';
 import { cardById } from '../game/src/config/npcs.js';
 // « Est-elle de ce type ? » se demande au registre, jamais en comparant les mots-cles
 // a la main : une carte « Type : tous » repond oui sans porter l'etiquette.
-import { estDuType, eventSlot, momentLabel, ALL_EFFECTS, ALL_KEYWORDS } from '../game/src/config/mechanics.js';
+import { estDuType, eventSlot, momentLabel, ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, keyLabel, counterValue } from '../game/src/config/mechanics.js';
 // Le banc verifie aussi les regles du builder : elles vivent dans le meme registre, et
 // une carte valide signalee a tort coute autant qu'un effet qui ne part pas.
-import { validateData } from '../game/src/config/validate.js';
+import { validateData, tierIssue } from '../game/src/config/validate.js';
 
 // LE BANC PART D'UNE PILE VIDE, quoi que le designer ait mis dans la sienne : ces tests
 // disent ce que fait le MOTEUR, pas ce que vaut l'equilibrage du moment. Sans ca, remplir
@@ -3177,6 +3177,391 @@ console.log('\nCreer la carte de Lui');
   play(B, 'p', 'Seul');
   check('rien dans « Lui » : rien n\'est cree', [B.p.hand.length, B.log.some(l => l.includes('aucune unite dans'))], [0, true]);
 }
+
+// ---------------------------------------------------------------------------
+// LES BRIQUES COMMUNES DE LA V3 (docs/V3-HEROS.md, section 4.0) : une main sans plafond,
+// la zone d'exil, « met a la defausse » (la meule), les evenements defausse / meule /
+// exil / fatigue, la carte concernee par un evenement, le bonus de la caracteristique
+// variable — et le `t` laisse par le builder qui ne doit plus rien demander au joueur.
+const sortSimple = (name, play, extra = {}) =>
+  ({ id: name, name, type: 'spell', cost: 1, keys: [], text: '', tiers: [], play, ...extra });
+
+console.log('\nUne main sans plafond');
+{
+  check('le plafond de main est desactive dans la config', BALANCE.combat.handMax, 0);
+  const B = setup([]);
+  B.p.hand = [];
+  B.p.deck.push(...filler(20));
+  draw(B, 'p', 12);
+  check('douze pioches : douze cartes en main, aucune ne part a la defausse', [B.p.hand.length, B.p.discard.length], [12, 0]);
+  check('le journal ne parle pas de main pleine', B.log.some(l => l.includes('Main pleine')), false);
+  check('le bot voit de la place a l infini', placeEnMain(B.p), Infinity);
+}
+{
+  const cree = sortSimple('Cree', [{ op: 'cree', choix: 'precise', carte: 'grunt1', n: 12, lvl: 1 }]);
+  const B = setup([cree]);
+  play(B, 'p', 'Cree');
+  check('douze cartes creees tiennent en main', B.p.hand.length, 12);
+}
+{
+  // Remettre un nombre dans la config retablit le plafond partout, sans toucher au moteur.
+  const avant = BALANCE.combat.handMax;
+  BALANCE.combat.handMax = 3;
+  try {
+    const B = setup([]);
+    B.p.hand = [];
+    draw(B, 'p', 5);
+    check('avec un plafond de 3, la main s arrete a 3', B.p.hand.length, 3);
+    check('et le surplus part a la defausse', B.p.discard.length, 2);
+    check('placeEnMain compte ce qui reste', placeEnMain(B.p), 0);
+    B.p.hand.pop();
+    check('une place libre est annoncee', placeEnMain(B.p), 1);
+  } finally { BALANCE.combat.handMax = avant; }
+}
+
+console.log('\nL exil');
+{
+  const note = sortSimple('Note', []);
+  const exilons = sortSimple('Exilons', [{ op: 'exile', d_ou: 'defausse', qui: 'toi', quoi: 'oneCard', argCard: 'Note', n: 1 }]);
+  const B = setup([note, exilons]);
+  play(B, 'p', 'Note');
+  check('un sort joue va a la defausse', B.p.discard.map(c => c.name), ['Note']);
+  play(B, 'p', 'Exilons');
+  check('exiler sort la carte de la defausse', B.p.discard.map(c => c.name), ['Exilons']);
+  check('et la met dans l exil', B.p.exile.map(c => c.name), ['Note']);
+  check('le compteur « les cartes de ton exil » la compte', counterValue('exileCards', B, 'p'), 1);
+  check('et pas chez l adversaire', counterValue('exileCards', B, 'e'), 0);
+}
+{
+  // La carte reste chez son proprietaire : exiler la defausse adverse exile SES cartes.
+  const note = sortSimple('Note', []);
+  const pillage = sortSimple('Pillage', [{ op: 'exile', d_ou: 'defausse', qui: 'adversaire', quoi: 'oneCard', argCard: 'Note', n: 1 }]);
+  const B = setup([pillage], [note]);
+  B.turn = 'e'; play(B, 'e', 'Note'); B.turn = 'p';
+  play(B, 'p', 'Pillage');
+  check('la carte exilee reste chez son proprietaire', [B.e.discard.length, B.e.exile.map(c => c.name), B.p.exile.length], [0, ['Note'], 0]);
+}
+{
+  // L'evenement « exil » : une carte quitte une DEFAUSSE pour l'exil, du cote de qui elle est.
+  const veille = ally('Veilleur', 1, 9, {
+    [eventSlot('exil', 'self')]: [{ op: 'armor', v: 10 }],
+    [eventSlot('exil', 'foe')]: [{ op: 'armor', v: 1 }]
+  });
+  const note = sortSimple('Note', []);
+  const exilons = sortSimple('Exilons', [{ op: 'exile', d_ou: 'defausse', qui: 'toi', quoi: 'oneCard', argCard: 'Note', n: 1 }]);
+  const pillage = sortSimple('Pillage', [{ op: 'exile', d_ou: 'defausse', qui: 'adversaire', quoi: 'oneCard', argCard: 'Note', n: 1 }]);
+  const B = setup([veille, note, exilons, pillage], [note]);
+  play(B, 'p', 'Veilleur');
+  play(B, 'p', 'Note');
+  play(B, 'p', 'Exilons');
+  check('ma carte exilee de MA defausse : « quand tu... » seulement', B.p.armor, 10);
+  B.turn = 'e'; play(B, 'e', 'Note'); B.turn = 'p';
+  play(B, 'p', 'Pillage');
+  check('sa carte exilee de SA defausse : « quand l adversaire... » seulement', B.p.armor, 11);
+}
+{
+  // Depuis la main ou la pioche, la carte n'a pas quitte une defausse : rien ne part.
+  const veille = ally('Veilleur', 1, 9, { [eventSlot('exil', 'any')]: [{ op: 'armor', v: 1 }] });
+  const exileMain = sortSimple('ExileMain', [{ op: 'exile', d_ou: 'main', qui: 'toi', quoi: 'oneCard', argCard: 'Reste', n: 1 }]);
+  const B = setup([veille, exileMain, sortSimple('Reste', [])]);
+  play(B, 'p', 'Veilleur');
+  play(B, 'p', 'ExileMain');
+  check('exiler depuis la main exile bien la carte', B.p.exile.map(c => c.name), ['Reste']);
+  check('mais ne declenche pas « exil » (ce n est pas une defausse)', B.p.armor, 0);
+}
+check('le moment « exil » se dit en toutes lettres',
+  [TRIGGERS.on_exil_self.label, TRIGGERS.on_exil_foe.label, TRIGGERS.on_exil_any.label],
+  ['Quand une carte est exilée de ta défausse', 'Quand une carte est exilée de la défausse adverse', 'Quand une carte est exilée d’une défausse']);
+
+console.log('\nMeuler, defausser');
+{
+  const meule = sortSimple('Meule', [{ op: 'met_a_la_defausse', d_ou: 'pioche', qui: 'toi', quoi: 'all', ordre: 'dessus', n: 2 }]);
+  const B = setup([meule]);
+  B.p.deck = [ally('A', 1, 1), ally('B', 1, 1), ally('C', 1, 1)];   // le dessus d'un paquet est la FIN
+  play(B, 'p', 'Meule');
+  check('meuler prend le dessus de la pioche', B.p.discard.map(c => c.name), ['Meule', 'C', 'B']);
+  check('et laisse le reste', B.p.deck.map(c => c.name), ['A']);
+}
+{
+  // Meuler l'adversaire met SES cartes dans SA defausse, et l'evenement part de son cote.
+  const charognard = ally('Charognard', 1, 9, { [eventSlot('meule', 'foe')]: [{ op: 'buff', t: 'self', atk: 1, hp: 0 }] });
+  const meule = sortSimple('Meule', [{ op: 'met_a_la_defausse', d_ou: 'pioche', qui: 'adversaire', quoi: 'all', ordre: 'dessus', n: 2 }]);
+  const B = setup([charognard, meule], []);
+  B.e.deck = [ally('X', 1, 1), ally('Y', 1, 1), ally('Z', 1, 1)];
+  play(B, 'p', 'Charognard');
+  play(B, 'p', 'Meule');
+  check('meuler l adversaire met SES cartes dans SA defausse',
+    [B.e.discard.map(c => c.name), B.p.discard.map(c => c.name)], [['Z', 'Y'], ['Meule']]);
+  check('« quand l adversaire meule » part une fois par carte', B.p.board[0].atk, 3);
+}
+{
+  // Defausser n'est pas jouer : jouer une carte ne declenche pas « quand tu defausses ».
+  const veilleuse = ally('Veilleuse', 1, 9, { [eventSlot('defausse', 'self')]: [{ op: 'buff', t: 'self', atk: 1, hp: 0 }] });
+  const jette = sortSimple('Jette', [{ op: 'met_a_la_defausse', d_ou: 'main', qui: 'toi', quoi: 'oneCard', argCard: 'Boulet', n: 1 }]);
+  const B = setup([veilleuse, sortSimple('Autre', []), jette, sortSimple('Boulet', [])]);
+  play(B, 'p', 'Veilleuse');
+  play(B, 'p', 'Autre');
+  check('jouer un sort n est pas le defausser', B.p.board[0].atk, 1);
+  play(B, 'p', 'Jette');
+  check('defausser depuis la main declenche « quand tu defausses »', B.p.board[0].atk, 2);
+  check('la carte a quitte la main pour la defausse',
+    [B.p.hand.map(c => c.name), B.p.discard.map(c => c.name).includes('Boulet')], [[], true]);
+}
+{
+  const meule = sortSimple('Meule', [{ op: 'met_a_la_defausse', d_ou: 'pioche', qui: 'toi', quoi: 'all', ordre: 'dessus', n: 5 }]);
+  const B = setup([meule]);
+  B.p.deck = [ally('Seule', 1, 1)];
+  play(B, 'p', 'Meule');
+  check('on ne meule pas plus que la pioche', [B.p.deck.length, B.p.discard.length], [0, 2]);
+}
+
+console.log('\nLa fatigue et la carte concernee');
+{
+  // « Quand tu pioches dans la fatigue, LA CARTE PIOCHEE coute 1 de moins » : le sujet de
+  // l'evenement est une carte, et le filtre « la carte concernee » ne designe qu'elle.
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1, lvl: 1 }];
+  const fond = ally('Fond', 1, 9, { [eventSlot('fatigue', 'self')]: [{ op: 'reduit_le_cout_de', quoi: 'sujet', v: 1 }] });
+  const B = setup([fond]);
+  play(B, 'p', 'Fond');
+  B.p.deck = []; B.p.hand = [ally('Autre', 1, 1, { cost: 5 })];
+  draw(B, 'p');
+  const tiree = B.p.hand.find(c => c.id === 'grunt1');
+  check('la carte tiree de la fatigue coute 1 de moins', tiree.cost, 0);
+  check('les autres cartes de la main ne bougent pas', B.p.hand.find(c => c.name === 'Autre').cost, 5);
+  B.p.deck = [ally('Normale', 1, 1, { cost: 3 })];
+  draw(B, 'p');
+  check('une pioche ordinaire ne declenche pas la fatigue', B.p.hand.find(c => c.name === 'Normale').cost, 3);
+  CHARACTER_DATA.fatigue = [];
+}
+{
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1, lvl: 1 }];
+  const base = resolveCard(cardById('grunt1'), 1);
+  const gonfle = ally('Gonfle', 1, 9, { [eventSlot('fatigue', 'self')]: [{ op: 'renforce_les_cartes', d_ou: 'main', qui: 'toi', quoi: 'sujet', n: 1, atk: 1, hp: 1 }] });
+  const B = setup([gonfle]);
+  play(B, 'p', 'Gonfle');
+  B.p.deck = []; B.p.hand = [ally('Temoin', 2, 2)];
+  draw(B, 'p');
+  const tiree = B.p.hand.find(c => c.id === 'grunt1');
+  check('la carte tiree grossit de +1/+1', [tiree.atk, tiree.hp], [base.atk + 1, base.hp + 1]);
+  check('et pas les autres', (t => [t.atk, t.hp])(B.p.hand.find(c => c.name === 'Temoin')), [2, 2]);
+  CHARACTER_DATA.fatigue = [];
+}
+check('le moment « fatigue » se dit en toutes lettres',
+  [TRIGGERS.on_fatigue_self.label, TRIGGERS.on_fatigue_foe.label], ['Quand tu pioches dans la fatigue', 'Quand l’adversaire pioche dans la fatigue']);
+{
+  // La validation : le filtre n'a de sens que sur un moment dont le sujet est une carte.
+  const carte = (nom, slot) => ({
+    id: nom, name: nom, type: 'ally', cost: 1, atk: 1, hp: 1, keys: [], text: '',
+    play: [], statics: [], tiers: [], [slot]: [{ op: 'reduit_le_cout_de', quoi: 'sujet', v: 1 }]
+  });
+  const DB = {
+    characters: [{ id: 'x', name: 'Test', switches: [], cards: [
+      carte('Bonne', eventSlot('fatigue', 'self')),
+      carte('Mauvaise', 'play'),
+      carte('Pioche', eventSlot('draw', 'self')),
+      null, null] }],
+    library: [], npcs: [], fatigue: [], starters: []
+  };
+  const dit = nom => validateData(DB, ALL_EFFECTS, ALL_KEYWORDS)
+    .some(i => i.bad && i.msg.includes(nom) && i.msg.includes('pas de carte pour sujet'));
+  check('la carte concernee est permise sur la fatigue', dit('Bonne'), false);
+  check('mais pas a la pose', dit('Mauvaise'), true);
+  check('ni sur une pioche ordinaire', dit('Pioche'), true);
+}
+
+console.log('\nCaracteristique variable : le bonus a plat');
+{
+  const faucon = ally('Faucon', 0, 3, { keys: ['characteristique_variable:atk:handCards::1'] });
+  const B = setup([faucon, ally('A', 1, 1), ally('B', 1, 1)]);
+  play(B, 'p', 'Faucon');
+  check('attaque = cartes en main + 1', B.p.board[0].atk, 3);
+  B.p.hand = [];
+  refresh(B);
+  check('main vide : au moins 1, jamais 0', B.p.board[0].atk, 1);
+  check('la carte le dit', keyLabel('characteristique_variable:atk:handCards::1'), 'Attaque = les cartes de ta main + 1');
+}
+{
+  // Les cartes ecrites avant le bonus n'ont que trois parties : elles valent 0, rien ne bouge.
+  const vieux = ally('Vieux', 0, 3, { keys: ['characteristique_variable:atk:handCards:'] });
+  const B = setup([vieux, ally('A', 1, 1)]);
+  play(B, 'p', 'Vieux');
+  check('sans bonus : attaque = cartes en main', B.p.board[0].atk, 1);
+  B.p.hand = [];
+  refresh(B);
+  check('et elle peut tomber a 0, comme avant', B.p.board[0].atk, 0);
+  check('le texte est inchange', keyLabel('characteristique_variable:atk:handCards:'), 'Attaque = les cartes de ta main');
+}
+
+console.log('\nLes cartes jouees sont comptees par le moteur');
+{
+  // La defausse ne dit pas ce qui a ete joue : une carte meulee ou defaussee y arrive sans
+  // l'avoir ete. Les outils de controle comptent `posees`, pas la defausse.
+  const meule = sortSimple('Meule', [{ op: 'met_a_la_defausse', d_ou: 'pioche', qui: 'toi', quoi: 'all', ordre: 'dessus', n: 2 }]);
+  const jette = sortSimple('Jette', [{ op: 'met_a_la_defausse', d_ou: 'main', qui: 'toi', quoi: 'oneCard', argCard: 'Boulet', n: 1 }]);
+  const B = setup([meule, jette, sortSimple('Boulet', [])]);
+  B.p.deck = [ally('A', 1, 1), ally('B', 1, 1)];
+  play(B, 'p', 'Meule');
+  play(B, 'p', 'Jette');
+  check('seules les cartes jouees sont comptees', B.p.posees, ['Meule', 'Jette']);
+  check('alors que la defausse en contient cinq', B.p.discard.length, 5);
+}
+
+console.log('\nUn t laisse par le builder ne compte pas');
+{
+  // Le builder remplit toute cible par une valeur par defaut, qui reste dans la carte meme
+  // quand le champ ne s'affiche plus : un deplacement DEPUIS LA DEFAUSSE garde un `t`
+  // « une unite adverse ». Le lire rendait la carte injouable quand le plateau d'en face
+  // est vide, et faisait pointer une cible pour rien.
+  const rappel = sortSimple('Rappel', [{ op: 'pose_sur_le_plateau', d_ou: 'defausse', qui: 'toi', quoi: 'ally', n: 1, t: 'enemyUnit' }]);
+  check('reanimer depuis la defausse ne demande aucune cible', needsTarget(rappel), false);
+  const B = setup([rappel]);
+  check('et reste jouable quand le plateau adverse est vide', canPlay(B, 'p', B.p.hand[0]), true);
+  const bond = sortSimple('Rebond', [{ op: 'renvoie_en_main', d_ou: 'plateau', t: 'enemyUnit' }]);
+  check('prendre sur le plateau, lui, demande bien une cible', needsTarget(bond), true);
+  const meule = sortSimple('Meule', [{ op: 'met_a_la_defausse', d_ou: 'pioche', qui: 'toi', quoi: 'all', n: 1, t: 'enemyUnit' }]);
+  check('meuler ne demande aucune cible', needsTarget(meule), false);
+}
+
+// ---------------------------------------------------------------------------
+// LA REPRISE (docs/V3-HEROS.md, 4.2) : un sort a Reprise se relance depuis la defausse, au
+// cout normal, sans carte a depenser, puis il est EXILE. C'est un Flashback.
+console.log('\nLa Reprise');
+const eclairR = (extra = {}) => sortSimple('Eclair', [{ op: 'dmg', t: 'enemyHero', v: 2 }], { keys: ['reprise'], cost: 2, ...extra });
+/** Reprend un sort de la defausse, comme le fait l'interface ou le bot. */
+const reprends = (B, k, nom, cible = null) => {
+  const i = B[k].discard.findIndex(c => c.name === nom);
+  if (i < 0) throw new Error('carte absente de la defausse : ' + nom);
+  if (!playCard(B, k, i, cible, null, 'defausse')) throw new Error('reprise impossible : ' + nom);
+};
+{
+  const B = setup([eclairR()]);
+  play(B, 'p', 'Eclair');
+  check('lance depuis la main, un sort a Reprise va en defausse (pas a l exil)', [B.p.discard.map(c => c.name), B.p.exile.length], [['Eclair'], 0]);
+  check('et il est reprenable', reprisesPossibles(B, 'p'), [0]);
+  const mana = B.p.mana, pv = B.e.hp;
+  reprends(B, 'p', 'Eclair');
+  check('la reprise coute le cout normal', B.p.mana, mana - 2);
+  check('ses effets partent', B.e.hp, pv - 2);
+  check('puis il est EXILE : plus en defausse, dans l exil', [B.p.discard.length, B.p.exile.map(c => c.name)], [0, ['Eclair']]);
+  check('il ne se reprend pas deux fois', [reprisesPossibles(B, 'p'), B.p.discard.length], [[], 0]);
+  check('aucune carte n a ete depensee : la main n a pas bouge', B.p.hand.length, 0);
+}
+{
+  // Sans le mot-cle, rien a reprendre — et rien n'est paye ni deplace par une tentative.
+  const B = setup([sortSimple('Banal', [{ op: 'dmg', t: 'enemyHero', v: 2 }])]);
+  play(B, 'p', 'Banal');
+  const mana = B.p.mana;
+  check('un sort sans Reprise ne se reprend pas', [canPlay(B, 'p', B.p.discard[0], 'defausse'), reprisesPossibles(B, 'p')], [false, []]);
+  check('la tentative echoue sans rien changer', [playCard(B, 'p', 0, null, null, 'defausse'), B.p.mana, B.p.discard.length], [false, mana, 1]);
+  check('un index hors defausse echoue aussi', playCard(B, 'p', 7, null, null, 'defausse'), false);
+}
+{
+  // La Reprise est faite pour les sorts : un allie mort n'en tire rien.
+  const B = setup([ally('Ancien', 1, 1, { keys: ['reprise'] }), frappe(99)], [frappe(99)]);
+  play(B, 'p', 'Ancien');
+  tuer(B, 'e', 'p', 'Ancien');
+  check('un allie mort ne se relance pas depuis la defausse', [B.p.discard.map(c => c.name), canPlay(B, 'p', B.p.discard[0], 'defausse')], [['Ancien'], false]);
+}
+{
+  const B = setup([eclairR()]);
+  play(B, 'p', 'Eclair');
+  B.p.mana = 1;
+  check('sans le mana, pas de reprise', [canPlay(B, 'p', B.p.discard[0], 'defausse'), reprisesPossibles(B, 'p')], [false, []]);
+}
+{
+  // Une reprise EST un sort lance : les compteurs et « quand tu lances un sort » la comptent.
+  const guetteur = ally('Guetteur', 1, 9, {
+    [eventSlot('spell', 'self')]: [{ op: 'armor', v: 1 }],
+    [eventSlot('reprise', 'self')]: [{ op: 'armor', v: 5 }]
+  });
+  const B = setup([guetteur, eclairR()]);
+  play(B, 'p', 'Guetteur');
+  play(B, 'p', 'Eclair');
+  check('depuis la main : « sort » part, « reprise » non', [B.p.armor, B.p.spellsGame], [1, 1]);
+  reprends(B, 'p', 'Eclair');
+  check('depuis la defausse : « sort » part aussi, et « reprise » en plus', [B.p.armor, B.p.spellsGame, B.p.spellsTurn], [7, 2, 2]);
+  check('le moment se dit en toutes lettres', TRIGGERS.on_reprise_self.label, 'Quand tu lances un sort depuis ta defausse');
+}
+{
+  // L'EXIL PASSE AVANT LES EFFETS : un sort qui remelange sa defausse ne se reprend pas
+  // lui-meme — il est deja parti quand le remelange regarde.
+  const recycle = sortSimple('Recycle', [{ op: 'melange_a_la_pioche', qui: 'toi', d_ou: 'defausse', quoi: 'all', n: 99 }], { keys: ['reprise'] });
+  const B = setup([recycle]);
+  play(B, 'p', 'Recycle');                 // se retrouve en defausse, y compris son propre remelange
+  B.p.deck = []; B.p.discard = [{ ...recycle }, ally('Autre', 1, 1)];
+  reprends(B, 'p', 'Recycle');
+  check('le sort repris n est pas dans la pioche : il etait exile avant son effet', B.p.deck.some(c => c.name === 'Recycle'), false);
+  check('mais le reste de la defausse y est', B.p.deck.map(c => c.name), ['Autre']);
+  check('et lui est dans l exil', B.p.exile.map(c => c.name), ['Recycle']);
+}
+{
+  // « Les cartes jouees retournent dans ta pioche » (Impératrice) : une reprise est exilee
+  // d'abord, elle ne retourne jamais dans le deck.
+  const imperatrice = ally('Imperatrice', 1, 9, { statics: [{ op: 'cartes_jouees_remelangees', qui: 'toi', quoi: 'tout' }] });
+  const B = setup([eclairR(), imperatrice]);
+  play(B, 'p', 'Eclair');
+  play(B, 'p', 'Imperatrice');
+  const taille = B.p.deck.length;
+  reprends(B, 'p', 'Eclair');
+  check('sous l Imperatrice, une reprise est exilee et pas remelangee', [B.p.exile.map(c => c.name), B.p.deck.length], [['Eclair'], taille]);
+  }
+{
+  // Le COUT : un statique « les cartes de ta defausse coutent 1 de moins » ne vaut que
+  // pour une reprise ; sans precision de zone, un statique vaut partout (comme avant).
+  const chaudron = ally('Chaudron', 1, 9, { statics: [{ op: 'cout_des_cartes', qui: 'toi', quoi: 'all', zone: 'defausse', sens: 'moins', v: 1 }] });
+  const B = setup([chaudron, eclairR()]);
+  play(B, 'p', 'Chaudron');
+  check('en main, le statique de defausse ne compte pas', cardCost(B.p.hand[0], B, 'p'), 2);
+  play(B, 'p', 'Eclair');
+  check('depuis la defausse, il compte', cardCost(B.p.discard[0], B, 'p', 'defausse'), 1);
+  const mana = B.p.mana;
+  reprends(B, 'p', 'Eclair');
+  check('et c est ce prix-la qu on paie', B.p.mana, mana - 1);
+}
+{
+  const partout = ally('Partout', 1, 9, { statics: [{ op: 'cout_des_cartes', qui: 'toi', quoi: 'spell', sens: 'moins', v: 1 }] });
+  const B = setup([partout, eclairR()]);
+  play(B, 'p', 'Partout');
+  check('un statique sans zone vaut en main', cardCost(B.p.hand[0], B, 'p'), 1);
+  play(B, 'p', 'Eclair');
+  check('et depuis la defausse', cardCost(B.p.discard[0], B, 'p', 'defausse'), 1);
+}
+{
+  // La PUISSANCE DES SORTS : « +1 pour les sorts qui partent de la defausse » (cible
+  // « tous »). Elle ne gonfle ni les sorts de la main ni les moments que la reprise declenche.
+  const sabbat = ally('Sabbat', 1, 9, {
+    statics: [{ op: 'montant_des_effets', qui: 'toi', cible: 'tous', zone: 'defausse', sens: 'plus', v: 1 }],
+    [eventSlot('spell', 'self')]: [{ op: 'dmg', t: 'enemyHero', v: 1 }]
+  });
+  const B = setup([sabbat, eclairR({ cost: 1 })]);
+  play(B, 'p', 'Sabbat');
+  let pv = B.e.hp;
+  play(B, 'p', 'Eclair');
+  check('depuis la main : 2 degats du sort + 1 du moment, sans bonus', pv - B.e.hp, 3);
+  pv = B.e.hp;
+  reprends(B, 'p', 'Eclair');
+  check('depuis la defausse : le sort gagne +1 (3), le moment non (1)', pv - B.e.hp, 4);
+}
+{
+  // Un palier peut DONNER la Reprise a un sort. La validation le permet — et refuse tout
+  // autre mot-cle sur un sort, comme avant.
+  const def = sortSimple('Palier', [{ op: 'dmg', t: 'enemyHero', v: 1 }], { tiers: [{ lvl: 5, key: 'reprise', text: 'Reprise' }] });
+  check('avant le palier, pas de Reprise', resolveCard(def, 4).keys.includes('reprise'), false);
+  check('au palier, la carte porte la Reprise', resolveCard(def, 5).keys.includes('reprise'), true);
+  check('la validation laisse un palier de Reprise sur un sort', tierIssue(def, def.tiers[0]), null);
+  check('mais refuse un autre mot-cle sur un sort', tierIssue(def, { lvl: 3, key: 'Charge' }) !== null, true);
+  const unite = ally('Unite', 1, 1);
+  check('et la Reprise sur un allie', tierIssue(unite, { lvl: 3, key: 'reprise' }) !== null, true);
+  const DB = { characters: [{ id: 'x', name: 'Test', switches: [], cards: [ally('Mort', 1, 1, { keys: ['reprise'] }), eclairR(), null, null, null] }], library: [], npcs: [], fatigue: [], starters: [] };
+  const msgs = validateData(DB, ALL_EFFECTS, ALL_KEYWORDS).map(i => i.msg);
+  check('un allie a Reprise est signale', msgs.some(m => m.includes('Mort') && m.includes('Reprise')), true);
+  check('un sort a Reprise ne l est pas', msgs.some(m => m.includes('Eclair') && m.includes('Reprise')), false);
+}
+check('carteDuCoup lit la main ou la defausse', (() => {
+  const B = setup([eclairR(), ally('Voisin', 1, 1)]);
+  play(B, 'p', 'Eclair');
+  return [carteDuCoup(B, 'p', { type: 'play', index: 0 }).name, carteDuCoup(B, 'p', { type: 'play', index: 0, zone: 'defausse' }).name];
+})(), ['Voisin', 'Eclair']);
 
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);

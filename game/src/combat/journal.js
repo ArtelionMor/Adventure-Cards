@@ -34,7 +34,7 @@
 import { BALANCE } from '../config/balance.js';
 import { CHARACTER_DATA } from '../../data/characters.data.js';
 import { TRIGGERS, cardCost, choixDeLaCarte } from '../config/mechanics.js';
-import { canPlay, needsChoice, needsTarget, legalTargets, attackableTargets, playCard, attack, endTurn, other } from './engine.js';
+import { canPlay, needsChoice, needsTarget, legalTargets, attackableTargets, playCard, attack, endTurn, other, carteDuCoup } from './engine.js';
 import { evalue, ecouteLesChoix } from './ai.js';
 
 /** La version du schema. Voir l'historique en bas de ce fichier. */
@@ -165,6 +165,9 @@ function etatCamp(j, B, k) {
     // pioche a l'envers et toute l'analyse s'en trouverait fausse.
     pioche: [...s.deck].reverse().map(c => instDe(j, k, c)),
     defausse: s.discard.map(c => instDe(j, k, c)),
+    // Les cartes sorties du jeu (effet `exile`) : on les garde dans le fichier, une
+    // carte qui disparait de la defausse sans y etre jouee doit se retrouver quelque part.
+    exil: (s.exile || []).map(c => instDe(j, k, c)),
     // Les compteurs du tour : ce sont eux qui expliquent un « pourquoi je ne peux plus
     // jouer » (les trois plafonds statiques) ou une caracteristique variable.
     jouees: s.jouees,
@@ -194,6 +197,7 @@ function vueJson(j, B, k) {
     piochePropreTaille: B[k].deck.length,
     cartesAdversesVues: [
       ...eux.discard.map(c => instDe(j, f, c)),
+      ...(eux.exile || []).map(c => instDe(j, f, c)),   // exilee, donc passee par la defausse
       ...eux.board.filter(u => u.card).map(u => instDe(j, f, u.card))
     ]
   };
@@ -210,7 +214,8 @@ const cibleJson = t => (t ? { camp: t.side, uid: t.uid } : null);
 function coupJson(j, B, k, a) {
   if (!a || a.type === 'end') return { type: 'end' };
   if (a.type === 'attack') return { type: 'attack', uid: a.uid, cible: cibleJson(a.target) };
-  const c = B[k].hand[a.index];
+  // La carte se lit dans la main, ou dans la defausse pour une Reprise (`zone`).
+  const c = carteDuCoup(B, k, a);
   // LA CIBLE N'EST RETENUE QUE SI ELLE DESIGNE VRAIMENT QUELQUE CHOSE. Quand une carte
   // demande une cible qu'aucune unite ne peut remplir, le bot pointe le heros adverse
   // et l'interface ne pointe rien : les deux veulent dire « pas de cible designee ».
@@ -218,7 +223,7 @@ function coupJson(j, B, k, a) {
   // manieres et ne se retrouverait pas dans ses propres coups legaux.
   const vise = c && a.target && needsTarget(c, a.choix)
     && legalTargets(B, k, c, a.choix).some(t => t.side === a.target.side && t.uid === a.target.uid);
-  return { type: 'play', inst: c ? instDe(j, k, c) : null, cible: vise ? cibleJson(a.target) : null, choix: a.choix || null };
+  return { type: 'play', inst: c ? instDe(j, k, c) : null, zone: a.zone || 'main', cible: vise ? cibleJson(a.target) : null, choix: a.choix || null };
 }
 
 /**
@@ -229,19 +234,23 @@ function coupJson(j, B, k, a) {
  */
 function coupsLegaux(j, B, k) {
   const out = [];
-  for (const c of B[k].hand) {
-    if (!canPlay(B, k, c)) continue;
-    // Le MEME identifiant que celui du coup joue : une carte fabriquee en combat n'a
-    // pas d'`inst` a elle, et lire `c.inst` en direct rendrait ici un `null` la ou le
-    // coup, lui, porte l'identifiant attribue par le journal.
-    const inst = instDe(j, k, c);
-    // Une carte « Choisir » fait deux coups : les branches n'ont pas les memes cibles.
-    for (const choix of needsChoice(c) ? choixDeLaCarte(c) : [null]) {
-      const cibles = needsTarget(c, choix) ? legalTargets(B, k, c, choix) : [];
-      // Aucune cible a designer (elle se resout seule, ou la branche vise en face) :
-      // la carte part quand meme, cible nulle — c'est ce que recoit `playCard`.
-      if (!cibles.length) out.push({ type: 'play', inst, cible: null, choix });
-      else for (const t of cibles) out.push({ type: 'play', inst, cible: cibleJson(t), choix });
+  // La main, puis la defausse : un sort a REPRISE s'y joue comme une carte de la main
+  // (`zone: 'defausse'`), et c'est un coup possible comme un autre.
+  for (const [zone, pile] of [['main', B[k].hand], ['defausse', B[k].discard]]) {
+    for (const c of pile) {
+      if (!canPlay(B, k, c, zone)) continue;
+      // Le MEME identifiant que celui du coup joue : une carte fabriquee en combat n'a
+      // pas d'`inst` a elle, et lire `c.inst` en direct rendrait ici un `null` la ou le
+      // coup, lui, porte l'identifiant attribue par le journal.
+      const inst = instDe(j, k, c);
+      // Une carte « Choisir » fait deux coups : les branches n'ont pas les memes cibles.
+      for (const choix of needsChoice(c) ? choixDeLaCarte(c) : [null]) {
+        const cibles = needsTarget(c, choix) ? legalTargets(B, k, c, choix) : [];
+        // Aucune cible a designer (elle se resout seule, ou la branche vise en face) :
+        // la carte part quand meme, cible nulle — c'est ce que recoit `playCard`.
+        if (!cibles.length) out.push({ type: 'play', inst, zone, cible: null, choix });
+        else for (const t of cibles) out.push({ type: 'play', inst, zone, cible: cibleJson(t), choix });
+      }
     }
   }
   for (const u of B[k].board) {
@@ -451,7 +460,7 @@ export function joue(B, k, action, controle = 'bot', niveau = null) {
 /** Le dispatch, et le seul du projet : un coup du bot vers l'appel du moteur. */
 function applique(B, k, action) {
   if (!action || action.type === 'end') { endTurn(B); return true; }
-  if (action.type === 'play') return playCard(B, k, action.index, action.target, action.choix);
+  if (action.type === 'play') return playCard(B, k, action.index, action.target, action.choix, action.zone);
   if (action.type === 'attack') return attack(B, k, action.uid, action.target);
   return false;
 }

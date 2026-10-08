@@ -112,7 +112,14 @@ export const CARD_FILTERS = {
   // ce qui transforme « pose une carte de ta pioche » en « va chercher CELLE-LA ».
   // `precise` la retire des listes « au hasard » : tirer au sort parmi une seule carte
   // n'aurait aucun sens, et le champ « Quelle carte » est deja la juste au-dessus.
-  oneCard: { label: 'Une carte précise', arg: 'card', precise: true }
+  oneCard: { label: 'Une carte précise', arg: 'card', precise: true },
+  // LA CARTE CONCERNEE PAR L'EVENEMENT qui declenche le moment : « quand tu pioches dans
+  // la fatigue, LA CARTE PIOCHEE coute 2 de moins ». Le moteur la pose dans l'effet avant
+  // de le resoudre (`resolveAmounts`, comme un type lu ou un montant variable). Elle n'a
+  // de sens que sur un moment d'evenement dont le sujet est une carte
+  // (`EVENTS[ev].sujetCarte`) : la validation le dit ailleurs. `sujet` la retire des
+  // listes « au hasard » (le catalogue n'a pas de sujet) et des effets statiques.
+  sujet: { label: 'La carte concernée par l’événement', sujet: true }
 };
 
 // LES ZONES DU JEU — d'ou une carte peut venir, ou elle peut aller.
@@ -171,12 +178,14 @@ const paramsType = (si) => [
  * (« n'importe quel allie ») plutot qu'un paquet a soi (« tes allies »).
  * `typeLu` autorise le type variable. Les EFFETS STATIQUES ne l'ont pas : ils sont lus
  * a chaque affichage de cout, et un type tire au sort les ferait clignoter.
+ * `sujet` autorise « la carte concernee par l'evenement » : ni le catalogue ni les effets
+ * statiques n'ont de sujet, ils ne la proposent pas.
  */
-const paramsFiltre = (si = () => true, catalogue = false, typeLu = true) => [
+const paramsFiltre = (si = () => true, catalogue = false, typeLu = true, sujet = true) => [
   {
     k: 'quoi', type: 'choice', label: 'Lesquelles', def: 'all',
     choices: Object.entries(CARD_FILTERS)
-      .filter(([, d]) => !(catalogue && d.precise))
+      .filter(([, d]) => !(catalogue && d.precise) && !(d.sujet && (catalogue || !sujet)))
       .map(([id, d]) => [id, catalogue ? d.tout : d.label]),
     si
   },
@@ -415,6 +424,34 @@ export const EFFECTS = {
     params: paramsZone('defausse'),
     implemented: true
   },
+  met_a_la_defausse: {
+    // LE QUATRIEME DEPLACEMENT, et le plus simple : la destination est la defausse. Depuis
+    // le DESSUS DE LA PIOCHE c'est une MEULE (« meule 2 cartes »), depuis la main une
+    // DEFAUSSE. La carte reste chez son proprietaire : meuler l'adversaire met SES cartes
+    // dans SA defausse. Chaque carte declenche l'evenement `meule` ou `defausse`.
+    label: 'Met a la defausse',
+    desc: 'Met des cartes a la defausse : du dessus de la pioche (une MEULE) ou de la main (une defausse). Meuler l\'adversaire met ses cartes dans sa defausse. Chaque carte declenche l\'evenement « meule » ou « defausse » chez celui a qui elle est.',
+    params: [
+      // Meuler, c'est prendre le DESSUS : c'est le defaut ici, pas le hasard.
+      ...paramsSource('pioche', 't', 'Quelles unités', 'D’où viennent les cartes', id => id === 'pioche' || id === 'main')
+        .map(p => (p.k === 'ordre' ? { ...p, def: 'dessus' } : p)),
+      num('n', 'Combien', 1)
+    ],
+    implemented: true
+  },
+  exile: {
+    // L'EXIL est une zone de plus : les cartes qui y vont ne reviennent pas, rien ne les
+    // lit sauf le compteur « les cartes de ton exil ». C'est la sortie de Reprise (le sort
+    // repris est exile) et la nourriture de Charogne. Une carte qui quitte une DEFAUSSE
+    // pour l'exil declenche l'evenement `exil` ; depuis la main ou la pioche, rien ne part.
+    label: 'Exile des cartes',
+    desc: 'Exile des cartes de la defausse, de la main ou de la pioche : elles sortent du jeu et ne reviennent pas. Une carte qui quitte une defausse declenche l\'evenement « exil ». La carte reste chez son proprietaire : exiler la defausse adverse exile ses cartes a lui.',
+    params: [
+      ...paramsSource('defausse', 't', 'Quelles unités', 'D’où viennent les cartes', id => ['defausse', 'main', 'pioche'].includes(id)),
+      num('n', 'Combien', 1)
+    ],
+    implemented: true
+  },
   pioche_une_carte_de_type: {
     label: 'Pioche un allie ou un sort',
     desc: 'Cherche dans ton deck la premiere carte du genre demande et la met en main.',
@@ -551,6 +588,31 @@ export const EVENTS = {
   ally: { sujet: true, you: 'joues un allie', other: 'joue un allie' },
   heroHurt: { you: 'perds des PV', other: 'perd des PV' },
   unitDies: { you: 'perds une unite', other: 'perd une unite' },
+  // LA DEFAUSSE ET LA MEULE. `defausse` : une carte va de la MAIN a la defausse PAR UN
+  // EFFET (jouer une carte n'en est pas une). `meule` : elle va de la PIOCHE a la
+  // defausse. Le camp est celui a qui est la carte, pas celui qui joue l'effet : meuler
+  // l'adversaire fait dire « quand l'adversaire meule une carte » a son voisin.
+  defausse: { you: 'defausses une carte', other: 'defausse une carte' },
+  meule: { you: 'meules une carte', other: 'meule une carte' },
+  // L'EXIL. Une carte quitte une DEFAUSSE pour l'exil (Charogne, Reprise...). « Toi » =
+  // ta defausse, « l'adversaire » = la sienne : le libelle change donc de forme, d'ou
+  // `labels` — il remplace la phrase construite sur `you` / `other`.
+  exil: {
+    you: 'as une carte exilee de ta defausse', other: 'a une carte exilee de sa defausse',
+    labels: {
+      self: 'Quand une carte est exilée de ta défausse',
+      foe: 'Quand une carte est exilée de la défausse adverse',
+      any: 'Quand une carte est exilée d’une défausse'
+    }
+  },
+  // LA FATIGUE. Une carte vient d'etre piochee dans la PILE DE FATIGUE (et non dans la
+  // pioche). Son SUJET est une CARTE, pas une unite : `sujetCarte` ouvre le filtre de
+  // cartes « la carte concernee » (« la carte piochee coute 2 de moins »). Il n'y a pas
+  // d'unite a regarder, donc ni garde ni « Lui » (cf. `sujet`).
+  fatigue: { sujetCarte: true, you: 'pioches dans la fatigue', other: 'pioche dans la fatigue' },
+  // LA REPRISE. Un sort vient d'etre lance DEPUIS LA DEFAUSSE (mot-cle `reprise`). Il part
+  // EN PLUS de l'evenement « sort » : « quand tu lances un sort » entend aussi les reprises.
+  reprise: { you: 'lances un sort depuis ta defausse', other: 'lance un sort depuis sa defausse' },
   attack: { sujet: true, you: 'attaques avec une unite', other: 'attaque avec une unite' },
   // LE RENFORT D'UNE UNITE EN JEU (l'effet « Renfort »). C'est le seul evenement dont
   // le SUJET est une unite et non un camp : `soi` remplace le libelle « Quand tu... »,
@@ -612,7 +674,8 @@ export const eventSlot = (ev, who) => `on_${ev}_${who}`;
 // `soi` : les evenements dont le sujet est l'unite elle-meme et non le camp ne se
 // disent pas « Quand tu... » — ils portent leur propre libelle.
 const eventLabel = (ev, who) =>
-  who === 'self' ? (EVENTS[ev].soi || `Quand tu ${EVENTS[ev].you}`)
+  EVENTS[ev].labels && EVENTS[ev].labels[who] ? EVENTS[ev].labels[who]
+    : who === 'self' ? (EVENTS[ev].soi || `Quand tu ${EVENTS[ev].you}`)
     : who === 'foe' ? `Quand l’adversaire ${EVENTS[ev].other}`
       : `Quand n’importe qui ${EVENTS[ev].other}`;
 
@@ -672,6 +735,12 @@ const sensParam = def => ({
   k: 'sens', type: 'choice', label: 'Sens', def,
   choices: [['moins', 'De moins'], ['plus', 'De plus']]
 });
+// D'OU LA CARTE EST LANCEE. Sans precision (« toutes »), le statique vaut partout, comme
+// avant ; « defausse » ne vaut que pour un sort lance DEPUIS LA DEFAUSSE (la Reprise).
+const zoneParam = {
+  k: 'zone', type: 'choice', label: 'Quand', def: 'toutes',
+  choices: [['toutes', 'Toujours'], ['defausse', 'Seulement pour un sort lancé depuis la défausse (Reprise)']]
+};
 
 export const STATICS = {
   cout_des_cartes: {
@@ -683,12 +752,13 @@ export const STATICS = {
       // type, `staticFields` comble les trous et un champ laisse vide ne doit surtout
       // pas se transformer en « Chien » sans le dire. Le type ne se lit pas sur une
       // carte ici : un statique est relu a chaque affichage de cout, il doit etre stable.
-      ...paramsFiltre(() => true, false, false),
+      ...paramsFiltre(() => true, false, false, false),
+      zoneParam,
       sensParam('moins'),
       num('v', 'Combien', 1)
     ],
     bon: -1, poids: 1.2,
-    text: m => `${paquetDe(m)} coutent ${describeAmount(m.v)} de ${motSens(m)}`
+    text: m => `${paquetDe(m)} coutent ${describeAmount(m.v)} de ${motSens(m)}${m.zone === 'defausse' ? ' (depuis la defausse)' : ''}`
   },
   montant_des_effets: {
     // Le meme geste qu'un palier « Amplifie les effets », mais tant que le porteur
@@ -699,14 +769,17 @@ export const STATICS = {
       quiParam('Tes effets', 'Les effets de l’adversaire'),
       {
         k: 'cible', type: 'choice', label: 'Quel effet', def: 'dmg',
-        choices: AMPLIFIABLE.map(op => [op, EFFECTS[op].label])
+        // « Tous » : la PUISSANCE DES SORTS, tout ce qu'un palier « Amplifie » sait monter.
+        choices: [...AMPLIFIABLE.map(op => [op, EFFECTS[op].label]), ['tous', 'Tous les effets chiffrés (la puissance des sorts)']]
       },
+      zoneParam,
       sensParam('plus'),
       num('v', 'Combien', 1)
     ],
     bon: 1, poids: 1.5,
     text: m => `${m.qui === 'adversaire' ? 'Les' : 'Tes'} ${motEffet(m.cible)}`
       + `${m.qui === 'adversaire' ? ' de l’adversaire' : ''} : ${describeAmount(m.v)} de ${motSens(m)}`
+      + (m.zone === 'defausse' ? ' pour un sort lance depuis la defausse' : '')
   },
   degats_du_heros: {
     label: 'Les degats subis par un heros',
@@ -796,7 +869,7 @@ export const STATICS = {
 const motSens = m => (m.sens === 'plus' ? 'plus' : 'moins');
 // Le nom d'un effet au pluriel, pour que la carte se lise en francais. Un effet
 // amplifiable ajoute au registre sans passer par ici retombe sur son libelle.
-const MOTS_EFFET = { dmg: 'degats', heal: 'soins', buff: 'renforts', armor: 'armures' };
+const MOTS_EFFET = { dmg: 'degats', heal: 'soins', buff: 'renforts', armor: 'armures', tous: 'effets chiffres' };
 const motEffet = op => MOTS_EFFET[op] || ((EFFECTS[op] || {}).label || op).toLowerCase();
 /** « tes sorts » vu du porteur, « les sorts de l'adversaire » vu d'en face. */
 const paquetDe = m => (m.qui === 'adversaire'
@@ -894,6 +967,7 @@ export const COUNTERS = {
   handCards: { label: 'Les cartes de ta main', compute: (B, k) => B[k].hand.length },
   discardCards: { label: 'Les cartes de ta défausse', compute: (B, k) => B[k].discard.length },
   deckCards: { label: 'Les cartes de ta pioche', compute: (B, k) => B[k].deck.length },
+  exileCards: { label: 'Les cartes de ton exil', compute: (B, k) => (B[k].exile || []).length },
   heroMissingHp: { label: 'Les PV manquants de ton héros', compute: (B, k) => Math.max(0, B[k].maxHp - B[k].hp) },
   // Le seul compteur qui ne lit pas le combat mais la CARTE : son niveau de resolution,
   // pose par resolveCard(). Pour une carte de heros c'est le niveau du personnage, pour
@@ -987,6 +1061,19 @@ export function eachSubEffect(e, fn) {
  */
 export const targetParams = op => ((ALL_EFFECTS[op] || {}).params || []).filter(p => p.type === 'target');
 
+/**
+ * LE PARAMETRE DE CIBLE `k` (par defaut `t`) COMPTE-T-IL VRAIMENT ? Un parametre peut etre hors
+ * sujet selon les autres champs : `si` le dit, et le builder ne l'affiche alors pas. Mais
+ * `newEffect` l'a rempli d'une cible par defaut, qui reste dans la carte : le `t` d'un
+ * deplacement DEPUIS LA DEFAUSSE n'est qu'un reste. Le lire ferait demander au joueur de
+ * pointer une unite adverse pour reanimer une carte, et rendrait la carte injouable quand
+ * le plateau d'en face est vide.
+ */
+export const cibleCompte = (e, k = 't') => {
+  const p = targetParams(e.op).find(x => x.k === k);
+  return !p || !p.si || !!p.si(e);
+};
+
 // Mots-cles portes par une unite (champ `keys`).
 export const KEYWORDS = {
   Taunt: { label: 'Provocation', desc: 'Doit etre attaquee avant le heros et les autres unites.', implemented: true },
@@ -1023,6 +1110,15 @@ export const KEYWORDS = {
   miroir: {
     label: 'Miroir',
     desc: 'En main, cette carte devient la carte que l’adversaire vient de jouer, avec 1 mana de moins, et change a chaque nouvelle carte qu’il joue. Elle arrive en main vierge et ne se joue pas tant qu’il n’a rien joue depuis.',
+    implemented: true
+  },
+  // UNE CARTE, pas un passif d'unite : elle ne fait quelque chose que dans la DEFAUSSE de
+  // qui l'a jouee (`playCard`, source « defausse »). `surSort` : contrairement a presque
+  // tous les mots-cles, un SORT peut la porter — et un palier la donner.
+  reprise: {
+    label: 'Reprise',
+    desc: 'Ce sort peut etre relance depuis ta defausse, au cout normal, puis il est exile : il ne revient jamais. Une reprise est un sort lance comme les autres.',
+    surSort: true,
     implemented: true
   },
   elusif: {
@@ -1085,14 +1181,19 @@ export const KEYWORDS = {
       {
         k: 'arg', type: 'text', label: 'Type suivi', def: '',
         si: ({ src }) => !!(COUNTERS[src] && COUNTERS[src].needsArg)
-      }
+      },
+      // UN BONUS A PLAT, comme `plus` dans un montant variable : « attaque = les cartes de ta
+      // main + 1 ». Sans lui, une carte dont la valeur peut tomber a 0 ne peut pas promettre
+      // « au moins 1 ». Absent des cartes ecrites avant lui, il vaut 0 : rien ne bouge.
+      { k: 'plus', type: 'number', label: 'Bonus à plat', def: 0 }
     ],
     /** Ce que la carte affiche : « Attaque = tes tours joues ». Recoit les parametres
      *  deja completes par leurs valeurs par defaut, jamais des trous. */
-    text: ({ stat, src, arg }) => {
+    text: ({ stat, src, arg, plus }) => {
       const quoi = stat === 'hp' ? 'Vie' : stat === 'both' ? 'Attaque et vie' : 'Attaque';
       const cpt = COUNTERS[src];
-      return `${quoi} = ${cpt ? cpt.label.toLowerCase() : '?'}${cpt && cpt.needsArg ? ' « ' + (arg || '?') + ' »' : ''}`;
+      const bonus = +plus ? ` ${+plus > 0 ? '+' : '-'} ${Math.abs(+plus)}` : '';
+      return `${quoi} = ${cpt ? cpt.label.toLowerCase() : '?'}${cpt && cpt.needsArg ? ' « ' + (arg || '?') + ' »' : ''}${bonus}`;
     },
     implemented: true
   }
@@ -1189,9 +1290,12 @@ export function costDelta(card, B, k) {
 /** Le cout a payer pour cette carte, dans cette position. Jamais negatif.
  *  Trois choses le composent : le cout ecrit (que les paliers et « Reduit le cout »
  *  modifient), le mot-cle porte par la carte, et les effets statiques en jeu. */
-export const cardCost = (card, B, k) => Math.max(0, ((card && card.cost) || 0)
+// `zone` : d'ou la carte est lancee — 'main' (le defaut) ou 'defausse' (une Reprise). Un
+// statique « Les cartes de ta defausse coutent 1 de moins » (`zone: 'defausse'`) ne compte
+// que pour la seconde ; sans precision, un statique vaut partout, comme avant.
+export const cardCost = (card, B, k, zone = 'main') => Math.max(0, ((card && card.cost) || 0)
   + costDelta(card, B, k)
-  + staticTotal(B, k, 'cout_des_cartes', m => cardMatches(card, m)));
+  + staticTotal(B, k, 'cout_des_cartes', m => cardMatches(card, m) && (m.zone !== 'defausse' || zone === 'defausse')));
 
 // ---------------------------------------------------------------------------
 // MECANIQUES INVENTEES DANS LE BUILDER QUI SONT MAINTENANT CODEES, mais sous une
@@ -1260,6 +1364,9 @@ export function cardMatches(card, e) {
     case 'withKey': return !!e.argKey && hasKey(card.keys, e.argKey);
     // Une carte sans identifiant ne peut etre designee par personne : elle ne passe pas.
     case 'oneCard': return !!e.argCard && card.id === e.argCard;
+    // La carte concernee par l'evenement : le moteur l'a posee dans l'effet avant de le
+    // resoudre (`carteSujet`). Sans elle, le filtre ne laisse rien passer.
+    case 'sujet': return !!e.carteSujet && card === e.carteSujet;
     default: return true;
   }
 }
@@ -1280,6 +1387,7 @@ export function describeTypeLu(e) {
  */
 export function describeFilter(e, aMoi = true) {
   const d = CARD_FILTERS[e.quoi || 'all'] || CARD_FILTERS.all;
+  if (d.sujet) return 'la carte concernée';
   const cartes = aMoi ? 'tes cartes' : 'les cartes';
   if (d.arg === 'type' && typeVariable(e)) return `${cartes} du type ${describeTypeLu(e)}`;
   if (d.arg === 'type') return `${cartes} « ${e.argType || '?'} »`;
@@ -1410,6 +1518,16 @@ export function describeEffect(e) {
     case 'renforce_les_cartes': return `+${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)} pour ${describeZone(e)}`;
     case 'renvoie_en_main': return `renvoie ${describeZone(e)} en main${bonusDeplacement(e)}`;
     case 'pose_sur_le_plateau': return `pose ${describeZone(e)} sur le plateau${bonusDeplacement(e)}`;
+    case 'met_a_la_defausse': {
+      // Depuis la pioche, c'est une meule : on le dit comme on le dit en jeu.
+      if (e.d_ou === 'pioche' && (e.quoi || 'all') === 'all') {
+        const paquet = e.qui === 'adversaire' ? 'la pioche de l’adversaire'
+          : e.qui === 'proprietaire' || e.qui === 'hasard' ? 'sa pioche' : 'ta pioche';
+        return `meule ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) ${e.ordre === 'hasard' ? 'au hasard dans' : 'du dessus de'} ${paquet}`;
+      }
+      return `met ${describeZone(e)} a la defausse`;
+    }
+    case 'exile': return `exile ${describeZone(e)}`;
     case 'prendre_le_controle': return `prend le controle${t}`;
     case 'switch': return `switche ${describeZone(e)}`;
     // Une branche vide ne dit rien plutot que « undefined » : la carte est en cours

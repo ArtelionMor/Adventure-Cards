@@ -4,6 +4,11 @@ Idle RPG mobile (F2P) : exploration overworld + combats de cartes + deckbuilding
 
 Avant de travailler sur ce projet, lis **`docs/GDD.md`** : c'est le document de conception à jour, avec toutes les mécaniques décidées (deckbuilding, monnaies, combat, architecture idle, art/anim) et les 2 seuls points encore réellement non tranchés (marqués ⚠ NON DÉCIDÉ dedans).
 
+**Les héros V3** (six nouveaux héros, leurs paliers, les mécaniques à coder et l'ordre du codage)
+sont dans **`docs/V3-HEROS.md`** : à lire avant de toucher à Reprise, Charogne, Appât, Pistage, Toxine,
+Ex-libris ou au Registre. Il dit ce qui est codé (✅) et ce qui reste, et garde les décisions du game
+designer — ne pas rouvrir ce qui y est tranché.
+
 ## Vocabulaire : archétypes et niveaux de jeu
 Quand on parle d'un deck ou de la façon de le jouer, ces mots ont **ce sens-là** — dans
 les échanges, les docs, les commentaires et les analyses.
@@ -42,6 +47,33 @@ ne pas confondre :
 - **Le plan** (méta-jeu) — se joue **sur la progression** : investir plus de ressources
   dans Médor parce qu'Athéna et Felix sont niveau 10 et lui niveau 6, qu'on perd donc
   les matchups où c'est lui qui est fort, et qu'on veut avancer dans le jeu.
+
+## Philosophie de design : Timmy, Johnny, Spike
+Le game designer juge une carte ou une mécanique avec la taxonomie de **Mark Rosewater**
+(lead designer de Magic) — trois joueurs, à qui il faut donner ce qu'ils viennent chercher :
+
+- **Timmy** veut des **gros tours** et des cartes impressionnantes : le hibou ou le corbeau
+  à 8 mana, le sort qui fait un truc de fou (Métamorphose ultime : un board de petits chats
+  qui deviennent tous la grosse matriarche). Lui permettre de **fabriquer un moment
+  exceptionnel**, même s'il n'arrive qu'une fois sur cent : qu'il soit possible compte.
+- **Johnny** cherche les **combos** : c'est lui qui trouvera « Griffure + Miroir +
+  Découverte » et écrira qu'il a cassé la méta. On le laisse faire — un combo à 4-5 cartes
+  qui tue d'un coup arrive trop rarement pour déranger la méta.
+- **Spike** est le joueur compétitif qui optimise — le « niveau designer » : c'est pour lui
+  que le jeu est **principalement équilibré**. Il ne jouera pas les combos de Johnny, qui ne
+  sont pas ce qu'il y a de plus efficace.
+
+Ce qui en découle, et qui vaut pour toute proposition :
+
+- ⚠ **Pas de plafond arbitraire** (« X fois par tour ») pour couper une boucle : c'est
+  restrictif et **incompréhensible pour le joueur**. On ferme une boucle par une **règle
+  de carte lisible**, comme le font les autres jeux (cf. « La carte Miroir » : un Miroir
+  arrive vierge). Les plafonds du moteur qui existent déjà (`maxRecyclageParTour`,
+  `maxPiochesAVideParTour`, `maxTurns`) sont des coupe-circuits de dernière ligne.
+- **Un combo infini n'est pas un problème** s'il est rare et dépend de l'adversaire. Ce qui
+  en est un, c'est un **bot** qui ne sait pas s'arrêter (cf. « Le bot »).
+- **Pas de passif de héros pour l'instant** : toute mécanique est **portée par une carte**
+  (un mot-clé sur la carte, des cartes générées par d'autres).
 
 ## Stack visée
 - Prototype : PWA (HTML/JS vanilla, zéro dépendance), pour valider la boucle de jeu.
@@ -309,6 +341,12 @@ son serveur intégré sinon — l'exe répond alors 404 et la page le dit.
   enchaîner des outils. Chaque ligne garde sa sortie et un **résumé** (`resumeCalcul()`) :
   on la relit en la touchant (`GET /api/run/ligne?i=`), et « Copier le récapitulatif »
   met tous les résumés bout à bout.
+- **Lancer depuis la ligne de commande** (une IA qui travaille sur le PC) : la même
+  demande, puis `POST /api/versions/creer` et `POST /api/versions/lier` (`{ id, archive }`,
+  l'archive se lit dans `GET /api/archives`) pour ranger les chiffres avec une version.
+  ⚠ Envoyer le JSON **depuis un fichier écrit en UTF-8** (`curl --data-binary @f.json`) : un
+  libellé accentué passé en argument par le terminal de Windows arrive abîmé
+  (« h�ros ») et reste tel quel dans le calcul rangé.
 - **Pause, reprise, arrêt** (`POST /api/run/pause`, `/reprendre`, `/stop` — aussi les
   boutons des notifications). Sur le Pi, la pause **fige** le processus (SIGSTOP : ses
   workers sont des fils du même processus, ils s'arrêtent avec lui) ; sous Windows, qui ne
@@ -408,6 +446,14 @@ fixe fait seul une matrice trois fois plus vite que le Pi (31 s contre 99 s).
   repo), sondées à chaque calcul (`GET /etat` du renfort) ; une machine éteinte est
   sautée. La sortie du calcul dit qui a aidé (« Renforts : PC (16 cœurs) · écartés : … »)
   et combien de cases chacun a jouées (« Répartition : … »).
+- ⚠ **Une machine se désigne par son nom Tailscale, et ce nom peut changer** — renommer un
+  PC sous Windows renomme sa machine Tailscale. Le Pi ne trouve plus alors le nom écrit
+  dans ses réglages, et la sortie dit seulement « injoignable (renfort lancé ? pare-feu ?) »
+  alors que le renfort tourne. Premier réflexe : depuis le Pi, `curl http://<nom>:7331/etat`
+  (« Could not resolve host » = c'est le nom), et `tailscale status` pour le nom actuel.
+  Le même nom sert à l'**analyse par l'IA** (`~/.adventure-card/ia.json`, port 11434) :
+  les deux réglages sont à corriger ensemble. Arrivé le 8 octobre 2026 (le PC fixe,
+  renommé) : aucun calcul n'avait plus de renfort PC, et l'analyse ne passait plus par lui.
 - **Une seule file** (`enParallele()`, `scripts/lib/pool.mjs`) : les cœurs du Pi et les
   renforts y puisent. Un renfort reçoit des **paquets** taillés sur ses cœurs (deux tâches
   par cœur au plus), qui rapetissent vers la fin pour qu'aucune machine ne garde les
@@ -726,9 +772,9 @@ game config : `BALANCE.simulation`. `--paliers 1,2,3` les surcharge le temps d'u
 Après un changement de **cartes**, faire tourner `node scripts/check-decks.mjs` (les
 erreurs) et `node scripts/matchups.mjs` (l'équilibre entre decks) — voir « Outils ».
 Après toute modification de `game/src/combat/`, faire tourner **les trois bancs** :
-`node scripts/test-triggers.mjs` (448 tests : râles, auras, déclencheurs de tour, paliers qui
+`node scripts/test-triggers.mjs` (550 tests : la Reprise (exil avant les effets, coût et puissance selon la zone, événements, paliers, validation), main sans plafond, exil, meule et défausse, fatigue et carte concernée, bonus de la caractéristique variable, `t` laissé par le builder, cartes jouées comptées par le moteur, carte Miroir (reflet, arrivée vierge, boucle fermée sans plafond), choix à trois branches, « la carte de Lui », râles, auras, déclencheurs de tour, paliers qui
 débloquent un moment, couture builder → moteur, mana différé, mots-clés à paramètre, capacités
-des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, pile de fatigue, création de carte (précise et au hasard), déplacements de zone (mélange, renvoi, pose), leur renfort et celui des cartes sur place, prise du dessus, complétion par la fatigue, événement de renfort, filtre « une carte précise », niveau du propriétaire, plafond de tours, types multiples, « Type : tous » (posé, offert, reçu d'une aura), copie, cibles sans camp, « chez qui » qui suit la cible ou tire au sort, prise de contrôle, choix entre deux effets, chaîne par type, type lu sur une carte, palier « Choisit les deux », deux cibles désignées, switch, sujet d'un événement, cibler depuis une branche, règles de validation qui lisent le registre, garde d'un moment), `node scripts/test-ai.mjs` (31 tests : le bot
+des jetons, cible « Lui », cibles par type, caractéristiques variables, montants variables, événements, pioche ciblée, Élusif/Passe-Murailles, réduction de coût, destruction, coût variable, effets statiques, compteurs de sorts, fin de pioche, pile de fatigue, création de carte (précise et au hasard), déplacements de zone (mélange, renvoi, pose), leur renfort et celui des cartes sur place, prise du dessus, complétion par la fatigue, événement de renfort, filtre « une carte précise », niveau du propriétaire, plafond de tours, types multiples, « Type : tous » (posé, offert, reçu d'une aura), copie, cibles sans camp, « chez qui » qui suit la cible ou tire au sort, prise de contrôle, choix entre deux effets, chaîne par type, type lu sur une carte, palier « Choisit les deux », deux cibles désignées, switch, sujet d'un événement, cibler depuis une branche, règles de validation qui lisent le registre, garde d'un moment), `node scripts/test-ai.mjs` (38 tests : le bot
 valorise-t-il ces mécaniques) et `node scripts/simulate.mjs` (la courbe de difficulté).
 
 Après toute modification de `game/src/combat/journal.js` (ou de ce qui enregistre un
@@ -738,7 +784,23 @@ partie n'applique un coup sans passer par `joue()`.
 
 Après un changement de **cartes**, faire tourner aussi `node scripts/test-situations.mjs` :
 les positions montées du banc de situations citent des cartes par identifiant, et une carte
-renommée les fait jouer autre chose que ce qu'elles décrivent.
+renommée les fait jouer autre chose que ce qu'elles décrivent. Elles décrivent aussi le
+**mana** du camp : une carte qui coûte plus cher rend une position injouable (« il y a un
+choix à faire » échoue) — la fiche se corrige alors dans `game/data/situations.js` **et**
+`docs/SITUATIONS-A-TESTER.md`.
+
+**Les cartes vivent sur le Pi.** Le game designer édite dans l'Atelier installé depuis le Pi,
+donc « Appliquer au jeu » écrit `game/data/characters.data.js` **sur le Pi**, pas sur le PC.
+Avant de modifier ce fichier ailleurs, vérifier que le Pi n'a pas d'écriture en attente
+(`git status` là-bas) — sinon le `git pull` qui suivra entrera en conflit, ou on travaillera
+sur de vieilles cartes. Après un commit poussé : `git pull` sur le Pi **et** sur chaque
+renfort, sinon ils sont écartés des calculs (« pas le même code »). Le serveur du Pi n'a
+besoin d'être relancé que si `scripts/devserver.js` ou ce qu'il importe a changé : les
+outils, eux, partent dans un processus neuf à chaque calcul.
+
+**Les fins de ligne sont mélangées, fichier par fichier** (une partie en CRLF, une partie en
+LF). Un script qui réécrit un fichier du repo doit **garder les siennes** — normaliser en
+`\n` pour chercher, remettre en CRLF avant d'écrire si le fichier l'était.
 
 Après toute modification de `game/src/config/courbes.js` (le modèle des courbes de
 progression), faire tourner `node scripts/test-courbes.mjs` — il vérifie les six
@@ -870,6 +932,11 @@ au prochain ramassage des morts. Les renforts reçus en combat s'ajoutent par-de
 compteur — c'est à ça que servent `printedAtk` / `printedHp`, qui gardent ce que la carte
 annonçait en arrivant.
 
+Un **bonus à plat** (`plus`, quatrième champ du mot-clé : `characteristique_variable:atk:handCards::1`)
+s'ajoute au compteur, comme le `plus` d'un montant variable : « attaque = les cartes de ta main
++ 1 ». Sans lui, une carte dont la valeur peut tomber à 0 ne peut pas promettre « au moins 1 ».
+Les cartes écrites avant lui n'ont que trois champs et valent `0` : rien ne bouge.
+
 Piège à connaître : un compteur bouge **sans qu'aucune carte ne soit jouée** (le tour qui
 avance, la main qui se remplit), alors que `refresh()` n'était appelé qu'aux événements de
 plateau. D'où le `resolveDeaths(B)` au début de `beginTurn` — il rafraîchit puis ramasse
@@ -887,6 +954,23 @@ bon endroit d'`engine.js` (aujourd'hui : `draw`, `damageHero`, `resolveDeaths`, 
 `playCard`, la fin d'`attack`, et `case 'buff'`). `fireEvent` **ne ramasse pas les morts** —
 c'est le flux normal qui s'en charge, sinon on retirerait une unité du plateau au milieu
 d'une liste en cours de parcours.
+
+**Quatre événements de plus** (briques communes de la V3, `docs/V3-HEROS.md`) : `defausse`
+(une carte va de la **main** à la défausse *par un effet* — la jouer n'en est pas une),
+`meule` (elle va de la **pioche** à la défausse), `exil` (elle quitte une **défausse** pour
+l'exil) et `fatigue` (elle vient d'être piochée dans la pile de fatigue). Le camp est celui
+**à qui est la carte**, pas celui qui joue l'effet : meuler l'adversaire fait entendre « quand
+l'adversaire meule » à son voisin. `exil` porte des libellés à lui (`EVENTS[ev].labels`),
+puisque « Quand tu as une carte exilée » ne se dit pas.
+
+**Un événement peut avoir une CARTE pour sujet** (`EVENTS[ev].sujetCarte`, aujourd'hui
+`fatigue` : la carte piochée). `fireEvent(B, camp, ev, sujets, carteSujet)` la pose sur le
+combat (`B.sujetCarte`) le temps que les effets du moment se résolvent, et `resolveAmounts()`
+la glisse dans le filtre de cartes **« la carte concernée »** (`quoi: 'sujet'`, comme un type
+lu ou un montant variable) : « quand tu pioches dans la fatigue, la carte piochée coûte 2 de
+moins » se dit sans une ligne de moteur en plus. Ni garde ni « Lui » sur ces événements — il
+n'y a pas d'unité à regarder — et la validation refuse ce filtre sur un moment qui n'a pas de
+carte pour sujet (il ne trouverait jamais rien).
 
 **« Quand cette unité reçoit du renfort »** (`renfort`) est le seul événement dont le
 **sujet est une unité** et non un camp, et il montre comment en écrire d'autres :
@@ -987,7 +1071,22 @@ une unité ciblée », « réanime un allié de la défausse » (depuis la défa
 plateau), « triche de coût » (depuis la main vers le plateau), « cherche dans ta pioche »
 (pioche vers main). Une carte posée sur le plateau n'est **pas jouée** : « À la pose » ne
 part pas, même règle que pour un jeton invoqué. Un sort ne se pose pas, un jeton renvoyé
-disparaît (il n'a pas de carte), et une main pleine renvoie la carte à la défausse.
+disparaît (il n'a pas de carte), et, **si la main a un plafond** (`handMax` > 0), une main
+pleine renvoie la carte à la défausse.
+
+**Deux déplacements de plus, vers des paquets qui ne sont pas des zones de jeu** :
+- `met_a_la_defausse` : depuis le **dessus de la pioche** c'est une *meule*, depuis la
+  **main** une *défausse*. Chaque carte déclenche l'événement `meule` ou `defausse`, chez
+  celui à qui elle est. L'ordre par défaut est « du dessus » (meuler, c'est prendre le dessus).
+- `exile` : depuis la défausse, la main ou la pioche vers l'**exil** (`B[camp].exile`, une
+  liste par camp). Les cartes exilées ne reviennent **jamais** ; seul le compteur
+  `exileCards` les lit. Une carte qui quitte une **défausse** déclenche `exil` ; depuis la
+  main ou la pioche, rien ne part (elle n'a pas quitté une défausse).
+
+La carte reste chez son propriétaire (« exile la défausse adverse » exile **ses** cartes à lui).
+L'exil et la défausse sont des destinations de `depose()` ; les événements, eux, sont dits
+par l'effet qui déplace. Le journal écrit l'exil à côté de la défausse (`etat.<camp>.exil`),
+et compte les cartes exilées parmi celles que l'adversaire a *vues*.
 
 **Le modèle de zones a été corrigé pour ça** : un allié en jeu n'est plus dans la défausse
 (il l'était par simplification), sa carte voyage avec l'unité et n'y tombe qu'à sa mort.
@@ -1080,6 +1179,45 @@ héros — décision du game designer : pas de passif pour l'instant, tout passe
 - `refletDe` dit quelle carte jouée elle reflète : elle n'est refaite que pour une
   nouvelle carte, sinon un renfort reçu en main s'effacerait.
 
+## La Reprise (Flashback) et la fenêtre de zone
+Le mot-clé **`reprise`** laisse lancer un sort **depuis ta défausse**, au **coût normal**, **sans
+carte à dépenser** ; il est ensuite **exilé** et ne revient jamais. Décision du game designer : c'est
+un vrai Flashback, pas un Jump-start (qui aurait fait défausser une carte). `surSort: true` dans
+`KEYWORDS` : un sort peut le porter, et un palier le donner — la validation refuse tout autre
+mot-clé sur un sort, et la Reprise sur un allié (il ne fera rien).
+
+- **Une source de plus pour jouer** : `playCard(B, k, index, target, choix, zone)`, `zone` valant
+  `'main'` (défaut) ou `'defausse'` — `index` se lit alors dans la défausse. `canPlay(B, k, carte,
+  zone)`, `cardCost(carte, B, k, zone)`, `reprisesPossibles(B, k)` et `carteDuCoup(B, k, a)` suivent.
+  L'action `{ type: 'play', index, zone: 'defausse', … }` traverse `joue()`, `coupsPossibles` et
+  l'écran ; `zone` n'est écrit que pour une Reprise, si bien que les coups d'avant gardent leur
+  forme (le journal, lui, écrit toujours `zone` : `'main'` par défaut).
+- **L'ordre compte** : payer, retirer de la défausse, **exiler AVANT les effets** (comme un sort part
+  en défausse avant les siens), puis les effets, puis les événements `spell` **et** `reprise`.
+  Conséquences voulues : un sort qui remélange sa défausse ne se reprend pas lui-même ; « les cartes
+  jouées retournent dans ta pioche » (Impératrice) ne le renvoie jamais au deck, l'exil passe avant ;
+  et une carte qui quitte une défausse pour l'exil déclenche aussi `exil`.
+- **Une reprise EST un sort lancé** : `spellsGame` / `spellsTurn`, Griffure, Tempête de patounes, Roi
+  des Toits la comptent. Le moment `reprise` (« quand tu lances un sort depuis ta défausse ») s'y ajoute.
+- **Les statiques savent d'où part la carte** : `zone: 'defausse'` sur `cout_des_cartes` (« les cartes
+  de ta défausse coûtent 1 de moins ») et sur `montant_des_effets` (« +1 puissance pour les sorts qui
+  partent de la défausse » ; sa cible `tous` = tout ce que `AMPLIFIABLE` monte). Sans `zone`, un
+  statique vaut partout, comme avant. `B.sourceZone` ne vit que le temps des effets du sort : les
+  moments que ses événements déclenchent (`fireEvent` le vide) n'en profitent pas.
+- **Le bot** voit les reprises : `coupsPossibles` (Monte-Carlo), `coupLeger` (rollouts) et les
+  priorités de `decide` (où `playable` mêle la main et la défausse, avec leur `zone` ; `jouer(x,
+  cible)` écrit le coup). Une reprise vaut le sort, sans coût de carte.
+
+**La fenêtre de zone** (`game/src/ui/zone.js`) montre une zone comme Arena : ce qui est pertinent,
+**éclairé** (`on`) quand on peut agir d'un geste, **grisé** (`off`) quand ça n'a pas d'objet, lu
+seulement (`vue`) sinon. Elle ne sait rien du combat : on lui donne des groupes de cartes déjà
+étiquetées, et `ui/battle.js` décide de ce qui est jouable. Le bouton « Défausse N » de la barre
+l'ouvre (il pulse « ↺N » quand une Reprise attend, à ton tour et en manuel) ; elle montre ta
+défausse (la plus récente d'abord), ton exil s'il y en a un et la défausse adverse, et se redessine
+à chaque `render()`. Toucher un sort éclairé le joue comme une carte de la main (choix de branche,
+cible) ; `selZone` dit d'où part la carte choisie. Elle servira à Charogne (en lecture), à la pile
+de fatigue et au Registre.
+
 ## Switcher une carte
 Chaque slot d'un personnage porte **deux** cartes — la base et son switch — et c'est le
 joueur qui équipe l'une ou l'autre hors combat. L'effet `switch` les échange **en
@@ -1150,6 +1288,13 @@ côté, plutôt que de renforcer l'adversaire parce que le joueur a pointé là.
 `needsTarget` / `legalTargets` / `autoTarget` / la validation en passent toutes par là. Le
 joueur, lui, n'en désigne **qu'une** : deux cibles `pick` sur le même effet reçoivent la
 même désignation, et la validation le signale.
+
+⚠ **Un paramètre de cible hors sujet ne compte pas** (`si` dans le registre). Le builder
+remplit toute cible par une valeur par défaut (`newEffect`), et elle **reste dans la carte**
+quand le champ ne s'affiche plus : un déplacement *depuis la défausse* garde un `t` « une
+unité adverse ». `ciblesDe()` (moteur) et `faisable()` (bot, via `cibleCompte()`) l'ignorent
+donc. Avant, Rappel, Impératrice nocturne ou Presage demandaient au joueur de pointer une
+unité adverse pour rien, et devenaient **injouables** quand le plateau d'en face était vide.
 
 Le bot lit la copie comme un **échange** : ce que vaut le modèle moins ce que vaut le corps
 remplacé, signe inversé sur une unité adverse (la transformer en pire est un retrait, lui
@@ -1407,6 +1552,20 @@ côté builder (validation, compteur « à coder », `MECANIQUES-A-CODER.md`) pa
 `eachEffect` / `eachUnit`, qui descendent dans les jetons : sans ça une mécanique non
 codée se cache dans un jeton.
 
+## La main n'a plus de plafond
+`BALANCE.combat.handMax` à **0** veut dire « pas de limite », comme `boardSize` pour le
+plateau (décision du game designer, 8 octobre 2026) : une pioche, une pioche de fatigue, une
+pioche ciblée, une création ou un retour en main ne rate plus faute de place. Tout passe par
+`mainPleine()` dans `engine.js`, seul endroit qui répond à la question ; le bot lit
+`placeEnMain()` (infini sans plafond) pour valoriser une pioche. Remettre un nombre rétablit
+le plafond partout. La main de l'écran de combat défile à l'horizontale, elle n'a pas de limite
+de largeur.
+
+⚠ **C'est un changement d'équilibrage, pas de confort**, mesuré en trios (`simulate.mjs 60
+--paliers 3,3,3`) : la médiane des deux boss monte (Capitaine Grenouille 40 → 47 %, Grand-Duc
+17 → 22 %), le reste ne bouge pas au-delà du bruit. Les cartes qui comptent la main (Faucon
+Chasseur, Piqué, Plongeon, Grand Rapace…) n'ont plus de borne haute.
+
 ## Le plateau, et la vue inspectée
 **Le plateau n'a plus de plafond d'unités.** `BALANCE.combat.boardSize` à **0** veut dire
 « pas de limite » : une invocation ne rate plus faute de place, un allié ne « reste plus
@@ -1486,6 +1645,17 @@ les coups joués **dans** un rollout de Monte-Carlo ne sont pas notés (`enSonda
 des milliers de parties imaginaires, pas des décisions), et la décision elle-même (`decide`,
 `coupCherche`) ne sait pas qu'on l'observe — `botAction` est la seule enveloppe qui note.
 
+**Ce que le bot doit devenir** (décision du game designer, 8 octobre 2026). Le niveau à
+règles **joue tout ce qu'il peut dès qu'il peut** : c'est tenable tant que le jeu est très
+simple, mais il va multiplier les erreurs à mesure que les cartes interagissent. Il devra
+**évaluer la position** — ce qu'il y a en face, et si un coup sert à quelque chose. La
+méthode voulue : **recenser les situations où il se trompe et les présenter une par une
+au game designer**, qui dit comment chacune se traite. Le support naturel est le banc de
+situations (une fiche par cas, « Que jouerait le bot ? »). Premier cas noté : jouer
+Découverte pour créer un Miroir qui rejouera Découverte ne sert à rien — c'est le genre de
+boucle sans gain que le bot doit savoir refuser, et qu'on ne règle **pas** par un plafond
+(cf. « Philosophie de design »).
+
 ## Le journal de décisions de combat
 `game/src/combat/journal.js` enregistre un combat de façon qu'on puisse, **pour chaque
 décision**, reconstituer tout ce qui était possible et ce qui a été choisi. `B.log` dit ce
@@ -1562,6 +1732,14 @@ relit chaque fichier — les `i` se suivent, le fichier commence par `debut` et 
 ligne de `B.log` n'est perdue ni dupliquée** — il force pour ça un combat de plus de 400
 lignes, le seul cas où le journal texte est tronqué.
 
+⚠ **Ce banc est instable, et ce n'est pas nouveau** (mesuré le 8 octobre 2026 : environ un
+passage sur trois échoue, avec ou sans changement de code). Deux vérifications tombent au
+hasard des tirages : « le coup joué figure dans les coups légaux » sur une carte
+**fabriquée** en combat (`inst` en `c…`), et « un combat de plus de 400 lignes a été joué »
+quand aucune partie n'est assez longue. Un échec isolé de l'une de ces deux-là ne dit donc
+rien du changement qu'on teste : relancer, et comparer au code d'avant si ça persiste. La
+correction de fond est à faire (la cause du premier n'est pas trouvée).
+
 **Pas encore fait, dans l'ordre prévu** : l'envoi automatique au serveur de l'Atelier
 (`POST /api/journal`, un dossier `journaux/` sur le Pi, que lira la pipeline Python/SQL) ;
 le script qui extrait les décisions humaines divergentes, triées par écart de note ; le
@@ -1634,6 +1812,11 @@ d'autre ne le dit.
   règles du builder (via `game/src/config/validate.js`, partagé avec lui — une règle
   ajoutée là s'applique aux deux), puis de vraies parties pour trouver ce qui ne se produit
   jamais : carte qu'aucun mana ne peut payer, carte jamais posée, moment jamais déclenché.
+  « Posée » se lit dans `B[camp].posees` (les noms des cartes **jouées**, tenus par
+  `playCard`), **jamais dans la défausse** : meule, défausse volontaire, exil et main qui
+  déborde y mettent ou en retirent des cartes que personne n'a jouées. C'est ce qui a révélé
+  que « Métamorphose ultime » n'est jamais jouée par le bot — un exemplaire débordait parfois de
+  la main vers la défausse, et l'ancien contrôle y voyait une carte posée.
   Les constats ignorés (`CHARACTER_DATA.ignores`) s'affichent en gris et ne comptent pas.
   Les decks **base et switch** de chaque personnage y passent. Les paires se jouent
   **en parallèle**, sur les cœurs d'ici et ceux des renforts (`lib/taches-controle.mjs`).
@@ -1749,17 +1932,18 @@ chaque étage. Pas d'aura négative sur les PV adverses, pas de double invocatio
   partagées avec le builder, et `courbes.js`, le modèle des courbes de progression), `src/combat/` = moteur + bot + le journal de décisions, `src/tools/` = l'arène de mesure et le montage des situations,
   `src/ui/` = écrans, `data/` = données générées par le builder.
 - `builder/` — le Card Builder, `overview.html` (vue d'ensemble) et `balance.html`
-  (matrice des matchups), `courbes.html` (les courbes de progression), `situations.html` (monter une position et la jouer), `lancer.html` (lancer un calcul sur le serveur), `accueil.html` (l'Atelier, l'app qui les réunit). Pages autonomes : aucune dépendance, elles importent seulement
+  (matrice des matchups), `courbes.html` (les courbes de progression), `situations.html` (monter une position et la jouer), `lancer.html` (lancer un calcul sur le serveur), `versions.html` (les états nommés des cartes), `accueil.html` (l'Atelier, l'app qui les réunit), `icons/` (les icônes de l'Atelier, tirées du logo). Pages autonomes : aucune dépendance, elles importent seulement
   les modules de `game/src/`.
 - `launcher/` — source C# du lanceur Windows (compilé avec le csc.exe fourni par Windows, cf. `scripts/build-exe.ps1`).
 - `scripts/` — serveur de dev, bancs de test, outils d'équilibrage (`check-decks`,
-  `matchups`, `simulate`), `gen-sprites.mjs` (la liste des images), `lib/brouillon.mjs` (fait mesurer le brouillon aux outils), `lib/archives.mjs`
+  `matchups` — dont `--archetypes`, type contre type —, `simulate`, `audit-paliers`), `gen-sprites.mjs` (la liste des images), `gen-icones.ps1` (les icônes de l'Atelier depuis le logo), `gen-heros-v2.mjs` + `lib/heros-v2-paliers.mjs` (les héros V2 et leurs paliers), `lib/versions.mjs`, `lib/diff-donnees.mjs`, `lib/kpi.mjs` (l'onglet Versions), `lib/brouillon.mjs` (fait mesurer le brouillon aux outils), `lib/archives.mjs`
   (les calculs rangés sur la clé), `lib/arene.mjs`
   (socle commun), build de l'exe.
-- `docs/GDD.md` — game design doc complet.
+- `docs/GDD.md` — game design doc complet. `docs/V3-HEROS.md` — les héros V3 : cartes, paliers, mécaniques, ordre de codage. `docs/GRAMMAIRE-DES-PALIERS.md` — comment écrire les paliers. `docs/SITUATIONS-A-TESTER.md` — les fiches du banc de situations.
 - `mockups/` — mockups de cartes (placeholders, pas la direction artistique finale).
 - `Characters/` — sprites de personnages (animaux : chien, chat, corbeau, renard, grenouille, chouette, lapin, panda roux, paresseux...).
 - `Machines/` — sprites de bâtiments/machines de production (fermes, ateliers...).
 - `Ressources/` — sprites de ressources récoltées/produites, par tiers de rareté (1 à 6).
-- `UI/` — sprites d'interface (pièces, coffre, arbre, dé...).
+- `UI/` — sprites d'interface (pièces, coffre, arbre, dé...). `UI/Chest.png`, l'icône des cartes libres, n'existe pas (404 dans le builder).
+- `Icons/` — le logo du jeu (`Icon.png`, fond transparent) et quelques icônes d'interface.
 - `V2/` — itération plus récente d'assets (bâtiments, ressources, refs) — vérifier avec l'utilisateur si V2 remplace les dossiers ci-dessus ou les complète.

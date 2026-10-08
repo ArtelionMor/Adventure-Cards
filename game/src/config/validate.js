@@ -13,7 +13,7 @@
 // ignore reste dans la liste, avec `ignore` (la raison donnee) : il ne bloque plus
 // rien, mais il ne disparait pas sans laisser de trace. Ne filtre jamais sur `bad`
 // seul : passe par `bloque(s)`.
-import { TRIGGERS, EVENTS, AMPLIFIABLE, CARD_FILTERS, COUNTERS, STATICS, keyId, keyArg, keyFields, cardCost,
+import { TRIGGERS, EVENTS, ALL_KEYWORDS, AMPLIFIABLE, CARD_FILTERS, COUNTERS, STATICS, keyId, keyArg, keyFields, cardCost,
   isVariableAmount, targetDef, targetId, targetArg, targetLabel, describeAmount, effectParams, eachSubEffect, listeEffets, branchesDe, typeVariable } from './mechanics.js';
 import { resolveCard } from './characters.js';
 
@@ -142,8 +142,12 @@ export function tierIssue(cd, t) {
   }
   if (t.stats && cd.type !== 'ally')
     return "les bonus de stats ne servent qu'aux alliés, pas aux sorts.";
-  if (t.key && cd.type !== 'ally')
+  // Un sort ne porte presque aucun mot-cle — sauf ceux qui le declarent (`surSort`) : la
+  // Reprise est faite pour lui, et elle ne sert a rien sur un allie.
+  if (t.key && cd.type !== 'ally' && !(ALL_KEYWORDS[keyId(t.key)] || {}).surSort)
     return "un mot-clé ne s'applique qu'à un allié, pas à un sort.";
+  if (t.key && cd.type === 'ally' && keyId(t.key) === 'reprise')
+    return "la Reprise ne sert qu'aux sorts : un allié mort ne se relance pas depuis la défausse.";
   if (t.aura && cd.type !== 'ally')
     return "une aura ne s'applique qu'à un allié, pas à un sort.";
   if (t.statique && cd.type !== 'ally')
@@ -175,6 +179,9 @@ function verifieCarte(card, proprio, ctx) {
     else if (card.hp <= 0 && !(card.keys || []).some(k => keyId(k) === 'characteristique_variable'))
       out.push({ bad: true, msg: `${proprio} · ${card.name} — allié à ${card.hp} PV : il mourra en arrivant.` });
   }
+  // La Reprise relance un SORT depuis la defausse : sur un allie, elle ne fera jamais rien.
+  if (card.type === 'ally' && (card.keys || []).some(k => keyId(k) === 'reprise'))
+    out.push({ bad: false, msg: `${proprio} · ${card.name} — « Reprise » ne sert qu'aux sorts : un allié mort ne se relance pas depuis la défausse, le mot-clé ne fera rien.` });
   // Effets de la carte et de ses jetons.
   eachEffect(card, e => {
     if (!eff[e.op]) out.push({ bad: true, msg: `${proprio} · ${card.name} — effet inconnu « ${e.op} ».` });
@@ -184,7 +191,7 @@ function verifieCarte(card, proprio, ctx) {
     if (e.op === 'cree') out.push(...verifieCarteCreee(e, `${proprio} · ${card.name}`, 'Crée une carte', catalogue));
     // Melanger dans la pioche : la carte creee doit exister, et un filtre par
     // type ou par mot-cle sans valeur ne designerait aucune carte.
-    if (['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'switch'].includes(e.op)) {
+    if (['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'switch', 'met_a_la_defausse', 'exile'].includes(e.op)) {
       const nom = (eff[e.op] || {}).label || e.op;
       if (e.d_ou === 'creee') {
         out.push(...verifieCarteCreee(e, `${proprio} · ${card.name}`, nom, catalogue));
@@ -232,7 +239,7 @@ function verifieCarte(card, proprio, ctx) {
     // « Chez son proprietaire » n'a de sens que s'il y a une cible a lire. Les
     // trois deplacements prennent dans un paquet, pas sur une unite : chez eux,
     // ce choix retombe sur le camp de celui qui joue la carte.
-    if (e.qui === 'proprietaire' && ['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'renforce_les_cartes'].includes(e.op))
+    if (e.qui === 'proprietaire' && ['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'renforce_les_cartes', 'met_a_la_defausse', 'exile'].includes(e.op))
       out.push({ bad: false, msg: `${proprio} · ${card.name} — « ${(eff[e.op] || {}).label || e.op} » prend « chez son propriétaire » sans cible à lire : ce sera ton camp.` });
 
     // LA COPIE va chercher un modele la ou un deplacement va chercher des cartes :
@@ -369,6 +376,17 @@ function verifieCarte(card, proprio, ctx) {
     for (const e of card[slot] || []) eachSubEffect(e, x => {
       if (x.op === 'choisir')
         out.push({ bad: false, msg: `${proprio} · ${card.name} — « Choisir » sur « ${def.label} » : personne n'est là pour choisir, c'est toujours la première branche qui partira.` });
+    });
+  }
+
+  // « LA CARTE CONCERNEE PAR L'EVENEMENT » n'existe que sur un moment d'evenement dont le
+  // sujet est une carte (`EVENTS[ev].sujetCarte`, aujourd'hui la fatigue). Ailleurs le
+  // filtre ne laisse jamais rien passer : l'effet part dans le vide et rien ne le dit.
+  for (const [slot, def] of Object.entries(TRIGGERS)) {
+    if (def.event && (EVENTS[def.ev] || {}).sujetCarte) continue;
+    for (const e of card[slot] || []) eachSubEffect(e, x => {
+      if (x.quoi === 'sujet')
+        out.push({ bad: true, msg: `${proprio} · ${card.name} — « ${def.label} » vise « la carte concernée par l'événement », mais ce moment n'a pas de carte pour sujet : le filtre ne trouvera jamais rien.` });
     });
   }
 

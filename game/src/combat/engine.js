@@ -23,7 +23,7 @@
 import { BALANCE } from '../config/balance.js';
 import { cardById, catalogCards, fatiguePile, switchOf } from '../config/npcs.js';
 import { resolveCard } from '../config/characters.js';
-import { staticMin, ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, ZONES, EVENTS, eventSlot, keyId, keyArg, hasKey, keyFields, counterValue, amountValue, numberParams, targetParams, cardMatches, describeFilter, describeCarteCreee, describeModele, cardCost, staticTotal, describeStatic, targetId, targetArg, targetDef, typesOf, partageType, estDuType, eachSubEffect, listeEffets, branchesDe, brancheChoisie, typeVariable, describeEffect, EVENT_GARDES } from '../config/mechanics.js';
+import { staticMin, AMPLIFIABLE, ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, ZONES, EVENTS, eventSlot, keyId, keyArg, hasKey, keyFields, counterValue, amountValue, numberParams, targetParams, cardMatches, describeFilter, describeCarteCreee, describeModele, cardCost, staticTotal, describeStatic, targetId, targetArg, targetDef, typesOf, partageType, estDuType, eachSubEffect, listeEffets, branchesDe, brancheChoisie, typeVariable, describeEffect, EVENT_GARDES } from '../config/mechanics.js';
 
 
 let uid = 1;
@@ -59,6 +59,9 @@ function makeSide(cfg) {
     handSize: cfg.hand,
     deck,
     discard: [],
+    // L'EXIL : les cartes sorties du jeu pour de bon (cf. l'effet `exile`). Rien ne les
+    // lit sauf le compteur « les cartes de ton exil » ; elles ne reviennent jamais.
+    exile: [],
     hand: [],
     board: [],
     // Mana promis pour le PROCHAIN tour (effet `mana_au_prochain_tour`). Il s'ajoute
@@ -72,6 +75,11 @@ function makeSide(cfg) {
     jouees: 0,       // cartes jouees
     attaques: 0,     // unites qui ont attaque
     piochees: 0,     // cartes piochees (la pioche de debut de tour comprise)
+    // Les cartes JOUEES depuis le debut du combat, par leur nom, dans l'ordre. La defausse
+    // ne dit plus ce qui a ete joue : une meule, une defausse volontaire ou l'exil y
+    // mettent (ou en retirent) des cartes que personne n'a jouees. Les outils de controle
+    // (scripts/check-decks.mjs) comptent ici.
+    posees: [],
     spellsGame: 0,   // sorts joues par ce camp depuis le debut du combat
     spellsTurn: 0,   // ... et depuis le debut de SON tour (remis a zero a chaque tour)
   };
@@ -113,6 +121,19 @@ const foe = k => (k === 'p' ? 'e' : 'p');
 // (GAME CONFIG) : la question se pose au meme endroit qu'avant, elle repond juste
 // toujours non. Un seul point de verite pour la pose, l'invocation et la jouabilite.
 const plateauPlein = s => BALANCE.combat.boardSize > 0 && s.board.length >= BALANCE.combat.boardSize;
+
+// La main est-elle pleine ? `BALANCE.combat.handMax` a 0 veut dire « pas de limite », comme
+// `boardSize` pour le plateau. UN SEUL point de verite : la pioche, la pioche de fatigue, la
+// pioche ciblee, la creation et le retour en main posent tous la meme question ici.
+const mainPleine = s => BALANCE.combat.handMax > 0 && s.hand.length >= BALANCE.combat.handMax;
+
+/**
+ * Combien de cartes tiennent ENCORE en main. Infini quand la main n'a pas de plafond.
+ * Le bot en a besoin : une pioche ou une creation ne vaut que ce qui tient, et sans cette
+ * fonction il aurait cru qu'une main sans plafond n'avait plus aucune place.
+ */
+export const placeEnMain = s => BALANCE.combat.handMax > 0
+  ? Math.max(0, BALANCE.combat.handMax - s.hand.length) : Infinity;
 export const other = foe;
 // Le cout d'une carte se lit toujours ici (le mot-cle « Cout X de moins/de plus » peut
 // le faire varier d'un tour a l'autre) : l'UI et le bot le prennent au meme endroit.
@@ -172,14 +193,17 @@ export function draw(B, k, n = 1) {
         return;
       }
       if (!s.aVide) { s.aVide = true; say(B, `${s.name} a fini sa pioche : il tire dans la pile de fatigue.`); }
-      if (s.hand.length >= BALANCE.combat.handMax) { say(B, `Main pleine : ${secours.name} part a la defausse.`); s.discard.push(secours); continue; }
+      if (mainPleine(s)) { say(B, `Main pleine : ${secours.name} part a la defausse.`); s.discard.push(secours); continue; }
       say(B, `${s.name} tire ${secours.name} de la pile de fatigue.`);
       s.hand.push(secours);
       fireEvent(B, k, 'draw');
+      // Une pioche de fatigue reste une pioche, et c'est en plus un evenement a elle,
+      // dont le SUJET est la carte tiree (« la carte piochee coute 2 de moins »).
+      fireEvent(B, k, 'fatigue', null, secours);
       continue;
     }
     const c = s.deck.pop();
-    if (s.hand.length >= BALANCE.combat.handMax) { say(B, `Main pleine : ${c.name} part a la defausse.`); s.discard.push(c); continue; }
+    if (mainPleine(s)) { say(B, `Main pleine : ${c.name} part a la defausse.`); s.discard.push(c); continue; }
     s.hand.push(c);
     fireEvent(B, k, 'draw');
   }
@@ -200,7 +224,7 @@ function drawMatching(B, k, n, convient, dit) {
     for (let j = s.deck.length - 1; j >= 0; j--) if (convient(s.deck[j])) { idx = j; break; }
     if (idx < 0) break;
     const c = s.deck.splice(idx, 1)[0];
-    if (s.hand.length >= BALANCE.combat.handMax) {
+    if (mainPleine(s)) {
       say(B, `Main pleine : ${c.name} part a la defausse.`);
       s.discard.push(c);
     } else {
@@ -423,8 +447,12 @@ function renforceCartes(B, cartes, e) {
 export function depose(B, camp, carte, vers) {
   const s = B[camp];
   if (vers === 'pioche') { melangeDedans(B, camp, [carte]); return null; }
+  // La defausse et l'exil ne sont pas des destinations de jeu : une carte y arrive, point.
+  // Les evenements (meule, defausse, exil) sont dits par l'effet qui deplace, pas ici.
+  if (vers === 'defausse') { s.discard.push(carte); return null; }
+  if (vers === 'exil') { s.exile.push(carte); return null; }
   if (vers === 'main') {
-    if (s.hand.length >= BALANCE.combat.handMax) {
+    if (mainPleine(s)) {
       s.discard.push(carte);
       say(B, `Main pleine : ${carte.name} part a la defausse.`);
       return null;
@@ -695,7 +723,7 @@ export function refresh(B) {
       let socleAtk = u.baseAtk, socleHp = u.baseHp;
       const varia = variableDe(u);
       if (varia) {
-        const x = counterValue(varia.src, B, k, u, varia.arg);
+        const x = Math.max(0, counterValue(varia.src, B, k, u, varia.arg) + (+varia.plus || 0));
         // Les renforts encaisses depuis l'arrivee restent acquis : x + ce qui a ete gagne.
         if (varia.stat === 'atk' || varia.stat === 'both') socleAtk = x + (u.baseAtk - u.printedAtk);
         if (varia.stat === 'hp' || varia.stat === 'both') socleHp = x + (u.baseHp - u.printedHp);
@@ -864,13 +892,23 @@ function gardePasse(u, slot, sujets) {
   return true;
 }
 
-function fireEvent(B, acteur, ev, sujets = null) {
+function fireEvent(B, acteur, ev, sujets = null, carteSujet = null) {
   if (B.over) return;
   if (B.eventDepth >= 4) {
     say(B, 'La chaine de declenchements est coupee (trop de rebonds).');
     return;
   }
   B.eventDepth++;
+  // LE SUJET PEUT ETRE UNE CARTE (`EVENTS[ev].sujetCarte` : la carte piochee dans la
+  // fatigue). On la pose sur le combat le temps que les effets du moment se resolvent ;
+  // `resolveAmounts` la glisse alors dans le filtre « la carte concernee ». Un evenement
+  // declenche PAR un effet de ce moment pose le sien, et on remet celui-ci en sortant.
+  const sujetAvant = B.sujetCarte;
+  B.sujetCarte = carteSujet;
+  // Les effets des moments qui REPONDENT a un evenement ne partent pas « depuis la defausse »,
+  // meme quand l'evenement vient d'une Reprise : le bonus d'un statique de defausse ne les touche pas.
+  const zoneAvant = B.sourceZone;
+  B.sourceZone = undefined;
   try {
     for (const k of ['p', 'e']) {
       const qui = k === acteur ? 'self' : 'foe';
@@ -904,6 +942,8 @@ function fireEvent(B, acteur, ev, sujets = null) {
     }
   } finally {
     B.eventDepth--;
+    B.sujetCarte = sujetAvant;
+    B.sourceZone = zoneAvant;
   }
 }
 
@@ -975,8 +1015,13 @@ const isPick = t => !!(targetDef(t) && targetDef(t).pick);
  * Un effet inventé dans le builder, qui n'a pas declare ses parametres, garde `t`.
  */
 const ciblesDe = e => {
-  const params = targetParams(e.op);
-  return (params.length ? params.map(p => e[p.k]) : [e.t]).filter(Boolean);
+  // Un parametre de cible peut etre HORS SUJET selon les autres champs (`si`) : le `t`
+  // d'un deplacement depuis la defausse n'est qu'un reste du builder, que personne n'a a
+  // pointer. Le lire rendait Rappel, Impératrice nocturne ou Presage injouables des que
+  // le plateau adverse etait vide, et faisait demander une cible au joueur pour rien.
+  const declares = targetParams(e.op);
+  const params = declares.filter(p => !p.si || p.si(e));
+  return (declares.length ? params.map(p => e[p.k]) : [e.t]).filter(Boolean);
 };
 
 /**
@@ -1212,6 +1257,10 @@ function typeLu(B, k, e) {
 }
 
 function resolveAmounts(B, k, u, e) {
+  // « La carte concernee par l'evenement » se resout ici, au meme endroit et pour la
+  // meme raison qu'un type lu ou un montant variable : apres, `cardMatches` n'a plus
+  // qu'une carte a comparer. Hors d'un evenement a carte, elle est vide (rien ne passe).
+  if (e.quoi === 'sujet' && e.carteSujet === undefined) e = { ...e, carteSujet: B.sujetCarte || null };
   const champs = numberParams(e.op);
   // Un type lu sur une carte se resout ici, au meme endroit et pour la meme raison
   // qu'un montant variable : apres, tout le moteur ne voit qu'un type ordinaire.
@@ -1223,7 +1272,12 @@ function resolveAmounts(B, k, u, e) {
   // Un effet statique « tes degats infligent 1 de plus » s'ajoute a chaque nombre de
   // l'effet vise, exactement comme un palier « Amplifie » — mais seulement tant que
   // son porteur tient le plateau.
-  const bonus = staticTotal(B, k, 'montant_des_effets', m => m.cible === e.op);
+  // « Tous » = la puissance des sorts (tout ce qu'un palier « Amplifie » monte). Un statique
+  // qui annonce « depuis la defausse » ne compte que pendant une Reprise (`B.sourceZone`,
+  // pose par `playCard` le temps que les effets du sort se resolvent).
+  const bonus = staticTotal(B, k, 'montant_des_effets', m =>
+    (m.cible === e.op || (m.cible === 'tous' && AMPLIFIABLE.includes(e.op)))
+    && (m.zone !== 'defausse' || B.sourceZone === 'defausse'));
   let copie = null;
   for (const p of champs) {
     if (e[p.k] === undefined) continue;
@@ -1342,7 +1396,7 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
           // Au hasard : un tirage par exemplaire, donc des cartes differentes.
           const modele = modeleCree(e, last);
           if (!modele) { say(B, `${rienDeTel(e)} : rien n'est cree.`); break; }
-          if (me.hand.length >= BALANCE.combat.handMax) { say(B, 'Main pleine : la carte creee est perdue.'); break; }
+          if (mainPleine(me)) { say(B, 'Main pleine : la carte creee est perdue.'); break; }
           me.hand.push(carteNeuve(modele, e.lvl || 1, source));
           noms.push(modele.name);
         }
@@ -1376,6 +1430,35 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         if (arrivees.length) last = arrivees;
         const mot = vers === 'pioche' ? 'melangee(s) dans la pioche' : vers === 'main' ? 'renvoyee(s) en main' : 'posee(s) sur le plateau';
         say(B, `${pris.length} carte(s) ${mot} : ${pris.map(x => x.carte.name).join(', ')}.`);
+        break;
+      }
+      case 'met_a_la_defausse':
+      case 'exile': {
+        // Deux deplacements vers un paquet qui n'est pas une zone de jeu : la defausse
+        // (meule depuis la pioche, defausse depuis la main) et l'exil. Memes regles que
+        // les autres : la carte reste chez son proprietaire, `choisitDansPaquet` choisit.
+        const exil = e.op === 'exile';
+        const permis = exil ? ['defausse', 'main', 'pioche'] : ['pioche', 'main'];
+        if (!permis.includes(e.d_ou)) { say(B, 'Zone impossible : rien n\'est deplace.'); break; }
+        const { camp, pile } = paquetDe(B, k, e);
+        const cartes = choisitDansPaquet(B, k, { ...e, fatigue: false }, pile, camp);
+        if (!cartes.length) { say(B, exil ? 'Rien a exiler.' : 'Rien a mettre a la defausse.'); break; }
+        for (const c of cartes) {
+          const at = pile.indexOf(c);
+          if (at >= 0) pile.splice(at, 1);
+          depose(B, camp, c, exil ? 'exil' : 'defausse');
+        }
+        const ou = e.d_ou === 'pioche' ? 'la pioche' : e.d_ou === 'main' ? 'la main' : 'la defausse';
+        say(B, exil
+          ? `${cartes.length} carte(s) exilee(s) de ${ou} de ${B[camp].name} : ${cartes.map(c => c.name).join(', ')}.`
+          : `${cartes.length} carte(s) ${e.d_ou === 'pioche' ? 'meulee(s)' : 'defaussee(s)'} chez ${B[camp].name} : ${cartes.map(c => c.name).join(', ')}.`);
+        // Un evenement PAR CARTE, du cote de celui a qui elle est. Le gros des effets
+        // ne ramasse pas les morts ici (fireEvent non plus) : le flux normal s'en charge.
+        for (const c of cartes) {
+          if (B.over) break;
+          if (exil) { if (e.d_ou === 'defausse') fireEvent(B, camp, 'exil'); }
+          else fireEvent(B, camp, e.d_ou === 'pioche' ? 'meule' : 'defausse');
+        }
         break;
       }
       case 'copie': {
@@ -1571,12 +1654,18 @@ function makeUnit(c) {
 }
 
 // ---------------------------------------------------------------- jouer/attaquer
-export function canPlay(B, k, card) {
+/**
+ * Cette carte peut-elle etre jouee MAINTENANT ? `zone` dit d'ou elle part : 'main' (le
+ * defaut) ou 'defausse' — la REPRISE, qui ne vaut que pour un SORT portant le mot-cle.
+ * Depuis la defausse, on paie le cout normal et on ne depense aucune carte.
+ */
+export function canPlay(B, k, card, zone = 'main') {
   const s = B[k];
   // « Tu ne joues pas plus de X cartes par tour » : c'est bien une question de
   // JOUABILITE, donc elle se pose ici — le bot et l'interface la voient tous les deux.
   if (s.jouees >= staticMin(B, k, 'limite_de_cartes_jouees')) return false;
-  if (s.mana < cardCost(card, B, k)) return false;
+  if (s.mana < cardCost(card, B, k, zone)) return false;
+  if (zone === 'defausse' && (card.type === 'ally' || !hasKey(card.keys, 'reprise'))) return false;
   // Un Miroir vierge (rien joue en face depuis qu'il est arrive en main) n'est rien.
   if (hasKey(card.keys, 'miroir') && card.refletDe === undefined) return false;
   if (card.type === 'ally' && plateauPlein(s)) return false;
@@ -1591,18 +1680,31 @@ export function canPlay(B, k, card) {
   return needsChoice(card) ? (viable('a') || viable('b')) : viable(null);
 }
 
-export function playCard(B, k, handIndex, target = null, choix = null) {
+/**
+ * Joue une carte. `zone` dit d'ou elle part : 'main' (le defaut) ou 'defausse' — la
+ * REPRISE d'un sort, lance depuis SA defausse au cout normal, puis EXILE. Seule `index`
+ * change de sens : c'est la place de la carte dans la main, ou dans la defausse.
+ */
+export function playCard(B, k, handIndex, target = null, choix = null, zone = 'main') {
   const s = B[k];
-  const card = s.hand[handIndex];
-  if (!card || !canPlay(B, k, card)) return false;
-  s.mana -= cardCost(card, B, k);
+  const pile = zone === 'defausse' ? s.discard : s.hand;
+  const card = pile[handIndex];
+  if (!card || !canPlay(B, k, card, zone)) return false;
+  s.mana -= cardCost(card, B, k, zone);
   s.jouees++;
-  s.hand.splice(handIndex, 1);
+  s.posees.push(card.name);
+  pile.splice(handIndex, 1);
   // UN ALLIE EN JEU N'EST PAS DANS LA DEFAUSSE : il est sur le plateau, et sa carte
   // voyage avec l'unite. Elle ne tombe a la defausse qu'a sa mort. Sans cette regle,
   // « reanime un allie de ta defausse » ressusciterait une unite encore vivante et
   // « renvoie en main » dupliquerait la carte.
-  if (card.type !== 'ally') {
+  if (zone === 'defausse') {
+    // LA REPRISE : le sort quitte la defausse pour l'EXIL, AVANT que ses effets partent —
+    // comme un sort part en defausse avant les siens. Un sort qui remelange sa defausse
+    // ne peut donc pas se reprendre lui-meme, et « Les cartes jouees retournent dans ta
+    // pioche » ne le renvoie jamais dans le deck : l'exil passe avant.
+    s.exile.push(card);
+  } else if (card.type !== 'ally') {
     // « Les cartes que tu joues retournent dans ta pioche » : un effet statique, donc
     // il vaut tant que son porteur tient le plateau. Le plafond de recyclage par tour
     // s'applique — c'est lui qui empeche « sort a 0 mana qui revient » de tourner.
@@ -1611,10 +1713,15 @@ export function playCard(B, k, handIndex, target = null, choix = null) {
     if (staticTotal(B, k, 'cartes_jouees_remelangees', m => m.quoi !== 'allies') > 0) melangeDedans(B, k, [card]);
     else s.discard.push(card);
   }
-  say(B, `${s.name} joue ${card.name}.`);
+  say(B, zone === 'defausse'
+    ? `${s.name} joue ${card.name} depuis sa defausse (Reprise) : le sort est exile.`
+    : `${s.name} joue ${card.name}.`);
   // Les Miroirs d'en face la refletent tout de suite — avant ses effets, qui peuvent
   // justement leur faire quitter la main (une defausse, un renvoi).
   retiensJouee(B, k, card);
+  // Une carte qui quitte une DEFAUSSE pour l'exil, c'est l'evenement « exil » : Pie
+  // Voleuse ou Prince des Ossements entendent donc aussi une Reprise.
+  if (zone === 'defausse') fireEvent(B, k, 'exil');
 
   let source = null;
   if (card.type === 'ally') {
@@ -1629,7 +1736,12 @@ export function playCard(B, k, handIndex, target = null, choix = null) {
   if (card.type !== 'ally') { s.spellsGame++; s.spellsTurn++; }
   if ((card.play || []).length) {
     B.fired.play = (B.fired.play || 0) + 1;
-    applyEffects(B, k, card.play, target, source || card, choix);
+    // D'OU PART LE SORT, le temps que ses effets se resolvent : c'est ce qui laisse un
+    // statique dire « +1 puissance des sorts, pour ceux qui partent de la defausse ».
+    const zoneAvant = B.sourceZone;
+    B.sourceZone = zone;
+    try { applyEffects(B, k, card.play, target, source || card, choix); }
+    finally { B.sourceZone = zoneAvant; }
   }
   refresh(B);
   resolveDeaths(B);
@@ -1638,8 +1750,32 @@ export function playCard(B, k, handIndex, target = null, choix = null) {
   // L'allie qu'on vient de poser est le SUJET de l'evenement : « Lui », pour les
   // moments qui l'ecoutent.
   fireEvent(B, k, card.type === 'ally' ? 'ally' : 'spell', source ? [source] : null);
+  // Une reprise est un sort comme un autre (l'evenement ci-dessus l'a entendue) ; `reprise`
+  // dit en plus QU'ELLE PARTAIT DE LA DEFAUSSE.
+  if (zone === 'defausse') fireEvent(B, k, 'reprise');
   resolveDeaths(B);
   return true;
+}
+
+/**
+ * Les sorts de la defausse de `k` qu'il peut reprendre MAINTENANT, par leur place dans la
+ * defausse : le mot-cle, le mana, les plafonds du tour, tout est demande a `canPlay`.
+ * C'est ce que lit la fenetre de zone pour eclairer les cartes, et le journal pour ses
+ * coups legaux.
+ */
+export function reprisesPossibles(B, k) {
+  const out = [];
+  B[k].discard.forEach((c, i) => { if (canPlay(B, k, c, 'defausse')) out.push(i); });
+  return out;
+}
+
+/**
+ * LA CARTE QU'UN COUP DESIGNE. Une action « jouer » porte un `index`, et cet index se lit
+ * dans la main — ou dans la defausse quand l'action dit `zone: 'defausse'` (une Reprise).
+ * Le bot, le journal et l'ecran la demandent tous ici plutot que de lire la main a la main.
+ */
+export function carteDuCoup(B, k, a) {
+  return a && a.type === 'play' ? (a.zone === 'defausse' ? B[k].discard : B[k].hand)[a.index] : undefined;
 }
 
 /**

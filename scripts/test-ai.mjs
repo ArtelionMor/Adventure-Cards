@@ -4,7 +4,7 @@
 // est prise 300 fois et on regarde la tendance, pas un coup isole.
 //   node scripts/test-ai.mjs
 import { createBattle } from '../game/src/combat/engine.js';
-import { botAction } from '../game/src/combat/ai.js';
+import { botAction, coupsPossibles } from '../game/src/combat/ai.js';
 // Monter une position, c'est jouer des cartes — et une action passe par joue(), ici
 // comme ailleurs (cf. le banc du partage). Journal eteint, c'est un appel de plus.
 import { joue } from '../game/src/combat/journal.js';
@@ -57,6 +57,81 @@ const cibleVisee = (B, a) => {
   if (!a || !a.target || a.target.uid === 'hero') return null;
   return B[a.target.side].board.find(u => u.uid === a.target.uid)?.name || null;
 };
+
+// ---------------------------------------------------------------------------
+// LES BRIQUES COMMUNES DE LA V3 (docs/V3-HEROS.md, 4.0). La main n'a plus de plafond : le
+// bot calculait « combien de cartes tiennent encore » avec ce plafond, et aurait cru
+// qu'une main sans limite n'avait plus aucune place — il ne piochait plus rien.
+console.log('\nUne main sans plafond');
+
+tendance('une main de dix cartes n\'empeche pas de piocher',
+  () => setup([
+    sort('Pioche', [{ op: 'draw', v: 2 }]),
+    sort('Rien', []),
+    ...Array.from({ length: 10 }, (_, i) => ally('Gros' + i, 5, 5, { cost: 9 }))
+  ], [], 2),
+  (B, a) => carteJouee(B, a) === 'Pioche');
+
+tendance('et ne cree pas dans le vide non plus',
+  () => setup([
+    sort('Cree', [{ op: 'cree', choix: 'precise', carte: 'grunt1', n: 2, lvl: 1 }]),
+    sort('Rien', []),
+    ...Array.from({ length: 10 }, (_, i) => ally('Gros' + i, 5, 5, { cost: 9 }))
+  ], [], 2),
+  (B, a) => carteJouee(B, a) === 'Cree');
+
+// Une meule ne gagne rien a elle seule : une carte meulee change de paquet, elle n'est
+// ni gagnee ni perdue. Le bot ne la paie pas — il preferera un allie.
+tendance('ne paie pas une meule seule',
+  () => setup([
+    sort('Meule', [{ op: 'met_a_la_defausse', d_ou: 'pioche', qui: 'toi', quoi: 'all', ordre: 'dessus', n: 2 }]),
+    ally('Banal', 2, 2)
+  ], [], 2),
+  (B, a) => carteJouee(B, a) === 'Banal');
+
+// Faire defausser l'adversaire, lui, lui coute une carte : c'est un gain.
+tendance('prefere faire defausser l\'adversaire a ne rien faire',
+  () => {
+    const B = setup([
+      sort('Defausse', [{ op: 'met_a_la_defausse', d_ou: 'main', qui: 'adversaire', quoi: 'all', ordre: 'hasard', n: 1 }]),
+      sort('Rien', [])
+    ], [ally('Reste', 1, 1)], 2);
+    B.e.hand = [ally('Carte1', 1, 1), ally('Carte2', 1, 1)];
+    return B;
+  },
+  (B, a) => carteJouee(B, a) === 'Defausse');
+
+// ---------------------------------------------------------------------------
+// LA REPRISE. Un sort a Reprise de la defausse est un coup comme un autre — et gratuit en
+// cartes. Le bot doit le VOIR (la liste des coups, le Monte-Carlo) et le JOUER quand c'est le
+// meilleur coup, sans jamais en inventer un pour un sort qui n'a pas le mot-cle.
+console.log('\nLa Reprise');
+
+function verifie(label, ok) {
+  console.log((ok ? '  ok   ' : '  FAIL ') + label);
+  ok ? pass++ : fail++;
+}
+
+const eclairReprise = () => ({ id: 'EclairR', name: 'EclairR', type: 'spell', cost: 2, keys: ['reprise'], text: '', tiers: [],
+  play: [{ op: 'dmg', t: 'enemyUnit', v: 3 }] });
+const avecDefausse = (reprise, main = []) => () => {
+  const B = setup(main, [ally('Cible', 1, 3)]);
+  B.p.discard = [reprise];
+  return B;
+};
+
+{
+  const B = avecDefausse(eclairReprise())();
+  const coups = coupsPossibles(B, 'p');
+  verifie('la liste des coups contient la reprise',
+    coups.some(c => c.type === 'play' && c.zone === 'defausse' && c.index === 0));
+  const sans = avecDefausse({ ...eclairReprise(), keys: [] })();
+  verifie('mais pas un sort sans le mot-cle', !coupsPossibles(sans, 'p').some(c => c.zone === 'defausse'));
+}
+
+tendance('joue la reprise quand c\'est le seul bon coup',
+  avecDefausse(eclairReprise(), [sort('Rien', [])]),
+  (B, a) => a && a.type === 'play' && a.zone === 'defausse' && cibleVisee(B, a) === 'Cible');
 
 // ---------------------------------------------------------------------------
 console.log('\nChoix de la carte a poser (stats identiques, meme cout)');

@@ -37,10 +37,11 @@ export function joue({ i, j }) {
     if (winner === 'stuck') bloquees++;
     if (winner === 'draw') nulles++;
     for (const c of ['p', 'e']) {
-      // Une carte posee est soit a la defausse (sort joue, allie mort), soit sur le
-      // plateau (allie encore en vie, sa carte voyage avec l'unite).
-      const posees = [...B[c].discard, ...B[c].board.map(u => u.card).filter(Boolean)];
-      for (const x of posees) { compte(jouees, x.name); compte(piochees, x.name); }
+      // Les cartes JOUEES, comptees par le moteur au moment ou elles partent. On ne lit
+      // plus la defausse : elle recoit aussi des cartes qu'on n'a jamais jouees (meule,
+      // defausse volontaire, main qui deborde) et en perd (exil) — la lire faisait croire
+      // qu'une carte avait ete posee alors qu'elle avait seulement deborde de la main.
+      for (const nom of B[c].posees) { compte(jouees, nom); compte(piochees, nom); }
       for (const x of B[c].hand) compte(piochees, x.name);
     }
     for (const slot of Object.keys(B.fired)) declenches.add(slot);

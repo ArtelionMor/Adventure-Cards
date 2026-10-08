@@ -240,6 +240,70 @@ const secondes = (Date.now() - t0) / 1000;
     'une carte porte un identifiant en `c` alors que rien n\'enregistrait.');
 }
 
+// --- L'exil : une carte sortie du jeu doit se retrouver DANS LE FICHIER. Sans cela, elle
+// disparaitrait de la defausse sans y avoir ete jouee, et l'analyse ne saurait plus la
+// retrouver. Le journal l'ecrit a cote de `defausse`, et les cartes exilees de l'adversaire
+// comptent parmi celles qu'on a VUES (elles sont passees par sa defausse).
+{
+  const carte = (id, type, extra = {}) => ({ id, name: id, type, cost: 1, keys: [], text: '', tiers: [], play: [], ...extra });
+  const note = carte('Note', 'spell');
+  const exile = carte('Exile', 'spell', { play: [{ op: 'exile', d_ou: 'defausse', qui: 'toi', quoi: 'oneCard', argCard: 'Note', n: 1 }] });
+  const pillage = carte('Pillage', 'spell', { play: [{ op: 'exile', d_ou: 'defausse', qui: 'adversaire', quoi: 'oneCard', argCard: 'NoteE', n: 1 }] });
+  const vides = () => Array.from({ length: 10 }, (_, i) => carte('V' + i, 'ally', { cost: 9, atk: 0, hp: 1 }));
+  const camp = nom => ({ name: nom, sprite: '', hp: 30, mana: 10, hand: 1, deck: vides() });
+  const B = createBattle(camp('Joueur'), camp('Adversaire'), {});
+  ouvreJournal(B, { source: 'banc', rencontre: { id: 'banc', nom: 'Banc' }, camps: { p: { controle: 'bot' }, e: { controle: 'bot' } } });
+  B.p.hand = [{ ...note }, { ...exile }, { ...pillage }];
+  B.e.hand = [carte('NoteE', 'spell')];
+  B.p.mana = B.p.maxMana = 10; B.e.mana = B.e.maxMana = 10;
+  B.turn = 'e'; joue(B, 'e', { type: 'play', index: 0, target: null }, 'bot', null);
+  B.turn = 'p';
+  joue(B, 'p', { type: 'play', index: 0, target: null }, 'bot', null);   // Note
+  joue(B, 'p', { type: 'play', index: 0, target: null }, 'bot', null);   // Exile : exile Note
+  joue(B, 'p', { type: 'play', index: 0, target: null }, 'bot', null);   // Pillage : exile NoteE
+  joue(B, 'p', { type: 'end' }, 'bot', null);
+  const decisions = fermeJournal(B).split('\n').filter(l => l.length).map(l => JSON.parse(l)).filter(l => l.t === 'decision');
+  const derniere = decisions[decisions.length - 1];
+  verifie('l\'exil figure dans le fichier (ma carte)', derniere.etat.p.exil.length === 1 && derniere.etat.p.defausse.length === 2,
+    'une carte exilee n\'est pas ecrite dans `etat.p.exil`, ou elle est restee dans la defausse.');
+  verifie('l\'exil adverse aussi', derniere.etat.e.exil.length === 1 && derniere.etat.e.defausse.length === 0,
+    'une carte exilee de la defausse adverse n\'est pas ecrite dans `etat.e.exil`.');
+  verifie('une carte exilee compte parmi celles que l\'adversaire a VUES', derniere.vue.cartesAdversesVues.length === 1,
+    '`vue.cartesAdversesVues` ne compte pas la carte exilee de la defausse adverse.');
+}
+
+// --- La Reprise : un sort relance depuis la defausse est un coup LEGAL, ecrit avec sa zone.
+// Sans `zone`, deux coups differents (la carte de la main, celle de la defausse) se liraient
+// pareil, et le coup joue ne se retrouverait pas dans ses propres coups legaux.
+{
+  const carte = (id, type, extra = {}) => ({ id, name: id, type, cost: 1, keys: [], text: '', tiers: [], play: [], ...extra });
+  const eclair = carte('EclairR', 'spell', { keys: ['reprise'], play: [{ op: 'dmg', t: 'enemyHero', v: 2 }] });
+  const vides = () => Array.from({ length: 10 }, (_, i) => carte('V' + i, 'ally', { cost: 9, atk: 0, hp: 1 }));
+  const camp = nom => ({ name: nom, sprite: '', hp: 30, mana: 10, hand: 1, deck: vides() });
+  const B = createBattle(camp('Joueur'), camp('Adversaire'), {});
+  ouvreJournal(B, { source: 'banc', rencontre: { id: 'banc', nom: 'Banc' }, camps: { p: { controle: 'bot' }, e: { controle: 'bot' } } });
+  B.p.hand = [{ ...eclair }];
+  B.p.mana = B.p.maxMana = 10;
+  B.turn = 'p';
+  joue(B, 'p', { type: 'play', index: 0, target: null }, 'bot', null);                       // depuis la main
+  joue(B, 'p', { type: 'play', zone: 'defausse', index: 0, target: null }, 'bot', null);     // la reprise
+  joue(B, 'p', { type: 'end' }, 'bot', null);
+  const decisions = fermeJournal(B).split('\n').filter(l => l.length).map(l => JSON.parse(l)).filter(l => l.t === 'decision');
+  const [avant, reprise, apres] = decisions;
+  verifie('avant la reprise, le sort n\'est pas encore reprenable',
+    avant.coupsLegaux.every(c => c.zone !== 'defausse') && avant.coup.zone === 'main',
+    'la liste des coups legaux propose une reprise alors que la defausse est vide.');
+  verifie('la reprise est un coup legal ecrit avec sa zone',
+    reprise.coup.zone === 'defausse' && reprise.coupsLegaux.some(c => memeCoup(c, reprise.coup)),
+    'le coup de reprise ne figure pas dans les coups legaux, ou sa zone n\'est pas ecrite.');
+  verifie('la main et la defausse ne se confondent pas dans les coups legaux',
+    reprise.coupsLegaux.filter(c => c.type === 'play').every(c => c.zone === 'defausse'),
+    'un coup de la main s\'est glisse dans la liste alors que la main est vide.');
+  verifie('apres la reprise, le sort est dans l\'exil et plus dans la defausse',
+    apres.etat.p.exil.length === 1 && apres.etat.p.defausse.length === 0,
+    'le sort repris n\'est ni exile, ou il est reste dans la defausse.');
+}
+
 for (const e of echecs) console.log(rouge('  ECHEC     ') + e);
 if (!echecs.length) {
   console.log(vert(`  ${PARTIES} partie(s) enregistrees, ${totalDecisions} decision(s), tout se relit.`));

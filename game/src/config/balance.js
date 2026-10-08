@@ -76,7 +76,13 @@ export const BALANCE = {
     // defilement. Remettre un nombre ici retablit le plafond partout (pose, invocation,
     // jouabilite) sans toucher au moteur.
     boardSize: 0,
-    handMax: 8,
+    // COMBIEN DE CARTES TIENNENT EN MAIN. 0 = pas de limite (meme convention que
+    // `boardSize`) : une pioche, une creation ou un retour en main ne rate plus faute de
+    // place, et une main ne « deborde » jamais. Decision du game designer (8 octobre
+    // 2026). C'est un changement d'equilibrage, pas de confort : les cartes qui comptent
+    // la main n'ont plus de borne haute. Remettre un nombre ici retablit le plafond
+    // partout (pioche, fatigue, creation, retour en main) sans toucher au moteur.
+    handMax: 0,
     maxManaCap: 10,
     autoStepMs: 750,        // rythme du mode auto (spectacle idle)
     // Combien de cartes peuvent au maximum retourner dans une pioche pendant UN tour.
