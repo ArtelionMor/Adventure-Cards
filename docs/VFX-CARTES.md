@@ -1,6 +1,6 @@
 # VFX des cartes — liste de travail
 
-> Proposition (9 octobre 2026), à corriger carte par carte. **Rien n'est codé.** Chaque carte
+> Proposition (9 octobre 2026), à corriger carte par carte. **Codé le 9 octobre 2026** dans `game/src/ui/vfx.js` (60 signatures, 20 briques procédurales) : la liste ci-dessous reste la référence de l'intention, le code peut s'en écarter carte par carte. Chaque carte
 > reçoit un effet de **lancer** (ce qui part de la carte) et un effet d'**arrivée** (ce que la
 > cible subit). Les doublons sont voulus quand l'effet est le même ; quand on peut varier, on varie.
 > Les noms de briques (en **gras**) sont définis en bas : une carte = un assemblage de briques.

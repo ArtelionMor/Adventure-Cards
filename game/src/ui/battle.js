@@ -21,6 +21,8 @@ import { ouvreRevue } from './revue.js';
 import { creeFx } from './effets.js';
 import { montreFin } from './fin.js';
 import { ligneDePictos } from './pictos.js';
+import { SIGNATURES } from './vfx.js';
+import { cardById } from '../config/npcs.js';
 import { ligneIco, lignesDeFait, lignesDeRenforts } from './fiche.js';
 
 let B = null;
@@ -115,6 +117,8 @@ export function openBattle(node, done) {
     racine: () => $('#battle'),
     couche: () => coque.fx,
     milieu: () => coque.mid,
+    plateau: camp => (camp === 'p' ? coque.boardP : coque.boardE),
+    pioche: () => coque.npioche,
     main: () => coque.main,
     defausse: camp => (camp === 'p' ? coque.def : coque.heroE.n),
     heros: camp => (camp === 'p' ? coque.heroP : coque.heroE).n,
@@ -227,6 +231,23 @@ function installeTriche() {
       render();
       return 'ok';
     },
+    // Le VFX d'une carte (ui/vfx.js) : `vfx('cat_pounce', 'p')` joue la carte pour de faux — son lancer, puis ce qu'elle
+    // cause (des degats sur le heros d'en face, un renfort sur ton premier allie, ou l'arrivee de ton premier allie).
+    vfx(id = 'cat_pounce', k = 'p') {
+      const c = cardById(id);
+      if (!c) return `carte inconnue : ${Object.keys(SIGNATURES).join(', ')}`;
+      const cp = camp(k), autre = cp === 'p' ? 'e' : 'p';
+      const sig = SIGNATURES[id] || {};
+      const u = B[cp].board[0];
+      const cible = c.type === 'spell' && sig.vers !== 'allies' && sig.vers !== 'main' && sig.vers !== 'pioche' ? refHeros(B, autre) : null;
+      const i = evt(B, { t: 'joue', camp: cp, carte: refCarte({ ...c, inst: 0 }), paye: c.cost, zone: 'main', cible, choix: null }, null);
+      if (cible) evt(B, { t: 'degats', cible, n: 2, perdu: 2, avant: B[autre].hp, apres: B[autre].hp - 2 }, i);
+      else if (u && c.type === 'ally') evt(B, { t: 'invoque', via: 'carte', camp: cp, unite: refUnite(u, cp) }, i);
+      else if (u && sig.vers === 'allies') evt(B, { t: 'renfort', atk: 1, hp: 1, cle: null, cible: refUnite(u, cp) }, i);
+      render();
+      return 'ok';
+    },
+    vfxListe: () => Object.keys(SIGNATURES).map(id => { const c = cardById(id); return { id, nom: c ? c.name : id }; }),
     // Un allie gagne +1/+1 sans evenement : c'est ce que l'ecran lit comme une aura.
     aura(k = 'p') {
       const u = B && B[camp(k)].board[0];
@@ -272,6 +293,11 @@ function panneauTriche() {
   for (const [t, nom] of scenes) bouton(t, () => T().voir(nom, camp));
   for (const [t, m] of effets) bouton(t, () => T().effet(m, camp));
   bouton('Aura +1/+1', () => T().aura(camp));
+  // Le VFX d'une carte, au choix : la liste de ui/vfx.js, un bouton pour la jouer pour de faux.
+  const choix = el('<select class="large"></select>');
+  for (const c of (T() ? T().vfxListe() : [])) choix.appendChild(new Option(`${c.nom} (${c.id})`, c.id));
+  grille.appendChild(choix);
+  bouton('Jouer ce VFX', () => T().vfx(choix.value, camp), 'large');
   bouton('+1 mana', () => T().mana(1));
   bouton('Pioche', () => T().pioche(1));
   const rb = bouton('Ralenti ×1', () => { ralenti = ralenti === 1 ? 5 : ralenti === 5 ? 10 : 1; window.AC.fx.ralenti = ralenti; rb.textContent = `Ralenti ×${ralenti}`; });

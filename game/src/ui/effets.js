@@ -18,6 +18,7 @@ import { cardById } from '../config/npcs.js';
 import { asset } from './shell.js';
 import { icone } from './icones.js';
 import { ligneDePictos, iconeDeCle } from './pictos.js';
+import { creeBriques, SIGNATURES } from './vfx.js';
 
 const F = () => BALANCE.ui.fx;
 const CLE_VITESSE = 'adventureCard.fxVitesse';
@@ -301,7 +302,36 @@ export function creeFx(acces) {
   }
 
   // ------------------------------------------------------------ ce qu'on montre
-  function coup(ev) {
+  // LES VFX PAR CARTE (ui/vfx.js) : la signature d'une carte (`SIGNATURES[id]`) assemble des briques. `lance` en joue une.
+  const briques = creeBriques({ anime, T, ephemere, couche: () => acces.couche(), F, eclair, anneau, etincelles, secoueEcran });
+  function lance(brique, options, vers, de) {
+    const b = briques[brique];
+    if (!b) return 0;
+    const d = de || centreDe(rectDe(acces.milieu()));
+    const ms = b({ de: d, vers, ...(options || {}) }) || 0;
+    marque(ms);
+    return ms;
+  }
+  const centreDe = r => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+  // Console : `AC.fx.montre('eclair')` joue une brique du centre vers le heros adverse (ou `'plumes', { n: 9 }`), pour la regarder seule.
+  reglage.montre = (nom, options) => lance(nom, options, [rectDe(acces.heros('e'))], centreDe(rectDe(acces.milieu())));
+
+  /** Ce que vise le lancer d'une carte : sa cible designee, sinon la zone que dit sa signature (`vers`). */
+  function visees(sig, ev) {
+    if (ev.cible) { const n = noeudDe(ev.cible); if (n) return [rectDe(n)]; }
+    const camp = ev.camp, autre = camp === 'p' ? 'e' : 'p';
+    const rect = n => (n ? [rectDe(n)] : []);
+    switch (sig.vers) {
+      case 'allies': return rect(acces.plateau(camp));
+      case 'ennemis': return rect(acces.plateau(autre));
+      case 'main': return rect(camp === 'p' ? acces.main() : acces.heros('e'));
+      case 'pioche': return rect(camp === 'p' ? acces.pioche() : acces.heros('e'));
+      case 'defausse': return rect(acces.defausse(camp));
+      default: return rect(acces.heros(autre));
+    }
+  }
+
+  function coup(ev, sig) {
     const f = F();
     const n = noeudDe(ev.cible);
     if (!n) return;
@@ -323,7 +353,7 @@ export function creeFx(acces) {
     if (ev.bouclier) anneau(r, '#cfe0ff');
     if (perdu > 0 || ev.bouclier) {
       eclair(r, ev.bouclier ? '#cfe0ff' : '#fff');
-      etincelles(r, couleur);
+      if (sig && sig.arrivee) lance(sig.arrivee[0], sig.arrivee[1], [r]); else etincelles(r, couleur);
       secoue(n, f.secoussePx * (hero ? .7 : 1) * (1 + Math.min(perdu, 8) * .08), f.secousseMs);
       if (perdu >= f.grosCoup) secoueEcran(f.ecranSecoussePx, f.ecranSecousseMs);
     }
@@ -331,15 +361,15 @@ export function creeFx(acces) {
     if (perdu > 0 && (ev.armure || 0) > 0) chiffre(r, `−${ev.armure}${icone('Armor', 16)}`, COULEUR.armure, .6, 0);
   }
 
-  function soin(ev) {
+  function soin(ev, sig) {
     const n = noeudDe(ev.cible);
     if (!n || !(ev.soigne > 0)) return;
     const r = rectDe(n);
     chiffre(r, `+${ev.soigne}${icone('Heal', 22)}`, COULEUR.soin, 1);
-    etincelles(r, COULEUR.soin, 5);
+    if (sig && sig.arrivee) lance(sig.arrivee[0], sig.arrivee[1], [r]); else etincelles(r, COULEUR.soin, 5);
   }
 
-  function renfort(ev, rang) {
+  function renfort(ev, rang, sig) {
     const n = noeudDe(ev.cible);
     if (!n) return;
     const r = rectDe(n);
@@ -351,7 +381,7 @@ export function creeFx(acces) {
     const ic = ev.cle && iconeDeCle(ev.cle);
     if (ic) texte += icone(ic, 20);
     chiffre(r, texte, COULEUR.renfort, .85, rang * 0);
-    etincelles(r, COULEUR.renfort, 5);
+    if (sig && sig.arrivee) lance(sig.arrivee[0], sig.arrivee[1], [r]); else etincelles(r, COULEUR.renfort, 5);
   }
 
   /** La mort : le fantome tremble, s'eclaire puis se brise. */
@@ -456,7 +486,7 @@ export function creeFx(acces) {
   }
 
   /** L'arrivee d'une unite : elle rebondit, avec un petit nuage d'eclats. */
-  function pop(camp, uid) {
+  function pop(camp, uid, sig) {
     const f = F();
     const n = acces.unite(camp, uid);
     if (!n) return;
@@ -468,7 +498,7 @@ export function creeFx(acces) {
       { transform: 'scale(.92)', offset: .78 },
       { transform: 'scale(1)', opacity: 1 }
     ], { duration: T(f.popMs), easing: 'ease-out', fill: 'none' });
-    etincelles(rectDe(n), '#ffe8a8', 8);
+    if (sig && sig.entree) lance(sig.entree[0], sig.entree[1], [rectDe(n)]); else etincelles(rectDe(n), '#ffe8a8', 8);
   }
 
   // ------------------------------------------------------------ le film
@@ -504,6 +534,7 @@ export function creeFx(acces) {
       if (ev.t === 'invoque') couverts.add(cle(ev.unite.camp, ev.unite.uid));
       if (ev.t === 'transforme' || ev.t === 'controle') for (const u of ev.unites || (ev.unite ? [ev.unite] : [])) couverts.add(cle(u.camp, u.uid));
     }
+    const sigs = new Map();         // indice d'une carte jouee -> sa signature (ui/vfx.js), pour ce qu'elle cause
     let t = retard;                 // l'horloge du film
     const impact = new Map();       // indice d'evenement -> heure du coup
     let groupe = null;              // le dernier groupe (meme cause, meme type) : { cause, t, type }
@@ -530,13 +561,19 @@ export function creeFx(acces) {
           else if (ev.cause !== null && impact.has(ev.cause)) { at = impact.get(ev.cause); t = at + f.ripostePauseMs; }
           else at = heure(ev);
           impact.set(ev.i, at);
-          apres(at, () => coup(ev));
+          apres(at, () => coup(ev, sigs.get(ev.cause)));
           marque(at + f.secousseMs);
           break;
         }
         case 'joue': {
           apres(t, () => carteJouee(ev));
           t += f.volMs + f.tenueMs;
+          // Sa signature : ce qui PART de la carte, des qu'elle s'est montree au centre.
+          const sig = SIGNATURES[ev.carte.id];
+          if (sig) {
+            sigs.set(ev.i, sig);
+            if (sig.lancer) { apres(t, () => lance(sig.lancer[0], sig.lancer[1], visees(sig, ev))); t += f.lancerMs; }
+          }
           if (auraAt === retard) auraAt = t;
           groupe = null;
           break;
@@ -551,7 +588,7 @@ export function creeFx(acces) {
         }
         case 'invoque': {
           const at = heure(ev);
-          apres(at, () => pop(ev.unite.camp, ev.unite.uid));
+          apres(at, () => pop(ev.unite.camp, ev.unite.uid, sigs.get(ev.cause)));
           marque(at + f.popMs);
           break;
         }
@@ -575,8 +612,8 @@ export function creeFx(acces) {
           marque(at + f.chiffreMs * .5);
           break;
         }
-        case 'soin': { const at = heure(ev); apres(at, () => soin(ev)); marque(at + f.chiffreMs * .5); break; }
-        case 'renfort': { const at = heure(ev); apres(at, () => renfort(ev, 0)); marque(at + f.chiffreMs * .5); break; }
+        case 'soin': { const at = heure(ev); apres(at, () => soin(ev, sigs.get(ev.cause))); marque(at + f.chiffreMs * .5); break; }
+        case 'renfort': { const at = heure(ev); apres(at, () => renfort(ev, 0, sigs.get(ev.cause))); marque(at + f.chiffreMs * .5); break; }
         case 'meurt': {
           const base = impact.has(ev.cause) ? impact.get(ev.cause) : t;
           const at = base + f.mortDelaiMs;

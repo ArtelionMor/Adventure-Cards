@@ -549,3 +549,5 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .insp .stats .ico { vertical-align: -3px; }
 .insp .stats .a .ico { color: var(--accent); }
 .insp .stats .h .ico { color: var(--danger); }
+.fx-v { position: absolute; }
+.tr-grille select.large { grid-column: span 4; min-height: 34px; background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; font-size: 12px; }

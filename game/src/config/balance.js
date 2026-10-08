@@ -103,6 +103,7 @@ export const BALANCE = {
       ecranSecoussePx: 6,
       piocheMs: 380,            // une carte piochee glisse jusqu'a sa place
       piocheDecalageMs: 80,     // entre deux cartes piochees ensemble
+      lancerMs: 380,            // le temps laisse au VFX qui PART d'une carte (ui/vfx.js) avant ses consequences
       volMs: 340,               // la carte jouee vole de la main au centre
       tenueMs: 420,             // elle reste lisible au centre avant de se resoudre
       sortieMs: 240,            // puis elle rejoint sa destination (plateau ou defausse)
