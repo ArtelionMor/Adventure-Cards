@@ -62,7 +62,7 @@ export const WORLD = {
     { id: 'f3', type: 'fight', x: 40, y: 44, name: 'Corbeau Rieur', enemy: 'crow1', reqLevel: 3 },
     { id: 'g1', type: 'gate', x: 46, y: 40, name: 'Ronces Epaisses', reqLevel: 4 },
     { id: 'b1', type: 'boss', x: 52, y: 36, name: 'Grand Mechant Loup', enemy: 'wolf', reqLevel: 4,
-      unlocks: 'fox', sprite: 'Characters/Big Bad Wolf.png' },
+      unlocks: 'cameleon', sprite: 'Characters/Big Bad Wolf.png' },
 
     { id: 't1', type: 'teleport', x: 56, y: 42, name: 'Pierre de Passage' },
     { id: 'f4', type: 'fight', x: 64, y: 46, name: 'Crapaud Baveux', enemy: 'frog1', reqLevel: 5 },
