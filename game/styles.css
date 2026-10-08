@@ -447,3 +447,25 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .fx-banniere { position: absolute; left: 50%; width: 130%; padding: 10px 0; text-align: center; text-transform: uppercase; font-weight: 900; font-size: 26px; letter-spacing: 4px; color: #fff; -webkit-text-stroke: 1px rgba(0,0,0,.4); will-change: transform, opacity; }
 .fx-banniere.moi { background: linear-gradient(90deg, transparent, rgba(60,160,110,.92) 18%, rgba(60,160,110,.92) 82%, transparent); }
 .fx-banniere.eux { background: linear-gradient(90deg, transparent, rgba(190,60,80,.92) 18%, rgba(190,60,80,.92) 82%, transparent); }
+
+/* ---------- l'ecran de fin de combat (ui/fin.js) ---------- */
+.fin { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(8,6,12,.86); overflow: hidden; }
+.fin.defaite { background: radial-gradient(ellipse at center, rgba(40,10,16,.9), rgba(8,6,12,.95)); }
+.fin-rayons { position: absolute; width: 190vmax; height: 190vmax; left: 50%; top: 50%; margin: -95vmax 0 0 -95vmax; opacity: 0; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, rgba(255,196,107,.22) 0 8deg, transparent 8deg 24deg); -webkit-mask: radial-gradient(circle, #000 0, transparent 38%); mask: radial-gradient(circle, #000 0, transparent 38%); }
+.fin.victoire .fin-rayons { opacity: 1; }
+.fin-contenu { position: relative; display: grid; gap: 14px; justify-items: center; padding: 20px; width: min(86%, 380px); text-align: center; }
+.fin-titre { font-size: 46px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; line-height: 1; paint-order: stroke fill; -webkit-text-stroke: 6px #170b12; }
+.fin.victoire .fin-titre { color: #ffc46b; text-shadow: 0 0 28px rgba(255,196,107,.7); }
+.fin.defaite .fin-titre { color: #d9707e; }
+.fin.nul .fin-titre { color: #cfd3e8; }
+.fin-sous { color: var(--ink-dim); font-size: 14px; }
+.fin-gains { display: grid; gap: 8px; width: 100%; }
+.fin-gain { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 16px; border-radius: 12px; background: rgba(255,196,107,.12); border: 1px solid rgba(255,196,107,.4); font-size: 16px; }
+.fin-gain b { font-size: 26px; color: #ffc46b; }
+.fin-gain b::before { content: "+"; }
+.fin-notes { color: var(--accent2); font-size: 13px; }
+.fin-notes p { margin: 4px 0; }
+.fin-boutons { display: grid; gap: 8px; width: 100%; }
+.fin-boutons .btn { width: 100%; padding: 14px; font-size: 16px; }
+.fin-confetti { position: absolute; border-radius: 2px; pointer-events: none; will-change: transform, opacity; }

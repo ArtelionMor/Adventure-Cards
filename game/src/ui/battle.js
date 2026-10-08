@@ -18,6 +18,7 @@ import { icone } from './icones.js';
 import { gardeCombat } from './combats.js';
 import { ouvreRevue } from './revue.js';
 import { creeFx } from './effets.js';
+import { montreFin } from './fin.js';
 
 let B = null;
 let auto = true;
@@ -1012,63 +1013,54 @@ function finish() {
     heros: { p: B.p.sprite, e: B.e.sprite }, evts: B.evts
   });
 
-  const box = el(`<div>
-    <h2>${win ? 'Victoire' : 'Defaite'}</h2>
-    <p class="muted">${win ? `${enc.name} est vaincu.` : `${enc.name} tient bon. Reviens plus fort.`}</p>
-  </div>`);
-
+  const recompenses = [];
+  const notes = [];
   if (win) {
     // Monnaie A : recompense d'exploration. Monnaie B : collecte encore a trancher
     // dans le GDD ("butin de combat" = hypothese) — c'est ce qu'on teste ici.
     gain('A', r.A);
     gain('B', r.B);
-    box.appendChild(el(`<p>+${r.A} Fanions · +${r.B} Sceaux</p>`));
+    recompenses.push({ label: 'Fanions', n: r.A }, { label: 'Sceaux', n: r.B });
     if (ctx.unlocks) {
       save.chars[ctx.unlocks].bossBeaten = true;
-      box.appendChild(el(`<p class="muted">${CHAR_BY_ID[ctx.unlocks].name} peut desormais etre achete avec des Fanions.</p>`));
+      notes.push(`${CHAR_BY_ID[ctx.unlocks].name} peut désormais être acheté avec des Fanions.`);
     }
     save.world.cleared[ctx.id] = true;
     persist();
   }
 
-  // Le journal de DECISIONS, en JSONL : ce que le joueur avait, ce qu'il pouvait
-  // jouer, ce que le bot aurait joue a sa place. Premiere version : on le telecharge
-  // a la main depuis l'ecran de resultat (l'envoi automatique au serveur viendra).
-  if (dernierJournal && dernierJournal.texte) {
-    const bj = el('<button class="btn ghost" style="margin-bottom:8px">⬇ Télécharger le journal de décisions</button>');
-    bj.onclick = () => {
-      const url = URL.createObjectURL(new Blob([dernierJournal.texte], { type: 'application/x-ndjson' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = dernierJournal.nom;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    };
-    box.appendChild(bj);
-  }
-
-  if (idRecit) {
-    const br = el(`<button class="btn ghost" style="margin-bottom:8px;display:flex;align-items:center;gap:8px;justify-content:center">${icone('Log', 20)} Revoir le combat</button>`);
-    br.onclick = () => ouvreRevue(idRecit);
-    box.appendChild(br);
-  }
-
-  const btn = el('<button class="btn">Continuer</button>');
-  btn.onclick = () => {
+  const ferme = () => {
     $('#battle').classList.add('hidden');
     $('#battle').classList.remove('spot');
     $('#battle').innerHTML = '';
     B = null;
     if (onDone) onDone(win);
   };
-  box.appendChild(btn);
+  const boutons = [];
+  // Perdre ne coute rien : on relance tout de suite la meme rencontre (la victoire, elle, paie
+  // des recompenses — la rejouer en boucle est une question d'economie, pas d'interface).
+  if (!win) boutons.push({ texte: 'Réessayer', primaire: true, onClick: () => { const n = ctx, d = onDone; B = null; openBattle(n, d); } });
+  boutons.push({ texte: win ? 'Continuer' : 'Retour', primaire: win, onClick: ferme });
+  if (idRecit) boutons.push({ texte: 'Revoir le combat', onClick: () => ouvreRevue(idRecit) });
+  // Le journal de DECISIONS, en JSONL : ce que le joueur avait, ce qu'il pouvait jouer, ce que le
+  // bot aurait joue a sa place (outil du game designer : on le telecharge a la main).
+  if (dernierJournal && dernierJournal.texte) {
+    boutons.push({ texte: '⬇ Journal de décisions', onClick: () => {
+      const url = URL.createObjectURL(new Blob([dernierJournal.texte], { type: 'application/x-ndjson' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = dernierJournal.nom;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } });
+  }
 
+  // L'ecran de fin se pose par-dessus le plateau, qui reste visible derriere.
   const root = $('#battle');
   root.classList.remove('spot');
-  root.innerHTML = '';
-  const sheet = el('<div class="sheet" style="margin:auto"></div>');
-  sheet.appendChild(box);
-  root.appendChild(sheet);
-  root.style.alignItems = 'center';
-  root.style.justifyContent = 'center';
+  montreFin({
+    racine: root, issue: win ? 'victoire' : (B.winner === 'e' ? 'defaite' : 'nul'),
+    sousTitre: win ? `${enc.name} est vaincu.` : `${enc.name} tient bon. Reviens plus fort.`,
+    recompenses, notes, boutons
+  });
 }

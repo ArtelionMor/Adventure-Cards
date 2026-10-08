@@ -105,6 +105,15 @@ export const BALANCE = {
       anneauMs: 620,            // l'anneau d'un changement d'etat (bouclier, aura, armure, mana)
       banniereMs: 1000,         // la banniere « Ton tour » traverse l'ecran
       banniereAvanceMs: 900,    // ce que la banniere retarde le coup suivant (elle finit de sortir pendant)
+      // L'ecran de fin (ui/fin.js) : pas affecte par x1/x2, toucher l'ecran le termine d'un coup.
+      fin: {
+        titreMs: 650,           // le titre « Victoire » / « Defaite » s'abat
+        premierePauseMs: 500,   // le calme avant la premiere recompense
+        recompenseMs: 700,      // entre deux recompenses qui defilent
+        compteMs: 800,          // le compteur d'une recompense (0 -> N)
+        confettis: 34,          // la pluie de la victoire
+        confettiMs: 2600
+      },
       mortDelaiMs: 260,         // entre le coup qui tue et la mort
       mortMs: 520,
       ralenti: 1                // x N sur tous les temps : pour regarder un effet en capture
