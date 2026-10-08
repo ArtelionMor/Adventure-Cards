@@ -17,6 +17,7 @@ import { creeJournal } from './journal.js';
 import { icone } from './icones.js';
 import { gardeCombat } from './combats.js';
 import { ouvreRevue } from './revue.js';
+import { creeFx } from './effets.js';
 
 let B = null;
 let auto = true;
@@ -44,6 +45,8 @@ let coque = null;
 // Vide tant qu'aucune action n'est engagee (voir ui/apercu.js).
 let apercus = new Map();
 let gestesPoses = false;
+// Les effets (chiffres, secousses, morts) : voir ui/effets.js. Crees une fois, rejoues sur chaque combat.
+let fx = null;
 // Le fichier JSONL du dernier combat enregistre, garde jusqu'a l'ecran de resultat :
 // c'est la qu'on le telecharge (le journal est ferme des que le combat l'est).
 let dernierJournal = null;
@@ -103,6 +106,14 @@ export function openBattle(node, done) {
   zoneGroupes = [];
   apercus = new Map();
   coque = null;
+  if (!fx) fx = creeFx({
+    racine: () => $('#battle'),
+    couche: () => coque.fx,
+    heros: camp => (camp === 'p' ? coque.heroP : coque.heroE).n,
+    unite: (camp, uid) => (camp === 'p' ? coque.boardP : coque.boardE).firstElementChild._n.get(uid) || null,
+    unites: camp => [...(camp === 'p' ? coque.boardP : coque.boardE).firstElementChild.children]
+  });
+  fx.vide();
   fermeLecture();
   poseLesGestes();
   closeModal();
@@ -140,6 +151,18 @@ export function openBattle(node, done) {
   loop();
 }
 
+/** Le calme entre deux coups du mode auto : le pas habituel, ou la fin des effets si elle vient apres. */
+function delaiAuto() {
+  const f = BALANCE.ui.fx;
+  return Math.max(BALANCE.combat.autoStepMs * f.ralenti / fx.vitesse, fx.reste() + f.pauseApresMs * f.ralenti / fx.vitesse);
+}
+
+/** La fin du combat attend la fin du film : on voit le dernier coup avant l'ecran de resultat. */
+function finirApresLesEffets() {
+  clearTimeout(timer);
+  timer = setTimeout(finish, fx.reste() + BALANCE.ui.fx.pauseApresMs * BALANCE.ui.fx.ralenti / fx.vitesse);
+}
+
 function loop() {
   clearTimeout(timer);
   if (!B || B.over) return;
@@ -153,8 +176,8 @@ function loop() {
     const a = botAction(B, k, niveau);
     if (!joueLeCoup(B, k, a, 'bot', niveau || null)) joueLeCoup(B, k, { type: 'end' }, 'bot', niveau || null);
     render();
-    if (B.over) finish(); else loop();
-  }, BALANCE.combat.autoStepMs);
+    if (B.over) finirApresLesEffets(); else loop();
+  }, delaiAuto());
 }
 
 // ------------------------------------------------------------------ rendu
@@ -286,6 +309,7 @@ function plateauNode(id) {
 function monteLaCoque(root) {
   root.innerHTML = '';
   const c = {};
+  c.fx = el('<div class="fx"></div>');
   const haut = el('<div class="bt-side"></div>');
   c.heroE = heroNode('e');
   haut.appendChild(c.heroE.n);
@@ -337,12 +361,15 @@ function monteLaCoque(root) {
   c.bar = el(`
     <div class="bt-bar">
       <div class="autochip" id="autoChip"></div>
+      <button class="vitesse" id="vitesse" aria-label="Vitesse du combat"></button>
       <button class="ib" id="logBtn" aria-label="Journal du combat">${icone('Log', 24)}<b class="bdg hidden"></b></button>
       <div class="grow muted"><span class="npioche"></span> · <button class="zlink" id="defBtn" title="Voir la défausse"></button> · <span class="ntour"></span></div>
       <button class="btn" id="endTurn">Fin du tour</button>
     </div>`);
   root.appendChild(c.bar);
   c.chip = c.bar.querySelector('#autoChip');
+  c.vit = c.bar.querySelector('#vitesse');
+  c.vit.onclick = () => { fx.cycleVitesse(); majBarre(); };
   c.def = c.bar.querySelector('#defBtn');
   c.fin = c.bar.querySelector('#endTurn');
   c.npioche = c.bar.querySelector('.npioche');
@@ -371,6 +398,7 @@ function monteLaCoque(root) {
   // Le bandeau qui dit ce qu'on attend du joueur pendant une action engagee.
   c.bandeau = el('<div class="bt-bandeau"></div>');
   c.mid.appendChild(c.bandeau);
+  root.appendChild(c.fx);
   coque = c;
 }
 
@@ -382,6 +410,7 @@ function majBarre() {
   const nbReprises = !auto && B.turn === 'p' && !B.over ? reprisesPossibles(B, 'p').length : 0;
   c.chip.textContent = auto ? '▶ Auto' : '✋ Manuel';
   c.chip.classList.toggle('on', auto);
+  c.vit.textContent = `x${fx.vitesse}`;
   c.npioche.textContent = `Pioche ${B.p.deck.length}`;
   c.def.textContent = `Défausse ${B.p.discard.length}${nbReprises ? ' ↺' + nbReprises : ''}`;
   c.def.classList.toggle('pret', !!nbReprises);
@@ -398,7 +427,7 @@ function majBarre() {
 
 function render() {
   const root = $('#battle');
-  if (!coque) monteLaCoque(root);
+  if (!coque) monteLaCoque(root); else fx.photo();
   const c = coque;
   // Une action engagee ne survit pas a un changement de tour ni de mode : on la rend.
   if (!peutEngager()) reinitSelection();
@@ -421,6 +450,7 @@ function render() {
   // La lecture ouverte suit le combat plutot que de montrer un etat perime.
   renderLecture();
   renderZone();
+  fx.joue(B.evts);
 }
 
 // L'ECHELLE DES VIGNETTES. Le plateau n'a plus de plafond d'unites (boardSize = 0), et
@@ -559,7 +589,7 @@ function joue(i, target) {
   joueLeCoup(B, 'p', { type: 'play', index: i, ...(selZone === 'defausse' ? { zone: 'defausse' } : {}), target, choix: selChoix }, 'humain');
   reinitSelection();
   render();
-  if (B.over) finish();
+  if (B.over) finirApresLesEffets();
 }
 
 /**
@@ -662,7 +692,7 @@ function designe(side, uid) {
     joueLeCoup(B, 'p', { type: 'attack', uid: selUnit, target: { side, uid } }, 'humain');
     reinitSelection();
     render();
-    if (B.over) finish();
+    if (B.over) finirApresLesEffets();
     return true;
   }
   return false;
@@ -952,6 +982,7 @@ function renderLecture() {
 // --------------------------------------------------------------- fin de combat
 function finish() {
   clearTimeout(timer);
+  fx.vide();
   zoneOuverte = false;
   fermeLecture();
   closeModal();

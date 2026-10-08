@@ -73,7 +73,35 @@ export const BALANCE = {
   // fait qu'un geste se lit comme un tap (agir) ou comme un appui long (lire).
   ui: {
     appuiLongMs: 400,       // au-dela de cette duree, le doigt pose LIT la carte au lieu d'agir
-    toleranceDoigtPx: 10    // un doigt qui glisse de plus que ca fait defiler, il ne lit ni n'agit
+    toleranceDoigtPx: 10,   // un doigt qui glisse de plus que ca fait defiler, il ne lit ni n'agit
+
+    // LES EFFETS DU COMBAT (ui/effets.js) : du ressenti, pas des regles. Tous les temps sont en
+    // millisecondes a vitesse x1 ; le bouton x2 de la barre les divise. Decision du game
+    // designer (8 octobre 2026) : les effets ont le droit d'ALLONGER le combat — le but est qu'on
+    // comprenne ce qui se passe sans connaitre les cartes. Le mode auto attend donc la fin des
+    // effets avant le coup suivant.
+    fx: {
+      vitesses: [1, 2],         // les crans du bouton de vitesse (x1, x2) ; pas de « sauter »
+      pauseApresMs: 320,        // en auto, le calme laisse apres les effets avant le coup suivant
+      elanMs: 460,              // l'attaquant : recul, elan, retour (duree totale)
+      elanImpact: 0.58,         // a quelle fraction de l'elan le coup touche
+      elanPart: 0.6,            // quelle part du trajet vers la cible l'attaquant parcourt
+      cadenceMs: 380,           // entre deux coups distincts d'une meme action (6 Foudre de suite)
+      ripostePauseMs: 300,      // entre le coup et la riposte
+      groupeMs: 45,             // entre deux cibles du MEME effet (une zone touche « ensemble »)
+      secousseMs: 420,          // la cible qui encaisse tremble (amplitude decroissante)
+      secoussePx: 8,
+      flashMs: 260,             // l'eclair blanc sur la cible
+      etincelles: 7,            // les eclats a l'impact
+      chiffreMs: 1100,          // un chiffre flottant
+      chiffreMontePx: 48,
+      grosCoup: 5,              // a partir de ce montant perdu, l'ecran entier tremble
+      ecranSecousseMs: 320,
+      ecranSecoussePx: 6,
+      mortDelaiMs: 260,         // entre le coup qui tue et la mort
+      mortMs: 520,
+      ralenti: 1                // x N sur tous les temps : pour regarder un effet en capture
+    }
   },
 
   combat: {
