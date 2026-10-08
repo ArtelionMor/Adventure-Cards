@@ -24,6 +24,8 @@ import { BALANCE } from '../config/balance.js';
 import { cardById, catalogCards, fatiguePile, switchOf } from '../config/npcs.js';
 import { resolveCard } from '../config/characters.js';
 import { staticMin, AMPLIFIABLE, ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, ZONES, EVENTS, eventSlot, keyId, keyArg, hasKey, keyFields, counterValue, amountValue, numberParams, targetParams, cardMatches, describeFilter, describeCarteCreee, describeModele, cardCost, staticTotal, describeStatic, targetId, targetArg, targetDef, typesOf, partageType, estDuType, eachSubEffect, listeEffets, branchesDe, brancheChoisie, typeVariable, describeEffect, EVENT_GARDES } from '../config/mechanics.js';
+import { describeAmount } from '../config/mechanics.js';
+import { evt, avec, ouvreEvenements, refCarte, refUnite, refHeros, refSource, refCible, noteCoup, coupDe } from './evenements.js';
 
 
 let uid = 1;
@@ -108,6 +110,10 @@ export function createBattle(playerCfg, enemyCfg, meta = {}) {
     over: false,
     winner: null
   };
+  // LES EVENEMENTS (combat/evenements.js) : ouverts AVANT la premiere pioche, pour que la main
+  // de depart soit racontee elle aussi. Eteints par defaut — un combat qu'on ne raconte pas
+  // ne construit rien, et celui qu'on raconte se joue exactement pareil.
+  if (meta.evenements) ouvreEvenements(B);
   for (let i = 0; i < B.p.handSize; i++) draw(B, 'p');
   for (let i = 0; i < B.e.handSize; i++) draw(B, 'e');
   say(B, `${B.p.name} affronte ${B.e.name}.`);
@@ -189,13 +195,19 @@ export function draw(B, k, n = 1) {
     if (!s.deck.length) {
       const secours = carteDeFatigue(B, k);
       if (!secours) {
-        if (!s.aVide) { s.aVide = true; say(B, `${s.name} a fini sa pioche : plus aucune carte a tirer.`); }
+        if (!s.aVide) { s.aVide = true; say(B, `${s.name} a fini sa pioche : plus aucune carte a tirer.`); if (B.evts) evt(B, { t: 'aVide', camp: k, fatigue: false }); }
         return;
       }
-      if (!s.aVide) { s.aVide = true; say(B, `${s.name} a fini sa pioche : il tire dans la pile de fatigue.`); }
-      if (mainPleine(s)) { say(B, `Main pleine : ${secours.name} part a la defausse.`); s.discard.push(secours); continue; }
+      if (!s.aVide) { s.aVide = true; say(B, `${s.name} a fini sa pioche : il tire dans la pile de fatigue.`); if (B.evts) evt(B, { t: 'aVide', camp: k, fatigue: true }); }
+      if (mainPleine(s)) {
+        say(B, `Main pleine : ${secours.name} part a la defausse.`);
+        s.discard.push(secours);
+        if (B.evts) evt(B, { t: 'pioche', camp: k, carte: refCarte(secours), fatigue: true, perdue: true });
+        continue;
+      }
       say(B, `${s.name} tire ${secours.name} de la pile de fatigue.`);
       s.hand.push(secours);
+      if (B.evts) evt(B, { t: 'pioche', camp: k, carte: refCarte(secours), fatigue: true });
       fireEvent(B, k, 'draw');
       // Une pioche de fatigue reste une pioche, et c'est en plus un evenement a elle,
       // dont le SUJET est la carte tiree (« la carte piochee coute 2 de moins »).
@@ -203,8 +215,14 @@ export function draw(B, k, n = 1) {
       continue;
     }
     const c = s.deck.pop();
-    if (mainPleine(s)) { say(B, `Main pleine : ${c.name} part a la defausse.`); s.discard.push(c); continue; }
+    if (mainPleine(s)) {
+      say(B, `Main pleine : ${c.name} part a la defausse.`);
+      s.discard.push(c);
+      if (B.evts) evt(B, { t: 'pioche', camp: k, carte: refCarte(c), perdue: true });
+      continue;
+    }
     s.hand.push(c);
+    if (B.evts) evt(B, { t: 'pioche', camp: k, carte: refCarte(c) });
     fireEvent(B, k, 'draw');
   }
 }
@@ -224,13 +242,15 @@ function drawMatching(B, k, n, convient, dit) {
     for (let j = s.deck.length - 1; j >= 0; j--) if (convient(s.deck[j])) { idx = j; break; }
     if (idx < 0) break;
     const c = s.deck.splice(idx, 1)[0];
-    if (mainPleine(s)) {
+    const perdue = mainPleine(s);
+    if (perdue) {
       say(B, `Main pleine : ${c.name} part a la defausse.`);
       s.discard.push(c);
     } else {
       s.hand.push(c);
       say(B, `${s.name} pioche ${c.name}.`);
     }
+    if (B.evts) evt(B, { t: 'pioche', camp: k, carte: refCarte(c), cherchee: true, perdue });
     pris++;
     fireEvent(B, k, 'draw');   // une pioche reste une pioche
     if (B.over) return pris;
@@ -421,7 +441,7 @@ const rienDeTel = e => e.choix === 'lui' ? 'aucune unite dans « Lui »'
 function renforceCartes(B, cartes, e) {
   const atk = e.atk || 0, hp = e.hp || 0;
   if (!atk && !hp) return;
-  const touchees = [];
+  const touchees = [], refs = [];
   for (const carte of cartes) {
     if (carte.type !== 'ally') continue;
     // Un bonus negatif ne doit ni rendre l'attaque absurde ni faire arriver la carte
@@ -429,10 +449,12 @@ function renforceCartes(B, cartes, e) {
     carte.atk = Math.max(0, (carte.atk || 0) + atk);
     carte.hp = Math.max(1, (carte.hp || 0) + hp);
     touchees.push(carte.name);
+    if (B.evts) refs.push(refCarte(carte));
   }
   say(B, touchees.length
     ? `+${atk}/+${hp} pour ${touchees.join(', ')}.`
     : `+${atk}/+${hp} : aucun allie la-dedans, le bonus ne touche rien.`);
+  if (B.evts && refs.length) evt(B, { t: 'renfortCartes', atk, hp, cartes: refs });
 }
 
 /**
@@ -508,6 +530,7 @@ function reflete(B, k) {
     });
     if (inst !== undefined) c.inst = inst;
     say(B, `Un Miroir de ${B[k].name} devient ${c.name}.`);
+    if (B.evts) evt(B, { t: 'miroir', camp: k, carte: refCarte(c) });
   }
 }
 
@@ -544,13 +567,16 @@ function switcheUnite(B, k, r) {
   if (!face) { say(B, `${r.unit.name} n'a pas d'autre face.`); return null; }
   if (face.type === 'ally') {
     say(B, `${r.unit.name} devient ${face.name}.`);
+    const avantNom = r.unit.name;
     devientCopie(B, r.unit, face);
+    if (B.evts) evt(B, { t: 'transforme', mode: 'switch', de: avantNom, unite: refUnite(r.unit, r.side) });
     return { kind: 'unit', side: r.side, unit: r.unit };
   }
   const camp = proprio(r.unit, r.side);
   B[r.side].board = B[r.side].board.filter(u => u !== r.unit);
   B[camp].discard.push(face);
   say(B, `${r.unit.name} se change en ${face.name} : le sort part.`);
+  if (B.evts) evt(B, { t: 'transforme', mode: 'switch', de: r.unit.name, camp: r.side, sort: refCarte(face) });
   // Personne n'est la pour designer : le sort choisit ses cibles comme le fait un
   // rale d'agonie. Il part du cote de qui CONTROLAIT l'unite.
   if ((face.play || []).length) {
@@ -741,32 +767,52 @@ export function refresh(B) {
 }
 
 // ------------------------------------------------------------------- degats
-function damageHero(B, k, v) {
+// `info` (evenements seulement) : d'ou vient le coup — `src` (qui le donne), `riposte`, et ce qui
+// a change le montant (`bonus`, `via`, `x`). Il n'existe que si le combat est raconte.
+function damageHero(B, k, v, info) {
   const s = B[k];
+  const demande = v, avant = s.hp;
   // Un effet statique peut adoucir ou aggraver chaque perte de PV. Ca se joue AVANT
   // l'armure : l'armure encaisse ce qui arrive vraiment jusqu'au heros.
   v = Math.max(0, v + staticTotal(B, k, 'degats_du_heros'));
-  if (v <= 0) return;
+  if (v <= 0) {
+    // Un coup annule par un statique se dit quand meme : « pourquoi ca n'a rien fait ? »
+    if (B.evts && demande > 0) evt(B, { t: 'degats', ...info, cible: refHeros(B, k), n: demande, perdu: 0, avant, apres: avant, annule: true });
+    return;
+  }
+  const apresStatique = v;
+  let armureUsee = 0;
   if (s.armor > 0) {
     const used = Math.min(s.armor, v);
     s.armor -= used;
     v -= used;
+    armureUsee = used;
   }
   if (v > 0) s.hp -= v;
+  if (B.evts) evt(B, { t: 'degats', ...info, cible: refHeros(B, k), n: demande, aEncaisser: apresStatique, armure: armureUsee, perdu: avant - s.hp, avant, apres: s.hp });
   checkOver(B);
   if (v > 0) fireEvent(B, k, 'heroHurt');
 }
 
 /** Inflige des degats a une unite. Ne retire personne du plateau : resolveDeaths s'en charge. */
-function damageUnit(B, k, u, v, source) {
+function damageUnit(B, k, u, v, source, info) {
   if (v <= 0) return;
-  if (u.shield) { u.shield = false; say(B, `${u.name} encaisse avec son bouclier.`); return; }
+  const avant = u.hp;
+  if (u.shield) {
+    u.shield = false;
+    say(B, `${u.name} encaisse avec son bouclier.`);
+    if (B.evts) noteCoup(u, evt(B, { t: 'degats', ...info, cible: refUnite(u, k), n: v, perdu: 0, avant, apres: avant, bouclier: true }));
+    return;
+  }
   u.damage += v;
+  let venin = false;
   if (source && source !== u && hasKey(source.keys, 'Venin')) {
     u.damage = u.maxHp;
+    venin = true;
     say(B, `${u.name} succombe au venin.`);
   }
   u.hp = u.maxHp - u.damage;
+  if (B.evts) noteCoup(u, evt(B, { t: 'degats', ...info, cible: refUnite(u, k), n: v, perdu: avant - u.hp, avant, apres: u.hp, venin }));
 }
 
 /**
@@ -785,6 +831,8 @@ function resolveDeaths(B, depth = 0) {
 
   for (const { k, u } of dead) {
     say(B, `${u.name} est mis hors de combat.`);
+    // Sa mort a pour cause le DERNIER COUP qu'elle a recu, pas l'action qui l'entourait.
+    const mort = B.evts ? evt(B, { t: 'meurt', camp: k, unite: refUnite(u, k), proprio: proprio(u, k) }, coupDe(u)) : -1;
     // La carte rejoint la defausse maintenant : un jeton, lui, n'en a pas et disparait.
     // « Tes allies qui meurent retournent dans ta pioche » la detourne vers le deck.
     // Le porteur qui meurt ne s'applique pas a lui-meme : il a deja quitte le plateau
@@ -793,15 +841,18 @@ function resolveDeaths(B, depth = 0) {
       // Chez SON proprietaire : une unite volee retourne dans la defausse de celui a
       // qui elle appartient, pas dans celle de qui la controlait.
       const chez = proprio(u, k);
-      if (staticTotal(B, chez, 'cartes_jouees_remelangees', m => m.quoi !== 'sorts') > 0) melangeDedans(B, chez, [u.card]);
-      else B[chez].discard.push(u.card);
+      if (staticTotal(B, chez, 'cartes_jouees_remelangees', m => m.quoi !== 'sorts') > 0) {
+        melangeDedans(B, chez, [u.card]);
+        if (B.evts) evt(B, { t: 'deplace', mode: 'melange', camp: chez, de: 'plateau', vers: 'pioche', cartes: [refCarte(u.card)] }, mort);
+      } else B[chez].discard.push(u.card);
     }
     if (u.death && u.death.length && !B.over) {
       B.fired.death = (B.fired.death || 0) + 1;
       say(B, `Rale d'agonie de ${u.name}.`);
-      applyEffects(B, k, u.death, autoTarget(B, k, u.death, u), u);
+      const dec = B.evts ? evt(B, { t: 'declenche', moment: 'death', camp: k, src: refUnite(u, k) }, mort) : -1;
+      avec(B, dec, () => applyEffects(B, k, u.death, autoTarget(B, k, u.death, u), u));
     }
-    fireEvent(B, k, 'unitDies');
+    avec(B, mort, () => fireEvent(B, k, 'unitDies'));
   }
   if (depth < 8 && !B.over) resolveDeaths(B, depth + 1);
 }
@@ -836,6 +887,7 @@ function finParPv(B, raison, code) {
   say(B, `${raison} : ` + (B.winner === 'draw'
     ? `egalite a ${B.p.hp} PV, match nul.`
     : `${B[B.winner].name} l'emporte aux PV (${B.p.hp} contre ${B.e.hp}).`));
+  if (B.evts) evt(B, { t: 'fin', gagnant: B.winner, raison: code, pv: { p: B.p.hp, e: B.e.hp } }, null);
 }
 
 function checkOver(B) {
@@ -845,6 +897,7 @@ function checkOver(B) {
     B.finRaison = 'pv';
     B.winner = B.e.hp <= 0 && B.p.hp > 0 ? 'p' : B.p.hp <= 0 && B.e.hp > 0 ? 'e' : 'draw';
     say(B, B.winner === 'p' ? 'Victoire !' : B.winner === 'e' ? 'Defaite...' : 'Match nul.');
+    if (B.evts) evt(B, { t: 'fin', gagnant: B.winner, raison: 'pv', pv: { p: B.p.hp, e: B.e.hp } }, null);
   }
 }
 
@@ -857,8 +910,11 @@ function fireTrigger(B, k, slot, label) {
     if (!B[k].board.includes(u)) continue;   // deja morte entre-temps
     B.fired[slot] = (B.fired[slot] || 0) + 1;
     say(B, `${label} — ${u.name}.`);
-    applyEffects(B, k, u[slot], autoTarget(B, k, u[slot], u), u);
-    resolveDeaths(B);
+    const dec = B.evts ? evt(B, { t: 'declenche', moment: slot, camp: k, src: refUnite(u, k) }) : -1;
+    avec(B, dec, () => {
+      applyEffects(B, k, u[slot], autoTarget(B, k, u[slot], u), u);
+      resolveDeaths(B);
+    });
   }
 }
 
@@ -936,7 +992,8 @@ function fireEvent(B, acteur, ev, sujets = null, carteSujet = null) {
           if (!gardePasse(u, slot, sujets)) continue;   // « seulement si... »
           B.fired[slot] = (B.fired[slot] || 0) + 1;
           say(B, `${TRIGGERS[slot].label} — ${u.name}.`);
-          applyEffects(B, k, u[slot], autoTarget(B, k, u[slot], u), u, null, depart);
+          const dec = B.evts ? evt(B, { t: 'declenche', moment: slot, evenement: ev, camp: k, src: refUnite(u, k) }) : -1;
+          avec(B, dec, () => applyEffects(B, k, u[slot], autoTarget(B, k, u[slot], u), u, null, depart));
         }
       }
     }
@@ -947,7 +1004,14 @@ function fireEvent(B, acteur, ev, sujets = null, carteSujet = null) {
   }
 }
 
+// Le tour commence. Tout ce qu'il provoque (mana, pioche, declencheurs de debut de tour) a pour
+// cause l'evenement `tour` ; on remet la cause d'avant en sortant, par ou qu'on sorte.
 export function beginTurn(B) {
+  const avant = B.evtCause;
+  try { commenceTour(B); } finally { B.evtCause = avant; }
+}
+
+function commenceTour(B) {
   if (B.over) return;
   const k = B.turn;
   const s = B[k];
@@ -965,17 +1029,20 @@ export function beginTurn(B) {
   s.attaques = 0;
   s.piochees = 0;
   s.plafondPioche = false;
+  if (B.evts) B.evtCause = evt(B, { t: 'tour', camp: k, nom: s.name, mana: s.mana, maxMana: s.maxMana, pv: s.hp }, null);
   // Mana statique (« +1 mana par tour tant que je suis la »). Comme le mana promis,
   // il n'est pas plafonne par le mana max : c'est ce que la carte annonce.
   const manaStatique = staticTotal(B, k, 'mana_du_tour');
   if (manaStatique) {
     s.mana = Math.max(0, s.mana + manaStatique);
     say(B, `${s.name} ${manaStatique > 0 ? 'gagne' : 'perd'} ${Math.abs(manaStatique)} mana (effet statique).`);
+    if (B.evts) evt(B, { t: 'mana', camp: k, v: manaStatique, statique: true });
   }
   if (s.nextMana) {
     // Volontairement au-dessus du mana max : c'est ce que promet l'effet.
     s.mana += s.nextMana;
     say(B, `${s.name} recupere ${s.nextMana} mana promis au tour precedent.`);
+    if (B.evts) evt(B, { t: 'mana', camp: k, v: s.nextMana, promis: true });
     s.nextMana = 0;
   }
   for (const u of s.board) { u.canAttack = true; u.attackedThisTurn = false; }
@@ -1275,16 +1342,21 @@ function resolveAmounts(B, k, u, e) {
   // « Tous » = la puissance des sorts (tout ce qu'un palier « Amplifie » monte). Un statique
   // qui annonce « depuis la defausse » ne compte que pendant une Reprise (`B.sourceZone`,
   // pose par `playCard` le temps que les effets du sort se resolvent).
+  // Pour les evenements seulement : QUI a change le montant (`via`) et si le nombre vient d'un
+  // compteur (`_x`). Ces champs ne vivent que sur la copie de l'effet, le temps qu'il part.
+  const via = B.evts ? [] : undefined;
   const bonus = staticTotal(B, k, 'montant_des_effets', m =>
     (m.cible === e.op || (m.cible === 'tous' && AMPLIFIABLE.includes(e.op)))
-    && (m.zone !== 'defausse' || B.sourceZone === 'defausse'));
+    && (m.zone !== 'defausse' || B.sourceZone === 'defausse'), via);
   let copie = null;
   for (const p of champs) {
     if (e[p.k] === undefined) continue;
     if (typeof e[p.k] === 'number' && !bonus) continue;
     copie = copie || { ...e };
+    if (B.evts && typeof e[p.k] === 'object' && !copie._x) copie._x = describeAmount(e[p.k]);
     copie[p.k] = Math.max(0, amountValue(e[p.k], B, k, u) + bonus);
   }
+  if (copie && B.evts && bonus) { copie._bonus = bonus; copie._via = via; }
   return copie || e;
 }
 
@@ -1296,6 +1368,14 @@ function resolveAmounts(B, k, u, e) {
  * Rend les destinataires du dernier effet, pour que « Choisir » puisse les rendre a
  * son tour et que « Lui » traverse une branche.
  */
+/** Ce qu'un effet de degats ou de soin dit de lui-meme : sa source, et ce qui a change son montant. */
+function infoEffet(B, source, k, e) {
+  const info = { src: refSource(source, k) };
+  if (e._bonus) { info.bonus = e._bonus; if (e._via && e._via.length) info.via = e._via; }
+  if (e._x) info.x = e._x;
+  return info;
+}
+
 function applyEffects(B, k, effects, target, source, choix, depart) {
   const me = B[k], them = B[foe(k)];
   // Ce que le dernier effet a vise ou cree, pour la cible « Lui ». Les effets sans
@@ -1311,10 +1391,11 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         const cibles = cible(e.t);
         if (!cibles.length) { say(B, 'Aucune cible a viser.'); break; }
         last = cibles;
+        const info = B.evts ? infoEffet(B, source, k, e) : undefined;
         for (const r of cibles) {
           say(B, `${e.v} degats a ${nameOf(B, r)}.`);
-          if (r.kind === 'hero') damageHero(B, r.side, e.v);
-          else damageUnit(B, r.side, r.unit, e.v, source);
+          if (r.kind === 'hero') damageHero(B, r.side, e.v, info);
+          else damageUnit(B, r.side, r.unit, e.v, source, info);
         }
         break;
       }
@@ -1331,6 +1412,7 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
           r.unit.damage = r.unit.maxHp;
           r.unit.hp = 0;
           say(B, `${r.unit.name} est detruit.`);
+          if (B.evts) noteCoup(r.unit, evt(B, { t: 'detruit', src: refSource(source, k), cible: refUnite(r.unit, r.side) }));
         }
         break;
       }
@@ -1341,11 +1423,19 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         for (const r of soignes) {
           if (r.kind === 'hero') {
             const s = B[r.side];
+            const avant = s.hp;
             s.hp = Math.min(s.maxHp, s.hp + e.v);
             say(B, `${s.name} recupere ${e.v} PV.`);
+            if (B.evts) evt(B, { t: 'soin', ...infoEffet(B, source, k, e), cible: refHeros(B, r.side), n: e.v, soigne: s.hp - avant, avant, apres: s.hp });
           } else {
+            // `hp` est derive (refresh) : on lit les PV dans maxHp - damage, la verite.
+            const avant = r.unit.maxHp - r.unit.damage;
             r.unit.damage = Math.max(0, r.unit.damage - e.v);
             say(B, `${r.unit.name} recupere ${e.v} PV.`);
+            if (B.evts) {
+              const apres = r.unit.maxHp - r.unit.damage;
+              evt(B, { t: 'soin', ...infoEffet(B, source, k, e), cible: { ...refUnite(r.unit, r.side), hp: apres }, n: e.v, soigne: apres - avant, avant, apres });
+            }
           }
         }
         break;
@@ -1354,6 +1444,7 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         const recus = cible(e.t).filter(r => r.kind === 'unit');
         if (recus.length) last = recus;
         const list = recus.map(r => r.unit);
+        const avants = B.evts ? recus.map(r => ({ atk: r.unit.atk, hp: r.unit.hp })) : null;
         for (const u of list) {
           u.baseAtk += e.atk || 0;
           u.baseHp += e.hp || 0;
@@ -1365,6 +1456,14 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         const dit = v => ((v || 0) < 0 ? '' : '+') + (v || 0);
         if (list.length) say(B, `${(e.atk || 0) < 0 || (e.hp || 0) < 0 ? 'Affaiblissement' : 'Renfort'} : `
           + `${dit(e.atk)}/${dit(e.hp)} (${list.map(u => u.name).join(', ')}).`);
+        // Les chiffres de la cible APRES le renfort : les derives (refresh) ne sont pas encore recalcules.
+        if (B.evts) {
+          const src = refSource(source, k);
+          recus.forEach((r, i) => evt(B, {
+            t: 'renfort', src, atk: e.atk || 0, hp: e.hp || 0, cle: e.key || null, avant: avants[i],
+            cible: { ...refUnite(r.unit, r.side), atk: Math.max(0, avants[i].atk + (e.atk || 0)), hp: avants[i].hp + (e.hp || 0) }
+          }));
+        }
         // « QUAND CETTE UNITE RECOIT DU RENFORT » : le moment est porte par l'unite
         // renforcee, pas par son camp — d'ou la liste d'unites passee a `fireEvent`.
         // On part camp par camp parce qu'un renfort peut tomber en face, par « Lui ».
@@ -1391,16 +1490,19 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         // La carte vient du CATALOGUE (cartes libres + cartes des personnages), pas du
         // deck : rien n'est retire nulle part, elle apparait, point.
         const combien = e.n === undefined ? 1 : e.n;
-        const noms = [];
+        const noms = [], crees = [];
         for (let i = 0; i < combien; i++) {
           // Au hasard : un tirage par exemplaire, donc des cartes differentes.
           const modele = modeleCree(e, last);
           if (!modele) { say(B, `${rienDeTel(e)} : rien n'est cree.`); break; }
           if (mainPleine(me)) { say(B, 'Main pleine : la carte creee est perdue.'); break; }
-          me.hand.push(carteNeuve(modele, e.lvl || 1, source));
+          const nouvelle = carteNeuve(modele, e.lvl || 1, source);
+          me.hand.push(nouvelle);
           noms.push(modele.name);
+          if (B.evts) crees.push(refCarte(nouvelle));
         }
         if (noms.length) say(B, `${me.name} cree ${noms.length} × ${[...new Set(noms)].join(', ')}.`);
+        if (B.evts && crees.length) evt(B, { t: 'deplace', mode: 'cree', camp: k, de: 'rien', vers: 'main', src: refSource(source, k), cartes: crees });
         break;
       }
       case 'renforce_les_cartes': {
@@ -1430,6 +1532,13 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         if (arrivees.length) last = arrivees;
         const mot = vers === 'pioche' ? 'melangee(s) dans la pioche' : vers === 'main' ? 'renvoyee(s) en main' : 'posee(s) sur le plateau';
         say(B, `${pris.length} carte(s) ${mot} : ${pris.map(x => x.carte.name).join(', ')}.`);
+        if (B.evts) {
+          const mode = vers === 'pioche' ? 'melange' : vers === 'main' ? 'renvoi' : 'pose';
+          for (const camp of new Set(pris.map(x => x.camp))) {
+            evt(B, { t: 'deplace', mode, camp, de: e.d_ou || 'plateau', vers, src: refSource(source, k), cartes: pris.filter(x => x.camp === camp).map(x => refCarte(x.carte)) });
+          }
+          for (const a of arrivees) evt(B, { t: 'invoque', via: 'pose', camp: a.side, unite: refUnite(a.unit, a.side) });
+        }
         break;
       }
       case 'met_a_la_defausse':
@@ -1452,6 +1561,7 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         say(B, exil
           ? `${cartes.length} carte(s) exilee(s) de ${ou} de ${B[camp].name} : ${cartes.map(c => c.name).join(', ')}.`
           : `${cartes.length} carte(s) ${e.d_ou === 'pioche' ? 'meulee(s)' : 'defaussee(s)'} chez ${B[camp].name} : ${cartes.map(c => c.name).join(', ')}.`);
+        if (B.evts) evt(B, { t: 'deplace', mode: exil ? 'exil' : e.d_ou === 'pioche' ? 'meule' : 'defausse', camp, de: e.d_ou, vers: exil ? 'exil' : 'defausse', src: refSource(source, k), cartes: cartes.map(refCarte) });
         // Un evenement PAR CARTE, du cote de celui a qui elle est. Le gros des effets
         // ne ramasse pas les morts ici (fireEvent non plus) : le flux normal s'en charge.
         for (const c of cartes) {
@@ -1476,6 +1586,7 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         for (const r of cibles) devientCopie(B, r.unit, modele);
         last = cibles;
         say(B, `${avant.join(', ')} devient ${modele.name} ${modele.atk || 0}/${modele.hp || 0}.`);
+        if (B.evts) evt(B, { t: 'transforme', mode: 'copie', de: avant, modele: refCarte(modele), unites: cibles.map(r => refUnite(r.unit, r.side)) });
         break;
       }
       case 'switch': {
@@ -1502,6 +1613,7 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
           noms.push(`${carte.name} → ${face.name}`);
         }
         if (noms.length) say(B, `Switch : ${noms.join(', ')}.`);
+        if (B.evts && noms.length) evt(B, { t: 'transforme', mode: 'switch', camp, paires: noms });
         break;
       }
       case 'prendre_le_controle': {
@@ -1524,6 +1636,7 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         if (pris.length) {
           last = pris;
           say(B, `${me.name} prend le controle de ${pris.map(r => r.unit.name).join(', ')}.`);
+          if (B.evts) evt(B, { t: 'controle', camp: k, src: refSource(source, k), unites: pris.map(r => refUnite(r.unit, r.side)) });
         }
         break;
       }
@@ -1536,7 +1649,8 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         say(B, `Choix : ${branche.map(describeEffect).join(', ')}.`);
         // Les destinataires de la branche deviennent ceux de « Choisir » : « Lui »
         // continue donc de fonctionner par-dessus.
-        last = applyEffects(B, k, branche, target, source, choix) || last;
+        const choisi = B.evts ? evt(B, { t: 'choix', camp: k, src: refSource(source, k), texte: branche.map(describeEffect).join(', ') }) : -1;
+        last = avec(B, choisi, () => applyEffects(B, k, branche, target, source, choix)) || last;
         break;
       }
       case 'pioche_x': {
@@ -1561,13 +1675,23 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         say(B, touchees.length
           ? `${describeFilter(e)} : ${e.v} mana de moins (${touchees.map(c => c.name).join(', ')}).`
           : `Aucune carte a alleger dans ta main.`);
+        if (B.evts && touchees.length) evt(B, { t: 'cout', camp: k, v: e.v, src: refSource(source, k), cartes: touchees.map(refCarte) });
         break;
       }
-      case 'armor': me.armor += e.v; say(B, `${me.name} gagne ${e.v} armure.`); break;
-      case 'mana': me.mana += e.v; say(B, `+${e.v} mana.`); break;
+      case 'armor':
+        me.armor += e.v;
+        say(B, `${me.name} gagne ${e.v} armure.`);
+        if (B.evts) evt(B, { t: 'armure', camp: k, v: e.v, src: refSource(source, k) });
+        break;
+      case 'mana':
+        me.mana += e.v;
+        say(B, `+${e.v} mana.`);
+        if (B.evts) evt(B, { t: 'mana', camp: k, v: e.v, src: refSource(source, k) });
+        break;
       case 'mana_au_prochain_tour':
         me.nextMana += e.x || 0;
         say(B, `+${e.x || 0} mana au prochain tour.`);
+        if (B.evts) evt(B, { t: 'mana', camp: k, v: e.x || 0, promis: true, src: refSource(source, k) });
         break;
       case 'summon': {
         // Le jeton porte tout ce que makeUnit sait lire : mots-cles, aura, moments.
@@ -1585,6 +1709,7 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         }
         if (arrives.length) last = arrives;
         say(B, arrives.length ? `${arrives.length} ${e.unit.name}(s) arrivent.` : 'Le plateau est plein : aucune invocation.');
+        if (B.evts) for (const a of arrives) evt(B, { t: 'invoque', via: 'jeton', camp: k, src: refSource(source, k), unite: refUnite(a.unit, k) });
         break;
       }
       default: {
@@ -1686,14 +1811,22 @@ export function canPlay(B, k, card, zone = 'main') {
  * change de sens : c'est la place de la carte dans la main, ou dans la defausse.
  */
 export function playCard(B, k, handIndex, target = null, choix = null, zone = 'main') {
+  const avant = B.evtCause;
+  try { return jouerCarte(B, k, handIndex, target, choix, zone); } finally { B.evtCause = avant; }
+}
+
+function jouerCarte(B, k, handIndex, target, choix, zone) {
   const s = B[k];
   const pile = zone === 'defausse' ? s.discard : s.hand;
   const card = pile[handIndex];
   if (!card || !canPlay(B, k, card, zone)) return false;
-  s.mana -= cardCost(card, B, k, zone);
+  const paye = cardCost(card, B, k, zone);
+  s.mana -= paye;
   s.jouees++;
   s.posees.push(card.name);
   pile.splice(handIndex, 1);
+  // LA CARTE JOUEE est la cause de tout ce qu'elle fait, jusqu'a la fin de cette fonction.
+  if (B.evts) B.evtCause = evt(B, { t: 'joue', camp: k, carte: refCarte(card), paye, zone, cible: refCible(B, target), choix: choix || null });
   // UN ALLIE EN JEU N'EST PAS DANS LA DEFAUSSE : il est sur le plateau, et sa carte
   // voyage avec l'unite. Elle ne tombe a la defausse qu'a sa mort. Sans cette regle,
   // « reanime un allie de ta defausse » ressusciterait une unite encore vivante et
@@ -1704,14 +1837,17 @@ export function playCard(B, k, handIndex, target = null, choix = null, zone = 'm
     // ne peut donc pas se reprendre lui-meme, et « Les cartes jouees retournent dans ta
     // pioche » ne le renvoie jamais dans le deck : l'exil passe avant.
     s.exile.push(card);
+    if (B.evts) evt(B, { t: 'deplace', mode: 'exil', camp: k, de: 'defausse', vers: 'exil', cartes: [refCarte(card)] });
   } else if (card.type !== 'ally') {
     // « Les cartes que tu joues retournent dans ta pioche » : un effet statique, donc
     // il vaut tant que son porteur tient le plateau. Le plafond de recyclage par tour
     // s'applique — c'est lui qui empeche « sort a 0 mana qui revient » de tourner.
     // Le sort part AVANT que ses effets se resolvent : un sort qui pioche peut donc se
     // retirer lui-meme. C'est la meme regle que pour la defausse, et c'est visible.
-    if (staticTotal(B, k, 'cartes_jouees_remelangees', m => m.quoi !== 'allies') > 0) melangeDedans(B, k, [card]);
-    else s.discard.push(card);
+    if (staticTotal(B, k, 'cartes_jouees_remelangees', m => m.quoi !== 'allies') > 0) {
+      melangeDedans(B, k, [card]);
+      if (B.evts) evt(B, { t: 'deplace', mode: 'melange', camp: k, de: 'jeu', vers: 'pioche', cartes: [refCarte(card)] });
+    } else s.discard.push(card);
   }
   say(B, zone === 'defausse'
     ? `${s.name} joue ${card.name} depuis sa defausse (Reprise) : le sort est exile.`
@@ -1730,6 +1866,7 @@ export function playCard(B, k, handIndex, target = null, choix = null, zone = 'm
     s.board.push(source);
     refresh(B);
     checkKeywords(B, source);
+    if (B.evts) evt(B, { t: 'invoque', via: 'carte', camp: k, unite: refUnite(source, k) });
     if (source.aura) say(B, `Aura de ${source.name}.`);
     for (const m of source.statics) say(B, `${source.name} : ${describeStatic(m)}.`);
   }
@@ -1789,7 +1926,7 @@ export function cloneBattle(B) {
   // fonction, que `structuredClone` refuse ; et une copie est une hypothese — les
   // milliers de parties imaginees par le Monte-Carlo n'ont rien a faire dans le
   // journal de la vraie partie.
-  const { meta, journal, ...reste } = B;
+  const { meta, journal, evts, evtCause, ...reste } = B;
   const copie = structuredClone(reste);
   copie.meta = meta;
   return copie;
@@ -1810,6 +1947,11 @@ export function attackableTargets(B, k, unit) {
 }
 
 export function attack(B, k, unitUid, target) {
+  const avant = B.evtCause;
+  try { return attaquer(B, k, unitUid, target); } finally { B.evtCause = avant; }
+}
+
+function attaquer(B, k, unitUid, target) {
   const s = B[k], them = B[foe(k)];
   const a = s.board.find(u => u.uid === unitUid);
   if (!a || !a.canAttack || a.atk <= 0 || B.over) return false;
@@ -1819,9 +1961,11 @@ export function attack(B, k, unitUid, target) {
   a.canAttack = false;
   a.attackedThisTurn = true;
   s.attaques++;
+  // L'ATTAQUE est la cause du coup, de la riposte, des morts et de ce qui s'ensuit.
+  if (B.evts) B.evtCause = evt(B, { t: 'attaque', camp: k, src: refUnite(a, k), cible: refCible(B, target) });
   if (target.uid === 'hero') {
     say(B, `${a.name} frappe ${them.name} pour ${a.atk}.`);
-    damageHero(B, foe(k), a.atk);
+    damageHero(B, foe(k), a.atk, B.evts ? { src: refUnite(a, k) } : undefined);
   } else {
     const d = them.board.find(u => u.uid === target.uid);
     if (!d) return false;
@@ -1829,8 +1973,10 @@ export function attack(B, k, unitUid, target) {
     // Les deux coups partent avant qu'on ne ramasse les morts : une unite tuee en
     // attaquant rend quand meme ses degats, et les deux rales se declenchent.
     const riposte = d.atk;
-    damageUnit(B, foe(k), d, a.atk, a);
-    if (riposte > 0) damageUnit(B, k, a, riposte, d);
+    const infoCoup = B.evts ? { src: refUnite(a, k) } : undefined;
+    const infoRiposte = B.evts ? { src: refUnite(d, foe(k)), riposte: true } : undefined;
+    damageUnit(B, foe(k), d, a.atk, a, infoCoup);
+    if (riposte > 0) damageUnit(B, k, a, riposte, d, infoRiposte);
   }
   resolveDeaths(B);
   // L'unite qui vient d'attaquer est le sujet : elle est « Lui » pour ce moment.

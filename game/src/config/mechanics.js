@@ -912,7 +912,7 @@ export function staticFields(m) {
  * (le cout d'une carte, les degats d'un heros, la pioche du tour...) et n'a jamais a
  * parcourir les plateaux lui-meme. `garde` affine (le filtre de cartes, l'effet vise).
  */
-export function staticTotal(B, k, op, garde) {
+export function staticTotal(B, k, op, garde, via) {
   if (!B) return 0;   // hors combat (vitrine du deck) : aucun plateau, aucun modificateur
   let total = 0;
   for (const camp of ['p', 'e']) {
@@ -926,6 +926,9 @@ export function staticTotal(B, k, op, garde) {
         // Le montant se compte du cote du PORTEUR : « X = tes allies Chien » parle de lui.
         const v = amountValue(m.v, B, camp, u);
         total += m.sens === 'plus' ? v : -v;
+        // `via` (evenements seulement) : le nom du porteur et ce qu'il a ajoute, pour que le
+        // journal puisse dire POURQUOI un montant n'est pas celui de la carte.
+        if (via && v) via.push({ nom: u.name, v: m.sens === 'plus' ? v : -v });
       }
     }
   }
