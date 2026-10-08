@@ -47,6 +47,7 @@ let apercus = new Map();
 let gestesPoses = false;
 // Les effets (chiffres, secousses, morts) : voir ui/effets.js. Crees une fois, rejoues sur chaque combat.
 let fx = null;
+let rangArrivee = 0;   // le rang des cartes arrivees en main pendant ce rendu (decalage de leur glissade)
 // Le fichier JSONL du dernier combat enregistre, garde jusqu'a l'ecran de resultat :
 // c'est la qu'on le telecharge (le journal est ferme des que le combat l'est).
 let dernierJournal = null;
@@ -109,6 +110,9 @@ export function openBattle(node, done) {
   if (!fx) fx = creeFx({
     racine: () => $('#battle'),
     couche: () => coque.fx,
+    milieu: () => coque.mid,
+    main: () => coque.main,
+    defausse: camp => (camp === 'p' ? coque.def : coque.heroE.n),
     heros: camp => (camp === 'p' ? coque.heroP : coque.heroE).n,
     unite: (camp, uid) => (camp === 'p' ? coque.boardP : coque.boardE).firstElementChild._n.get(uid) || null,
     unites: camp => [...(camp === 'p' ? coque.boardP : coque.boardE).firstElementChild.children]
@@ -440,7 +444,14 @@ function render() {
   // Le journal ne redessine que les scenes qui ont recu un evenement (et rien s'il est ferme).
   c.journal.maj();
 
-  syncListe(c.main, B.p.hand, carte => carte, () => el('<div class="hcard" data-geste="main"></div>'), majCarte);
+  // Une carte qui arrive en main glisse jusqu'a sa place (CSS), l'une apres l'autre.
+  rangArrivee = 0;
+  syncListe(c.main, B.p.hand, carte => carte, () => {
+    const n = el('<div class="hcard nouvelle" data-geste="main"></div>');
+    n.style.setProperty('--r', rangArrivee++);
+    setTimeout(() => n.classList.remove('nouvelle'), 1500 * BALANCE.ui.fx.ralenti);
+    return n;
+  }, majCarte);
   majBarre();
   majFocus();
   // Les vignettes ne sont mises a l'echelle qu'une fois tout l'ecran en place : c'est

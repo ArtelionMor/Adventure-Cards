@@ -98,6 +98,10 @@ export const BALANCE = {
       grosCoup: 5,              // a partir de ce montant perdu, l'ecran entier tremble
       ecranSecousseMs: 320,
       ecranSecoussePx: 6,
+      volMs: 340,               // la carte jouee vole de la main au centre
+      tenueMs: 420,             // elle reste lisible au centre avant de se resoudre
+      sortieMs: 240,            // puis elle rejoint sa destination (plateau ou defausse)
+      popMs: 420,               // l'arrivee d'une unite (rebond)
       mortDelaiMs: 260,         // entre le coup qui tue et la mort
       mortMs: 520,
       ralenti: 1                // x N sur tous les temps : pour regarder un effet en capture

@@ -438,3 +438,8 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .fx-flash { position: absolute; border-radius: 12px; }
 .fx-spark { position: absolute; width: 7px; height: 7px; border-radius: 50%; will-change: transform, opacity; }
 .vitesse { font-size: 11px; padding: 6px 10px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); cursor: pointer; font-weight: 700; }
+.fx-carte { position: absolute; left: 0; top: 0; will-change: transform, opacity; box-shadow: 0 6px 22px rgba(0,0,0,.6); }
+.fx-mort { position: absolute; will-change: transform, opacity; }
+.hcard.nouvelle { animation: arrive calc(.38s * var(--fx-k, 1)) calc(var(--r, 0) * 80ms * var(--fx-k, 1)) backwards cubic-bezier(.2,.9,.3,1.15); }
+@keyframes arrive { from { transform: translateY(70px) scale(.7); opacity: 0; } }
+.fx-carte .nm { padding-bottom: 12px; }

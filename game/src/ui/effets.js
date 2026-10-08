@@ -15,6 +15,8 @@
 // `AC.fx.vitesse` lit le cran de vitesse.
 import { BALANCE } from '../config/balance.js';
 import { keyLabel } from '../config/mechanics.js';
+import { asset } from './shell.js';
+import { icone } from './icones.js';
 
 const F = () => BALANCE.ui.fx;
 const CLE_VITESSE = 'adventureCard.fxVitesse';
@@ -34,6 +36,7 @@ export function creeFx(acces) {
   let fantomes = new Map();  // « camp:uid » -> noeud : une unite morte, laissee le temps de l'animation
   let minuteurs = new Set();
   let fin = 0;               // l'heure (Date.now) a laquelle le film en cours se termine
+  let caches = new Set();    // les unites cachees le temps que leur carte arrive (reveles par `pop`)
   let vu = 0;                // combien d'evenements ont deja ete joues
 
   const T = ms => ms * reglage.ralenti / reglage.vitesse;
@@ -172,7 +175,7 @@ export function creeFx(acces) {
       { transform: 'translateX(0)' }, { transform: `translateX(${-a}px)`, offset: .12 },
       { transform: `translateX(${a * .8}px)`, offset: .3 }, { transform: `translateX(${-a * .55}px)`, offset: .5 },
       { transform: `translateX(${a * .3}px)`, offset: .72 }, { transform: 'translateX(0)' }
-    ], { duration: T(ms), easing: 'linear' });
+    ], { duration: T(ms), easing: 'linear', fill: 'none' });
   }
 
   function secoueEcran(px, ms) {
@@ -181,7 +184,7 @@ export function creeFx(acces) {
       { transform: 'translate(0,0)' }, { transform: `translate(${-px}px, ${px * .5}px)`, offset: .15 },
       { transform: `translate(${px * .8}px, ${-px * .4}px)`, offset: .35 }, { transform: `translate(${-px * .5}px, 0)`, offset: .6 },
       { transform: 'translate(0,0)' }
-    ], { duration: T(ms), easing: 'linear' });
+    ], { duration: T(ms), easing: 'linear', fill: 'none' });
   }
 
   /** L'elan : recul, bond vers la cible, retour. Rend le delai (ms, vitesse x1) jusqu'au coup. */
@@ -201,7 +204,7 @@ export function creeFx(acces) {
       { transform: `translate(${-dx * .12}px, ${-dy * .12}px) scale(.94)`, offset: .22, easing: 'cubic-bezier(.5,0,.9,.4)' },
       { transform: `translate(${dx}px, ${dy}px) scale(1.15)`, offset: f.elanImpact, easing: 'ease-out' },
       { transform: 'translate(0,0) scale(1)', offset: 1 }
-    ], { duration: T(f.elanMs) });
+    ], { duration: T(f.elanMs), fill: 'none' });
     apres(f.elanMs, () => { n.style.zIndex = n0; });
   }
 
@@ -263,12 +266,62 @@ export function creeFx(acces) {
     const r = rectDe(env);
     eclair(r);
     etincelles(r, '#fff', 10);
+    const ic = pose('fx-mort', icone('Dead', 46), r);
+    anime(ic, [
+      { transform: 'translate(-50%,-50%) scale(.3)', opacity: 0 },
+      { transform: 'translate(-50%,-60%) scale(1.3)', opacity: 1, offset: .3 },
+      { transform: 'translate(-50%,-110%) scale(1)', opacity: 0 }
+    ], { duration: T(f.mortMs * 1.6), easing: 'ease-out' });
+    ephemere(ic, f.mortMs * 1.6);
     anime(env, [
       { transform: 'scale(1) rotate(0deg)', opacity: 1 },
       { transform: 'scale(1.18) rotate(-4deg)', opacity: 1, offset: .25 },
       { transform: 'scale(.7) rotate(9deg)', opacity: 0 }
     ], { duration: T(f.mortMs), easing: 'ease-in' });
     apres(f.mortMs, () => retireFantome(u.camp, u.uid));
+  }
+
+  /** Une carte jouee : elle part de la main (ou du heros adverse), se montre au centre, puis va a sa destination. */
+  function carteJouee(ev) {
+    const f = F();
+    const c = ev.carte;
+    const d = document.createElement('div');
+    d.className = `hcard fx-carte${c.type === 'spell' ? ' spell' : ''}`;
+    const cout = typeof ev.paye === 'number' ? ev.paye : c.cout;
+    d.innerHTML = `<div class="cost">${cout}</div>${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}<div class="nm">${c.nom}</div>${c.type === 'ally' ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}`;
+    const centre = r => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+    const o = centre(rectDe(ev.camp === 'p' ? acces.main() : acces.heros('e')));
+    const m = centre(rectDe(acces.milieu()));
+    const un = ev.carte.type === 'ally' ? [...acces.unites(ev.camp)].pop() : null;
+    // Un allie va vers son plateau ; un sort, vers la defausse.
+    const dest = centre(rectDe(un || acces.defausse(ev.camp)));
+    acces.couche().appendChild(d);
+    const tr = (p, s) => `translate(${p.x}px, ${p.y}px) translate(-50%, -50%) scale(${s})`;
+    const total = f.volMs + f.tenueMs + f.sortieMs;
+    anime(d, [
+      { transform: tr(o, .55), opacity: 0 },
+      { transform: tr(m, 1.55), opacity: 1, offset: f.volMs / total, easing: 'ease-in-out' },
+      { transform: tr(m, 1.6), opacity: 1, offset: (f.volMs + f.tenueMs) / total, easing: 'ease-in' },
+      { transform: tr(dest, .3), opacity: 0 }
+    ], { duration: T(total), easing: 'cubic-bezier(.2,.8,.3,1)' });
+    ephemere(d, total);
+    marque(total);
+  }
+
+  /** L'arrivee d'une unite : elle rebondit, avec un petit nuage d'eclats. */
+  function pop(camp, uid) {
+    const f = F();
+    const n = acces.unite(camp, uid);
+    if (!n) return;
+    n.style.visibility = '';
+    caches.delete(n);
+    anime(n, [
+      { transform: 'scale(.15)', opacity: 0 },
+      { transform: 'scale(1.3)', opacity: 1, offset: .55 },
+      { transform: 'scale(.92)', offset: .78 },
+      { transform: 'scale(1)', opacity: 1 }
+    ], { duration: T(f.popMs), easing: 'ease-out', fill: 'none' });
+    etincelles(rectDe(n), '#ffe8a8', 8);
   }
 
   // ------------------------------------------------------------ le film
@@ -285,6 +338,13 @@ export function creeFx(acces) {
     // Les unites qui meurent dans ce lot: on les garde a l'ecran (fantome) le temps de les
     // faire souffrir, puisque `syncListe` a deja retire leur noeud.
     for (const ev of lot) if (ev.t === 'meurt') faitFantome(ev.unite.camp, ev.unite.uid);
+    acces.racine().style.setProperty('--fx-k', reglage.ralenti / reglage.vitesse);
+    // Une unite qui arrive reste cachee jusqu'a ce que sa carte la depose (`pop`).
+    for (const ev of lot) {
+      if (ev.t !== 'invoque') continue;
+      const n = acces.unite(ev.unite.camp, ev.unite.uid);
+      if (n) { n.style.visibility = 'hidden'; caches.add(n); }
+    }
 
     let t = 0;                      // l'horloge du film
     const impact = new Map();       // indice d'evenement -> heure du coup
@@ -316,6 +376,18 @@ export function creeFx(acces) {
           marque(at + f.secousseMs);
           break;
         }
+        case 'joue': {
+          apres(t, () => carteJouee(ev));
+          t += f.volMs + f.tenueMs;
+          groupe = null;
+          break;
+        }
+        case 'invoque': {
+          const at = heure(ev);
+          apres(at, () => pop(ev.unite.camp, ev.unite.uid));
+          marque(at + f.popMs);
+          break;
+        }
         case 'soin': { const at = heure(ev); apres(at, () => soin(ev)); marque(at + f.chiffreMs * .5); break; }
         case 'renfort': { const at = heure(ev); apres(at, () => renfort(ev, 0)); marque(at + f.chiffreMs * .5); break; }
         case 'meurt': {
@@ -331,7 +403,7 @@ export function creeFx(acces) {
     }
     marque(t);
     // Un fantome oublie (sa mort n'a pas ete jouee) ne reste pas : on le retire a la fin du film.
-    apres(t + f.mortMs, () => { for (const [k, env] of fantomes) { env.remove(); fantomes.delete(k); } });
+    apres(t + f.mortMs, () => { for (const n of caches) n.style.visibility = ''; caches.clear(); for (const [k, env] of fantomes) { env.remove(); fantomes.delete(k); } });
     return t;
   }
 
@@ -353,6 +425,8 @@ export function creeFx(acces) {
       minuteurs.clear();
       for (const env of fantomes.values()) env.remove();
       fantomes.clear();
+      for (const n of caches) n.style.visibility = '';
+      caches.clear();
       photos = new Map();
       fin = 0;
       vu = 0;
