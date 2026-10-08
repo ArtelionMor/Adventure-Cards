@@ -124,9 +124,34 @@ export const FEUILLE = ${JSON.stringify(objet, null, 2)};
   return FICHIER;
 }
 
-/** Synchronise : lit, ecrit, et rend l'apercu de ce qui a change. */
-export async function synchronise() {
+const git = (...args) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf8', timeout: 60000, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+
+/**
+ * Range la synchro dans git : COMMIT puis PUSH de ce seul fichier, pour que le PC la recupere par `git pull`
+ * (sans quoi le Pi garde une modification non enregistree, qui ferait un conflit au prochain pull). Le commit ne
+ * contient que `feuille.data.js` (`--` + chemin) : les cartes en attente sur le Pi ne sont jamais embarquees.
+ * Ne leve jamais : rend `{ commit, pousse, message }` — la synchro est ecrite quoi qu'il arrive.
+ */
+export function publie(resume) {
+  const rel = path.relative(RACINE, FICHIER).split(path.sep).join('/');
+  try {
+    if (!git('status', '--porcelain', '--', rel)) return { commit: false, pousse: false, message: 'rien a enregistrer : git a deja cette version' };
+    git('add', '--', rel);
+    git('commit', '-m', `Feuille : synchro avec la Google Sheet (${resume})`, '--', rel);
+  } catch (e) { return { commit: false, pousse: false, message: 'commit impossible : ' + String(e.stderr || e.message).trim() }; }
+  try {
+    git('push');
+    return { commit: true, pousse: true, message: 'enregistre et pousse : le PC la recupere avec git pull' };
+  } catch (e) {
+    return { commit: true, pousse: false, message: 'enregistre sur le Pi, mais le push a echoue (fais git pull puis git push) : ' + String(e.stderr || e.message).trim().split(String.fromCharCode(10))[0] };
+  }
+}
+
+/** Synchronise : lit, ecrit, range dans git (sauf `{ git: false }`), et rend l'apercu de ce qui a change. */
+export async function synchronise({ git: avecGit = true } = {}) {
   const a = await apercu();
   ecris(a.lue.onglets);
+  const n = a.plan.filter(p => p.etat === 'change').length + a.retires.length;
+  a.git = avecGit ? publie(n ? `${n} valeur(s) changee(s)` : 'aucun changement') : null;
   return a;
 }

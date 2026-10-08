@@ -7,7 +7,10 @@
 // commence par « ~ » dans la feuille (onglet, colonne, ligne) n'est pas exporte.
 import { apercu, synchronise, FICHIER } from './lib/feuille.mjs';
 
+// Par defaut, la synchro est AUSSI commitee et poussee (ce seul fichier) : le PC la recupere par `git pull`.
+// `--sans-git` ecrit le fichier sans le commiter ni le pousser.
 const seulementApercu = process.argv.includes('--apercu');
+const avecGit = !process.argv.includes('--sans-git');
 
 function ecrit(a) {
   const change = a.plan.filter(p => p.etat === 'change');
@@ -24,9 +27,10 @@ function ecrit(a) {
 }
 
 try {
-  const a = seulementApercu ? await apercu() : await synchronise();
+  const a = seulementApercu ? await apercu() : await synchronise({ git: avecGit });
   ecrit(a);
   console.log(seulementApercu ? '\n(apercu : rien n\'a ete ecrit)' : `\nEcrit : ${FICHIER}`);
+  if (a.git) console.log('Git : ' + a.git.message);
 } catch (e) {
   console.error('Echec : ' + e.message);
   process.exit(1);

@@ -109,7 +109,7 @@ $('#appliquer').onclick = async () => {
   bandeau('warn', 'Écriture dans le jeu…');
   try {
     const j = await appelle('POST');
-    bandeau('ok', 'Appliqué au jeu', 'game/data/feuille.data.js est écrit sur cette machine. Recharge le jeu (F5) pour voir les nouvelles valeurs. Pour les rapatrier sur le PC : commit puis git pull.');
+    bandeau(j.git && j.git.commit && !j.git.pousse ? 'warn' : 'ok', 'Appliqué au jeu', 'Recharge le jeu (F5) pour voir les nouvelles valeurs. Git : ' + (j.git ? j.git.message : '—'));
     dessine(j, true);
   } catch (e) { bandeau('ko', 'Écriture impossible', e.message); }
   $('#voir').disabled = false;
