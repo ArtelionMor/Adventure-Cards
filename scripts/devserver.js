@@ -802,6 +802,18 @@ http.createServer((req, res) => {
     }
   }
 
+  // ---- LA FEUILLE GOOGLE : la game config se synchronise avec « Config Adventure-Cards » ----
+  // GET = apercu (ce qui changerait), POST = ecrit game/data/feuille.data.js. Le jeu servi par ce serveur
+  // voit la nouvelle valeur au prochain rechargement ; pour la rapatrier sur le PC : commit + git pull.
+  // Pas double en C# (Node seulement). Sans la cle du compte de service (le PC), la route le dit.
+  if (urlPath === '/api/feuille' && (req.method === 'GET' || req.method === 'POST')) {
+    import('./lib/feuille.mjs')
+      .then(f => (req.method === 'GET' ? f.apercu() : f.synchronise()))
+      .then(({ lue, ...a }) => json(res, 200, { ...a, ecrit: req.method === 'POST' }))
+      .catch(e => json(res, 400, { erreur: e.message }));
+    return;
+  }
+
   // ---- LES VERSIONS DU JEU ----
   if (urlPath === '/api/versions' || urlPath.startsWith('/api/versions/')) {
     const action = urlPath.slice('/api/versions'.length);

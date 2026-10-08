@@ -1,5 +1,7 @@
 // GAME CONFIG — c'est ici que le game designer tune le jeu.
 // Aucune valeur d'equilibrage ne doit vivre ailleurs que dans ce fichier.
+import { FEUILLE } from '../../data/feuille.data.js';
+import { applique } from './feuille.js';
 
 export const BALANCE = {
   version: '0.1.0',
@@ -188,6 +190,11 @@ export const BALANCE = {
   // disponibles a l'achat le jour N depuis la premiere partie (GDD).
   unlockCadence: [6, 4, 3, 2, 1, 1, 0, 1, 0, 1, 0, 1]
 };
+
+// LA FEUILLE GOOGLE (« Config Adventure-Cards », onglet « animations ») remplace les valeurs de `ui.fx` ci-dessus :
+// `scripts/sync-feuille.mjs` (ou le bouton « Feuille » de l'Atelier) l'ecrit dans game/data/feuille.data.js.
+// Ce qui est dans la feuille gagne ; une ligne absente laisse la valeur de ce fichier (voir config/feuille.js).
+applique(BALANCE.ui.fx, FEUILLE.animations);
 
 export const TUNING_NOTE =
   "Toutes ces valeurs sont provisoires : elles servent a rendre la boucle jouable, pas a etre justes.";

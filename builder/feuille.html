@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#0f1115" />
+<link rel="icon" href="icons/atelier-192.png" />
+<title>Feuille — Atelier</title>
+<style>
+  :root {
+    --bg: #0f1115; --bg-2: #161922; --bg-3: #1d2230; --line: #2a3142;
+    --text: #e7eaf0; --muted: #9aa3b2; --accent: #7aa2ff; --warn: #f5a623; --danger: #ff6b81; --ok: #5fd38d;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; }
+  body { font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 14px 80px; }
+  .haut { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .haut a.retour { color: var(--muted); font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -.02em; }
+  h2 { font-size: 16px; margin: 22px 0 8px; }
+  .muted, small { color: var(--muted); font-size: 13px; }
+  .bandeau { border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px; border: 1px solid var(--line); background: var(--bg-2); }
+  .bandeau.ok { border-color: #2c5a45; } .bandeau.warn { border-color: #6b4d12; background: #221a0c; } .bandeau.ko { border-color: #6b2230; background: #22101a; }
+  .bandeau b { display: block; margin-bottom: 2px; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+  button { font: inherit; font-size: 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-3); color: var(--text); padding: 9px 14px; cursor: pointer; min-height: 42px; }
+  button.primaire { background: linear-gradient(135deg, var(--accent), #5b86ff); color: #0b1020; font-weight: 700; border: 0; }
+  button:disabled { opacity: .5; cursor: default; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; }
+  td.id { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+  .av { color: var(--muted); } .ap { color: var(--ok); font-weight: 700; }
+  .ko { color: var(--danger); } .inc { color: var(--warn); }
+  .pastille { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg-3); margin: 0 6px 6px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="haut">
+    <a class="retour" href="accueil.html">← Atelier</a>
+    <h1>Feuille</h1>
+  </div>
+  <p class="muted">La game config se règle dans la Google Sheet « Config Adventure-Cards ». Ici, on la <b>lit</b>, on voit ce qui changerait, puis on l'<b>applique au jeu</b>.
+    Tout ce qui commence par <b>~</b> (onglet, colonne, ligne) n'est pas exporté.</p>
+
+  <div class="actions">
+    <button id="voir" class="primaire">Voir les changements</button>
+    <button id="appliquer" disabled>Appliquer au jeu</button>
+  </div>
+  <div id="etat"></div>
+  <div id="resultat"></div>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = v => (v === null || v === undefined ? '—' : esc(JSON.stringify(v)));
+let apercu = null;
+
+function bandeau(classe, titre, texte) { $('#etat').innerHTML = `<div class="bandeau ${classe}"><b>${esc(titre)}</b>${texte ? esc(texte) : ''}</div>`; }
+
+function dessine(a, ecrit) {
+  const change = a.plan.filter(p => p.etat === 'change');
+  const invalides = a.plan.filter(p => p.etat === 'invalide');
+  const inconnus = a.plan.filter(p => p.etat === 'inconnu');
+  const identiques = a.plan.length - change.length - invalides.length - inconnus.length;
+  let h = '';
+  h += '<h2>Onglets</h2>';
+  h += a.onglets.map(n => `<span class="pastille">${esc(n)}</span>`).join('') || '<small>aucun</small>';
+  if (a.ignores.length) h += `<br><small>Ignorés (~) : ${a.ignores.map(esc).join(', ')}</small>`;
+  if (a.sansEffet.length) h += `<br><small class="inc">Exportés mais sans effet : rien ne lit encore ${a.sansEffet.map(esc).join(', ')}.</small>`;
+  h += `<h2>${ecrit ? 'Ce qui a changé' : 'Ce qui changerait'} (${change.length})</h2>`;
+  if (change.length) {
+    h += '<table><tr><th>Valeur</th><th>Avant</th><th>Après</th></tr>' + change.map(p =>
+      `<tr><td class="id">${esc(p.id)}<br><small>${esc(p.nom)}</small></td><td class="av">${fmt(p.avant)}</td><td class="ap">${fmt(p.apres)}</td></tr>`).join('') + '</table>';
+  } else h += `<p class="muted">Rien ne change : ${identiques} ligne(s) déjà identiques au jeu.</p>`;
+  if (invalides.length) h += `<h2>Ignorées : mauvaise forme (${invalides.length})</h2><table>` + invalides.map(p => `<tr><td class="id ko">${esc(p.id)}</td><td>${esc(p.raison)} — lu : ${fmt(p.apres)}</td></tr>`).join('') + '</table>';
+  if (inconnus.length) h += `<h2>Ignorées : inconnues du jeu (${inconnus.length})</h2><table>` + inconnus.map(p => `<tr><td class="id inc">${esc(p.id)}</td><td>${esc(p.raison)}</td></tr>`).join('') + '</table>';
+  if (a.retires.length) h += `<h2>Retirées de la feuille (${a.retires.length})</h2><p class="muted">${a.retires.map(esc).join(', ')} — elles retombent sur la valeur de <code>balance.js</code>.</p>`;
+  $('#resultat').innerHTML = h;
+}
+
+async function appelle(methode) {
+  const r = await fetch('/api/feuille', { method: methode });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.erreur || r.status);
+  return j;
+}
+
+$('#voir').onclick = async () => {
+  $('#voir').disabled = true; $('#appliquer').disabled = true;
+  bandeau('warn', 'Lecture de la feuille…');
+  try {
+    apercu = await appelle('GET');
+    const n = apercu.plan.filter(p => p.etat === 'change').length + apercu.retires.length;
+    bandeau(n ? 'warn' : 'ok', n ? `${n} changement(s) à appliquer` : 'Le jeu est à jour', 'Rien n\'est écrit tant que tu n\'as pas appliqué.');
+    dessine(apercu, false);
+    $('#appliquer').disabled = false;
+  } catch (e) { bandeau('ko', 'Lecture impossible', e.message); $('#resultat').innerHTML = ''; }
+  $('#voir').disabled = false;
+};
+
+$('#appliquer').onclick = async () => {
+  $('#appliquer').disabled = true; $('#voir').disabled = true;
+  bandeau('warn', 'Écriture dans le jeu…');
+  try {
+    const j = await appelle('POST');
+    bandeau('ok', 'Appliqué au jeu', 'game/data/feuille.data.js est écrit sur cette machine. Recharge le jeu (F5) pour voir les nouvelles valeurs. Pour les rapatrier sur le PC : commit puis git pull.');
+    dessine(j, true);
+  } catch (e) { bandeau('ko', 'Écriture impossible', e.message); }
+  $('#voir').disabled = false;
+};
+</script>
+</body>
+</html>
