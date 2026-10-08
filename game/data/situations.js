@@ -95,7 +95,7 @@ export const SITUATIONS = [
     question: 'Prendre le contrôle du Colosse : tu enlèves la Provocation d’en face ET tu gagnes un 8/8 à Bouclier.',
     regarde: 'Il n’attaque pas ce tour-ci (pas de Charge), et à sa mort sa carte part dans la défausse de SON propriétaire. Regarde surtout ce que ça vaut contre 70 PV : un 8/8 volé, c’est neuf tours.',
     niveau: 8, tour: 10, qui: 'p',
-    p: { heros: ['cameleon', 'owl'], pv: 16, mana: 2, tours: 5, main: ['fox_ambush'] },
+    p: { heros: ['cameleon', 'owl'], pv: 16, mana: 3, tours: 5, main: ['fox_ambush'] },
     e: { pnj: 'owlboss', pv: 70, mana: 10, tours: 5, plateau: ['grunt4', 'wall2'] }
   },
   {

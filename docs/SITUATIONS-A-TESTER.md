@@ -161,7 +161,7 @@ REGARDE   C'est une décision de game design assumée, pas un bug — mais il fa
 
 ```
 SETUP   Miracle&Athena (8) contre Grand-Duc · tour 10
-        toi     : 16 PV / 2 mana · main : Captif dans le miroir [2]
+        toi     : 16 PV / 3 mana · main : Captif dans le miroir [3]
         en face : 70 PV · plateau : Lapin-Colosse 8/8 Provocation Bouclier,
                   Chien-Rempart 3/6
 QUESTION  Prendre le contrôle du Colosse : tu enlèves la Provocation d'en face ET tu

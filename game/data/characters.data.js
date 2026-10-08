@@ -36,6 +36,18 @@ export const CHARACTER_DATA = {
   ],
   "library": [
     {
+      "id": "miroir",
+      "name": "Miroir",
+      "type": "spell",
+      "cost": 0,
+      "keys": [
+        "miroir"
+      ],
+      "text": "Miroir : en main, devient la dernière carte jouée par l'adversaire, avec 1 mana de moins.",
+      "play": [],
+      "tiers": []
+    },
+    {
       "id": "grunt1",
       "name": "Lapin - Rongeur",
       "type": "ally",
@@ -3824,6 +3836,16 @@ export const CHARACTER_DATA = {
           ],
           "tiers": [
             {
+              "lvl": 5,
+              "extra": {
+                "op": "cree",
+                "choix": "lui",
+                "n": 1
+              },
+              "slot": "play",
+              "text": "Ajoute à ta main une copie de la carte copiée."
+            },
+            {
               "lvl": 6,
               "text": "+1/+1",
               "stats": {
@@ -3944,7 +3966,7 @@ export const CHARACTER_DATA = {
           "type": "spell",
           "cost": 2,
           "keys": [],
-          "text": "Choisir : Crée une carte du type d'une carte sur le terrain OU à la défausse.",
+          "text": "Choisir : Crée une carte du type d'une carte sur le terrain OU à la défausse OU un Miroir.",
           "play": [
             {
               "op": "choisir",
@@ -3981,6 +4003,14 @@ export const CHARACTER_DATA = {
                     "plus": 0
                   }
                 }
+              ],
+              "c": [
+                {
+                  "op": "cree",
+                  "choix": "precise",
+                  "carte": "miroir",
+                  "n": 1
+                }
               ]
             }
           ],
@@ -3997,7 +4027,7 @@ export const CHARACTER_DATA = {
             },
             {
               "lvl": 8,
-              "text": "les deux choix partent",
+              "text": "les trois choix partent",
               "lesDeux": true
             }
           ],
@@ -4109,8 +4139,13 @@ export const CHARACTER_DATA = {
             },
             {
               "lvl": 8,
-              "text": "Coût -1.",
-              "cost": -1
+              "extra": {
+                "op": "cree",
+                "choix": "precise",
+                "carte": "miroir",
+                "n": 1
+              },
+              "text": "Crée aussi un Miroir."
             }
           ],
           "sprite": "Characters/Cameleon.png"
@@ -7327,36 +7362,25 @@ export const CHARACTER_DATA = {
           "type": "spell",
           "cost": 3,
           "keys": [],
-          "text": "Une de tes unités devient une copie d’une unité adverse.",
+          "text": "Crée 2 Miroirs.",
           "play": [
             {
-              "op": "copie",
-              "t": "randomAllyUnit",
-              "d_ou": "plateau",
+              "op": "cree",
               "choix": "precise",
-              "carte": "",
-              "quoi": "all",
-              "argCard": "",
-              "tm": "enemyUnit",
-              "qui": "adversaire",
-              "ordre": "hasard"
+              "carte": "miroir",
+              "n": 2
             }
           ],
           "tiers": [
             {
-              "lvl": 3,
-              "cost": -1,
-              "text": "Coût -1"
-            },
-            {
               "lvl": 10,
               "extra": {
-                "op": "buff",
-                "t": "previous",
-                "atk": 2,
-                "hp": 2
+                "op": "cree",
+                "choix": "precise",
+                "carte": "miroir",
+                "n": 1
               },
-              "text": "L’unité copiée gagne +2/+2."
+              "text": "Crée un Miroir de plus."
             },
             {
               "lvl": 12,
