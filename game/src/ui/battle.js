@@ -521,6 +521,8 @@ function render() {
 
   // Une carte qui arrive en main glisse jusqu'a sa place (CSS), l'une apres l'autre.
   rangArrivee = 0;
+  root.style.setProperty('--fx-pioche', BALANCE.ui.fx.piocheMs);
+  root.style.setProperty('--fx-pioche-decalage', BALANCE.ui.fx.piocheDecalageMs);
   syncListe(c.main, B.p.hand, carte => carte, () => {
     const n = el('<div class="hcard nouvelle" data-geste="main"></div>');
     n.style.setProperty('--r', rangArrivee++);

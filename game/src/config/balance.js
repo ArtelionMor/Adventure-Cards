@@ -101,6 +101,8 @@ export const BALANCE = {
       grosCoup: 5,              // a partir de ce montant perdu, l'ecran entier tremble
       ecranSecousseMs: 320,
       ecranSecoussePx: 6,
+      piocheMs: 380,            // une carte piochee glisse jusqu'a sa place
+      piocheDecalageMs: 80,     // entre deux cartes piochees ensemble
       volMs: 340,               // la carte jouee vole de la main au centre
       tenueMs: 420,             // elle reste lisible au centre avant de se resoudre
       sortieMs: 240,            // puis elle rejoint sa destination (plateau ou defausse)
@@ -194,7 +196,7 @@ export const BALANCE = {
 // LA FEUILLE GOOGLE (« Config Adventure-Cards », onglet « animations ») remplace les valeurs de `ui.fx` ci-dessus :
 // `scripts/sync-feuille.mjs` (ou le bouton « Feuille » de l'Atelier) l'ecrit dans game/data/feuille.data.js.
 // Ce qui est dans la feuille gagne ; une ligne absente laisse la valeur de ce fichier (voir config/feuille.js).
-applique(BALANCE.ui.fx, FEUILLE.animations);
+applique(BALANCE, FEUILLE.animations);
 
 export const TUNING_NOTE =
   "Toutes ces valeurs sont provisoires : elles servent a rendre la boucle jouable, pas a etre justes.";

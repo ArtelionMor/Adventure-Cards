@@ -92,7 +92,7 @@ function etatDuJeu() {
   const script = `
     import { BALANCE } from ${JSON.stringify(pathToFileURL(path.join(RACINE, 'game/src/config/balance.js')).href)};
     import { FEUILLE } from ${JSON.stringify(pathToFileURL(FICHIER).href)};
-    process.stdout.write(JSON.stringify({ fx: BALANCE.ui.fx, feuille: FEUILLE }));`;
+    process.stdout.write(JSON.stringify({ racine: { ui: { fx: BALANCE.ui.fx }, combat: { autoStepMs: BALANCE.combat.autoStepMs } }, feuille: FEUILLE }));`;
   return JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
 }
 
@@ -104,7 +104,7 @@ export async function apercu() {
   const { planifie } = await import(pathToFileURL(path.join(RACINE, 'game/src/config/feuille.js')).href);
   const lue = await lisLaFeuille();
   const jeu = etatDuJeu();
-  const plan = planifie(jeu.fx, lue.onglets.animations || []).map(({ objet, ...p }) => p);
+  const plan = planifie(jeu.racine, lue.onglets.animations || []).map(({ objet, ...p }) => p);
   const ids = new Set((lue.onglets.animations || []).map(l => String(l.id)));
   const retires = (jeu.feuille.animations || []).map(l => String(l.id)).filter(id => !ids.has(id));
   const sansEffet = Object.keys(lue.onglets).filter(n => n !== 'animations');
