@@ -2,7 +2,7 @@
 // Il vient de la Google Sheet « Config Adventure-Cards ». Les onglets, colonnes et lignes en « ~ » ne sont pas exportes.
 // Les valeurs de l'onglet « animations » remplacent celles de BALANCE.ui.fx (game/src/config/feuille.js).
 export const FEUILLE = {
-  "synchro": "2026-10-08T22:53:58.946Z",
+  "synchro": "2026-10-08T22:57:34.477Z",
   "feuille": "1B01tuggXdbvqO3_7wh2YserIoDVnarMXCPXPaYbSGCY",
   "animations": [
     {
