@@ -509,3 +509,8 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .fx-banniere { display: flex; align-items: center; justify-content: center; gap: 12px; }
 .fx-ban-img { width: 54px; height: 54px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
 .fx-banniere .ico { color: #fff; }
+/* La carte qu'on joue est une vitrine : plus large, hauteur libre, et c'est le SEUL endroit ou le texte d'effet s'ecrit. */
+.fx-carte { height: auto; min-width: 120px; max-width: 120px; }
+.fx-carte .nm { min-height: 0; }
+.fx-carte .tx { font-size: 10px; line-height: 1.2; color: var(--ink-dim); }
+.fx-carte .st { position: static; justify-self: end; }

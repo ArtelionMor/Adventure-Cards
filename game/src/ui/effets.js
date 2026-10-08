@@ -390,7 +390,8 @@ export function creeFx(acces) {
     const d = document.createElement('div');
     d.className = `hcard fx-carte${c.type === 'spell' ? ' spell' : ''}`;
     const cout = typeof ev.paye === 'number' ? ev.paye : c.cout;
-    d.innerHTML = `<div class="cost">${cout}</div>${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}<div class="nm">${c.nom}</div>${ligneDePictos(definition(c), { taille: 18, max: 4 })}${c.type === 'ally' ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}`;
+    const def = definition(c);   // le texte d'effet ne s'affiche QUE sur la carte qu'on joue (pas en main, pas sur le terrain)
+    d.innerHTML = `<div class="cost">${cout}</div>${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}<div class="nm">${c.nom}</div>${ligneDePictos(def, { taille: 18, max: 4 })}<div class="tx">${def.text || ''}</div>${c.type === 'ally' ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}`;
     const centre = r => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
     const o = centre(rectDe(ev.camp === 'p' ? acces.main() : acces.heros('e')));
     const m = centre(rectDe(acces.milieu()));
