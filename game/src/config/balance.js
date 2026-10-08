@@ -102,6 +102,9 @@ export const BALANCE = {
       tenueMs: 420,             // elle reste lisible au centre avant de se resoudre
       sortieMs: 240,            // puis elle rejoint sa destination (plateau ou defausse)
       popMs: 420,               // l'arrivee d'une unite (rebond)
+      anneauMs: 620,            // l'anneau d'un changement d'etat (bouclier, aura, armure, mana)
+      banniereMs: 1000,         // la banniere « Ton tour » traverse l'ecran
+      banniereAvanceMs: 900,    // ce que la banniere retarde le coup suivant (elle finit de sortir pendant)
       mortDelaiMs: 260,         // entre le coup qui tue et la mort
       mortMs: 520,
       ralenti: 1                // x N sur tous les temps : pour regarder un effet en capture

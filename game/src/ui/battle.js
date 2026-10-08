@@ -232,6 +232,8 @@ function syncListe(wrap, liste, cle, cree, maj) {
 function majUnite(n, u, side) {
   n.dataset.side = side;
   n.dataset.uid = u.uid;
+  n.dataset.atk = u.atk;
+  n.dataset.hp = u.hp;
   const ap = pilule(apercus.get(`${side}:${u.uid}`));
   const sig = [u.sprite || '', u.atk, u.hp, u.keys.join(','), moments(u).length ? 1 : 0, ap].join('|');
   if (n._sig !== sig) {

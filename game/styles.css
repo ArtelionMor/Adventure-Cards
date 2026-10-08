@@ -443,3 +443,7 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .hcard.nouvelle { animation: arrive calc(.38s * var(--fx-k, 1)) calc(var(--r, 0) * 80ms * var(--fx-k, 1)) backwards cubic-bezier(.2,.9,.3,1.15); }
 @keyframes arrive { from { transform: translateY(70px) scale(.7); opacity: 0; } }
 .fx-carte .nm { padding-bottom: 12px; }
+.fx-anneau { position: absolute; width: 46px; height: 46px; border-radius: 50%; border: 3px solid #fff; will-change: transform, opacity; }
+.fx-banniere { position: absolute; left: 50%; width: 130%; padding: 10px 0; text-align: center; text-transform: uppercase; font-weight: 900; font-size: 26px; letter-spacing: 4px; color: #fff; -webkit-text-stroke: 1px rgba(0,0,0,.4); will-change: transform, opacity; }
+.fx-banniere.moi { background: linear-gradient(90deg, transparent, rgba(60,160,110,.92) 18%, rgba(60,160,110,.92) 82%, transparent); }
+.fx-banniere.eux { background: linear-gradient(90deg, transparent, rgba(190,60,80,.92) 18%, rgba(190,60,80,.92) 82%, transparent); }

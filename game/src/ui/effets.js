@@ -24,7 +24,7 @@ const CLE_VITESSE = 'adventureCard.fxVitesse';
 // La couleur de chaque sorte de chiffre. Ce sont des teintes de travail, pas une direction artistique.
 const COULEUR = {
   degats: '#ff4d5e', venin: '#b57cff', armure: '#9fb4d9', soin: '#5fe08f',
-  renfort: '#ffc46b', neutre: '#e9e6f2'
+  renfort: '#ffc46b', neutre: '#e9e6f2', mana: '#6ec1ff'
 };
 
 export function creeFx(acces) {
@@ -37,6 +37,7 @@ export function creeFx(acces) {
   let minuteurs = new Set();
   let fin = 0;               // l'heure (Date.now) a laquelle le film en cours se termine
   let caches = new Set();    // les unites cachees le temps que leur carte arrive (reveles par `pop`)
+  let auraAt = 0;            // quand les changements de chiffres sans cause se montrent (apres la carte qui les cause)
   let vu = 0;                // combien d'evenements ont deja ete joues
 
   const T = ms => ms * reglage.ralenti / reglage.vitesse;
@@ -80,7 +81,7 @@ export function creeFx(acces) {
         const clone = n.cloneNode(true);
         clone.removeAttribute('data-geste');
         clone.classList.remove('sel', 'ready', 'lit', 'acteur', 'targetable');
-        nv.set(cle(camp, uid), { rect: rectDe(n), s: echelleDe(n), clone });
+        nv.set(cle(camp, uid), { rect: rectDe(n), s: echelleDe(n), clone, atk: Number(n.dataset.atk), hp: Number(n.dataset.hp) });
       }
     }
     photos = nv;
@@ -167,6 +168,70 @@ export function creeFx(acces) {
     }
   }
 
+  /** Un anneau qui s'etend depuis une cible : le signe d'un changement d'etat (bouclier, aura, venin, armure...). */
+  function anneau(r, couleur, fois = 1) {
+    const f = F();
+    for (let i = 0; i < fois; i++) {
+      const d = pose('fx-anneau', '', r, { borderColor: couleur, boxShadow: `0 0 12px ${couleur}` });
+      anime(d, [
+        { transform: 'translate(-50%,-50%) scale(.4)', opacity: 0 },
+        { transform: 'translate(-50%,-50%) scale(1.1)', opacity: .95, offset: .3 },
+        { transform: 'translate(-50%,-50%) scale(2.4)', opacity: 0 }
+      ], { duration: T(f.anneauMs), delay: T(i * f.anneauMs * .3), easing: 'ease-out' });
+      ephemere(d, f.anneauMs * (1 + i * .3));
+    }
+    marque(f.anneauMs);
+  }
+
+  /** La banniere de changement de tour : elle traverse l'ecran. */
+  function banniere(ev) {
+    const f = F();
+    const moi = ev.camp === 'p';
+    const d = document.createElement('div');
+    d.className = `fx-banniere ${moi ? 'moi' : 'eux'}`;
+    d.textContent = moi ? 'Ton tour' : 'Tour adverse';
+    const m = rectDe(acces.milieu());
+    d.style.top = (m.y + m.h / 2) + 'px';
+    acces.couche().appendChild(d);
+    const total = f.banniereMs;
+    anime(d, [
+      { transform: 'translate(-50%,-50%) translateX(-120%) skewX(-12deg)', opacity: 0 },
+      { transform: 'translate(-50%,-50%) translateX(0) skewX(-12deg)', opacity: 1, offset: .24, easing: 'ease-out' },
+      { transform: 'translate(-50%,-50%) translateX(0) scale(1.04) skewX(-12deg)', opacity: 1, offset: .76 },
+      { transform: 'translate(-50%,-50%) translateX(120%) skewX(-12deg)', opacity: 0 }
+    ], { duration: T(total), easing: 'ease-in' });
+    ephemere(d, total);
+    marque(total);
+  }
+
+  /** Ce que gagne un heros : armure ou mana, au-dessus de lui. */
+  function gainHeros(camp, texte, couleur) {
+    const n = acces.heros(camp);
+    if (!n) return;
+    const r = rectDe(n);
+    chiffre(r, texte, couleur, .9);
+    anneau(r, couleur);
+  }
+
+  /** Une unite dont les chiffres ont bouge sans cause visible : une aura vient de se poser ou de tomber. */
+  function auras(couverts) {
+    const f = F();
+    let rang = 0;
+    for (const camp of ['p', 'e']) {
+      for (const n of acces.unites(camp)) {
+        const uid = Number(n.dataset.uid);
+        const av = photos.get(cle(camp, uid));
+        if (!av || couverts.has(cle(camp, uid))) continue;
+        const da = Number(n.dataset.atk) - av.atk, dh = Number(n.dataset.hp) - av.hp;
+        if (!da && !dh) continue;
+        const bon = da + dh > 0;
+        const c = bon ? COULEUR.renfort : COULEUR.venin;
+        const texte = `${da >= 0 ? '+' : '−'}${Math.abs(da)}/${dh >= 0 ? '+' : '−'}${Math.abs(dh)}`;
+        apres(auraAt + (rang++) * f.groupeMs, () => { const r = rectDe(n); chiffre(r, texte, c, .8); anneau(r, c); });
+      }
+    }
+  }
+
   /** La secousse a amplitude decroissante (comme le short de reference). */
   function secoue(n, px, ms) {
     const s = echelleDe(n);
@@ -219,12 +284,16 @@ export function creeFx(acces) {
     const sorte = ev.venin ? 'venin' : 'degats';
     let texte, couleur = COULEUR[sorte];
     let taille = 1 + Math.min(perdu, 12) * .06;
-    if (ev.annule) { texte = 'Annulé'; couleur = COULEUR.neutre; taille = .8; }
+    const venin = !!ev.venin;
+    if (venin) { texte = 'Venin'; taille = 1.15; }
+    else if (ev.annule) { texte = 'Annulé'; couleur = COULEUR.neutre; taille = .8; }
     else if (ev.bouclier) { texte = 'Bloqué'; couleur = COULEUR.armure; taille = .85; }
     else if (perdu > 0) texte = `−${perdu}`;
     else if ((ev.armure || 0) > 0) { texte = 'Armure'; couleur = COULEUR.armure; taille = .85; }
     else { texte = '0'; couleur = COULEUR.neutre; taille = .8; }
     chiffre(r, texte, couleur, taille);
+    if (venin) anneau(r, COULEUR.venin, 2);
+    if (ev.bouclier) anneau(r, '#cfe0ff');
     if (perdu > 0 || ev.bouclier) {
       eclair(r, ev.bouclier ? '#cfe0ff' : '#fff');
       etincelles(r, couleur);
@@ -346,6 +415,14 @@ export function creeFx(acces) {
       if (n) { n.style.visibility = 'hidden'; caches.add(n); }
     }
 
+    auraAt = 0;
+    // Ceux dont un evenement du lot explique deja les chiffres : pas d'effet d'aura en plus.
+    const couverts = new Set();
+    for (const ev of lot) {
+      if (['degats', 'soin', 'renfort'].includes(ev.t) && ev.cible && ev.cible.uid) couverts.add(cle(ev.cible.camp, ev.cible.uid));
+      if (ev.t === 'invoque') couverts.add(cle(ev.unite.camp, ev.unite.uid));
+      if (ev.t === 'transforme' || ev.t === 'controle') for (const u of ev.unites || (ev.unite ? [ev.unite] : [])) couverts.add(cle(u.camp, u.uid));
+    }
     let t = 0;                      // l'horloge du film
     const impact = new Map();       // indice d'evenement -> heure du coup
     let groupe = null;              // le dernier groupe (meme cause, meme type) : { cause, t, type }
@@ -379,6 +456,7 @@ export function creeFx(acces) {
         case 'joue': {
           apres(t, () => carteJouee(ev));
           t += f.volMs + f.tenueMs;
+          if (!auraAt) auraAt = t;
           groupe = null;
           break;
         }
@@ -386,6 +464,26 @@ export function creeFx(acces) {
           const at = heure(ev);
           apres(at, () => pop(ev.unite.camp, ev.unite.uid));
           marque(at + f.popMs);
+          break;
+        }
+        case 'tour': {
+          apres(t, () => banniere(ev));
+          t += f.banniereAvanceMs;
+          groupe = null;
+          break;
+        }
+        case 'armure': {
+          if (!(ev.v > 0)) break;
+          const at = heure(ev);
+          apres(at, () => gainHeros(ev.camp, `+${ev.v} Armure`, COULEUR.armure));
+          marque(at + f.chiffreMs * .5);
+          break;
+        }
+        case 'mana': {
+          if (!(ev.v > 0)) break;
+          const at = heure(ev);
+          apres(at, () => gainHeros(ev.camp, ev.promis ? `+${ev.v} Mana au prochain tour` : `+${ev.v} Mana`, COULEUR.mana));
+          marque(at + f.chiffreMs * .5);
           break;
         }
         case 'soin': { const at = heure(ev); apres(at, () => soin(ev)); marque(at + f.chiffreMs * .5); break; }
@@ -401,6 +499,7 @@ export function creeFx(acces) {
         default: break;
       }
     }
+    auras(couverts);
     marque(t);
     // Un fantome oublie (sa mort n'a pas ete jouee) ne reste pas : on le retire a la fin du film.
     apres(t + f.mortMs, () => { for (const n of caches) n.style.visibility = ''; caches.clear(); for (const [k, env] of fantomes) { env.remove(); fantomes.delete(k); } });
