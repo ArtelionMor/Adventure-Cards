@@ -14,9 +14,10 @@
 // Console : `AC.fx.ralenti = 8` ralentit tout (pour regarder un effet en capture),
 // `AC.fx.vitesse` lit le cran de vitesse.
 import { BALANCE } from '../config/balance.js';
-import { keyLabel } from '../config/mechanics.js';
+import { cardById } from '../config/npcs.js';
 import { asset } from './shell.js';
 import { icone } from './icones.js';
+import { ligneDePictos, iconeDeCle } from './pictos.js';
 
 const F = () => BALANCE.ui.fx;
 const CLE_VITESSE = 'adventureCard.fxVitesse';
@@ -190,7 +191,9 @@ export function creeFx(acces) {
     const moi = ev.camp === 'p';
     const d = document.createElement('div');
     d.className = `fx-banniere ${moi ? 'moi' : 'eux'}`;
-    d.textContent = moi ? 'Ton tour' : 'Tour adverse';
+    // Pas de mot : le portrait de celui qui joue, sur une bande verte (toi) ou rouge (l'adversaire).
+    const portrait = acces.heros(ev.camp) && acces.heros(ev.camp).querySelector('img');
+    d.innerHTML = `${portrait ? `<img class="fx-ban-img" src="${portrait.getAttribute('src')}" alt="">` : ''}${icone('TurnStart', 34)}`;
     const m = rectDe(acces.milieu());
     d.style.top = (m.y + m.h / 2) + 'px';
     acces.couche().appendChild(d);
@@ -309,11 +312,11 @@ export function creeFx(acces) {
     let texte, couleur = COULEUR[sorte];
     let taille = 1 + Math.min(perdu, 12) * .06;
     const venin = !!ev.venin;
-    if (venin) { texte = 'Venin'; taille = 1.15; }
-    else if (ev.annule) { texte = 'Annulé'; couleur = COULEUR.neutre; taille = .8; }
-    else if (ev.bouclier) { texte = 'Bloqué'; couleur = COULEUR.armure; taille = .85; }
+    if (venin) { texte = icone('Venom', 30); taille = 1.15; }
+    else if (ev.annule) { texte = icone('Cancel', 26); couleur = COULEUR.neutre; taille = .8; }
+    else if (ev.bouclier) { texte = icone('Shield', 28); couleur = COULEUR.armure; taille = .85; }
     else if (perdu > 0) texte = `−${perdu}`;
-    else if ((ev.armure || 0) > 0) { texte = 'Armure'; couleur = COULEUR.armure; taille = .85; }
+    else if ((ev.armure || 0) > 0) { texte = icone('Armor', 26); couleur = COULEUR.armure; taille = .85; }
     else { texte = '0'; couleur = COULEUR.neutre; taille = .8; }
     chiffre(r, texte, couleur, taille);
     if (venin) anneau(r, COULEUR.venin, 2);
@@ -325,14 +328,14 @@ export function creeFx(acces) {
       if (perdu >= f.grosCoup) secoueEcran(f.ecranSecoussePx, f.ecranSecousseMs);
     }
     // Si l'armure a absorbe une part du coup, on le dit a cote du chiffre.
-    if (perdu > 0 && (ev.armure || 0) > 0) chiffre(r, `Armure −${ev.armure}`, COULEUR.armure, .6, 0);
+    if (perdu > 0 && (ev.armure || 0) > 0) chiffre(r, `−${ev.armure}${icone('Armor', 16)}`, COULEUR.armure, .6, 0);
   }
 
   function soin(ev) {
     const n = noeudDe(ev.cible);
     if (!n || !(ev.soigne > 0)) return;
     const r = rectDe(n);
-    chiffre(r, `+${ev.soigne}`, COULEUR.soin, 1);
+    chiffre(r, `+${ev.soigne}${icone('Heal', 22)}`, COULEUR.soin, 1);
     etincelles(r, COULEUR.soin, 5);
   }
 
@@ -345,7 +348,8 @@ export function creeFx(acces) {
     else morceaux.push('+0/');
     morceaux.push(ev.hp ? `${ev.hp > 0 ? '+' : '−'}${Math.abs(ev.hp)}` : '+0');
     let texte = morceaux.join('');
-    if (ev.cle) texte += ` ${keyLabel(ev.cle)}`;
+    const ic = ev.cle && iconeDeCle(ev.cle);
+    if (ic) texte += icone(ic, 20);
     chiffre(r, texte, COULEUR.renfort, .85, rang * 0);
     etincelles(r, COULEUR.renfort, 5);
   }
@@ -374,6 +378,11 @@ export function creeFx(acces) {
     apres(f.mortMs, () => retireFantome(u.camp, u.uid));
   }
 
+  /** La carte complete (ses effets) depuis le catalogue : la photo de l'evenement n'a que ses mots-cles. */
+  function definition(c) {
+    try { return cardById(c.id) || c; } catch { return c; }
+  }
+
   /** Une carte jouee : elle part de la main (ou du heros adverse), se montre au centre, puis va a sa destination. */
   function carteJouee(ev) {
     const f = F();
@@ -381,7 +390,7 @@ export function creeFx(acces) {
     const d = document.createElement('div');
     d.className = `hcard fx-carte${c.type === 'spell' ? ' spell' : ''}`;
     const cout = typeof ev.paye === 'number' ? ev.paye : c.cout;
-    d.innerHTML = `<div class="cost">${cout}</div>${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}<div class="nm">${c.nom}</div>${c.type === 'ally' ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}`;
+    d.innerHTML = `<div class="cost">${cout}</div>${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}<div class="nm">${c.nom}</div>${ligneDePictos(definition(c), { taille: 18, max: 4 })}${c.type === 'ally' ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}`;
     const centre = r => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
     const o = centre(rectDe(ev.camp === 'p' ? acces.main() : acces.heros('e')));
     const m = centre(rectDe(acces.milieu()));
@@ -502,14 +511,14 @@ export function creeFx(acces) {
         case 'armure': {
           if (!(ev.v > 0)) break;
           const at = heure(ev);
-          apres(at, () => gainHeros(ev.camp, `+${ev.v} Armure`, COULEUR.armure));
+          apres(at, () => gainHeros(ev.camp, `+${ev.v}${icone('Armor', 22)}`, COULEUR.armure));
           marque(at + f.chiffreMs * .5);
           break;
         }
         case 'mana': {
           if (!(ev.v > 0)) break;
           const at = heure(ev);
-          apres(at, () => gainHeros(ev.camp, ev.promis ? `+${ev.v} Mana au prochain tour` : `+${ev.v} Mana`, COULEUR.mana));
+          apres(at, () => gainHeros(ev.camp, `+${ev.v}${icone('Mana', 22)}${ev.promis ? icone('TurnStart', 18) : ''}`, COULEUR.mana));
           marque(at + f.chiffreMs * .5);
           break;
         }

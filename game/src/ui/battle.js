@@ -20,6 +20,7 @@ import { gardeCombat } from './combats.js';
 import { ouvreRevue } from './revue.js';
 import { creeFx } from './effets.js';
 import { montreFin } from './fin.js';
+import { ligneDePictos } from './pictos.js';
 
 let B = null;
 let auto = true;
@@ -304,15 +305,15 @@ function majUnite(n, u, side) {
   n.dataset.atk = u.atk;
   n.dataset.hp = u.hp;
   const ap = pilule(apercus.get(`${side}:${u.uid}`));
-  const sig = [u.name, u.sprite || '', u.atk, u.hp, u.keys.join(','), moments(u).length ? 1 : 0, ap].join('|');
+  const pics = ligneDePictos(u, { effets: false, taille: 16, max: 3 });
+  const sig = [u.name, u.sprite || '', u.atk, u.hp, pics, ap].join('|');
   if (n._sig !== sig) {
     n._sig = sig;
     n.innerHTML = `
       ${u.sprite ? `<img src="${asset(u.sprite)}" alt="">` : '<img alt="">'}
       <div class="un">${u.name}</div>
       <div class="s"><span class="a">${u.atk}</span> / <span class="h">${u.hp}</span></div>
-      ${u.keys.length ? `<div class="kw">${u.keys.map(keyLabel).join(' ')}</div>` : ''}
-      ${moments(u).length ? `<div class="kw" style="color:var(--accent2)">◆</div>` : ''}
+      ${pics}
       ${ap ? `<div class="pv">${ap}</div>` : ''}`;
   }
   n.classList.toggle('taunt', hasKey(u.keys, 'Taunt'));
@@ -341,7 +342,9 @@ function majHero(h, s, k) {
   const pct = Math.max(0, s.hp / s.maxHp * 100);
   const src = asset(s.sprite);
   if (h.img.getAttribute('src') !== src) h.img.setAttribute('src', src);
-  h.nom.textContent = `${s.name} ${s.armor ? '🛡' + s.armor : ''}${s.nextMana ? ' ⧗+' + s.nextMana : ''}`;
+  // L'armure et le mana promis se disent par leur icone, pas par un signe ecrit a la main.
+  const nom = `${s.name}${s.armor ? ` <span class="hv">${icone('Armor', 14)}${s.armor}</span>` : ''}${s.nextMana ? ` <span class="hv">${icone('Mana', 14)}+${s.nextMana}${icone('TurnStart', 12)}</span>` : ''}`;
+  if (h.sigNom !== nom) { h.sigNom = nom; h.nom.innerHTML = nom; }
   // Ce qu'on peut savoir de la main adverse sans la voir : combien de cartes, et ce qui reste a piocher.
   if (k === 'e') h.info.textContent = `Main ${s.hand.length} · Pioche ${s.deck.length}`;
   h.fill.style.width = `${pct}%`;
@@ -364,15 +367,15 @@ function majCarte(n, c, i) {
   // Le cout affiche est celui qu'on va vraiment payer : le mot-cle « Cout X de
   // moins/de plus » peut le faire bouger d'un tour a l'autre, on le signale.
   const cout = cardCost(c, B, 'p');
-  const sig = [c.name, cout, c.cost, c.sprite || '', c.text || '', c.type, c.atk, c.hp, moments(c).join('·')].join('|');
+  const pics = ligneDePictos(c, { taille: 20, max: 4 });
+  const sig = [c.name, cout, c.cost, c.sprite || '', c.type, c.atk, c.hp, pics].join('|');
   if (n._sig !== sig) {
     n._sig = sig;
     n.innerHTML = `
       <div class="cost" ${cout !== c.cost ? `title="coût de base ${c.cost}" style="color:var(--accent2)"` : ''}>${cout}</div>
       ${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}
       <div class="nm">${c.name}</div>
-      <div class="tx">${c.text || ''}</div>
-      ${moments(c).length ? `<div class="tx" style="color:var(--accent2)">◆ ${moments(c).join(' · ')}</div>` : ''}
+      ${pics}
       ${c.type === 'ally' ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}`;
   }
   n.classList.toggle('spell', c.type === 'spell');
