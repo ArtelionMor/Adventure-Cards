@@ -388,7 +388,7 @@ export function creeFx(acces) {
     const f = F();
     const c = ev.carte;
     const d = document.createElement('div');
-    d.className = `hcard fx-carte${c.type === 'spell' ? ' spell' : ''}`;
+    d.className = `hcard fx-carte lancer${c.type === 'spell' ? ' spell' : ''}`;
     const cout = typeof ev.paye === 'number' ? ev.paye : c.cout;
     const def = definition(c);   // le texte d'effet ne s'affiche QUE sur la carte qu'on joue (pas en main, pas sur le terrain)
     d.innerHTML = `<div class="cost">${cout}</div>${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}<div class="nm">${c.nom}</div>${ligneDePictos(def, { taille: 18, max: 4 })}<div class="tx">${def.text || ''}</div>${c.type === 'ally' ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}`;
@@ -406,6 +406,50 @@ export function creeFx(acces) {
       { transform: tr(m, 1.55), opacity: 1, offset: f.volMs / total, easing: 'ease-in-out' },
       { transform: tr(m, 1.6), opacity: 1, offset: (f.volMs + f.tenueMs) / total, easing: 'ease-in' },
       { transform: tr(dest, .3), opacity: 0 }
+    ], { duration: T(total), easing: 'cubic-bezier(.2,.8,.3,1)' });
+    ephemere(d, total);
+    marque(total);
+  }
+
+  // LA CARTE-EFFET : ce qu'une unite fait SANS qu'on joue de carte (rale d'agonie, debut/fin de tour, « quand X alors Y »)
+  // se montre comme une carte, au CONTOUR DIFFERENT (comme Arena) : gris-rouge pour la mort, vert pour le debut de
+  // ton tour, bleu pour la fin, violet pour une regle « quand ». Ses pictogrammes sont ceux de ce qu'elle a provoque.
+  const MOMENT_EFFET = { death: ['mort', 'Deathrattle'], turnStart: ['debut', 'TurnStart'], turnEnd: ['fin', 'TurnEnd'] };
+  const ICONE_EVT = {
+    degats: e => ['Damage', e.perdu > 1 ? e.perdu : null], soin: e => ['Heal', e.soigne > 1 ? e.soigne : null],
+    renfort: () => ['Buff', null], invoque: () => ['Summon', null], pioche: () => ['Draw', null],
+    armure: e => ['Armor', e.v > 1 ? e.v : null], mana: e => ['Mana', e.v > 1 ? e.v : null],
+    detruit: () => ['Destroy', null], controle: () => ['Control', null],
+    transforme: e => [e.mode === 'copie' ? 'Copy' : 'Switch', null],
+    deplace: e => [{ melange: 'Shuffle', cree: 'Create', exil: 'Exile', meule: 'Mill', defausse: 'Mill', renvoi: 'Return' }[e.mode] || 'Trigger', null]
+  };
+  function carteEffet(ev, enfants) {
+    const f = F();
+    const [classe, momentIcone] = MOMENT_EFFET[ev.moment] || ['regle', 'Trigger'];
+    const vus = new Set();
+    const pics = [];
+    for (const e of enfants) {
+      const fn = ICONE_EVT[e.t];
+      if (!fn) continue;
+      const [nom, n] = fn(e);
+      if (!vus.has(nom + n)) { vus.add(nom + n); pics.push(`<span class="pc">${icone(nom, 18)}${n !== null ? `<b>${n}</b>` : ''}</span>`); }
+    }
+    const u = ev.src;
+    const d = document.createElement('div');
+    d.className = `hcard fx-carte effet ${classe}`;
+    d.innerHTML = `${u.sprite ? `<img src="${asset(u.sprite)}" alt="">` : ''}<div class="nm">${u.nom}</div><div class="pic"><span class="pc">${icone(momentIcone, 20)}</span>${pics.slice(0, 3).join('')}</div>`;
+    const centre = r => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+    const noeud = noeudDe(u);
+    const o = noeud ? centre(rectDe(noeud)) : centre(rectDe(acces.milieu()));
+    const m = centre(rectDe(acces.milieu()));
+    acces.couche().appendChild(d);
+    const tr = (p, s) => `translate(${p.x}px, ${p.y}px) translate(-50%, -50%) scale(${s})`;
+    const total = f.effetVolMs + f.effetTenueMs + f.effetSortieMs;
+    anime(d, [
+      { transform: tr(o, .5), opacity: 0 },
+      { transform: tr(m, 1.35), opacity: 1, offset: f.effetVolMs / total, easing: 'ease-in-out' },
+      { transform: tr(m, 1.4), opacity: 1, offset: (f.effetVolMs + f.effetTenueMs) / total, easing: 'ease-in' },
+      { transform: tr(m, .6), opacity: 0 }
     ], { duration: T(total), easing: 'cubic-bezier(.2,.8,.3,1)' });
     ephemere(d, total);
     marque(total);
@@ -494,6 +538,14 @@ export function creeFx(acces) {
           apres(t, () => carteJouee(ev));
           t += f.volMs + f.tenueMs;
           if (auraAt === retard) auraAt = t;
+          groupe = null;
+          break;
+        }
+        case 'declenche': {
+          // Les pictogrammes viennent de ce que ce declenchement a provoque (ses enfants dans le recit).
+          const enfants = lot.filter(e => e.cause === ev.i);
+          apres(t, () => carteEffet(ev, enfants));
+          t += f.effetVolMs + f.effetTenueMs * .6;
           groupe = null;
           break;
         }

@@ -514,3 +514,13 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .fx-carte .nm { min-height: 0; }
 .fx-carte .tx { font-size: 10px; line-height: 1.2; color: var(--ink-dim); }
 .fx-carte .st { position: static; justify-self: end; }
+
+/* ---------- les contours des cartes jouees et des cartes-effets (comme Arena) ---------- */
+.fx-carte { border-width: 2px; border-style: solid; }
+.fx-carte.lancer { border-color: #ffc46b; box-shadow: 0 0 18px rgba(255,196,107,.55), 0 6px 22px rgba(0,0,0,.6); }
+.fx-carte.effet { height: 98px; min-width: 92px; max-width: 92px; }
+.fx-carte.effet.mort  { border-color: #b86a74; box-shadow: 0 0 16px rgba(184,106,116,.6), 0 6px 22px rgba(0,0,0,.6); }
+.fx-carte.effet.debut { border-color: #7fd6a6; box-shadow: 0 0 16px rgba(127,214,166,.6), 0 6px 22px rgba(0,0,0,.6); }
+.fx-carte.effet.fin   { border-color: #6ec1ff; box-shadow: 0 0 16px rgba(110,193,255,.6), 0 6px 22px rgba(0,0,0,.6); }
+.fx-carte.effet.regle { border-color: #c69bff; box-shadow: 0 0 16px rgba(198,155,255,.6), 0 6px 22px rgba(0,0,0,.6); }
+.fx-carte.effet .pic { height: 24px; }

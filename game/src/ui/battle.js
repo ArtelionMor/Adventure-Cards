@@ -206,7 +206,7 @@ function installeTriche() {
     }
   };
   window.AC.triche = {
-    aide: "voir(nom, camp='e') · scenes() · aura(camp='p') · gagne() · perd() · mana(n) · pv(camp, n) · pioche(n) · fx.ralenti = 5",
+    aide: "voir(nom, camp='e') · effet(moment, camp='p') · scenes() · aura(camp='p') · gagne() · perd() · mana(n) · pv(camp, n) · pioche(n) · fx.ralenti = 5",
     scenes: () => Object.keys(SCENES).concat('aura'),
     voir(nom = 'degats', k = 'e') {
       const f = SCENES[nom];
@@ -214,6 +214,17 @@ function installeTriche() {
       if (!f) return `scene inconnue : ${Object.keys(SCENES).join(', ')}, aura`;
       const ev = f(camp(k));
       return ev ? pousse(ev) : 'rien a montrer';
+    },
+    // La carte-effet d'une unite : `effet('death' | 'turnStart' | 'turnEnd' | 'autre', camp)` — son premier allie
+    // « declenche », et la carte-effet montre ce que ca a cause (ici 2 degats au heros d'en face).
+    effet(moment = 'death', k = 'p') {
+      const c = camp(k), u = B && B[c].board[0];
+      if (!u) return 'aucune unite sur ce plateau';
+      const i = evt(B, { t: 'declenche', moment, camp: c, src: refUnite(u, c) }, null);
+      const autre = c === 'p' ? 'e' : 'p';
+      evt(B, { t: 'degats', cible: refHeros(B, autre), n: 2, perdu: 2, avant: B[autre].hp, apres: B[autre].hp - 2 }, i);
+      render();
+      return 'ok';
     },
     // Un allie gagne +1/+1 sans evenement : c'est ce que l'ecran lit comme une aura.
     aura(k = 'p') {
