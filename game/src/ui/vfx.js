@@ -92,6 +92,30 @@ export const SIGNATURES = {
   cam2_ball:   { lancer: ['confettis', {}], vers: 'allies', arrivee: ['confettis', {}] }
 };
 
+/** Ce que fait chaque brique, en une phrase (le wiki de l'Atelier l'affiche). */
+export const BRIQUES_DOC = {
+  eclair: "Un trait de foudre en zigzag de la carte vers la cible, avec un éclair blanc à l'arrivée.",
+  griffures: "Trois stries obliques qui se tracent sur la cible.",
+  plumes: "Des plumes qui tournoient de la carte vers la cible et s'y plantent.",
+  langue: "Un long trait rose qui claque sur la cible (la langue de la grenouille).",
+  gouttes: "Des gouttes qui coulent sur la cible (venin, croissance).",
+  pluie: "Une averse sur tout un plateau.",
+  souffle: "Un anneau net et des éclats qui partent de la cible.",
+  faisceau: "Un faisceau vertical qui tombe du haut de l'écran sur la cible.",
+  yeux: "Deux yeux qui s'ouvrent (regard, présage, veilleur).",
+  sablier: "Un sablier qui se retourne sur la cible, avec du sable qui coule.",
+  convocation: "Un anneau et un nuage d'éclats pour une unité qui arrive ; « lourd » fait trembler l'écran.",
+  ondes: "Des ondes concentriques qui partent d'un point (cor, hurlement, coassement, berceuse).",
+  nuit: "La nuit tombe : un voile sombre sur tout l'écran.",
+  spirale: "Des points qui s'enroulent de la source vers la cible (âmes, étude, transmigration).",
+  facettes: "Des facettes de couleur qui tournent (caméléon, prisme, miroir).",
+  pas: "Des pas qui courent vers la cible (traque).",
+  bulles: "Des bulles qui montent de la cible.",
+  vent: "Des colonnes de vent qui montent de la cible.",
+  boue: "Une boule de boue qui grossit et s'étale sur la cible.",
+  confettis: "Des confettis dorés qui retombent."
+};
+
 /**
  * Les briques, construites sur l'API d'`effets.js` (`a`) : elles ne connaissent ni le moteur ni l'ecran, seulement
  * des POINTS (`{ x, y }` dans le repere de l'ecran de combat) et des RECTANGLES (`{ x, y, w, h }`).

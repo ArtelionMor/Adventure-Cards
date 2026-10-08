@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#17131f" />
+<link rel="icon" href="icons/atelier-192.png" />
+<title>Wiki — Atelier</title>
+<!-- Les cartes, les pictogrammes et les effets s'affichent avec LE style du jeu (game/styles.css) : ce qu'on voit ici est ce que voit le joueur. -->
+<link rel="stylesheet" href="../game/styles.css" />
+<style>
+  html, body { height: auto; overflow: auto; }
+  body { user-select: text; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 14px 14px 80px; }
+  .haut { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .haut a.retour { color: var(--ink-dim); text-decoration: none; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 17px; margin: 22px 0 8px; }
+  h3 { font-size: 14px; margin: 14px 0 6px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .06em; }
+  .onglets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .onglets button, .puce { font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); cursor: pointer; }
+  .onglets button.on, .puce.on { background: var(--accent); color: #2a1b00; font-weight: 700; border-color: var(--accent); }
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } .scene-boite { position: static !important; } }
+  .scene-boite { position: sticky; top: 12px; }
+  .scene-boite .barre { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .scene-boite select, .scene-boite button { font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); cursor: pointer; }
+  /* La scene : un mini ecran de combat, pour jouer les animations. */
+  .scene { position: relative; display: flex; flex-direction: column; width: 100%; max-width: 380px; height: 470px; background: #0a080f; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin: 0 auto; }
+  .scene .board { flex: 0 0 auto; }
+  .scene .bt-mid { flex: 1 1 0; }
+  .scene .bt-hand { min-height: 56px; display: flex; align-items: center; justify-content: center; color: var(--ink-dim); font-size: 12px; }
+  .grille-cartes { display: grid; grid-template-columns: repeat(auto-fill, 92px); gap: 14px 12px; margin: 6px 0 4px; }
+  .wk-carte { cursor: pointer; text-align: left; font: inherit; color: inherit; }
+  .wk-carte.sel { outline: 2px solid var(--accent); }
+  .wk-carte.switch::after { content: "switch"; position: absolute; top: -8px; right: -4px; font-size: 9px; padding: 1px 6px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); color: var(--ink-dim); }
+  .hero-t { display: flex; align-items: center; gap: 10px; margin: 18px 0 4px; }
+  .hero-t img { width: 36px; height: 36px; object-fit: contain; }
+  .hero-t b { font-size: 16px; } .hero-t span { color: var(--ink-dim); font-size: 13px; }
+  .fiche { background: var(--bg2); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin: 12px 0; }
+  .fiche .tete { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+  .fiche .grande { position: relative !important; left: auto !important; top: auto !important; transform: none !important; opacity: 1 !important; width: 140px; min-width: 140px; max-width: 140px; }
+  .fiche .ln { margin: 4px 0; }
+  .li { display: flex; align-items: flex-start; gap: 8px; }
+  .lico { flex: none; width: 24px; height: 24px; display: grid; place-items: center; color: var(--accent2); }
+  .ltx { min-width: 0; line-height: 1.3; font-size: 14px; } .ltx b { margin-right: 4px; } .src { color: var(--ink-dim); font-size: 12px; }
+  .btn-j { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 9px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; margin: 4px 6px 4px 0; }
+  .btn-j:hover { background: var(--accent); color: #2a1b00; }
+  .tab { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .tab td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .tab td:first-child { width: 44px; text-align: center; color: var(--accent2); }
+  .tab .dim { color: var(--ink-dim); font-size: 13px; }
+  .contours { display: flex; gap: 18px; flex-wrap: wrap; margin: 10px 0; }
+  .contours .c { display: grid; gap: 6px; justify-items: center; text-align: center; font-size: 13px; max-width: 120px; }
+  .contours .fx-carte { position: relative; left: auto; top: auto; opacity: 1; }
+  .vide { color: var(--ink-dim); padding: 14px 0; }
+  .chips-h { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="haut"><a class="retour" href="accueil.html">← Atelier</a><h1>Wiki</h1></div>
+  <p style="color:var(--ink-dim);margin:0 0 12px">Toutes les cartes du jeu, ce que disent leurs pictogrammes, et les animations : on les joue ici, sur une scène, comme en combat.</p>
+  <nav class="onglets" id="onglets">
+    <button data-o="cartes" class="on">Cartes</button>
+    <button data-o="pictos">Pictogrammes</button>
+    <button data-o="anims">Animations</button>
+    <button data-o="contours">Contours</button>
+  </nav>
+  <div class="cols">
+    <div id="contenu"></div>
+    <aside class="scene-boite">
+      <div class="barre">
+        <select id="vitesse" title="Vitesse des animations"><option value="1">Vitesse normale</option><option value="3">Ralenti ×3</option><option value="8">Ralenti ×8</option></select>
+        <button id="reset">Réinitialiser la scène</button>
+      </div>
+      <div class="scene" id="scene"></div>
+    </aside>
+  </div>
+</div>
+
+<script type="module">
+import { CHARACTERS } from '../game/src/config/characters.js';
+import { ENCOUNTERS } from '../game/src/config/world.js';
+import { KEYWORDS, EFFECTS, TRIGGERS, keyLabel } from '../game/src/config/mechanics.js';
+import { icone } from '../game/src/ui/icones.js';
+import { ligneDePictos, CLES, OPS, MOMENTS } from '../game/src/ui/pictos.js';
+import { lignesDeFait } from '../game/src/ui/fiche.js';
+import { creeFx } from '../game/src/ui/effets.js';
+import { SIGNATURES, BRIQUES_DOC } from '../game/src/ui/vfx.js';
+import { refCarte, refUnite, refHeros } from '../game/src/combat/evenements.js';
+import { asset } from '../game/src/ui/shell.js';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ============================================================ la scene (un mini combat qui joue les animations)
+const scene = $('#scene');
+const evts = [];
+let fx = null, couche, heroN = {}, boards = {}, mid, hand, pile, defBtn;
+const SPR_P = CHARACTERS[0].sprite, SPR_E = ENCOUNTERS.wolf.sprite;
+let UNITES;
+
+function nouvellesUnites() {
+  const u = (uid, nom, atk, hp, keys) => ({ uid, name: nom, sprite: SPR_P, atk, hp, maxHp: hp, keys, card: null });
+  return {
+    p: [u(1, 'Toutou Fidèle', 2, 3, ['Taunt']), u(2, 'Molosse', 3, 4, ['Charge'])],
+    e: [{ ...u(11, 'Corbeau', 3, 3, ['Venin']), sprite: SPR_E }, { ...u(12, 'Louveteau', 2, 4, []), sprite: SPR_E }]
+  };
+}
+
+function noeudHeros(camp) {
+  const n = document.createElement('div');
+  n.className = 'bt-hero';
+  n.innerHTML = `<img alt="" src="${asset(camp === 'p' ? SPR_P : SPR_E)}"><div style="flex:1"><div class="hnm"><span class="hn">${camp === 'p' ? 'Toi' : 'Adversaire'}</span></div><div class="hpbar"><i style="width:100%"></i><b>30 / 30</b></div></div><div class="manapips"></div>`;
+  return n;
+}
+function noeudUnite(u, camp) {
+  const n = document.createElement('div');
+  n.className = 'unit';
+  n.dataset.side = camp; n.dataset.uid = u.uid; n.dataset.atk = u.atk; n.dataset.hp = u.hp;
+  n.innerHTML = `<img alt="" src="${asset(u.sprite)}"><div class="un">${esc(u.name)}</div><div class="s"><span class="a">${u.atk}</span> / <span class="h">${u.hp}</span></div>${ligneDePictos(u, { effets: false, taille: 16, max: 3 })}`;
+  return n;
+}
+
+function monteScene() {
+  if (fx) fx.vide();
+  evts.length = 0;
+  UNITES = nouvellesUnites();
+  scene.innerHTML = '';
+  const hautE = document.createElement('div'); hautE.className = 'bt-side';
+  heroN.e = noeudHeros('e'); hautE.appendChild(heroN.e); scene.appendChild(hautE);
+  for (const c of ['e', 'p']) {
+    const b = document.createElement('div'); b.className = 'board';
+    const w = document.createElement('div'); w.className = 'bwrap';
+    UNITES[c].forEach(u => w.appendChild(noeudUnite(u, c)));
+    b.appendChild(w); boards[c] = b;
+    if (c === 'e') { scene.appendChild(b); mid = document.createElement('div'); mid.className = 'bt-mid'; scene.appendChild(mid); }
+    else scene.appendChild(b);
+  }
+  const basP = document.createElement('div'); basP.className = 'bt-side';
+  heroN.p = noeudHeros('p'); basP.appendChild(heroN.p); scene.appendChild(basP);
+  hand = document.createElement('div'); hand.className = 'bt-hand'; hand.textContent = 'Ta main'; scene.appendChild(hand);
+  pile = hand; defBtn = hand;
+  couche = document.createElement('div'); couche.className = 'fx'; scene.appendChild(couche);
+}
+
+const acces = {
+  racine: () => scene, couche: () => couche, heros: c => heroN[c],
+  unite: (c, uid) => scene.querySelector(`.unit[data-side="${c}"][data-uid="${uid}"]`),
+  unites: c => [...scene.querySelectorAll(`.unit[data-side="${c}"]`)],
+  milieu: () => mid, main: () => hand, defausse: c => (c === 'p' ? defBtn : heroN.e), plateau: c => boards[c], pioche: () => pile
+};
+
+function ev(e, cause = null) { const i = evts.length; evts.push({ i, tour: 1, camp: 'p', cause, ...e }); return i; }
+const heros = c => ({ ...refHeros({ [c]: { name: c, sprite: c === 'p' ? SPR_P : SPR_E, hp: 30, maxHp: 30, armor: 0 } }, c) });
+const ru = (c, k = 0) => refUnite(UNITES[c][k], c);
+
+/** Joue des evenements fabriques sur la scene. `avant` s'execute entre la photo et le film (pour retirer une unite, etc.). */
+function joue(construit, avant) {
+  monteScene();
+  fx = fx || creeFx(acces);
+  fx.reglage.ralenti = Number($('#vitesse').value);
+  fx.vide();
+  construit();
+  fx.photo();
+  if (avant) avant();
+  fx.joue(evts);
+}
+
+// ---- les scenes
+const unit = (c, k = 0) => UNITES[c][k];
+const SCENES = {
+  attaque: { titre: 'Attaque', doc: 'L\'attaquant recule, bondit sur sa cible ; elle tremble, un chiffre s\'envole, la riposte revient.', run() {
+    joue(() => {
+      const i = ev({ t: 'attaque', camp: 'p', src: ru('p', 1), cible: ru('e', 1) });
+      ev({ t: 'degats', camp: 'p', src: ru('p', 1), cible: ru('e', 1), n: 3, perdu: 3, avant: 4, apres: 1 }, i);
+      ev({ t: 'degats', camp: 'p', riposte: true, cible: ru('p', 1), n: 2, perdu: 2, avant: 4, apres: 2 }, i);
+    });
+  } },
+  gros: { titre: 'Gros coup sur le héros', doc: 'À partir de 5 dégâts, tout l\'écran tremble.', run() {
+    joue(() => ev({ t: 'degats', cible: heros('e'), n: 8, perdu: 8, avant: 30, apres: 22 }));
+  } },
+  soin: { titre: 'Soin', doc: 'Un chiffre vert avec un cœur.', run() { joue(() => ev({ t: 'soin', cible: heros('p'), n: 4, soigne: 4, avant: 26, apres: 30 })); } },
+  armure: { titre: 'Armure gagnée', doc: 'Un chiffre bleu avec un écusson, et un anneau.', run() { joue(() => ev({ t: 'armure', camp: 'p', v: 3 })); } },
+  mana: { titre: 'Mana gagné', doc: 'Un chiffre bleu avec un cristal ; le mana promis ajoute un sablier.', run() {
+    joue(() => { ev({ t: 'mana', camp: 'p', v: 2 }); ev({ t: 'mana', camp: 'p', v: 2, promis: true }); });
+  } },
+  bouclier: { titre: 'Bouclier qui encaisse', doc: 'Une icône de bouclier et un anneau clair : le coup est absorbé.', run() { joue(() => ev({ t: 'degats', cible: ru('p', 0), n: 3, perdu: 0, bouclier: true })); } },
+  venin: { titre: 'Mort par le venin', doc: 'La fiole violette et un double anneau.', run() { joue(() => ev({ t: 'degats', cible: ru('p', 1), n: 1, perdu: 4, venin: true })); } },
+  renfort: { titre: 'Renfort (+2/+2)', doc: 'Un chiffre doré et des éclats sur l\'unité renforcée.', run() { joue(() => ev({ t: 'renfort', atk: 2, hp: 2, cle: 'Taunt', cible: ru('p', 0) })); } },
+  aura: { titre: 'Aura (+1/+1 sans événement)', doc: 'Un changement de chiffres sans cause visible se montre par un anneau et « +1/+1 ».', run() {
+    joue(() => ev({ t: 'tour', camp: 'p' }), () => { const n = acces.unite('p', 1); n.dataset.atk = Number(n.dataset.atk) + 1; n.dataset.hp = Number(n.dataset.hp) + 1; });
+  } },
+  tourP: { titre: 'Bannière : ton tour', doc: 'Le portrait de celui qui joue, sur une bande verte.', run() { joue(() => ev({ t: 'tour', camp: 'p', nom: 'Toi' }, null)); } },
+  tourE: { titre: 'Bannière : tour adverse', doc: 'Le portrait adverse, sur une bande rouge.', run() { joue(() => ev({ t: 'tour', camp: 'e', nom: 'Adversaire' }, null)); } },
+  invoque: { titre: 'Invocation', doc: 'L\'unité reste cachée pendant que sa carte arrive, puis apparaît avec un rebond.', run() {
+    joue(() => { const i = ev({ t: 'joue', camp: 'p', carte: { k: 'carte', nom: 'Molosse', id: 'dog_guard', sprite: null, type: 'ally', cout: 2, atk: 3, hp: 4, keys: ['Charge'] }, paye: 2, zone: 'main', cible: null, choix: null });
+      ev({ t: 'invoque', via: 'carte', camp: 'p', unite: ru('p', 1) }, i); });
+  } },
+  mort: { titre: 'Mort', doc: 'Le coup fatal, puis l\'unité se brise avec l\'icône de mort.', run() {
+    joue(() => { const i = ev({ t: 'attaque', camp: 'p', src: ru('p', 1), cible: ru('e', 1) });
+      const d = ev({ t: 'degats', camp: 'p', src: ru('p', 1), cible: ru('e', 1), n: 5, perdu: 4, avant: 4, apres: 0 }, i);
+      ev({ t: 'meurt', camp: 'e', unite: ru('e', 1), proprio: 'e' }, d); },
+      () => acces.unite('e', 12).remove());
+  } }
+};
+const CONTOURS = {
+  mort: ['Râle d\'agonie', 'death', 'Gris-rouge'], debut: ['Début de ton tour', 'turnStart', 'Vert'],
+  fin: ['Fin de ton tour', 'turnEnd', 'Bleu'], regle: ['Règle « quand X alors Y »', 'autre', 'Violet']
+};
+function sceneEffet(moment) {
+  joue(() => { const i = ev({ t: 'declenche', moment, camp: 'p', src: ru('p', 0) });
+    ev({ t: 'degats', cible: heros('e'), n: 2, perdu: 2, avant: 30, apres: 28 }, i); });
+}
+
+/** Jouer une carte du jeu pour de faux : son lancer, sa cible, ce qu'elle cause. */
+function sceneCarte(c) {
+  const sig = SIGNATURES[c.id] || {};
+  joue(() => {
+    const cible = c.type === 'spell' && !['allies', 'main', 'pioche'].includes(sig.vers) ? heros('e') : null;
+    const i = ev({ t: 'joue', camp: 'p', carte: refCarte({ ...c, inst: 0 }), paye: c.cost, zone: 'main', cible, choix: null });
+    if (cible) ev({ t: 'degats', cible, n: 2, perdu: 2, avant: 30, apres: 28 }, i);
+    else if (c.type === 'ally') ev({ t: 'invoque', via: 'carte', camp: 'p', unite: ru('p', 1) }, i);
+    else if (sig.vers === 'allies') ev({ t: 'renfort', atk: 1, hp: 1, cle: null, cible: ru('p', 0) }, i);
+  });
+}
+
+// ============================================================ les onglets
+const hero = id => CHARACTERS.find(h => h.id === id);
+function carteHtml(c, h, estSwitch) {
+  const ally = c.type === 'ally';
+  return `<div class="hcard wk-carte ${ally ? '' : 'spell'} ${estSwitch ? 'switch' : ''}" data-id="${esc(c.id)}" data-h="${esc(h.id)}" tabindex="0">
+    <div class="cost">${c.cost}</div>${(c.sprite || h.sprite) ? `<img src="${asset(c.sprite || h.sprite)}" alt="">` : ''}
+    <div class="nm">${esc(c.name)}</div>${ligneDePictos(c, { taille: 20, max: 4 })}${ally ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}</div>`;
+}
+
+let filtre = 'tous', choisie = null;
+function ongletCartes() {
+  const out = [`<div class="chips-h"><button class="puce ${filtre === 'tous' ? 'on' : ''}" data-f="tous">Tous</button>${CHARACTERS.map(h => `<button class="puce ${filtre === h.id ? 'on' : ''}" data-f="${esc(h.id)}">${esc(h.name)}</button>`).join('')}</div><div id="detail"></div>`];
+  for (const h of CHARACTERS) {
+    if (filtre !== 'tous' && filtre !== h.id) continue;
+    out.push(`<div class="hero-t"><img src="${asset(h.sprite)}" alt=""><div><b>${esc(h.name)}</b><br><span>${esc(h.role || '')}</span></div></div>`);
+    out.push(`<div class="grille-cartes">${h.cards.map(c => carteHtml(c, h, false)).join('')}${(h.switches || []).map(c => carteHtml(c, h, true)).join('')}</div>`);
+  }
+  return out.join('');
+}
+
+function trouveCarte(id) {
+  for (const h of CHARACTERS) { const c = [...h.cards, ...(h.switches || [])].find(x => x.id === id); if (c) return { c, h }; }
+  return null;
+}
+
+function detailCarte() {
+  const zone = $('#detail');
+  if (!zone) return;
+  const r = choisie && trouveCarte(choisie);
+  document.querySelectorAll('.wk-carte').forEach(n => n.classList.toggle('sel', n.dataset.id === choisie));
+  if (!r) { zone.innerHTML = '<div class="vide">Touche une carte pour voir ce qu\'elle fait et jouer son animation.</div>'; return; }
+  const { c, h } = r, ally = c.type === 'ally', sig = SIGNATURES[c.id];
+  const f = document.createElement('div');
+  f.className = 'fiche';
+  f.innerHTML = `<div class="tete">
+    <div class="hcard fx-carte lancer grande ${ally ? '' : 'spell'}"><div class="cost">${c.cost}</div>${(c.sprite || h.sprite) ? `<img src="${asset(c.sprite || h.sprite)}" alt="">` : ''}<div class="nm">${esc(c.name)}</div>${ligneDePictos(c, { taille: 20, max: 4 })}<div class="tx">${esc(c.text || '')}</div>${ally ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}</div>
+    <div style="flex:1;min-width:200px"><div style="font-size:18px;font-weight:700">${esc(c.name)}</div>
+      <div class="src">${esc(h.name)} · ${ally ? 'Allié' : 'Sort'} · coût ${c.cost}${ally ? ` · ${c.atk}/${c.hp}` : ''} <span class="src">· id ${esc(c.id)}</span></div>
+      <h3>Ce qu'elle fait</h3><div id="rows"></div></div></div>`;
+  const rows = f.querySelector('#rows');
+  const lignes = lignesDeFait(c);
+  if (lignes.length) lignes.forEach(l => rows.appendChild(l)); else rows.innerHTML = '<div class="src">Rien de plus que ses statistiques.</div>';
+  if ((c.tiers || []).length) f.insertAdjacentHTML('beforeend', `<h3>Paliers de niveau</h3>${c.tiers.map(t => `<div class="ln src">Niveau ${t.lvl} — ${esc(t.text || '')}</div>`).join('')}`);
+  f.insertAdjacentHTML('beforeend', '<h3>Animation</h3>');
+  const anim = document.createElement('div');
+  const decrit = ([nom, o], quand) => `<div class="ln"><b>${quand}</b> <span class="src">— ${esc(nom)}${o && o.lourd ? ' (lourd)' : ''} : ${esc(BRIQUES_DOC[nom] || '')}</span></div>`;
+  anim.innerHTML = sig ? [sig.lancer && decrit(sig.lancer, 'Lancer'), sig.arrivee && decrit(sig.arrivee, 'Arrivée sur la cible'), sig.entree && decrit(sig.entree, 'Entrée de l\'unité')].filter(Boolean).join('')
+    : '<div class="src">Pas de signature : cette carte garde les effets génériques (impact, chiffres, invocation).</div>';
+  const b = document.createElement('button');
+  b.className = 'btn-j'; b.textContent = '▶ Jouer la carte sur la scène';
+  b.onclick = () => sceneCarte(c);
+  anim.appendChild(b);
+  f.appendChild(anim);
+  zone.innerHTML = '';
+  zone.appendChild(f);
+  if (window.matchMedia('(max-width: 900px)').matches) f.scrollIntoView({ block: 'nearest' });
+}
+
+function ongletPictos() {
+  const rangee = (nom, titre, texte) => `<tr><td>${icone(nom, 26)}</td><td><b>${esc(titre)}</b><div class="dim">${esc(texte || '')}</div></td></tr>`;
+  let h = '<h2>Mots-clés</h2><table class="tab">';
+  for (const [id, nom] of Object.entries(CLES)) { const k = KEYWORDS[id]; h += rangee(nom, k ? k.label : id, k ? k.desc : ''); }
+  h += '</table><h2>Effets d\'une carte</h2><table class="tab">';
+  const vus = new Set();
+  for (const [op, nom] of Object.entries(OPS)) { const e = EFFECTS[op]; h += rangee(nom, e ? e.label : op, e ? e.desc : ''); }
+  h += '</table><h2>Moments</h2><table class="tab">';
+  for (const [slot, nom] of Object.entries(MOMENTS)) { const t = TRIGGERS[slot]; h += rangee(nom, t ? t.label : slot, t ? t.desc : ''); }
+  h += rangee('Aura', 'Aura', 'Un bonus qui dure tant que son porteur est en jeu.') + rangee('Static', 'Effet continu', 'Une règle qui change le jeu tant que son porteur est là.');
+  h += '</table><h2>Valeurs et états</h2><table class="tab">';
+  const etats = [['Mana', 'Mana', 'Le cristal de mana : le coût d\'une carte, le mana gagné.'], ['Attack', 'Attaque', 'Les dégâts qu\'une unité inflige.'], ['Health', 'Points de vie', ''],
+    ['Armor', 'Armure', 'Elle absorbe les dégâts avant les PV du héros.'], ['Shield', 'Bouclier', 'Absorbe entièrement la première perte de PV d\'une unité.'], ['Cancel', 'Coup annulé', 'Une règle a annulé ce coup.'],
+    ['Counter', 'Riposte', ''], ['Heal', 'Soin', ''], ['Dead', 'Mort', ''], ['Fatigue', 'Fatigue', 'La pioche est vide : la pile de fatigue.'], ['Victory', 'Victoire', ''], ['Defeat', 'Défaite', '']];
+  for (const [n, t, d] of etats) h += rangee(n, t, d);
+  return h + '</table><p class="dim" style="color:var(--ink-dim)">Les dessins sont provisoires (pack Kenney, CC0) : déposer <code>Icons/&lt;Nom&gt;.png</code> remplace n\'importe lequel, sans toucher au code.</p>';
+}
+
+function ongletAnims() {
+  let h = '<h2>Les effets du combat</h2><p style="color:var(--ink-dim)">Touche ▶ : l\'effet se joue sur la scène à droite (ou en haut).</p>';
+  for (const [k, s] of Object.entries(SCENES)) h += `<div class="ln"><button class="btn-j" data-scene="${k}">▶ ${esc(s.titre)}</button> <span class="src">${esc(s.doc)}</span></div>`;
+  h += '<h2>Les briques des VFX de cartes</h2><p style="color:var(--ink-dim)">Chaque carte assemble une ou plusieurs briques (voir l\'onglet Cartes).</p>';
+  for (const [k, d] of Object.entries(BRIQUES_DOC)) h += `<div class="ln"><button class="btn-j" data-brique="${k}">▶ ${k}</button> <span class="src">${esc(d)}</span></div>`;
+  return h;
+}
+
+function ongletContours() {
+  let h = '<h2>Les contours</h2><p style="color:var(--ink-dim)">Une carte qu\'on joue et une unité qui déclenche un effet se montrent comme des cartes, au contour différent (comme dans Arena).</p><div class="contours">';
+  h += `<div class="c"><div class="hcard fx-carte lancer"><div class="nm">Carte jouée</div></div><b>Doré</b><span class="src">Une carte que tu (ou l'adversaire) joues.</span><button class="btn-j" data-scene="invoque">▶ Voir</button></div>`;
+  for (const [k, [titre, moment, couleur]] of Object.entries(CONTOURS)) {
+    h += `<div class="c"><div class="hcard fx-carte effet ${k}"><div class="nm">${esc(titre)}</div><div class="pic"><span class="pc">${icone(MOMENTS[moment] || 'Trigger', 20)}</span></div></div><b>${couleur}</b><span class="src">${esc(titre)}</span><button class="btn-j" data-effet="${moment}">▶ Voir</button></div>`;
+  }
+  return h + '</div>';
+}
+
+// ============================================================ branchement
+let onglet = (location.hash || '#cartes').slice(1);
+function affiche() {
+  if (!['cartes', 'pictos', 'anims', 'contours'].includes(onglet)) onglet = 'cartes';
+  document.querySelectorAll('#onglets button').forEach(b => b.classList.toggle('on', b.dataset.o === onglet));
+  $('#contenu').innerHTML = { cartes: ongletCartes, pictos: ongletPictos, anims: ongletAnims, contours: ongletContours }[onglet]();
+  if (onglet === 'cartes') detailCarte();
+}
+$('#onglets').onclick = e => { const b = e.target.closest('button'); if (!b) return; onglet = b.dataset.o; location.hash = onglet; affiche(); };
+$('#contenu').onclick = e => {
+  const f = e.target.closest('[data-f]'); if (f) { filtre = f.dataset.f; affiche(); return; }
+  const c = e.target.closest('.wk-carte'); if (c) { choisie = c.dataset.id; detailCarte(); return; }
+  const s = e.target.closest('[data-scene]'); if (s) { SCENES[s.dataset.scene].run(); return; }
+  const b = e.target.closest('[data-brique]'); if (b) { joue(() => {}); fx.montre(b.dataset.brique); return; }
+  const ef = e.target.closest('[data-effet]'); if (ef) sceneEffet(ef.dataset.effet);
+};
+$('#reset').onclick = () => monteScene();
+monteScene();
+fx = creeFx(acces);
+affiche();
+</script>
+</body>
+</html>

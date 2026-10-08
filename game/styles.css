@@ -551,3 +551,4 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .insp .stats .h .ico { color: var(--danger); }
 .fx-v { position: absolute; }
 .tr-grille select.large { grid-column: span 4; min-height: 34px; background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; font-size: 12px; }
+.fx-ban-txt { font-size: 22px; font-weight: 900; letter-spacing: 3px; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.5); }

@@ -19,6 +19,7 @@ import { asset } from './shell.js';
 import { icone } from './icones.js';
 import { ligneDePictos, iconeDeCle } from './pictos.js';
 import { creeBriques, SIGNATURES } from './vfx.js';
+import { t as texte } from '../config/textes.js';
 
 const F = () => BALANCE.ui.fx;
 const CLE_VITESSE = 'adventureCard.fxVitesse';
@@ -194,7 +195,7 @@ export function creeFx(acces) {
     d.className = `fx-banniere ${moi ? 'moi' : 'eux'}`;
     // Pas de mot : le portrait de celui qui joue, sur une bande verte (toi) ou rouge (l'adversaire).
     const portrait = acces.heros(ev.camp) && acces.heros(ev.camp).querySelector('img');
-    d.innerHTML = `${portrait ? `<img class="fx-ban-img" src="${portrait.getAttribute('src')}" alt="">` : ''}${icone('TurnStart', 34)}`;
+    d.innerHTML = `${portrait ? `<img class="fx-ban-img" src="${portrait.getAttribute('src')}" alt="">` : ''}<span class="fx-ban-txt">${texte(moi ? 'combat.tonTour' : 'combat.tourAdverse')}</span>${icone('TurnStart', 30)}`;
     const m = rectDe(acces.milieu());
     d.style.top = (m.y + m.h / 2) + 'px';
     acces.couche().appendChild(d);
@@ -633,7 +634,7 @@ export function creeFx(acces) {
   }
 
   return {
-    photo, joue,
+    photo, joue, reglage, montre: (nom, options) => reglage.montre(nom, options),
     /** Combien de temps (ms reelles) avant la fin du film en cours. */
     reste: () => Math.max(0, fin - Date.now()),
     get vitesse() { return reglage.vitesse; },

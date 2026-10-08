@@ -8,14 +8,14 @@ import { keyId, TRIGGERS } from '../config/mechanics.js';
 import { icone } from './icones.js';
 
 // Mot-cle -> icone. Les types (`type:Chien`, `type_tous`) sont des etiquettes, pas des effets : aucun picto.
-const CLES = {
+export const CLES = {
   Taunt: 'Taunt', Charge: 'Charge', Venin: 'Venom', Bouclier: 'Shield', elusif: 'Elusive',
   passe_murailles: 'WallWalker', miroir: 'Mirror', reprise: 'Flashback',
   characteristique_variable: 'Static', cout_x_de_moins_de_plus: 'Mana'
 };
 
 // Effet (`op`) -> icone. Un effet que cette table ne connait pas s'affiche « Trigger » (l'eclair) : il se voit.
-const OPS = {
+export const OPS = {
   dmg: 'Damage', heal: 'Heal', draw: 'Draw', armor: 'Armor', mana: 'Mana', mana_au_prochain_tour: 'Mana',
   buff: 'Buff', renforce_les_cartes: 'Buff', summon: 'Summon', pose_sur_le_plateau: 'Summon',
   cree: 'Create', melange_a_la_pioche: 'Shuffle', detruit: 'Destroy', copie: 'Copy', switch: 'Switch',
@@ -23,7 +23,7 @@ const OPS = {
 };
 
 // Moment (slot de `TRIGGERS`) -> icone ; `play` n'en a pas (c'est l'effet lui-meme qui s'affiche).
-const MOMENTS = { death: 'Deathrattle', turnStart: 'TurnStart', turnEnd: 'TurnEnd' };
+export const MOMENTS = { death: 'Deathrattle', turnStart: 'TurnStart', turnEnd: 'TurnEnd' };
 
 /** L'icone d'un mot-cle (`Taunt:...`), ou null (un type n'en a pas). */
 export const iconeDeCle = k => CLES[keyId(k)] || null;
