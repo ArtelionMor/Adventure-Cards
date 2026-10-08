@@ -58,7 +58,13 @@ function load() {
     if (!raw) return freshSave();
     const s = JSON.parse(raw);
     // Migration douce : on complete les champs manquants sans casser la partie.
-    return { ...freshSave(), ...s, farm: { ...freshSave().farm, ...s.farm } };
+    const neuve = freshSave();
+    // Un heros ajoute au jeu depuis cette sauvegarde (les V3) n'y a pas d'entree : on la cree
+    // vierge, sinon l'ecran du deck plante sur `save.chars[id].owned`. Les heros deja connus
+    // gardent tout ce qu'ils avaient, champ par champ (un champ ajoute ensuite recoit son defaut).
+    const chars = { ...neuve.chars };
+    for (const id of Object.keys(chars)) if (s.chars && s.chars[id]) chars[id] = { ...chars[id], ...s.chars[id] };
+    return { ...neuve, ...s, chars, farm: { ...neuve.farm, ...s.farm } };
   } catch {
     return freshSave();
   }

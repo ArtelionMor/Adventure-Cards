@@ -889,6 +889,22 @@ http.createServer((req, res) => {
     // DONNEES du jeu, elles, restent en 'no-store' (le builder doit les relire fraiches,
     // et les pages qui veulent la derniere version ajoutent deja un « ?t= »).
     const donnees = rel.startsWith('/game/data/') || file.endsWith('.html');
+    // LES IMAGES SE REVALIDENT, elles ne se retelechargent pas. Les sprites pesent ~1,5 Mo
+    // (72 Mo pour Characters/) : avec « max-age=2 » un telephone les rechargeait en entier a
+    // chaque ouverture, et sur 4G/Tailscale beaucoup n'arrivaient pas (cercles pales a la place
+    // des personnages). Avec un ETag, le navigateur redemande et recoit un 304 de quelques octets,
+    // et un sprite redessine est repris tout de suite.
+    if (/\.(png|webp|jpe?g|gif)$/i.test(file)) {
+      const st = fs.statSync(file);
+      const etag = `"${st.size}-${Math.floor(st.mtimeMs)}"`;
+      if (req.headers['if-none-match'] === etag) { res.writeHead(304, { ETag: etag, 'Cache-Control': 'no-cache' }).end(); return; }
+      res.writeHead(200, {
+        'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream',
+        'Cache-Control': 'no-cache', ETag: etag
+      });
+      res.end(buf);
+      return;
+    }
     res.writeHead(200, {
       'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream',
       'Cache-Control': donnees ? 'no-store' : 'max-age=2'

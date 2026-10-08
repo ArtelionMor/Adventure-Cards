@@ -36,6 +36,7 @@ export function creeFx(acces) {
   let fantomes = new Map();  // « camp:uid » -> noeud : une unite morte, laissee le temps de l'animation
   let minuteurs = new Set();
   let fin = 0;               // l'heure (Date.now) a laquelle le film en cours se termine
+  let enElan = new Set();    // les unites dont un double fait l'elan a leur place (cachees le temps du bond)
   let caches = new Set();    // les unites cachees le temps que leur carte arrive (reveles par `pop`)
   let auraAt = 0;            // quand les changements de chiffres sans cause se montrent (apres la carte qui les cause)
   let vu = 0;                // combien d'evenements ont deja ete joues
@@ -259,18 +260,41 @@ export function creeFx(acces) {
     const nc = noeudDe(cible);
     if (!n || !nc) return;
     const a = rectDe(n), b = rectDe(nc);
-    const s = echelleDe(n);
+    // Le plateau coupe ce qui depasse (`overflow: hidden`) : une unite vivante ne bondit donc pas
+    // elle-meme, c'est un DOUBLE pose sur la couche d'effets, qui n'est coupee par rien.
+    const vivant = src.k === 'unite' && n === acces.unite(src.camp, src.uid);
+    let porteur = n, env = null;
+    if (vivant) {
+      if (caches.has(n)) return;   // sa carte n'a pas fini d'arriver
+      const g = n.cloneNode(true);
+      g.removeAttribute('data-geste');
+      g.classList.remove('sel', 'ready', 'lit', 'acteur', 'targetable');
+      const sc = echelleDe(n);
+      env = document.createElement('div');
+      env.className = 'fx-pos';
+      Object.assign(env.style, { left: a.x + 'px', top: a.y + 'px', width: a.w + 'px', height: a.h + 'px' });
+      g.style.cssText = `position:absolute;left:0;top:0;width:${a.w / sc}px;transform-origin:0 0;transform:scale(${sc});margin:0`;
+      env.appendChild(g);
+      acces.couche().appendChild(env);
+      n.style.visibility = 'hidden';
+      enElan.add(n);
+      porteur = env;
+    }
+    const s = vivant ? 1 : echelleDe(n);
     const dx = ((b.x + b.w / 2) - (a.x + a.w / 2)) * f.elanPart / s;
     const dy = ((b.y + b.h / 2) - (a.y + a.h / 2)) * f.elanPart / s;
-    const n0 = n.style.zIndex;
-    n.style.zIndex = 8;
-    anime(n, [
+    const n0 = porteur.style.zIndex;
+    porteur.style.zIndex = 8;
+    anime(porteur, [
       { transform: 'translate(0,0) scale(1)', offset: 0 },
       { transform: `translate(${-dx * .12}px, ${-dy * .12}px) scale(.94)`, offset: .22, easing: 'cubic-bezier(.5,0,.9,.4)' },
       { transform: `translate(${dx}px, ${dy}px) scale(1.15)`, offset: f.elanImpact, easing: 'ease-out' },
       { transform: 'translate(0,0) scale(1)', offset: 1 }
     ], { duration: T(f.elanMs), fill: 'none' });
-    apres(f.elanMs, () => { n.style.zIndex = n0; });
+    apres(f.elanMs, () => {
+      porteur.style.zIndex = n0;
+      if (env) { env.remove(); if (enElan.delete(n)) n.style.visibility = ''; }
+    });
   }
 
   // ------------------------------------------------------------ ce qu'on montre
@@ -529,6 +553,8 @@ export function creeFx(acces) {
       fantomes.clear();
       for (const n of caches) n.style.visibility = '';
       caches.clear();
+      for (const n of enElan) n.style.visibility = '';
+      enElan.clear();
       photos = new Map();
       fin = 0;
       vu = 0;

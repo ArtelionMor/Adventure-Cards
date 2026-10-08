@@ -6,7 +6,8 @@ import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist } from '../state.js';
 import { relicMods } from '../config/relics.js';
 import { TRIGGERS, COUNTERS, keyLabel, hasKey, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel, branchesDe, listeEffets } from '../config/mechanics.js';
-import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur, reprisesPossibles } from '../combat/engine.js';
+import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur, reprisesPossibles, draw, refresh } from '../combat/engine.js';
+import { evt, refUnite, refHeros, refCarte } from '../combat/evenements.js';
 import { botAction } from '../combat/ai.js';
 import { joue as joueLeCoup, ouvreJournal, fermeJournal, nomDeFichier } from '../combat/journal.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
@@ -148,6 +149,7 @@ export function openBattle(node, done) {
     // Le nom du fichier porte l'heure de DEBUT du combat : on le prend maintenant.
     dernierJournal = { nom: nomDeFichier(node), texte: null };
   }
+  installeTriche();
   const root = $('#battle');
   root.style.alignItems = '';
   root.style.justifyContent = '';
@@ -166,6 +168,72 @@ function delaiAuto() {
 function finirApresLesEffets() {
   clearTimeout(timer);
   timer = setTimeout(finish, fx.reste() + BALANCE.ui.fx.pauseApresMs * BALANCE.ui.fx.ralenti / fx.vitesse);
+}
+
+// LA CONSOLE DE TRICHE (F12 : `AC.triche.aide`). Elle sert a VOIR un effet sans attendre que le combat
+// le produise : `AC.triche.voir('armure')` pousse un evenement fabrique dans le recit et
+// l'ecran le joue comme un vrai. Elle ne touche pas aux regles : les evenements sont de la mise en
+// scene (les PV ne changent pas), sauf `gagne`, `perd`, `mana`, `pv` et `pioche`, qui changent la partie.
+// ⚠ `gagne()` paie les recompenses de la rencontre, comme une vraie victoire.
+function installeTriche() {
+  if (!window.AC) return;
+  const camp = k => (k === 'p' ? 'p' : 'e');
+  const cible = k => (B[k].board[0] ? refUnite(B[k].board[0], k) : refHeros(B, k));
+  const pousse = ev => {
+    if (!B || B.over || !coque) return 'pas de combat en cours';
+    evt(B, ev, null);
+    render();
+    return 'ok';
+  };
+  const SCENES = {
+    degats: k => ({ t: 'degats', cible: refHeros(B, k), n: 3, perdu: 3, avant: B[k].hp, apres: B[k].hp - 3 }),
+    gros: k => ({ t: 'degats', cible: refHeros(B, k), n: 8, perdu: 8, avant: B[k].hp, apres: B[k].hp - 8 }),
+    unite: k => ({ t: 'degats', cible: cible(k), n: 2, perdu: 2, avant: 3, apres: 1 }),
+    bouclier: k => ({ t: 'degats', cible: cible(k), n: 3, perdu: 0, bouclier: true }),
+    venin: k => ({ t: 'degats', cible: cible(k), n: 1, perdu: 4, venin: true }),
+    annule: k => ({ t: 'degats', cible: cible(k), n: 3, perdu: 0, annule: true }),
+    armure: k => ({ t: 'armure', camp: k, v: 3 }),
+    soin: k => ({ t: 'soin', cible: refHeros(B, k), n: 4, soigne: 4, avant: B[k].hp, apres: B[k].hp + 4 }),
+    mana: k => ({ t: 'mana', camp: k, v: 2 }),
+    manaplus: k => ({ t: 'mana', camp: k, v: 2, promis: true }),
+    renfort: k => ({ t: 'renfort', atk: 2, hp: 2, cle: null, cible: cible(k) }),
+    tour: k => ({ t: 'tour', camp: k, nom: B[k].name, mana: B[k].mana, maxMana: B[k].maxMana, pv: B[k].hp }),
+    invoque: k => ({ t: 'invoque', via: 'jeton', camp: k, unite: cible(k) }),
+    carte: k => {
+      const c = B[k].hand[0] || B[k].deck[0];
+      return c ? { t: 'joue', camp: k, carte: refCarte(c), paye: c.cost, zone: 'main', cible: null, choix: null } : null;
+    }
+  };
+  window.AC.triche = {
+    aide: "voir(nom, camp='e') · scenes() · aura(camp='p') · gagne() · perd() · mana(n) · pv(camp, n) · pioche(n) · fx.ralenti = 5",
+    scenes: () => Object.keys(SCENES).concat('aura'),
+    voir(nom = 'degats', k = 'e') {
+      const f = SCENES[nom];
+      if (nom === 'aura') return this.aura(k);
+      if (!f) return `scene inconnue : ${Object.keys(SCENES).join(', ')}, aura`;
+      const ev = f(camp(k));
+      return ev ? pousse(ev) : 'rien a montrer';
+    },
+    // Un allie gagne +1/+1 sans evenement : c'est ce que l'ecran lit comme une aura.
+    aura(k = 'p') {
+      const u = B && B[camp(k)].board[0];
+      if (!u) return 'aucune unite sur ce plateau';
+      u.baseAtk += 1; u.baseHp += 1; refresh(B); render();
+      return 'ok';
+    },
+    gagne: () => fin('p'),
+    perd: () => fin('e'),
+    mana: n => { B.p.mana += n; render(); return B.p.mana; },
+    pv: (k, n) => { B[camp(k)].hp = n; render(); return n; },
+    pioche: (n = 1) => { draw(B, 'p', n); render(); return B.p.hand.length; }
+  };
+  function fin(w) {
+    if (!B || B.over) return 'pas de combat en cours';
+    B.over = true; B.winner = w;
+    render();
+    finirApresLesEffets();
+    return 'ok';
+  }
 }
 
 function loop() {
@@ -1025,7 +1093,9 @@ function finish() {
     gain('A', r.A);
     gain('B', r.B);
     recompenses.push({ label: 'Fanions', n: r.A }, { label: 'Sceaux', n: r.B });
-    if (ctx.unlocks) {
+    // Un boss peut annoncer un heros qui n'existe plus (le Grand Mechant Loup annonce `fox`, devenu
+    // `cameleon`) : sans cette garde la victoire plantait avant l'ecran de fin.
+    if (ctx.unlocks && save.chars[ctx.unlocks] && CHAR_BY_ID[ctx.unlocks]) {
       save.chars[ctx.unlocks].bossBeaten = true;
       notes.push(`${CHAR_BY_ID[ctx.unlocks].name} peut désormais être acheté avec des Fanions.`);
     }
