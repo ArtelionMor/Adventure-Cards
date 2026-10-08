@@ -82,6 +82,7 @@ export const BALANCE = {
     // effets avant le coup suivant.
     fx: {
       vitesses: [1, 2],         // les crans du bouton de vitesse (x1, x2) ; pas de « sauter »
+      fileMaxMs: 1200,          // en manuel, un film attend la fin du precedent, au plus ce temps (jamais de retard qui s'accumule)
       pauseApresMs: 320,        // en auto, le calme laisse apres les effets avant le coup suivant
       elanMs: 460,              // l'attaquant : recul, elan, retour (duree totale)
       elanImpact: 0.58,         // a quelle fraction de l'elan le coup touche

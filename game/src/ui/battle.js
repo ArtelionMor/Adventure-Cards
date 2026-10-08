@@ -236,11 +236,12 @@ function majUnite(n, u, side) {
   n.dataset.atk = u.atk;
   n.dataset.hp = u.hp;
   const ap = pilule(apercus.get(`${side}:${u.uid}`));
-  const sig = [u.sprite || '', u.atk, u.hp, u.keys.join(','), moments(u).length ? 1 : 0, ap].join('|');
+  const sig = [u.name, u.sprite || '', u.atk, u.hp, u.keys.join(','), moments(u).length ? 1 : 0, ap].join('|');
   if (n._sig !== sig) {
     n._sig = sig;
     n.innerHTML = `
       ${u.sprite ? `<img src="${asset(u.sprite)}" alt="">` : '<img alt="">'}
+      <div class="un">${u.name}</div>
       <div class="s"><span class="a">${u.atk}</span> / <span class="h">${u.hp}</span></div>
       ${u.keys.length ? `<div class="kw">${u.keys.map(keyLabel).join(' ')}</div>` : ''}
       ${moments(u).length ? `<div class="kw" style="color:var(--accent2)">◆</div>` : ''}
@@ -258,12 +259,13 @@ function heroNode(k) {
       <div style="flex:1">
         <div class="hnm"><span class="hn"></span><span class="pv"></span></div>
         <div class="hpbar"><i></i><b></b></div>
+      <div class="hinfo"></div>
       </div>
       <div class="manapips"></div>
     </div>`);
   return {
     n, img: n.querySelector('img'), nom: n.querySelector('.hn'), pv: n.querySelector('.pv'),
-    fill: n.querySelector('.hpbar i'), txt: n.querySelector('.hpbar b'), pips: n.querySelector('.manapips')
+    info: n.querySelector('.hinfo'), fill: n.querySelector('.hpbar i'), txt: n.querySelector('.hpbar b'), pips: n.querySelector('.manapips')
   };
 }
 
@@ -272,6 +274,8 @@ function majHero(h, s, k) {
   const src = asset(s.sprite);
   if (h.img.getAttribute('src') !== src) h.img.setAttribute('src', src);
   h.nom.textContent = `${s.name} ${s.armor ? '🛡' + s.armor : ''}${s.nextMana ? ' ⧗+' + s.nextMana : ''}`;
+  // Ce qu'on peut savoir de la main adverse sans la voir : combien de cartes, et ce qui reste a piocher.
+  if (k === 'e') h.info.textContent = `Main ${s.hand.length} · Pioche ${s.deck.length}`;
   h.fill.style.width = `${pct}%`;
   h.txt.textContent = `${Math.max(0, s.hp)} / ${s.maxHp}`;
   // Le mana peut depasser le plafond (mana promis au tour precedent) : on affiche

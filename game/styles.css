@@ -469,3 +469,24 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .fin-boutons { display: grid; gap: 8px; width: 100%; }
 .fin-boutons .btn { width: 100%; padding: 14px; font-size: 16px; }
 .fin-confetti { position: absolute; border-radius: 2px; pointer-events: none; will-change: transform, opacity; }
+
+/* ---------- lisibilite du combat : textes plus grands, cibles plus larges, fond plein ---------- */
+#battle.overlay { background: #0a080f; }
+.unit .un { font-size: 10px; font-weight: 600; width: 100%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.unit .s { font-size: 13px; }
+.unit .kw { font-size: 10px; }
+.hcard .nm { font-size: 12px; }
+.hcard .tx { font-size: 10px; }
+.hcard .st { font-size: 12px; }
+.hpbar { height: 16px; }
+.hpbar b { font-size: 11px; }
+.hinfo { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
+.autochip, .vitesse { font-size: 12px; min-height: 38px; display: inline-flex; align-items: center; }
+.zlink { display: inline-block; padding: 8px 4px; }
+.zcard .nm { font-size: 11px; }
+.zcard .tx { font-size: 10px; }
+.zcard .chip { font-size: 9px; }
+.zcard .note { font-size: 10px; }
+.bt-bar .grow { font-size: 12px; }
+.bt-bar .grow { font-size: 11px; line-height: 1.2; }
+.zlink { padding: 7px 2px; }

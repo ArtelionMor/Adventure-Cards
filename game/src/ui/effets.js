@@ -415,7 +415,10 @@ export function creeFx(acces) {
       if (n) { n.style.visibility = 'hidden'; caches.add(n); }
     }
 
-    auraAt = 0;
+    // La file : un film qui arrive pendant qu'un autre joue attend la fin du precedent (les chiffres ne
+    // se melangent pas), mais jamais plus de `fileMaxMs` : l'ecran ne traine pas derriere le joueur.
+    const retard = Math.min(f.fileMaxMs, Math.max(0, (fin - Date.now()) * reglage.vitesse / reglage.ralenti));
+    auraAt = retard;
     // Ceux dont un evenement du lot explique deja les chiffres : pas d'effet d'aura en plus.
     const couverts = new Set();
     for (const ev of lot) {
@@ -423,7 +426,7 @@ export function creeFx(acces) {
       if (ev.t === 'invoque') couverts.add(cle(ev.unite.camp, ev.unite.uid));
       if (ev.t === 'transforme' || ev.t === 'controle') for (const u of ev.unites || (ev.unite ? [ev.unite] : [])) couverts.add(cle(u.camp, u.uid));
     }
-    let t = 0;                      // l'horloge du film
+    let t = retard;                 // l'horloge du film
     const impact = new Map();       // indice d'evenement -> heure du coup
     let groupe = null;              // le dernier groupe (meme cause, meme type) : { cause, t, type }
     const heure = ev => {           // quand un evenement « simple » joue : ensemble avec ses voisins de meme cause
@@ -456,7 +459,7 @@ export function creeFx(acces) {
         case 'joue': {
           apres(t, () => carteJouee(ev));
           t += f.volMs + f.tenueMs;
-          if (!auraAt) auraAt = t;
+          if (auraAt === retard) auraAt = t;
           groupe = null;
           break;
         }
