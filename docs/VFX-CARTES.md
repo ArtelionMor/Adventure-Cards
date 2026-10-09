@@ -1,6 +1,6 @@
 # VFX des cartes — liste de travail
 
-> Proposition (9 octobre 2026), à corriger carte par carte. **Codé le 9 octobre 2026** dans `game/src/ui/vfx.js` (60 signatures, 20 briques procédurales) : la liste ci-dessous reste la référence de l'intention, le code peut s'en écarter carte par carte. Chaque carte
+> Proposition (9 octobre 2026), à corriger carte par carte. **Codé le 9 octobre 2026** dans `game/src/ui/vfx.js` : **120 signatures écrites carte par carte** (base et switch), **toutes différentes**, assemblées à partir de **73 briques procédurales** (voir « Une animation unique par carte » plus bas). La liste carte par carte ci-dessous est l'intention de départ pour les cartes de base ; le code s'en écarte quand c'était mieux. Chaque carte
 > reçoit un effet de **lancer** (ce qui part de la carte) et un effet d'**arrivée** (ce que la
 > cible subit). Les doublons sont voulus quand l'effet est le même ; quand on peut varier, on varie.
 > Les noms de briques (en **gras**) sont définis en bas : une carte = un assemblage de briques.
@@ -10,9 +10,42 @@
 ## Le modèle : une animation par MOMENT (9 octobre 2026, retour du game designer)
 Une animation doit être **cohérente avec ce que la carte fait et QUAND** : le Toutou Fidèle s'anime à son arrivée *et* à sa mort (c'est là que son effet part),
 le Chat de Gouttière quand il attaque (Charge, Passe-Murailles), un porteur d'aura a son halo, la Métamorphose ultime fait disparaître les unités puis les fait revenir transformées.
-Les signatures sont donc **calculées depuis les données de la carte** (`signatureAuto`, dans `ui/vfx.js`) : ses effets, ses mots-clés, ses moments, le thème de son héros ;
-les 120 cartes (base **et** switch) en ont une, et une carte dont le texte change change d'animation toute seule. `SIGNATURES` ne garde que les écarts voulus.
-Le tableau « carte par carte » ci-dessous est l'intention de départ pour les 60 cartes de base ; le **wiki** de l'Atelier montre, pour chaque carte, ce que fait chacun de ses moments.
+Une signature a donc **un champ par moment** : `lancer` (ce qui part de la carte, vers `vers`, depuis `de`), `arrivee` / `soin` / `renfort` (ce que la cible subit),
+`entree` (l'unité arrive), `attaque` (traînée, rémanence, crocs ou venin à l'impact), `mort`, `declenche` (`death`, `turnStart`, `turnEnd`, `regle` — chacun une petite signature)
+et `aura` (l'onde de l'aura quand son porteur arrive). Chaque champ est une brique `[nom, options]` ou une liste de briques jouées ensemble.
+Le **wiki** de l'Atelier (onglet Cartes) joue chacun des moments d'une carte sur une scène ; l'onglet Animations joue chaque brique seule.
+
+## Une animation unique par carte (9 octobre 2026, demande du game designer)
+**Les 120 cartes ont chacune une signature écrite à la main** dans `SIGNATURES` (`game/src/ui/vfx.js`), et **aucune ne ressemble à une autre**.
+`signatureAuto` (calculée depuis les effets, mots-clés et moments de la carte) reste en dessous : elle comble un moment que la signature ne dit pas,
+et elle donne une animation à une carte ajoutée demain dans le builder, en attendant qu'on lui en écrive une.
+
+**Une famille visuelle par héros** : on reconnaît le héros à la couleur et aux formes, puis la carte à son geste.
+
+| Héros | Couleurs | Ce qui revient |
+|---|---|---|
+| Médor (Chien, Gardien) | or, beige | pattes, os, notes de sifflet, aboiements |
+| Felix (Chat, Mille coupures) | rose, violet | griffures, étoiles de magie, cartes |
+| Corax (Corbeau, Filou) | noir, gris | bec, nuée, yeux, plumes, pièces volées |
+| Bulle (Grenouille, Venin) | vert, violet poison | langue, gouttes, boue, fiole, bulles, bond |
+| Athéna (Chouette, Contrôle) | or, violet de nuit | livre, regard, serres, constellation, orage |
+| Miracle (Caméléon, Support) | cyan, arc-en-ciel | éclats de miroir, mouches, pièce lancée, hypnose |
+| Croc (Chien, Meute) | rouge sang | lune, crocs, pattes qui courent, explosion |
+| Mistigri (Chat, Maraudeur) | violet de nuit | fumée, pièces d'or, fantômes |
+| Sirocco (Faucon, Rapace) | blanc, ciel | piqué, vent, réticule, éclairs |
+| Reinette (Grenouille, Marais) | vert tendre | nénuphars, frai, pluie, électricité, couronnes, gorge qui gonfle |
+| Morphée (Hibou, Veilleur) | lilas, bleu de nuit | plumes douces, horloges, sablier, « zzz », œuf, lune |
+| Mirage (Caméléon, Imitateur) | arc-en-ciel | éclats de miroir, masques, voile, fleur, dédoublement |
+
+**Les règles que garde le banc** `node scripts/test-vfx.mjs` (il lit les données, ne joue aucune partie) :
+1. chaque carte des héros a sa signature écrite, et aucune signature ne cite un identifiant inconnu (une carte renommée garderait sinon l'animation calculée, sans que rien ne le dise) ;
+2. toutes les signatures, telles que le jeu les lit (`signatureDe`), sont **différentes** ;
+3. chaque brique citée existe et a sa phrase dans `BRIQUES_DOC` (le wiki l'affiche) ;
+4. la signature **suit la carte** : un allié a une entrée ; un râle d'agonie, un début ou une fin de tour, une règle « quand X » ont leur animation ; Charge, Passe-Murailles et Venin s'animent à l'attaque ; une aura a son onde ;
+5. `vers` et `de` sont de ceux que l'écran sait viser.
+
+⚠ **Une carte ajoutée dans le builder fait échouer le banc** tant qu'elle n'a pas sa signature : c'est voulu (elle s'anime quand même, avec la signature calculée).
+Console : `AC.fx.trace = console.log` écrit chaque brique jouée pendant un combat, `AC.fx.montre('crocs')` en joue une seule, `AC.triche.vfx('dog_pup', 'p', 'mort')` rejoue un moment d'une carte.
 
 ## Principes
 1. **Un effet se lit sans texte.** Le symbole (pictogramme) apparaît au-dessus de la cible avec le chiffre,

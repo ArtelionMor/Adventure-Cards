@@ -67,6 +67,7 @@
     <button data-o="pictos">Pictogrammes</button>
     <button data-o="anims">Animations</button>
     <button data-o="contours">Contours</button>
+    <button data-o="noms">Noms (à valider)</button>
   </nav>
   <div class="cols">
     <div id="contenu"></div>
@@ -90,6 +91,7 @@ import { lignesDeFait } from '../game/src/ui/fiche.js';
 import { creeFx } from '../game/src/ui/effets.js';
 import { signatureDe, BRIQUES_DOC } from '../game/src/ui/vfx.js';
 import { fabrique, momentsDe, fauxUnite } from '../game/src/ui/vfx-scenes.js';
+import { NOMS_PROPOSES, JETONS_PROPOSES } from './noms-proposes.js';
 import { refCarte, refUnite, refHeros } from '../game/src/combat/evenements.js';
 import { asset } from '../game/src/ui/shell.js';
 
@@ -106,7 +108,7 @@ let UNITES;
 function nouvellesUnites(carte, h) {
   const u = (uid, nom, atk, hp, keys) => ({ uid, name: nom, sprite: SPR_P, atk, hp, maxHp: hp, keys, card: null });
   const moi = carte && carte.type === 'ally'
-    ? { ...u(2, carte.name, carte.atk || 1, carte.hp || 1, carte.keys || []), sprite: carte.sprite || (h && h.sprite) || SPR_P, aura: !!carte.aura }
+    ? { ...u(2, carte.name, carte.atk || 1, carte.hp || 1, carte.keys || []), sprite: carte.sprite || (h && h.sprite) || SPR_P, aura: !!carte.aura, id: carte.id }
     : u(2, 'Molosse', 3, 4, ['Charge']);
   return {
     p: [u(1, 'Toutou Fidèle', 2, 3, ['Taunt']), moi],
@@ -123,7 +125,7 @@ function noeudHeros(camp) {
 function noeudUnite(u, camp) {
   const n = document.createElement('div');
   n.className = 'unit' + (u.aura ? ' porte-aura' : '');
-  n.dataset.side = camp; n.dataset.uid = u.uid; n.dataset.atk = u.atk; n.dataset.hp = u.hp;
+  n.dataset.side = camp; n.dataset.uid = u.uid; n.dataset.atk = u.atk; n.dataset.hp = u.hp; n.dataset.carte = u.id || '';
   n.innerHTML = `<img alt="" src="${asset(u.sprite)}"><div class="un">${esc(u.name)}</div><div class="s"><span class="a">${u.atk}</span> / <span class="h">${u.hp}</span></div>${ligneDePictos(u, { effets: false, taille: 16, max: 3 })}`;
   return n;
 }
@@ -258,6 +260,14 @@ function trouveCarte(id) {
   return null;
 }
 
+/** La ligne « nom proposé » d'une carte (proposition du 9 octobre 2026, à valider). */
+function nomPropose(c) {
+  const p = NOMS_PROPOSES[c.id];
+  if (!p) return '';
+  if (p.garder) return `<div class="src" style="margin:2px 0 4px">Nom : <b>garder</b>${p.alt ? ` — sinon « ${esc(p.alt)} »` : ''}</div>`;
+  return `<div style="margin:2px 0 4px;color:var(--accent)">Nom proposé : <b>${esc(p.nom)}</b> <span class="src">— ${esc(p.pourquoi)}</span></div>`;
+}
+
 function detailCarte() {
   const zone = $('#detail');
   if (!zone) return;
@@ -269,7 +279,7 @@ function detailCarte() {
   f.className = 'fiche';
   f.innerHTML = `<div class="tete">
     <div class="hcard fx-carte lancer grande ${ally ? '' : 'spell'}"><div class="cost">${c.cost}</div>${(c.sprite || h.sprite) ? `<img src="${asset(c.sprite || h.sprite)}" alt="">` : ''}<div class="nm">${esc(c.name)}</div>${ligneDePictos(c, { taille: 20, max: 4 })}<div class="tx">${esc(c.text || '')}</div>${ally ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}</div>
-    <div style="flex:1;min-width:200px"><div style="font-size:18px;font-weight:700">${esc(c.name)}</div>
+    <div style="flex:1;min-width:200px"><div style="font-size:18px;font-weight:700">${esc(c.name)}</div>${nomPropose(c)}
       <div class="src">${esc(h.name)} · ${ally ? 'Allié' : 'Sort'} · coût ${c.cost}${ally ? ` · ${c.atk}/${c.hp}` : ''} <span class="src">· id ${esc(c.id)}</span></div>
       <h3>Ce qu'elle fait</h3><div id="rows"></div></div></div>`;
   const rows = f.querySelector('#rows');
@@ -329,6 +339,22 @@ function ongletAnims() {
   return h;
 }
 
+function ongletNoms() {
+  let n = 0, h = '<h2>Les noms proposés</h2><p style="color:var(--ink-dim)">Une proposition pour chaque carte, numérotée : réponds « ok », ou « 12 : non, 45 : plutôt X ». Rien n’est appliqué tant que tu n’as pas validé. ★ = le nom actuel est déjà bon (une autre piste est donnée quand même).</p>';
+  for (const hero of CHARACTERS) {
+    h += `<div class="hero-t"><img src="${asset(hero.sprite)}" alt=""><div><b>${esc(hero.name)}</b><br><span>${esc(hero.role || '')}</span></div></div><table class="tab">`;
+    for (const c of [...hero.cards, ...(hero.switches || [])]) {
+      n++;
+      const p = NOMS_PROPOSES[c.id] || { nom: c.name, garder: true };
+      const avant = esc(c.name), apres = p.garder ? `<b>${esc(p.nom)}</b> ★${p.alt ? ` <span class="dim">(sinon « ${esc(p.alt)} »)</span>` : ''}` : `<b style="color:var(--accent)">${esc(p.nom)}</b>`;
+      h += `<tr><td>${n}</td><td><span class="dim">${avant}</span> → ${apres}<div class="dim">${esc(p.pourquoi || '')}</div></td></tr>`;
+    }
+    h += '</table>';
+  }
+  if (JETONS_PROPOSES.length) h += '<h2>Les jetons</h2><table class="tab">' + JETONS_PROPOSES.map(j => `<tr><td></td><td><span class="dim">${esc(j.avant)}</span> → <b style="color:var(--accent)">${esc(j.apres)}</b><div class="dim">${esc(j.ou)} — ${esc(j.pourquoi)}</div></td></tr>`).join('') + '</table>';
+  return h;
+}
+
 function ongletContours() {
   let h = '<h2>Les contours</h2><p style="color:var(--ink-dim)">Une carte qu\'on joue et une unité qui déclenche un effet se montrent comme des cartes, au contour différent (comme dans Arena).</p><div class="contours">';
   h += `<div class="c"><div class="hcard fx-carte lancer"><div class="nm">Carte jouée</div></div><b>Doré</b><span class="src">Une carte que tu (ou l'adversaire) joues.</span><button class="btn-j" data-scene="invoque">▶ Voir</button></div>`;
@@ -341,9 +367,9 @@ function ongletContours() {
 // ============================================================ branchement
 let onglet = (location.hash || '#cartes').slice(1);
 function affiche() {
-  if (!['cartes', 'pictos', 'anims', 'contours'].includes(onglet)) onglet = 'cartes';
+  if (!['cartes', 'pictos', 'anims', 'contours', 'noms'].includes(onglet)) onglet = 'cartes';
   document.querySelectorAll('#onglets button').forEach(b => b.classList.toggle('on', b.dataset.o === onglet));
-  $('#contenu').innerHTML = { cartes: ongletCartes, pictos: ongletPictos, anims: ongletAnims, contours: ongletContours }[onglet]();
+  $('#contenu').innerHTML = { cartes: ongletCartes, pictos: ongletPictos, anims: ongletAnims, contours: ongletContours, noms: ongletNoms }[onglet]();
   if (onglet === 'cartes') detailCarte();
 }
 $('#onglets').onclick = e => { const b = e.target.closest('button'); if (!b) return; onglet = b.dataset.o; location.hash = onglet; affiche(); };

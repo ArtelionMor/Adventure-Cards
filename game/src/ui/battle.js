@@ -374,6 +374,7 @@ function syncListe(wrap, liste, cle, cree, maj) {
 function majUnite(n, u, side) {
   n.dataset.side = side;
   n.dataset.uid = u.uid;
+  n.dataset.carte = u.card ? u.card.id : '';   // la carte de l'unite : ses animations (ui/vfx.js) la retrouvent par la
   n.dataset.atk = u.atk;
   n.dataset.hp = u.hp;
   const ap = pilule(apercus.get(`${side}:${u.uid}`));

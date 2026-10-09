@@ -12,7 +12,7 @@
 // Rien ne depend de `requestAnimationFrame` : les delais sont des `setTimeout`.
 //
 // Console : `AC.fx.ralenti = 8` ralentit tout (pour regarder un effet en capture),
-// `AC.fx.vitesse` lit le cran de vitesse.
+// `AC.fx.vitesse` lit le cran de vitesse, `AC.fx.trace = console.log` dit chaque brique de VFX jouee.
 import { BALANCE } from '../config/balance.js';
 import { cardById } from '../config/npcs.js';
 import { asset } from './shell.js';
@@ -317,12 +317,46 @@ export function creeFx(acces) {
     if (!b) return 0;
     const d = de || centreDe(rectDe(acces.milieu()));
     const ms = b({ de: d, vers, ...(options || {}) }) || 0;
+    if (reglage.trace) reglage.trace(brique, options);   // console : `AC.fx.trace = console.log` dit quelle brique joue
     marque(ms);
     return ms;
   }
   const centreDe = r => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+  /** Une entree de signature (`[brique, options]`) ou une LISTE d'entrees, toujours rendue en liste. */
+  const liste = e => (!e ? [] : Array.isArray(e[0]) ? e : [e]);
+  /** Joue toutes les entrees d'un moment ; `extra` s'ajoute aux options (le noeud de l'unite concernee, par exemple). */
+  function lanceTout(e, vers, de, extra) {
+    let ms = 0;
+    for (const [nom, o] of liste(e)) ms = Math.max(ms, lance(nom, { ...(o || {}), ...(extra || {}) }, vers, de));
+    return ms;
+  }
+
+  /**
+   * La carte d'une unite (son `id`), pour retrouver sa signature : l'evenement la porte s'il la connait, sinon on la
+   * lit sur son noeud (`data-carte`, pose par l'ecran), vivant ou photographie avant sa mort.
+   */
+  function idDe(ref) {
+    if (!ref) return null;
+    if (ref.id) return ref.id;
+    const n = acces.unite(ref.camp, ref.uid);
+    if (n && n.dataset.carte) return n.dataset.carte;
+    const p = photos.get(cle(ref.camp, ref.uid));
+    return (p && p.clone.dataset.carte) || null;
+  }
+
+  /** D'ou part le lancer d'une carte : la carte au centre, sauf si sa signature dit autre chose (`de`). */
+  function pointDe(sig, ev) {
+    const autre = ev.camp === 'p' ? 'e' : 'p';
+    const n = sig.de === 'ennemi' ? acces.heros(autre) : sig.de === 'pioche' ? (ev.camp === 'p' ? acces.pioche() : acces.heros('e')) : null;
+    return n ? centreDe(rectDe(n)) : undefined;
+  }
   // Console : `AC.fx.montre('eclair')` joue une brique du centre vers le heros adverse (ou `'plumes', { n: 9 }`), pour la regarder seule.
-  reglage.montre = (nom, options) => lance(nom, options, [rectDe(acces.heros('e'))], centreDe(rectDe(acces.milieu())));
+  // Elle vise la premiere unite adverse (le heros s'il n'y en a pas) ; les briques qui animent une unite (gonfle,
+  // clignote, dedouble, fantome) prennent ta premiere unite.
+  reglage.montre = (nom, options) => {
+    const cible = acces.unites('e')[0] || acces.heros('e');
+    return lance(nom, { noeud: acces.unites('p')[0] || null, ...(options || {}) }, [rectDe(cible)], centreDe(rectDe(acces.milieu())));
+  };
 
   /** Ce que vise le lancer d'une carte : sa cible designee, sinon la zone que dit sa signature (`vers`). */
   function visees(sig, ev) {
@@ -362,7 +396,8 @@ export function creeFx(acces) {
     if (ev.bouclier) anneau(r, '#cfe0ff');
     if (perdu > 0 || ev.bouclier) {
       eclair(r, ev.bouclier ? '#cfe0ff' : '#fff');
-      if (sig && sig.arrivee) lance(sig.arrivee[0], sig.arrivee[1], [r]); else etincelles(r, couleur);
+      const ns = ev.src && ev.src.uid ? noeudDe(ev.src) : null;   // le coup part de son auteur s'il est sur le plateau
+      if (sig && sig.arrivee) lanceTout(sig.arrivee, [r], ns ? centreDe(rectDe(ns)) : undefined, { noeud: n }); else etincelles(r, couleur);
       secoue(n, f.secoussePx * (hero ? .7 : 1) * (1 + Math.min(perdu, 8) * .08), f.secousseMs);
       if (perdu >= f.grosCoup) secoueEcran(f.ecranSecoussePx, f.ecranSecousseMs);
     }
@@ -376,7 +411,7 @@ export function creeFx(acces) {
     const r = rectDe(n);
     chiffre(r, `+${ev.soigne}${icone('Heal', 22)}`, COULEUR.soin, 1);
     const art = sig && (sig.soin || sig.arrivee);
-    if (art) lance(art[0], art[1], [r]); else etincelles(r, COULEUR.soin, 5);
+    if (art) lanceTout(art, [r], undefined, { noeud: n }); else etincelles(r, COULEUR.soin, 5);
   }
 
   function renfort(ev, rang, sig) {
@@ -392,7 +427,7 @@ export function creeFx(acces) {
     if (ic) texte += icone(ic, 20);
     chiffre(r, texte, COULEUR.renfort, .85, rang * 0);
     const art = sig && (sig.renfort || sig.arrivee);
-    if (art) lance(art[0], art[1], [r]); else etincelles(r, COULEUR.renfort, 5);
+    if (art) lanceTout(art, [r], undefined, { noeud: n }); else etincelles(r, COULEUR.renfort, 5);
   }
 
   /** La mort : le fantome tremble, s'eclaire puis se brise. */
@@ -404,8 +439,8 @@ export function creeFx(acces) {
     const r = rectDe(env);
     eclair(r);
     etincelles(r, '#fff', 10);
-    const sg = signatureDe(u.id);
-    if (sg && sg.mort) lance(sg.mort[0], sg.mort[1], [r]);
+    const sg = signatureDe(idDe(u));
+    if (sg && sg.mort) lanceTout(sg.mort, [r]);
     const ic = pose('fx-mort', icone('Dead', 46), r);
     anime(ic, [
       { transform: 'translate(-50%,-50%) scale(.3)', opacity: 0 },
@@ -539,7 +574,7 @@ export function creeFx(acces) {
       { transform: 'scale(.92)', offset: .78 },
       { transform: 'scale(1)', opacity: 1 }
     ], { duration: T(f.popMs), easing: 'ease-out', fill: 'none' });
-    if (sig && sig.entree) lance(sig.entree[0], sig.entree[1], [rectDe(n)]); else etincelles(rectDe(n), '#ffe8a8', 8);
+    if (sig && sig.entree) lanceTout(sig.entree, [rectDe(n)], undefined, { noeud: n }); else etincelles(rectDe(n), '#ffe8a8', 8);
   }
 
   // ------------------------------------------------------------ le film
@@ -592,7 +627,7 @@ export function creeFx(acces) {
         case 'attaque': {
           apres(t, () => elan(ev.src, ev.cible));
           // Ce que SA CARTE fait quand elle attaque : traînee de vitesse (Charge), rémanence fantome (Passe-Murailles), venin a l'impact.
-          const sa = signatureDe(ev.src.id);
+          const sa = signatureDe(idDe(ev.src));
           if (sa && sa.attaque) {
             const liste = Array.isArray(sa.attaque[0]) ? sa.attaque : [sa.attaque];
             const tImpact = t + f.elanMs * f.elanImpact;
@@ -620,7 +655,7 @@ export function creeFx(acces) {
           const sig = signatureDe(ev.carte.id);
           if (sig) {
             sigs.set(ev.i, sig);
-            if (sig.lancer) { apres(t, () => lance(sig.lancer[0], sig.lancer[1], visees(sig, ev))); t += f.lancerMs; }
+            if (sig.lancer) { apres(t, () => lanceTout(sig.lancer, visees(sig, ev), pointDe(sig, ev))); t += f.lancerMs; }
           }
           if (auraAt === retard) auraAt = t;
           groupe = null;
@@ -631,11 +666,11 @@ export function creeFx(acces) {
           const enfants = lot.filter(e => e.cause === ev.i);
           apres(t, () => carteEffet(ev, enfants));
           // Et l'animation de CE moment-la, propre a la carte : son rale d'agonie, son debut de tour, sa regle.
-          const sg = signatureDe(ev.src.id);
+          const sg = signatureDe(idDe(ev.src));
           const sub = sg && sg.declenche && (sg.declenche[ev.moment] || (String(ev.moment).startsWith('on_') ? sg.declenche.regle : null));
           if (sub) {
             sigs.set(ev.i, sub);
-            if (sub.lancer) apres(t + f.effetVolMs, () => { const n = noeudDe(ev.src); lance(sub.lancer[0], sub.lancer[1], visees(sub, ev), n ? centreDe(rectDe(n)) : undefined); });
+            if (sub.lancer) apres(t + f.effetVolMs, () => { const n = noeudDe(ev.src); lanceTout(sub.lancer, visees(sub, ev), n ? centreDe(rectDe(n)) : undefined); });
           }
           t += f.effetVolMs + f.effetTenueMs * .6 + (sub && sub.lancer ? f.lancerMs * .6 : 0);
           groupe = null;
@@ -645,13 +680,16 @@ export function creeFx(acces) {
           const at = heure(ev);
           apres(at, () => pop(ev.unite.camp, ev.unite.uid, sigs.get(ev.cause)));
           // Une unite a AURA : l'onde part d'elle vers chacun de ceux qu'elle protege (le halo qui reste est du CSS).
-          const own = ev.unite.id ? signatureDe(ev.unite.id) : null;
+          const own = signatureDe(idDe(ev.unite));
           if (own && own.aura) {
             apres(at + f.popMs * .7, () => {
               const n = acces.unite(ev.unite.camp, ev.unite.uid);
               if (!n) return;
-              const autres = acces.unites(ev.unite.camp).filter(x => x !== n).map(rectDe);
-              lance(own.aura[0], own.aura[1], autres, centreDe(rectDe(n)));
+              // Une aura touche ses allies, ou les unites d'en face (`cible: 'ennemis'` : la Chimere).
+              const enFace = liste(own.aura).some(([, o]) => o && o.cible === 'ennemis');
+              const camp = enFace ? (ev.unite.camp === 'p' ? 'e' : 'p') : ev.unite.camp;
+              const autres = acces.unites(camp).filter(x => x !== n).map(rectDe);
+              lanceTout(own.aura, autres, centreDe(rectDe(n)));
             });
           }
           marque(at + f.popMs);
