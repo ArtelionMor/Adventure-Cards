@@ -933,7 +933,9 @@ function poseLesGestes() {
   // Toucher le fond (ni une carte, ni une unite, ni un bouton) annule l'action engagee — ou,
   // en Auto, rend la main au joueur.
   $('#battle').addEventListener('pointerup', ev => {
-    if (ev.target.closest('[data-geste], button')) return;
+    // Le chip Auto/Manuel est un <div> : sans `.autochip` ici, son toucher comptait aussi comme « toucher le fond »
+    // (donc reprendre la main), puis son propre clic rebasculait en Auto — impossible de quitter l'Auto en le touchant.
+    if (ev.target.closest('[data-geste], button, .autochip')) return;
     if (engage()) annule();
     else reprendLaMain();
   });
