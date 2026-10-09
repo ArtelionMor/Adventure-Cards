@@ -42,7 +42,12 @@ et elle donne une animation à une carte ajoutée demain dans le builder, en att
 2. toutes les signatures, telles que le jeu les lit (`signatureDe`), sont **différentes** ;
 3. chaque brique citée existe et a sa phrase dans `BRIQUES_DOC` (le wiki l'affiche) ;
 4. la signature **suit la carte** : un allié a une entrée ; un râle d'agonie, un début ou une fin de tour, une règle « quand X » ont leur animation ; Charge, Passe-Murailles et Venin s'animent à l'attaque ; une aura a son onde ;
-5. `vers` et `de` sont de ceux que l'écran sait viser.
+5. `vers` et `de` sont de ceux que l'écran sait viser ;
+6. **une animation ne ment pas** — les signes ont un sens fixe, dans les deux sens : traînée ⇔ Charge, fantôme ⇔ Passe-Murailles, gouttes à l'impact ⇔ Venin ;
+   des pièces ⇒ la carte donne du mana ; une icône qui monte (armure, mana, soin) ⇒ la carte fait cela ; un lancer qui part de chez l'adversaire ⇒ elle lui prend quelque chose.
+   (Relu le 9 octobre 2026 : le Pickpocket montrait une carte prise à l'adversaire alors qu'il pioche dans ton paquet, le Grand Matou une pluie de pièces sans mana, Rappel et la Matriarche des cœurs « PV » sans soin.)
+
+Un déclenchement qui frappe **au hasard** (le Chat Griffu : « inflige une blessure à un adversaire ») lance son effet vers la **vraie victime**, pas vers le héros par défaut.
 
 ⚠ **Une carte ajoutée dans le builder fait échouer le banc** tant qu'elle n'a pas sa signature : c'est voulu (elle s'anime quand même, avec la signature calculée).
 Console : `AC.fx.trace = console.log` écrit chaque brique jouée pendant un combat, `AC.fx.montre('crocs')` en joue une seule, `AC.triche.vfx('dog_pup', 'p', 'mort')` rejoue un moment d'une carte.

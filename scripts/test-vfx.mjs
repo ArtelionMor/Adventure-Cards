@@ -11,7 +11,10 @@
 //   3. chaque brique citee existe (`creeBriques`) et a sa phrase dans `BRIQUES_DOC` (le wiki l'affiche) ;
 //   4. la signature suit la carte : un allie a une entree ; un rale d'agonie, un debut/fin de tour, une regle
 //      « quand X » ont leur animation ; Charge, Passe-Murailles et Venin s'animent a l'attaque ; une aura a son onde ;
-//   5. les `vers` et `de` sont de ceux que l'ecran sait viser.
+//   5. les `vers` et `de` sont de ceux que l'ecran sait viser ;
+//   6. une animation ne MENT pas : les signes ont un sens fixe, dans les deux sens — traînee <=> Charge, fantome <=>
+//      Passe-Murailles, gouttes a l'impact <=> Venin ; des pieces => la carte donne du mana ; une icone qui monte
+//      (armure, mana, soin) => la carte fait cela ; un lancer qui part de chez l'adversaire => elle lui prend quelque chose.
 // Il ne joue aucune partie et n'ouvre aucun navigateur : il lit les donnees.
 import { CHARACTERS } from '../game/src/config/characters.js';
 import { SIGNATURES, BRIQUES_DOC, creeBriques, signatureDe } from '../game/src/ui/vfx.js';
@@ -88,6 +91,37 @@ for (const { c, h } of cartes) {
   verifie(`${nom} : vers`, VERS.includes(sig.vers), `« ${sig.vers} » n'est pas une cible connue (${VERS.filter(Boolean).join(', ')})`);
   verifie(`${nom} : de`, DE.includes(sig.de), `« ${sig.de} » n'est pas un depart connu`);
   for (const sub of Object.values(sig.declenche || {})) verifie(`${nom} : vers d'un declenchement`, VERS.includes(sub.vers), `« ${sub.vers} » inconnu`);
+}
+
+// --- 6. Une animation ne ment pas : ce qu'elle montre, la carte le fait.
+/** Toutes les operations d'une carte (moments, regles, branches d'un « Choisir » comprises). */
+function opsDe(c) {
+  const out = new Set();
+  const parcours = x => {
+    if (Array.isArray(x)) { x.forEach(parcours); return; }
+    if (!x || typeof x !== 'object') return;
+    if (typeof x.op === 'string') out.add(x.op);
+    Object.values(x).forEach(parcours);
+  };
+  for (const k of Object.keys(c)) if (['play', 'death', 'turnStart', 'turnEnd'].includes(k) || k.startsWith('on_')) parcours(c[k]);
+  return out;
+}
+const SYMBOLES = { Armor: ['armor'], Mana: ['mana', 'mana_au_prochain_tour'], Heal: ['heal'], Health: ['heal'] };
+for (const { c, h } of cartes) {
+  const sig = signatureDe(c.id), nom = `${h.name} · ${c.name}`;
+  const cles = (c.keys || []).map(k => String(k).split(':')[0]);
+  const att = liste(sig.attaque);
+  const a = (brique, impact) => att.some(([b, o]) => b === brique && (!impact || (o && o.quand === 'impact')));
+  verifie(`${nom} : traînee <=> Charge`, a('trainee') === cles.includes('Charge'), cles.includes('Charge') ? 'elle a Charge : sa traînee a l\'attaque' : 'une traînee dit « Charge », que la carte n\'a pas');
+  verifie(`${nom} : fantome <=> Passe-Murailles`, a('fantome') === cles.includes('passe_murailles'), cles.includes('passe_murailles') ? 'elle a Passe-Murailles : son fantome a l\'attaque' : 'un fantome dit « Passe-Murailles », que la carte n\'a pas');
+  verifie(`${nom} : venin a l'impact <=> Venin`, a('gouttes', true) === cles.includes('Venin'), cles.includes('Venin') ? 'elle a Venin : ses gouttes a l\'impact' : 'des gouttes a l\'impact disent « Venin », que la carte n\'a pas');
+  const ops = opsDe(c), toutes = entrees(sig);
+  if (toutes.some(([b]) => b === 'pieces')) verifie(`${nom} : des pieces => du mana`, ops.has('mana'), 'des pieces disent « du mana » : la carte n\'en donne pas');
+  for (const [b, o] of toutes) {
+    const attendu = b === 'montee' && o && SYMBOLES[o.symbole];
+    if (attendu) verifie(`${nom} : l'icone « ${o.symbole} » qui monte`, attendu.some(x => ops.has(x)), `elle dit « ${o.symbole} », que la carte ne donne pas`);
+  }
+  if (sig.de === 'ennemi') verifie(`${nom} : un lancer qui part de chez l'adversaire`, ops.has('prendre_le_controle'), 'il montre qu\'on PREND a l\'adversaire : la carte ne lui prend rien');
 }
 
 for (const e of echecs) console.log(rouge('  ECHEC     ') + e);

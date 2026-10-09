@@ -670,7 +670,12 @@ export function creeFx(acces) {
           const sub = sg && sg.declenche && (sg.declenche[ev.moment] || (String(ev.moment).startsWith('on_') ? sg.declenche.regle : null));
           if (sub) {
             sigs.set(ev.i, sub);
-            if (sub.lancer) apres(t + f.effetVolMs, () => { const n = noeudDe(ev.src); lanceTout(sub.lancer, visees(sub, ev), n ? centreDe(rectDe(n)) : undefined); });
+            if (sub.lancer) apres(t + f.effetVolMs, () => {
+              const n = noeudDe(ev.src);
+              // Un coup tire au hasard vise sa VRAIE victime : le lancer va la ou les degats tombent, pas vers le heros par defaut.
+              const touches = /^ennemis?$/.test(sub.vers || '') ? enfants.filter(e => e.t === 'degats' && e.cible).map(e => noeudDe(e.cible)).filter(Boolean).map(rectDe) : [];
+              lanceTout(sub.lancer, touches.length ? touches : visees(sub, ev), n ? centreDe(rectDe(n)) : undefined);
+            });
           }
           t += f.effetVolMs + f.effetTenueMs * .6 + (sub && sub.lancer ? f.lancerMs * .6 : 0);
           groupe = null;

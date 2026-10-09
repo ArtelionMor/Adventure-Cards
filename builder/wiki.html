@@ -265,7 +265,7 @@ function nomPropose(c) {
   const p = NOMS_PROPOSES[c.id];
   if (!p) return '';
   if (p.garder) return `<div class="src" style="margin:2px 0 4px">Nom : <b>garder</b>${p.alt ? ` — sinon « ${esc(p.alt)} »` : ''}</div>`;
-  return `<div style="margin:2px 0 4px;color:var(--accent)">Nom proposé : <b>${esc(p.nom)}</b> <span class="src">— ${esc(p.pourquoi)}</span></div>`;
+  return `<div style="margin:2px 0 4px;color:var(--accent)">Nom proposé : <b>${esc(p.nom)}</b>${p.alt ? ` <span class="src">(sinon « ${esc(p.alt)} »)</span>` : ''} <span class="src">— ${esc(p.pourquoi)}</span></div>`;
 }
 
 function detailCarte() {
@@ -346,7 +346,8 @@ function ongletNoms() {
     for (const c of [...hero.cards, ...(hero.switches || [])]) {
       n++;
       const p = NOMS_PROPOSES[c.id] || { nom: c.name, garder: true };
-      const avant = esc(c.name), apres = p.garder ? `<b>${esc(p.nom)}</b> ★${p.alt ? ` <span class="dim">(sinon « ${esc(p.alt)} »)</span>` : ''}` : `<b style="color:var(--accent)">${esc(p.nom)}</b>`;
+      const sinon = p.alt ? ` <span class="dim">(sinon « ${esc(p.alt)} »)</span>` : '';
+      const avant = esc(c.name), apres = p.garder ? `<b>${esc(p.nom)}</b> ★${sinon}` : `<b style="color:var(--accent)">${esc(p.nom)}</b>${sinon}`;
       h += `<tr><td>${n}</td><td><span class="dim">${avant}</span> → ${apres}<div class="dim">${esc(p.pourquoi || '')}</div></td></tr>`;
     }
     h += '</table>';
