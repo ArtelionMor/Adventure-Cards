@@ -276,7 +276,7 @@ Règle suivie : on **remplace** un palier faible plutôt que d'en ajouter, pour 
 
 | Héros | Carte | Niveau | Palier | Note |
 |---|---|---|---|---|
-| Médor | Molosse de Garde | 14 (nouveau) | Statique : les cartes pistées coûtent 1 de plus. Cri de guerre : piste une carte. | Deux entrées au même niveau (statique + extra) : l'audit le signalera, le joueur lit un seul texte. |
+| Médor | Chien de Berger | 14 (nouveau) | Statique : les cartes pistées coûtent 1 de plus. Cri de guerre : piste une carte. | Deux entrées au même niveau (statique + extra) : l'audit le signalera, le joueur lit un seul texte. |
 | Croc | Rabatteur | 14 (nouveau) | Quand l'adversaire joue une carte pistée, il perd 3 PV. Cri de guerre : piste une carte. | Son aura du 15 reste. |
 | Croc | Louveteau Affamé | 14 → 15 | (inchangé) | Libère le 14 : Croc y avait déjà Curée. |
 
@@ -288,7 +288,7 @@ Règle suivie : on **remplace** un palier faible plutôt que d'en ajouter, pour 
 | Felix | Tempête de patounes | 13 | Gagne Reprise. | — (niveau libre) |
 | Mistigri | Griffes Sournoises | 8 | Gagne Reprise. | « Pioche aussi une carte. » |
 | Mistigri | Concert Nocturne | 13 | Gagne Reprise. | « Gagne 1 mana au prochain tour. » |
-| Médor | Appel de la meute | 14 | Gagne Reprise. | — |
+| Médor | Toute la Bande | 14 | Gagne Reprise. | — |
 | Corax | Malédiction | 14 | Gagne Reprise. | — |
 | Athéna | Regard Perçant | 14 | Gagne Reprise. | — |
 | Morphée | Songe | 11 | Gagne Reprise. | « Gagne aussi 3 armures. » |
@@ -296,7 +296,7 @@ Règle suivie : on **remplace** un palier faible plutôt que d'en ajouter, pour 
 
 **Écartés par vigilance :** Foudre (Chat de Gouttière en crée à chaque attaque : chacune serait reprenable),
 Neuf Vies, Minuit, Sablier, Colère d'Athéna, Nuit Sans Lune, Vase, Envol, Souffle (gestion de masse),
-Chasse (retrait premium), Métamorphose ultime.
+Chasse Nocturne (retrait premium), Métamorphose Ultime.
 
 ### 3.3 Meule, Ex-libris, pile de fatigue
 
@@ -341,7 +341,7 @@ Reinette perd sa portée directe sur le héros (le Hurleur) ; elle gagne du cont
 | Œuf de Hibou (Morphée) | 0/3 Prov. | 1/3 Prov. |
 | Faucon Chasseur (Sirocco) | 0/3, attaque = cartes en main | 1/3, attaque = cartes en main +1 (demande le champ « + » sur la caractéristique variable) |
 
-Prince Foufi et Veilleur ne sont jamais à 0 en jeu (ils se comptent eux-mêmes, et les tours joués partent de 1).
+Prince des cabots et Hibou Centenaire ne sont jamais à 0 en jeu (ils se comptent eux-mêmes, et les tours joués partent de 1).
 
 ## 4. Les mécaniques
 
@@ -424,12 +424,12 @@ coût réel passe par `cardCost` ; l'événement part une fois, avant les effets
   des sorts, pour Sabbat) ;
 - l'événement `reprise` part **en plus** de `spell` (une reprise est un sort lancé) ;
 - la fenêtre montre aussi ton exil et la défausse adverse, en lecture seule.
-Éprouvé dans le vrai jeu (en donnant le mot-clé à « Appel » de Médor, en mémoire seulement) : la reprise
+Éprouvé dans le vrai jeu (en donnant le mot-clé à « Coup de Sifflet » (ex-« Appel ») de Médor, en mémoire seulement) : la reprise
 sans cible et avec cible, le bouton qui pulse, la carte éclairée, le sort exilé.
 
 **Règle.** Un sort à Reprise peut être lancé **depuis ta défausse**, à son coût normal ; il est
 **exilé** après, jamais remis en défausse. Une reprise **est** un sort lancé : elle nourrit
-`spellsGame`/`spellsTurn`, Griffure, Tempête de patounes, Roi des Toits.
+`spellsGame`/`spellsTurn`, Griffeur de doigt (ex-Griffure), Tempête de Patounes, Matou Invocateur (ex-Roi des Toits).
 
 **Moteur.**
 - Mot-clé `reprise` ; un drapeau `surSort` dans `KEYWORDS` autorise un mot-clé sur un sort (la

@@ -1054,14 +1054,14 @@ export const CHARACTER_DATA = {
       "cards": [
         {
           "id": "dog_pup",
-          "name": "Toutou Fidele",
+          "name": "Chiot de Garde",
           "type": "ally",
           "cost": 2,
           "keys": [
             "Taunt",
             "type:Chien"
           ],
-          "text": "Râle d'agonie : Invoque un Chien 2/2",
+          "text": "Râle d'agonie : Invoque un Grand Frère 2/2",
           "play": [],
           "tiers": [
             {
@@ -1097,7 +1097,7 @@ export const CHARACTER_DATA = {
               "op": "summon",
               "n": 1,
               "unit": {
-                "name": "Chien",
+                "name": "Grand Frère",
                 "atk": 2,
                 "hp": 2,
                 "statics": []
@@ -1107,7 +1107,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "dog_guard",
-          "name": "Molosse de Garde",
+          "name": "Chien de Berger",
           "type": "ally",
           "cost": 2,
           "atk": 1,
@@ -1164,13 +1164,13 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "dog_growl",
-          "name": "Appel",
+          "name": "Coup de Sifflet",
           "type": "spell",
           "cost": 3,
           "keys": [
             "type:Chien"
           ],
-          "text": "Invoque un toutou fidèle. Donne +1/+1  à tes alliés.",
+          "text": "Invoque un Chiot de Garde. Donne +1/+1  à tes alliés.",
           "play": [
             {
               "op": "pose_sur_le_plateau",
@@ -1199,7 +1199,7 @@ export const CHARACTER_DATA = {
           "tiers": [
             {
               "lvl": 11,
-              "text": "Invoque un autre Toutou fidèle.",
+              "text": "Invoque un autre Chiot de Garde.",
               "extra": {
                 "op": "pose_sur_le_plateau",
                 "d_ou": "creee",
@@ -1238,7 +1238,7 @@ export const CHARACTER_DATA = {
                 "atk": 0,
                 "hp": 0
               },
-              "text": "Invoque un Enragé."
+              "text": "Invoque un Toutou enragé."
             },
             {
               "lvl": 16,
@@ -1249,7 +1249,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "dog_lick",
-          "name": "Rappel",
+          "name": "Retrouvailles",
           "type": "spell",
           "cost": 6,
           "keys": [
@@ -1305,7 +1305,7 @@ export const CHARACTER_DATA = {
           "keys": [
             "type:Chien"
           ],
-          "text": "Cri de guerre : invoque un Toutou Fidèle et un Enragé.",
+          "text": "Cri de guerre : invoque un Chiot de Garde et un Toutou enragé.",
           "play": [
             {
               "op": "pose_sur_le_plateau",
@@ -1384,7 +1384,7 @@ export const CHARACTER_DATA = {
       "switches": [
         {
           "id": "dog_bite",
-          "name": "Enragé",
+          "name": "Toutou enragé",
           "type": "ally",
           "cost": 2,
           "atk": 2,
@@ -1425,7 +1425,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "dog_alpha",
-          "name": "Alpha",
+          "name": "Chef de Meute",
           "type": "ally",
           "cost": 5,
           "atk": 3,
@@ -1461,7 +1461,7 @@ export const CHARACTER_DATA = {
             },
             {
               "lvl": 12,
-              "text": "Cri de guerre : Invoque un Enragé.",
+              "text": "Cri de guerre : Invoque un Toutou enragé.",
               "extra": {
                 "op": "pose_sur_le_plateau",
                 "d_ou": "creee",
@@ -1486,7 +1486,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "dog_bone",
-          "name": "Prince Foufi",
+          "name": "Prince des cabots",
           "type": "ally",
           "cost": 2,
           "keys": [
@@ -1508,7 +1508,7 @@ export const CHARACTER_DATA = {
             },
             {
               "lvl": 12,
-              "text": "Invoque un Chiot 1/1 avec \"Râle d'agonie : Invoque un Chien 2/2\".",
+              "text": "Invoque un Chiot 1/1 avec \"Râle d'agonie : Invoque un Grand Frère 2/2\".",
               "extra": {
                 "op": "summon",
                 "n": 1,
@@ -1524,7 +1524,7 @@ export const CHARACTER_DATA = {
                       "op": "summon",
                       "n": 1,
                       "unit": {
-                        "name": "Chien",
+                        "name": "Grand Frère",
                         "atk": 2,
                         "hp": 2,
                         "keys": [
@@ -1558,7 +1558,7 @@ export const CHARACTER_DATA = {
                       "op": "summon",
                       "n": 1,
                       "unit": {
-                        "name": "Chien",
+                        "name": "Grand Frère",
                         "atk": 2,
                         "hp": 2,
                         "keys": []
@@ -1589,7 +1589,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "dog_shield",
-          "name": "Charge",
+          "name": "Clairon de la Meute",
           "type": "ally",
           "cost": 3,
           "keys": [
@@ -1644,13 +1644,13 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "dog_bark",
-          "name": "Appel de la meute",
+          "name": "Toute la Bande",
           "type": "spell",
           "cost": 5,
           "keys": [
             "type:Chien"
           ],
-          "text": "Invoque un Alpha, un Enragé et un Toutou Fidèle.",
+          "text": "Invoque un Chef de Meute, un Toutou enragé et un Chiot de Garde.",
           "play": [
             {
               "op": "pose_sur_le_plateau",
@@ -1750,7 +1750,7 @@ export const CHARACTER_DATA = {
       "cards": [
         {
           "id": "cat_claw",
-          "name": "Griffure",
+          "name": "Griffeur de doigt",
           "type": "ally",
           "cost": 3,
           "atk": 2,
@@ -1789,7 +1789,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "cat_alley",
-          "name": "Chat de Gouttiere",
+          "name": "Chat de Gouttière",
           "type": "ally",
           "cost": 2,
           "atk": 1,
@@ -1799,7 +1799,7 @@ export const CHARACTER_DATA = {
             "Charge",
             "passe_murailles"
           ],
-          "text": "Charge. Quand tu attaques avec une unité : Crée une Foudre",
+          "text": "Charge. Quand tu attaques avec une unité : Crée une Griffure",
           "play": [],
           "tiers": [
             {
@@ -1843,7 +1843,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "cat_pounce",
-          "name": "Foudre",
+          "name": "Griffure",
           "type": "spell",
           "cost": 1,
           "keys": [
@@ -1886,7 +1886,7 @@ export const CHARACTER_DATA = {
             "cout_x_de_moins_de_plus:X:1:ownTurns:",
             "type:Chat"
           ],
-          "text": "Crée autant de carte \"Foudre\" que de tour joués.",
+          "text": "Crée autant de carte \"Griffure\" que de tour joués.",
           "play": [
             {
               "op": "cree",
@@ -1991,7 +1991,7 @@ export const CHARACTER_DATA = {
       "switches": [
         {
           "id": "cat_scratch",
-          "name": "Tempête de patounes",
+          "name": "Tempête de Patounes",
           "type": "spell",
           "cost": 3,
           "keys": [
@@ -2064,7 +2064,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "cat_curio",
-          "name": "Curiosite",
+          "name": "Chat Prudent",
           "type": "ally",
           "cost": 2,
           "keys": [
@@ -2117,7 +2117,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "cat_trap",
-          "name": "Piege a Souris",
+          "name": "Chat Souricier",
           "type": "ally",
           "cost": 6,
           "atk": 1,
@@ -2168,7 +2168,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "cat_king",
-          "name": "Roi des Toits",
+          "name": "Matou Invocateur",
           "type": "ally",
           "cost": 5,
           "atk": 2,
@@ -2305,7 +2305,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "crow_scout",
-          "name": "Eclaireur",
+          "name": "Corbeau Espion",
           "type": "ally",
           "cost": 2,
           "atk": 2,
@@ -2354,7 +2354,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "crow_murder",
-          "name": "Envol",
+          "name": "Volée de Corbeaux",
           "type": "spell",
           "cost": 4,
           "keys": [
@@ -2393,7 +2393,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "crow_omen",
-          "name": "Presage",
+          "name": "Présage",
           "type": "spell",
           "cost": 4,
           "keys": [
@@ -2431,10 +2431,10 @@ export const CHARACTER_DATA = {
               "lvl": 6,
               "extra": {
                 "op": "pioche_x",
-                "carte": "Envol",
+                "carte": "Volée de Corbeaux",
                 "n": 1
               },
-              "text": "Pioche Envol"
+              "text": "Pioche Volée de Corbeaux"
             },
             {
               "lvl": 11,
@@ -2496,7 +2496,7 @@ export const CHARACTER_DATA = {
       "switches": [
         {
           "id": "crow_thief",
-          "name": "Frappeur Nocturne",
+          "name": "Pie Glaneuse",
           "type": "ally",
           "cost": 2,
           "atk": 2,
@@ -2539,7 +2539,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "crow_curse",
-          "name": "Malediction",
+          "name": "Mauvais Œil",
           "type": "spell",
           "cost": 3,
           "keys": [
@@ -2583,7 +2583,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "crow_feather",
-          "name": "Plume Noire",
+          "name": "Corneille Gourmande",
           "type": "ally",
           "cost": 2,
           "keys": [
@@ -2627,7 +2627,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "crow_swarm",
-          "name": "Nuee",
+          "name": "Nid de Corbeaux",
           "type": "ally",
           "cost": 4,
           "atk": 1,
@@ -2792,7 +2792,7 @@ export const CHARACTER_DATA = {
       "cards": [
         {
           "id": "frog_tad",
-          "name": "Têtard",
+          "name": "Têtard Glouton",
           "type": "ally",
           "cost": 1,
           "atk": 1,
@@ -2876,7 +2876,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "frog_venom",
-          "name": "Grenouille",
+          "name": "Grenouille Venimeuse",
           "type": "ally",
           "cost": 3,
           "atk": 2,
@@ -2927,7 +2927,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "frog_swamp",
-          "name": "Vase",
+          "name": "Coulée de Boue",
           "type": "spell",
           "cost": 3,
           "keys": [],
@@ -2967,7 +2967,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "frog_toad",
-          "name": "Grand Crapaud",
+          "name": "Crapaud-Rocher",
           "type": "ally",
           "cost": 5,
           "atk": 4,
@@ -3075,7 +3075,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "frog_spit",
-          "name": "Soigneur visqueux.",
+          "name": "Guérisseuse Gluante",
           "type": "ally",
           "cost": 3,
           "keys": [],
@@ -3129,7 +3129,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "frog_lily",
-          "name": "Fermier du Nenuphar",
+          "name": "Grenouille Nourrice",
           "type": "ally",
           "cost": 2,
           "atk": 2,
@@ -3196,7 +3196,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "frog_brew",
-          "name": "Decoction",
+          "name": "Élixir Venimeux",
           "type": "spell",
           "cost": 2,
           "keys": [],
@@ -3296,7 +3296,7 @@ export const CHARACTER_DATA = {
       "cards": [
         {
           "id": "owl_study",
-          "name": "Etude",
+          "name": "Étude",
           "type": "spell",
           "cost": 1,
           "keys": [
@@ -3339,7 +3339,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "owl_scholar",
-          "name": "Chouette Erudite",
+          "name": "Chouette Érudite",
           "type": "ally",
           "cost": 4,
           "atk": 3,
@@ -3390,7 +3390,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "owl_gaze",
-          "name": "Regard Percant",
+          "name": "Regard Perçant",
           "type": "spell",
           "cost": 3,
           "keys": [
@@ -3430,7 +3430,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "owl_wisdom",
-          "name": "Chasse",
+          "name": "Chasse Nocturne",
           "type": "spell",
           "cost": 4,
           "keys": [
@@ -3466,7 +3466,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "owl_night",
-          "name": "Impératrice nocturne.",
+          "name": "Impératrice Nocturne",
           "type": "ally",
           "cost": 8,
           "atk": 7,
@@ -3527,7 +3527,7 @@ export const CHARACTER_DATA = {
       "switches": [
         {
           "id": "owl_focus",
-          "name": "Exclusion",
+          "name": "Bourrasque",
           "type": "spell",
           "cost": 3,
           "keys": [],
@@ -3577,7 +3577,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "owl_lecture",
-          "name": "Maître du tourbillon",
+          "name": "Chouette Tourbillon",
           "type": "ally",
           "cost": 4,
           "keys": [
@@ -3639,7 +3639,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "owl_watch",
-          "name": "Guet",
+          "name": "Chouette Stoïque",
           "type": "ally",
           "cost": 5,
           "atk": 2,
@@ -3861,7 +3861,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "fox_dash",
-          "name": "Transmigration",
+          "name": "Tour de Passe-Passe",
           "type": "spell",
           "cost": 2,
           "keys": [],
@@ -3886,7 +3886,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "fox_snare",
-          "name": "Gobeur de mouche",
+          "name": "Gobeur de Mouches",
           "type": "ally",
           "cost": 3,
           "keys": [
@@ -4021,7 +4021,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "fox_wild",
-          "name": "Bipolarité",
+          "name": "Volte-Face",
           "type": "spell",
           "cost": 2,
           "keys": [],
@@ -4054,7 +4054,7 @@ export const CHARACTER_DATA = {
       "switches": [
         {
           "id": "fox_cunning",
-          "name": "Maître du camouflage",
+          "name": "Maître du Camouflage",
           "type": "ally",
           "cost": 3,
           "keys": [
@@ -4101,7 +4101,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "fox_ambush",
-          "name": "Captif dans le miroir",
+          "name": "Hypnose",
           "type": "spell",
           "cost": 5,
           "keys": [],
@@ -4138,7 +4138,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "fox_bandit",
-          "name": "Coup de langue",
+          "name": "Coup de Langue",
           "type": "spell",
           "cost": 2,
           "keys": [
@@ -4179,7 +4179,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "fox_frenzy",
-          "name": "Cohorte Divergente",
+          "name": "Porte-Couleurs",
           "type": "ally",
           "cost": 5,
           "keys": [],
@@ -4219,7 +4219,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "fox_king",
-          "name": "Métamorphose ultime",
+          "name": "Métamorphose Ultime",
           "type": "spell",
           "cost": 5,
           "keys": [],
@@ -4509,7 +4509,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "dog2_alpha",
-          "name": "Grand Loup",
+          "name": "Loup Hurleur",
           "type": "ally",
           "cost": 6,
           "keys": [
@@ -4584,7 +4584,7 @@ export const CHARACTER_DATA = {
       "switches": [
         {
           "id": "dog2_kami",
-          "name": "Chiot Kamikaze",
+          "name": "Chiot Pétard",
           "type": "ally",
           "cost": 1,
           "keys": [
@@ -4683,7 +4683,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "dog2_queen",
-          "name": "Louve Alpha",
+          "name": "Louve Vengeresse",
           "type": "ally",
           "cost": 4,
           "keys": [
@@ -4954,7 +4954,7 @@ export const CHARACTER_DATA = {
                 }
               },
               "slot": "death",
-              "text": "Râle d’agonie : crée aussi une Foudre dans ta main."
+              "text": "Râle d’agonie : crée aussi une Griffure dans ta main."
             }
           ],
           "atk": 3,
@@ -5078,7 +5078,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "cat2_lord",
-          "name": "Grand Matou",
+          "name": "Parrain des Ruelles",
           "type": "ally",
           "cost": 6,
           "keys": [
@@ -5154,7 +5154,7 @@ export const CHARACTER_DATA = {
             "passe_murailles",
             "type:Chat"
           ],
-          "text": "Élusif. Passe-Murailles. Râle d'agonie : crée une Foudre dans ta main.",
+          "text": "Élusif. Passe-Murailles. Râle d'agonie : crée une Griffure dans ta main.",
           "play": [],
           "tiers": [
             {
@@ -5201,7 +5201,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "cat2_matriarch",
-          "name": "Matriarche",
+          "name": "Mère des Chatons",
           "type": "ally",
           "cost": 4,
           "keys": [
@@ -5334,7 +5334,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "cat2_pick",
-          "name": "Pickpocket",
+          "name": "Tire-Laine",
           "type": "ally",
           "cost": 2,
           "keys": [
@@ -5381,7 +5381,7 @@ export const CHARACTER_DATA = {
                   "plus": 0
                 }
               },
-              "text": "Cri de guerre : crée une Foudre dans ta main."
+              "text": "Cri de guerre : crée une Griffure dans ta main."
             }
           ],
           "atk": 2,
@@ -5390,7 +5390,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "cat2_roof",
-          "name": "Seigneur des Gouttières",
+          "name": "Roi des Toits",
           "type": "ally",
           "cost": 6,
           "keys": [
@@ -5598,7 +5598,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "crow2_hawk",
-          "name": "Faucon Chasseur",
+          "name": "Faucon Avare",
           "type": "ally",
           "cost": 3,
           "keys": [
@@ -5644,7 +5644,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "crow2_gust",
-          "name": "Courant Ascendant",
+          "name": "Sergent des nuées",
           "type": "ally",
           "cost": 3,
           "keys": [
@@ -5695,7 +5695,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "crow2_roc",
-          "name": "Grand Rapace",
+          "name": "Oiseau-Roc",
           "type": "ally",
           "cost": 6,
           "keys": [
@@ -5802,7 +5802,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "crow2_dart",
-          "name": "Plongeon",
+          "name": "Serres Plongeantes",
           "type": "spell",
           "cost": 1,
           "keys": [
@@ -5970,7 +5970,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "crow2_storm",
-          "name": "Faucon Foudroyant",
+          "name": "Faucon Tempête",
           "type": "ally",
           "cost": 5,
           "keys": [
@@ -6135,7 +6135,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "frog2_croak",
-          "name": "Hurleur du Marais",
+          "name": "Coasseur",
           "type": "ally",
           "cost": 2,
           "keys": [
@@ -6838,7 +6838,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "owl2_watch",
-          "name": "Veilleur",
+          "name": "Hibou Centenaire",
           "type": "ally",
           "cost": 5,
           "keys": [
@@ -7108,7 +7108,7 @@ export const CHARACTER_DATA = {
         },
         {
           "id": "owl2_clock",
-          "name": "Horloge Murale",
+          "name": "Coucou",
           "type": "ally",
           "cost": 3,
           "keys": [

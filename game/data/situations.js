@@ -32,16 +32,16 @@ export const SITUATIONS = [
   // le journal de decisions cherche — un coup ou tu fais autrement, et tu sais pourquoi.
   {
     id: 'A1', famille: 'A', titre: 'Le létal qui demande de poser une aura d’abord',
-    question: 'Il y a létal, et un seul chemin. Le Rempart 3/6 est en Provocation : il faut passer par lui. Sans rien poser, Toutou (5) + Alpha (3) le tuent et l’Enragé (3) passe : 8 PV deviennent 5. Avec le Molosse à 2 mana d’abord (+1/+1 aux autres), le Toutou passe à 6 et le tue TOUT SEUL — Enragé 4 + Alpha 4 partent au visage, et ça fait exactement 8.',
-    regarde: 'Le seul test sans ambiguïté de la famille : il gagne, ou il ne gagne pas. Il faut voir trois choses à la fois — que l’aura doit partir AVANT les attaques, que c’est le Toutou qui doit tuer le Rempart (pas les deux petits), et que le reste suffit pile. Compare avec `montecarlo` : lui finit la partie, donc il voit le létal. ⚠ Une position déjà perdue rend 0 % partout et le Monte-Carlo n’y distingue plus rien — c’est pour ça que celle-ci est réglée au point exact.',
+    question: 'Il y a létal, et un seul chemin. Le Rempart 3/6 est en Provocation : il faut passer par lui. Sans rien poser, Chiot (5) + Chef de Meute (3) le tuent et le Toutou enragé (3) passe : 8 PV deviennent 5. Avec le Chien de Berger à 2 mana d’abord (+1/+1 aux autres), le Chiot passe à 6 et le tue TOUT SEUL — Toutou enragé 4 + Chef de Meute 4 partent au visage, et ça fait exactement 8.',
+    regarde: 'Le seul test sans ambiguïté de la famille : il gagne, ou il ne gagne pas. Il faut voir trois choses à la fois — que l’aura doit partir AVANT les attaques, que c’est le Chiot qui doit tuer le Rempart (pas les deux petits), et que le reste suffit pile. Compare avec `montecarlo` : lui finit la partie, donc il voit le létal. ⚠ Une position déjà perdue rend 0 % partout et le Monte-Carlo n’y distingue plus rien — c’est pour ça que celle-ci est réglée au point exact.',
     niveau: 8, tour: 11, qui: 'p',
     p: { heros: ['dog', 'owl'], pv: 24, mana: 2, tours: 6, main: ['dog_guard'], plateau: ['dog_pup', 'dog_bite', 'dog_alpha'] },
     e: { pnj: 'owlboss', pv: 8, mana: 10, tours: 5, plateau: ['wall2'] }
   },
   {
     id: 'A2', famille: 'A', titre: 'Garder le retrait pour la vraie menace',
-    question: 'Chasse maintenant sur une Brute 3/4, ou la garder ? Son deck contient 3 Lapin-Colosse 8/8 Provocation+Bouclier et une Pieuvre Mécanique.',
-    regarde: 'C’est LA situation que le réglage `malin` prétend gérer. Vérifie qu’il ne brûle pas Chasse sur un 3/4 — et lis l’écart de notes entre les deux coups : il dit s’il a hésité ou s’il n’a pas vu la question.',
+    question: 'Chasse Nocturne maintenant sur une Brute 3/4, ou la garder ? Son deck contient 3 Lapin-Colosse 8/8 Provocation+Bouclier et une Pieuvre Mécanique.',
+    regarde: 'C’est LA situation que le réglage `malin` prétend gérer. Vérifie qu’il ne brûle pas Chasse Nocturne sur un 3/4 — et lis l’écart de notes entre les deux coups : il dit s’il a hésité ou s’il n’a pas vu la question.',
     niveau: 8, tour: 6, qui: 'p',
     p: { heros: ['owl', 'frog'], pv: 20, mana: 4, tours: 3, main: ['owl_wisdom', 'frog_venom'], plateau: ['frog_tad'] },
     e: { pnj: 'frogboss', pv: 60, mana: 6, tours: 3, plateau: ['grunt3'] }
@@ -56,8 +56,8 @@ export const SITUATIONS = [
   },
   {
     id: 'A4', famille: 'A', titre: 'Deux petites cartes ou une grosse',
-    question: 'Alpha 3/4 (+1/+1 aux autres, mais il n’y a personne), ou Molosse 4/5 + Appel (qui pose un Toutou 5/6ET donne +1/+1) ?',
-    regarde: '`malin` fait un sac à dos sur la main pour ça. La réponse est franche ici : si le bot prend Alpha, le sac à dos ne marche pas, ou `cardValue()` surévalue un cri de guerre dans le vide.',
+    question: 'Chef de Meute 3/4 (+1/+1 aux autres, mais il n’y a personne), ou Chien de Berger 4/5 + Coup de Sifflet (qui pose un Chiot 5/6ET donne +1/+1) ?',
+    regarde: '`malin` fait un sac à dos sur la main pour ça. La réponse est franche ici : si le bot prend le Chef de Meute, le sac à dos ne marche pas, ou `cardValue()` surévalue un cri de guerre dans le vide.',
     niveau: 8, tour: 9, qui: 'p',
     p: { heros: ['dog'], pv: 28, mana: 5, tours: 5, main: ['dog_alpha', 'dog_guard', 'dog_growl'] },
     e: { pnj: 'frog1', pv: 32, mana: 5, tours: 4, plateau: ['wall1'] }
@@ -83,7 +83,7 @@ export const SITUATIONS = [
   // Les mecaniques dont le piege ne se voit qu'en jouant. Elles sont correctes (les
   // bancs le disent) : la question est de savoir si elles sont JOUABLES.
   {
-    id: 'B1', famille: 'B', titre: 'Bipolarité sur une unité adverse',
+    id: 'B1', famille: 'B', titre: 'Volte-Face sur une unité adverse',
     question: 'Le switch se fait CHEZ CELUI QU’ON VISE. Si l’autre face est un sort, c’est l’adversaire qui en profite.',
     regarde: 'Décision de game design assumée, pas un oubli — mais il faut la vivre pour trancher si « mal la lancer arrange l’adversaire » est amusant ou juste punitif. Une carte de PNJ n’a pas d’autre face : le journal doit le dire au lieu de ne rien faire en silence.',
     niveau: 8, tour: 12, qui: 'p',
@@ -99,16 +99,16 @@ export const SITUATIONS = [
     e: { pnj: 'owlboss', pv: 70, mana: 10, tours: 5, plateau: ['grunt4', 'wall2'] }
   },
   {
-    id: 'B3', famille: 'B', titre: 'Métamorphose ultime',
-    question: '1 mana : tous tes alliés deviennent une copie du Colosse adverse. Quatre 8/8. Ou tu copies ton propre Toutou Fidèle, pour quatre râles d’agonie.',
+    id: 'B3', famille: 'B', titre: 'Métamorphose Ultime',
+    question: '1 mana : tous tes alliés deviennent une copie du Colosse adverse. Quatre 8/8. Ou tu copies ton propre Chiot de Garde, pour quatre râles d’agonie.',
     regarde: 'Le modèle est lu UNE fois : c’est la même carte pour tous. Les copies gardent leur `uid` et le fait d’avoir déjà attaqué — la Charge du modèle ne les relance donc pas. À 1 mana, est-ce que cette carte est simplement cassée ?',
     niveau: 8, tour: 8, qui: 'p',
     p: { heros: ['cameleon', 'dog'], pv: 22, mana: 1, tours: 4, main: ['fox_king'], plateau: ['dog_pup', 'dog_bite', 'dog_bone', 'dog_alpha'] },
     e: { pnj: 'fox1', pv: 40, mana: 8, tours: 4, plateau: ['grunt4'] }
   },
   {
-    id: 'B4', famille: 'B', titre: 'Prince Foufi dans le vide',
-    question: 'Le poser sur un plateau vide : il vaut 0/0 et meurt au prochain ramassage. Après un Appel : il vaut 2/2, puis grandit.',
+    id: 'B4', famille: 'B', titre: 'Prince des cabots dans le vide',
+    question: 'Le poser sur un plateau vide : il vaut 0/0 et meurt au prochain ramassage. Après un Coup de Sifflet : il vaut 2/2, puis grandit.',
     regarde: 'Une caractéristique variable tombée à 0 tue l’unité, et le compteur bouge sans qu’on joue. Vérifie que le bot ne pose pas un 0/0 dans le vide — et que la fiche d’unité explique pourquoi il est mort.',
     niveau: 8, tour: 5, qui: 'p',
     p: { heros: ['dog'], pv: 30, mana: 5, tours: 3, main: ['dog_bone', 'dog_growl'] },
@@ -141,21 +141,21 @@ export const SITUATIONS = [
   {
     id: 'B8', famille: 'B', titre: 'Neuf Vies : à quel tour devient-elle jouable ?',
     question: 'Quand devient-elle payable, et que vaut-elle à ce moment-là ?',
-    regarde: 'Mesuré : 9 mana à ton tour 5, 6 au tour 8, 4 au tour 10, 0 au tour 14 — et elle crée autant de Foudres que de tours joués, ce qui dépasse la main max (8) à partir du tour 9. Vérifie le cumul avec Ombre Feutrée (sorts −1).',
+    regarde: 'Mesuré : 9 mana à ton tour 5, 6 au tour 8, 4 au tour 10, 0 au tour 14 — et elle crée autant de Griffures que de tours joués, ce qui dépasse la main max (8) à partir du tour 9. Vérifie le cumul avec Ombre Feutrée (sorts −1).',
     niveau: 8, tour: 15, qui: 'p',
     p: { heros: ['cat'], pv: 22, mana: 8, tours: 8, main: ['cat_nine', 'cat_shadow'] },
     e: { pnj: 'frog1', pv: 32, mana: 7, tours: 7 }
   },
   {
     id: 'B9', famille: 'B', titre: 'Type : tous, et la chaîne par type',
-    question: 'Les Colosses sont « Lapin », le Rempart est « Chien ». Coup de langue sur un Colosse touche l’autre Colosse ; sur le Rempart, il ne touche que lui.',
+    question: 'Les Colosses sont « Lapin », le Rempart est « Chien ». Coup de Langue sur un Colosse touche l’autre Colosse ; sur le Rempart, il ne touche que lui.',
     regarde: '⚠ La portée d’une aura « du même type » se décide sur les types IMPRIMÉS, pas sur les types reçus — sinon le Maître élargirait sa propre portée. Un type reçu compte pour les CIBLES mais pas pour la portée. La règle la plus subtile du moteur.',
     niveau: 8, tour: 13, qui: 'p',
     p: { heros: ['cameleon'], pv: 20, mana: 4, tours: 7, main: ['fox_bandit'], plateau: ['fox_cunning', 'fox_kit', 'dog_pup'] },
     e: { pnj: 'owlboss', pv: 80, mana: 10, tours: 6, plateau: ['wall2', 'grunt4', 'grunt4'] }
   },
   {
-    id: 'B10', famille: 'B', titre: 'Rappel sur une défausse vide',
+    id: 'B10', famille: 'B', titre: 'Retrouvailles sur une défausse vide',
     question: 'Tour 5, défausse presque vide : 5 mana pour rien. Tour 12, défausse pleine : cinq corps d’un coup.',
     regarde: 'Une carte dont la valeur dépend entièrement du tour. `cardValue()` ne regarde pas la défausse : candidat évident pour « le bot la joue trop tôt ». Ça se mesure dans `analyse-cartes`, ça se comprend ici. Monte-la aux deux tours.',
     niveau: 8, tour: 5, qui: 'p',
@@ -202,7 +202,7 @@ export const SITUATIONS = [
   {
     id: 'C4', famille: 'C', titre: 'La Pieuvre Mécanique',
     question: 'Tout ce que tu envoies au visage la fait grossir (+4/+4 par PV perdu), et elle est en Provocation.',
-    regarde: 'Existe-t-il une réponse ? Chasse, Exclusion, Captif dans le miroir. Si les trois sont chez Athena et Miracle, c’est une contrainte de STRATÉGIE (le choix d’équipe avant le match) et pas de tactique — ce qui est sain. Si aucune ne suffit, c’est un mur.',
+    regarde: 'Existe-t-il une réponse ? Chasse Nocturne, Bourrasque, Hypnose. Si les trois sont chez Athena et Miracle, c’est une contrainte de STRATÉGIE (le choix d’équipe avant le match) et pas de tactique — ce qui est sain. Si aucune ne suffit, c’est un mur.',
     niveau: 8, tour: 10, qui: 'p',
     p: { heros: ['crow', 'cat'], pv: 22, mana: 5, tours: 5 },
     e: { pnj: 'frogboss', pv: 70, mana: 9, tours: 5, plateau: ['card_winkd1'] }
@@ -221,7 +221,7 @@ export const SITUATIONS = [
   },
   {
     id: 'D2', famille: 'D', titre: 'Felix combo',
-    question: 'Ombre Feutrée (sorts −1) + Griffure (1 dégât par sort) + Neuf Vies (N Foudres) + Roi des Toits (un Chat par sort).',
+    question: 'Ombre Feutrée (sorts −1) + Griffeur de doigt (1 dégât par sort) + Neuf Vies (N Griffures) + Matou Invocateur (un Chat par sort).',
     regarde: 'Combien de mana pour que la chaîne parte, et le deck survit-il jusque-là ? Un Combo qui a besoin du tour 9 contre un Aggro est un Combo qui n’existe pas.',
     niveau: 8, tour: 1, qui: 'p',
     p: { heros: ['cat'], tours: 1 },
@@ -229,7 +229,7 @@ export const SITUATIONS = [
   },
   {
     id: 'D3', famille: 'D', titre: 'Athena contrôle (Contrôle Hard)',
-    question: 'Chasse, Colère d’Athéna, Exclusion, Maître du tourbillon : ne fait que de la gestion, cherche le 1 pour 1.',
+    question: 'Chasse Nocturne, Colère d’Athéna, Bourrasque, Chouette Tourbillon : ne fait que de la gestion, cherche le 1 pour 1.',
     regarde: 'Avec quoi gagne-t-elle ? Archichouette (3 dégâts par pioche) est la seule condition de victoire — c’est donc un Contrôle qui vire Pillow Fort. Vérifie que ça tient sous `maxTurns`.',
     niveau: 8, tour: 1, qui: 'p',
     p: { heros: ['owl'], tours: 1 },

@@ -108,7 +108,7 @@ export function fabrique({ cub, kitten, tad, tok, cnt, LVL, ALL, OWL, WOLF }) {
     cat2_stray: [
       st(4, 0, 1),
       key(11, 'passe_murailles', 'Gagne Passe-Murailles.'),
-      ex(13, cree('cat_pounce'), 'Râle d’agonie : crée aussi une Foudre dans ta main.', 'death')
+      ex(13, cree('cat_pounce'), 'Râle d’agonie : crée aussi une Griffure dans ta main.', 'death')
     ],
     cat2_sneak: [
       amp(5),
@@ -145,7 +145,7 @@ export function fabrique({ cub, kitten, tad, tok, cnt, LVL, ALL, OWL, WOLF }) {
     cat2_pick: [
       st(3, 0, 1),
       ex(7, draw(1), 'Râle d’agonie : pioche une carte.', 'death'),
-      ex(16, cree('cat_pounce'), 'Cri de guerre : crée une Foudre dans ta main.')
+      ex(16, cree('cat_pounce'), 'Cri de guerre : crée une Griffure dans ta main.')
     ],
     cat2_roof: [
       amp(4),

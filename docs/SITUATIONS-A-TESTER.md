@@ -39,12 +39,12 @@ décision où tu joues autrement que lui, et où tu as une raison de le faire.
 
 ```
 SETUP   Médor&Athena (8) contre Grand-Duc · tour 11 (le tien)
-        toi     : 24 PV / 2 mana · main : Molosse de Garde [2]
-                  plateau : Toutou Fidèle 5/6, Enragé 3/2, Alpha 3/4 (11 d'attaque)
+        toi     : 24 PV / 2 mana · main : Chien de Berger [2]
+                  plateau : Chiot de Garde 5/6, Toutou enragé 3/2, Chef de Meute 3/4 (11 d'attaque)
         en face : 12 PV · plateau : Chien-Rempart 3/6 Provocation
 QUESTION  Le Rempart a 6 PV, riposte 3, et il faut passer par lui.
-          Sans le Molosse : Toutou (5) + Alpha (3) le tuent, l'Enragé (3) passe.
-          Avec le Molosse d'abord (+1/+1 aux autres) : le Toutou passe à 6 et le tue
+          Sans le Chien de Berger : Chiot (5) + Chef de Meute (3) le tuent, le Toutou enragé (3) passe.
+          Avec le Chien de Berger d'abord (+1/+1 aux autres) : le Chiot passe à 6 et le tue
           TOUT SEUL, et 8 d'attaque partent au visage.
 REGARDE   Mesuré : la première ligne laisse l'adversaire à 9 PV et abîme tout le
           plateau ; la seconde le laisse à 4 PV, ne perd personne et ajoute un corps
@@ -65,14 +65,14 @@ contourner** (A5).
 
 ```
 SETUP   Athena&Bulle (8) contre Capitaine Grenouille · tour 6
-        toi     : 20 PV / 4 mana · main : Chasse (détruit une unité), Grenouille
-                  plateau : Têtard 1/1 Élusif — sans lui, Grenouille (« renforce un
+        toi     : 20 PV / 4 mana · main : Chasse Nocturne (détruit une unité), Grenouille Venimeuse
+                  plateau : Têtard 1/1 Élusif — sans lui, Grenouille Venimeuse (« renforce un
                   allié ») n'aurait aucune cible et le choix n'existerait pas
         en face : 60 PV · plateau : Lapin-Brute 3/4 Provocation
-QUESTION  Chasse maintenant sur une Brute 3/4, ou la garder ? Son deck contient
+QUESTION  Chasse Nocturne maintenant sur une Brute 3/4, ou la garder ? Son deck contient
           3 Lapin-Colosse 8/8 Provocation+Bouclier et une Pieuvre Mécanique.
 REGARDE   C'est LA situation que le réglage `malin` prétend gérer (« retrait gardé pour
-          une vraie menace »). Vérifie qu'il ne brûle pas Chasse sur un 3/4. Et regarde
+          une vraie menace »). Vérifie qu'il ne brûle pas Chasse Nocturne sur un 3/4. Et regarde
           ce que `evaluationBot` a mis comme note aux deux coups — l'écart dit s'il a
           hésité ou s'il n'a même pas vu la question.
 ```
@@ -82,7 +82,7 @@ REGARDE   C'est LA situation que le réglage `malin` prétend gérer (« retrait
 ```
 SETUP   Corax&Felix (8) contre Renard des Neiges · tour 9
         toi     : 15 PV / 5 mana · main : Nuit Sans Lune, Coup de Bec
-                  plateau : Éclaireur 3/3, Plume Noire 1/1 (elle grossit en piochant)
+                  plateau : Corbeau Espion 3/3, Corneille Gourmande 1/1 (elle grossit en piochant)
         en face : 30 PV · plateau : Corbeau-Éclaireur Fou 5/1 ×2, Lapin-Colosse 8/8
 QUESTION  Nuit Sans Lune détruit TOUT (les tiens aussi) et te soigne 6. Tu es derrière
           au plateau mais tes deux unités ne sont pas rien. Maintenant, ou dans un tour ?
@@ -97,13 +97,13 @@ REGARDE   Le bot lit une cible mixte comme « ce qu'on gagne en face moins ce qu
 
 ```
 SETUP   Médor seul (8) contre Crapaud Baveux · tour 5
-        toi     : 28 PV / 5 mana · main : Alpha [5], Molosse de Garde [2], Appel [3]
+        toi     : 28 PV / 5 mana · main : Chef de Meute [5], Chien de Berger [2], Coup de Sifflet [3]
         en face : 32 PV · plateau : Paresseux-Garde 1/4 Provocation
-QUESTION  Alpha 3/4 (+1/+1 aux autres, mais il n'y a personne), ou Molosse 4/5 + Appel
-          (qui pose un Toutou 5/6 ET donne +1/+1) ?
+QUESTION  Chef de Meute 3/4 (+1/+1 aux autres, mais il n'y a personne), ou Chien de Berger 4/5 + Coup de Sifflet
+          (qui pose un Chiot 5/6 ET donne +1/+1) ?
 REGARDE   `malin` fait un sac à dos sur la main pour ça. Sur cette position la réponse
-          est franche (Molosse+Appel écrase Alpha) : si le bot prend Alpha, le sac à dos
-          ne marche pas, ou `cardValue()` surévalue le cri de guerre d'Alpha dans le vide.
+          est franche (Chien de Berger + Coup de Sifflet écrase Chef de Meute) : si le bot prend le Chef de Meute, le sac à dos
+          ne marche pas, ou `cardValue()` surévalue le cri de guerre du Chef de Meute dans le vide.
 ```
 
 ## A5 — Passe-Murailles contre une Provocation
@@ -143,11 +143,11 @@ Celles-là, il faut les **voir une fois**. Elles sont toutes documentées comme
 pièges dans `CLAUDE.md` — reste à savoir si elles sont *jouables*, pas si elles sont
 correctes.
 
-## B1 — Bipolarité sur une unité adverse
+## B1 — Volte-Face sur une unité adverse
 
 ```
 SETUP   Miracle seul (8) contre Capitaine Grenouille · tour 6
-        toi     : 20 PV / 2 mana · main : Bipolarité [2]
+        toi     : 20 PV / 2 mana · main : Volte-Face [2]
         en face : plateau : Chien-Rempart 3/6 Provocation
 QUESTION  Le switch se fait CHEZ CELUI QU'ON VISE. Si l'autre face du Rempart est un
           sort, c'est l'adversaire qui en profite.
@@ -161,7 +161,7 @@ REGARDE   C'est une décision de game design assumée, pas un bug — mais il fa
 
 ```
 SETUP   Miracle&Athena (8) contre Grand-Duc · tour 10
-        toi     : 16 PV / 3 mana · main : Captif dans le miroir [3]
+        toi     : 16 PV / 3 mana · main : Hypnose [3]
         en face : 70 PV · plateau : Lapin-Colosse 8/8 Provocation Bouclier,
                   Chien-Rempart 3/6
 QUESTION  Prendre le contrôle du Colosse : tu enlèves la Provocation d'en face ET tu
@@ -172,12 +172,12 @@ REGARDE   Le Colosse volé n'attaque pas ce tour-ci (pas de Charge). Et à sa mo
           ce que ça vaut vraiment contre 70 PV : un 8/8 volé, c'est 9 tours.
 ```
 
-## B3 — Métamorphose ultime
+## B3 — Métamorphose Ultime
 
 ```
 SETUP   Miracle&Médor (8) contre Renard des Neiges · tour 8
-        toi     : 22 PV / 1 mana · main : Métamorphose ultime [1]
-                  plateau : Toutou Fidèle 5/6, Enragé 3/2, Prince Foufi, Alpha 3/4
+        toi     : 22 PV / 1 mana · main : Métamorphose Ultime [1]
+                  plateau : Chiot de Garde 5/6, Toutou enragé 3/2, Prince des cabots, Chef de Meute 3/4
         en face : plateau : Lapin-Colosse 8/8
 QUESTION  1 mana : tous tes alliés deviennent une copie du Colosse adverse. Quatre 8/8.
 QUESTION  (bis) Ou tu copies ton propre Toutou Fidèle, pour quatre râles d'agonie.
@@ -187,15 +187,15 @@ REGARDE   Le modèle est lu UNE fois : c'est la même carte pour tous. Les unit�
           cette carte est simplement cassée ?
 ```
 
-## B4 — Prince Foufi dans le vide
+## B4 — Prince des cabots dans le vide
 
 ```
 SETUP   Médor seul (8) contre Lapin Chapardeur · tour 3
-        toi     : 30 PV / 2 mana · main : Prince Foufi [2] (attaque et vie = tes Chiens)
+        toi     : 30 PV / 2 mana · main : Prince des cabots [2] (attaque et vie = tes Chiens)
                   plateau : vide
         en face : plateau : Lapin-Rongeur 1/2
 QUESTION  Le poser sur un plateau vide : il vaut 0/0 et meurt au prochain ramassage.
-          Le poser après un Appel : il vaut 2/2, puis grandit.
+          Le poser après un Coup de Sifflet : il vaut 2/2, puis grandit.
 REGARDE   Une caractéristique variable qui tombe à 0 tue l'unité, et le compteur bouge
           sans qu'on joue (`resolveDeaths` au début de `beginTurn`). Vérifie que le bot
           ne pose pas un 0/0 dans le vide — et que le journal montre bien pourquoi il
@@ -266,9 +266,9 @@ REGARDE   Mesuré : **9 mana au tour 5, 6 au tour 8, 4 au tour 10, 0 au tour 14*
 
 ```
 SETUP   Miracle seul (8) contre Grand-Duc · tour 7
-        toi     : plateau : Maître du camouflage 5/8 (donne « Type : tous » à tes AUTRES
-                  alliés), Caméléon 2/2, Toutou Fidèle 5/6
-        main : Coup de langue [2] (5 dégâts à une unité + à toutes du même type)
+        toi     : plateau : Maître du Camouflage 5/8 (donne « Type : tous » à tes AUTRES
+                  alliés), Caméléon 2/2, Chiot de Garde 5/6
+        main : Coup de Langue [2] (5 dégâts à une unité + à toutes du même type)
         en face : plateau : Chien-Rempart 3/6, Lapin-Colosse 8/8, Lapin-Colosse 8/8
 QUESTION  Les Colosses sont « Lapin », le Rempart est « Chien ». Coup de langue sur un
           Colosse touche l'autre Colosse. Sur le Rempart, il ne touche que lui.
@@ -366,8 +366,8 @@ SETUP   Corax&Felix (8) contre Capitaine Grenouille · tour 10
                   (+4/+4 à chaque fois que SON héros perd des PV)
 QUESTION  Tout ce que tu envoies au visage la fait grossir. Elle est en Provocation,
           donc tu dois passer par elle.
-REGARDE   Est-ce qu'il existe une réponse dans le jeu ? Chasse (détruit), Exclusion
-          (renvoie en main), Captif dans le miroir (vol). Si les trois sont chez Athena
+REGARDE   Est-ce qu'il existe une réponse dans le jeu ? Chasse Nocturne (détruit), Bourrasque
+          (renvoie en main), Hypnose (vol). Si les trois sont chez Athena
           et Miracle, c'est une contrainte de **stratégie** (avant le match) et pas de
           tactique — donc un choix d'équipe, ce qui est sain. Si aucune ne suffit, c'est
           un mur.
@@ -382,21 +382,21 @@ manuel, avec des commentaires au fil de l'eau.
 
 ## D1 — Médor turbo (Aggro Turbo)
 
-Tout base sauf le slot 4 en switch (Appel de la meute). Ne se préoccupe pas de
+Tout base sauf le slot 4 en switch (Toute la Bande). Ne se préoccupe pas de
 l'adversaire : pose, renforce, frappe. **À tester contre Grand-Duc** : est-ce que Turbo
 bat un Pillow Fort avant qu'il se blinde, ou est-ce que les trois Kamaji suffisent à le
 tuer ? C'est le matchup qui dit si l'archétype existe.
 
 ## D2 — Felix combo (Combo)
 
-Ombre Feutrée (sorts −1) + Griffure (1 dégât par sort lancé) + Neuf Vies (N Foudres) +
-Roi des Toits (un Chat par sort). **La question** : combien de mana faut-il pour que la
+Ombre Feutrée (sorts −1) + Griffeur de doigt (1 dégât par sort lancé) + Neuf Vies (N Griffures) +
+Matou Invocateur (un Chat par sort). **La question** : combien de mana faut-il pour que la
 chaîne parte, et est-ce que le deck survit jusque-là ? Un Combo qui a besoin du tour 9
 contre un Aggro est un Combo qui n'existe pas.
 
 ## D3 — Athena contrôle (Contrôle Hard)
 
-Chasse, Colère d'Athéna, Exclusion, Maître du tourbillon : ne fait que de la gestion,
+Chasse Nocturne, Colère d'Athéna, Bourrasque, Chouette Tourbillon : ne fait que de la gestion,
 cherche le 1 pour 1. **La question** : avec quoi gagne-t-elle ? Archichouette (3 dégâts
 par pioche) est la seule condition de victoire — c'est donc un Contrôle qui vire Pillow
 Fort. Vérifie que ça tient sous `maxTurns`.

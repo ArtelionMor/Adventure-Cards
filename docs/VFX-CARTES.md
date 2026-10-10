@@ -4,6 +4,7 @@
 > reçoit un effet de **lancer** (ce qui part de la carte) et un effet d'**arrivée** (ce que la
 > cible subit). Les doublons sont voulus quand l'effet est le même ; quand on peut varier, on varie.
 > Les noms de briques (en **gras**) sont définis en bas : une carte = un assemblage de briques.
+> ⚠ Les noms de **cartes** du tableau ci-dessous sont ceux d'**avant** le renommage du 10 octobre 2026 (61 cartes ont changé) ; les identifiants, eux, n'ont pas bougé.
 > Les pictogrammes viennent du pack Kenney « Board Game Icons » (CC0, dans `Kenney_board-game-icons/`),
 > cités par leur nom de fichier.
 
