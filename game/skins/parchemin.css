@@ -1,0 +1,125 @@
+/* SKIN « PARCHEMIN » — clair et chaud : papier, bois, encre brune.
+   Habille l'ecran de combat avec les sprites Kenney « UI Pack - Adventure » (CC0, game/skins/kenney/).
+   Il ne s'applique que pendant un combat (`data-combat` sur <html>, pose par ui/skin.js) et ne change que des couleurs
+   et des bordures : la mise en page de styles.css reste telle quelle. Les cadres sont des images 9-slice
+   (`border-image`) : `@SK` est le prefixe commun, `fill` garde le centre creme. */
+
+/* ---------- les couleurs : les memes variables que styles.css, reglees clair et chaud ---------- */
+html[data-skin="parchemin"][data-combat] {
+  --bg: #f3e3bb;
+  --bg2: #e6cf98;
+  --panel: #fff3d6;
+  --panel2: #fffaea;
+  --line: #a8742f;
+  --ink: #3a2612;
+  --ink-dim: #7a5f3c;
+  --accent: #d4531c;
+  --accent2: #2f9a57;
+  --danger: #c4303a;
+  --mana: #2b7fd6;
+  --ally: #3fa564;
+  --spell: #8a5bd6;
+}
+
+/* ---------- le fond : du papier quadrille, pas un aplat noir ---------- */
+html[data-skin="parchemin"][data-combat] #battle.overlay { background: #f3e3bb url(kenney/pattern_grid_paper.png) 0 0 / 80px 80px; color: var(--ink); }
+html[data-skin="parchemin"][data-combat] #modal { background: rgba(58, 38, 18, .55); }
+html[data-skin="parchemin"][data-combat] .lecture { background: rgba(58, 38, 18, .5); }
+html[data-skin="parchemin"][data-combat] .toast { background: #fff3d6; color: var(--ink); border-color: var(--line); }
+
+/* ---------- les heros : barres de vie et de mana ---------- */
+html[data-skin="parchemin"][data-combat] .hpbar { background: #e6cf98; border: 2px solid #8c5a28; border-radius: 10px; box-shadow: inset 0 2px 0 rgba(0,0,0,.12); }
+html[data-skin="parchemin"][data-combat] .hpbar i { background: linear-gradient(180deg, #f58a5c, #e04a3c 60%, #c4303a); box-shadow: inset 0 2px 0 rgba(255,255,255,.35); }
+html[data-skin="parchemin"][data-combat] .hpbar b { color: #fff; text-shadow: 0 1px 0 #6a2418, 0 0 3px #6a2418; font-weight: 800; }
+html[data-skin="parchemin"][data-combat] .pip { background: #dcc48e; border-color: #a8742f; }
+html[data-skin="parchemin"][data-combat] .pip.on { background: var(--mana); border-color: #1b5aa0; }
+html[data-skin="parchemin"][data-combat] .bt-hero .hnm { color: var(--ink); }
+html[data-skin="parchemin"][data-combat] .bt-hero .hv { color: #1b5aa0; font-weight: 800; }
+
+/* ---------- les unites et les cartes : un cadre de bois, un centre creme ---------- */
+html[data-skin="parchemin"][data-combat] .unit, html[data-skin="parchemin"][data-combat] .hcard:not(.fx-carte), html[data-skin="parchemin"][data-combat] .zcard {
+  border: 6px solid transparent;
+  border-image: url(kenney/panel_brown.png) 24 fill / 6px stretch;
+  border-radius: 0; background: none; color: var(--ink);
+}
+html[data-skin="parchemin"][data-combat] .unit { padding: 1px 1px 2px; }
+html[data-skin="parchemin"][data-combat] .hcard { padding: 3px; }
+html[data-skin="parchemin"][data-combat] .zcard { padding: 4px 2px 2px; }
+/* Provocation : un cadre de pierre, comme le mur qu'elle dresse. */
+html[data-skin="parchemin"][data-combat] .unit.taunt { border-image-source: url(kenney/panel_grey.png); box-shadow: none; }
+/* La couleur de la carte (allie / sort) : un ruban sous le cadre du haut, le cadre lui-meme reste du bois. */
+html[data-skin="parchemin"][data-combat] .hcard::before, html[data-skin="parchemin"][data-combat] .zcard::before { content: ""; position: absolute; left: 4px; right: 4px; top: 2px; height: 5px; border-radius: 3px; background: var(--ally); }
+html[data-skin="parchemin"][data-combat] .hcard.spell::before, html[data-skin="parchemin"][data-combat] .zcard.spell::before { background: var(--spell); }
+html[data-skin="parchemin"][data-combat] .hcard { border-top-width: 6px; }
+html[data-skin="parchemin"][data-combat] .hcard img { margin-top: 4px; }
+html[data-skin="parchemin"][data-combat] .unit .un, html[data-skin="parchemin"][data-combat] .hcard .nm, html[data-skin="parchemin"][data-combat] .zcard .nm { color: var(--ink); }
+html[data-skin="parchemin"][data-combat] .hcard .tx, html[data-skin="parchemin"][data-combat] .zcard .tx, html[data-skin="parchemin"][data-combat] .unit .kw { color: var(--ink-dim); }
+html[data-skin="parchemin"][data-combat] .hcard .cost, html[data-skin="parchemin"][data-combat] .zcard .cost, html[data-skin="parchemin"][data-combat] .jr-mc i { background: var(--mana); color: #fff; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(58,38,18,.5); }
+html[data-skin="parchemin"][data-combat] .pic { color: var(--ink-dim); }
+html[data-skin="parchemin"][data-combat] .pc b { color: var(--ink); }
+html[data-skin="parchemin"][data-combat] .unit .s .a, html[data-skin="parchemin"][data-combat] .hcard .st { color: var(--accent); }
+html[data-skin="parchemin"][data-combat] .pv { text-shadow: none; }
+html[data-skin="parchemin"][data-combat] .unit .pv, html[data-skin="parchemin"][data-combat] .bt-hero .pv { background: rgba(255, 243, 214, .97); color: var(--ink); border: 1px solid var(--line); }
+html[data-skin="parchemin"][data-combat] .unit.ready::after { border-color: var(--accent2); }
+html[data-skin="parchemin"][data-combat] .hcard.sel, html[data-skin="parchemin"][data-combat] .unit.sel { outline-color: var(--accent); }
+
+/* ---------- la main et la barre du bas : une planche ---------- */
+html[data-skin="parchemin"][data-combat] .bt-hand { background: #d9b774; border-top: 3px solid #8c5a28; box-shadow: inset 0 3px 0 rgba(255,255,255,.25); }
+html[data-skin="parchemin"][data-combat] .bt-bar { background: #e6cf98; border-top: 2px solid #a8742f; }
+html[data-skin="parchemin"][data-combat] .bt-bar .grow { color: var(--ink); }
+
+/* ---------- les boutons ---------- */
+html[data-skin="parchemin"][data-combat] .btn, html[data-skin="parchemin"][data-combat] .autochip, html[data-skin="parchemin"][data-combat] .vitesse, html[data-skin="parchemin"][data-combat] .ib, html[data-skin="parchemin"][data-combat] .jr-onglets button, html[data-skin="parchemin"][data-combat] .jr-x, html[data-skin="parchemin"][data-combat] .jr-dl {
+  border: 7px solid transparent;
+  border-image: url(kenney/button_brown.png) 16 fill / 7px stretch;
+  border-radius: 0; background: none; color: var(--ink); font-weight: 800; box-shadow: none;
+}
+html[data-skin="parchemin"][data-combat] .btn { padding: 4px 14px; border-image-source: url(kenney/button_red.png); color: #fff; text-shadow: 0 1px 0 rgba(90, 24, 20, .55); }
+html[data-skin="parchemin"][data-combat] .btn.ghost { border-image-source: url(kenney/button_brown.png); color: var(--ink); text-shadow: none; }
+html[data-skin="parchemin"][data-combat] .autochip, html[data-skin="parchemin"][data-combat] .vitesse { padding: 2px 10px; }
+html[data-skin="parchemin"][data-combat] .autochip.on, html[data-skin="parchemin"][data-combat] .jr-onglets button.on { border-image-source: url(kenney/button_grey.png); color: var(--ink); background: none; }
+html[data-skin="parchemin"][data-combat] .ib { padding: 0; width: 46px; height: 46px; }
+html[data-skin="parchemin"][data-combat] .ib .bdg { background: var(--danger); color: #fff; }
+html[data-skin="parchemin"][data-combat] .jr-x { width: 40px; height: 40px; padding: 0; }
+html[data-skin="parchemin"][data-combat] .btn:disabled { filter: grayscale(.7); }
+
+/* ---------- les fenetres : fiche, zone, modale, journal ---------- */
+html[data-skin="parchemin"][data-combat] .sheet {
+  border: 14px solid transparent;
+  border-image: url(kenney/panel_brown_corners_a.png) 40 fill / 14px stretch;
+  border-radius: 0; background: none; color: var(--ink); padding: 4px;
+}
+html[data-skin="parchemin"][data-combat] .lecture .sheet { box-shadow: none; }
+html[data-skin="parchemin"][data-combat] .insp .tete img { background: var(--panel2); border-color: var(--line); }
+html[data-skin="parchemin"][data-combat] .insp .chip, html[data-skin="parchemin"][data-combat] .zcard .chip, html[data-skin="parchemin"][data-combat] .puce, html[data-skin="parchemin"][data-combat] .zgrp h4 .n { background: #f6e3b0; border-color: var(--line); color: var(--ink); }
+html[data-skin="parchemin"][data-combat] .jr { background: #f6e9c8; border-color: #8c5a28; }
+html[data-skin="parchemin"][data-combat] .jr-tete { background: #e6cf98; border-bottom: 2px solid #a8742f; }
+html[data-skin="parchemin"][data-combat] .jr-tete h4 { color: var(--ink); }
+html[data-skin="parchemin"][data-combat] .jr-s { background: var(--panel); border-color: var(--line); }
+html[data-skin="parchemin"][data-combat] .jr-u { background: var(--panel2); border-color: var(--line); }
+html[data-skin="parchemin"][data-combat] .jr-mc { background: var(--panel2); }
+html[data-skin="parchemin"][data-combat] .jr-tour { color: var(--ink-dim); border-bottom-color: var(--line); }
+html[data-skin="parchemin"][data-combat] .revue { background: var(--bg); }
+html[data-skin="parchemin"][data-combat] .bt-bandeau { background: #fff3d6; color: var(--ink); border: 2px solid var(--line); box-shadow: 0 3px 0 rgba(58,38,18,.3); }
+html[data-skin="parchemin"][data-combat] .bt-bandeau small { color: var(--ink-dim); }
+
+/* ---------- l'ecran de fin : un bandeau rouge, comme dans le pack ---------- */
+html[data-skin="parchemin"][data-combat] .fin { background: rgba(58, 38, 18, .78); }
+html[data-skin="parchemin"][data-combat] .fin.defaite { background: radial-gradient(ellipse at center, rgba(70, 28, 24, .85), rgba(40, 24, 12, .94)); }
+html[data-skin="parchemin"][data-combat] .fin-rayons { background: repeating-conic-gradient(from 0deg, rgba(255, 236, 160, .32) 0 8deg, transparent 8deg 24deg); }
+html[data-skin="parchemin"][data-combat] .fin-titre {
+  background: url(kenney/banner_classic_curtain.png) center / 100% 100% no-repeat;
+  padding: 26px 34px 34px; font-size: 34px; letter-spacing: 2px; color: #fff; -webkit-text-stroke: 0; text-shadow: 0 2px 0 rgba(120, 30, 24, .7);
+}
+html[data-skin="parchemin"][data-combat] .fin.victoire .fin-titre { color: #fff; text-shadow: 0 2px 0 rgba(120, 30, 24, .7), 0 0 18px rgba(255, 220, 120, .8); }
+html[data-skin="parchemin"][data-combat] .fin.defaite .fin-titre { filter: saturate(.35) brightness(.85); }
+html[data-skin="parchemin"][data-combat] .fin-sous { color: #fff3d6; }
+html[data-skin="parchemin"][data-combat] .fin-gain { background: #fff3d6; border: 3px solid #a8742f; color: var(--ink); }
+html[data-skin="parchemin"][data-combat] .fin-gain b { color: var(--accent); }
+html[data-skin="parchemin"][data-combat] .fin-notes { color: #d8f5c6; }
+
+/* ---------- les effets : des chiffres bien cernes sur fond clair ---------- */
+html[data-skin="parchemin"][data-combat] .fx-n { -webkit-text-stroke: 5px #3a2612; }
+/* La carte jouee garde son CONTOUR de couleur (dore, gris-rouge, vert, bleu, violet : styles.css) : pas de cadre de bois. */
+html[data-skin="parchemin"][data-combat] .fx-carte { border-image: none; border-width: 3px; border-style: solid; border-radius: 10px; background: var(--panel); box-shadow: 0 6px 18px rgba(58, 38, 18, .5); }
+html[data-skin="parchemin"][data-combat] .fx-carte .tx { color: var(--ink-dim); }

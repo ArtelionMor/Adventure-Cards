@@ -24,6 +24,7 @@ import { ligneDePictos } from './pictos.js';
 import { fabrique } from './vfx-scenes.js';
 import { cardById } from '../config/npcs.js';
 import { ligneIco, lignesDeFait, lignesDeRenforts } from './fiche.js';
+import { skinCourant, skinSuivant, ecouteSkin } from './skin.js';   // l'habillage du combat (skins/*.css), AC.skin()
 
 let B = null;
 let auto = true;
@@ -298,6 +299,8 @@ function panneauTriche() {
   for (const [v, l] of [['jouer', 'Quand on la joue / la pose'], ['attaque', 'Quand elle attaque'], ['mort', 'Quand elle meurt'], ['debut', 'Début de tour'], ['fin', 'Fin de tour'], ['regle', 'Sa règle « quand X »']]) quand.appendChild(new Option(l, v));
   grille.appendChild(quand);
   bouton('Jouer ce VFX', () => T().vfx(choix.value, camp, quand.value), 'large');
+  const sk = bouton(`Skin : ${skinCourant()}`, () => skinSuivant());
+  ecouteSkin(nom => { sk.textContent = `Skin : ${nom}`; });
   bouton('+1 mana', () => T().mana(1));
   bouton('Pioche', () => T().pioche(1));
   const rb = bouton('Ralenti ×1', () => { ralenti = ralenti === 1 ? 5 : ralenti === 5 ? 10 : 1; window.AC.fx.ralenti = ralenti; rb.textContent = `Ralenti ×${ralenti}`; });
