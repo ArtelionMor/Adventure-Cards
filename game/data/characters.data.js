@@ -1937,27 +1937,13 @@ export const CHARACTER_DATA = {
           "name": "Ombre Feutree",
           "type": "ally",
           "cost": 2,
-          "atk": 1,
-          "hp": 1,
+          "atk": 2,
+          "hp": 2,
           "keys": [
             "type:Chat"
           ],
-          "text": "Les sorts de votre main coûtent 1 de moins. Cri de guerre : Mélange dans la pioche 5 sorts.",
-          "play": [
-            {
-              "op": "melange_a_la_pioche",
-              "d_ou": "creee",
-              "choix": "hasard",
-              "carte": "",
-              "quoi": "spell",
-              "argCard": "",
-              "t": "enemyUnit",
-              "qui": "toi",
-              "n": 5,
-              "atk": 0,
-              "hp": 0
-            }
-          ],
+          "text": "Les sorts de votre main coûtent 1 de moins.",
+          "play": [],
           "tiers": [
             {
               "lvl": 2,
@@ -5659,7 +5645,7 @@ export const CHARACTER_DATA = {
         {
           "id": "crow2_gust",
           "name": "Courant Ascendant",
-          "type": "spell",
+          "type": "ally",
           "cost": 3,
           "keys": [
             "type:Oiseau"
@@ -5702,7 +5688,10 @@ export const CHARACTER_DATA = {
               },
               "text": "Pioche aussi une carte."
             }
-          ]
+          ],
+          "atk": 2,
+          "hp": 2,
+          "statics": []
         },
         {
           "id": "crow2_roc",
