@@ -49,6 +49,9 @@ function chargePolice(nom) {
 
 function applique() {
   const racine = document.documentElement;
+  // La barre d'etat du telephone suit le haut de l'ecran (creme pour juice, violet nuit sinon).
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', courant === 'juice' ? '#fff3d8' : '#1b1726');
   if (courant === 'actuel') {
     racine.removeAttribute('data-skin');
     if (lien) { lien.remove(); lien = null; }

@@ -1,6 +1,6 @@
 # game/skins/ — l'habillage graphique de l'écran de combat (interchangeable)
 
-> Un skin est une feuille de style **appliquée seulement pendant un combat** (`<html data-skin="…" data-combat>`, posé par `game/src/ui/skin.js`).
+> Un skin est une feuille de style (`<html data-skin="…">`, posé par `game/src/ui/skin.js`). `parchemin` et `bonbon` n'agissent **que pendant un combat** (`data-combat`) ; `juice` habille aussi la barre du haut, la navigation, le deck, la ferme et le sac — **pas la carte (overworld)**, dont les éléments restent ceux de `styles.css`.
 > Elle redéfinit les variables de couleur de `styles.css` et habille cartes, unités, boutons et fenêtres avec des sprites Kenney en 9-slice
 > (`border-image`) ou en pur CSS (`juice`). `actuel` = aucune feuille : le violet nuit et or d'origine. La mise en page ne change pas.
 
@@ -14,7 +14,7 @@
 ## Comment ça marche
 - `ui/skin.js` : `AC.skin()` (liste + courant), `AC.skin('bonbon')` ; le choix est retenu (`localStorage` `adventureCard.skin`, défaut `juice`).
   Le panneau de triche (5 touchers sur « Tour N ») a un bouton « Skin : … » qui les fait tourner.
-- Chaque règle d'un skin commence par `html[data-skin="<nom>"][data-combat]` : un skin n'a aucune prise sur la carte, la ferme, le deck et le sac.
+- Chaque règle de `parchemin` et `bonbon` commence par `html[data-skin="<nom>"][data-combat]` (aucune prise hors combat). `juice` porte ses couleurs sur une liste d'éléments (`:is(#topbar, #nav, #screen-farm, #screen-deck, #screen-bag, #battle, #modal, …)`) : **ajouter un écran = l'ajouter à cette liste**, et ne jamais mettre les couleurs sur `html`, sinon les éléments de la carte (qui portent du texte clair sur fond sombre) deviennent illisibles.
 - ⚠ **`border-image`** : `fill` se place **dans la partie « slice »**, avant le `/` (`28 28 46 fill / 7px 7px 11px stretch`). Après `stretch`, la déclaration est
   invalide et le navigateur n'en garde que les coins, sans le dire.
 - ⚠ **Une animation CSS qui touche `transform` entre en conflit** avec celles du moteur (WAAPI) : `juice` n'anime que la propriété `translate` et exclut `.nouvelle`, `.targetable` et `.fx-carte`.
