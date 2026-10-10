@@ -19,6 +19,7 @@
   invalide et le navigateur n'en garde que les coins, sans le dire.
 - ⚠ **Une animation CSS qui touche `transform` entre en conflit** avec celles du moteur (WAAPI) : `juice` n'anime que la propriété `translate` et exclut `.nouvelle`, `.targetable` et `.fx-carte`.
 - ⚠ **Une police ne se charge pas par `@import`** dans une feuille de skin : une feuille qui attend le réseau bloque l'affichage. `skin.js` la demande en `media="print"` puis la bascule.
+- **Cartes carrées (juice)** : la face d'une unité ou d'une carte de la main est un carré (`--carte`, `--carte-main`), le personnage déborde du cadre, le nom n'y est pas écrit (appui long), les pictogrammes sont en bas à gauche et les chiffres en bas à droite (attaque verte au-dessus de la carte, vie rouge si blessée : `.plus`/`.moins` posés par `battle.js`). Seul ce qui peut agir bouge et brille.
 - La carte jouée (`.fx-carte`) **garde son contour de couleur** (doré, gris-rouge, vert, bleu, violet) : pas de cadre de bois, c'est le sens de ce contour.
 - Pour ajouter un skin : une feuille `skins/<nom>.css` qui suit ce modèle, et son nom dans `SKINS` (`ui/skin.js`).
 - `Kenney_UI/` (à la racine) garde les packs entiers téléchargés ; **seuls les sprites de `kenney/` sont versionnés**.

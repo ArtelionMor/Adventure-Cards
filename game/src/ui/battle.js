@@ -382,13 +382,16 @@ function majUnite(n, u, side) {
   n.dataset.hp = u.hp;
   const ap = pilule(apercus.get(`${side}:${u.uid}`));
   const pics = ligneDePictos(u, { effets: false, taille: 16, max: 3 });
-  const sig = [u.name, u.sprite || '', u.atk, u.hp, pics, ap].join('|');
+  // Les chiffres se colorent comme dans un jeu de cartes : l'attaque en vert quand elle depasse celle de la carte, la vie
+  // en rouge quand l'unite est blessee (un jeton n'a pas de carte : pas de reference, donc pas de vert).
+  const plus = u.card && u.card.atk != null && u.atk > u.card.atk, moins = u.hp < u.maxHp;
+  const sig = [u.name, u.sprite || '', u.atk, u.hp, plus, moins, pics, ap].join('|');
   if (n._sig !== sig) {
     n._sig = sig;
     n.innerHTML = `
       ${u.sprite ? `<img src="${asset(u.sprite)}" alt="">` : '<img alt="">'}
       <div class="un">${u.name}</div>
-      <div class="s"><span class="a">${u.atk}</span> / <span class="h">${u.hp}</span></div>
+      <div class="s"><span class="a${plus ? ' plus' : ''}">${u.atk}</span> / <span class="h${moins ? ' moins' : ''}">${u.hp}</span></div>
       ${pics}
       ${ap ? `<div class="pv">${ap}</div>` : ''}`;
   }
