@@ -24,6 +24,14 @@
   .cols { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 18px; align-items: start; }
   @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } .scene-boite { position: static !important; } }
   .scene-boite { position: sticky; top: 12px; }
+  /* Sur telephone, la scene est tout en bas : quand on joue une animation, elle passe PAR-DESSUS la page le temps du film. */
+  @media (max-width: 900px) {
+    .scene-boite.flottante { position: fixed !important; inset: 0; z-index: 50; display: grid; place-items: center; align-content: center; padding: 16px; background: rgba(5, 3, 10, .72); animation: flot-in .18s ease-out; }
+    .scene-boite.flottante .barre { display: none; }
+    .scene-boite.flottante .scene { box-shadow: 0 12px 40px #000; }
+    .scene-boite.flottante.sort { opacity: 0; transition: opacity .25s; }
+  }
+  @keyframes flot-in { from { opacity: 0; } }
   .scene-boite .barre { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
   .scene-boite select, .scene-boite button { font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); cursor: pointer; }
   /* La scene : un mini ecran de combat, pour jouer les animations. */
@@ -164,7 +172,25 @@ const heros = c => ({ ...refHeros({ [c]: { name: c, sprite: c === 'p' ? SPR_P : 
 const ru = (c, k = 0) => refUnite(UNITES[c][k], c);
 
 /** Joue des evenements fabriques sur la scene. `avant` s'execute entre la photo et le film (pour retirer une unite, etc.). */
+// Sur telephone (la scene est sous la liste), la scene flotte au-dessus de la page pendant le film, puis s'en va.
+// Toucher le voile la ferme tout de suite.
+const boite = document.querySelector('.scene-boite');
+const etroit = matchMedia('(max-width: 900px)');
+let flotMinuteur = 0;
+function ferme() { clearTimeout(flotMinuteur); boite.classList.add('sort'); flotMinuteur = setTimeout(() => boite.classList.remove('flottante', 'sort'), 260); }
+function flotte() {
+  clearTimeout(flotMinuteur);
+  boite.classList.remove('sort');
+  if (!etroit.matches) { boite.classList.remove('flottante'); return; }
+  boite.classList.add('flottante');
+  void boite.offsetHeight;   // la scene est a sa place AVANT la photo : les effets visent les bons endroits
+  const attends = () => { flotMinuteur = setTimeout(() => (fx && fx.reste() > 0 ? attends() : (flotMinuteur = setTimeout(ferme, 600))), 250); };
+  attends();
+}
+boite.addEventListener('click', e => { if (e.target === boite && boite.classList.contains('flottante')) ferme(); });
+
 function joue(construit, avant, carte, h) {
+  flotte();
   monteScene(carte, h);
   fx = fx || creeFx(acces);
   fx.reglage.ralenti = Number($('#vitesse').value);
