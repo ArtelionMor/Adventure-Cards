@@ -4,11 +4,11 @@
 // couleurs (les variables de styles.css) et habille les elements avec les sprites de `game/skins/kenney/` (packs Kenney,
 // CC0). « actuel » = aucune feuille : le violet nuit et or d'origine. Le choix se retient dans `localStorage`.
 //
-// Console : `AC.skin()` dit le skin courant et la liste ; `AC.skin('parchemin')`, `AC.skin('bonbon')`, `AC.skin('actuel')`.
+// Console : `AC.skin()` dit le skin courant et la liste ; `AC.skin('juice')`, `AC.skin('parchemin')`, `AC.skin('bonbon')`, `AC.skin('actuel')`.
 // Le panneau de triche (5 touchers sur « Tour N ») a un bouton qui les fait tourner.
 const CLE = 'adventureCard.skin';
-export const SKINS = ['parchemin', 'bonbon', 'actuel'];
-const DEFAUT = 'parchemin';
+export const SKINS = ['juice', 'parchemin', 'bonbon', 'actuel'];
+const DEFAUT = 'juice';
 let courant = DEFAUT;
 let lien = null;
 const auChangement = new Set();
@@ -35,6 +35,18 @@ export function skinSuivant() {
   return choisitSkin(SKINS[(SKINS.indexOf(courant) + 1) % SKINS.length]);
 }
 
+// La police du skin « juice » (Lilita One, licence OFL), chargee sans bloquer l'affichage : la feuille est demandee en
+// media="print" puis basculee en media="all" quand elle est arrivee. Hors ligne, la police du systeme (en gras) fait l'affaire.
+const POLICES = { juice: 'https://fonts.googleapis.com/css2?family=Lilita+One&display=swap' };
+function chargePolice(nom) {
+  const url = POLICES[nom];
+  if (!url || document.querySelector(`link[data-police="${nom}"]`)) return;
+  const l = document.createElement('link');
+  l.rel = 'stylesheet'; l.href = url; l.media = 'print'; l.dataset.police = nom;
+  l.onload = () => { l.media = 'all'; };
+  document.head.appendChild(l);
+}
+
 function applique() {
   const racine = document.documentElement;
   if (courant === 'actuel') {
@@ -43,6 +55,7 @@ function applique() {
     return;
   }
   racine.setAttribute('data-skin', courant);
+  chargePolice(courant);
   const href = new URL(`../../skins/${courant}.css`, import.meta.url).href;
   if (!lien) {
     lien = document.createElement('link');
