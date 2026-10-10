@@ -1,14 +1,23 @@
-// LES SKINS DU COMBAT : l'habillage graphique de l'ecran de combat, interchangeable.
+// LES SKINS : l'habillage graphique du jeu, interchangeable.
 //
-// Un skin est une feuille de style (`game/skins/<nom>.css`) qui ne s'applique QUE pendant un combat : elle redefinit les
-// couleurs (les variables de styles.css) et habille les elements avec les sprites de `game/skins/kenney/` (packs Kenney,
-// CC0). « actuel » = aucune feuille : le violet nuit et or d'origine. Le choix se retient dans `localStorage`.
+// Un skin est une feuille de style (`game/skins/<nom>.css`) qui redefinit les couleurs (les variables de styles.css) et habille
+// le combat, la barre du haut, la navigation, le deck, la ferme et le sac. « actuel » = aucune feuille : le violet nuit et or
+// d'origine. Le choix se retient dans `localStorage`.
 //
-// Console : `AC.skin()` dit le skin courant et la liste ; `AC.skin('juice')`, `AC.skin('parchemin')`, `AC.skin('bonbon')`, `AC.skin('actuel')`.
+// Console : `AC.skin()` dit le skin courant et la liste ; `AC.skin('juice')`, `AC.skin('actuel')`.
 // Le panneau de triche (5 touchers sur « Tour N ») a un bouton qui les fait tourner.
+//
+// Pour ajouter un skin : une feuille `skins/<nom>.css`, et une ligne dans `SKINS` ci-dessous.
 const CLE = 'adventureCard.skin';
-export const SKINS = ['juice', 'parchemin', 'bonbon', 'actuel'];
+
+/** nom -> sa feuille, sa police (une feuille Google Fonts, facultative) et la couleur de la barre d'etat du telephone. */
+const SKINS_DEF = {
+  juice: { css: 'juice.css', police: 'https://fonts.googleapis.com/css2?family=Lilita+One&display=swap', barre: '#fff3d8' },
+  actuel: { css: null, police: null, barre: '#1b1726' }
+};
+export const SKINS = Object.keys(SKINS_DEF);
 const DEFAUT = 'juice';
+
 let courant = DEFAUT;
 let lien = null;
 const auChangement = new Set();
@@ -35,11 +44,12 @@ export function skinSuivant() {
   return choisitSkin(SKINS[(SKINS.indexOf(courant) + 1) % SKINS.length]);
 }
 
-// La police du skin « juice » (Lilita One, licence OFL), chargee sans bloquer l'affichage : la feuille est demandee en
-// media="print" puis basculee en media="all" quand elle est arrivee. Hors ligne, la police du systeme (en gras) fait l'affaire.
-const POLICES = { juice: 'https://fonts.googleapis.com/css2?family=Lilita+One&display=swap' };
-function chargePolice(nom) {
-  const url = POLICES[nom];
+/**
+ * La police d'un skin, chargee SANS bloquer l'affichage : la feuille est demandee en media="print" puis basculee en
+ * media="all" quand elle est arrivee (un `@import` dans la feuille du skin ferait attendre le reseau a tout l'ecran).
+ * Hors ligne, la police du systeme (en gras) fait l'affaire.
+ */
+function chargePolice(nom, url) {
   if (!url || document.querySelector(`link[data-police="${nom}"]`)) return;
   const l = document.createElement('link');
   l.rel = 'stylesheet'; l.href = url; l.media = 'print'; l.dataset.police = nom;
@@ -48,18 +58,18 @@ function chargePolice(nom) {
 }
 
 function applique() {
+  const def = SKINS_DEF[courant];
   const racine = document.documentElement;
-  // La barre d'etat du telephone suit le haut de l'ecran (creme pour juice, violet nuit sinon).
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', courant === 'juice' ? '#fff3d8' : '#1b1726');
-  if (courant === 'actuel') {
+  if (meta) meta.setAttribute('content', def.barre);
+  if (!def.css) {
     racine.removeAttribute('data-skin');
     if (lien) { lien.remove(); lien = null; }
     return;
   }
   racine.setAttribute('data-skin', courant);
-  chargePolice(courant);
-  const href = new URL(`../../skins/${courant}.css`, import.meta.url).href;
+  chargePolice(courant, def.police);
+  const href = new URL(`../../skins/${def.css}`, import.meta.url).href;
   if (!lien) {
     lien = document.createElement('link');
     lien.rel = 'stylesheet';
@@ -68,18 +78,9 @@ function applique() {
   if (lien.href !== href) lien.href = href;
 }
 
-// `data-combat` sur <html> tant que l'ecran de combat est ouvert : les feuilles de skin s'y accrochent, si bien que la
-// carte, la ferme, le deck et le sac gardent leur habillage.
-function suisLeCombat() {
-  const b = document.getElementById('battle');
-  if (!b) return;
-  const maj = () => document.documentElement.toggleAttribute('data-combat', !b.classList.contains('hidden'));
-  new MutationObserver(maj).observe(b, { attributes: true, attributeFilter: ['class'] });
-  maj();
-}
-
 courant = lis();
 applique();
-suisLeCombat();
-if (window.AC) window.AC.skin = nom => (nom === undefined ? { courant, skins: SKINS } : choisitSkin(nom));
-else window.addEventListener('DOMContentLoaded', () => { if (window.AC) window.AC.skin = nom => (nom === undefined ? { courant, skins: SKINS } : choisitSkin(nom)); });
+
+// `window.AC` (la console du jeu) est cree par main.js APRES les imports : on s'y accroche quand la page est prete.
+const installeConsole = () => { if (window.AC) window.AC.skin = nom => (nom === undefined ? { courant, skins: SKINS } : choisitSkin(nom)); };
+if (window.AC) installeConsole(); else window.addEventListener('DOMContentLoaded', installeConsole);

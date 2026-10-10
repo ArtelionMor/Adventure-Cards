@@ -3,10 +3,10 @@
 | Fichier | Contenu | Quand le lire |
 |---|---|---|
 | `GDD.md` | **Le game design doc** : piliers, boucle de jeu, deckbuilding, monnaies, combat, architecture idle, art. Les 2 seuls points ⚠ NON DÉCIDÉ y sont marqués. | Avant tout travail sur le jeu |
-| `V3-HEROS.md` | Les six héros V3 : cartes, paliers, mécaniques à coder, **ordre de codage**, ce qui est ✅ codé. Garde les décisions du game designer. | Avant de toucher à Reprise, Charogne, Appât, Pistage, Toxine, Ex-libris, Registre |
+| `V3-HEROS.md` | Les six héros V3 : cartes, paliers, mécaniques à coder, **ordre de codage**, ce qui est ✅ codé. Garde les décisions du game designer. ⚠ **Conception seulement** : briques communes et Reprise codées, mais **aucune carte V3 n'est dans `characters.data.js`** (donc ni dans le Card Builder ni dans le wiki). | Avant de toucher à Reprise, Charogne, Appât, Pistage, Toxine, Ex-libris, Registre |
 | `GRAMMAIRE-DES-PALIERS.md` | Comment écrire les paliers d'une carte pour qu'une montée de niveau se sente. | Avant de toucher aux `tiers` d'une carte |
 | `MECANIQUES-A-CODER.md` | **Généré par le Card Builder** (ne pas éditer à la main) : les mécaniques inventées, leurs cartes, où les coder. | Quand on te demande de coder une mécanique |
-| `VFX-CARTES.md` | **Les VFX des cartes** : le modèle (une animation par moment), la famille visuelle de chaque héros, les règles du banc `test-vfx.mjs`, puis l'intention carte par carte. **Codé** dans `game/src/ui/vfx.js` : 120 signatures uniques, 73 briques. | Avant de toucher à l'animation d'une carte, ou après avoir ajouté une carte |
+| `VFX-CARTES.md` | **Les VFX des cartes** : le modèle (une animation par moment), la famille visuelle de chaque héros, les règles du banc `test-vfx.mjs`, puis l'intention carte par carte. **Codé** dans `game/src/ui/vfx.js` : 120 signatures uniques, 71 briques. | Avant de toucher à l'animation d'une carte, ou après avoir ajouté une carte |
 | `SITUATIONS-A-TESTER.md` | Le texte des fiches du banc de situations (mêmes `id` que `game/data/situations.js`). | Avant de toucher au banc de situations |
 
 ---

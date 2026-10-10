@@ -1,306 +1,292 @@
 /* SKIN « JUICE » — gros contours, couleurs franches, boutons qui s'enfoncent : l'esprit des jeux mobiles « vivants »
-   (reference donnee par le game designer : Chainsaw Juice King). AUCUNE texture ni image : tout est du CSS —
-   contour brun presque noir de 3 px partout, aplats saturés, un liseré clair en haut et une ombre pleine en bas
-   (le relief d'un bouton), chiffres blancs cernés de noir, fond en damier vert.
-   Il habille le combat, la barre du haut, la navigation, le deck, la ferme et le sac ; la carte (overworld) garde les siens. Couleurs + bordures, la mise en page ne bouge pas.
-   `@SK` est le prefixe commun. La police « Lilita One » (licence OFL) est chargee par ui/skin.js depuis Google Fonts, sans bloquer l'affichage ; sans reseau,
+   (reference donnee par le game designer : le moodboard Chainsaw Juice King).
+
+   AUCUNE texture ni image : tout est du CSS. Contour brun presque noir de 3 px partout, aplats satures, un lisere clair en
+   haut et une ombre pleine en bas (le relief d'un bouton), chiffres blancs cernes de noir, fond en damier vert.
+
+   Il habille le combat, la barre du haut, la navigation, le deck, la ferme et le sac. La carte (overworld) garde ses
+   elements : bulle d'indice, manette et bouton « Entrer » portent du texte clair sur fond sombre.
+   ⚠ Les couleurs se posent donc sur une LISTE d'elements (section « couleurs »), jamais sur <html>. Un ecran de plus = une
+   ligne de plus dans cette liste.
+
+   Les regles sont imbriquees sous `html[data-skin="juice"]` (CSS nesting) : cette feuille ne s'applique que si ui/skin.js
+   a pose l'attribut. La police « Lilita One » (OFL) est chargee par ui/skin.js, sans bloquer l'affichage ; sans reseau,
    la police du systeme prend le relais en gras. */
 
-html[data-skin="juice"] :is(#topbar, #nav, #screen-farm, #screen-deck, #screen-bag, #battle, #modal, #toasts, .lecture, .triche) {
-  --bg: #98d35a;
-  --bg2: #ffe9b8;
-  --panel: #fff3d8;
-  --panel2: #fffaec;
-  --line: #2b1c1f;
-  --ink: #3a2517;
-  --ink-dim: #8a6b4c;
-  --accent: #ff8f1f;
-  --accent2: #3fbf3a;
-  --danger: #e8433f;
-  --mana: #2e8be8;
-  --ally: #3f86dd;
-  --spell: #a15cf0;
-  --contour: #2b1c1f;
-  --police: "Lilita One", "Arial Rounded MT Bold", "Baloo 2", "Segoe UI", system-ui, sans-serif;
+html[data-skin="juice"] {
+
+  /* ================================================================ couleurs, police */
+  & :is(#topbar, #nav, #screen-farm, #screen-deck, #screen-bag, #battle, #modal, #toasts, .lecture, .triche) {
+    --bg: #98d35a;
+    --bg2: #ffe9b8;
+    --panel: #fff3d8;
+    --panel2: #fffaec;
+    --line: #2b1c1f;
+    --ink: #3a2517;
+    --ink-dim: #8a6b4c;
+    --accent: #ff8f1f;
+    --accent2: #3fbf3a;
+    --danger: #e8433f;
+    --mana: #2e8be8;
+    --ally: #3f86dd;
+    --spell: #a15cf0;
+    --contour: #2b1c1f;
+    --police: "Lilita One", "Arial Rounded MT Bold", "Baloo 2", "Segoe UI", system-ui, sans-serif;
+  }
+  /* Une seule graisse : pas de gras synthetique, qui deformerait la police. */
+  & :is(#battle, #modal, .lecture, .toast, .triche, #topbar, #nav, .screen:not(#screen-world)) { font-family: var(--police); font-synthesis: none; }
+  & :is(#battle, #modal, .lecture, .toast, .triche) { letter-spacing: .2px; }
+
+  /* ================================================================ fonds : un damier vert discret */
+  & :is(#battle.overlay, #screen-farm, #screen-deck, #screen-bag) {
+    background-color: #98d35a;
+    background-image:
+      linear-gradient(45deg, rgba(255,255,255,.07) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.07) 75%),
+      linear-gradient(45deg, rgba(255,255,255,.07) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.07) 75%);
+    background-size: 96px 96px; background-position: 0 0, 48px 48px;
+    color: var(--ink);
+  }
+  & #modal { background: rgba(43, 28, 31, .6); }
+  & .lecture { background: rgba(43, 28, 31, .55); }
+
+  /* ================================================================ barre du haut et navigation (communes a tous les ecrans) */
+  & #topbar { background: #fff3d8; border-bottom: 4px solid var(--contour); box-shadow: inset 0 -4px 0 #ffe9b8; }
+  & .hero-chip img { width: 46px; height: 46px; padding: 2px; background: #bfe6ff; border: 3px solid var(--contour); border-radius: 14px; box-shadow: 0 3px 0 var(--contour); }
+  & #topName { color: var(--ink); font-size: 15px; font-weight: 800; }
+  & .xpbar { height: 12px; background: #4a3532; border: 3px solid var(--contour); border-radius: 8px; box-shadow: inset 0 2px 0 rgba(0,0,0,.3); }
+  & .xpbar i { background: linear-gradient(180deg, #ffe27a 0 40%, #ffb92a 40% 100%); border-radius: 4px; }
+  & .lvl {
+    display: inline-grid; place-items: center; min-width: 32px; height: 32px; padding: 0 4px; border-radius: 50%; font-size: 17px; color: #fff;
+    background: radial-gradient(circle at 35% 30%, #fff0a0 0 24%, #ffb92a 25% 100%); border: 3px solid var(--contour);
+    -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; box-shadow: 0 2px 0 var(--contour);
+  }
+  & .ctx-cur { font-size: 13px; }
+  & .ctx-cur b { color: #e8751a; font-size: 15px; }
+
+  /* La navigation : l'onglet actif est un bouton jaune qui se leve. */
+  & #nav { background: #fff3d8; border-top: 4px solid var(--contour); box-shadow: inset 0 4px 0 #fff; padding: 6px 8px 8px; gap: 6px; }
+  & #nav button { color: var(--ink-dim); font-size: 12px; border: 3px solid transparent; border-radius: 14px; padding: 4px 0; transition: transform .1s ease-out; }
+  & #nav button span { filter: drop-shadow(0 2px 0 rgba(43, 28, 31, .35)); }
+  & #nav button.active {
+    color: #fff; background: linear-gradient(180deg, #ffe27a 0 50%, #ffb92a 50% 100%); border-color: var(--contour);
+    -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill;
+    box-shadow: inset 0 3px 0 rgba(255,255,255,.7), 0 3px 0 var(--contour); transform: translateY(-3px);
+  }
+
+  /* ================================================================ combat : les heros */
+  & .bt-hero img { width: 48px; height: 48px; padding: 2px; background: #fff3d8; border: 3px solid var(--contour); border-radius: 14px; box-shadow: 0 3px 0 var(--contour); }
+  & .bt-hero > div { min-width: 0; }
+  & .bt-hero .hnm { color: #fff; font-size: 13px; white-space: nowrap; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & .bt-hero .hn { overflow: hidden; text-overflow: ellipsis; }
+  & .bt-hero .hv { color: #bfe6ff; }
+  & .bt-hero .pv:empty { display: none; }
+  & .hinfo { color: #fff; -webkit-text-stroke: 2px var(--contour); paint-order: stroke fill; }
+  & .hpbar { height: 22px; background: #4a3532; border: 3px solid var(--contour); border-radius: 12px; box-shadow: inset 0 3px 0 rgba(0,0,0,.35), 0 3px 0 var(--contour); }
+  & .hpbar i { background: linear-gradient(180deg, #ff8fa3 0 35%, #ff4b6b 35% 100%); border-radius: 8px; box-shadow: inset 0 -3px 0 rgba(150,0,30,.25); }
+  & .hpbar b { color: #fff; font-size: 13px; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & .manapips { gap: 4px; max-width: 150px; }
+  & .pip { width: 14px; height: 14px; background: #6d7fa6; border: 2px solid var(--contour); box-shadow: inset 0 -2px 0 rgba(0,0,0,.25); }
+  & .pip.on { background: radial-gradient(circle at 35% 30%, #bfe9ff 0 25%, #36a4ff 26% 100%); }
+
+  /* ================================================================ combat : les plateaux se partagent l'ecran */
+  & .board { max-height: none; flex: 1 1 0; min-height: 96px; }
+  & .bwrap { padding-top: 14px; }
+  & .bt-mid { flex: 0 0 40px; min-height: 40px; }
+  /* Chaque camp a sa bande, a peine teintee : le champ de bataille se lit d'un coup d'oeil. */
+  & #boardE { background: rgba(224, 82, 74, .16); border-radius: 18px; margin: 0 8px; }
+  & #boardP { background: rgba(63, 134, 221, .16); border-radius: 18px; margin: 0 8px; }
+
+  /* ================================================================ combat : les unites et les cartes de la main sont des CARRES
+     (la maquette du game designer). Un cadre de couleur, un ciel clair, une colline creme ; le personnage DEBORDE du cadre
+     par le haut, avec son propre contour ; en bas a gauche ce que fait la carte (pictogrammes), en bas a droite ses
+     chiffres. Le nom ne s'ecrit pas sur la face : on le lit a l'appui long. */
+  & #battle { --carte: clamp(88px, 24vw, 116px); --carte-main: clamp(92px, 25vw, 124px); }
+  & :is(.unit, .hcard:not(.fx-carte), .zcard) { --cadre: var(--ally); --ciel: #bfe6ff; color: var(--ink); }
+  & :is(.unit, .hcard:not(.fx-carte)) {
+    position: relative; display: block; overflow: visible; padding: 0;
+    border: 4px solid var(--contour); border-radius: 18px;
+    background: radial-gradient(ellipse 130% 62% at 50% 112%, #fff3d8 0 64%, transparent 65%), var(--ciel);
+    box-shadow: inset 0 0 0 4px var(--cadre), 0 4px 0 var(--contour);
+  }
+  & .unit { width: var(--carte); height: var(--carte); }
+  & .hcard:not(.fx-carte) { width: var(--carte-main); height: var(--carte-main); min-width: 0; max-width: none; }
+  & .unit[data-side="e"] { --cadre: #e0524a; --ciel: #ffd9cf; }
+  & .hcard.spell { --cadre: var(--spell); --ciel: #e6d4ff; }
+  & .unit.taunt { --cadre: #f2a81d; --ciel: #ffeaa8; }
+  /* Le personnage : plus haut que le cadre, un contour noir epais fait de quatre ombres sans flou. */
+  & :is(.unit, .hcard:not(.fx-carte)) > img {
+    position: absolute; left: 50%; top: -14px; width: 84%; height: 74%; margin: 0; transform: translateX(-50%); object-fit: contain;
+    filter: drop-shadow(2px 0 0 var(--contour)) drop-shadow(-2px 0 0 var(--contour)) drop-shadow(0 2px 0 var(--contour)) drop-shadow(0 -2px 0 var(--contour));
+  }
+  & :is(.unit .un, .hcard:not(.fx-carte) .nm) { display: none; }
+  & :is(.unit .s, .hcard:not(.fx-carte) .st) {
+    position: absolute; right: 8px; bottom: 4px; margin: 0; font-size: 22px; line-height: 1; color: #fff;
+    -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill; letter-spacing: -1px;
+  }
+  /* Les chiffres : attaque jaune, vie rose ; verte quand l'attaque depasse celle de la carte, rouge quand l'unite est blessee. */
+  & :is(.unit .s .a, .hcard:not(.fx-carte) .st) { color: #ffd23a; }
+  & .unit .s .h { color: #ff8da0; }
+  & .unit .s .a.plus { color: #4dff2e; }
+  & .unit .s .h.moins { color: #ff2a3a; }
+  & :is(.unit, .hcard:not(.fx-carte)) .pic { position: absolute; left: 7px; bottom: 7px; height: auto; max-width: 38%; overflow: hidden; flex-wrap: nowrap; }
+  /* Le cout : une gemme bleue, le chiffre blanc cerne. */
+  & :is(.hcard:not(.fx-carte) .cost, .zcard .cost, .gcard .cost) {
+    width: 30px; height: 30px; font-size: 17px; color: #fff;
+    background: radial-gradient(circle at 35% 30%, #a8dcff 0 22%, #2e8be8 23% 100%);
+    border: 3px solid var(--contour); box-shadow: 0 2px 0 var(--contour);
+    -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill;
+  }
+  & .hcard:not(.fx-carte) .cost { top: -10px; left: -10px; z-index: 3; }
+  & .zcard .cost { top: -9px; left: -8px; width: 28px; height: 28px; font-size: 16px; }
+  & .jr-mc i { width: 22px; height: 22px; font-size: 13px; color: #fff; background: radial-gradient(circle at 35% 30%, #a8dcff 0 22%, #2e8be8 23% 100%); border: 3px solid var(--contour); -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & :is(.unit .pv, .bt-hero .pv) { background: #fffaec; color: var(--ink); border: 3px solid var(--contour); border-radius: 10px; -webkit-text-stroke: 0; }
+  & .unit .pv { z-index: 4; top: 6px; }
+  & :is(.hcard.sel, .unit.sel) { outline: 4px solid #fff; outline-offset: 2px; }
+
+  /* Ce qui peut agir se voit : cadre vert et halo pour une unite prete, halo blanc pour une carte jouable. Le reste est
+     immobile, sans halo, et la carte injouable est grisee. */
+  & .unit.ready { --cadre: #3fbf3a; box-shadow: inset 0 0 0 4px var(--cadre), 0 0 0 3px #fff, 0 0 16px 4px rgba(120, 255, 90, .75), 0 4px 0 var(--contour); }
+  & .unit.ready::after { display: none; }
+  & .hcard:not(.no, .fx-carte) { box-shadow: inset 0 0 0 4px var(--cadre), 0 0 0 3px #fff, 0 0 14px 3px rgba(255, 255, 255, .85), 0 4px 0 var(--contour); }
+  & .hcard.no:not(.fx-carte) { opacity: .72; filter: saturate(.5); }
+  & .hcard.no:not(.fx-carte) > img { filter: grayscale(.6) drop-shadow(2px 0 0 var(--contour)) drop-shadow(-2px 0 0 var(--contour)) drop-shadow(0 2px 0 var(--contour)) drop-shadow(0 -2px 0 var(--contour)); }
+
+  /* La carte jouee et les cartes-effets gardent leur CONTOUR de couleur (dore, gris-rouge, vert, bleu, violet : styles.css). */
+  & .fx-carte { border-width: 3px; border-style: solid; border-radius: 12px; background: #fff4da; box-shadow: 0 6px 0 rgba(43,28,31,.55); }
+  & .fx-n { -webkit-text-stroke: 6px var(--contour); }
+
+  /* La main : un plateau creme qui monte du bas, sur plusieurs rangees. */
+  & .bt-hand {
+    flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 14px 10px; max-height: 40vh;
+    overflow-x: hidden; overflow-y: auto; touch-action: pan-y; padding: 20px 10px 10px;
+    background: #fff3d8; border-top: 4px solid var(--contour); border-radius: 18px 18px 0 0; box-shadow: inset 0 4px 0 #fff;
+  }
+  & .bt-bar { background: #ffe9b8; border-top: 0; box-shadow: inset 0 3px 0 rgba(255,255,255,.7); }
+
+  /* ================================================================ boutons : jaunes par defaut, ils s'enfoncent quand on les touche */
+  /* ⚠ `:where` (specificite nulle) : avec `:is`, la liste prendrait la specificite de `.jr-onglets button` et ecraserait
+     les variantes ci-dessous (vert, violet, rose). */
+  & :where(.btn, .autochip, .vitesse, .ib, .jr-onglets button, .jr-x, .jr-dl) {
+    border: 3px solid var(--contour); border-radius: 12px; cursor: pointer;
+    background: linear-gradient(180deg, #ffe27a 0 50%, #ffb92a 50% 100%); color: #fff;
+    box-shadow: inset 0 3px 0 rgba(255,255,255,.7), 0 4px 0 var(--contour);
+    -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; font-weight: 800;
+    transition: transform .07s ease-out, box-shadow .07s ease-out;
+  }
+  & :where(.btn, .autochip, .vitesse, .ib, .jr-onglets button, .jr-x):active { transform: translateY(3px); box-shadow: inset 0 3px 0 rgba(255,255,255,.7), 0 1px 0 var(--contour); }
+  /* L'action principale, comme le « Free! » vert des recompenses. */
+  & .btn { background: linear-gradient(180deg, #8bf05c 0 50%, #35b52f 50% 100%); font-size: 17px; padding: 8px 16px; }
+  & .btn.ghost { background: linear-gradient(180deg, #fff3d8 0 50%, #ffe0a0 50% 100%); color: var(--ink); -webkit-text-stroke: 0; }
+  & .jr-onglets button { background: linear-gradient(180deg, #fff3d8 0 50%, #ffe0a0 50% 100%); color: var(--ink); -webkit-text-stroke: 0; }
+  & .jr-dl { background: #fff3d8; color: var(--ink); -webkit-text-stroke: 0; }
+  & .autochip { background: linear-gradient(180deg, #c995ff 0 50%, #8a45e6 50% 100%); }
+  & .autochip.on { background: linear-gradient(180deg, #8bf05c 0 50%, #35b52f 50% 100%); }
+  & .jr-onglets button.on { background: linear-gradient(180deg, #ffe27a 0 50%, #ffb92a 50% 100%); }
+  & .jr-x { background: linear-gradient(180deg, #ff8fa8 0 50%, #ee3d63 50% 100%); }
+  & .ib .bdg { background: #ff3d4f; color: #fff; border: 2px solid #fff; -webkit-text-stroke: 0; box-shadow: 0 0 0 2px var(--contour); }
+  & .btn:disabled { filter: grayscale(.8); transform: none; box-shadow: inset 0 3px 0 rgba(255,255,255,.4), 0 2px 0 var(--contour); }
+
+  /* ================================================================ fenetres : creme, contour epais */
+  & .sheet { background: #fff3d8; border: 4px solid var(--contour); border-radius: 20px; color: var(--ink); box-shadow: inset 0 4px 0 #fff, 0 6px 0 var(--contour); }
+  & .insp .tete img { background: #bfe6ff; border: 3px solid var(--contour); border-radius: 14px; }
+  & :is(.insp .chip, .zcard .chip, .puce, .zgrp h4 .n) { background: #fffaec; border: 2px solid var(--contour); color: var(--ink); }
+  & :is(.bt-bandeau, .toast) { background: #fffaec; color: var(--ink); border: 3px solid var(--contour); box-shadow: 0 4px 0 var(--contour); }
+  & .bt-bandeau { border-radius: 14px; }
+
+  /* La fenetre de zone garde la forme d'une carte a plat (elle porte du texte). */
+  & .zcard {
+    border: 3px solid var(--contour); border-radius: 12px; padding: 9px 5px 5px;
+    background: linear-gradient(180deg, var(--ciel) 0 58px, #fff4da 58px);
+    box-shadow: inset 0 0 0 3px var(--cadre), inset 0 5px 0 3px rgba(255,255,255,.35), 0 3px 0 var(--contour);
+  }
+  & .zcard.spell { --cadre: var(--spell); --ciel: #e6d4ff; }
+  & .zcard .st { -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; font-size: 14px; color: #ffd23a; }
+  & .zcard.on { box-shadow: inset 0 0 0 3px var(--cadre), 0 0 0 4px #fff, 0 0 14px rgba(255,255,255,.9), 0 3px 0 var(--contour); outline: 0; }
+
+  /* Le journal. */
+  & .jr { background: #fff3d8; border-top: 4px solid var(--contour); border-bottom: 4px solid var(--contour); }
+  & .jr-tete { background: #ffb92a; border-bottom: 4px solid var(--contour); box-shadow: inset 0 3px 0 rgba(255,255,255,.55); }
+  & .jr-tete h4 { color: #fff; font-size: 17px; -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill; }
+  & .jr-s { background: #fffaec; border: 3px solid var(--contour); border-left: 8px solid var(--ally); border-radius: 14px; box-shadow: 0 3px 0 var(--contour); }
+  & .jr-s[data-camp="e"] { border-left-color: var(--danger); }
+  & :is(.jr-s.r-tour, .jr-s.r-fin) { background: none; border: 0; box-shadow: none; }
+  & .jr-u { background: #fff; border: 3px solid var(--contour); }
+  & .jr-mc { background: #fff; border: 2px solid var(--contour); border-top-width: 4px; }
+  & .jr-tour { border-bottom: 3px solid var(--contour); }
+  & .jr-u .a { color: #ffb02e; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & :is(.jr-u .h b, .jr-u .h em) { -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & .jr-u .h b { color: #ff7d8d; }
+  & .jr-u .h em { color: #fff; }
+  & .revue { background: #98d35a; }
+
+  /* ================================================================ l'ecran de fin : un grand ruban */
+  & .fin { background: rgba(43, 28, 31, .72); }
+  & .fin.defaite { background: rgba(43, 28, 31, .82); }
+  & .fin-rayons { background: repeating-conic-gradient(from 0deg, rgba(255, 238, 150, .4) 0 8deg, transparent 8deg 24deg); }
+  & .fin-titre {
+    padding: 10px 36px 14px; font-size: 40px; letter-spacing: 1px; color: #fff; border: 4px solid #4a1414; border-radius: 14px;
+    background: linear-gradient(180deg, #ff8d7c 0 50%, #e23a3a 50% 100%);
+    -webkit-text-stroke: 7px #4a1414; paint-order: stroke fill; text-shadow: none;
+    box-shadow: inset 0 3px 0 rgba(255,255,255,.55), 0 6px 0 #4a1414; transform: rotate(-2deg);
+  }
+  & .fin.victoire .fin-titre { background: linear-gradient(180deg, #ffe97a 0 50%, #ffae1f 50% 100%); border-color: #4a2a00; -webkit-text-stroke-color: #4a2a00; box-shadow: inset 0 3px 0 rgba(255,255,255,.6), 0 6px 0 #4a2a00; }
+  & .fin.defaite .fin-titre { background: linear-gradient(180deg, #b6c0d6 0 50%, #6d7a99 50% 100%); border-color: #1f2840; -webkit-text-stroke-color: #1f2840; box-shadow: inset 0 3px 0 rgba(255,255,255,.4), 0 6px 0 #1f2840; transform: rotate(1deg); }
+  & .fin-sous { color: #fff; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; font-size: 16px; }
+  & .fin-gain { background: #fff3d8; border: 4px solid var(--contour); border-radius: 14px; color: var(--ink); box-shadow: inset 0 3px 0 #fff, 0 4px 0 var(--contour); }
+  & .fin-gain b { color: #ffb92a; -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill; }
+  & .fin-notes { color: #fff; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & .fin-boutons .btn { font-size: 20px; padding: 12px; }
+
+  /* ================================================================ les autres ecrans : panneaux, deck, ferme, sac */
+  & .card-panel { background: #fff3d8; border: 4px solid var(--contour); border-radius: 20px; padding: 14px; color: var(--ink); box-shadow: inset 0 4px 0 #fff, 0 5px 0 var(--contour); }
+  & .card-panel h2 { font-size: 20px; }
+  & .card-panel h3 {
+    display: inline-block; padding: 3px 12px; margin: 0 0 8px; font-size: 13px; letter-spacing: .3px; text-transform: none; color: var(--ink);
+    background: #ffe27a; border: 3px solid var(--contour); border-radius: 999px; box-shadow: 0 2px 0 var(--contour);
+  }
+  & .card-panel b { color: #e8751a; }
+
+  /* Le deck : les heros sont des cartes carrees, la liste de cartes des lignes cernees. */
+  & .roster { gap: 12px 10px; }
+  & .hero-tile {
+    background: linear-gradient(180deg, #bfe6ff 0 64%, #fff4da 64% 100%); border: 3px solid var(--contour); border-radius: 18px;
+    box-shadow: inset 0 0 0 3px #3f86dd, 0 4px 0 var(--contour); padding: 8px 6px 4px; color: var(--ink);
+  }
+  & .hero-tile img { filter: drop-shadow(2px 0 0 var(--contour)) drop-shadow(-2px 0 0 var(--contour)) drop-shadow(0 2px 0 var(--contour)) drop-shadow(0 -2px 0 var(--contour)); }
+  & .hero-tile .nm { font-size: 13px; font-weight: 800; }
+  & .hero-tile.on { box-shadow: inset 0 0 0 3px #f2a81d, 0 0 0 3px #fff, 0 0 14px 3px rgba(255,255,255,.9), 0 4px 0 var(--contour); }
+  & .hero-tile.locked { opacity: 1; filter: grayscale(1) brightness(.92); box-shadow: inset 0 0 0 3px #9aa3b5, 0 4px 0 var(--contour); }
+  & .hero-tile .lvl { top: -9px; right: -9px; }
+  & .gcard { background: #fffaec; border: 3px solid var(--contour); border-left: 10px solid var(--tone); border-radius: 14px; color: var(--ink); box-shadow: 0 3px 0 var(--contour); }
+  & .gcard .nm { font-size: 15px; }
+  & .gcard .tx { font-size: 12px; }
+  & .gcard .st { color: #ffd23a; font-size: 16px; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & .gcard .tier.on { color: #2e9e2a; }
+
+  /* La ferme : des tuiles de terre, des etals. */
+  & .plots { gap: 10px; }
+  & .plot {
+    background: #c98f4e; border: 3px solid var(--contour); border-radius: 16px;
+    box-shadow: inset 0 4px 0 rgba(255,255,255,.3), inset 0 -5px 0 rgba(0,0,0,.18), 0 4px 0 var(--contour);
+  }
+  & .plot.empty::after { color: #fff; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; font-size: 30px; }
+  & .plot.locked { background: #b9b3a6; border-style: solid; }
+  & .plot .grow { height: 10px; background: #4a3532; border: 2px solid var(--contour); border-radius: 6px; }
+  & .plot .grow i { background: linear-gradient(180deg, #8bf05c 0 40%, #35b52f 40% 100%); }
+  & .plot.ready { box-shadow: inset 0 0 0 3px #3fbf3a, 0 0 0 3px #fff, 0 0 14px 3px rgba(120,255,90,.8), 0 4px 0 var(--contour); }
+  & .slot { background: #ffe9b8; border: 3px solid var(--contour); border-radius: 16px; box-shadow: inset 0 3px 0 #fff, 0 3px 0 var(--contour); }
+  & .slot.locked { opacity: .55; }
 }
 
-/* ---------- la police : un seul graisse, jamais de gras synthetique ---------- */
-html[data-skin="juice"] #battle, html[data-skin="juice"] #modal, html[data-skin="juice"] .lecture, html[data-skin="juice"] .toast, html[data-skin="juice"] .triche { font-family: var(--police); font-synthesis: none; letter-spacing: .2px; }
-
-/* ---------- le fond : un damier vert franc ---------- */
-html[data-skin="juice"] #battle.overlay {
-  background-color: #98d35a;
-  background-image:
-    linear-gradient(45deg, rgba(255,255,255,.07) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.07) 75%),
-    linear-gradient(45deg, rgba(255,255,255,.07) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.07) 75%);
-  background-size: 96px 96px; background-position: 0 0, 48px 48px;
-  color: var(--ink);
-}
-html[data-skin="juice"] #modal { background: rgba(43, 28, 31, .6); }
-html[data-skin="juice"] .lecture { background: rgba(43, 28, 31, .55); }
-
-/* ---------- les heros : un portrait encadre, une barre de vie epaisse ---------- */
-html[data-skin="juice"] .bt-hero img { width: 48px; height: 48px; padding: 2px; background: #fff3d8; border: 3px solid var(--contour); border-radius: 14px; box-shadow: 0 3px 0 var(--contour); }
-html[data-skin="juice"] .bt-hero .hnm { color: #fff; font-size: 14px; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
-html[data-skin="juice"] .bt-hero .hv { color: #bfe6ff; }
-html[data-skin="juice"] .bt-hero > div { min-width: 0; }
-html[data-skin="juice"] .bt-hero .hnm { white-space: nowrap; font-size: 13px; }
-html[data-skin="juice"] .bt-hero .hn { overflow: hidden; text-overflow: ellipsis; }
-html[data-skin="juice"] .bt-hero .pv:empty { display: none; }
-html[data-skin="juice"] .unit .un { font-size: 10px; letter-spacing: 0; }
-/* Chaque camp a sa bande : la sienne, a peine teintee, pour que le champ de bataille se lise d'un coup d'oeil. */
-html[data-skin="juice"] #boardE { background: rgba(224, 82, 74, .16); border-radius: 18px; margin: 0 8px; }
-html[data-skin="juice"] #boardP { background: rgba(63, 134, 221, .16); border-radius: 18px; margin: 0 8px; }
-html[data-skin="juice"] .hinfo { color: #fff; -webkit-text-stroke: 2px var(--contour); paint-order: stroke fill; }
-html[data-skin="juice"] .hpbar { height: 22px; background: #4a3532; border: 3px solid var(--contour); border-radius: 12px; box-shadow: inset 0 3px 0 rgba(0,0,0,.35), 0 3px 0 var(--contour); }
-html[data-skin="juice"] .hpbar i { background: linear-gradient(180deg, #ff8fa3 0 35%, #ff4b6b 35% 100%); border-radius: 8px; box-shadow: inset 0 -3px 0 rgba(150,0,30,.25); }
-html[data-skin="juice"] .hpbar b { color: #fff; font-size: 13px; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
-html[data-skin="juice"] .manapips { gap: 4px; max-width: 150px; }
-html[data-skin="juice"] .pip { width: 14px; height: 14px; background: #6d7fa6; border: 2px solid var(--contour); box-shadow: inset 0 -2px 0 rgba(0,0,0,.25); }
-html[data-skin="juice"] .pip.on { background: radial-gradient(circle at 35% 30%, #bfe9ff 0 25%, #36a4ff 26% 100%); }
-
-/* ---------- les unites et les cartes : des CARRES (la maquette du game designer) ----------
-   Un cadre de couleur, un ciel clair, une colline creme ; le personnage DEBORDE du cadre par le haut, avec son propre
-   contour ; en bas a gauche ce que fait la carte (pictogrammes), en bas a droite ses chiffres. Le nom ne s'ecrit pas
-   sur la face : on le lit a l'appui long. */
-html[data-skin="juice"] #battle { --carte: clamp(88px, 24vw, 116px); --carte-main: clamp(92px, 25vw, 124px); }
-html[data-skin="juice"] .unit, html[data-skin="juice"] .hcard:not(.fx-carte), html[data-skin="juice"] .zcard {
-  --cadre: var(--ally);
-  --ciel: #bfe6ff;
-  color: var(--ink);
-}
-html[data-skin="juice"] .unit, html[data-skin="juice"] .hcard:not(.fx-carte) {
-  position: relative; display: block; overflow: visible; padding: 0;
-  border: 4px solid var(--contour); border-radius: 18px;
-  background: radial-gradient(ellipse 130% 62% at 50% 112%, #fff3d8 0 64%, transparent 65%), var(--ciel);
-  box-shadow: inset 0 0 0 4px var(--cadre), 0 4px 0 var(--contour);
-}
-html[data-skin="juice"] .unit { width: var(--carte); height: var(--carte); }
-html[data-skin="juice"] .hcard:not(.fx-carte) { width: var(--carte-main); height: var(--carte-main); min-width: 0; max-width: none; }
-html[data-skin="juice"] .unit[data-side="e"] { --cadre: #e0524a; --ciel: #ffd9cf; }
-html[data-skin="juice"] .hcard.spell { --cadre: var(--spell); --ciel: #e6d4ff; }
-html[data-skin="juice"] .unit.taunt { --cadre: #f2a81d; --ciel: #ffeaa8; }
-/* Le personnage : plus haut que le cadre, un contour noir epais fait de quatre ombres sans flou. */
-html[data-skin="juice"] .unit > img, html[data-skin="juice"] .hcard:not(.fx-carte) > img {
-  position: absolute; left: 50%; top: -14px; width: 84%; height: 74%; margin: 0; transform: translateX(-50%); object-fit: contain;
-  filter: drop-shadow(2px 0 0 var(--contour)) drop-shadow(-2px 0 0 var(--contour)) drop-shadow(0 2px 0 var(--contour)) drop-shadow(0 -2px 0 var(--contour));
-}
-html[data-skin="juice"] .unit .un, html[data-skin="juice"] .hcard:not(.fx-carte) .nm { display: none; }
-html[data-skin="juice"] .unit .kw { display: none; }
-html[data-skin="juice"] .unit .s, html[data-skin="juice"] .hcard:not(.fx-carte) .st {
-  position: absolute; right: 8px; bottom: 4px; margin: 0; font-size: 22px; line-height: 1; color: #fff;
-  -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill; letter-spacing: -1px;
-}
-html[data-skin="juice"] .unit .s .a, html[data-skin="juice"] .hcard:not(.fx-carte) .st { color: #ffd23a; }
-html[data-skin="juice"] .unit .s .h { color: #ff8da0; }
-html[data-skin="juice"] .unit .s .a.plus { color: #4dff2e; }
-html[data-skin="juice"] .unit .s .h.moins { color: #ff2a3a; }
-html[data-skin="juice"] .unit .pic, html[data-skin="juice"] .hcard:not(.fx-carte) .pic { position: absolute; left: 7px; bottom: 7px; height: auto; max-width: 38%; overflow: hidden; flex-wrap: nowrap; }
-html[data-skin="juice"] .hcard:not(.fx-carte) .cost, html[data-skin="juice"] .jr-mc i {
-  width: 30px; height: 30px; top: -10px; left: -10px; z-index: 3; font-size: 17px; color: #fff;
-  background: radial-gradient(circle at 35% 30%, #a8dcff 0 22%, #2e8be8 23% 100%);
-  border: 3px solid var(--contour); box-shadow: 0 2px 0 var(--contour);
-  -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill;
-}
-html[data-skin="juice"] .jr-mc i { width: 22px; height: 22px; font-size: 13px; top: auto; left: auto; }
-html[data-skin="juice"] .pc b { color: var(--ink); }
-html[data-skin="juice"] .unit .pv, html[data-skin="juice"] .bt-hero .pv { background: #fffaec; color: var(--ink); border: 3px solid var(--contour); border-radius: 10px; -webkit-text-stroke: 0; }
-html[data-skin="juice"] .unit .pv { z-index: 4; top: 6px; }
-html[data-skin="juice"] .hcard.sel, html[data-skin="juice"] .unit.sel { outline: 4px solid #fff; outline-offset: 2px; }
-
-/* Ce qui peut agir se voit : cadre vert et halo pour une unite prete, halo blanc pour une carte jouable.
-   Le reste est immobile et sans halo. */
-html[data-skin="juice"] .unit.ready { --cadre: #3fbf3a; box-shadow: inset 0 0 0 4px var(--cadre), 0 0 0 3px #fff, 0 0 16px 4px rgba(120, 255, 90, .75), 0 4px 0 var(--contour); }
-html[data-skin="juice"] .unit.ready::after { display: none; }
-html[data-skin="juice"] .hcard:not(.no):not(.fx-carte) { box-shadow: inset 0 0 0 4px var(--cadre), 0 0 0 3px #fff, 0 0 14px 3px rgba(255, 255, 255, .85), 0 4px 0 var(--contour); }
-html[data-skin="juice"] .hcard.no:not(.fx-carte) { opacity: .72; filter: saturate(.5); }
-html[data-skin="juice"] .hcard.no:not(.fx-carte) > img { filter: grayscale(.6) drop-shadow(2px 0 0 var(--contour)) drop-shadow(-2px 0 0 var(--contour)) drop-shadow(0 2px 0 var(--contour)) drop-shadow(0 -2px 0 var(--contour)); }
-
-/* La fenetre de zone garde la forme d'une carte a plat (elle porte du texte). */
-html[data-skin="juice"] .zcard {
-  border: 3px solid var(--contour); border-radius: 12px;
-  background: linear-gradient(180deg, var(--ciel) 0 58px, #fff4da 58px);
-  box-shadow: inset 0 0 0 3px var(--cadre), inset 0 5px 0 3px rgba(255,255,255,.35), 0 3px 0 var(--contour);
-  padding: 9px 5px 5px;
-}
-html[data-skin="juice"] .zcard.spell { --cadre: var(--spell); --ciel: #e6d4ff; }
-html[data-skin="juice"] .zcard .nm { color: var(--ink); }
-html[data-skin="juice"] .zcard .tx { color: var(--ink-dim); }
-html[data-skin="juice"] .zcard .st { -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; font-size: 14px; color: #ffd23a; }
-html[data-skin="juice"] .zcard .cost { width: 28px; height: 28px; top: -9px; left: -8px; font-size: 16px; color: #fff; background: radial-gradient(circle at 35% 30%, #a8dcff 0 22%, #2e8be8 23% 100%); border: 3px solid var(--contour); -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
-
-/* ---------- la place : les deux plateaux se partagent l'ecran, la main passe sur plusieurs rangees ---------- */
-html[data-skin="juice"] .board { max-height: none; flex: 1 1 0; min-height: 96px; }
-html[data-skin="juice"] .bwrap { padding-top: 14px; }
-html[data-skin="juice"] .bt-mid { flex: 0 0 40px; min-height: 40px; }
-html[data-skin="juice"] .bt-hand { flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 14px 10px; max-height: 40vh; overflow-x: hidden; overflow-y: auto; touch-action: pan-y; padding: 20px 10px 10px; }
-
-/* ---------- la vie : seul ce qui peut agir bouge (la propriete `translate` : aucun conflit avec les animations du moteur) ---------- */
+/* ================================================================ la vie : seul ce qui peut agir bouge
+   La propriete `translate` (et non `transform`) : aucun conflit avec les animations du moteur (WAAPI), et les cartes
+   qui arrivent (`.nouvelle`), les cibles (`.targetable`) et la carte jouee (`.fx-carte`) gardent les leurs. */
 @keyframes juice-hop { 0%, 100% { translate: 0 0; } 50% { translate: 0 -6px; } }
 html[data-skin="juice"] .unit.ready:not(.targetable) { animation: juice-hop 1s ease-in-out infinite; }
-html[data-skin="juice"] .hcard:not(.no):not(.nouvelle):not(.fx-carte):not(.sel) { animation: juice-hop 1.5s ease-in-out infinite; }
+html[data-skin="juice"] .hcard:not(.no, .nouvelle, .fx-carte, .sel) { animation: juice-hop 1.5s ease-in-out infinite; }
 html[data-skin="juice"] .hcard:not(.no):nth-child(2n) { animation-delay: -.5s; }
 html[data-skin="juice"] .hcard:not(.no):nth-child(3n) { animation-delay: -1s; }
-@media (prefers-reduced-motion: reduce) { html[data-skin="juice"] .unit, html[data-skin="juice"] .hcard { animation: none !important; } }
-
-/* ---------- la main et la barre du bas : un plateau creme qui monte du bas ---------- */
-html[data-skin="juice"] .bt-hand { background: #fff3d8; border-top: 4px solid var(--contour); border-radius: 18px 18px 0 0; box-shadow: inset 0 4px 0 #fff; }
-html[data-skin="juice"] .bt-bar { background: #ffe9b8; border-top: 0; box-shadow: inset 0 3px 0 rgba(255,255,255,.7); }
-html[data-skin="juice"] .bt-bar .grow { color: var(--ink); }
-
-/* ---------- les boutons : jaunes par defaut, ils s'enfoncent quand on les touche ---------- */
-html[data-skin="juice"] .btn, html[data-skin="juice"] .autochip, html[data-skin="juice"] .vitesse, html[data-skin="juice"] .ib, html[data-skin="juice"] .jr-onglets button, html[data-skin="juice"] .jr-x, html[data-skin="juice"] .jr-dl {
-  border: 3px solid var(--contour); border-radius: 12px; cursor: pointer;
-  background: linear-gradient(180deg, #ffe27a 0 50%, #ffb92a 50% 100%); color: #fff;
-  box-shadow: inset 0 3px 0 rgba(255,255,255,.7), 0 4px 0 var(--contour);
-  -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; font-weight: 800;
-  transition: transform .07s ease-out, box-shadow .07s ease-out;
+html[data-skin="juice"] .plot.ready { animation: juice-hop 1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin="juice"] :is(.unit, .hcard, .plot) { animation: none !important; }
 }
-html[data-skin="juice"] .btn:active, html[data-skin="juice"] .autochip:active, html[data-skin="juice"] .vitesse:active, html[data-skin="juice"] .ib:active, html[data-skin="juice"] .jr-onglets button:active, html[data-skin="juice"] .jr-x:active {
-  transform: translateY(3px); box-shadow: inset 0 3px 0 rgba(255,255,255,.7), 0 1px 0 var(--contour);
-}
-/* L'action principale, comme le « Free! » vert des recompenses. */
-html[data-skin="juice"] .btn { background: linear-gradient(180deg, #8bf05c 0 50%, #35b52f 50% 100%); font-size: 17px; padding: 8px 16px; }
-html[data-skin="juice"] .btn.ghost { background: linear-gradient(180deg, #fff3d8 0 50%, #ffe0a0 50% 100%); color: var(--ink); -webkit-text-stroke: 0; }
-html[data-skin="juice"] .autochip { background: linear-gradient(180deg, #c995ff 0 50%, #8a45e6 50% 100%); }
-html[data-skin="juice"] .autochip.on { background: linear-gradient(180deg, #8bf05c 0 50%, #35b52f 50% 100%); color: #fff; }
-html[data-skin="juice"] .ib { background: linear-gradient(180deg, #ffe27a 0 50%, #ffb92a 50% 100%); }
-html[data-skin="juice"] .ib .bdg { background: #ff3d4f; color: #fff; border: 2px solid #fff; -webkit-text-stroke: 0; box-shadow: 0 0 0 2px var(--contour); }
-html[data-skin="juice"] .jr-x { background: linear-gradient(180deg, #ff8fa8 0 50%, #ee3d63 50% 100%); }
-html[data-skin="juice"] .jr-onglets button { background: linear-gradient(180deg, #fff3d8 0 50%, #ffe0a0 50% 100%); color: var(--ink); -webkit-text-stroke: 0; }
-html[data-skin="juice"] .jr-onglets button.on { background: linear-gradient(180deg, #ffe27a 0 50%, #ffb92a 50% 100%); }
-html[data-skin="juice"] .jr-dl { color: var(--ink); -webkit-text-stroke: 0; background: #fff3d8; }
-html[data-skin="juice"] .btn:disabled { filter: grayscale(.8); transform: none; box-shadow: inset 0 3px 0 rgba(255,255,255,.4), 0 2px 0 var(--contour); }
-
-/* ---------- les fenetres : creme, contour epais, titre en bandeau ---------- */
-html[data-skin="juice"] .sheet { background: #fff3d8; border: 4px solid var(--contour); border-radius: 20px; color: var(--ink); box-shadow: inset 0 4px 0 #fff, 0 6px 0 var(--contour); }
-html[data-skin="juice"] .lecture .sheet { box-shadow: inset 0 4px 0 #fff, 0 6px 0 var(--contour); }
-html[data-skin="juice"] .zone h3, html[data-skin="juice"] .insp .nm { color: var(--ink); }
-html[data-skin="juice"] .insp .tete img { background: #bfe6ff; border: 3px solid var(--contour); border-radius: 14px; }
-html[data-skin="juice"] .insp .chip, html[data-skin="juice"] .zcard .chip, html[data-skin="juice"] .puce, html[data-skin="juice"] .zgrp h4 .n { background: #fffaec; border: 2px solid var(--contour); color: var(--ink); }
-html[data-skin="juice"] .jr { background: #fff3d8; border-top: 4px solid var(--contour); border-bottom: 4px solid var(--contour); }
-html[data-skin="juice"] .jr-tete { background: #ffb92a; border-bottom: 4px solid var(--contour); box-shadow: inset 0 3px 0 rgba(255,255,255,.55); }
-html[data-skin="juice"] .jr-tete h4 { color: #fff; font-size: 17px; -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill; }
-html[data-skin="juice"] .jr-s { background: #fffaec; border: 3px solid var(--contour); border-left: 8px solid var(--ally); border-radius: 14px; box-shadow: 0 3px 0 var(--contour); }
-html[data-skin="juice"] .jr-s[data-camp="e"] { border-left-color: var(--danger); }
-html[data-skin="juice"] .jr-s.r-tour, html[data-skin="juice"] .jr-s.r-fin { background: none; border: 0; box-shadow: none; }
-html[data-skin="juice"] .jr-u { background: #fff; border: 3px solid var(--contour); }
-html[data-skin="juice"] .jr-mc { background: #fff; border: 2px solid var(--contour); border-top-width: 4px; }
-html[data-skin="juice"] .jr-tour { color: var(--ink); border-bottom: 3px solid var(--contour); }
-html[data-skin="juice"] .jr-u .a { color: #ffb02e; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
-html[data-skin="juice"] .jr-u .h b, html[data-skin="juice"] .jr-u .h em { -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
-html[data-skin="juice"] .jr-u .h b { color: #ff7d8d; }
-html[data-skin="juice"] .jr-u .h em { color: #fff; }
-html[data-skin="juice"] .revue { background: #98d35a; }
-html[data-skin="juice"] .bt-bandeau { background: #fffaec; color: var(--ink); border: 3px solid var(--contour); border-radius: 14px; box-shadow: 0 4px 0 var(--contour); }
-html[data-skin="juice"] .bt-bandeau small { color: var(--ink-dim); }
-html[data-skin="juice"] .toast { background: #fffaec; color: var(--ink); border: 3px solid var(--contour); box-shadow: 0 3px 0 var(--contour); }
-html[data-skin="juice"] .zcard.on { box-shadow: inset 0 0 0 3px var(--cadre), 0 0 0 4px #fff, 0 0 14px rgba(255,255,255,.9), 0 3px 0 var(--contour); outline: 0; }
-
-/* ---------- l'ecran de fin : un grand ruban ---------- */
-html[data-skin="juice"] .fin { background: rgba(43, 28, 31, .72); }
-html[data-skin="juice"] .fin.defaite { background: rgba(43, 28, 31, .82); }
-html[data-skin="juice"] .fin-rayons { background: repeating-conic-gradient(from 0deg, rgba(255, 238, 150, .4) 0 8deg, transparent 8deg 24deg); }
-html[data-skin="juice"] .fin-titre {
-  padding: 10px 36px 14px; font-size: 40px; letter-spacing: 1px; color: #fff; border: 4px solid #4a1414; border-radius: 14px;
-  background: linear-gradient(180deg, #ff8d7c 0 50%, #e23a3a 50% 100%);
-  -webkit-text-stroke: 7px #4a1414; paint-order: stroke fill; text-shadow: none;
-  box-shadow: inset 0 3px 0 rgba(255,255,255,.55), 0 6px 0 #4a1414; transform: rotate(-2deg);
-}
-html[data-skin="juice"] .fin.victoire .fin-titre { background: linear-gradient(180deg, #ffe97a 0 50%, #ffae1f 50% 100%); border-color: #4a2a00; -webkit-text-stroke-color: #4a2a00; box-shadow: inset 0 3px 0 rgba(255,255,255,.6), 0 6px 0 #4a2a00; }
-html[data-skin="juice"] .fin.defaite .fin-titre { background: linear-gradient(180deg, #b6c0d6 0 50%, #6d7a99 50% 100%); border-color: #1f2840; -webkit-text-stroke-color: #1f2840; box-shadow: inset 0 3px 0 rgba(255,255,255,.4), 0 6px 0 #1f2840; transform: rotate(1deg); }
-html[data-skin="juice"] .fin-sous { color: #fff; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; font-size: 16px; }
-html[data-skin="juice"] .fin-gain { background: #fff3d8; border: 4px solid var(--contour); border-radius: 14px; color: var(--ink); box-shadow: inset 0 3px 0 #fff, 0 4px 0 var(--contour); }
-html[data-skin="juice"] .fin-gain b { color: #ffb92a; -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill; }
-html[data-skin="juice"] .fin-notes { color: #fff; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
-html[data-skin="juice"] .fin-boutons .btn { font-size: 20px; padding: 12px; }
-
-/* ---------- les effets : des chiffres bien cernes, sur fond vif ---------- */
-html[data-skin="juice"] .fx-n { -webkit-text-stroke: 6px var(--contour); }
-html[data-skin="juice"] .fx-carte { border-width: 3px; border-style: solid; border-radius: 12px; background: #fff4da; box-shadow: 0 6px 0 rgba(43,28,31,.55); }
-html[data-skin="juice"] .fx-carte .tx { color: var(--ink-dim); }
-
-/* =====================================================================================================
-   LES AUTRES ECRANS : barre du haut, navigation, deck, ferme, sac.
-   La carte (overworld) garde son habillage : ses propres elements (bulle d'indice, manette, bouton « Entrer »)
-   ne sont pas touches ; seules la barre du haut et la navigation, communes a tous les ecrans, changent.
-   ===================================================================================================== */
-html[data-skin="juice"] .screen:not(#screen-world) { font-family: var(--police); font-synthesis: none; }
-html[data-skin="juice"] #screen-farm, html[data-skin="juice"] #screen-deck, html[data-skin="juice"] #screen-bag {
-  background-color: #98d35a;
-  background-image:
-    linear-gradient(45deg, rgba(255,255,255,.07) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.07) 75%),
-    linear-gradient(45deg, rgba(255,255,255,.07) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.07) 75%);
-  background-size: 96px 96px; background-position: 0 0, 48px 48px;
-  color: var(--ink);
-}
-
-/* ---------- la barre du haut ---------- */
-html[data-skin="juice"] #topbar { background: #fff3d8; border-bottom: 4px solid var(--contour); box-shadow: inset 0 -4px 0 #ffe9b8; font-family: var(--police); font-synthesis: none; }
-html[data-skin="juice"] .hero-chip img { width: 46px; height: 46px; padding: 2px; background: #bfe6ff; border: 3px solid var(--contour); border-radius: 14px; box-shadow: 0 3px 0 var(--contour); }
-html[data-skin="juice"] #topName { color: var(--ink); font-size: 15px; font-weight: 800; }
-html[data-skin="juice"] .xpbar { height: 12px; background: #4a3532; border: 3px solid var(--contour); border-radius: 8px; box-shadow: inset 0 2px 0 rgba(0,0,0,.3); }
-html[data-skin="juice"] .xpbar i { background: linear-gradient(180deg, #ffe27a 0 40%, #ffb92a 40% 100%); border-radius: 4px; }
-html[data-skin="juice"] .lvl {
-  display: inline-grid; place-items: center; min-width: 32px; height: 32px; padding: 0 4px; border-radius: 50%; font-size: 17px; color: #fff;
-  background: radial-gradient(circle at 35% 30%, #fff0a0 0 24%, #ffb92a 25% 100%); border: 3px solid var(--contour);
-  -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; box-shadow: 0 2px 0 var(--contour);
-}
-html[data-skin="juice"] .ctx-cur { color: var(--ink-dim); font-size: 13px; }
-html[data-skin="juice"] .ctx-cur b { color: #e8751a; font-size: 15px; }
-
-/* ---------- la navigation : un onglet jaune qui se leve ---------- */
-html[data-skin="juice"] #nav { background: #fff3d8; border-top: 4px solid var(--contour); box-shadow: inset 0 4px 0 #fff; padding: 6px 8px 8px; gap: 6px; font-family: var(--police); font-synthesis: none; }
-html[data-skin="juice"] #nav button { color: var(--ink-dim); font-size: 12px; border: 3px solid transparent; border-radius: 14px; padding: 4px 0 4px; transition: transform .1s ease-out; }
-html[data-skin="juice"] #nav button span { filter: drop-shadow(0 2px 0 rgba(43, 28, 31, .35)); }
-html[data-skin="juice"] #nav button.active {
-  color: #fff; background: linear-gradient(180deg, #ffe27a 0 50%, #ffb92a 50% 100%); border-color: var(--contour);
-  -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill;
-  box-shadow: inset 0 3px 0 rgba(255,255,255,.7), 0 3px 0 var(--contour); transform: translateY(-3px);
-}
-
-/* ---------- les panneaux ---------- */
-html[data-skin="juice"] .card-panel { background: #fff3d8; border: 4px solid var(--contour); border-radius: 20px; padding: 14px; color: var(--ink); box-shadow: inset 0 4px 0 #fff, 0 5px 0 var(--contour); }
-html[data-skin="juice"] .card-panel h2 { color: var(--ink); font-size: 20px; }
-html[data-skin="juice"] .card-panel h3 {
-  display: inline-block; padding: 3px 12px; margin: 0 0 8px; font-size: 13px; letter-spacing: .3px; text-transform: none; color: var(--ink);
-  background: #ffe27a; border: 3px solid var(--contour); border-radius: 999px; box-shadow: 0 2px 0 var(--contour);
-}
-html[data-skin="juice"] .card-panel .muted, html[data-skin="juice"] .muted { color: var(--ink-dim); }
-html[data-skin="juice"] .card-panel b { color: #e8751a; }
-
-/* ---------- le deck : les heros sont des cartes carrees ---------- */
-html[data-skin="juice"] .roster { gap: 12px 10px; }
-html[data-skin="juice"] .hero-tile {
-  background: linear-gradient(180deg, #bfe6ff 0 64%, #fff4da 64% 100%); border: 3px solid var(--contour); border-radius: 18px;
-  box-shadow: inset 0 0 0 3px #3f86dd, 0 4px 0 var(--contour); padding: 8px 6px 4px; color: var(--ink);
-}
-html[data-skin="juice"] .hero-tile img { filter: drop-shadow(2px 0 0 var(--contour)) drop-shadow(-2px 0 0 var(--contour)) drop-shadow(0 2px 0 var(--contour)) drop-shadow(0 -2px 0 var(--contour)); }
-html[data-skin="juice"] .hero-tile .nm { color: var(--ink); font-size: 13px; font-weight: 800; }
-html[data-skin="juice"] .hero-tile.on { box-shadow: inset 0 0 0 3px #f2a81d, 0 0 0 3px #fff, 0 0 14px 3px rgba(255,255,255,.9), 0 4px 0 var(--contour); border-color: var(--contour); }
-html[data-skin="juice"] .hero-tile.locked { opacity: 1; filter: grayscale(1) brightness(.92); box-shadow: inset 0 0 0 3px #9aa3b5, 0 4px 0 var(--contour); }
-html[data-skin="juice"] .hero-tile .lvl { top: -9px; right: -9px; }
-html[data-skin="juice"] .gcard {
-  background: #fffaec; border: 3px solid var(--contour); border-left: 10px solid var(--tone); border-radius: 14px; color: var(--ink);
-  box-shadow: 0 3px 0 var(--contour);
-}
-html[data-skin="juice"] .gcard .nm { color: var(--ink); font-size: 15px; }
-html[data-skin="juice"] .gcard .tx { color: var(--ink-dim); font-size: 12px; }
-html[data-skin="juice"] .gcard .cost { background: radial-gradient(circle at 35% 30%, #a8dcff 0 22%, #2e8be8 23% 100%); color: #fff; border: 3px solid var(--contour); width: 30px; height: 30px; font-size: 16px; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
-html[data-skin="juice"] .gcard .st { color: #ffd23a; font-size: 16px; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
-html[data-skin="juice"] .gcard .tier { color: var(--ink-dim); }
-html[data-skin="juice"] .gcard .tier.on { color: #2e9e2a; }
-
-/* ---------- la ferme : des tuiles de terre, des etals ---------- */
-html[data-skin="juice"] .plots { gap: 10px; }
-html[data-skin="juice"] .plot {
-  background: #c98f4e; border: 3px solid var(--contour); border-radius: 16px;
-  box-shadow: inset 0 4px 0 rgba(255,255,255,.3), inset 0 -5px 0 rgba(0,0,0,.18), 0 4px 0 var(--contour);
-}
-html[data-skin="juice"] .plot.empty::after { color: #fff; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; font-size: 30px; }
-html[data-skin="juice"] .plot.locked { background: #b9b3a6; border-style: solid; }
-html[data-skin="juice"] .plot .grow { height: 10px; background: #4a3532; border: 2px solid var(--contour); border-radius: 6px; }
-html[data-skin="juice"] .plot .grow i { background: linear-gradient(180deg, #8bf05c 0 40%, #35b52f 40% 100%); }
-html[data-skin="juice"] .plot.ready { box-shadow: inset 0 0 0 3px #3fbf3a, 0 0 0 3px #fff, 0 0 14px 3px rgba(120,255,90,.8), 0 4px 0 var(--contour); animation: juice-hop 1s ease-in-out infinite; }
-html[data-skin="juice"] .slot { background: #ffe9b8; border: 3px solid var(--contour); border-radius: 16px; box-shadow: inset 0 3px 0 #fff, 0 3px 0 var(--contour); }
-html[data-skin="juice"] .slot.locked { opacity: .55; }

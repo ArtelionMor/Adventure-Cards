@@ -156,7 +156,7 @@ C'est sa propre défausse qui reste libre pour les autres héros.
 
 ⚠ Les cartes de l'Appât sont des **alliés de fatigue** (Chien Provocation, Rouge-Gorge Charge, Grenouille
 Venin…). Elles nourrissent aussi la **récursion de l'adversaire** tant qu'elles sont dans sa défausse :
-le Rappel de Médor ou l'Impératrice nocturne d'Athéna les remettraient en jeu. Le risque est limité
+les Retrouvailles de Médor ou l'Impératrice Nocturne d'Athéna les remettraient en jeu. Le risque est limité
 (Charogne les mange vite), mais il est réel : à surveiller en mesure.
 
 ### 2.4 🐸 Dendrobate — Contrôle Hard (le venin)
@@ -285,7 +285,7 @@ Règle suivie : on **remplace** un palier faible plutôt que d'en ajouter, pour 
 | Héros | Carte | Niveau | Palier | Remplace |
 |---|---|---|---|---|
 | Felix | Coup de Patte | 12 | Gagne Reprise. | — (niveau libre) |
-| Felix | Tempête de patounes | 13 | Gagne Reprise. | — (niveau libre) |
+| Felix | Tempête de Patounes | 13 | Gagne Reprise. | — (niveau libre) |
 | Mistigri | Griffes Sournoises | 8 | Gagne Reprise. | « Pioche aussi une carte. » |
 | Mistigri | Concert Nocturne | 13 | Gagne Reprise. | « Gagne 1 mana au prochain tour. » |
 | Médor | Toute la Bande | 14 | Gagne Reprise. | — |
@@ -294,8 +294,8 @@ Règle suivie : on **remplace** un palier faible plutôt que d'en ajouter, pour 
 | Morphée | Songe | 11 | Gagne Reprise. | « Gagne aussi 3 armures. » |
 | Reinette | Pluie Fertile | 7 | Gagne Reprise. | « Soigne aussi ton héros de 3. » |
 
-**Écartés par vigilance :** Foudre (Chat de Gouttière en crée à chaque attaque : chacune serait reprenable),
-Neuf Vies, Minuit, Sablier, Colère d'Athéna, Nuit Sans Lune, Vase, Envol, Souffle (gestion de masse),
+**Écartés par vigilance :** Griffure (ex-Foudre ; Chat de Gouttière en crée à chaque attaque : chacune serait reprenable),
+Neuf Vies, Minuit, Sablier, Colère d'Athéna, Nuit Sans Lune, Coulée de Boue (ex-Vase), Volée de Corbeaux (ex-Envol), Souffle (gestion de masse),
 Chasse Nocturne (retrait premium), Métamorphose Ultime.
 
 ### 3.3 Meule, Ex-libris, pile de fatigue
@@ -359,7 +359,7 @@ main n'a plus de plafond »). Écarts avec le plan ci-dessous :
   et la brique n'était pas testable par un vrai chemin de code ;
 - la **brique « dernière défausse »** a disparu avec la nouvelle règle de Charogne (adversaire seulement) ;
 - **deux corrections** que les briques ont forcées : le `t` laissé par le builder sur un déplacement hors
-  plateau ne compte plus (Rappel, Impératrice nocturne, Presage… étaient injouables à plateau adverse
+  plateau ne compte plus (Retrouvailles, Impératrice Nocturne, Présage… étaient injouables à plateau adverse
   vide), et `check-decks` lit `B[camp].posees` (cartes jouées) au lieu de la défausse.
 
 ⚠ **La main illimitée est un changement d'équilibrage, pas de confort** (comme le plateau sans plafond) :
@@ -704,4 +704,4 @@ pas `audit-paliers.mjs`, qui ne verra ces héros qu'une fois écrits dans les do
 2. **Sommet 20 de Crapaud Cornu** (chaque Toxine brûle aussi le héros) : brouillon fort, à jeter si besoin.
 3. **Sommet 18 de Chaudron** (« quand tu défausses, pioche ») : à mesurer avec Chaton Apprenti.
 4. **Sprite de Pastiche** : un nouveau caméléon à dessiner.
-5. **Appât et récursion adverse** : les alliés de fatigue nourrissent aussi Rappel (Médor) et Impératrice nocturne (Athéna). À surveiller en mesure.
+5. **Appât et récursion adverse** : les alliés de fatigue nourrissent aussi Retrouvailles (Médor) et Impératrice Nocturne (Athéna). À surveiller en mesure.

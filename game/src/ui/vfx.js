@@ -210,7 +210,6 @@ export const BRIQUES_DOC = {
   nuit: "La nuit tombe : un voile sombre sur tout l'écran.",
   spirale: "Des points qui s'enroulent de la source vers la cible.",
   facettes: 'Des facettes de couleur qui tournent (caméléon, prisme, miroir).',
-  pas: 'Des pas qui courent vers la cible.',
   bulles: 'Des bulles qui montent de la cible.',
   vent: 'Des colonnes de vent qui montent de la cible.',
   boue: "Une boule de boue qui grossit et s'étale sur la cible.",
@@ -220,7 +219,6 @@ export const BRIQUES_DOC = {
   ame: "Une âme qui s'élève là où l'unité est morte.",
   halo: "L'onde d'une aura ou d'un renfort collectif : un anneau part du porteur et touche chacun, avec une petite icône.",
   montee: 'Des icônes qui montent de la cible (soin, renfort, armure, mana).',
-  retour: 'Une carte qui vole de la cible vers ta main.',
   os: "Un os qui tournoie de la carte jusqu'à l'unité.",
   pattes: 'Des empreintes de pattes : autour de la cible, ou en piste jusqu\'à elle.',
   aboiement: "Une bulle d'aboiement en étoile qui éclate.",
@@ -535,17 +533,6 @@ export function creeBriques(a) {
       }
       return 700;
     },
-    pas({ de, vers, couleur = C.rouge }) {
-      const q = vers && vers[0] ? centre(vers[0]) : de;
-      for (let i = 0; i < 7; i++) {
-        const f = (i + 1) / 8;
-        const p = { x: de.x + (q.x - de.x) * f + (i % 2 ? 6 : -6), y: de.y + (q.y - de.y) * f };
-        const d = noeud('fx-v', { width: '9px', height: '9px', background: couleur, borderRadius: '50%', boxShadow: `0 0 5px ${couleur}` });
-        anime(d, [{ transform: `translate(${p.x}px, ${p.y}px) scale(.3)`, opacity: 0 }, { transform: `translate(${p.x}px, ${p.y}px) scale(1)`, opacity: 1, offset: .3 }, { transform: `translate(${p.x}px, ${p.y}px) scale(1)`, opacity: 0 }], { duration: T(420), delay: T(i * 70) });
-        vie(d, 420 + i * 70);
-      }
-      return 920;
-    },
     bulles({ vers, couleur = C.vert, n = 7 }) {
       for (const r of vers) {
         for (let i = 0; i < n; i++) {
@@ -683,17 +670,6 @@ export function creeBriques(a) {
         a.etincelles(r, couleur, 4);
       }
       return 760 + n * 110;
-    },
-    retour({ vers }) {
-      if (!a.rectMain) return 0;
-      const m = centre(a.rectMain());
-      for (const r of vers) {
-        const c = centre(r);
-        const d = noeud('fx-v', { width: '24px', height: '32px', borderRadius: '4px', border: `2px solid ${C.or}`, background: 'rgba(54,44,71,.9)', boxShadow: `0 0 10px ${C.or}` });
-        anime(d, [{ transform: tr(c, 24, 32, 'scale(1.6)'), opacity: 0 }, { transform: tr(c, 24, 32, 'scale(1.6)'), opacity: 1, offset: .15 }, { transform: tr(m, 24, 32, 'scale(.7)'), opacity: 0 }], { duration: T(620), easing: 'ease-in-out' });
-        vie(d, 620);
-      }
-      return 640;
     },
 
     // ------------------------------------------------ les briques des chiens

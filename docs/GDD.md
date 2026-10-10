@@ -140,8 +140,10 @@ Deux régimes :
 - Overworld en vue du dessus, 2D, façon Don't Starve.
 - Anim des personnages : contrainte économique de prod façon "Chainsaw Juiceking" (limiter le nombre de persos × modes d'animation à produire), pas un vrai flip book/stop-motion.
 - **Contrat d'animation par personnage** : `idle`, `marche`, `surpris`, `en colère`, `décidé`, `effrayé`, `content`. Les personnages **ne s'affrontent pas visuellement en combat** — pas d'animations d'attaque, le combat se résout via l'UI de cartes.
-- Mockups de cartes actuels = placeholders (mascotte chien pastel). DA définitive pas encore faite, l'utilisateur va s'en occuper.
-- *Prototype* : l'overworld est rendu en formes géométriques et les sprites existants servent de placeholders. Aucune direction artistique n'y est engagée.
+- **Direction de l'interface (10 octobre 2026)** : le style « jeu mobile vivant » de *Chainsaw Juice King* (moodboard fourni par le game designer) — gros contours bruns presque noirs, aplats saturés, boutons à relief qui s'enfoncent, chiffres blancs cernés, fond en damier, police arrondie et grasse (Lilita One). C'est le skin **`juice`** (`game/skins/`), tout en CSS, sans texture. Il habille le combat, la barre du haut, la navigation, le deck, la ferme et le sac ; **la carte (overworld) n'est pas encore concernée**.
+- **Cartes carrées** (maquette du game designer) : cadre de couleur (bleu = allié, rouge = adversaire, or = Provocation, violet = sort), le personnage déborde du cadre, pictogrammes en bas à gauche, chiffres en bas à droite ; **le nom ne s'écrit pas sur la face** (appui long). Seul ce qui peut agir bouge et brille ; le reste est immobile.
+- **Animations de combat** : une signature unique par carte (120), assemblée à partir de briques procédurales (`game/src/ui/vfx.js`, `docs/VFX-CARTES.md`) ; les durées sont réglées par le game designer dans la feuille Google (`BALANCE.ui.fx`). Elles s'écrivent pour être comprises sans connaître les cartes : une animation ne montre rien que la carte ne fasse.
+- Les mockups de cartes d'origine (`Carte Mockup*.png`) sont des placeholders (mascotte chien pastel). Les sprites des personnages sont ceux du jeu ; l'overworld reste en formes géométriques, sans direction artistique engagée (c'est le domaine du game designer).
 
 ## Monétisation
 
@@ -160,6 +162,7 @@ Aucun n'est engagé — c'est une liste d'options, pas un plan.
 - Durcir le level design de l'overworld pour que les barrières de niveau ne se contournent plus.
 - Écrire les cartes des 6 personnages pour de bon dans le Card Builder, maintenant que les moments et les cibles existent.
 - Équilibrage : les valeurs actuelles rendent la boucle jouable, elles ne sont pas justes.
-- Son, direction artistique, monétisation.
+- Son (aucun aujourd'hui : les packs Kenney, CC0, en proposent), monétisation.
+- **Publication sur les stores** : rien n'est planifié. Trois voies : emballer la PWA (Capacitor / TWA : quelques jours, pubs et achats plus difficiles), portage Godot (3 à 4 mois avec un moteur traduit ; ≈ 2 mois si le moteur JS est embarqué), ou rester PWA. **L'Atelier et le moteur restent en JavaScript** (décision du 10 octobre 2026) : un moteur traduit serait une copie à tenir en parité (rejeu des mêmes parties, comparaison des événements). Un essai de quelques jours (fluidité en WebView, moteur JS dans Godot) trancherait.
 
 Tout le reste dans ce document est une décision actée par le game designer (l'utilisateur) au 31/08/2026.
