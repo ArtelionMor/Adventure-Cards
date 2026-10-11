@@ -187,6 +187,12 @@ function etatCamp(j, B, k) {
   };
 }
 
+/** Le Registre, en donnees : les types, les cartes « Type : tous » (par id) et les noms des cartes jouees, dans l'ordre. */
+function registreJson(B) {
+  const R = B.registre;
+  return R ? { types: [...R.types], tous: [...R.tous], cartes: R.cartes.map(c => c.name) } : null;
+}
+
 /**
  * CE QUE CELUI QUI DECIDE POUVAIT SAVOIR. L'etat, lui, dit tout — y compris la main
  * adverse et l'ordre des pioches. Sans ce bloc, l'analyse reprocherait a un joueur de
@@ -442,6 +448,8 @@ export function joue(B, k, action, controle = 'bot', niveau = null) {
     ms,
     reflexionMs,
     etat: { p: etatCamp(j, B, 'p'), e: etatCamp(j, B, 'e') },
+    // LE REGISTRE (V3, 4.6) : un seul pour les deux camps — ses types, ses cartes « Type : tous », et ce qui y a ete joue.
+    registre: registreJson(B),
     vue: vueJson(j, B, k),
     coupsLegaux: coupsLegaux(j, B, k),
     coup: coupJson(j, B, k, action),
@@ -495,6 +503,7 @@ export function fermeJournal(B, raison = null) {
     decisions: { ...j.decisions },
     lignesJournal: B.logTotal || 0,
     etatFinal: { p: etatCamp(j, B, 'p'), e: etatCamp(j, B, 'e') },
+    registreFinal: registreJson(B),
     journal: depuisLaDerniereFois(j, B)
   });
   ecouteLesChoix(j.precedent);
@@ -511,3 +520,4 @@ export function texteJournal(B) {
 // ---------------------------------------------------------------- historique
 // v1 — 22/09/2026 — premiere version.
 //      11/10/2026 — `etat.<camp>.pileFatigue` ajoute (la pile de fatigue propre au camp) : champ ajoute, `v` inchange.
+//      12/10/2026 — `registre` (et `registreFinal`) ajoute a cote de `etat` : le Registre partage des deux camps ; `v` inchange.

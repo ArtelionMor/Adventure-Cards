@@ -16,7 +16,7 @@ export const ICONES = {
   // evenements
   Swords: '⚔', Counter: '↩', Dead: '☠', Damage: '✸', Heal: '✚', Buff: '▲', Debuff: '▼', Summon: '✦',
   Draw: '▤', Destroy: '✖', Mill: '⇩', Exile: '⊘', Create: '✧', Return: '⤴', Shuffle: '⤨', Copy: '⧉',
-  Switch: '⇄', Control: '⚑', Fatigue: '☁', Track: '🐾',
+  Switch: '⇄', Control: '⚑', Fatigue: '☁', Track: '🐾', Registry: '▦',
   // moments
   Deathrattle: '♱', Aura: '◎', Static: '∞', TurnStart: '☀', TurnEnd: '☾', Trigger: '↯',
   // mots-cles
@@ -40,7 +40,7 @@ const KENNEY = {
   Buff: 'arrow_diagonal', Debuff: 'suit_hearts_broken', Summon: 'token_add',
   Draw: 'cards_take', Destroy: 'skull', Mill: 'card_remove', Exile: 'lock_closed', Create: 'card_add',
   Return: 'cards_return', Shuffle: 'cards_shuffle', Copy: 'cards_flip', Switch: 'card_flip', Control: 'flag_triangle',
-  Fatigue: 'cards_skull', Cancel: 'dice_close', Choice: 'cards_fan',
+  Fatigue: 'cards_skull', Cancel: 'dice_close', Choice: 'cards_fan', Registry: 'cards_fan',
   Deathrattle: 'dice_skull', Aura: 'hexagon_outline', Static: 'tag_infinite', TurnStart: 'hourglass_top', TurnEnd: 'hourglass_bottom', Trigger: 'exploding',
   Taunt: 'tag_shield', Charge: 'arrow_right', Venom: 'flask_full', Shield: 'shield', Elusive: 'hexagon_question',
   WallWalker: 'structure_wall', Mirror: 'hexagon_switch', Flashback: 'arrow_rotate',

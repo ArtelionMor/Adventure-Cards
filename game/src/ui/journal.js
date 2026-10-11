@@ -108,6 +108,9 @@ function ligneDe(e, ctx) {
       return ['Buff', `<span class="bien">${sgn(e.atk)}/${sgn(e.hp)}</span> pour ${cartes(e.cartes)}${e.zone === 'fatigue' ? ' <small>(pile de fatigue)</small>' : ''}`];
     // EX-LIBRIS (V3) : une carte arrivee en defausse laisse un exemplaire dans la pile de fatigue de son camp. La
     // defausse est publique : on le dit des deux cotes.
+    // LE REGISTRE (V3) : un ou plusieurs types y entrent pour la premiere fois (« Tous » = une carte « Type : tous »).
+    case 'registre':
+      return ['Registry', `Registre : ${e.nouveaux.map(esc).join(', ')} <small>(${miniCarte(e.carte)} · ${e.total} type${e.total > 1 ? 's' : ''})</small>`];
     case 'classe':
       return ['Fatigue', `${miniCarte(e.carte)} entre dans ${e.camp === 'p' ? 'ta' : 'sa'} pile de fatigue <small>(Ex-libris · ${e.pile})</small>`];
     case 'invoque': {

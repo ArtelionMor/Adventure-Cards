@@ -23,7 +23,7 @@
 import { BALANCE } from '../config/balance.js';
 import { cardById, catalogCards, fatiguePile, switchOf } from '../config/npcs.js';
 import { resolveCard } from '../config/characters.js';
-import { staticMin, AMPLIFIABLE, ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, ZONES, EVENTS, eventSlot, keyId, keyArg, hasKey, keyFields, counterValue, amountValue, numberParams, targetParams, cardMatches, describeFilter, describeCarteCreee, describeModele, cardCost, staticTotal, describeStatic, targetId, targetArg, targetDef, typesOf, partageType, estDuType, eachSubEffect, listeEffets, branchesDe, brancheChoisie, typeVariable, describeEffect, EVENT_GARDES } from '../config/mechanics.js';
+import { staticMin, AMPLIFIABLE, ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, ZONES, EVENTS, eventSlot, keyId, keyArg, hasKey, keyFields, counterValue, amountValue, numberParams, targetParams, cardMatches, describeFilter, describeCarteCreee, describeModele, cardCost, staticTotal, describeStatic, targetId, targetArg, targetDef, typesOf, partageType, estDuType, tousTypes, partageAvecLeRegistre, typesDuRegistre, eachSubEffect, listeEffets, branchesDe, brancheChoisie, typeVariable, describeEffect, EVENT_GARDES } from '../config/mechanics.js';
 import { describeAmount } from '../config/mechanics.js';
 import { evt, avec, ouvreEvenements, refCarte, refUnite, refHeros, refSource, refCible, noteCoup, coupDe } from './evenements.js';
 
@@ -105,6 +105,10 @@ export function createBattle(playerCfg, enemyCfg, meta = {}) {
     // ferait perdre les premieres sans qu'il s'en apercoive.
     logTotal: 0,
     pending: [],   // mecaniques rencontrees mais pas encore codees
+    // LE REGISTRE (V3, 4.6), PARTAGE par les deux camps : les cartes JOUEES depuis le debut du combat (des copies,
+    // resolues a leur niveau de proprietaire), les types nommes qui y sont entres, et les cartes « Type : tous »
+    // (une fois chacune, par identifiant). Rien ne le vide.
+    registre: { cartes: [], types: [], tous: [] },
     // Combien de fois chaque moment s'est declenche. Sert aux outils hors-jeu
     // (scripts/check-decks.mjs) a reperer un moment ecrit sur une carte qui ne part
     // jamais en vrai — le journal, lui, se fait tronquer au bout de 120 lignes.
@@ -470,7 +474,7 @@ function paquetDe(B, k, e, campCible, fatigueOk = false) {
  */
 function choisitDansPaquet(B, k, e, pile, camp) {
   const combien = Math.max(0, e.n === undefined ? 1 : e.n);
-  const candidates = pile.filter(c => cardMatches(c, e));
+  const candidates = pile.filter(c => cardMatches(c, e, B));
   const pris = [];
   for (let i = 0; i < combien && candidates.length; i++) {
     const at = e.ordre === 'dessus' ? candidates.length - 1 : Math.floor(Math.random() * candidates.length);
@@ -510,7 +514,7 @@ function modeleCree(B, k, e, last) {
     return { ...pile[Math.floor(Math.random() * pile.length)], dejaResolue: true, desPile: true };
   }
   if ((e.choix || 'precise') !== 'hasard') return cardById(e.carte);
-  const sac = catalogCards().filter(c => cardMatches(c, e));
+  const sac = catalogCards().filter(c => cardMatches(c, e, B));
   if (!sac.length) return null;
   return sac[Math.floor(Math.random() * sac.length)];
 }
@@ -1809,6 +1813,66 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         last = mangeurs;
         break;
       }
+      case 'enregistre': {
+        // ENREGISTRE (V3, 4.6, Copiste) : N cartes AU HASARD de la main entrent au Registre SANS etre jouees — elles
+        // restent en main, et leurs types comptent. Une carte deja enregistree (ou jouee) peut l'etre encore : un type
+        // deja la ne compte pas deux fois, c'est tout.
+        const pool = [...me.hand];
+        const prises = [];
+        for (let i = 0, n = Math.max(0, e.n === undefined ? 1 : e.n); i < n && pool.length; i++) {
+          prises.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+        }
+        if (!prises.length) { say(B, 'Registre : aucune carte en main a enregistrer.'); break; }
+        say(B, `Le Registre enregistre ${prises.map(c => c.name).join(', ')} (restent en main).`);
+        for (const c of prises) { if (B.over) break; inscrisAuRegistre(B, k, c); }
+        break;
+      }
+      case 'donne_type_du_registre': {
+        // (V3, 4.6) Chaque destinataire recoit un type du Registre — « un » : au hasard parmi ceux qu'il n'a pas
+        // encore ; « tous » : chacun d'eux. Un type recu est une cle `type:X` de plus (un renfort a +0/+0 : ni
+        // « recoit du renfort », ni rien d'autre que l'etiquette). Une unite « Type : tous » les a deja.
+        const recus = cible(e.t || 'self').filter(r => r.kind === 'unit' && r.unit.hp > 0);
+        if (!recus.length) { say(B, 'Registre : personne pour recevoir un type.'); break; }
+        last = recus;
+        const types = B.registre.types;
+        if (!types.length) { say(B, 'Registre : aucun type a donner.'); break; }
+        for (const r of recus) {
+          if (tousTypes(r.unit)) continue;
+          const mes = typesOf(r.unit);
+          const manquants = types.filter(t => !mes.includes(t));
+          if (!manquants.length) continue;
+          const donnes = e.quoi === 'tous' ? manquants : [manquants[Math.floor(Math.random() * manquants.length)]];
+          for (const t of donnes) {
+            applyEffects(B, k, [{ op: 'buff', t: 'previous', atk: 0, hp: 0, key: 'type:' + t }], target, source, choix, [r]);
+          }
+          say(B, `${r.unit.name} reçoit ${donnes.join(', ')} du Registre.`);
+        }
+        break;
+      }
+      case 'relance_registre': {
+        // (V3, 4.6, Retrospective) Voir `relanceCarte`. Les cartes sont tirees AVANT qu'on en relance une : ce que
+        // la premiere relance inscrit au Registre ne change pas la liste.
+        if (B.enRelance) { say(B, 'Une relance du Registre n\'en relance pas une autre.'); break; }
+        const R = B.registre;
+        const eligibles = R.cartes.filter(c => !porteUneRelance(c));
+        const choisies = [];
+        if (e.mode === 'hasard') {
+          const pool = [...eligibles];
+          for (let i = 0, n = Math.max(0, e.n === undefined ? 1 : e.n); i < n && pool.length; i++) {
+            choisies.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+          }
+        } else {
+          // Une carte par type NOMME, jamais la meme carte deux fois (elle peut porter deux types).
+          for (const t of R.types) {
+            const candidates = eligibles.filter(c => !choisies.includes(c) && estDuType(c, t));
+            if (candidates.length) choisies.push(candidates[Math.floor(Math.random() * candidates.length)]);
+          }
+        }
+        if (!choisies.length) { say(B, 'Registre : aucune carte a relancer.'); break; }
+        say(B, `Le Registre relance ${choisies.map(c => c.name).join(', ')}.`);
+        for (const modele of choisies) { if (B.over) break; relanceCarte(B, k, modele, source); }
+        break;
+      }
       case 'toxine': {
         // TOXINE (V3, docs/V3-HEROS.md, 4.4) : X marqueurs sur chaque unite visee. Un heros n'en porte jamais
         // (une cible heros est ignoree). La cible par defaut est une unite adverse designee.
@@ -2000,7 +2064,7 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
       }
       case 'reduit_le_cout_de': {
         // Les cartes DEJA en main : celles qu'on piochera ensuite gardent leur cout.
-        let touchees = me.hand.filter(c => cardMatches(c, e));
+        let touchees = me.hand.filter(c => cardMatches(c, e, B));
         // « Le cout d'UN sort de ta main » (V3) : `n` > 0 en tire n au hasard, 0 les prend toutes.
         const combien = +e.n || 0;
         if (combien > 0 && touchees.length > combien) touchees = shuffle([...touchees]).slice(0, combien);
@@ -2113,6 +2177,74 @@ function makeUnit(c) {
   return u;
 }
 
+// ------------------------------------------------------------------ le Registre
+/**
+ * UNE CARTE ENTRE AU REGISTRE (V3, docs/V3-HEROS.md, 4.6) : apres ses effets (une carte ne se voit donc pas
+ * elle-meme), ou parce qu'un effet l'y a mise (`enregistre`, une relance). Le Registre garde une COPIE de la
+ * carte telle qu'elle est — resolue au niveau de son proprietaire — et en tire ses types : un type nomme ne compte
+ * qu'une fois ; une carte « Type : tous » compte pour +1, une seule fois par carte.
+ * Chaque type qui entre pour la premiere fois declenche `typeNouveau` (« Type : tous » aussi : il ajoute 1).
+ */
+function inscrisAuRegistre(B, k, card) {
+  const R = B.registre;
+  const { inst, pistee, refletDe, classee, ...nette } = card;
+  R.cartes.push(structuredClone(nette));
+  const nouveaux = [];
+  for (const t of typesOf(card)) if (!R.types.includes(t)) { R.types.push(t); nouveaux.push(t); }
+  if (tousTypes(card)) {
+    const id = card.id || card.name;
+    if (!R.tous.includes(id)) { R.tous.push(id); nouveaux.push('Tous'); }
+  }
+  if (!nouveaux.length) return;
+  say(B, `Registre : ${card.name} apporte ${nouveaux.join(', ')} (${typesDuRegistre(B)} type(s)).`);
+  if (B.evts) evt(B, { t: 'registre', camp: k, carte: refCarte(card), nouveaux, total: typesDuRegistre(B) });
+  for (let i = 0; i < nouveaux.length && !B.over; i++) fireEvent(B, k, 'typeNouveau');
+}
+
+/** Cette carte contient-elle une relance du Registre (a n'importe quel moment) ? Elle n'est alors jamais relancee. */
+const porteUneRelance = c => Object.keys(TRIGGERS).some(slot => (c[slot] || []).some(x => {
+  let oui = false;
+  eachSubEffect(x, y => { if (y.op === 'relance_registre') oui = true; });
+  return oui;
+}));
+
+/**
+ * RELANCER UNE CARTE DU REGISTRE (Retrospective). C'est une COPIE : jouee gratuitement par `k`, ses cibles choisies
+ * toutes seules (`autoTarget`, comme un rale d'agonie), puis rien — ni defausse (un sort) ni exil, et un allie
+ * relance n'a pas de carte : il disparait a sa mort, comme un jeton. Elle entre au Registre. Ce n'est pas une carte
+ * « jouee » : ni `spell`/`ally`, ni `registre`, ni cout, ni compteur de cartes jouees. `B.enRelance` : une relance
+ * n'en relance jamais une autre (la regle lisible, pas un plafond).
+ */
+function relanceCarte(B, k, modele, source) {
+  const s = B[k];
+  const carte = structuredClone(modele);
+  delete carte.inst; delete carte.pistee; delete carte.classee; delete carte.refletDe;
+  say(B, `${s.name} relance ${carte.name}, copiee du Registre.`);
+  const i = B.evts ? evt(B, { t: 'joue', camp: k, carte: refCarte(carte), paye: 0, zone: 'registre', cible: null, choix: null }) : -1;
+  const avant = B.enRelance;
+  B.enRelance = true;
+  try {
+    avec(B, i, () => {
+      let src = null;
+      if (carte.type === 'ally') {
+        if (plateauPlein(s)) { say(B, `Le plateau de ${s.name} est plein : ${carte.name} reste de cote.`); return; }
+        src = makeUnit(carte);
+        s.board.push(src);
+        refresh(B);
+        checkKeywords(B, src);
+        if (B.evts) evt(B, { t: 'invoque', via: 'jeton', camp: k, src: refSource(source, k), unite: refUnite(src, k) });
+      }
+      if ((carte.play || []).length) {
+        B.fired.play = (B.fired.play || 0) + 1;
+        applyEffects(B, k, carte.play, autoTarget(B, k, carte.play, src || carte), src || carte, null);
+      }
+    });
+  } finally { B.enRelance = avant; }
+  refresh(B);
+  resolveDeaths(B);
+  if (!B.over) inscrisAuRegistre(B, k, carte);
+}
+
 // ---------------------------------------------------------------- jouer/attaquer
 /**
  * Cette carte peut-elle etre jouee MAINTENANT ? `zone` dit d'ou elle part : 'main' (le
@@ -2156,6 +2288,9 @@ function jouerCarte(B, k, handIndex, target, choix, zone) {
   const card = pile[handIndex];
   if (!card || !canPlay(B, k, card, zone)) return false;
   const paye = cardCost(card, B, k, zone);
+  // LE REGISTRE se lit AVANT l'inscription de cette carte (elle ne se voit pas elle-meme) et avant ses effets, que
+  // `enregistre` ou une relance peuvent changer : « partage un type avec le Registre » est vrai ou faux a cet instant.
+  const partageLeRegistre = partageAvecLeRegistre(B, card);
   // Le pistage se lit AVANT que la carte parte, et la marque la quitte avec la main : elle ne suit ni la
   // defausse, ni l'unite sur le plateau, ni le reflet qu'en garderait un Miroir.
   const estPistee = !!card.pistee;
@@ -2210,6 +2345,14 @@ function jouerCarte(B, k, handIndex, target, choix, zone) {
     resolveDeaths(B);
     if (B.over) return true;
   }
+  // « QUAND TU JOUES UNE CARTE QUI PARTAGE UN TYPE AVEC LE REGISTRE » : un evenement a part (et non une garde sur
+  // `ally`), pour entendre aussi les sorts, qui n'ont pas d'unite pour sujet. Meme place que le pistage : apres
+  // le paiement, avant l'unite et les effets.
+  if (partageLeRegistre) {
+    fireEvent(B, k, 'registre');
+    resolveDeaths(B);
+    if (B.over) return true;
+  }
 
   let source = null;
   if (card.type === 'ally') {
@@ -2234,6 +2377,13 @@ function jouerCarte(B, k, handIndex, target, choix, zone) {
   }
   refresh(B);
   resolveDeaths(B);
+  // LA CARTE ENTRE AU REGISTRE, apres ses effets : `typeNouveau` part pour chaque type qui arrive. Les chiffres des
+  // « caracteristiques variables » (Greffier) se recalculent tout de suite.
+  if (!B.over) {
+    inscrisAuRegistre(B, k, card);
+    refresh(B);
+    resolveDeaths(B);
+  }
   // L'evenement part une fois la carte entierement resolue : « quand tu lances un
   // sort » se declenche apres l'effet du sort, pas au milieu.
   // L'allie qu'on vient de poser est le SUJET de l'evenement : « Lui », pour les
@@ -2278,9 +2428,13 @@ export function cloneBattle(B) {
   // fonction, que `structuredClone` refuse ; et une copie est une hypothese — les
   // milliers de parties imaginees par le Monte-Carlo n'ont rien a faire dans le
   // journal de la vraie partie.
-  const { meta, journal, evts, evtCause, ...reste } = B;
+  const { meta, journal, evts, evtCause, registre, ...reste } = B;
   const copie = structuredClone(reste);
   copie.meta = meta;
+  // LE REGISTRE : ses cartes ne bougent plus une fois inscrites (`inscrisAuRegistre` en garde une copie privee, la
+  // relance en refait une autre) — on les PARTAGE entre les copies au lieu de les cloner a chaque hypothese : avec
+  // 40 cartes resolues, c'etait la moitie du cout d'une copie, dix mille fois par decision du Monte-Carlo.
+  if (registre) copie.registre = { cartes: [...registre.cartes], types: [...registre.types], tous: [...registre.tous] };
   return copie;
 }
 

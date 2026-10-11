@@ -57,6 +57,9 @@ function enfants(ops, cause, ctx) {
       // Toxine, Contagion, Epidemie : des marqueurs se posent sur l'adversaire (le tic viendra a son tour).
       case 'toxine': case 'contagion': case 'epidemie': ev({ t: 'toxine', v: typeof e.v === 'number' ? e.v : 1, cibles: ennemis.length ? ennemis : [heroE] }, cause); break;
       case 'switch': ev({ t: 'transforme', mode: 'switch', de: src.nom, unite: allies[0] || src }, cause); break;
+      // Le Registre : une carte y entre (un type nouveau) ; un type recu se montre comme un renfort sans chiffres.
+      case 'enregistre': ev({ t: 'registre', camp: 'p', carte: { k: 'carte', nom: src.nom, id: src.id, sprite: src.sprite || null, type: 'ally', cout: 0, keys: [] }, nouveaux: ['Type'], total: 1 }, cause); break;
+      case 'donne_type_du_registre': ev({ t: 'renfort', atk: 0, hp: 0, cle: 'type', cible: allies[0] || src, avant: { atk: (allies[0] || src).atk, hp: (allies[0] || src).hp } }, cause); break;
       default: break;
     }
   }

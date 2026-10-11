@@ -72,27 +72,12 @@ const cible = (k, label, allow, def) => ({ k, type: 'target', label, allow, def 
 const choix = (k, label, def, choices) => ({ k, type: 'choice', label, def, choices });
 const mecanique = (id, kind, label, desc, params = []) => ({ id, kind, label, desc, params, implemented: false });
 
-const MECANIQUES = [
-  mecanique('enregistre', 'effect', 'Le Registre enregistre une carte',
-    'Le Registre enregistre N cartes AU HASARD de ta main, sans les jouer (elles restent en main). Un type déjà présent ne compte pas deux fois ; une carte « Type : tous » compte pour +1. Détail : docs/V3-HEROS.md, 4.6.',
-    [num('n', 'Cartes enregistrées', 1)]),
-  mecanique('donne_type_du_registre', 'effect', 'Reçoit un type du Registre',
-    'La cible reçoit un type du Registre tiré au hasard (« un »), ou chacun de ses types (« tous »). Un type reçu compte comme un type imprimé. Détail : docs/V3-HEROS.md, 4.6.',
-    [cible('t', 'Qui reçoit', ['self', 'allyUnit', 'allAllies', 'randomAllyUnit', 'previous'], 'self'),
-      choix('quoi', 'Combien de types', 'un', [['un', 'Un type du Registre au hasard'], ['tous', 'Chaque type du Registre']])]),
-  mecanique('relance_registre', 'effect', 'Relance des cartes du Registre',
-    'Relance GRATUITEMENT des cartes du Registre, avec `autoTarget` : « par type » = pour chaque type nommé du Registre, une carte de ce type tirée au hasard (Rétrospective) ; « hasard » = N cartes du Registre au hasard. Une carte relancée n’est ni mise en défausse ni exilée (c’est une copie), mais entre au Registre. Une relance n’en relance JAMAIS une autre (règle lisible, pas un plafond). Les cartes sont lues avec le niveau de leur propriétaire. Détail : docs/V3-HEROS.md, 4.6.',
-    [choix('mode', 'Quelles cartes', 'parType', [['parType', 'Une carte par type du Registre'], ['hasard', 'Des cartes du Registre au hasard']]),
-      num('n', 'Combien (mode « au hasard »)', 1)]),
-  mecanique('cree_du_registre', 'effect', 'Crée une carte d’un type du Registre',
-    'Crée en main N cartes au hasard parmi les cartes du catalogue qui portent un type du Registre. Détail : docs/V3-HEROS.md, 2.6 (Index du Registre, niveau 16).',
-    [num('n', 'Cartes créées', 1), num('lvl', 'Niveau de la carte', 1)])
-];
-// CODEES, donc retirees de `customMechanics` : Charogne, Appât, Pistage, Toxine, Contagion, Épidémie, et — le
+const MECANIQUES = [];
+// CODEES, donc retirees de `customMechanics` : Charogne, Appât, Pistage, Toxine, Contagion, Épidémie, le Registre (12 octobre : `enregistre`, `donne_type_du_registre`, `relance_registre`, et `cree_du_registre` replié dans `cree`) et — le
 // 11 octobre 2026 — Ex-libris (mot-clé du registre), avec la pile de fatigue par camp. Les deux effets de la
 // pile (`renforce_la_fatigue`, `cree_de_la_fatigue`) n'ont jamais été que `renforce_les_cartes` (zone fatigue)
 // et `cree` (source fatigue) : ils disparaissent du brouillon.
-const RETIREES = new Set(['renforce_la_fatigue', 'cree_de_la_fatigue']);
+const RETIREES = new Set(['renforce_la_fatigue', 'cree_de_la_fatigue', 'enregistre', 'donne_type_du_registre', 'relance_registre', 'cree_du_registre']);
 
 // ------------------------------------------------------------------ PATOU (Chien) — le berger, Contrôle Soft
 const CHIEN = ['type:Chien'];

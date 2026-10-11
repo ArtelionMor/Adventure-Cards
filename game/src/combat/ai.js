@@ -94,7 +94,13 @@ function faisable(e, ctx) {
   if (e.op === 'cree' && e.choix === 'fatigue') return nbFatigue(B, k) > 0;
   if (e.op === 'pioche_x') return me.deck.some(c => c.name === e.carte);
   if (e.op === 'pioche_une_carte_de_type') return me.deck.some(c => (e.type === 'spell') === (c.type !== 'ally'));
-  if (e.op === 'reduit_le_cout_de') return me.hand.some(c => cardMatches(c, e));
+  if (e.op === 'reduit_le_cout_de') return me.hand.some(c => cardMatches(c, e, B));
+  // LE REGISTRE : enregistrer demande une main ; donner un type, des types ; relancer, une carte qui ne relance pas ;
+  // creer « une carte qui partage un type avec le Registre », que le Registre ne soit pas vide.
+  if (e.op === 'enregistre') return me.hand.length > 0;
+  if (e.op === 'donne_type_du_registre') return !!(B.registre && B.registre.types.length);
+  if (e.op === 'relance_registre') return !!(B.registre && B.registre.cartes.some(c => !relanceEnSoi(c)));
+  if (e.op === 'cree' && e.quoi === 'typeDuRegistre') return !!(B.registre && B.registre.cartes.length);
   // PISTE : il faut une carte pas encore pistee dans la main d'en face.
   if (e.op === 'piste') return B[foe(k)].hand.some(c => !c.pistee);
   // CONTAGION : elle ne touche que ce qui porte DEJA une Toxine ; EPIDEMIE et TOXINE veulent une unite en face
@@ -114,7 +120,7 @@ function faisable(e, ctx) {
   if (e.op === 'copie') {
     const z = ZONES[e.d_ou] || {};
     if (z.carte || z.cible) return true;
-    return pilesVisees(B, k, e).some(pile => pile.some(c => c.type === 'ally' && cardMatches(c, e)));
+    return pilesVisees(B, k, e).some(pile => pile.some(c => c.type === 'ally' && cardMatches(c, e, B)));
   }
 
   if (['melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'renforce_les_cartes', 'switch', 'met_a_la_defausse', 'exile'].includes(e.op)) {
@@ -122,9 +128,21 @@ function faisable(e, ctx) {
     if (z.carte) return true;                          // creee de toutes pieces
     if (z.cible) return true;                          // le plateau : la cible a deja tranche
     if (e.fatigue && e.d_ou !== 'fatigue' && nbFatigue(B, e.qui === 'adversaire' ? foe(k) : k) > 0) return true; // completee par la fatigue
-    return pilesVisees(B, k, e).some(pile => pile.some(c => cardMatches(c, e)));
+    return pilesVisees(B, k, e).some(pile => pile.some(c => cardMatches(c, e, B)));
   }
   return true;
+}
+
+/** Cette carte du Registre contient-elle une relance (a un moment quelconque) ? Elle n'est jamais relancee. */
+function relanceEnSoi(c) {
+  for (const slot of Object.keys(TRIGGERS)) {
+    for (const brut of (c && c[slot]) || []) {
+      let oui = false;
+      eachSubEffect(brut, y => { if (y.op === 'relance_registre') oui = true; });
+      if (oui) return true;
+    }
+  }
+  return false;
 }
 
 /** Cette carte, ou cette unite, a-t-elle une Charogne (a un moment quelconque) ? */
@@ -218,7 +236,7 @@ function valeurDuModele(e, ctx) {
     return pool.length ? moyenneCorps(pool, ctx) : null;
   }
   if (!ctx.B) return null;
-  const allies = pilesVisees(ctx.B, ctx.k, e).flat().filter(c => c.type === 'ally' && cardMatches(c, e));
+  const allies = pilesVisees(ctx.B, ctx.k, e).flat().filter(c => c.type === 'ally' && cardMatches(c, e, ctx.B));
   return allies.length ? moyenneCorps(allies, ctx) : null;
 }
 
@@ -337,7 +355,7 @@ function effectValue(e, ctx) {
       if (e.d_ou === 'fatigue' && ctx.B) {
         // LA PILE DE FATIGUE : seuls ses allies profitent d'un renfort, et on ne les tirera qu'une fois la pioche
         // finie — c'est un renfort pour la fin de partie, pas pour le tour.
-        const allies = pileDeFatigue(ctx.B, e.qui === 'adversaire' ? foe(ctx.k) : ctx.k).filter(c => c.type === 'ally' && cardMatches(c, e)).length;
+        const allies = pileDeFatigue(ctx.B, e.qui === 'adversaire' ? foe(ctx.k) : ctx.k).filter(c => c.type === 'ally' && cardMatches(c, e, ctx.B)).length;
         combien = Math.min(combien, allies);
         poids = 0.25;
       }
@@ -368,6 +386,30 @@ function effectValue(e, ctx) {
       }
       const pourLeCampVise = ((e.d_ou === 'main' ? -0.6 : prix) + renfort) * combien;
       return pourLeCampVise * signeDuPaquet(e);
+    }
+    // LE REGISTRE (V3, 4.6). Enregistrer vaut peu (un type de plus, peut-etre) ; donner un type vaut ce qu'il
+    // rapporte aux cartes qui le lisent — on ne le sait pas, une petite utilite par destinataire ; relancer vaut
+    // ce que vaut la copie : pour chaque type, la carte moyenne qu'on pourrait tirer, a 90 %.
+    case 'enregistre': return Math.min(e.n === undefined ? 1 : n('n'), ctx.B ? ctx.B[ctx.k].hand.length : 1) * 0.4;
+    case 'donne_type_du_registre': {
+      if (!ctx.B || !ctx.B.registre.types.length) return 0;
+      const nb = e.t === 'allAllies' ? Math.max(0, (ctx.board || []).length - 1) : 1;
+      return nb * 0.5 * (e.quoi === 'tous' ? Math.min(2, ctx.B.registre.types.length) : 1);
+    }
+    case 'relance_registre': {
+      if (!ctx.B || !ctx.B.registre) return 0;
+      const R = ctx.B.registre;
+      const eligibles = R.cartes.filter(c => !relanceEnSoi(c));
+      if (!eligibles.length) return 0;
+      const valeur = c => Math.max(0, cardValue(ctx.B, ctx.k, c));
+      const moyenne = l => l.reduce((a, c) => a + valeur(c), 0) / l.length;
+      if (e.mode === 'hasard') return Math.min(n('n'), eligibles.length) * moyenne(eligibles) * 0.9;
+      let total = 0;
+      for (const t of R.types) {
+        const cands = eligibles.filter(c => estDuType(c, t));
+        if (cands.length) total += moyenne(cands);
+      }
+      return total * 0.9;
     }
     case 'toxine':
     case 'contagion':

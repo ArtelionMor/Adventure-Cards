@@ -4,8 +4,8 @@
 écrites par `scripts/gen-heros-v3.mjs` (paliers : `scripts/lib/heros-v3-paliers.mjs`), donc visibles dans le Card
 Builder, le wiki et le jeu (verrouillées : aucun boss ne les débloque encore). **Les mécaniques, elles, ne sont pas
 toutes codées** : Reprise, la meule, l'exil, les événements de défausse/fatigue, **Charogne, Appât, Pistage,
-Toxine** (10-11 octobre) et **Ex-libris avec la pile de fatigue par camp** (11 octobre) existent ; **le Registre
-n'existe pas** et les cartes de Pastiche sont *inertes* sur cette partie. Voir « 5 bis. Où en sont les cartes ».
+Toxine** (10-11 octobre), **Ex-libris avec la pile de fatigue par camp** (11 octobre) et **le Registre**
+(12 octobre) existent : **les six héros jouent en entier**. Voir « 5 bis. Où en sont les cartes ».
 Ce document reste la base de discussion : les cartes, leurs paliers, puis les mécaniques à coder.
 Les sommets (niveaux 17 à 20) sont des brouillons : ils sont les plus faciles à jeter.
 
@@ -754,6 +754,40 @@ depuis le combat.
 `typeNouveau` n'est pas rejoué pour un type déjà là ; pas d'auto-référence ; Rétrospective ne se
 relance pas ; niveaux de propriétaire conservés. **Taille : M.**
 
+**✅ CODÉ le 12 octobre 2026.** Précisions, et écarts avec ce qui précède :
+- **L'état** : `B.registre = { cartes, types, tous }` (et non un `Set` : le journal l'écrit, `cloneBattle` le copie).
+  `cartes` = des **copies résolues** des cartes jouées, dans l'ordre (le dernier est le plus récent) ; `types` = les types
+  **nommés** distincts ; `tous` = les **identifiants** des cartes « Type : tous » entrées. `typesDuRegistre(B)` =
+  `types.length + tous.length` : c'est le compteur `typesRegistre`.
+- **Une carte « Type : tous » compte une fois par CARTE** (par identifiant), pas une fois par exemplaire joué : « chaque
+  carte » a été lu comme « chaque carte du jeu », comme « un type compte une fois ». Un seul endroit à retoucher
+  (`inscrisAuRegistre`) si le game designer veut l'autre lecture.
+- **L'inscription** (`inscrisAuRegistre`) : à la fin de `jouerCarte`, **après les effets** et un `refresh`/`resolveDeaths`,
+  **avant** l'événement `spell`/`ally`. Seules les cartes **jouées** (main, Reprise), `enregistre` et les relances y entrent :
+  ni jeton, ni carte posée, ni carte créée, ni switch qui lance un sort tout seul. Une carte qui n'apporte aucun type nouveau
+  s'inscrit sans bruit.
+- **`typeNouveau`** : un `fireEvent` **par type nouveau** (deux types = deux fois), « Type : tous » compris, pour le camp qui
+  a joué. **`registre`** (« la carte jouée partage un type ») : lu **avant** les effets et l'inscription (pas d'auto-référence),
+  tiré **après le paiement et le pistage, avant l'unité et les effets** ; un sort l'entend. `partageAvecLeRegistre(B, carte)` est la
+  même règle que `partageType`, lue sur l'ensemble des types — sans combat (`B` absent) le filtre `typeDuRegistre` ne désigne rien.
+- **Les effets** : `enregistre` (n cartes **au hasard de la main**, elles restent) ; `donne_type_du_registre` (« un » : un type
+  du Registre **que l'unité n'a pas déjà**, au hasard, **par destinataire** ; « tous » : chacun ; rend ses destinataires) ;
+  `relance_registre` (« par type » : une carte par type nommé, jamais la même deux fois ; « au hasard » : n cartes). **Index du
+  Registre** (niveau 16) n'est plus un effet à part : c'est `cree` avec `choix: 'hasard'` et le filtre `typeDuRegistre`.
+- **Rétrospective** (`relanceCarte`) : les cartes **des deux camps** sont relançables, de **mon** côté, gratuitement, cibles par
+  `autoTarget`. Un **sort** : ni défausse ni exil ; un **allié** : « À la pose » part, il garde `ownerLevel`, et il n'a **pas de
+  carte** (comme un jeton : il disparaît à sa mort). Ce n'est **pas** une carte jouée : ni `spell`/`ally`, ni `registre`, ni coût,
+  ni compteurs de cartes jouées ; elle entre au Registre. « Une relance n'en relance pas une autre » = `B.enRelance` **et** une carte
+  qui contient une relance n'est **jamais relançable**.
+- **Le bot** : `faisable` (une main, des types, une carte relançable, un Registre non vide) ; `enregistre` 0,4 la carte ;
+  `donne_type_du_registre` 0,5 par destinataire (×2 pour « tous ») ; `relance_registre` = la valeur moyenne des cartes
+  relançables, par type, à 90 % (`cardValue`) ; le compteur se lit tout seul par `amountValue` (Spécimen, Index du Registre, Greffier).
+- **L'écran** : la fenêtre de la défausse a un groupe **« Le Registre (N types) »** (les cartes jouées, la plus récente d'abord,
+  « ∞ Type : tous » en note) et ses types dans l'aide ; le bouton de la barre dit « Registre N ». Récit : `registre` (`nouveaux`,
+  `total`) et une `joue` de `zone: 'registre'` pour une relance ; journal de décisions : `registre` / `registreFinal`.
+- **Pas fait** : un compteur du Registre par camp (il est commun) ; une source de type « lu sur le Registre » dans `TYPE_SOURCES`
+  (rien ne la demande : `donne_type_du_registre` la remplace) ; des VFX propres aux relances (le wiki joue l'entrée au Registre).
+
 ### 4.7 Règles transversales
 
 - **Aucun plafond arbitraire** : chaque boucle se ferme par une règle lisible (Reprise exile ;
@@ -789,28 +823,19 @@ inutilisable à la main sans elle (il faut choisir le sort à lancer) ; pour Cha
 4. ✅ **Pistage** (4.1) — codé le 10 octobre 2026.
 5. ✅ **Toxine** (4.4) — codée le 11 octobre 2026.
 6. ✅ **Pile de fatigue par camp + Ex-libris** (4.5) — codés le 11 octobre 2026.
-7. **Registre** (4.6).
+7. ✅ **Registre** (4.6) — codé le 12 octobre 2026.
 8. Bot, validations, audit. ✅ `heros-v3-paliers.mjs` et `gen-heros-v3.mjs` sont écrits (10 octobre 2026), **avant**
    les mécaniques : les cartes existent et se relisent dans l'Atelier, en attendant leur moteur (5 bis).
 9. Mesures : `check-decks`, `matchups --taille 3`, `--archetypes`, `test-situations`.
 
-## 5 bis. Où en sont les cartes (10 octobre 2026)
+## 5 bis. Où en sont les cartes (12 octobre 2026)
 
 Les six héros sont **écrits en entier** : 5 + 5 cartes, trois à quatre paliers chacune (vérifiés par
 `audit-paliers.mjs` : 0 erreur, un avertissement voulu), une animation unique chacune (`test-vfx.mjs`).
-Ce qui manque est le **moteur** d'une mécanique neuve, le **Registre** (Charogne, Appât, Pistage, Toxine et Ex-libris sont codés depuis le 10-11 octobre). Elle est déclarée en deux endroits :
-
-- **les effets** inventés (`enregistre`, `donne_type_du_registre`, `relance_registre`, `cree_du_registre`) dans
-  `customMechanics` (`implemented: false`) — la liste complète, avec les cartes qui s'en servent, est dans
-  `docs/MECANIQUES-A-CODER.md` ;
-- **le reste du vocabulaire** dans `config/mechanics.js`, avec `implemented: false` : les moments `typeNouveau` et
-  `registre` (`EVENTS`), le compteur `typesRegistre`, le filtre `typeDuRegistre`.
-
-**Tout ce qui est déclaré est inerte** : aucun `fireEvent` n'envoie ces moments, aucun `staticTotal` ne lit ces
-statiques, les compteurs valent 0, le filtre du Registre ne désigne rien (jamais « toutes »), et le moteur écrit
-« pas encore codée » au journal pour un effet. La validation dit « pas encore codé » sur chaque carte concernée
-(`validate.js`, un avertissement par carte, jamais bloquant). Quand une mécanique est codée : retirer son entrée de
-`customMechanics`, ôter `implemented: false` de son vocabulaire, et relancer `check-decks`.
+**Tout est codé** (le Registre le 12 octobre 2026) : `customMechanics` est vide, `docs/MECANIQUES-A-CODER.md` dit
+« Rien à coder », et plus aucun vocabulaire V3 ne porte `implemented: false`. Le mécanisme de « déclaré, inerte » (une
+entrée du registre avec `implemented: false`, que la validation signale « pas encore codé » sans bloquer) reste
+disponible pour la prochaine mécanique : voir `game/src/config/CLAUDE.md`.
 
 | Héros | Joue-t-il aujourd'hui ? | Ce qui manque |
 |---|---|---|
@@ -819,7 +844,7 @@ statiques, les compteurs valent 0, le filtre du Registre ne désigne rien (jamai
 | 🐸 Dendrobate | **Oui, en entier** (11 octobre) | rien : la Toxine est codée (marqueurs, tic, saut, Contagion, Épidémie, statiques) |
 | 🐦‍⬛ Morrigane | **Oui, en entier** (10 octobre) | rien : Charogne et Appât sont codés ; l'Appât nourrit avec la pile de fatigue **de l'adversaire** (par camp depuis le 11 octobre) |
 | 🐕 Patou | **Oui, en entier** (10 octobre) | rien : le Pistage est codé (marque, taxe, punitions, pistage à la pioche, patte à l'écran) |
-| 🦎 Pastiche | **À peine** | **Registre** (4.6) : le Registre vaut 0 type, Greffier est un 1/1 ; Mimétisme et Grand Registre donnent leurs +2/+2 |
+| 🦎 Pastiche | **Oui, en entier** (12 octobre) | rien : le Registre est codé (types, compteur, filtre, `typeNouveau`, `registre`, Copiste, Mimétisme, Rétrospective) |
 
 **Écarts avec la conception ci-dessus** (des choix d'écriture, à relire) :
 1. **`unitToxinee` et `registre` sont des événements**, pas des gardes (4.4, 4.6 corrigées ci-dessus) ; `unitToxinee` est codé.
@@ -827,8 +852,9 @@ statiques, les compteurs valent 0, le filtre du Registre ne désigne rien (jamai
    `cree_de_la_fatigue` : **repliés le 11 octobre** dans `renforce_les_cartes` (`d_ou: 'fatigue'`) et `cree`
    (`choix: 'fatigue'`), comme la conception le voulait (4.5). Les cartes ont été regénérées.
 3. **Le Registre** s'écrit avec `donne_type_du_registre` (Mimétisme, Grand Registre, Bibliothécaire),
-   `relance_registre` (mode « par type » = Rétrospective, mode « au hasard » = ses paliers) et `cree_du_registre`
-   (Index du Registre, niveau 16), et non une source de type `registre` (4.6).
+   `relance_registre` (mode « par type » = Rétrospective, mode « au hasard » = ses paliers) et `cree` + le filtre
+   `typeDuRegistre` (Index du Registre, niveau 16 ; c'était un `cree_du_registre` à part, replié le 12 octobre), et non une
+   source de type `registre` (4.6).
 4. **`contagion` porte aussi `dmg`** : le palier 12 de Contagion (« inflige aussi 1 dégât à chaque unité adverse qui
    porte une Toxine ») n'a pas de cible « les unités qui portent une Toxine » dans le registre.
 5. **Deux retouches du moteur** que les cartes demandaient, codées et testées : `reduit_le_cout_de` gagne `n` (« le coût

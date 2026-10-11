@@ -20,15 +20,14 @@
 | `validate.js` | **Règles de validation des cartes**, partagées entre le bandeau « À vérifier » du builder et `scripts/check-decks.mjs` ; `ignoreDe`/`bloque` pour les constats ignorés. | `validateData`, `bloque`, `ignoreDe`, `eachEffect`, `eachUnit`, `tierIssue` |
 | `courbes.js` | Modèle des **courbes de progression** (rythmes, keyframes, la « dette » `ardoise`) — lu par `builder/courbes.html` et `scripts/test-courbes.mjs`. | `RYTHMES`, `FORMES`, `ECHELLES`, `profilVide`, `colonneVide`, `ardoise`… |
 
-## Vocabulaire déclaré, pas encore codé (`implemented: false`)
-Les six héros V3 s'écrivent avec des moments, des statiques, des compteurs et des filtres que le moteur ne câble
-pas encore (`docs/V3-HEROS.md`, « 5 bis »). Ils sont **dans le registre** (`EVENTS` : `typeNouveau`, `registre` ;
-`COUNTERS` : `typesRegistre` ; `CARD_FILTERS` : `typeDuRegistre` — le Pistage et la Toxine, eux, sont codés) avec
-`implemented: false` :
-la validation dit « pas encore codé » sur la carte, et ils sont **inertes** — jamais « toutes les cartes » (le
-`default` de `cardMatches` répondrait oui : chaque filtre déclaré a donc son `case`). Les **effets** du Registre,
-eux, sont dans `customMechanics` (données) ; Ex-libris, lui, est un mot-clé du registre depuis le 11 octobre. Coder une de ces mécaniques = poser son
-`fireEvent` / son `staticTotal` / son `case`, puis retirer `implemented: false`.
+## Vocabulaire déclaré, pas encore codé (`implemented: false`) — **plus rien depuis le 12 octobre 2026**
+Les six héros V3 sont **entièrement codés** (le Registre était le dernier, `docs/V3-HEROS.md`, « 5 bis »). Le mécanisme reste
+pour la prochaine mécanique : on peut **déclarer** dans le registre (`EVENTS`, `COUNTERS`, `CARD_FILTERS`, `EFFECTS`,
+`KEYWORDS`) une entrée avec `implemented: false` ; la validation dit alors « pas encore codé » sur la carte (sans bloquer) et elle
+est **inerte** — jamais « toutes les cartes » (le `default` de `cardMatches` répondrait oui : chaque filtre déclaré a donc son
+`case`, qui refuse). Coder = poser son `fireEvent` / son `staticTotal` / son `case`, puis retirer `implemented: false`.
+⚠ **`cardMatches(carte, e, B)` prend le combat en 3ᵉ argument** (depuis le Registre) : un filtre qui lit l'état du combat
+(`typeDuRegistre`) ne désigne rien sans lui — passe toujours `B` quand tu l'as.
 
 ## Ajouter / modifier
 - **Une mécanique** : une entrée dans le registre de `mechanics.js` (`EFFECTS`/`KEYWORDS`/…) **+** son `case` dans `../combat/engine.js` **+** sa valeur pour le bot dans `../combat/ai.js` ; le builder la propose tout seul. Si elle vient de `docs/MECANIQUES-A-CODER.md`, retire son entrée de `customMechanics` (données).

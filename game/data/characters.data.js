@@ -7,113 +7,7 @@ export const CHARACTER_DATA = {
     "cat",
     "crow"
   ],
-  "customMechanics": [
-    {
-      "id": "enregistre",
-      "kind": "effect",
-      "label": "Le Registre enregistre une carte",
-      "desc": "Le Registre enregistre N cartes AU HASARD de ta main, sans les jouer (elles restent en main). Un type déjà présent ne compte pas deux fois ; une carte « Type : tous » compte pour +1. Détail : docs/V3-HEROS.md, 4.6.",
-      "params": [
-        {
-          "k": "n",
-          "type": "number",
-          "label": "Cartes enregistrées",
-          "def": 1
-        }
-      ],
-      "implemented": false
-    },
-    {
-      "id": "donne_type_du_registre",
-      "kind": "effect",
-      "label": "Reçoit un type du Registre",
-      "desc": "La cible reçoit un type du Registre tiré au hasard (« un »), ou chacun de ses types (« tous »). Un type reçu compte comme un type imprimé. Détail : docs/V3-HEROS.md, 4.6.",
-      "params": [
-        {
-          "k": "t",
-          "type": "target",
-          "label": "Qui reçoit",
-          "allow": [
-            "self",
-            "allyUnit",
-            "allAllies",
-            "randomAllyUnit",
-            "previous"
-          ],
-          "def": "self"
-        },
-        {
-          "k": "quoi",
-          "type": "choice",
-          "label": "Combien de types",
-          "def": "un",
-          "choices": [
-            [
-              "un",
-              "Un type du Registre au hasard"
-            ],
-            [
-              "tous",
-              "Chaque type du Registre"
-            ]
-          ]
-        }
-      ],
-      "implemented": false
-    },
-    {
-      "id": "relance_registre",
-      "kind": "effect",
-      "label": "Relance des cartes du Registre",
-      "desc": "Relance GRATUITEMENT des cartes du Registre, avec `autoTarget` : « par type » = pour chaque type nommé du Registre, une carte de ce type tirée au hasard (Rétrospective) ; « hasard » = N cartes du Registre au hasard. Une carte relancée n’est ni mise en défausse ni exilée (c’est une copie), mais entre au Registre. Une relance n’en relance JAMAIS une autre (règle lisible, pas un plafond). Les cartes sont lues avec le niveau de leur propriétaire. Détail : docs/V3-HEROS.md, 4.6.",
-      "params": [
-        {
-          "k": "mode",
-          "type": "choice",
-          "label": "Quelles cartes",
-          "def": "parType",
-          "choices": [
-            [
-              "parType",
-              "Une carte par type du Registre"
-            ],
-            [
-              "hasard",
-              "Des cartes du Registre au hasard"
-            ]
-          ]
-        },
-        {
-          "k": "n",
-          "type": "number",
-          "label": "Combien (mode « au hasard »)",
-          "def": 1
-        }
-      ],
-      "implemented": false
-    },
-    {
-      "id": "cree_du_registre",
-      "kind": "effect",
-      "label": "Crée une carte d’un type du Registre",
-      "desc": "Crée en main N cartes au hasard parmi les cartes du catalogue qui portent un type du Registre. Détail : docs/V3-HEROS.md, 2.6 (Index du Registre, niveau 16).",
-      "params": [
-        {
-          "k": "n",
-          "type": "number",
-          "label": "Cartes créées",
-          "def": 1
-        },
-        {
-          "k": "lvl",
-          "type": "number",
-          "label": "Niveau de la carte",
-          "def": 1
-        }
-      ],
-      "implemented": false
-    }
-  ],
+  "customMechanics": [],
   "fatigue": [
     {
       "card": "card_4hz1f1",
@@ -11446,7 +11340,9 @@ export const CHARACTER_DATA = {
             {
               "lvl": 16,
               "extra": {
-                "op": "cree_du_registre",
+                "op": "cree",
+                "choix": "hasard",
+                "quoi": "typeDuRegistre",
                 "n": 1,
                 "lvl": {
                   "src": "ownerLevel",

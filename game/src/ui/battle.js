@@ -594,7 +594,9 @@ function majBarre() {
   c.vit.textContent = `x${fx.vitesse}`;
   // La pioche vide, ce qu'on tire est SA pile de fatigue : le compteur dit combien de modeles elle compte.
   c.npioche.textContent = !B.p.deck.length && nbFatigue(B, 'p') ? `Fatigue ${nbFatigue(B, 'p')}` : `Pioche ${B.p.deck.length}`;
-  c.def.textContent = `Défausse ${B.p.discard.length}${nbReprises ? ' ↺' + nbReprises : ''}`;
+  // Le Registre, quand il contient quelque chose : combien de types (le meme pour les deux camps).
+  const nbTypes = B.registre ? B.registre.types.length + B.registre.tous.length : 0;
+  c.def.textContent = `Défausse ${B.p.discard.length}${nbReprises ? ' ↺' + nbReprises : ''}${nbTypes ? ' · Registre ' + nbTypes : ''}`;
   c.def.classList.toggle('pret', !!nbReprises);
   c.ntour.textContent = `Tour ${Math.ceil(B.turnNo / 2)}`;
   c.fin.disabled = !(B.turn === 'p' && !auto);
@@ -1004,10 +1006,20 @@ function renderZone() {
     groupes.push({ titre: 'Main adverse (de dos)', camp: 'e',
       cartes: B.e.hand.map((c, i) => ({ carte: { name: '?', type: 'ally' }, i, etat: 'vue', dos: true, pistee: !!c.pistee })) });
   }
+  // LE REGISTRE (V3) : les cartes jouees par les deux camps, la plus recente d'abord. Les types nommes se lisent dans
+  // l'aide ; une carte « Type : tous » porte sa pastille.
+  const R = B.registre;
+  if (R && R.cartes.length) {
+    groupes.push({ titre: `Le Registre (${R.types.length + R.tous.length} type${R.types.length + R.tous.length > 1 ? 's' : ''})`, camp: 'p',
+      cartes: recentes(R.cartes).map(i => ({ carte: R.cartes[i], i, etat: 'vue', note: hasKey(R.cartes[i].keys, 'type_tous') ? '∞ Type : tous' : '' })) });
+  }
   const aReprise = B.p.discard.some(c => c.type !== 'ally' && hasKey(c.keys, 'reprise'));
-  const aide = !aReprise ? ''
+  const aideReprise = !aReprise ? ''
     : monTour ? 'Touche un sort éclairé pour le relancer : il coûte son prix, puis il est exilé.'
       : 'Les sorts à Reprise se relancent à ton tour, en mode manuel.';
+  const aideRegistre = R && (R.types.length || R.tous.length)
+    ? `Registre : ${[...R.types, ...(R.tous.length ? [`Tous ×${R.tous.length}`] : [])].join(', ')}.` : '';
+  const aide = [aideReprise, aideRegistre].filter(Boolean).join(' ');
   zoneGroupes = groupes;
   // Le combat continue derriere : on ne redessine QUE si la fenetre a change, sinon un doigt
   // pose sur une carte la verrait remplacee au pas suivant du mode auto.

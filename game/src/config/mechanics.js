@@ -123,11 +123,10 @@ export const CARD_FILTERS = {
   // V3. `pistee` (docs/V3-HEROS.md, 4.1) : les cartes de la main que `piste` a marquees. `precise` le retire
   // des tirages « au hasard » du catalogue (une carte du catalogue n'est pas pistee).
   pistee: { label: 'Les cartes pistées', tout: 'Les cartes pistées', precise: true },
-  // DECLARE, PAS ENCORE CODE (4.6) : `implemented: false` fait dire « reste a coder » a la validation, et
-  // `cardMatches` refuse (jamais « toutes ») tant que le Registre n'existe pas.
+  // LE REGISTRE (V3, 4.6) — CODE. Une carte qui partage au moins un type avec une carte JOUEE depuis le debut du
+  // combat. Elle se lit sur le combat (`cardMatches(card, e, B)`) : sans B (la vitrine du deck), elle ne designe rien.
   typeDuRegistre: {
-    label: 'Les cartes qui partagent un type avec le Registre', tout: 'Les cartes qui partagent un type avec le Registre',
-    precise: true, implemented: false
+    label: 'Les cartes qui partagent un type avec le Registre', tout: 'Les cartes qui partagent un type avec le Registre'
   }
 };
 
@@ -304,7 +303,7 @@ const paramsZone = (defautZone) => [
  * Ajouter un effet qui ecrit `last` dans le moteur = l'ajouter ici.
  */
 export const EFFETS_QUI_CHAINENT = new Set([
-  'dmg', 'detruit', 'heal', 'buff', 'copie', 'switch', 'prendre_le_controle', 'summon',
+  'dmg', 'detruit', 'heal', 'buff', 'copie', 'switch', 'prendre_le_controle', 'summon', 'donne_type_du_registre',
   'melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'charogne', 'toxine', 'contagion', 'epidemie',
   // `choisir` rend ce que sa branche a vise : il chaine si la branche chaine.
   'choisir'
@@ -469,6 +468,33 @@ export const EFFECTS = {
     params: [
       ...paramsSource('defausse', 't', 'Quelles unités', 'D’où viennent les cartes', id => ['defausse', 'main', 'pioche'].includes(id)),
       num('n', 'Combien', 1)
+    ],
+    implemented: true
+  },
+  // LE REGISTRE (V3, docs/V3-HEROS.md, 4.6). La liste, partagee par les deux camps, des cartes JOUEES : ses
+  // types, et ce qu'on en fait. Trois effets ; « cree une carte qui partage un type avec le Registre » est `cree`
+  // avec le filtre `typeDuRegistre`.
+  enregistre: {
+    label: 'Enregistre des cartes',
+    desc: 'Le Registre enregistre N cartes AU HASARD de ta main, sans les jouer : elles restent en main, et leurs types entrent dans le Registre (un type deja la ne compte pas deux fois).',
+    params: [num('n', 'Cartes enregistrées', 1)],
+    implemented: true
+  },
+  donne_type_du_registre: {
+    label: 'Donne un type du Registre',
+    desc: 'Chaque unite visee recoit un type du Registre (« un » : un type au hasard parmi ceux qu\'elle n\'a pas deja) ou chacun de ses types (« tous »). Un type recu compte comme un type imprime. Le Registre vide ne donne rien. Rend ses destinataires (« Lui »).',
+    params: [
+      tgt('t', 'Qui reçoit', ['self', 'allyUnit', 'allAllies', 'randomAllyUnit', 'previous'], 'self'),
+      { k: 'quoi', type: 'choice', label: 'Combien de types', def: 'un', choices: [['un', 'Un type du Registre au hasard'], ['tous', 'Chaque type du Registre']] }
+    ],
+    implemented: true
+  },
+  relance_registre: {
+    label: 'Relance des cartes du Registre',
+    desc: 'Relance GRATUITEMENT des cartes du Registre, celles des deux camps, avec des cibles choisies toutes seules : « par type » = pour chaque type du Registre, une carte de ce type tiree au hasard (Retrospective) ; « au hasard » = N cartes. Une carte relancee est une COPIE : ni defausse ni exil, un allie relance disparait a sa mort ; elle entre au Registre. Une relance n\'en relance jamais une autre, et une carte qui relance n\'est jamais relancee.',
+    params: [
+      { k: 'mode', type: 'choice', label: 'Quelles cartes', def: 'parType', choices: [['parType', 'Une carte par type du Registre'], ['hasard', 'Des cartes du Registre au hasard']] },
+      { k: 'n', type: 'number', label: 'Combien (mode « au hasard »)', def: 1, si: e => e.mode === 'hasard' }
     ],
     implemented: true
   },
@@ -694,9 +720,7 @@ export const EVENTS = {
   // le paiement et avant les effets de la carte, du cote de celui qui la joue — « quand l'adversaire joue
   // une carte pistee » est donc `on_pistee_foe`. Il n'a pas de sujet (pas de garde, pas de « Lui »).
   //
-  // Les trois qui suivent : `unitToxinee` est code (4.4) ; `typeNouveau` et `registre` sont DECLARES, PAS
-  // ENCORE CODES (4.6) : aucun `fireEvent` ne les envoie, `implemented: false` fait dire « reste a coder » a la
-  // validation sur toute carte qui en ecoute un.
+  // Les trois qui suivent : `unitToxinee` (4.4) et, depuis le 12 octobre, `typeNouveau` et `registre` (4.6).
   pistee: {
     you: 'joues une carte pistée', other: 'joue une carte pistée',
     labels: {
@@ -718,7 +742,7 @@ export const EVENTS = {
   },
   // LE REGISTRE. Un TYPE entre pour la premiere fois dans le Registre (les deux camps l'alimentent).
   typeNouveau: {
-    implemented: false, you: 'fais entrer un type dans le Registre', other: 'fait entrer un type dans le Registre',
+    you: 'fais entrer un type dans le Registre', other: 'fait entrer un type dans le Registre',
     labels: {
       self: 'Quand un type que tu joues entre pour la première fois dans le Registre',
       foe: 'Quand un type joué par l’adversaire entre pour la première fois dans le Registre',
@@ -727,7 +751,7 @@ export const EVENTS = {
   },
   // LE REGISTRE, encore : la carte qu'on joue PARTAGE un type avec lui (lu avant son inscription).
   registre: {
-    implemented: false, you: 'joues une carte qui partage un type avec le Registre', other: 'joue une carte qui partage un type avec le Registre',
+    you: 'joues une carte qui partage un type avec le Registre', other: 'joue une carte qui partage un type avec le Registre',
     labels: {
       self: 'Quand tu joues une carte qui partage un type avec le Registre',
       foe: 'Quand l’adversaire joue une carte qui partage un type avec le Registre',
@@ -1139,9 +1163,30 @@ export const COUNTERS = {
     label: 'Les cartes pistées de la main adverse',
     compute: (B, k) => ((B[k === 'p' ? 'e' : 'p'] || {}).hand || []).filter(c => c.pistee).length
   },
-  // DECLARE, PAS ENCORE CODE (4.6) : le Registre n'existe pas, il vaut 0 — jamais un chiffre invente.
-  typesRegistre: { label: 'Les types du Registre', implemented: false, compute: () => 0 }
+  // LE REGISTRE (V3, 4.6) — CODE : les types NOMMES distincts des cartes jouees, plus 1 par carte « Type : tous »
+  // (comptee une fois par carte, pas une fois par partie). Les deux camps l'alimentent : c'est le meme pour tous.
+  typesRegistre: { label: 'Les types du Registre', compute: B => typesDuRegistre(B) }
 };
+
+/** Le nombre de types du Registre : les noms distincts + les cartes « Type : tous » (une fois chacune). */
+export function typesDuRegistre(B) {
+  const R = B && B.registre;
+  return R ? R.types.length + R.tous.length : 0;
+}
+
+/**
+ * Cette carte PARTAGE-T-ELLE un type avec le Registre ? Meme regle que `partageType` (une carte sans type ne
+ * partage rien ; « Tous » partage avec quiconque porte au moins une etiquette), lue sur l'ensemble des types du
+ * Registre plutot que carte par carte — c'est equivalent, et une fois la liste des types tenue a jour, c'est O(types).
+ */
+export function partageAvecLeRegistre(B, card) {
+  const R = B && B.registre;
+  if (!R || !card) return false;
+  if (tousTypes(card)) return R.types.length > 0 || R.tous.length > 0;
+  const mes = typesOf(card);
+  if (!mes.length) return false;
+  return R.tous.length > 0 || mes.some(t => R.types.includes(t));
+}
 
 /** Le nombre suivi, ou 0 si le compteur n'existe pas (mecanique a moitie decrite). */
 export function counterValue(id, B, k, u, arg) {
@@ -1476,7 +1521,7 @@ export function costDelta(card, B, k) {
 // que pour la seconde ; sans precision, un statique vaut partout, comme avant.
 export const cardCost = (card, B, k, zone = 'main') => Math.max(0, ((card && card.cost) || 0)
   + costDelta(card, B, k)
-  + staticTotal(B, k, 'cout_des_cartes', m => cardMatches(card, m) && (m.zone !== 'defausse' || zone === 'defausse')));
+  + staticTotal(B, k, 'cout_des_cartes', m => cardMatches(card, m, B) && (m.zone !== 'defausse' || zone === 'defausse')));
 
 // ---------------------------------------------------------------------------
 // MECANIQUES INVENTEES DANS LE BUILDER QUI SONT MAINTENANT CODEES, mais sous une
@@ -1536,7 +1581,7 @@ export function pendingMechanics() {
 }
 
 /** Cette carte correspond-elle au filtre ? `e` porte les valeurs saisies. */
-export function cardMatches(card, e) {
+export function cardMatches(card, e, B) {
   if (!card) return false;
   switch (e.quoi || 'all') {
     case 'ally': return card.type === 'ally';
@@ -1550,8 +1595,8 @@ export function cardMatches(card, e) {
     case 'sujet': return !!e.carteSujet && card === e.carteSujet;
     // V3 : la marque que `piste` pose sur une carte de la main (`card.pistee`).
     case 'pistee': return !!card.pistee;
-    // V3 : le Registre n'existe pas encore — ne designer RIEN (le defaut ci-dessous dirait « toutes »).
-    case 'typeDuRegistre': return false;
+    // V3 : le Registre. Sans combat (`B` manque : la vitrine du deck, le builder), rien — jamais « toutes ».
+    case 'typeDuRegistre': return partageAvecLeRegistre(B, card);
     default: return true;
   }
 }
@@ -1726,6 +1771,11 @@ export function describeEffect(e) {
       return `${qui} ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) de la defausse adverse (+1/+1 par carte)`;
     }
     case 'appat': return `fabrique ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) de la pile de fatigue adverse dans sa defausse`;
+    case 'enregistre': return `le Registre enregistre ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) au hasard de ta main`;
+    case 'donne_type_du_registre': return `${targetLabel(e.t || 'self').toLowerCase()} reçoit ${e.quoi === 'tous' ? 'chaque type' : 'un type'} du Registre`;
+    case 'relance_registre': return e.mode === 'hasard'
+      ? `relance gratuitement ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) du Registre au hasard`
+      : 'relance gratuitement, pour chaque type du Registre, une carte de ce type';
     case 'piste': return `piste ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) de la main adverse`;
     case 'toxine': return `pose ${describeAmount(e.v === undefined ? 1 : e.v)} Toxine(s)${t}`;
     case 'contagion':

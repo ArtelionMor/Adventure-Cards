@@ -3604,7 +3604,7 @@ console.log('\nLe vocabulaire V3 declare');
   const libre = { id: 'l', name: 'L', type: 'ally', keys: [] };
   check('une carte marquee « pistee » est designee par le filtre pistee', cardMatches(pistee, { quoi: 'pistee' }), true);
   check('une carte qui ne l est pas, non', cardMatches(libre, { quoi: 'pistee' }), false);
-  check('le filtre du Registre ne designe rien tant que le Registre n existe pas', [cardMatches(pistee, { quoi: 'typeDuRegistre' }), cardMatches(libre, { quoi: 'typeDuRegistre' })], [false, false]);
+  check('hors combat (pas de B), le filtre du Registre ne designe rien — jamais « toutes »', [cardMatches(pistee, { quoi: 'typeDuRegistre' }), cardMatches(libre, { quoi: 'typeDuRegistre' })], [false, false]);
 }
 {
   // Le surcout des cartes pistees (Berger Vigilant) ne taxe que les cartes pistees.
@@ -3616,10 +3616,10 @@ console.log('\nLe vocabulaire V3 declare');
   check('une carte pistee de l adversaire coute 2 de plus', cardCost(m, B, 'e'), 5);
   check('une carte qui ne l est pas garde son cout', cardCost(l, B, 'e'), 3);
   check('le compteur des cartes pistees les compte', counterValue('cartesPistees', B, 'p'), 1);
-  check('et le Registre vaut 0 tant qu il n existe pas', counterValue('typesRegistre', B, 'p'), 0);
+  check('et le Registre vaut 0 tant qu aucune carte typee n a ete jouee', counterValue('typesRegistre', B, 'p'), 0);
 }
 {
-  // INERTES : aucun evenement V3 ne part, et la marque d'un moment declare ne change rien a la partie.
+  // Une carte SANS type ne partage rien et n'apporte rien : aucun moment du Registre ne part pour elle.
   const gardien = ally('Gardien', 1, 5, {
     on_unitToxinee_foe: [{ op: 'dmg', t: 'enemyHero', v: 5 }],
     on_typeNouveau_any: [{ op: 'dmg', t: 'enemyHero', v: 5 }],
@@ -3633,12 +3633,12 @@ console.log('\nLe vocabulaire V3 declare');
   check('jouer une carte ne declenche pas « qui partage un type avec le Registre »', B.e.hp, hp0);
   play(B, 'p', 'Frappe99', { side: 'e', uid: B.e.board[0].uid });
   check('une unite qui meurt ne declenche pas « qui portait une Toxine »', [B.e.hp, B.p.hp], [hp0, pv]);
-  check('le moment declare porte son drapeau', [TRIGGERS.on_registre_foe.implemented, TRIGGERS.on_registre_foe.label], [false, 'Quand l’adversaire joue une carte qui partage un type avec le Registre']);
+  check('les moments du Registre sont codes', [TRIGGERS.on_registre_foe.implemented, TRIGGERS.on_typeNouveau_any.implemented, TRIGGERS.on_registre_foe.label], [undefined, undefined, 'Quand l’adversaire joue une carte qui partage un type avec le Registre']);
   check('le Pistage, lui, est code : son moment n en porte pas', TRIGGERS.on_pistee_foe.implemented, undefined);
   check('un moment code, lui, n en porte pas', TRIGGERS.on_attack_self.implemented, undefined);
 }
 {
-  // La validation dit « pas encore code », une seule fois par carte et sans bloquer.
+  // Le Registre est code : la validation ne dit plus « pas encore code » sur ses moments ni sur son filtre.
   const carte = ally('Berger', 2, 3, {
     on_registre_foe: [{ op: 'heal', t: 'ownHero', v: 3 }],
     statics: [{ op: 'cout_des_cartes', qui: 'toi', quoi: 'typeDuRegistre', argCard: '', sens: 'moins', v: 1 }],
@@ -3646,9 +3646,7 @@ console.log('\nLe vocabulaire V3 declare');
   });
   const DB = { characters: [{ id: 'x', name: 'Test', switches: [], cards: [carte, null, null, null, null] }], library: [], npcs: [], fatigue: [], starters: [] };
   const vus = validateData(DB, ALL_EFFECTS, ALL_KEYWORDS).filter(i => i.msg.includes('Berger') && i.msg.includes('pas encore codé'));
-  check('une ligne « pas encore code » pour la carte', vus.length, 1);
-  check('elle ne bloque rien', vus.every(i => i.bad === false), true);
-  check('elle nomme le moment et le filtre', [vus[0].msg.includes('partage un type avec le Registre'), vus[0].msg.includes('Les cartes qui partagent un type avec le Registre')], [true, true]);
+  check('plus aucune ligne « pas encore code » pour une carte qui lit le Registre', vus.length, 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -4395,6 +4393,233 @@ CHARACTER_DATA.fatigue = [];
       cardById('owl3_annot').play[0].op, cardById('owl3_index').play[0].op, cardById('owl3_index').play[0].choix], [true, false, 'renforce_les_cartes', 'cree', 'fatigue']);
   check('plus aucune mecanique inventee pour la pile de fatigue',
     (CHARACTER_DATA.customMechanics || []).some(m => ['ex_libris', 'renforce_la_fatigue', 'cree_de_la_fatigue'].includes(m.id)), false);
+}
+
+// ---------------------------------------------------------------------------
+// LE REGISTRE (docs/V3-HEROS.md, 4.6). La liste, PARTAGEE par les deux camps, des cartes JOUEES : ses types, un
+// compteur, un filtre « partage un type avec lui », deux moments (« un type arrive pour la premiere fois », « la
+// carte jouee partage un type »), et trois effets (enregistrer, donner un type, relancer — Retrospective).
+console.log('\nLe Registre');
+const typed = (name, types, extra = {}) => ally(name, 1, 1, { keys: types.map(t => 'type:' + t), ...extra });
+{
+  const B = setup([typed('Chien1', ['Chien'])]);
+  check('le Registre est vide au depart', [B.registre.cartes.length, B.registre.types, counterValue('typesRegistre', B, 'p')], [0, [], 0]);
+  play(B, 'p', 'Chien1');
+  check('une carte jouee y entre, avec ses types', [noms(B.registre.cartes), B.registre.types, counterValue('typesRegistre', B, 'p')], [['Chien1'], ['Chien'], 1]);
+  const C = cloneBattle(B);
+  C.registre.types.push('Autre');
+  check('une copie du combat a son propre Registre', [B.registre.types, C.registre.types], [['Chien'], ['Chien', 'Autre']]);
+}
+{
+  // Les deux camps l'alimentent : c'est LE MEME pour tous.
+  const B = setup([typed('Chien1', ['Chien'])], [typed('Loup1', ['Loup'])]);
+  play(B, 'p', 'Chien1');
+  play(B, 'e', 'Loup1');
+  check('les cartes de l adversaire y entrent aussi', [noms(B.registre.cartes), counterValue('typesRegistre', B, 'e'), counterValue('typesRegistre', B, 'p')], [['Chien1', 'Loup1'], 2, 2]);
+}
+{
+  // Ni les jetons, ni les cartes posees, ni les cartes creees.
+  const invoque = typed('Invocateur', ['Chien'], { play: [{ op: 'summon', n: 1, unit: { name: 'Petit', atk: 1, hp: 1, keys: ['type:Zebre'] } }] });
+  const B = setup([invoque]);
+  play(B, 'p', 'Invocateur');
+  check('un jeton n entre pas : ni lui ni son type', [noms(B.registre.cartes), B.registre.types], [['Invocateur'], ['Chien']]);
+}
+{
+  const pose = sortSimple('Pose', [{ op: 'pose_sur_le_plateau', d_ou: 'main', qui: 'toi', quoi: 'oneCard', argCard: 'Cache', n: 1 }]);
+  const cree = sortSimple('Cree', [{ op: 'cree', choix: 'precise', carte: 'grunt1', n: 1 }]);
+  const B = setup([pose, typed('Cache', ['Oiseau']), cree]);
+  play(B, 'p', 'Pose');
+  play(B, 'p', 'Cree');
+  check('une carte posee ou creee sans etre jouee n y entre pas', [noms(B.registre.cartes), B.registre.types], [['Pose', 'Cree'], []]);
+}
+{
+  // « Type : tous » compte pour +1 — une fois par carte, pas une fois par exemplaire joue.
+  const tous = ally('Tous', 1, 1, { keys: ['type_tous'] });
+  const B = setup([typed('A', ['Chien']), typed('AB', ['Chien', 'Oiseau']), tous, { ...tous }]);
+  play(B, 'p', 'A');
+  play(B, 'p', 'AB');
+  check('deux types nommes', counterValue('typesRegistre', B, 'p'), 2);
+  play(B, 'p', 'Tous');
+  check('une carte « Type : tous » ajoute 1', counterValue('typesRegistre', B, 'p'), 3);
+  play(B, 'p', 'Tous');
+  check('la meme carte rejouee n ajoute rien', counterValue('typesRegistre', B, 'p'), 3);
+}
+{
+  // « Quand un type entre pour la premiere fois » : une fois PAR TYPE nouveau, des deux camps.
+  const ecoute = ally('Ecoute', 1, 9, { on_typeNouveau_any: [{ op: 'armor', v: 1 }] });
+  const moi = ally('Moi', 1, 9, { on_typeNouveau_self: [{ op: 'buff', t: 'self', atk: 1, hp: 0 }] });
+  const B = setup([ecoute, moi, typed('A', ['Chien']), typed('A2', ['Chien']), typed('ABC', ['Chien', 'Oiseau', 'Rongeur'])],
+    [typed('Loup1', ['Loup']), ally('Tous', 1, 1, { keys: ['type_tous'] })]);
+  play(B, 'p', 'Ecoute');
+  play(B, 'p', 'Moi');
+  check('une carte sans type n apporte rien', B.p.armor, 0);
+  play(B, 'p', 'A');
+  check('un type nouveau : une fois', B.p.armor, 1);
+  play(B, 'p', 'A2');
+  check('le meme type : plus rien', B.p.armor, 1);
+  play(B, 'p', 'ABC');
+  check('deux types nouveaux : deux fois', B.p.armor, 3);
+  play(B, 'e', 'Loup1');
+  check('l adversaire aussi l entend (« n importe qui »)', B.p.armor, 4);
+  check('mais « un type que TU joues » ne part que pour toi (Moi : 3 types, pas celui du loup)', unite(B, 'p', 'Moi').atk, 1 + 3);
+  play(B, 'e', 'Tous');
+  check('une carte « Type : tous » le declenche aussi', B.p.armor, 5);
+}
+{
+  // « Quand tu joues une carte qui partage un type avec le Registre » : lu AVANT l'inscription (pas d'auto-reference),
+  // et les sorts l'entendent aussi.
+  const veille = ally('Veille', 1, 9, { on_registre_self: [{ op: 'armor', v: 1 }], on_registre_foe: [{ op: 'dmg', t: 'enemyHero', v: 1 }] });
+  const sort = sortSimple('SortChien', [], { keys: ['type:Chien'] });
+  const B = setup([veille, typed('A', ['Chien']), typed('A2', ['Chien']), sort], [typed('E1', ['Chien']), typed('E2', ['Loup'])]);
+  play(B, 'p', 'Veille');
+  play(B, 'p', 'A');
+  check('la premiere carte du type ne se voit pas elle-meme', B.p.armor, 0);
+  play(B, 'p', 'A2');
+  check('la seconde partage un type avec le Registre', B.p.armor, 1);
+  play(B, 'p', 'SortChien');
+  check('un sort l entend aussi (il n a pas d unite pour sujet)', B.p.armor, 2);
+  const hp = B.e.hp;
+  play(B, 'e', 'E1');
+  check('« quand l adversaire joue une carte qui partage un type » : il paie 1', B.e.hp, hp - 1);
+  play(B, 'e', 'E2');
+  check('un type que le Registre n avait pas : rien', B.e.hp, hp - 1);
+}
+{
+  // Le filtre « partage un type avec le Registre » : le cout (Bibliothecaire).
+  const biblio = ally('Biblio', 1, 5, { statics: [{ op: 'cout_des_cartes', qui: 'toi', quoi: 'typeDuRegistre', argCard: '', sens: 'moins', v: 1 }] });
+  const B = setup([biblio, typed('Chien1', ['Chien']), typed('Chien2', ['Chien'], { cost: 3 }), typed('Oiseau1', ['Oiseau'], { cost: 3 }), ally('Nu', 1, 1, { cost: 3 })]);
+  play(B, 'p', 'Biblio');
+  const cout = nom => cardCost(B.p.hand.find(c => c.name === nom), B, 'p');
+  check('Registre vide : rien ne baisse', [cout('Chien2'), cout('Oiseau1')], [3, 3]);
+  play(B, 'p', 'Chien1');
+  check('apres un Chien : les Chiens coutent 1 de moins, les autres non', [cout('Chien2'), cout('Oiseau1'), cout('Nu')], [2, 3, 3]);
+}
+{
+  // Greffier : « +1/+1 pour chaque type du Registre » (caracteristique variable sur le compteur).
+  const greffier = ally('Greffier', 0, 0, { keys: ['characteristique_variable:both:typesRegistre::1'] });
+  const B = setup([greffier, typed('A', ['Chien']), typed('B', ['Oiseau'])]);
+  play(B, 'p', 'Greffier');
+  check('Registre vide : 1/1', board(B, 'p'), ['Greffier 1/1']);
+  play(B, 'p', 'A');
+  play(B, 'p', 'B');
+  check('deux types : 3/3', board(B, 'p').filter(x => x.startsWith('Greffier')), ['Greffier 3/3']);
+}
+{
+  // ENREGISTRE (Copiste) : la carte RESTE en main, son type entre.
+  const copiste = ally('Copiste', 1, 1, { play: [{ op: 'enregistre', n: 1 }] });
+  const ecoute = ally('Ecoute', 1, 9, { on_typeNouveau_any: [{ op: 'armor', v: 1 }] });
+  const B = setup([ecoute, copiste, typed('Cible', ['Renard'])]);
+  play(B, 'p', 'Ecoute');
+  play(B, 'p', 'Copiste');
+  check('la carte reste en main et son type entre au Registre', [noms(B.p.hand), B.registre.types, B.p.armor], [['Cible'], ['Renard'], 1]);
+  check('elle y est inscrite avant la carte qui l a enregistree', noms(B.registre.cartes), ['Ecoute', 'Cible', 'Copiste']);
+}
+{
+  // DONNE UN TYPE DU REGISTRE (Mimetisme, Grand Registre).
+  const don = sortSimple('Don', [{ op: 'donne_type_du_registre', t: 'allyUnit', quoi: 'un' }]);
+  const donTous = sortSimple('DonTous', [{ op: 'donne_type_du_registre', t: 'allyUnit', quoi: 'tous' }]);
+  const B = setup([don, donTous, typed('Nu', []), typed('Chien1', ['Chien']), typed('Oiseau1', ['Oiseau']), typed('Loup1', ['Loup'])]);
+  play(B, 'p', 'Nu');
+  const types = u => u.keys.filter(k => k.startsWith('type:')).sort();
+  play(B, 'p', 'Don', { side: 'p', uid: unite(B, 'p', 'Nu').uid });
+  check('Registre vide : rien a donner', types(unite(B, 'p', 'Nu')), []);
+  play(B, 'p', 'Chien1');
+  play(B, 'p', 'Oiseau1');
+  play(B, 'p', 'Loup1');
+  const nu = unite(B, 'p', 'Nu');
+  B.p.hand.push(sortSimple('Don2', [{ op: 'donne_type_du_registre', t: 'allyUnit', quoi: 'un' }]));
+  play(B, 'p', 'Don2', { side: 'p', uid: nu.uid });
+  check('« un » : un type du Registre au hasard', types(nu).length, 1);
+  play(B, 'p', 'DonTous', { side: 'p', uid: nu.uid });
+  check('« tous » : chaque type du Registre', types(nu), ['type:Chien', 'type:Loup', 'type:Oiseau']);
+  check('un type recu compte comme un type imprime (compteur d allies de ce type)', counterValue('alliesOfType', B, 'p', null, 'Loup'), 2);
+}
+{
+  // RETROSPECTIVE : gratuite, copie, jamais deux fois, jamais elle-meme.
+  const eclair = sortSimple('Eclair', [{ op: 'dmg', t: 'enemyHero', v: 2 }], { keys: ['type:Chien'] });
+  const soin = sortSimple('Soin', [{ op: 'heal', t: 'ownHero', v: 3 }], { keys: ['type:Oiseau'] });
+  const retro = sortSimple('Retro', [{ op: 'relance_registre', mode: 'parType', n: 1 }], { keys: ['type:Chat'], cost: 4 });
+  const B = setup([eclair, soin, retro]);
+  B.p.hp = 20;
+  play(B, 'p', 'Eclair');
+  play(B, 'p', 'Soin');
+  const mana = B.p.mana, hpE = B.e.hp, hpP = B.p.hp;
+  play(B, 'p', 'Retro');
+  check('gratuite : on ne paie que Retrospective', B.p.mana, mana - 4);
+  check('Eclair relance : 2 degats de plus', B.e.hp, hpE - 2);
+  check('Soin relance : 3 PV de plus', B.p.hp, hpP + 3);
+  check('une copie : ni defausse (en plus) ni exil', [noms(B.p.discard), B.p.exile.length], [['Eclair', 'Soin', 'Retro'], 0]);
+  check('et elles entrent au Registre (les deux copies, puis Retrospective)', noms(B.registre.cartes), ['Eclair', 'Soin', 'Eclair', 'Soin', 'Retro']);
+}
+{
+  // Les cartes de l'ADVERSAIRE se relancent de MON cote ; une carte qui relance n'est jamais relancee.
+  const eclairE = sortSimple('EclairE', [{ op: 'dmg', t: 'enemyHero', v: 4 }], { keys: ['type:Loup'] });
+  const retro1 = sortSimple('Retro1', [{ op: 'relance_registre', mode: 'parType' }], { keys: ['type:Chat'] });
+  const retro2 = sortSimple('Retro2', [{ op: 'relance_registre', mode: 'parType' }]);
+  const B = setup([retro1, retro2], [eclairE]);
+  play(B, 'e', 'EclairE');
+  const hpE = B.e.hp, hpP = B.p.hp;
+  play(B, 'p', 'Retro1');
+  check('la carte adverse est relancee de MON cote : elle le touche, lui', [B.e.hp, B.p.hp], [hpE - 4, hpP]);
+  play(B, 'p', 'Retro2');
+  check('une carte qui relance n est jamais relancee', B.log.some(l => l.includes('relance Retro1')), false);
+}
+{
+  // Un allie relance : « A la pose » part, il garde le niveau de son proprietaire, et disparait a sa mort (une copie).
+  const brute = ally('Brute', 3, 3, { keys: ['type:Chien'], ownerLevel: 9, play: [{ op: 'armor', v: 2 }] });
+  const retro = sortSimple('Retro', [{ op: 'relance_registre', mode: 'hasard', n: 1 }]);
+  const B = setup([brute, retro], [frappe(99)]);
+  play(B, 'p', 'Brute');
+  play(B, 'p', 'Retro');
+  check('son cri de guerre repart (2 + 2 d armure) et il arrive', [B.p.armor, B.p.board.length], [4, 2]);
+  const copie = B.p.board.find(u => !u.card);
+  check('la copie a le niveau de son proprietaire', copie && copie.ownerLevel, 9);
+  play(B, 'e', 'Frappe99', { side: 'p', uid: copie.uid });
+  const reste = B.p.board.length;
+  check('elle meurt : aucune carte en defausse (c est une copie)', [noms(B.p.discard), reste], [['Retro'], 1]);
+}
+{
+  // Registre vide : Retrospective ne fait rien (et le journal le dit).
+  const retro = sortSimple('Retro', [{ op: 'relance_registre', mode: 'parType' }]);
+  const B = setup([retro]);
+  play(B, 'p', 'Retro');
+  check('rien a relancer', [B.log.some(l => l.includes('aucune carte a relancer')), noms(B.registre.cartes)], [true, ['Retro']]);
+}
+{
+  // « Cree une carte qui partage un type avec le Registre » (Index du Registre, niveau 16) : `cree` + le filtre.
+  const cree = sortSimple('Cree', [{ op: 'cree', choix: 'hasard', quoi: 'typeDuRegistre', n: 1 }]);
+  const B = setup([typed('Chien1', ['Chien']), cree]);
+  play(B, 'p', 'Chien1');
+  play(B, 'p', 'Cree');
+  const c = B.p.hand[B.p.hand.length - 1];
+  check('la carte creee partage un type avec le Registre', !!c && estDuType(c, 'Chien'), true);
+  const B2 = setup([cree]);
+  play(B2, 'p', 'Cree');
+  check('Registre vide : rien n est cree', B2.p.hand.length, 0);
+}
+{
+  // Le recit : un evenement dit quels types arrivent, et combien le Registre en compte.
+  const B = createBattle(side('Joueur', []), side('Adversaire', []), { evenements: true });
+  B.p.hand = [typed('A', ['Chien', 'Oiseau'])];
+  B.p.mana = 10;
+  play(B, 'p', 'A');
+  const e = B.evts.filter(x => x.t === 'registre');
+  check('un evenement « registre » dit les types nouveaux et le total', [e.length, e[0] && e[0].nouveaux, e[0] && e[0].total], [1, ['Chien', 'Oiseau'], 2]);
+}
+{
+  // Le registre du moteur et les donnees : tout est code, plus rien n'est « a coder ».
+  check('les effets du Registre sont codes', ['enregistre', 'donne_type_du_registre', 'relance_registre'].map(id => ALL_EFFECTS[id].implemented), [true, true, true]);
+  check('plus aucune mecanique inventee pour le Registre dans les donnees',
+    (CHARACTER_DATA.customMechanics || []).some(m => ['enregistre', 'donne_type_du_registre', 'relance_registre', 'cree_du_registre'].includes(m.id)), false);
+  check('Index du Registre cree avec `cree` (le filtre), plus avec un effet a part',
+    cardById('cam3_index').tiers.find(t => t.lvl === 16).extra.op, 'cree');
+  const DB = { characters: [{ id: 'x', name: 'Test', switches: [], cards: [cardById('cam3_copyist'), cardById('cam3_mimic'), cardById('cam3_retro'), cardById('cam3_clerk'), cardById('cam3_ruthless')] }], library: [], npcs: [], fatigue: [], starters: [] };
+  const msgs = validateData(DB, ALL_EFFECTS, ALL_KEYWORDS).map(i => i.msg);
+  check('les cartes de Pastiche ne sont plus signalees « a coder »', msgs.some(m => /reste à coder|pas encore codé/.test(m)), false);
+  // Une carte de la pile de fatigue (Index) ne designe pas de carte : ce n'est pas un oubli.
+  const DBf = { characters: [{ id: 'x', name: 'Test', switches: [], cards: [sortSimple('Index', [{ op: 'cree', choix: 'fatigue', n: 1, atk: 2, hp: 2 }]), null, null, null, null] }], library: [], npcs: [], fatigue: [], starters: [] };
+  check('« cree une carte de la pile de fatigue » ne reclame pas de carte choisie',
+    validateData(DBf, ALL_EFFECTS, ALL_KEYWORDS).some(i => i.msg.includes('sans carte choisie')), false);
 }
 
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);

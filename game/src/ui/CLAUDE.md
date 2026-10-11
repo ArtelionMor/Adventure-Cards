@@ -141,7 +141,9 @@ défausse (la plus récente d'abord), ton exil s'il y en a un et la défausse ad
 que si ce qu'elle montre a changé. **Taper** un sort éclairé le joue comme une carte de la main
 (choix de branche, puis masque et cible) ; **maintenir** n'importe quelle carte la lit ; `selZone` dit
 d'où part la carte choisie. Elle montre aussi **ta pile de fatigue** (V3, Ex-libris : un groupe après ta défausse et ton exil — les cartes à Ex-libris éclairées, le
-reste grisé, lecture seule ; le compteur de la barre dit « Fatigue N » une fois la pioche vide) ; elle servira au Registre.
+reste grisé, lecture seule ; le compteur de la barre dit « Fatigue N » une fois la pioche vide) et **le Registre** (un groupe « Le Registre
+(N types) » : les cartes jouées par les deux camps, la plus récente d'abord, « ∞ Type : tous » en note ; ses types dans l'aide ; « Registre N »
+sur le bouton de la défausse).
 
 
 ## Le journal graphique du combat

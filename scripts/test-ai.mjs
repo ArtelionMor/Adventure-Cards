@@ -514,5 +514,34 @@ tendance('mais en joue un quand la pile a de quoi donner',
   },
   (B, a) => { CHARACTER_DATA.fatigue = []; return carteJouee(B, a) === 'Index'; });
 
+// ---------------------------------------------------------------------------
+// LE REGISTRE (docs/V3-HEROS.md, 4.6). Une relance vaut ce que valent les cartes qu'elle va chercher : rien tant que
+// le Registre est vide, quelque chose quand il a de quoi relancer ; un compteur vaut ce qu'il vaut maintenant.
+console.log('\nLe Registre');
+
+const retro = () => sort('Retro', [{ op: 'relance_registre', mode: 'parType' }], 3);
+
+tendance('ne paie pas une Retrospective quand le Registre est vide',
+  () => setup([retro(), ally('Petit', 1, 1, { cost: 3 })], [ally('Colosse', 5, 5)], 3),
+  (B, a) => carteJouee(B, a) === 'Petit');
+
+tendance('mais la joue quand le Registre contient de quoi relancer',
+  () => {
+    const B = setup([retro(), ally('Petit', 1, 1, { cost: 3 })], [ally('Colosse', 5, 5)], 3);
+    const gros = { ...sort('Gros', [{ op: 'dmg', t: 'enemyAny', v: 5 }], 3), keys: ['type:Chien'], ownerLevel: 5 };
+    B.registre = { cartes: [gros, { ...gros }], types: ['Chien'], tous: [] };
+    return B;
+  },
+  (B, a) => carteJouee(B, a) === 'Retro');
+
+tendance('un Specimen (X = types du Registre) passe devant un petit corps quand le Registre est riche',
+  () => {
+    const B = setup([sort('Specimen', [{ op: 'dmg', t: 'enemyAny', v: { src: 'typesRegistre', arg: '', plus: 0 } }], 3), ally('Petit', 1, 1, { cost: 3 })],
+      [ally('Colosse', 3, 3)], 3);
+    B.registre = { cartes: [], types: ['Chien', 'Oiseau', 'Loup', 'Chat'], tous: [] };
+    return B;
+  },
+  (B, a) => carteJouee(B, a) === 'Specimen');
+
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);

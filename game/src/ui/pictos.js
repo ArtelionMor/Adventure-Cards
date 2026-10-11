@@ -20,7 +20,8 @@ export const OPS = {
   buff: 'Buff', renforce_les_cartes: 'Buff', summon: 'Summon', pose_sur_le_plateau: 'Summon',
   cree: 'Create', melange_a_la_pioche: 'Shuffle', detruit: 'Destroy', copie: 'Copy', switch: 'Switch',
   renvoie_en_main: 'Return', reduit_le_cout_de: 'Mana', choisir: 'Choice', controle: 'Control',
-  charogne: 'Exile', appat: 'Create', piste: 'Track', toxine: 'Venom', contagion: 'Venom', epidemie: 'Venom'
+  charogne: 'Exile', appat: 'Create', piste: 'Track', toxine: 'Venom', contagion: 'Venom', epidemie: 'Venom',
+  enregistre: 'Registry', donne_type_du_registre: 'Registry', relance_registre: 'Return'
 };
 
 // Moment (slot de `TRIGGERS`) -> icone ; `play` n'en a pas (c'est l'effet lui-meme qui s'affiche).

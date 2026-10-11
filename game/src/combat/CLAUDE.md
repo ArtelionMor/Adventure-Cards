@@ -25,7 +25,7 @@ cartes), `reflete` (Miroir), `devientCopie`, `refresh` (dérivés + auras), `dam
   veut dire `git pull` sur le Pi et sur chaque renfort après le commit, sinon ils sont écartés des calculs.
 
 ## Tests à lancer après une modification ici
-`node scripts/test-triggers.mjs` (721), `test-ai.mjs` (50), `simulate.mjs` (courbe), **`test-evenements.mjs`** (≈ 3 900, dont « le récit ne change
+`node scripts/test-triggers.mjs` (769), `test-ai.mjs` (53), `simulate.mjs` (courbe), **`test-evenements.mjs`** (≈ 3 900, dont « le récit ne change
 pas la partie »), `test-partage.mjs` (60) ; `test-journal.mjs` après un changement de `journal.js` (⚠ instable, voir `scripts/CLAUDE.md`).
 Un nouvel effet qui change l'état d'une unité ou d'un héros **émet son événement** (`if (B.evts) evt(B, …)`).
 
@@ -413,6 +413,33 @@ dans ta pile de fatigue, une seule fois par carte. La pile devient **propre à c
   gagner la course à la fatigue est un plan.
 - **Validation** : `ex-libris-risque` (**bloquant** : un `detruit`/`dmg` sur toutes les unités adverses ne porte pas Ex-libris) et
   `ex-libris-trop` (avertissement : plus de 2 cartes par héros).
+
+## Le Registre  (V3, 12 octobre 2026 — `docs/V3-HEROS.md`, 4.6)
+Une liste **partagée par les deux camps** des cartes **jouées** pendant le combat : ses types servent de compteur, de filtre
+et de moments ; Rétrospective en relance des copies.
+
+- **L'état** : `B.registre = { cartes, types, tous }` — des **copies résolues** des cartes jouées (la plus récente en dernier),
+  les types **nommés** distincts, et les **identifiants** des cartes « Type : tous » (une fois chacune). Rien ne le vide ; le journal
+  l'écrit (`registre`) et `cloneBattle` le copie — **en partageant les objets cartes** entre les copies (ils ne bougent plus une fois
+  inscrits : ne les mute jamais) : les cloner coûtait la moitié d'une copie, des milliers de fois par décision du Monte-Carlo. Compteur `typesRegistre` = `typesDuRegistre(B)` = `types.length + tous.length`.
+- **L'inscription** (`inscrisAuRegistre`) : en fin de `jouerCarte`, **après les effets** (une carte ne se voit pas elle-même) ;
+  aussi par `enregistre` et par une relance. Ni jeton, ni carte posée, ni carte créée. Chaque type **nouveau** tire `typeNouveau`
+  (un par type, « Type : tous » compris) pour le camp qui a joué.
+- **`registre`** (« la carte jouée partage un type avec le Registre ») : lu **avant** les effets et l'inscription
+  (`partageAvecLeRegistre`, la règle de `partageType`), tiré après le paiement et le pistage ; les sorts l'entendent.
+- **Le filtre `typeDuRegistre`** : `cardMatches(carte, e, B)` lit le combat — **le 3ᵉ argument `B` est nouveau**, et sans lui le
+  filtre ne désigne rien. Il sert `cout_des_cartes` (via `cardCost`), `reduit_le_cout_de`, les déplacements, et `cree` « au hasard »
+  (Index du Registre, niveau 16).
+- **Les effets** : `enregistre` (au hasard de la main, elles restent), `donne_type_du_registre` (une clé `type:X` par un
+  `buff` +0/+0 rejoué sur les destinataires, comme Charogne ; « un » = un type que l'unité n'a pas déjà), `relance_registre`.
+- **Une relance** (`relanceCarte`) : une **copie**, jouée gratuitement par celui qui relance, cibles par `autoTarget` ; un sort
+  ne va ni en défausse ni en exil, un allié relancé n'a **pas de carte** (il disparaît à sa mort, `jeton: true` au récit) et garde
+  `ownerLevel` ; elle entre au Registre. Ce n'est pas une carte « jouée » (ni `spell`/`ally`, ni coût, ni compteurs). Une relance
+  n'en relance pas une autre : `B.enRelance` pendant qu'elle joue, et une carte qui contient `relance_registre` n'est jamais
+  relançable (`porteUneRelance`).
+- **Le bot** (`ai.js`) : `relanceEnSoi` ; `faisable` pour les quatre ; `relance_registre` vaut la moyenne des `cardValue` des cartes
+  relançables, par type, à 90 %.
+- **L'écran** : un groupe « Le Registre (N types) » dans la fenêtre de la défausse, et « Registre N » sur le bouton.
 
 ## Le Pistage  (V3, 10 octobre 2026 — `docs/V3-HEROS.md`, 4.1)
 « Piste N cartes » **marque** des cartes de la main adverse ; la marque ne fait rien seule : elle rend la carte plus
@@ -849,7 +876,8 @@ graines, `scripts/test-evenements.mjs`). `cloneBattle` **ne copie jamais** `evts
   `invoque` (`via` : carte, jeton, pose), `meurt`, `detruit`, `declenche` (`moment`), `choix`,
   `pioche` (`fatigue`, `perdue`, `cherchee`), `aVide`, `deplace` (`mode` : melange, renvoi, pose,
   meule, defausse, exil, cree, appat), `transforme` (copie, switch), `controle`, `cout`, `mana`, `armure`,
-  `miroir`, `piste`, `toxine`/`toxineSaut`, `classe` (Ex-libris : une carte entre dans la pile de fatigue de son camp), `fin`.
+  `miroir`, `piste`, `toxine`/`toxineSaut`, `classe` (Ex-libris : une carte entre dans la pile de fatigue de son camp),
+  `registre` (des types entrent au Registre : `nouveaux`, `total` ; une relance s'écrit `joue` avec `zone: 'registre'`), `fin`.
 - **Ce qui change un montant** : `degats` et `soin` portent `bonus` et `via` (les porteurs d'un effet
   statique « +1 aux dégâts » et ce qu'ils ont ajouté — `staticTotal` accepte maintenant un
   collecteur `via`) et `x` (« X = tes tours joués »). C'est le « ah oui, mais il y avait ça en plus ».

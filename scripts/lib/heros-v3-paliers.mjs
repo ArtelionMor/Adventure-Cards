@@ -394,7 +394,7 @@ export function fabrique({ tok, cnt, LVL, chat, tetard }) {
     cam3_index: [
       cost(5),
       ex(10, heal(4), 'Soigne aussi ton héros de 4.'),
-      ex(16, { op: 'cree_du_registre', n: 1, lvl: LVL }, 'Crée aussi une carte au hasard d’un type du Registre.')
+      ex(16, { op: 'cree', choix: 'hasard', quoi: 'typeDuRegistre', n: 1, lvl: LVL }, 'Crée aussi une carte au hasard d’un type du Registre.')
     ],
     cam3_retro: [
       cost(6),

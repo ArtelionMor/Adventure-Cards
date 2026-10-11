@@ -88,8 +88,9 @@ export function eachUnit(card, fn) {
 function verifieCarteCreee(e, ou, nom, catalogue) {
   const out = [];
   // « La carte de Lui » ne se connait qu'en jeu : rien a verifier ici (une chaine qui
-  // commence par « Lui », elle, est signalee avec les cibles).
-  if (e.choix === 'lui') return out;
+  // commence par « Lui », elle, est signalee avec les cibles). Une carte de TA PILE DE FATIGUE (Index) non plus :
+  // elle se tire dans la pile du camp, au moment ou l'effet part.
+  if (e.choix === 'lui' || e.choix === 'fatigue') return out;
   if ((e.choix || 'precise') !== 'hasard') {
     if (!e.carte) out.push({ bad: false, msg: `${ou} — « ${nom} » sans carte choisie.` });
     else if (!catalogue.has(e.carte)) out.push({ bad: true, msg: `${ou} — la carte « ${e.carte} » de « ${nom} » n'existe pas.` });
