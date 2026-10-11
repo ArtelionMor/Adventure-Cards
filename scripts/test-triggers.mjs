@@ -4,7 +4,8 @@
 // Tout passe par de vrais chemins de code : on tue avec un sort, jamais en bidouillant
 // les PV a la main — sinon le test ne prouve rien sur le vrai jeu.
 //   node scripts/test-triggers.mjs
-import { createBattle, playCard, endTurn, attack, attackableTargets, canPlay, cardCost, draw, needsTarget, needsChoice, legalTargets, refresh, placeEnMain, reprisesPossibles, carteDuCoup } from '../game/src/combat/engine.js';
+import { nbFatigue, pileDeFatigue } from '../game/src/combat/engine.js';
+import { createBattle, cloneBattle, playCard, endTurn, attack, attackableTargets, canPlay, cardCost, draw, needsTarget, needsChoice, legalTargets, refresh, placeEnMain, reprisesPossibles, carteDuCoup } from '../game/src/combat/engine.js';
 import { resolveCard } from '../game/src/config/characters.js';
 import { BALANCE } from '../game/src/config/balance.js';
 // La pile de fatigue est une donnee de jeu, pas un etat de combat : les tests la
@@ -13,10 +14,10 @@ import { CHARACTER_DATA } from '../game/data/characters.data.js';
 // Les tests qui piochent dans la pile designent de VRAIES cartes du jeu : ils lisent
 // donc leur nom et leurs stats dans le catalogue, jamais en dur — sinon renommer une
 // carte dans le builder ferait echouer le banc.
-import { cardById } from '../game/src/config/npcs.js';
+import { cardById, fatiguePile } from '../game/src/config/npcs.js';
 // « Est-elle de ce type ? » se demande au registre, jamais en comparant les mots-cles
 // a la main : une carte « Type : tous » repond oui sans porter l'etiquette.
-import { estDuType, eventSlot, momentLabel, ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, keyLabel, counterValue } from '../game/src/config/mechanics.js';
+import { estDuType, eventSlot, momentLabel, ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, keyLabel, counterValue, cardMatches } from '../game/src/config/mechanics.js';
 // Le banc verifie aussi les regles du builder : elles vivent dans le meme registre, et
 // une carte valide signalee a tort coute autant qu'un effet qui ne part pas.
 import { validateData, tierIssue } from '../game/src/config/validate.js';
@@ -3562,6 +3563,839 @@ check('carteDuCoup lit la main ou la defausse', (() => {
   play(B, 'p', 'Eclair');
   return [carteDuCoup(B, 'p', { type: 'play', index: 0 }).name, carteDuCoup(B, 'p', { type: 'play', index: 0, zone: 'defausse' }).name];
 })(), ['Voisin', 'Eclair']);
+
+// ---------------------------------------------------------------------------
+// LE VOCABULAIRE V3 DECLARE (docs/V3-HEROS.md) : les six heros V3 s'ecrivent avec des moments, des
+// statiques, des compteurs et des filtres que le moteur ne cable pas encore (`implemented: false`).
+// Ce que ce bloc garde : ils sont INERTES (jamais un effet fantome, jamais « toutes les cartes »), et
+// les deux retouches de moteur qui servent les cartes — « le cout d'UN sort » et l'aura a deux
+// mots-cles — marchent sans rien changer aux cartes d'avant.
+console.log('\nLe vocabulaire V3 declare');
+{
+  // « Reduit de 1 le cout d'un sort de ta main » : `n` en tire n au hasard, 0 (ou absent) les prend toutes.
+  const deuxSorts = n => {
+    const baisse = sortSimple('Baisse', [{ op: 'reduit_le_cout_de', quoi: 'spell', v: 1, ...(n === undefined ? {} : { n }) }], { cost: 0 });
+    const B = setup([baisse, sortSimple('SortA', [], { cost: 5 }), sortSimple('SortB', [], { cost: 5 })]);
+    play(B, 'p', 'Baisse');
+    return B.p.hand.map(c => c.cost).sort();
+  };
+  check('sans n (les cartes d avant) : toutes les cartes visees baissent', deuxSorts(undefined), [4, 4]);
+  check('n a 0 : toutes aussi', deuxSorts(0), [4, 4]);
+  check('n a 1 : UNE seule baisse', deuxSorts(1), [4, 5]);
+  check('n superieur au nombre de cartes : toutes, sans erreur', deuxSorts(5), [4, 4]);
+}
+{
+  // Une aura a un mot-cle, puis un palier qui en ajoute un autre : les deux, pas le dernier seul.
+  const def = ally('Royale', 3, 5, { aura: { scope: 'otherAllies', atk: 0, hp: 0, key: 'Venin' },
+    tiers: [{ lvl: 5, aura: { key: 'Bouclier' }, text: 'Aura : Bouclier.' }] });
+  check('avant le palier, l aura n a qu un mot-cle', resolveCard(def, 4).aura.key, 'Venin');
+  check('au palier, elle porte les deux', resolveCard(def, 5).aura.key, ['Venin', 'Bouclier']);
+  const B = setup([resolveCard(def, 5), ally('Voisin', 1, 1)]);
+  play(B, 'p', 'Royale');
+  play(B, 'p', 'Voisin');
+  const v = B.p.board.find(u => u.name === 'Voisin');
+  check('un allie recoit Venin ET Bouclier', [v.keys.includes('Venin'), v.keys.includes('Bouclier')], [true, true]);
+  const seul = ally('Seule', 1, 1, { aura: { scope: 'otherAllies', atk: 1, hp: 0, key: '' }, tiers: [{ lvl: 5, aura: { key: 'Charge' } }] });
+  check('un palier qui donne un mot-cle a une aura qui n en avait pas le pose tel quel (chaine)', resolveCard(seul, 5).aura.key, 'Charge');
+}
+{
+  // Les filtres declares ne designent jamais « tout ».
+  const pistee = { id: 'p', name: 'P', type: 'ally', pistee: true, keys: [] };
+  const libre = { id: 'l', name: 'L', type: 'ally', keys: [] };
+  check('une carte marquee « pistee » est designee par le filtre pistee', cardMatches(pistee, { quoi: 'pistee' }), true);
+  check('une carte qui ne l est pas, non', cardMatches(libre, { quoi: 'pistee' }), false);
+  check('le filtre du Registre ne designe rien tant que le Registre n existe pas', [cardMatches(pistee, { quoi: 'typeDuRegistre' }), cardMatches(libre, { quoi: 'typeDuRegistre' })], [false, false]);
+}
+{
+  // Le surcout des cartes pistees (Berger Vigilant) ne taxe que les cartes pistees.
+  const berger = ally('Berger', 2, 3, { statics: [{ op: 'cout_des_cartes', qui: 'adversaire', quoi: 'pistee', argCard: '', sens: 'plus', v: 2 }] });
+  const marquee = { ...sortSimple('Marquee', [], { cost: 3 }), pistee: true };
+  const B = setup([berger], [marquee, sortSimple('Libre', [], { cost: 3 })]);
+  play(B, 'p', 'Berger');
+  const [m, l] = B.e.hand;
+  check('une carte pistee de l adversaire coute 2 de plus', cardCost(m, B, 'e'), 5);
+  check('une carte qui ne l est pas garde son cout', cardCost(l, B, 'e'), 3);
+  check('le compteur des cartes pistees les compte', counterValue('cartesPistees', B, 'p'), 1);
+  check('et le Registre vaut 0 tant qu il n existe pas', counterValue('typesRegistre', B, 'p'), 0);
+}
+{
+  // INERTES : aucun evenement V3 ne part, et la marque d'un moment declare ne change rien a la partie.
+  const gardien = ally('Gardien', 1, 5, {
+    on_unitToxinee_foe: [{ op: 'dmg', t: 'enemyHero', v: 5 }],
+    on_typeNouveau_any: [{ op: 'dmg', t: 'enemyHero', v: 5 }],
+    on_registre_foe: [{ op: 'dmg', t: 'enemyHero', v: 5 }]
+  });
+  const B = setup([gardien, frappe(99)], [ally('Visiteur', 1, 1), frappe(99)]);
+  play(B, 'p', 'Gardien');
+  const pv = B.p.hp;
+  const hp0 = B.e.hp;
+  play(B, 'e', 'Visiteur');
+  check('jouer une carte ne declenche pas « qui partage un type avec le Registre »', B.e.hp, hp0);
+  play(B, 'p', 'Frappe99', { side: 'e', uid: B.e.board[0].uid });
+  check('une unite qui meurt ne declenche pas « qui portait une Toxine »', [B.e.hp, B.p.hp], [hp0, pv]);
+  check('le moment declare porte son drapeau', [TRIGGERS.on_registre_foe.implemented, TRIGGERS.on_registre_foe.label], [false, 'Quand l’adversaire joue une carte qui partage un type avec le Registre']);
+  check('le Pistage, lui, est code : son moment n en porte pas', TRIGGERS.on_pistee_foe.implemented, undefined);
+  check('un moment code, lui, n en porte pas', TRIGGERS.on_attack_self.implemented, undefined);
+}
+{
+  // La validation dit « pas encore code », une seule fois par carte et sans bloquer.
+  const carte = ally('Berger', 2, 3, {
+    on_registre_foe: [{ op: 'heal', t: 'ownHero', v: 3 }],
+    statics: [{ op: 'cout_des_cartes', qui: 'toi', quoi: 'typeDuRegistre', argCard: '', sens: 'moins', v: 1 }],
+    tiers: [{ lvl: 4, extra: { op: 'draw', v: 1 }, slot: 'on_registre_foe', text: '' }]
+  });
+  const DB = { characters: [{ id: 'x', name: 'Test', switches: [], cards: [carte, null, null, null, null] }], library: [], npcs: [], fatigue: [], starters: [] };
+  const vus = validateData(DB, ALL_EFFECTS, ALL_KEYWORDS).filter(i => i.msg.includes('Berger') && i.msg.includes('pas encore codé'));
+  check('une ligne « pas encore code » pour la carte', vus.length, 1);
+  check('elle ne bloque rien', vus.every(i => i.bad === false), true);
+  check('elle nomme le moment et le filtre', [vus[0].msg.includes('partage un type avec le Registre'), vus[0].msg.includes('Les cartes qui partagent un type avec le Registre')], [true, true]);
+}
+
+// ---------------------------------------------------------------------------
+// CHAROGNE ET APPAT (docs/V3-HEROS.md, 4.3 et 4.3 bis). L'appat NOURRIT la defausse adverse,
+// la charogne la MANGE : les X dernieres cartes, jamais les tiennes, sans aucun choix, exilees.
+console.log('\nCharogne');
+const charogne = (n, t = 'self') => ({ op: 'charogne', n, t });
+const appat = n => ({ op: 'appat', n });
+const ogre = (n, extra = {}) => ally('Ogre', 2, 2, { play: [charogne(n)], ...extra });
+/** Une defausse adverse prete a etre mangee : la derniere de la liste est le DESSUS. */
+const defausseAdverse = (B, cartes) => { B.e.discard = cartes.map(c => ({ ...c })); };
+const noms = l => l.map(c => c.name);
+{
+  const B = setup([ogre(2)]);
+  defausseAdverse(B, [ally('A', 1, 1), ally('B', 1, 1), ally('C', 1, 1), ally('D', 1, 1)]);
+  B.p.discard = [ally('Mienne', 1, 1)];
+  play(B, 'p', 'Ogre');
+  check('mange les deux DERNIERES cartes de la defausse adverse', noms(B.e.discard), ['A', 'B']);
+  check('et les exile (elles ne reviennent pas)', noms(B.e.exile), ['C', 'D']);
+  check('ta propre defausse n est jamais touchee', noms(B.p.discard), ['Mienne']);
+  check('+1/+1 par carte devoree', board(B, 'p'), ['Ogre 4/4']);
+  check('rien n est exile chez toi', B.p.exile.length, 0);
+}
+{
+  const B = setup([ogre(3)]);
+  defausseAdverse(B, [ally('Seule', 1, 1)]);
+  play(B, 'p', 'Ogre');
+  check('moins de cartes que X : il mange ce qu il y a', [noms(B.e.exile), board(B, 'p')], [['Seule'], ['Ogre 3/3']]);
+}
+{
+  const B = setup([ogre(2)]);
+  defausseAdverse(B, []);
+  play(B, 'p', 'Ogre');
+  check('defausse adverse vide : rien ne se passe', [board(B, 'p'), B.e.exile.length], [['Ogre 2/2'], 0]);
+  check('et le journal le dit', B.log.some(l => l.includes('est vide')), true);
+}
+{
+  // Les mots-cles de COMBAT des allies manges, et rien d'autre : ni types, ni Reprise, ni ceux d'un sort.
+  const loup = ally('Loup', 1, 1, { keys: ['Charge', 'Venin', 'Bouclier', 'elusif', 'passe_murailles', 'type:Chien'] });
+  const gardien = ally('Gardien', 1, 1, { keys: ['Taunt', 'type:Chien', 'type_tous', 'characteristique_variable:atk:handCards:'] });
+  const sortR = sortSimple('Eclair', [], { keys: ['reprise'] });
+  const B = setup([ogre(3)]);
+  defausseAdverse(B, [loup, gardien, sortR]);
+  play(B, 'p', 'Ogre');
+  const o = B.p.board[0];
+  check('les six mots-cles de combat passent', ['Charge', 'Venin', 'Bouclier', 'elusif', 'passe_murailles', 'Taunt'].every(k => o.keys.includes(k)), true);
+  check('ni les types, ni Type : tous, ni une caracteristique variable, ni la Reprise',
+    o.keys.filter(k => ['type:Chien', 'type_tous', 'reprise'].includes(k) || k.startsWith('characteristique')), []);
+  check('un mot-cle n arrive qu une fois', o.keys.filter(k => k === 'Taunt').length, 1);
+  check('Charge donne la main tout de suite (comme un renfort de Charge)', o.canAttack, true);
+}
+{
+  // Un seul renfort par Charogne, pas un par carte : « quand cette unite recoit du renfort » part UNE fois.
+  const garde = ogre(3, { on_renfort_self: [{ op: 'armor', v: 1 }] });
+  const B = setup([garde]);
+  defausseAdverse(B, [ally('A', 1, 1), ally('B', 1, 1), ally('C', 1, 1)]);
+  play(B, 'p', 'Ogre');
+  check('le renfort ne part qu une fois pour trois cartes', B.p.armor, 1);
+}
+{
+  // Chaque carte exilee d'une defausse est un evenement, du cote de celui a qui elle etait.
+  const temoin = ally('Temoin', 1, 5, { on_exil_foe: [{ op: 'buff', t: 'self', atk: 1, hp: 0 }], on_exil_self: [{ op: 'armor', v: 1 }] });
+  const B = setup([temoin, ogre(3)]);
+  defausseAdverse(B, [ally('A', 1, 1), ally('B', 1, 1), ally('C', 1, 1)]);
+  play(B, 'p', 'Temoin');
+  play(B, 'p', 'Ogre');
+  const t = B.p.board.find(u => u.name === 'Temoin');
+  check('« exilee de la defausse adverse » part une fois PAR carte', t.atk, 1 + 3);
+  check('et « exilee de ta defausse » ne part pas', B.p.armor, 0);
+}
+{
+  // Un statique « tes Charognes devorent 1 carte de plus » (sommet 17 de Corbeau Affame).
+  const roi = ally('Roi', 1, 1, { statics: [{ op: 'montant_des_effets', qui: 'toi', cible: 'charogne', sens: 'plus', v: 1 }] });
+  const B = setup([roi, ogre(1)]);
+  defausseAdverse(B, [ally('A', 1, 1), ally('B', 1, 1)]);
+  play(B, 'p', 'Roi');
+  play(B, 'p', 'Ogre');
+  check('la Charogne 1 en devore deux', [noms(B.e.exile), board(B, 'p').find(x => x.startsWith('Ogre'))], [['A', 'B'], 'Ogre 4/4']);
+}
+{
+  // Un sort designe l'allie qui devore ; les effets suivants le retrouvent par « Lui ».
+  const charnier = sortSimple('Charnier', [charogne(2, 'allyUnit'), { op: 'buff', t: 'previous', atk: 1, hp: 0 }]);
+  const B = setup([ally('Ami', 1, 1), charnier]);
+  defausseAdverse(B, [ally('A', 1, 1), ally('B', 1, 1)]);
+  play(B, 'p', 'Ami');
+  const ami = B.p.board[0];
+  play(B, 'p', 'Charnier', { side: 'p', uid: ami.uid });
+  check('l unite designee gagne +1/+1 par carte, puis le « Lui » qui suit', board(B, 'p'), ['Ami 4/3']);
+  check('les cartes sont exilees', noms(B.e.exile), ['A', 'B']);
+}
+{
+  // Personne pour devorer : on ne gaspille pas la nourriture.
+  const sansBouche = sortSimple('Vide', [charogne(2, 'self')]);
+  const B = setup([sansBouche]);
+  defausseAdverse(B, [ally('A', 1, 1), ally('B', 1, 1)]);
+  play(B, 'p', 'Vide');
+  check('un sort sans unite pour devorer ne mange rien', [noms(B.e.discard), B.e.exile.length], [['A', 'B'], 0]);
+}
+{
+  // Le dessus de la defausse est la fin du tableau, et elle reste chronologique : une carte qui y
+  // arrive va a la FIN, jamais au milieu.
+  const B = setup([ogre(1), frappe(1)], [ally('Cible', 1, 4)]);
+  defausseAdverse(B, [ally('A', 1, 1), ally('B', 1, 1), ally('C', 1, 1)]);
+  play(B, 'e', 'Cible');
+  play(B, 'p', 'Ogre');
+  check('une Charogne 1 mange la derniere, la defausse garde son ordre', noms(B.e.discard), ['A', 'B']);
+  B.e.discard.push(ally('D', 1, 1));
+  check('et ce qui arrive ensuite se pose au dessus', noms(B.e.discard), ['A', 'B', 'D']);
+}
+{
+  // Le dernier sort a Reprise que l'adversaire vient de lancer est la derniere carte de sa defausse :
+  // une Charogne juste apres le mange, donc lui prend sa Reprise.
+  const B = setup([ogre(1)], [eclairR()]);
+  play(B, 'e', 'Eclair');
+  check('avant : une Reprise l attend dans la defausse adverse', reprisesPossibles(B, 'e'), [0]);
+  play(B, 'p', 'Ogre');
+  check('apres : mangee, plus de Reprise', [reprisesPossibles(B, 'e'), noms(B.e.exile)], [[], ['Eclair']]);
+}
+{
+  // Le recit : un evenement d'exil (via la Charogne) et UN renfort, avec ses chiffres.
+  const B = createBattle(side('Joueur', [ogre(3)]), side('Adversaire', []), { evenements: true });
+  B.p.hand = [{ ...ogre(3) }]; B.p.mana = B.p.maxMana = 10;
+  defausseAdverse(B, [ally('A', 1, 1), ally('B', 1, 1), ally('C', 1, 1)]);
+  playCard(B, 'p', 0, null, null);
+  const exils = B.evts.filter(e => e.t === 'deplace' && e.mode === 'exil');
+  const renforts = B.evts.filter(e => e.t === 'renfort');
+  check('un deplacement d exil dit ce qui est mange', [exils.length, exils[0].via, exils[0].cartes.map(c => c.nom)], [1, 'charogne', ['A', 'B', 'C']]);
+  check('un seul renfort, +3/+3', [renforts.length, renforts[0].atk, renforts[0].hp], [1, 3, 3]);
+}
+
+console.log('\nAppat');
+// Le nom d'une carte de la pile se lit dans le catalogue, jamais en dur (cf. plus haut).
+const LAPIN = cardById('grunt1').name;
+{
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1, lvl: 1 }];
+  const sentinelle = ally('Sentinelle', 1, 1);
+  const B = setup([ally('Pie', 1, 1, { play: [appat(2)] })], [sentinelle]);
+  play(B, 'e', 'Sentinelle');
+  defausseAdverse(B, [ally('Ancienne', 1, 1)]);
+  const deck = [...B.e.deck], main = [...B.e.hand], plateau = [...B.e.board], fatigue = B.e.fatigue;
+  play(B, 'p', 'Pie');
+  check('deux copies de la pile arrivent AU DESSUS de la defausse adverse', noms(B.e.discard), ['Ancienne', LAPIN, LAPIN]);
+  check('sa pioche, sa main et son plateau ne bougent pas', [B.e.deck.length === deck.length && B.e.deck.every((c, i) => c === deck[i]),
+    B.e.hand.length === main.length && B.e.hand.every((c, i) => c === main[i]),
+    B.e.board.length === plateau.length && B.e.board.every((u, i) => u === plateau[i])], [true, true, true]);
+  check('ce sont des copies neuves, pas la meme carte deux fois', B.e.discard[1] !== B.e.discard[2], true);
+  check('ce n est pas une pioche : le plafond de fatigue ne bouge pas', B.e.fatigue, fatigue);
+  check('et ta defausse n est pas nourrie', B.p.discard.length, 0);
+  CHARACTER_DATA.fatigue = [];
+}
+{
+  // Aucun evenement : ce ne sont pas SES cartes qui tombent, elles apparaissent.
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1 }];
+  const voisin = ally('Voisin', 1, 5, {
+    on_defausse_foe: [{ op: 'armor', v: 1 }], on_meule_foe: [{ op: 'armor', v: 1 }], on_exil_foe: [{ op: 'armor', v: 1 }]
+  });
+  const B = setup([voisin, ally('Pie', 1, 1, { play: [appat(3)] })]);
+  play(B, 'p', 'Voisin');
+  play(B, 'p', 'Pie');
+  check('ni « defausse », ni « meule », ni « exil » ne partent', B.p.armor, 0);
+  CHARACTER_DATA.fatigue = [];
+}
+{
+  // Pile de fatigue vide : l'effet ne fait rien.
+  CHARACTER_DATA.fatigue = [];
+  const B = setup([ally('Pie', 1, 1, { play: [appat(2)] })]);
+  play(B, 'p', 'Pie');
+  check('pile vide : rien n est fabrique', B.e.discard.length, 0);
+}
+{
+  // « Appat 1, puis Charogne 2 » : la charogne mange d'abord l'appat, puis une carte REELLE plus ancienne.
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1 }];
+  const festin = ally('Festin', 1, 1, { play: [appat(1), charogne(2)] });
+  const B = setup([festin]);
+  defausseAdverse(B, [ally('Vieille', 1, 1), ally('Recente', 1, 1)]);
+  play(B, 'p', 'Festin');
+  check('elle mange la copie fabriquee puis la derniere carte reelle', [noms(B.e.exile), noms(B.e.discard)], [['Recente', LAPIN], ['Vieille']]);
+  check('et grossit de 2', board(B, 'p'), ['Festin 3/3']);
+  CHARACTER_DATA.fatigue = [];
+}
+{
+  // Le recit : « appat » (et non une carte creee cachee) et rien d'autre dans la defausse adverse.
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1 }];
+  const B = createBattle(side('Joueur', []), side('Adversaire', []), { evenements: true });
+  B.p.hand = [ally('Pie', 1, 1, { play: [appat(2)] })]; B.p.mana = B.p.maxMana = 10;
+  playCard(B, 'p', 0, null, null);
+  const e = B.evts.find(x => x.t === 'deplace' && x.mode === 'appat');
+  check('un evenement d appat, chez l adversaire, avec ses cartes', [!!e, e && e.camp, e && e.vers, e && e.cartes.length], [true, 'e', 'defausse', 2]);
+  CHARACTER_DATA.fatigue = [];
+}
+{
+  // La validation et le builder : ce ne sont plus des mecaniques « a coder ».
+  check('Charogne et Appat sont dans le registre, codees', [ALL_EFFECTS.charogne.implemented, ALL_EFFECTS.appat.implemented], [true, true]);
+  check('six mots-cles se transmettent', Object.entries(ALL_KEYWORDS).filter(([, d]) => d.transmissible).map(([id]) => id).sort(),
+    ['Bouclier', 'Charge', 'Taunt', 'Venin', 'elusif', 'passe_murailles'].sort());
+  const DB = { characters: [{ id: 'x', name: 'Test', switches: [], cards: [ogre(2), null, null, null, null] }], library: [], npcs: [], fatigue: [], starters: [] };
+  const msgs = validateData(DB, ALL_EFFECTS, ALL_KEYWORDS).map(i => i.msg);
+  check('une carte a Charogne n est plus « a coder »', msgs.some(m => m.includes('reste à coder')), false);
+}
+
+// ---------------------------------------------------------------------------
+// LE PISTAGE (docs/V3-HEROS.md, 4.1). « Piste N cartes » marque N cartes AU HASARD de la main adverse ; la
+// marque rend la carte plus chere, la fait punir quand elle est jouee, et la quitte avec la main.
+console.log('\nLe pistage');
+const piste = n => ({ op: 'piste', n });
+const pisteur = (n, extra = {}) => ally('Pisteur', 1, 3, { play: [piste(n)], ...extra });
+const cartesAdverses = (...noms) => noms.map(nm => ally(nm, 1, 1));
+const pistees = B => B.e.hand.filter(c => c.pistee).map(c => c.name).sort();
+{
+  const B = setup([pisteur(2)], cartesAdverses('A', 'B', 'C', 'D'));
+  play(B, 'p', 'Pisteur');
+  check('piste DEUX cartes de la main adverse', pistees(B).length, 2);
+  check('et rien dans la tienne', B.p.hand.some(c => c.pistee), false);
+  check('le journal ne nomme pas les cartes', B.log.some(l => l.includes('pistee') && /\b[A-D]\b pistee/.test(l)), false);
+}
+{
+  const B = setup([pisteur(1), pisteur(1, { name: 'Autre', id: 'Autre' })], cartesAdverses('A', 'B'));
+  play(B, 'p', 'Pisteur');
+  play(B, 'p', 'Autre');
+  check('une carte ne se pistre qu une fois : la seconde piste prend l autre', pistees(B), ['A', 'B']);
+}
+{
+  const B = setup([pisteur(3)], cartesAdverses('A', 'B'));
+  play(B, 'p', 'Pisteur');
+  check('plus de carte libre : l effet s arrete, sans erreur', pistees(B), ['A', 'B']);
+  const vide = setup([pisteur(2)], []);
+  play(vide, 'p', 'Pisteur');
+  check('main adverse vide : rien, et le journal le dit', [vide.e.hand.length, vide.log.some(l => l.includes('aucune carte a pister'))], [0, true]);
+}
+{
+  const B = setup([pisteur(99)], cartesAdverses('A', 'B', 'C', 'D', 'E'));
+  play(B, 'p', 'Pisteur');
+  check('« toute la main » : 99', pistees(B).length, 5);
+}
+{
+  // Le cout reel passe par cardCost : taxe sur les seules cartes pistees, cumulee entre porteurs.
+  // (la carte est marquee a la main : un Berger qui pisterait en plus marquerait aussi l'autre, au hasard)
+  const berger = ally('Berger', 1, 3, { statics: [{ op: 'cout_des_cartes', qui: 'adversaire', quoi: 'pistee', argCard: '', sens: 'plus', v: 2 }] });
+  const vieux = ally('Vieux', 1, 3, { statics: [{ op: 'cout_des_cartes', qui: 'adversaire', quoi: 'pistee', argCard: '', sens: 'plus', v: 1 }] });
+  const B = setup([berger, vieux], [{ ...ally('Cible', 1, 1), cost: 3 }, { ...ally('Libre', 1, 1), cost: 3 }]);
+  B.e.hand[0].pistee = true;
+  play(B, 'p', 'Berger');
+  check('une carte pistee coute 2 de plus', [cardCost(B.e.hand[0], B, 'e'), cardCost(B.e.hand[1], B, 'e')], [5, 3]);
+  play(B, 'p', 'Vieux');
+  check('deux taxes se cumulent (+2, +1)', [cardCost(B.e.hand[0], B, 'e'), cardCost(B.e.hand[1], B, 'e')], [6, 3]);
+  B.e.mana = 5;
+  check('et canPlay suit le cout reel', [canPlay(B, 'e', B.e.hand[0]), canPlay(B, 'e', B.e.hand[1])], [false, true]);
+}
+{
+  // Jouer une carte pistee : l'evenement part UNE fois, apres le paiement et AVANT ses effets.
+  const punisseur = ally('Punisseur', 1, 5, { on_pistee_foe: [{ op: 'armor', v: 7 }] });
+  const sortPiste = { ...sortSimple('Soin', [{ op: 'heal', t: 'ownHero', v: 1 }, { op: 'armor', v: 3 }], { cost: 2 }), pistee: true };
+  const B = setup([punisseur], [sortPiste, sortSimple('Banal', [])]);
+  play(B, 'p', 'Punisseur');
+  play(B, 'e', 'Soin');
+  check('la punition est partie (7 armures chez le camp du Punisseur)', B.p.armor, 7);
+  const iPun = B.log.findIndex(l => l.includes('7 armure')), iSoin = B.log.findIndex(l => l.includes('3 armure'));
+  check('et AVANT l effet de la carte jouee', iPun >= 0 && iSoin >= 0 && iPun < iSoin, true);
+  const B2 = setup([punisseur], [sortSimple('Banal', [])]);
+  play(B2, 'p', 'Punisseur');
+  play(B2, 'e', 'Banal');
+  check('une carte qui n est pas pistee ne declenche rien', B2.p.armor, 0);
+  const B3 = setup([punisseur], [{ ...sortSimple('Soin', [{ op: 'armor', v: 3 }], { cost: 2 }), pistee: true }, { ...sortSimple('Soin2', [], { cost: 1 }), pistee: true }]);
+  play(B3, 'p', 'Punisseur');
+  play(B3, 'e', 'Soin');
+  play(B3, 'e', 'Soin2');
+  check('deux cartes pistees, deux punitions', B3.p.armor, 14);
+}
+{
+  // La punition peut tuer : la carte jouee ne trouve plus sa cible, et la partie peut s'arreter.
+  const bourreau = ally('Bourreau', 1, 5, { on_pistee_foe: [{ op: 'dmg', t: 'enemyHero', v: 99 }] });
+  const B = setup([bourreau], [{ ...ally('Condamne', 1, 1), pistee: true }]);
+  play(B, 'p', 'Bourreau');
+  play(B, 'e', 'Condamne');
+  check('le heros adverse meurt de la punition', [B.over, B.winner], [true, 'p']);
+}
+{
+  // La marque quitte la carte quand elle quitte la main : jouee (plateau, defausse) ou defaussee.
+  const B = setup([pisteur(1), sortSimple('Defausse', [{ op: 'met_a_la_defausse', d_ou: 'main', qui: 'adversaire', quoi: 'pistee', ordre: 'hasard', n: 1 }])],
+    cartesAdverses('A'));
+  play(B, 'p', 'Pisteur');
+  check('marquee', pistees(B), ['A']);
+  play(B, 'p', 'Defausse');
+  check('defaussee par « defausse une carte pistee »', [B.e.hand.length, B.e.discard.map(c => c.name), B.e.discard[0].pistee], [0, ['A'], undefined]);
+  const J = setup([pisteur(1)], [{ ...ally('Jouee', 1, 1), pistee: true }, { ...sortSimple('Sort', []), pistee: true }]);
+  play(J, 'e', 'Jouee');
+  play(J, 'e', 'Sort');
+  check('jouee, elle arrive sans marque (plateau et defausse)', [J.e.board[0].card.pistee, J.e.discard[0].pistee], [undefined, undefined]);
+}
+{
+  // Le filtre « pistee » ne choisit que les marquees.
+  const B = setup([sortSimple('Defausse', [{ op: 'met_a_la_defausse', d_ou: 'main', qui: 'adversaire', quoi: 'pistee', ordre: 'hasard', n: 2 }])],
+    [{ ...ally('P1', 1, 1), pistee: true }, ally('L1', 1, 1), ally('L2', 1, 1)]);
+  play(B, 'p', 'Defausse');
+  check('seule la carte pistee est defaussee', [B.e.discard.map(c => c.name), B.e.hand.map(c => c.name)], [['P1'], ['L1', 'L2']]);
+}
+{
+  // Un Miroir et une carte switchee GARDENT la marque (reecriture sur place).
+  const miroir = { id: 'miroir_t', name: 'Miroir', type: 'spell', cost: 0, keys: ['miroir'], text: '', tiers: [], play: [], pistee: true };
+  const B = setup([ally('Joue', 1, 1)], [miroir]);
+  play(B, 'p', 'Joue');
+  check('le Miroir devenu la carte jouee garde sa marque', [B.e.hand[0].name, B.e.hand[0].pistee], ['Joue', true]);
+  const chenille = { ...cardById('banc_base'), pistee: true };
+  const S = setup([sortSimple('Echange', [{ op: 'switch', d_ou: 'main', qui: 'adversaire', quoi: 'all', ordre: 'hasard', n: 1 }])], [chenille]);
+  play(S, 'p', 'Echange');
+  check('une carte switchee dans la main garde sa marque', [S.e.hand[0].id, S.e.hand[0].pistee], ['banc_switch', true]);
+}
+{
+  // Les cartes CREEES ou RENVOYEES en main ne sont pas pistees (ce ne sont pas des pioches)...
+  CHARACTER_DATA.fatigue = [];
+  const roi = ally('Roi', 1, 5, { statics: [{ op: 'pistage_a_la_pioche', qui: 'adversaire', sens: 'plus', v: 1 }] });
+  const B = setup([roi], [ally('Cree', 1, 1, { play: [{ op: 'cree', choix: 'precise', carte: 'grunt1', n: 1, lvl: 1 }] })]);
+  play(B, 'p', 'Roi');
+  B.e.deck = [ally('Piochee1', 1, 1), ally('Piochee2', 1, 1)];
+  draw(B, 'e');
+  check('... mais celles qu on PIOCHE le sont (statique du Vieux Berger)', [B.e.hand.at(-1).name, B.e.hand.at(-1).pistee], ['Piochee2', true]);
+  play(B, 'e', 'Cree');
+  check('une carte creee n est pas pistee', B.e.hand.at(-1).pistee, undefined);
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1 }];
+  B.e.deck = [];
+  draw(B, 'e');
+  check('la pioche de fatigue est une pioche', B.e.hand.at(-1).pistee, true);
+  CHARACTER_DATA.fatigue = [];
+  const avant = B.p.hand.length;
+  B.p.deck = [ally('Mienne', 1, 1)];
+  draw(B, 'p');
+  check('et sans le statique de l adversaire, ta pioche reste libre', [B.p.hand.length, B.p.hand.at(-1).pistee], [avant + 1, undefined]);
+}
+{
+  // Le compteur lit la main adverse, et vaut ce qu'il vaut APRES la pose (Dressage : « piste, puis X degats »).
+  const dressage = sortSimple('Dressage', [piste(1), { op: 'dmg', t: 'enemyHero', v: { src: 'cartesPistees', arg: '', plus: 0 } }]);
+  const B = setup([dressage], cartesAdverses('A', 'B'));
+  const pv = B.e.hp;
+  play(B, 'p', 'Dressage');
+  check('X compte la carte qu on vient de pister', pv - B.e.hp, 1);
+  check('le compteur dit 1', counterValue('cartesPistees', B, 'p'), 1);
+}
+{
+  // La copie d'une carte pistee ne l'est pas, et l'etat clone la porte (Monte-Carlo, journal).
+  const modele = { ...ally('Modele', 1, 1), pistee: true };
+  const B = setup([pisteur(1)], [modele]);
+  play(B, 'p', 'Pisteur');
+  const C = cloneBattle(B);
+  check('cloneBattle copie la marque', C.e.hand.map(c => !!c.pistee), B.e.hand.map(c => !!c.pistee));
+  check('et ne la partage pas', C.e.hand[0] !== B.e.hand[0], true);
+}
+{
+  // LA REGLE DE VALIDATION : lire le pistage sans en poser est une erreur bloquante.
+  const verdict = carte => {
+    const DB = { characters: [{ id: 'x', name: 'Test', switches: [], cards: [carte, null, null, null, null] }], library: [], npcs: [], fatigue: [], starters: [] };
+    return validateData(DB, ALL_EFFECTS, ALL_KEYWORDS).filter(i => i.regle === 'pistage-sans-piste');
+  };
+  const taxe = { op: 'cout_des_cartes', qui: 'adversaire', quoi: 'pistee', argCard: '', sens: 'plus', v: 1 };
+  const e = verdict(ally('Taxeur', 1, 1, { statics: [taxe] }));
+  check('une taxe sans piste est refusee (bloquante)', [e.length, e[0] && e[0].bad], [1, true]);
+  check('un moment « carte pistee » sans piste aussi', verdict(ally('Punisseur', 1, 1, { on_pistee_foe: [{ op: 'heal', t: 'ownHero', v: 1 }] })).length, 1);
+  check('un compteur sans piste aussi', verdict(sortSimple('Compte', [{ op: 'dmg', t: 'enemyHero', v: { src: 'cartesPistees', arg: '', plus: 0 } }])).length, 1);
+  check('avec une piste sur la carte : acceptee', verdict(ally('Complet', 1, 1, { statics: [taxe], play: [piste(1)] })).length, 0);
+  check('une piste donnee par un palier suffit', verdict(ally('Palier', 1, 1, { statics: [taxe], tiers: [{ lvl: 5, extra: piste(1), text: '' }] })).length, 0);
+  check('« les cartes piochees sont pistees » en pose aussi', verdict(ally('Vieux', 1, 1, { statics: [taxe, { op: 'pistage_a_la_pioche', qui: 'adversaire', sens: 'plus', v: 1 }] })).length, 0);
+  check('une carte qui ne parle pas de pistage n est pas concernee', verdict(ally('Banale', 1, 1)).length, 0);
+}
+{
+  check('Piste est un effet du registre, code', ALL_EFFECTS.piste.implemented, true);
+  check('et son vocabulaire n est plus « a coder »', [TRIGGERS.on_pistee_foe.implemented, ALL_EFFECTS.piste.custom], [undefined, undefined]);
+}
+
+// ---------------------------------------------------------------------------
+// LA TOXINE (docs/V3-HEROS.md, 4.4). Un marqueur sur une unite : au debut du tour de son controleur, AVANT sa
+// pioche, elle perd 1 PV par marqueur (une perte de PV, pas des degats : pas de Venin) ; un Bouclier absorbe le
+// tour. A sa mort, ses marqueurs sautent sur une autre unite du meme camp. Jamais sur un heros.
+console.log('\nToxine');
+const toxine = (t, v) => ({ op: 'toxine', t, v });
+const poseur = (v = 2, t = 'enemyUnit', extra = {}) => ally('Poseur', 1, 3, { play: [toxine(t, v)], ...extra });
+const unite = (B, camp, nom) => B[camp].board.find(u => u.name === nom);
+const designe = (B, camp, nom) => ({ side: camp, uid: unite(B, camp, nom).uid });
+{
+  const B = setup([poseur(2)], [ally('Cible', 2, 5)]);
+  play(B, 'e', 'Cible');
+  play(B, 'p', 'Poseur', designe(B, 'e', 'Cible'));
+  const c = unite(B, 'e', 'Cible');
+  check('deux marqueurs poses', [c.tox, c.hp, c.damage], [2, 5, 0]);
+  endTurn(B);
+  check('au debut de SON tour : 1 PV par marqueur', [c.hp, c.tox], [3, 2]);
+  check('et il en reste autant : ils ne s usent pas', c.tox, 2);
+  endTurn(B); endTurn(B);
+  check('tour suivant : encore 2', c.hp, 1);
+  endTurn(B); endTurn(B);
+  check('elle meurt de sa Toxine, sans jamais avoir attaque', [board(B, 'e'), B.e.discard.map(x => x.name)], [[], ['Cible']]);
+}
+{
+  // Pas des degats : un Venin n'y reagit pas (le tic n'a pas de source).
+  const B = setup([poseur(1, 'enemyUnit', { keys: ['Venin'] })], [ally('Cible', 1, 10)]);
+  play(B, 'e', 'Cible');
+  play(B, 'p', 'Poseur', designe(B, 'e', 'Cible'));
+  endTurn(B);
+  check('un poseur a Venin n empoisonne pas a mort : 10 -> 9', unite(B, 'e', 'Cible').hp, 9);
+}
+{
+  // Un Bouclier absorbe le tour de Toxine (et tombe), les marqueurs restent.
+  const B = setup([poseur(2)], [ally('Garde', 1, 5, { keys: ['Bouclier'] })]);
+  play(B, 'e', 'Garde');
+  play(B, 'p', 'Poseur', designe(B, 'e', 'Garde'));
+  const g = unite(B, 'e', 'Garde');
+  endTurn(B);
+  check('le Bouclier absorbe le premier tour', [g.hp, g.tox, g.shield], [5, 2, false]);
+  endTurn(B); endTurn(B);
+  check('le suivant, plus de Bouclier : -2', g.hp, 3);
+}
+{
+  // Elle ne se pose jamais sur un heros.
+  const B = setup([sortSimple('Visee', [toxine('enemyHero', 3)])]);
+  play(B, 'p', 'Visee');
+  check('un heros ne porte pas de Toxine', [B.e.tox, B.p.tox, B.log.some(l => l.includes('personne a empoisonner'))], [undefined, undefined, true]);
+}
+{
+  // LE SAUT : a sa mort, les marqueurs passent sur une autre unite du meme camp.
+  const B = setup([frappe(99)], [ally('Perdue', 1, 3), ally('Voisine', 1, 3)]);
+  play(B, 'e', 'Perdue'); play(B, 'e', 'Voisine');
+  unite(B, 'e', 'Perdue').tox = 3;
+  tuer(B, 'p', 'e', 'Perdue');
+  const v = unite(B, 'e', 'Voisine');
+  check('les 3 marqueurs sautent sur la survivante', [board(B, 'e'), v.tox], [['Voisine 1/3'], 3]);
+  check('le recit le dit', B.log.some(l => l.includes('sautent sur Voisine')), true);
+}
+{
+  // Plus personne pour les porter : ils disparaissent (et le heros n'en recoit pas).
+  const B = setup([frappe(99)], [ally('Seule', 1, 3)]);
+  play(B, 'e', 'Seule');
+  unite(B, 'e', 'Seule').tox = 2;
+  tuer(B, 'p', 'e', 'Seule');
+  check('aucune survivante : ils disparaissent', [board(B, 'e'), B.e.tox, B.log.some(l => l.includes('disparaissent'))], [[], undefined, true]);
+}
+{
+  // Tous les morts du lot sont retires AVANT le saut : on ne saute jamais sur une unite qui meurt aussi.
+  const B = setup([sortSimple('Balai', [{ op: 'dmg', t: 'allEnemyUnits', v: 9 }])], [ally('A', 1, 1), ally('B', 1, 1), ally('Gros', 1, 20)]);
+  play(B, 'e', 'A'); play(B, 'e', 'B'); play(B, 'e', 'Gros');
+  unite(B, 'e', 'A').tox = 2; unite(B, 'e', 'B').tox = 1;
+  play(B, 'p', 'Balai');
+  check('A et B meurent ensemble : leurs 3 marqueurs finissent sur Gros', [board(B, 'e'), unite(B, 'e', 'Gros').tox], [['Gros 1/11'], 3]);
+}
+{
+  // Une unite qui change de forme repart a neuf ; renvoyee en main elle perd les siens.
+  const B = setup([chenille(), switcheur('allyUnit')]);
+  play(B, 'p', 'Chenille');
+  B.p.board[0].tox = 3;
+  play(B, 'p', 'Mue', { side: 'p', uid: B.p.board[0].uid });
+  check('un switch efface les marqueurs', [board(B, 'p'), B.p.board[0].tox], [['Papillon 3/2'], 0]);
+}
+{
+  // Une unite VOLEE garde les siens : elle les subit a son nouveau tour.
+  const voleur = { id: 'Vol', name: 'Vol', type: 'spell', cost: 1, keys: [], text: '', tiers: [], play: [{ op: 'prendre_le_controle', t: 'enemyUnit' }] };
+  const B = setup([voleur], [ally('Proie', 1, 6)]);
+  play(B, 'e', 'Proie');
+  unite(B, 'e', 'Proie').tox = 2;
+  play(B, 'p', 'Vol', designe(B, 'e', 'Proie'));
+  const v = unite(B, 'p', 'Proie');
+  check('elle est chez moi avec ses marqueurs', v.tox, 2);
+  endTurn(B); endTurn(B);
+  check('et les subit a MON tour', v.hp, 4);
+}
+{
+  // CONTAGION : seules les unites qui portent deja une Toxine en recoivent de plus.
+  const cont = (v, dmg) => sortSimple('Cont', [{ op: 'contagion', v, dmg }]);
+  const B = setup([cont(1, 0)], [ally('Porteuse', 1, 5), ally('Saine', 1, 5)]);
+  play(B, 'e', 'Porteuse'); play(B, 'e', 'Saine');
+  unite(B, 'e', 'Porteuse').tox = 2;
+  play(B, 'p', 'Cont');
+  check('+1 sur la porteuse, rien sur l autre', [unite(B, 'e', 'Porteuse').tox, unite(B, 'e', 'Saine').tox || 0], [3, 0]);
+  const D = setup([cont(0, 2)], [ally('Porteuse', 1, 5), ally('Saine', 1, 5)]);
+  play(D, 'e', 'Porteuse'); play(D, 'e', 'Saine');
+  unite(D, 'e', 'Porteuse').tox = 1;
+  play(D, 'p', 'Cont');
+  check('« degats seuls » : 2 degats a la porteuse, aucun marqueur de plus', [unite(D, 'e', 'Porteuse').hp, unite(D, 'e', 'Porteuse').tox, unite(D, 'e', 'Saine').hp], [3, 1, 5]);
+  const V = setup([cont(1, 0)], [ally('Saine', 1, 5)]);
+  play(V, 'e', 'Saine');
+  play(V, 'p', 'Cont');
+  check('sans porteuse, rien', [unite(V, 'e', 'Saine').tox || 0, V.log.some(l => l.includes('ne porte de Toxine'))], [0, true]);
+}
+{
+  // EPIDEMIE : 2 sur chaque unite adverse, PUIS chacune blesse son heros du total APRES la pose. Les marqueurs restent.
+  const B = setup([sortSimple('Epid', [{ op: 'epidemie', v: 2 }])], [ally('A', 1, 9), ally('B', 1, 9)]);
+  play(B, 'e', 'A'); play(B, 'e', 'B');
+  unite(B, 'e', 'A').tox = 1;
+  const pv = B.e.hp;
+  play(B, 'p', 'Epid');
+  check('A: 1+2 = 3, B: 2 -> le heros perd 5', [unite(B, 'e', 'A').tox, unite(B, 'e', 'B').tox, pv - B.e.hp], [3, 2, 5]);
+  check('les marqueurs restent en jeu', [unite(B, 'e', 'A').tox, unite(B, 'e', 'B').tox], [3, 2]);
+  check('et c est le heros adverse qui paie, pas le tien', B.p.hp, 30);
+}
+{
+  // « Tes Toxines en posent 1 de plus » : la Toxine, l'Epidemie ; une Contagion « degats seuls » ne pose rien.
+  const roi = ally('Roi', 1, 5, { statics: [{ op: 'montant_des_effets', qui: 'toi', cible: 'toxine', sens: 'plus', v: 1 }] });
+  const B = setup([roi, poseur(1), sortSimple('Epid', [{ op: 'epidemie', v: 2 }]), sortSimple('Cont', [{ op: 'contagion', v: 0, dmg: 1 }])], [ally('Cible', 1, 20)]);
+  play(B, 'e', 'Cible');
+  play(B, 'p', 'Roi');
+  play(B, 'p', 'Poseur', designe(B, 'e', 'Cible'));
+  check('Toxine 1 en pose 2', unite(B, 'e', 'Cible').tox, 2);
+  play(B, 'p', 'Epid');
+  check('Epidemie 2 en pose 3', unite(B, 'e', 'Cible').tox, 5);
+  play(B, 'p', 'Cont');
+  check('Contagion a 0 marqueur reste a 0 marqueur', unite(B, 'e', 'Cible').tox, 5);
+}
+{
+  // Le palier « Effet +1 » : la Toxine est amplifiable.
+  const dard = sortSimple('Dard', [toxine('enemyUnit', 3)], { tiers: [{ lvl: 3, amp: 1, text: 'Effet +1' }] });
+  check('avant le palier : 3, apres : 4', [resolveCard(dard, 2).play[0].v, resolveCard(dard, 3).play[0].v], [3, 4]);
+}
+{
+  // « Les Toxines brulent le heros » (sommet 20 de Crapaud Cornu) : lu au tic.
+  const feu = ally('Feu', 1, 5, { statics: [{ op: 'toxine_brule_le_heros', qui: 'adversaire', sens: 'plus', v: 1 }] });
+  const B = setup([feu, poseur(2)], [ally('Cible', 1, 9)]);
+  play(B, 'e', 'Cible');
+  play(B, 'p', 'Feu');
+  play(B, 'p', 'Poseur', designe(B, 'e', 'Cible'));
+  const pv = B.e.hp;
+  endTurn(B);
+  check('au tic : -2 PV a l unite ET 2 degats a son heros', [unite(B, 'e', 'Cible').hp, pv - B.e.hp], [7, 2]);
+}
+{
+  // « Quand une unite adverse qui porte une Toxine meurt » : seulement si elle en portait.
+  const temoin = ally('Temoin', 1, 5, { on_unitToxinee_foe: [{ op: 'armor', v: 1 }] });
+  const B = setup([temoin, frappe(99), frappe(99)], [ally('Empoisonnee', 1, 3), ally('Saine', 1, 3)]);
+  play(B, 'e', 'Empoisonnee'); play(B, 'e', 'Saine');
+  play(B, 'p', 'Temoin');
+  unite(B, 'e', 'Empoisonnee').tox = 1;
+  tuer(B, 'p', 'e', 'Saine');
+  check('une unite saine qui meurt ne declenche rien', B.p.armor, 0);
+  tuer(B, 'p', 'e', 'Empoisonnee');
+  check('une unite empoisonnee qui meurt, si', B.p.armor, 1);
+}
+{
+  // Chaine : le tic tue A, ses marqueurs sautent sur B qui a deja subi le sien ce tour-ci (il n'est pas
+  // re-ronge dans le meme tic), et la partie continue.
+  const B = setup([], [ally('A', 1, 1), ally('B', 1, 5)]);
+  play(B, 'e', 'A'); play(B, 'e', 'B');
+  unite(B, 'e', 'A').tox = 2;
+  endTurn(B);
+  check('A meurt au tic, B recoit ses marqueurs sans en subir le tic ce tour-ci', [board(B, 'e'), unite(B, 'e', 'B').tox], [['B 1/5'], 2]);
+}
+{
+  // Le recit et le clone : `tox` voyage.
+  const B = createBattle(side('Joueur', [poseur(2)]), side('Adversaire', [ally('Cible', 1, 9)]), { evenements: true });
+  B.p.hand = [{ ...poseur(2) }]; B.e.hand = [ally('Cible', 1, 9)]; B.p.mana = B.e.mana = 10;
+  B.turn = 'e'; playCard(B, 'e', 0);
+  B.turn = 'p'; playCard(B, 'p', 0, designe(B, 'e', 'Cible'));
+  const pose = B.evts.find(e => e.t === 'toxine');
+  check('un evenement « toxine » dit combien et sur qui', [pose.v, pose.cibles.map(c => c.nom), pose.cibles[0].tox], [2, ['Cible'], 2]);
+  check('cloneBattle copie les marqueurs', cloneBattle(B).e.board[0].tox, 2);
+  endTurn(B);
+  const tic = B.evts.find(e => e.t === 'degats' && e.toxine);
+  check('le tic est un `degats` marque « toxine », avant/apres lisibles', [tic.n, tic.perdu, tic.avant, tic.apres], [2, 2, 9, 7]);
+}
+{
+  // LE TIC PART AVANT LA PIOCHE : meme un tour ou le camp pioche (a partir du 3e tour de la partie), la
+  // perte de PV est ecrite AVANT la carte piochee.
+  const B = createBattle(side('Joueur', []), side('Adversaire', [ally('Cible', 1, 9)]), { evenements: true });
+  B.p.hand = []; B.e.hand = [ally('Cible', 1, 9)]; B.p.mana = B.e.mana = 10;
+  B.turn = 'e'; playCard(B, 'e', 0);
+  unite(B, 'e', 'Cible').tox = 1;
+  B.turnNo = 5; B.turn = 'p';
+  endTurn(B);
+  const dernierTour = B.evts.map(e => e.t).lastIndexOf('tour');
+  const apres = B.evts.slice(dernierTour);
+  const iTic = apres.findIndex(e => e.t === 'degats' && e.toxine), iPioche = apres.findIndex(e => e.t === 'pioche' && e.camp === 'e');
+  check('le tic est ecrit avant la pioche de ce tour', [iTic >= 0, iPioche >= 0, iTic < iPioche], [true, true, true]);
+}
+{
+  // La validation et le registre.
+  check('Toxine, Contagion et Epidemie sont codees', ['toxine', 'contagion', 'epidemie'].map(id => ALL_EFFECTS[id].implemented), [true, true, true]);
+  check('leur vocabulaire n est plus « a coder »', [TRIGGERS.on_unitToxinee_foe.implemented, ALL_EFFECTS.toxine.custom], [undefined, undefined]);
+  const DB = { characters: [{ id: 'x', name: 'Test', switches: [], cards: [poseur(2), null, null, null, null] }], library: [], npcs: [], fatigue: [], starters: [] };
+  const msgs = validateData(DB, ALL_EFFECTS, ALL_KEYWORDS).map(i => i.msg);
+  check('une carte a Toxine n est plus signalee « a coder »', msgs.some(m => m.includes('Poseur') && /reste à coder|pas encore codé/.test(m)), false);
+}
+
+// ---------------------------------------------------------------------------
+// EX-LIBRIS ET LA PILE DE FATIGUE PAR CAMP (docs/V3-HEROS.md, 4.5). Une carte qui ARRIVE DANS TA DEFAUSSE,
+// par n'importe quel chemin, laisse UN exemplaire dans TA pile de fatigue — une seule fois par carte. La pile
+// devient propre a chaque camp : Annotation, Index et Appat n'y touchent que de leur cote.
+console.log('\nEx-libris et la pile de fatigue par camp');
+const exAlly = (name = 'Archive', extra = {}) => ally(name, 1, 1, { keys: ['ex_libris'], ...extra });
+const exSort = (name = 'Index', play = [{ op: 'armor', v: 1 }], extra = {}) => sortSimple(name, play, { keys: ['ex_libris'], ...extra });
+const pileDe = (B, k) => pileDeFatigue(B, k).map(c => c.name);
+CHARACTER_DATA.fatigue = [];
+{
+  // Un allie qui MEURT : la carte tombe en defausse, un exemplaire entre dans SA pile — et personne d'autre n'y touche.
+  const B = setup([exAlly()], [frappe(99)]);
+  play(B, 'p', 'Archive');
+  check('posee, elle n est pas en defausse : rien dans la pile', [noms(B.p.discard), pileDe(B, 'p')], [[], []]);
+  tuer(B, 'e', 'p', 'Archive');
+  check('morte, elle arrive en defausse ET un exemplaire entre dans ta pile', [noms(B.p.discard), pileDe(B, 'p')], [['Archive'], ['Archive']]);
+  check('l adversaire n a rien, et sa pile n est meme pas creee', [B.e.pile, nbFatigue(B, 'e')], [null, 0]);
+  check('la carte est marquee classee : une seule fois par carte', B.p.discard[0].classee, true);
+  const C = cloneBattle(B);
+  C.p.pile.length = 0;
+  check('une copie du combat a sa propre pile', [nbFatigue(C, 'p'), nbFatigue(B, 'p')], [0, 1]);
+}
+{
+  // Une SEULE fois par carte : ressuscitee puis morte de nouveau, elle ne rentre pas une seconde fois.
+  const reanime = sortSimple('Reanime', [{ op: 'pose_sur_le_plateau', d_ou: 'defausse', qui: 'toi', quoi: 'ally', n: 1 }]);
+  const B = setup([exAlly(), reanime], [frappe(99), frappe(99)]);
+  play(B, 'p', 'Archive');
+  tuer(B, 'e', 'p', 'Archive');
+  play(B, 'p', 'Reanime');
+  check('reanimee, elle est de retour sur le plateau', board(B, 'p'), ['Archive 1/1']);
+  tuer(B, 'e', 'p', 'Archive');
+  check('remorte, elle n entre pas une seconde fois', pileDe(B, 'p'), ['Archive']);
+}
+{
+  const B = setup([exSort('Index')]);
+  play(B, 'p', 'Index');
+  check('un SORT a Ex-libris, joue, entre dans la pile', [noms(B.p.discard), pileDe(B, 'p')], [['Index'], ['Index']]);
+}
+{
+  const meule = sortSimple('Meule', [{ op: 'met_a_la_defausse', d_ou: 'pioche', qui: 'toi', quoi: 'all', ordre: 'dessus', n: 1 }]);
+  const B = setup([meule], [], [exAlly('Dessus')]);
+  play(B, 'p', 'Meule');
+  check('MEULEE depuis le dessus de la pioche, elle entre dans la pile', [noms(B.p.discard).includes('Dessus'), pileDe(B, 'p')], [true, ['Dessus']]);
+}
+{
+  const jette = sortSimple('Jette', [{ op: 'met_a_la_defausse', d_ou: 'main', qui: 'toi', quoi: 'oneCard', argCard: 'Archive', n: 1 }]);
+  const B = setup([jette, exAlly()]);
+  play(B, 'p', 'Jette');
+  check('DEFAUSSEE depuis la main, elle entre dans la pile', [noms(B.p.discard).includes('Archive'), pileDe(B, 'p')], [true, ['Archive']]);
+}
+{
+  // Une carte qui vient d'une pile de fatigue y est DEJA : la tirer puis la defausser ne la remet pas dedans.
+  const B = setup([exAlly()], [frappe(99), frappe(99)]);
+  play(B, 'p', 'Archive');
+  tuer(B, 'e', 'p', 'Archive');
+  B.p.deck = [];
+  draw(B, 'p');
+  const c = B.p.hand[B.p.hand.length - 1];
+  check('pioche vide : on tire dans SA pile, la copie est deja classee', [c && c.name, c && c.classee], ['Archive', true]);
+  play(B, 'p', 'Archive');
+  tuer(B, 'e', 'p', 'Archive');
+  check('elle meurt a son tour : la pile n a pas grossi', [pileDe(B, 'p'), noms(B.p.discard)], [['Archive'], ['Archive', 'Archive']]);
+}
+{
+  // L'exil et le retour en pioche ne laissent rien.
+  const sortR = sortSimple('Eclair', [{ op: 'dmg', t: 'enemyHero', v: 1 }], { keys: ['reprise', 'ex_libris'] });
+  const B = setup([sortR]);
+  play(B, 'p', 'Eclair');
+  check('lance de la main : en defausse, un exemplaire dans la pile', [noms(B.p.discard), pileDe(B, 'p')], [['Eclair'], ['Eclair']]);
+  const ok = playCard(B, 'p', 0, null, null, 'defausse');
+  check('relance par Reprise, il est exile', [ok, noms(B.p.exile), B.p.discard.length], [true, ['Eclair'], 0]);
+  check('et la pile ne bouge pas', pileDe(B, 'p'), ['Eclair']);
+}
+{
+  const exile = sortSimple('Exile', [{ op: 'exile', d_ou: 'main', qui: 'toi', quoi: 'oneCard', argCard: 'Archive', n: 1 }]);
+  const B = setup([exile, exAlly()]);
+  play(B, 'p', 'Exile');
+  check('une carte exilee depuis la main ne laisse rien', [noms(B.p.exile), pileDe(B, 'p')], [['Archive'], []]);
+}
+{
+  const imperatrice = ally('Imperatrice', 1, 9, { statics: [{ op: 'cartes_jouees_remelangees', qui: 'toi', quoi: 'tout' }] });
+  const B = setup([imperatrice, exSort('Index')]);
+  play(B, 'p', 'Imperatrice');
+  play(B, 'p', 'Index');
+  check('un sort qui retourne en pioche n arrive dans aucune defausse : la pile reste vide', [noms(B.p.discard), pileDe(B, 'p')], [[], []]);
+}
+{
+  // Le niveau de resolution a l'entree : une carte du catalogue, lue au niveau de son proprietaire.
+  const def = cardById('owl3_chancellor');
+  const carte = { ...resolveCard(def, 9), sprite: def.sprite };
+  const B = setup([carte], [frappe(99)]);
+  play(B, 'p', carte.name);
+  tuer(B, 'e', 'p', carte.name);
+  const m = pileDeFatigue(B, 'p')[0];
+  check('le modele garde son niveau', [pileDeFatigue(B, 'p').length, m.ownerLevel, m.atk, m.hp, m.unlocked.length === carte.unlocked.length], [1, 9, carte.atk, carte.hp, true]);
+}
+{
+  // ANNOTATION : « les cartes de ta pile de fatigue gagnent +1/+1 » — la mienne, jamais celle d'en face.
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1, lvl: 1 }, { card: 'dog_pup', n: 1, lvl: 1 }];
+  const annot = sortSimple('Annotation', [{ op: 'renforce_les_cartes', d_ou: 'fatigue', qui: 'toi', quoi: 'all', ordre: 'hasard', n: 99, atk: 1, hp: 1 }]);
+  const B = setup([annot]);
+  const stats = l => l.map(c => c.atk + '/' + c.hp);
+  const avant = stats(pileDeFatigue(B, 'p'));
+  play(B, 'p', 'Annotation');
+  const plus = avant.map(s => { const [a, h] = s.split('/').map(Number); return (a + 1) + '/' + (h + 1); });
+  check('chaque carte de MA pile gagne +1/+1', stats(pileDeFatigue(B, 'p')), plus);
+  check('la pile de l adversaire est intacte', [stats(pileDeFatigue(B, 'e')), B.e.pile], [avant, null]);
+  check('et la pile commune aussi', stats(fatiguePile().map(m => resolveCard(m.card, m.lvl))), avant);
+  B.p.deck = [];
+  draw(B, 'p');
+  const c = B.p.hand[B.p.hand.length - 1];
+  const modele = pileDeFatigue(B, 'p').find(m => m.name === c.name);
+  check('une carte tiree ensuite arrive deja renforcee', [c.atk, c.hp], [modele.atk, modele.hp]);
+  CHARACTER_DATA.fatigue = [];
+}
+{
+  // INDEX : « cree une carte de ta pile de fatigue, +2/+2 » — une creation, pas une pioche.
+  CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1, lvl: 1 }];
+  const index = sortSimple('Index', [{ op: 'cree', choix: 'fatigue', n: 1, atk: 2, hp: 2 }]);
+  const B = setup([index]);
+  const modele = resolveCard(cardById('grunt1'), 1);
+  const plafond = B.p.fatigue;
+  play(B, 'p', 'Index');
+  const c = B.p.hand[B.p.hand.length - 1];
+  check('une carte de la pile arrive en main, +2/+2', [c && c.name, c && c.atk, c && c.hp], [modele.name, modele.atk + 2, modele.hp + 2]);
+  check('ce n est pas une pioche : le plafond de fatigue ne bouge pas', B.p.fatigue, plafond);
+  check('elle vient de sa pile, donc deja classee', c && c.classee, true);
+  CHARACTER_DATA.fatigue = [];
+}
+{
+  const B = setup([sortSimple('Index', [{ op: 'cree', choix: 'fatigue', n: 1, atk: 2, hp: 2 }])]);
+  play(B, 'p', 'Index');
+  check('pile vide : rien n est cree', B.p.hand.length, 0);
+}
+{
+  // APPAT : la pile qui nourrit est celle de L'ADVERSAIRE — la sienne, grossie par ses Ex-libris.
+  const B = setup([ally('Pie', 1, 1, { play: [appat(1)] }), frappe(99)], [exAlly('Archive')]);
+  play(B, 'e', 'Archive');
+  tuer(B, 'p', 'e', 'Archive');
+  check('l adversaire a classe sa carte : c est SA pile', [pileDe(B, 'e'), B.p.pile], [['Archive'], null]);
+  play(B, 'p', 'Pie');
+  check('l appat fabrique la carte de SA pile dans SA defausse', noms(B.e.discard), ['Archive', 'Archive']);
+  check('la copie est deja classee : la pile n a pas grossi', pileDe(B, 'e'), ['Archive']);
+}
+{
+  // Le recit : un evenement dit qui, quelle carte, et la taille de la pile.
+  const B = createBattle(side('Joueur', []), side('Adversaire', []), { evenements: true });
+  B.p.hand = [exAlly()]; B.e.hand = [frappe(99)]; B.p.mana = B.e.mana = 10;
+  play(B, 'p', 'Archive');
+  tuer(B, 'e', 'p', 'Archive');
+  const e = B.evts.filter(x => x.t === 'classe');
+  check('un evenement « classe » dit qui, quelle carte, et la taille de la pile', [e.length, e[0] && e[0].camp, e[0] && e[0].carte.nom, e[0] && e[0].pile], [1, 'p', 'Archive', 1]);
+}
+{
+  // La validation et le registre.
+  const balai = sortSimple('Balai', [{ op: 'detruit', t: 'allEnemyUnits' }], { keys: ['ex_libris'] });
+  const DB = { characters: [{ id: 'x', name: 'Test', switches: [], cards: [balai, null, null, null, null] }], library: [], npcs: [], fatigue: [], starters: [] };
+  const issues = validateData(DB, ALL_EFFECTS, ALL_KEYWORDS);
+  check('Ex-libris sur une gestion de masse est refuse (bloquant)', issues.some(i => i.bad && i.regle === 'ex-libris-risque'), true);
+  const sage = sortSimple('Balai', [{ op: 'detruit', t: 'allEnemyUnits' }]);
+  const DB2 = { characters: [{ id: 'x', name: 'Test', switches: [], cards: [sage, null, null, null, null] }], library: [], npcs: [], fatigue: [], starters: [] };
+  check('la meme gestion de masse SANS Ex-libris passe', validateData(DB2, ALL_EFFECTS, ALL_KEYWORDS).some(i => i.regle === 'ex-libris-risque'), false);
+  const trois = { characters: [{ id: 'x', name: 'Test', switches: [], cards: [exAlly('A'), exAlly('B'), exAlly('C'), null, null] }], library: [], npcs: [], fatigue: [], starters: [] };
+  check('plus de 2 cartes a Ex-libris par heros : signale, pas bloquant',
+    validateData(trois, ALL_EFFECTS, ALL_KEYWORDS).filter(i => i.regle === 'ex-libris-trop').map(i => i.bad), [false]);
+  check('Ex-libris est un mot-cle code, et ses deux effets sont des effets du registre',
+    [ALL_KEYWORDS.ex_libris.implemented, !!ALL_KEYWORDS.ex_libris.custom,
+      cardById('owl3_annot').play[0].op, cardById('owl3_index').play[0].op, cardById('owl3_index').play[0].choix], [true, false, 'renforce_les_cartes', 'cree', 'fatigue']);
+  check('plus aucune mecanique inventee pour la pile de fatigue',
+    (CHARACTER_DATA.customMechanics || []).some(m => ['ex_libris', 'renforce_la_fatigue', 'cree_de_la_fatigue'].includes(m.id)), false);
+}
 
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);

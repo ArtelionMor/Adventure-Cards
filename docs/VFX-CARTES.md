@@ -1,6 +1,6 @@
 # VFX des cartes — liste de travail
 
-> Proposition (9 octobre 2026), à corriger carte par carte. **Codé le 9 octobre 2026** dans `game/src/ui/vfx.js` : **120 signatures écrites carte par carte** (base et switch), **toutes différentes**, assemblées à partir de **71 briques procédurales** (voir « Une animation unique par carte » plus bas). La liste carte par carte ci-dessous est l'intention de départ pour les cartes de base ; le code s'en écarte quand c'était mieux. Chaque carte
+> Proposition (9 octobre 2026), à corriger carte par carte. **Codé le 9 octobre 2026** dans `game/src/ui/vfx.js` : **180 signatures écrites carte par carte** (120 le 9 octobre, **+60 le 10 octobre pour les six héros V3**) (base et switch), **toutes différentes**, assemblées à partir de **71 briques procédurales** (voir « Une animation unique par carte » plus bas). La liste carte par carte ci-dessous est l'intention de départ pour les cartes de base ; le code s'en écarte quand c'était mieux. Chaque carte
 > reçoit un effet de **lancer** (ce qui part de la carte) et un effet d'**arrivée** (ce que la
 > cible subit). Les doublons sont voulus quand l'effet est le même ; quand on peut varier, on varie.
 > Les noms de briques (en **gras**) sont définis en bas : une carte = un assemblage de briques.
@@ -17,7 +17,7 @@ et `aura` (l'onde de l'aura quand son porteur arrive). Chaque champ est une briq
 Le **wiki** de l'Atelier (onglet Cartes) joue chacun des moments d'une carte sur une scène ; l'onglet Animations joue chaque brique seule.
 
 ## Une animation unique par carte (9 octobre 2026, demande du game designer)
-**Les 120 cartes ont chacune une signature écrite à la main** dans `SIGNATURES` (`game/src/ui/vfx.js`), et **aucune ne ressemble à une autre**.
+**Les 180 cartes ont chacune une signature écrite à la main** dans `SIGNATURES` (`game/src/ui/vfx.js`), et **aucune ne ressemble à une autre**.
 `signatureAuto` (calculée depuis les effets, mots-clés et moments de la carte) reste en dessous : elle comble un moment que la signature ne dit pas,
 et elle donne une animation à une carte ajoutée demain dans le builder, en attendant qu'on lui en écrive une.
 
@@ -37,6 +37,12 @@ et elle donne une animation à une carte ajoutée demain dans le builder, en att
 | Reinette (Grenouille, Marais) | vert tendre | nénuphars, frai, pluie, électricité, couronnes, gorge qui gonfle |
 | Morphée (Hibou, Veilleur) | lilas, bleu de nuit | plumes douces, horloges, sablier, « zzz », œuf, lune |
 | Mirage (Caméléon, Imitateur) | arc-en-ciel | éclats de miroir, masques, voile, fleur, dédoublement |
+| Patou (Chien, Berger) | vert d'herbe, laine | viseur (le pistage), empreintes, aboiements, crocs |
+| Mélusine (Chat, Sorcière) | lilas, magenta, vert de chaudron | étoiles, spirales, fumée, livre, fiole, cartes de la défausse |
+| Morrigane (Corbeau, Charognarde) | os, rouge sombre, noir | os, âmes, nuée, plumes, bec, ombre d'ailes |
+| Dendrobate (Grenouille, Venin) | vert acide, violet poison | gouttes, bulles, fioles, brume, nénuphar |
+| Hulotte (Hibou, Bibliothécaire) | parchemin, bleu de nuit | livres, cartes qui tombent à la défausse, horloge, plumes douces |
+| Pastiche (Caméléon, Usurpateur) | vert d'eau, arc-en-ciel | éclats, masques, dédoublement, voile, cartes en éventail |
 
 **Les règles que garde le banc** `node scripts/test-vfx.mjs` (il lit les données, ne joue aucune partie) :
 1. chaque carte des héros a sa signature écrite, et aucune signature ne cite un identifiant inconnu (une carte renommée garderait sinon l'animation calculée, sans que rien ne le dise) ;
@@ -47,6 +53,13 @@ et elle donne une animation à une carte ajoutée demain dans le builder, en att
 6. **une animation ne ment pas** — les signes ont un sens fixe, dans les deux sens : traînée ⇔ Charge, fantôme ⇔ Passe-Murailles, gouttes à l'impact ⇔ Venin ;
    des pièces ⇒ la carte donne du mana ; une icône qui monte (armure, mana, soin) ⇒ la carte fait cela ; un lancer qui part de chez l'adversaire ⇒ elle lui prend quelque chose.
    (Relu le 9 octobre 2026 : le Tire-Laine montrait une carte prise à l'adversaire alors qu'il pioche dans ton paquet, le Parrain des Ruelles une pluie de pièces sans mana, Retrouvailles et la Mère des Chatons des cœurs « PV » sans soin.)
+
+⚠ **Une règle « quand X » s'écrit sous `regle` ET sous son moment exact** (`on_fatigue_self`…) : `effets.js` cherche
+d'abord `declenche[<moment exact>]`, et la signature **calculée** (`signatureAuto`) en pose toujours un — ce qu'on écrit
+sous `regle` seul ne se joue donc jamais pour une carte qui a cet événement. Les 60 signatures V3 passent par
+`surRegle(slot, sub)` (en tête de `vfx.js`). **27 des 45 `regle` écrites de la V1/V2 sont dans ce cas** (mesuré le 10 octobre 2026 : `cat_claw`, `cat_alley`, `crow_raven`, `owl_arch`…) : leurs animations
+écrites sont masquées par les calculées (le banc ne le voit pas : il lit les deux). À corriger d'un coup en fusionnant,
+dans `signatureDe`, la `regle` écrite sur chaque moment calculé — ou à les écrire par `surRegle` une à une.
 
 Un déclenchement qui frappe **au hasard** (le Chat Griffu : « inflige une blessure à un adversaire ») lance son effet vers la **vraie victime**, pas vers le héros par défaut.
 
@@ -95,7 +108,7 @@ Console : `AC.fx.trace = console.log` écrit chaque brique jouée pendant un com
 - **Meute** (invoque un Chiot de Garde et un Toutou enragé) — lancer : **hurlement** (trois ondes) ; arrivée : deux **Convocations** qui sautent de chaque côté, l'Enragé en rouge.
 
 ## Felix — Chat, Mille coupures
-- **Griffeur de doigt** (allié charge) — arrivée : **Convocation** rapide en bond (il atterrit, traînée). Charge : traînée de vitesse à l'attaque.
+- **Mage de l'étincelle** (ex-Griffeur de doigt, allié charge) — arrivée : **Convocation** rapide en bond (il atterrit, traînée). Charge : traînée de vitesse à l'attaque.
 - **Chat de Gouttière** (charge, passe-murailles) — arrivée : sort d'un coin du plateau ; passe-murailles : l'unité devient **translucide** à l'attaque (fantôme).
 - **Griffure** (2 dégâts) — lancer : **Éclair** jaune-blanc ; arrivée : flash, **griffures** électriques bleutées, secousse. Doublon voulu avec Volée de Corbeaux / Coulée de Boue *pour la mécanique*, mais forme distincte par héros.
 - **Neuf Vies** (crée autant de Griffures que de tours joués) — lancer : 9 petites âmes de chat qui s'échappent en spirale ; arrivée : **Création** en rafale, chaque Foudre atterrit dans la main avec un `fire`.
@@ -170,6 +183,42 @@ Console : `AC.fx.trace = console.log` écrit chaque brique jouée pendant un com
 - **Chœur Chromatique** (aura) — arrivée : **Convocation** ; aura : anneau arc-en-ciel sous chaque allié bénéficiaire.
 - **Mue** (renvoie en main, réduit le coût) — lancer : peau qui se détache ; arrivée : **Retour** (unité → carte) puis `cards_return` et coût qui baisse (chiffre bleu qui descend).
 - **Bal Masqué** (renfort) — lancer : masques qui tournoient ; arrivée : « +a/+h » sur chacun, confettis dorés.
+
+## Les six héros V3 (10 octobre 2026) — 60 signatures
+Écrites avant que leurs mécaniques existent : elles suivent le **texte** des cartes, et les moments encore inertes
+(« quand l'adversaire joue une carte pistée », « quand un type entre dans le Registre »…) ne se verront qu'une fois
+le moteur câblé. Mêmes règles que ci-dessus (une entrée par allié, traînée ⇔ Charge, gouttes à l'impact ⇔ Venin,
+« Mana » seulement si la carte donne du mana…).
+
+**Patou** — le **viseur** (`cible`) dit « pisté » ; les pattes disent « berger ».
+Chien de Troupeau (pattes, soin à la punition) · Berger Vigilant (viseur + aboiement) · Dressage (pattes en piste, viseur rouge à l'arrivée) ·
+Patou (grand aboiement, crocs sur le héros à la punition) · Chasse au Loup (hurlement + crocs rouges) · Chiot Pisteur (pattes, renfort aux Chiens) ·
+Muselière (viseur, fumée grise) · Rottweiler (crocs, aboiement vers le plateau adverse) · Battue (hurlement, viseur orange) · Vieux Berger (lune, convocation).
+
+**Mélusine** — des **étoiles** et de la **fumée** ; la défausse est sa main (cartes qui vont et viennent).
+Étincelle (spirale, étoiles magenta) · Chaton Apprenti (étoiles) · Chaudron (fumée verte, bulles) · Sorcière des Cendres (descente, carte vers la main) ·
+Grand Philtre (fiole, spirale de dix points, explosion) · Mauvais Œil (œil vert, fumée sombre) · Divination (livre, une carte) ·
+Familier Affamé (fumée, renfort à la Reprise) · Chat Noir (œil, étoiles + griffure) · Sabbat (lune de nuit, convocation magenta).
+
+**Morrigane** — **os et âmes** ; ce qui est mangé est de l'os.
+Corbeau Affamé (os + plumes) · Pie Voleuse (plumes rouges, cartes fabriquées vers l'adversaire) · Vautour (ombre, traînée + serres à l'impact) ·
+Équarrisseur (convocation sombre, os) · Seigneur des Charognes (ombre lourde, couronne d'os) · Charnier (os, cartes rouges vers les alliés) ·
+Corbeau Squelette (fumée d'os, œil rouge, os à chaque début de tour) · Prince des Ossements (couronne, bec à l'exil) · Colosse d'Os (nuit, os) · Rapace Maigre (plumes, traînée, os).
+
+**Dendrobate** — le **vert acide** des Toxines (`gouttes`, `fiole`, `bulles`), sans jamais de gouttes à l'impact sauf le Venin de la Sentinelle.
+Rainette Toxique (bulles, gouttes) · Dard Empoisonné (pique, neuf gouttes) · Sentinelle des Roseaux (nénuphar, gouttes à l'impact) ·
+Poison Lent (fiole, brume) · Dendrobate Royale (couronne verte, halo d'aura violet) · Têtard Toxique (bulles, âme, gouttes au râle) ·
+Crapaud Cornu (gorge qui gonfle, gouttes) · Contagion (spirale vers le plateau adverse) · Collectionneur de Poisons (bulles, carte vers la main) · Épidémie (pluie verte, brume).
+
+**Hulotte** — des **livres** et des **cartes qui tombent à la défausse** (`vers: 'defausse'` : la meule).
+Lecture en diagonale (livre + trois cartes mélangées) · Archiviste · Annotation (livre bleu, étoiles vers la pioche) · Veilleuse de Nuit (œil, renfort) ·
+Chancelière (convocation, livre) · Chouette Effraie (plume douce, une carte à la défausse) · Index (livre, une carte qui vient de la pioche) ·
+Marque-page (plumes bleues) · Doyenne (horloge) · Grand Chancelier (couronne, livre, renfort).
+
+**Pastiche** — des **éclats** et des **masques** : il copie ce qu'il voit.
+Greffier (éclats vers l'intérieur) · Bibliothécaire (livre, facettes) · Chroniqueur (masques, carte vers la main) · Spécimen (éclats orange, faisceau) ·
+Grand Registre (arc-en-ciel, voile, renfort) · Copiste (dédoublement, une carte) · Mimétisme (masque, renfort) ·
+Archiviste Impitoyable (œil, éclats vers le héros adverse) · Index du Registre (livre, cinq cartes en éventail) · Rétrospective (arc-en-ciel, six cartes mélangées).
 
 ## Les effets sans carte (états)
 - **Bouclier** (mot-clé) : bulle bleue qui se brise à l'impact, `tag_shield`.

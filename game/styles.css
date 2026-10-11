@@ -241,6 +241,13 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .hcard .nm { font-size: 10px; font-weight: 700; line-height: 1.15; }
 .hcard .tx { font-size: 9px; color: var(--ink-dim); line-height: 1.15; }
 .hcard .cost { position: absolute; top: -6px; left: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--mana); color: #06203a; font-weight: 800; font-size: 11px; display: grid; place-items: center; }
+/* LE PISTAGE (V3) : la patte posee sur une carte que l'adversaire a pistee (ta main), ou sur le dos d'une carte pistee
+   dans sa main (fenetre de zone). */
+/* LA TOXINE (V3) : le nombre de marqueurs que porte une unite, en haut a gauche. */
+.unit .tox { position: absolute; top: 4px; left: 4px; z-index: 4; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 10px; background: #5fe08f; color: #06301a; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px; line-height: 1; pointer-events: none; }
+.hcard .patte, .zcard .patte { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #06203a; display: grid; place-items: center; font-size: 12px; line-height: 1; }
+.zcard.dos { align-content: center; justify-items: center; min-height: 64px; background: repeating-linear-gradient(45deg, var(--panel) 0 6px, var(--line) 6px 12px); }
+.zcard.dos .nm { font-size: 18px; color: var(--ink-dim); }
 .hcard .st { position: absolute; bottom: 4px; right: 6px; font-size: 11px; font-weight: 800; }
 .bt-bar { display: flex; gap: 8px; padding: 8px; background: var(--bg2); align-items: center; }
 .bt-bar .grow { flex: 1; }

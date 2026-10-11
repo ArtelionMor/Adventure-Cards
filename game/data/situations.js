@@ -221,7 +221,7 @@ export const SITUATIONS = [
   },
   {
     id: 'D2', famille: 'D', titre: 'Felix combo',
-    question: 'Ombre Feutrée (sorts −1) + Griffeur de doigt (1 dégât par sort) + Neuf Vies (N Griffures) + Matou Invocateur (un Chat par sort).',
+    question: 'Ombre Feutrée (sorts −1) + Mage de l\'étincelle (1 dégât par sort) + Neuf Vies (N Griffures) + Matou Invocateur (un Chat par sort).',
     regarde: 'Combien de mana pour que la chaîne parte, et le deck survit-il jusque-là ? Un Combo qui a besoin du tour 9 contre un Aggro est un Combo qui n’existe pas.',
     niveau: 8, tour: 1, qui: 'p',
     p: { heros: ['cat'], tours: 1 },

@@ -7,7 +7,113 @@ export const CHARACTER_DATA = {
     "cat",
     "crow"
   ],
-  "customMechanics": [],
+  "customMechanics": [
+    {
+      "id": "enregistre",
+      "kind": "effect",
+      "label": "Le Registre enregistre une carte",
+      "desc": "Le Registre enregistre N cartes AU HASARD de ta main, sans les jouer (elles restent en main). Un type déjà présent ne compte pas deux fois ; une carte « Type : tous » compte pour +1. Détail : docs/V3-HEROS.md, 4.6.",
+      "params": [
+        {
+          "k": "n",
+          "type": "number",
+          "label": "Cartes enregistrées",
+          "def": 1
+        }
+      ],
+      "implemented": false
+    },
+    {
+      "id": "donne_type_du_registre",
+      "kind": "effect",
+      "label": "Reçoit un type du Registre",
+      "desc": "La cible reçoit un type du Registre tiré au hasard (« un »), ou chacun de ses types (« tous »). Un type reçu compte comme un type imprimé. Détail : docs/V3-HEROS.md, 4.6.",
+      "params": [
+        {
+          "k": "t",
+          "type": "target",
+          "label": "Qui reçoit",
+          "allow": [
+            "self",
+            "allyUnit",
+            "allAllies",
+            "randomAllyUnit",
+            "previous"
+          ],
+          "def": "self"
+        },
+        {
+          "k": "quoi",
+          "type": "choice",
+          "label": "Combien de types",
+          "def": "un",
+          "choices": [
+            [
+              "un",
+              "Un type du Registre au hasard"
+            ],
+            [
+              "tous",
+              "Chaque type du Registre"
+            ]
+          ]
+        }
+      ],
+      "implemented": false
+    },
+    {
+      "id": "relance_registre",
+      "kind": "effect",
+      "label": "Relance des cartes du Registre",
+      "desc": "Relance GRATUITEMENT des cartes du Registre, avec `autoTarget` : « par type » = pour chaque type nommé du Registre, une carte de ce type tirée au hasard (Rétrospective) ; « hasard » = N cartes du Registre au hasard. Une carte relancée n’est ni mise en défausse ni exilée (c’est une copie), mais entre au Registre. Une relance n’en relance JAMAIS une autre (règle lisible, pas un plafond). Les cartes sont lues avec le niveau de leur propriétaire. Détail : docs/V3-HEROS.md, 4.6.",
+      "params": [
+        {
+          "k": "mode",
+          "type": "choice",
+          "label": "Quelles cartes",
+          "def": "parType",
+          "choices": [
+            [
+              "parType",
+              "Une carte par type du Registre"
+            ],
+            [
+              "hasard",
+              "Des cartes du Registre au hasard"
+            ]
+          ]
+        },
+        {
+          "k": "n",
+          "type": "number",
+          "label": "Combien (mode « au hasard »)",
+          "def": 1
+        }
+      ],
+      "implemented": false
+    },
+    {
+      "id": "cree_du_registre",
+      "kind": "effect",
+      "label": "Crée une carte d’un type du Registre",
+      "desc": "Crée en main N cartes au hasard parmi les cartes du catalogue qui portent un type du Registre. Détail : docs/V3-HEROS.md, 2.6 (Index du Registre, niveau 16).",
+      "params": [
+        {
+          "k": "n",
+          "type": "number",
+          "label": "Cartes créées",
+          "def": 1
+        },
+        {
+          "k": "lvl",
+          "type": "number",
+          "label": "Niveau de la carte",
+          "def": 1
+        }
+      ],
+      "implemented": false
+    }
+  ],
   "fatigue": [
     {
       "card": "card_4hz1f1",
@@ -1750,7 +1856,7 @@ export const CHARACTER_DATA = {
       "cards": [
         {
           "id": "cat_claw",
-          "name": "Griffeur de doigt",
+          "name": "Mage de l'étincelle",
           "type": "ally",
           "cost": 3,
           "atk": 2,
@@ -7845,6 +7951,3553 @@ export const CHARACTER_DATA = {
             "hp": 0,
             "key": ""
           }
+        }
+      ]
+    },
+    {
+      "id": "dog3",
+      "name": "Patou",
+      "species": "Chien",
+      "sprite": "Characters/Dog Cocker.png",
+      "role": "Berger — Contrôle Soft : taxe, punit et défausse ce que l’adversaire veut jouer",
+      "stats": {
+        "hp": 30,
+        "mana": 7,
+        "hand": 2
+      },
+      "cards": [
+        {
+          "id": "dog3_herd",
+          "name": "Chien de Troupeau",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "type:Chien"
+          ],
+          "text": "Cri de guerre : piste une carte. Quand l’adversaire joue une carte pistée, tu gagnes 3 PV.",
+          "play": [
+            {
+              "op": "piste",
+              "n": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 2,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "piste",
+                "n": 1
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : piste une carte."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "slot": "on_pistee_foe",
+              "text": "Quand l’adversaire joue une carte pistée, pioche une carte."
+            },
+            {
+              "lvl": 18,
+              "statique": {
+                "op": "pistage_a_la_pioche",
+                "qui": "adversaire",
+                "sens": "plus",
+                "v": 1
+              },
+              "text": "Statique : les cartes que l’adversaire pioche sont pistées."
+            }
+          ],
+          "atk": 1,
+          "hp": 2,
+          "statics": [],
+          "on_pistee_foe": [
+            {
+              "op": "heal",
+              "t": "ownHero",
+              "v": 3
+            }
+          ]
+        },
+        {
+          "id": "dog3_shepherd",
+          "name": "Berger Vigilant",
+          "type": "ally",
+          "cost": 2,
+          "keys": [
+            "type:Chien"
+          ],
+          "text": "Cri de guerre : piste une carte. Les cartes pistées coûtent 2 de plus.",
+          "play": [
+            {
+              "op": "piste",
+              "n": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "piste",
+                "n": 1
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : piste une carte."
+            },
+            {
+              "lvl": 13,
+              "aura": {
+                "key": "",
+                "atk": 0,
+                "hp": 1,
+                "scope": "sameTypeAllies"
+              },
+              "text": "Aura : tes autres Chiens ont +0/+1."
+            },
+            {
+              "lvl": 20,
+              "statique": {
+                "op": "limite_de_cartes_jouees",
+                "qui": "adversaire",
+                "v": 1
+              },
+              "text": "Statique : l’adversaire ne peut jouer qu’une carte par tour."
+            }
+          ],
+          "atk": 2,
+          "hp": 3,
+          "statics": [
+            {
+              "op": "cout_des_cartes",
+              "qui": "adversaire",
+              "quoi": "pistee",
+              "argCard": "",
+              "sens": "plus",
+              "v": 2
+            }
+          ]
+        },
+        {
+          "id": "dog3_train",
+          "name": "Dressage",
+          "type": "spell",
+          "cost": 2,
+          "keys": [
+            "type:Chien"
+          ],
+          "text": "Piste une carte. Inflige X dégâts à une unité adverse, X étant le nombre de cartes pistées.",
+          "play": [
+            {
+              "op": "piste",
+              "n": 1
+            },
+            {
+              "op": "dmg",
+              "t": "enemyUnit",
+              "v": {
+                "src": "cartesPistees",
+                "arg": "",
+                "plus": 0
+              }
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 4,
+              "amp": 1,
+              "text": "Effet +1"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche aussi une carte."
+            },
+            {
+              "lvl": 15,
+              "extra": {
+                "op": "dmg",
+                "t": "enemyHero",
+                "v": {
+                  "src": "cartesPistees",
+                  "arg": "",
+                  "plus": 0
+                }
+              },
+              "text": "Inflige aussi X dégâts au héros adverse."
+            }
+          ]
+        },
+        {
+          "id": "dog3_patou",
+          "name": "Patou",
+          "type": "ally",
+          "cost": 4,
+          "keys": [
+            "Taunt",
+            "type:Chien"
+          ],
+          "text": "Provocation. Cri de guerre : piste une carte. Quand l’adversaire joue une carte pistée, il perd 5 PV.",
+          "play": [
+            {
+              "op": "piste",
+              "n": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 5,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "armor",
+                "v": 2
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : ton héros gagne 2 d’armure."
+            },
+            {
+              "lvl": 16,
+              "aura": {
+                "key": "",
+                "atk": -1,
+                "hp": 0,
+                "scope": "enemyUnits"
+              },
+              "text": "Aura : les unités adverses ont -1/-0."
+            },
+            {
+              "lvl": 17,
+              "extra": {
+                "op": "detruit",
+                "t": "randomEnemyUnit"
+              },
+              "slot": "on_pistee_foe",
+              "text": "Quand l’adversaire joue une carte pistée, détruis une de ses unités."
+            }
+          ],
+          "atk": 3,
+          "hp": 5,
+          "statics": [],
+          "on_pistee_foe": [
+            {
+              "op": "dmg",
+              "t": "enemyHero",
+              "v": 5
+            }
+          ]
+        },
+        {
+          "id": "dog3_hunt",
+          "name": "Chasse au Loup",
+          "type": "spell",
+          "cost": 5,
+          "keys": [
+            "type:Chien"
+          ],
+          "text": "Détruis une unité adverse. Piste deux cartes.",
+          "play": [
+            {
+              "op": "detruit",
+              "t": "enemyUnit"
+            },
+            {
+              "op": "piste",
+              "n": 2
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 6,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche aussi une carte."
+            },
+            {
+              "lvl": 14,
+              "extra": {
+                "op": "piste",
+                "n": 99
+              },
+              "text": "Piste aussi toute la main adverse."
+            }
+          ]
+        }
+      ],
+      "switches": [
+        {
+          "id": "dog3_pup",
+          "name": "Chiot Pisteur",
+          "type": "ally",
+          "cost": 2,
+          "keys": [
+            "type:Chien"
+          ],
+          "text": "Cri de guerre : piste une carte. Quand l’adversaire joue une carte pistée, tes Chiens gagnent +1/+1.",
+          "play": [
+            {
+              "op": "piste",
+              "n": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 2,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "heal",
+                "t": "ownHero",
+                "v": 3
+              },
+              "slot": "on_pistee_foe",
+              "text": "Quand l’adversaire joue une carte pistée, tu gagnes aussi 3 PV."
+            },
+            {
+              "lvl": 13,
+              "aura": {
+                "key": "",
+                "atk": 1,
+                "hp": 0,
+                "scope": "sameTypeAllies"
+              },
+              "text": "Aura : tes autres Chiens ont +1/+0."
+            },
+            {
+              "lvl": 19,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "slot": "on_pistee_foe",
+              "text": "Quand l’adversaire joue une carte pistée, pioche une carte."
+            }
+          ],
+          "atk": 2,
+          "hp": 3,
+          "statics": [],
+          "on_pistee_foe": [
+            {
+              "op": "buff",
+              "t": "allyType:Chien",
+              "atk": 1,
+              "hp": 1
+            }
+          ]
+        },
+        {
+          "id": "dog3_muzzle",
+          "name": "Muselière",
+          "type": "spell",
+          "cost": 3,
+          "keys": [
+            "type:Chien"
+          ],
+          "text": "Piste une carte, puis l’adversaire défausse une carte pistée.",
+          "play": [
+            {
+              "op": "piste",
+              "n": 1
+            },
+            {
+              "op": "met_a_la_defausse",
+              "d_ou": "main",
+              "choix": "precise",
+              "carte": "",
+              "quoi": "pistee",
+              "argCard": "",
+              "t": "enemyUnit",
+              "qui": "adversaire",
+              "ordre": "hasard",
+              "n": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "dmg",
+                "t": "enemyHero",
+                "v": 2
+              },
+              "text": "L’adversaire perd aussi 2 PV."
+            },
+            {
+              "lvl": 15,
+              "extra": {
+                "op": "met_a_la_defausse",
+                "d_ou": "main",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "all",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "adversaire",
+                "ordre": "hasard",
+                "n": 1
+              },
+              "text": "Il défausse aussi une carte au hasard."
+            }
+          ]
+        },
+        {
+          "id": "dog3_rott",
+          "name": "Rottweiler",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "type:Chien"
+          ],
+          "text": "Cri de guerre : piste une carte. Quand l’adversaire joue une carte pistée, 3 dégâts à une unité adverse au hasard.",
+          "play": [
+            {
+              "op": "piste",
+              "n": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 4,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "dmg",
+                "t": "randomEnemyUnit",
+                "v": 2
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : 2 dégâts à une unité adverse au hasard."
+            },
+            {
+              "lvl": 16,
+              "statique": {
+                "op": "nombre_d_attaques",
+                "qui": "adversaire",
+                "v": 2
+              },
+              "text": "Statique : l’adversaire n’attaque qu’avec 2 unités par tour."
+            }
+          ],
+          "atk": 3,
+          "hp": 3,
+          "statics": [],
+          "on_pistee_foe": [
+            {
+              "op": "dmg",
+              "t": "randomEnemyUnit",
+              "v": 3
+            }
+          ]
+        },
+        {
+          "id": "dog3_beat",
+          "name": "Battue",
+          "type": "spell",
+          "cost": 4,
+          "keys": [
+            "type:Chien"
+          ],
+          "text": "Piste toute la main adverse. Pioche une carte.",
+          "play": [
+            {
+              "op": "piste",
+              "n": 99
+            },
+            {
+              "op": "draw",
+              "v": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 5,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "dmg",
+                "t": "randomEnemyUnit",
+                "v": {
+                  "src": "cartesPistees",
+                  "arg": "",
+                  "plus": 0
+                }
+              },
+              "text": "Inflige aussi 1 dégât à une unité adverse au hasard par carte pistée."
+            },
+            {
+              "lvl": 14,
+              "extra": {
+                "op": "met_a_la_defausse",
+                "d_ou": "main",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "pistee",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "adversaire",
+                "ordre": "hasard",
+                "n": 1
+              },
+              "text": "L’adversaire défausse aussi une carte pistée."
+            }
+          ]
+        },
+        {
+          "id": "dog3_elder",
+          "name": "Vieux Berger",
+          "type": "ally",
+          "cost": 5,
+          "keys": [
+            "type:Chien"
+          ],
+          "text": "Cri de guerre : piste une carte. Les cartes que l’adversaire pioche sont pistées. Les cartes pistées coûtent 1 de plus.",
+          "play": [
+            {
+              "op": "piste",
+              "n": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 6,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "dmg",
+                "t": "enemyHero",
+                "v": {
+                  "src": "cartesPistees",
+                  "arg": "",
+                  "plus": 0
+                }
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : 1 dégât au héros adverse par carte pistée."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "dmg",
+                "t": "enemyHero",
+                "v": 3
+              },
+              "slot": "on_pistee_foe",
+              "text": "Quand l’adversaire joue une carte pistée, il perd 3 PV."
+            }
+          ],
+          "atk": 4,
+          "hp": 6,
+          "statics": [
+            {
+              "op": "pistage_a_la_pioche",
+              "qui": "adversaire",
+              "sens": "plus",
+              "v": 1
+            },
+            {
+              "op": "cout_des_cartes",
+              "qui": "adversaire",
+              "quoi": "pistee",
+              "argCard": "",
+              "sens": "plus",
+              "v": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat3",
+      "name": "Mélusine",
+      "species": "Chat",
+      "sprite": "Characters/Cat Witch.png",
+      "role": "Sorcière — Combo : ses sorts se relancent depuis la défausse, sa défausse est une seconde main",
+      "stats": {
+        "hp": 25,
+        "mana": 8,
+        "hand": 2
+      },
+      "cards": [
+        {
+          "id": "cat3_spark",
+          "name": "Étincelle",
+          "type": "spell",
+          "cost": 1,
+          "keys": [
+            "type:Chat",
+            "reprise"
+          ],
+          "text": "Reprise. Inflige 2 dégâts à une unité adverse.",
+          "play": [
+            {
+              "op": "dmg",
+              "t": "enemyUnit",
+              "v": 2
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 2,
+              "amp": 1,
+              "text": "Effet +1"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "dmg",
+                "t": "enemyHero",
+                "v": 1
+              },
+              "text": "Inflige aussi 1 dégât au héros adverse."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "reduit_le_cout_de",
+                "quoi": "spell",
+                "typeDe": "ecrit",
+                "argType": "",
+                "typeQui": "toi",
+                "argKey": "",
+                "argCard": "",
+                "v": 1,
+                "n": 1
+              },
+              "text": "Réduit de 1 le coût d’un sort de ta main."
+            }
+          ]
+        },
+        {
+          "id": "cat3_kit",
+          "name": "Chaton Apprenti",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "type:Chat"
+          ],
+          "text": "Cri de guerre : défausse une carte, puis pioche une carte.",
+          "play": [
+            {
+              "op": "met_a_la_defausse",
+              "d_ou": "main",
+              "choix": "precise",
+              "carte": "",
+              "quoi": "all",
+              "argCard": "",
+              "t": "enemyUnit",
+              "qui": "toi",
+              "ordre": "hasard",
+              "n": 1
+            },
+            {
+              "op": "draw",
+              "v": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "met_a_la_defausse",
+                "d_ou": "main",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "all",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "hasard",
+                "n": 1
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : défausse une carte…"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "slot": "death",
+              "text": "… puis pioche une carte."
+            },
+            {
+              "lvl": 15,
+              "extra": {
+                "op": "reduit_le_cout_de",
+                "quoi": "spell",
+                "typeDe": "ecrit",
+                "argType": "",
+                "typeQui": "toi",
+                "argKey": "",
+                "argCard": "",
+                "v": 1,
+                "n": 1
+              },
+              "slot": "on_defausse_self",
+              "text": "Quand tu défausses une carte, un sort de ta main coûte 1 de moins."
+            },
+            {
+              "lvl": 17,
+              "statique": {
+                "op": "cout_des_cartes",
+                "qui": "toi",
+                "quoi": "spell",
+                "argCard": "",
+                "sens": "moins",
+                "v": 1
+              },
+              "text": "Statique : tes sorts coûtent 1 de moins."
+            }
+          ],
+          "atk": 1,
+          "hp": 2,
+          "statics": []
+        },
+        {
+          "id": "cat3_cauldron",
+          "name": "Chaudron",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "type:Chat"
+          ],
+          "text": "Les cartes de ta défausse coûtent 1 de moins.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 4,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "dmg",
+                "t": "randomEnemyUnit",
+                "v": 1
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : 1 dégât à une unité adverse au hasard."
+            },
+            {
+              "lvl": 14,
+              "statique": {
+                "op": "montant_des_effets",
+                "qui": "toi",
+                "cible": "dmg",
+                "sens": "plus",
+                "v": 1
+              },
+              "text": "Statique : tes dégâts infligent 1 de plus."
+            },
+            {
+              "lvl": 18,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "slot": "on_defausse_self",
+              "text": "Quand tu défausses une carte, pioche une carte."
+            }
+          ],
+          "atk": 2,
+          "hp": 4,
+          "statics": [
+            {
+              "op": "cout_des_cartes",
+              "qui": "toi",
+              "quoi": "all",
+              "argCard": "",
+              "sens": "moins",
+              "v": 1,
+              "zone": "defausse"
+            }
+          ]
+        },
+        {
+          "id": "cat3_ash",
+          "name": "Sorcière des Cendres",
+          "type": "ally",
+          "cost": 4,
+          "keys": [
+            "type:Chat"
+          ],
+          "text": "Cri de guerre : reprends un sort de ta défausse dans ta main.",
+          "play": [
+            {
+              "op": "renvoie_en_main",
+              "d_ou": "defausse",
+              "choix": "precise",
+              "carte": "",
+              "quoi": "spell",
+              "argCard": "",
+              "t": "enemyUnit",
+              "qui": "toi",
+              "ordre": "hasard",
+              "n": 1,
+              "fatigue": false,
+              "atk": 0,
+              "hp": 0
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 5,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "renvoie_en_main",
+                "d_ou": "defausse",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "spell",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "hasard",
+                "n": 1,
+                "fatigue": false,
+                "atk": 0,
+                "hp": 0
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : reprends un sort de ta défausse dans ta main."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "renvoie_en_main",
+                "d_ou": "defausse",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "spell",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "hasard",
+                "n": 1,
+                "fatigue": false,
+                "atk": 0,
+                "hp": 0
+              },
+              "text": "Cri de guerre : reprends aussi un sort de ta défausse dans ta main."
+            }
+          ],
+          "atk": 3,
+          "hp": 4,
+          "statics": []
+        },
+        {
+          "id": "cat3_philter",
+          "name": "Grand Philtre",
+          "type": "spell",
+          "cost": 6,
+          "keys": [
+            "type:Chat"
+          ],
+          "text": "Inflige à l’adversaire autant de dégâts que de cartes dans ta défausse.",
+          "play": [
+            {
+              "op": "dmg",
+              "t": "enemyHero",
+              "v": {
+                "src": "discardCards",
+                "arg": "",
+                "plus": 0
+              }
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 6,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche aussi une carte."
+            },
+            {
+              "lvl": 16,
+              "extra": {
+                "op": "dmg",
+                "t": "randomEnemyUnit",
+                "v": 3
+              },
+              "text": "Inflige aussi 3 dégâts à une unité adverse au hasard."
+            }
+          ]
+        }
+      ],
+      "switches": [
+        {
+          "id": "cat3_evil",
+          "name": "Mauvais Œil",
+          "type": "spell",
+          "cost": 2,
+          "keys": [
+            "type:Chat",
+            "reprise"
+          ],
+          "text": "Reprise. Donne -2/-2 à une unité adverse.",
+          "play": [
+            {
+              "op": "buff",
+              "t": "enemyUnit",
+              "atk": -2,
+              "hp": -2
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche aussi une carte."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "buff",
+                "t": "previousType",
+                "atk": -1,
+                "hp": -1
+              },
+              "text": "Donne aussi -1/-1 à toutes les unités adverses du même type."
+            }
+          ]
+        },
+        {
+          "id": "cat3_divin",
+          "name": "Divination",
+          "type": "spell",
+          "cost": 2,
+          "keys": [
+            "type:Chat",
+            "reprise"
+          ],
+          "text": "Reprise. Pioche une carte.",
+          "play": [
+            {
+              "op": "draw",
+              "v": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 2,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "mana_au_prochain_tour",
+                "x": 1
+              },
+              "text": "Gagne aussi 1 mana au prochain tour."
+            },
+            {
+              "lvl": 14,
+              "extra": {
+                "op": "reduit_le_cout_de",
+                "quoi": "all",
+                "typeDe": "ecrit",
+                "argType": "",
+                "typeQui": "toi",
+                "argKey": "",
+                "argCard": "",
+                "v": 1,
+                "n": 0
+              },
+              "text": "Réduit de 1 le coût de toutes les cartes de ta main."
+            }
+          ]
+        },
+        {
+          "id": "cat3_familiar",
+          "name": "Familier Affamé",
+          "type": "ally",
+          "cost": 2,
+          "keys": [
+            "type:Chat"
+          ],
+          "text": "Quand tu lances un sort depuis ta défausse, gagne +1/+1.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 4,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "dmg",
+                "t": "enemyHero",
+                "v": 1
+              },
+              "slot": "on_reprise_self",
+              "text": "Quand tu lances un sort depuis ta défausse, 1 dégât au héros adverse."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "buff",
+                "t": "self",
+                "atk": 1,
+                "hp": 0
+              },
+              "slot": "on_defausse_self",
+              "text": "Quand tu défausses une carte, gagne +1/+0."
+            },
+            {
+              "lvl": 20,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Chat",
+                  "atk": 2,
+                  "hp": 2,
+                  "keys": [
+                    "type:Chat"
+                  ],
+                  "statics": []
+                }
+              },
+              "slot": "on_reprise_self",
+              "text": "Quand tu lances un sort depuis ta défausse, invoque un Chat 2/2."
+            }
+          ],
+          "atk": 1,
+          "hp": 3,
+          "statics": [],
+          "on_reprise_self": [
+            {
+              "op": "buff",
+              "t": "self",
+              "atk": 1,
+              "hp": 1
+            }
+          ]
+        },
+        {
+          "id": "cat3_black",
+          "name": "Chat Noir",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "type:Chat"
+          ],
+          "text": "Quand tu défausses une carte, 1 dégât au héros adverse.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 5,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "slot": "on_reprise_self",
+              "text": "Quand tu lances un sort depuis ta défausse, pioche une carte."
+            },
+            {
+              "lvl": 15,
+              "extra": {
+                "op": "buff",
+                "t": "randomAllyUnit",
+                "atk": 1,
+                "hp": 1
+              },
+              "slot": "on_defausse_self",
+              "text": "Quand tu défausses une carte, un allié gagne +1/+1."
+            }
+          ],
+          "atk": 3,
+          "hp": 3,
+          "statics": [],
+          "on_defausse_self": [
+            {
+              "op": "dmg",
+              "t": "enemyHero",
+              "v": 1
+            }
+          ]
+        },
+        {
+          "id": "cat3_sabbat",
+          "name": "Sabbat",
+          "type": "ally",
+          "cost": 6,
+          "keys": [
+            "type:Chat"
+          ],
+          "text": "Les sorts de ta défausse ont +1 puissance des sorts.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 6,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "renvoie_en_main",
+                "d_ou": "defausse",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "spell",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "hasard",
+                "n": 1,
+                "fatigue": false,
+                "atk": 0,
+                "hp": 0
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : reprends un sort au hasard de ta défausse dans ta main."
+            },
+            {
+              "lvl": 16,
+              "statique": {
+                "op": "cout_des_cartes",
+                "qui": "toi",
+                "quoi": "all",
+                "argCard": "",
+                "sens": "moins",
+                "v": 1,
+                "zone": "defausse"
+              },
+              "text": "Statique : les cartes de ta défausse coûtent 1 de moins."
+            },
+            {
+              "lvl": 19,
+              "extra": {
+                "op": "dmg",
+                "t": "randomEnemyUnit",
+                "v": 2
+              },
+              "slot": "on_reprise_self",
+              "text": "Quand tu lances un sort depuis ta défausse, 2 dégâts à une unité adverse au hasard."
+            }
+          ],
+          "atk": 4,
+          "hp": 5,
+          "statics": [
+            {
+              "op": "montant_des_effets",
+              "qui": "toi",
+              "cible": "tous",
+              "zone": "defausse",
+              "sens": "plus",
+              "v": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "crow3",
+      "name": "Morrigane",
+      "species": "Corbeau",
+      "sprite": "Characters/Crow Skeleton.png",
+      "role": "Charognarde — Aggro MidRange : dévore la défausse adverse, tient mieux la longueur qu’un Turbo",
+      "stats": {
+        "hp": 24,
+        "mana": 8,
+        "hand": 2
+      },
+      "cards": [
+        {
+          "id": "crow3_hungry",
+          "name": "Corbeau Affamé",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "type:Oiseau",
+            "type:Corbeau"
+          ],
+          "text": "Cri de guerre : Charogne 1.",
+          "play": [
+            {
+              "op": "charogne",
+              "n": 1,
+              "t": "self"
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 2,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "charogne",
+                "n": 1,
+                "t": "self"
+              },
+              "slot": "on_attack_self",
+              "text": "Quand cette unité attaque, Charogne 1."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "charogne",
+                "n": 1,
+                "t": "self"
+              },
+              "slot": "on_heroHurt_foe",
+              "text": "Quand l’adversaire perd des PV, Charogne 1."
+            },
+            {
+              "lvl": 17,
+              "statique": {
+                "op": "montant_des_effets",
+                "qui": "toi",
+                "cible": "charogne",
+                "sens": "plus",
+                "v": 1
+              },
+              "text": "Statique : tes Charognes dévorent 1 carte de plus."
+            }
+          ],
+          "atk": 2,
+          "hp": 1,
+          "statics": [],
+          "gardes": {
+            "on_attack_self": "moi"
+          }
+        },
+        {
+          "id": "crow3_magpie",
+          "name": "Pie Voleuse",
+          "type": "ally",
+          "cost": 2,
+          "keys": [
+            "type:Oiseau",
+            "type:Corbeau"
+          ],
+          "text": "Cri de guerre : appât 2. Quand une carte est exilée d’une défausse, gagne +1/+0.",
+          "play": [
+            {
+              "op": "appat",
+              "n": 2
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "buff",
+                "t": "allyType:Oiseau",
+                "atk": 1,
+                "hp": 0
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : tes autres Oiseaux gagnent +1/+0."
+            },
+            {
+              "lvl": 15,
+              "extra": {
+                "op": "buff",
+                "t": "allyType:Oiseau",
+                "atk": 1,
+                "hp": 0
+              },
+              "slot": "on_exil_any",
+              "text": "Quand une carte est exilée d’une défausse, tes autres Oiseaux gagnent +1/+0."
+            }
+          ],
+          "atk": 2,
+          "hp": 2,
+          "statics": [],
+          "on_exil_any": [
+            {
+              "op": "buff",
+              "t": "self",
+              "atk": 1,
+              "hp": 0
+            }
+          ]
+        },
+        {
+          "id": "crow3_vulture",
+          "name": "Vautour",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "Charge",
+            "type:Oiseau",
+            "type:Corbeau"
+          ],
+          "text": "Charge. Quand cette unité attaque, Charogne 1.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 4,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "charogne",
+                "n": 1,
+                "t": "self"
+              },
+              "text": "Cri de guerre : Charogne 1."
+            },
+            {
+              "lvl": 14,
+              "aura": {
+                "key": "Charge",
+                "atk": 0,
+                "hp": 0,
+                "scope": "sameTypeAllies"
+              },
+              "text": "Aura : tes autres Oiseaux ont Charge."
+            }
+          ],
+          "atk": 3,
+          "hp": 2,
+          "statics": [],
+          "gardes": {
+            "on_attack_self": "moi"
+          },
+          "on_attack_self": [
+            {
+              "op": "charogne",
+              "n": 1,
+              "t": "self"
+            }
+          ]
+        },
+        {
+          "id": "crow3_knacker",
+          "name": "Équarrisseur",
+          "type": "ally",
+          "cost": 4,
+          "keys": [
+            "type:Oiseau",
+            "type:Corbeau"
+          ],
+          "text": "Quand une unité adverse meurt, Charogne 1.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 5,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "charogne",
+                "n": 2,
+                "t": "self"
+              },
+              "text": "Cri de guerre : Charogne 2."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "charogne",
+                "n": 1,
+                "t": "self"
+              },
+              "slot": "on_spell_foe",
+              "text": "Quand l’adversaire lance un sort, Charogne 1."
+            }
+          ],
+          "atk": 3,
+          "hp": 3,
+          "statics": [],
+          "on_unitDies_foe": [
+            {
+              "op": "charogne",
+              "n": 1,
+              "t": "self"
+            }
+          ]
+        },
+        {
+          "id": "crow3_lord",
+          "name": "Seigneur des Charognes",
+          "type": "ally",
+          "cost": 6,
+          "keys": [
+            "type:Oiseau",
+            "type:Corbeau"
+          ],
+          "text": "Cri de guerre : Charogne 4.",
+          "play": [
+            {
+              "op": "charogne",
+              "n": 4,
+              "t": "self"
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 6,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "charogne",
+                "n": 2,
+                "t": "self"
+              },
+              "slot": "on_attack_self",
+              "text": "Quand cette unité attaque, Charogne 2."
+            },
+            {
+              "lvl": 16,
+              "aura": {
+                "key": "",
+                "atk": 1,
+                "hp": 0,
+                "scope": "sameTypeAllies"
+              },
+              "text": "Aura : tes autres Oiseaux ont +1/+0."
+            },
+            {
+              "lvl": 18,
+              "extra": {
+                "op": "charogne",
+                "n": 1,
+                "t": "self"
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : Charogne 1."
+            }
+          ],
+          "atk": 4,
+          "hp": 5,
+          "statics": [],
+          "gardes": {
+            "on_attack_self": "moi"
+          }
+        }
+      ],
+      "switches": [
+        {
+          "id": "crow3_charnel",
+          "name": "Charnier",
+          "type": "spell",
+          "cost": 2,
+          "keys": [
+            "type:Oiseau"
+          ],
+          "text": "Appât 1, puis Charogne 2 : une unité alliée gagne +1/+1 par carte dévorée et leurs mots-clés.",
+          "play": [
+            {
+              "op": "appat",
+              "n": 1
+            },
+            {
+              "op": "charogne",
+              "n": 2,
+              "t": "allyUnit"
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 2,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche aussi une carte."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "buff",
+                "t": "allyUnit",
+                "atk": 0,
+                "hp": 0,
+                "key": "Charge"
+              },
+              "text": "L’unité gagne aussi Charge."
+            }
+          ]
+        },
+        {
+          "id": "crow3_skel",
+          "name": "Corbeau Squelette",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "type:Oiseau",
+            "type:Corbeau"
+          ],
+          "text": "Début de ton tour : Charogne 1.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 3,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "charogne",
+                "n": 1,
+                "t": "self"
+              },
+              "slot": "on_attack_self",
+              "text": "Quand cette unité attaque, Charogne 1."
+            },
+            {
+              "lvl": 15,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "slot": "on_exil_any",
+              "text": "Quand une carte est exilée d’une défausse, pioche une carte."
+            }
+          ],
+          "atk": 2,
+          "hp": 3,
+          "statics": [],
+          "turnStart": [
+            {
+              "op": "charogne",
+              "n": 1,
+              "t": "self"
+            }
+          ],
+          "gardes": {
+            "on_attack_self": "moi"
+          }
+        },
+        {
+          "id": "crow3_prince",
+          "name": "Prince des Ossements",
+          "type": "ally",
+          "cost": 5,
+          "keys": [
+            "type:Oiseau",
+            "type:Corbeau"
+          ],
+          "text": "Quand une carte est exilée d’une défausse, 1 dégât au héros adverse.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 4,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "charogne",
+                "n": 2,
+                "t": "self"
+              },
+              "text": "Cri de guerre : Charogne 2."
+            },
+            {
+              "lvl": 14,
+              "key": "Charge",
+              "text": "Gagne Charge."
+            },
+            {
+              "lvl": 19,
+              "extra": {
+                "op": "met_a_la_defausse",
+                "d_ou": "main",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "all",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "adversaire",
+                "ordre": "hasard",
+                "n": 1
+              },
+              "slot": "on_exil_any",
+              "text": "Quand une carte est exilée d’une défausse, l’adversaire défausse une carte au hasard."
+            }
+          ],
+          "atk": 4,
+          "hp": 4,
+          "statics": [],
+          "on_exil_any": [
+            {
+              "op": "dmg",
+              "t": "enemyHero",
+              "v": 1
+            }
+          ]
+        },
+        {
+          "id": "crow3_colossus",
+          "name": "Colosse d’Os",
+          "type": "ally",
+          "cost": 7,
+          "keys": [
+            "type:Oiseau",
+            "type:Corbeau"
+          ],
+          "text": "Cri de guerre : Charogne 5.",
+          "play": [
+            {
+              "op": "charogne",
+              "n": 5,
+              "t": "self"
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 5,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "charogne",
+                "n": 1,
+                "t": "self"
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : Charogne 1."
+            },
+            {
+              "lvl": 16,
+              "aura": {
+                "key": "",
+                "atk": 1,
+                "hp": 1,
+                "scope": "sameTypeAllies"
+              },
+              "text": "Aura : tes autres Oiseaux ont +1/+1."
+            },
+            {
+              "lvl": 20,
+              "extra": {
+                "op": "buff",
+                "t": "self",
+                "atk": 1,
+                "hp": 1
+              },
+              "slot": "on_exil_any",
+              "text": "Quand une carte est exilée d’une défausse, gagne +1/+1."
+            }
+          ],
+          "atk": 5,
+          "hp": 5,
+          "statics": []
+        },
+        {
+          "id": "crow3_lean",
+          "name": "Rapace Maigre",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "Charge",
+            "type:Oiseau",
+            "type:Corbeau"
+          ],
+          "text": "Charge. Cri de guerre : appât 1. Quand l’adversaire perd des PV, Charogne 1.",
+          "play": [
+            {
+              "op": "appat",
+              "n": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 6,
+              "stats": {
+                "atk": 1,
+                "hp": 1
+              },
+              "text": "+1/+1"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : pioche une carte."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "charogne",
+                "n": 1,
+                "t": "self"
+              },
+              "slot": "on_attack_self",
+              "text": "Quand tu attaques avec une unité, Charogne 1."
+            }
+          ],
+          "atk": 2,
+          "hp": 1,
+          "statics": [],
+          "on_heroHurt_foe": [
+            {
+              "op": "charogne",
+              "n": 1,
+              "t": "self"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "frog3",
+      "name": "Dendrobate",
+      "species": "Grenouille",
+      "sprite": "Characters/Frog Venomous.png",
+      "role": "Venin — Contrôle Hard : des Toxines, un 1 pour 1 ou un 1 pour 2, aucune unité au-delà de 5",
+      "stats": {
+        "hp": 28,
+        "mana": 7,
+        "hand": 2
+      },
+      "cards": [
+        {
+          "id": "frog3_tree",
+          "name": "Rainette Toxique",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "type:Grenouille"
+          ],
+          "text": "Cri de guerre : pose 1 Toxine sur une unité adverse.",
+          "play": [
+            {
+              "op": "toxine",
+              "t": "enemyUnit",
+              "v": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 2,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "toxine",
+                "t": "randomEnemyUnit",
+                "v": 1
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : pose 1 Toxine sur une unité adverse au hasard."
+            },
+            {
+              "lvl": 14,
+              "extra": {
+                "op": "toxine",
+                "t": "randomEnemyUnit",
+                "v": 1
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : pose 1 Toxine sur une unité adverse au hasard."
+            },
+            {
+              "lvl": 17,
+              "statique": {
+                "op": "montant_des_effets",
+                "qui": "toi",
+                "cible": "toxine",
+                "sens": "plus",
+                "v": 1
+              },
+              "text": "Statique : tes Toxines en posent 1 de plus."
+            }
+          ],
+          "atk": 1,
+          "hp": 2,
+          "statics": []
+        },
+        {
+          "id": "frog3_dart",
+          "name": "Dard Empoisonné",
+          "type": "spell",
+          "cost": 2,
+          "keys": [
+            "type:Grenouille"
+          ],
+          "text": "Pose 3 Toxines sur une unité adverse.",
+          "play": [
+            {
+              "op": "toxine",
+              "t": "enemyUnit",
+              "v": 3
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "amp": 1,
+              "text": "Effet +1"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "toxine",
+                "t": "randomEnemyUnit",
+                "v": 1
+              },
+              "text": "Pose aussi 1 Toxine sur une autre unité adverse au hasard."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche aussi une carte."
+            }
+          ]
+        },
+        {
+          "id": "frog3_sentinel",
+          "name": "Sentinelle des Roseaux",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "Taunt",
+            "Venin",
+            "type:Grenouille"
+          ],
+          "text": "Provocation. Venin.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 4,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "armor",
+                "v": 2
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : ton héros gagne 2 d’armure."
+            },
+            {
+              "lvl": 12,
+              "aura": {
+                "key": "",
+                "atk": -1,
+                "hp": 0,
+                "scope": "enemyUnits"
+              },
+              "text": "Aura : les unités adverses ont -1/-0."
+            }
+          ],
+          "atk": 2,
+          "hp": 4,
+          "statics": []
+        },
+        {
+          "id": "frog3_slow",
+          "name": "Poison Lent",
+          "type": "spell",
+          "cost": 4,
+          "keys": [
+            "type:Grenouille"
+          ],
+          "text": "Détruis une unité adverse. Pose 3 Toxines sur une unité adverse au hasard.",
+          "play": [
+            {
+              "op": "detruit",
+              "t": "enemyUnit"
+            },
+            {
+              "op": "toxine",
+              "t": "randomEnemyUnit",
+              "v": 3
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 5,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "heal",
+                "t": "ownHero",
+                "v": 4
+              },
+              "text": "Soigne aussi ton héros de 4."
+            },
+            {
+              "lvl": 15,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche aussi une carte."
+            }
+          ]
+        },
+        {
+          "id": "frog3_royal",
+          "name": "Dendrobate Royale",
+          "type": "ally",
+          "cost": 5,
+          "keys": [
+            "type:Grenouille"
+          ],
+          "text": "Aura : tes autres alliés ont Venin.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 6,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "armor",
+                "v": 2
+              },
+              "slot": "on_unitDies_foe",
+              "text": "Quand une unité adverse meurt, ton héros gagne 2 d’armure."
+            },
+            {
+              "lvl": 16,
+              "aura": {
+                "key": "",
+                "atk": 0,
+                "hp": 1,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres alliés ont +0/+1 de plus."
+            },
+            {
+              "lvl": 18,
+              "aura": {
+                "key": "Bouclier",
+                "atk": 0,
+                "hp": 0,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres alliés ont Bouclier."
+            }
+          ],
+          "atk": 3,
+          "hp": 5,
+          "statics": [],
+          "aura": {
+            "scope": "otherAllies",
+            "atk": 0,
+            "hp": 0,
+            "key": "Venin"
+          }
+        }
+      ],
+      "switches": [
+        {
+          "id": "frog3_tadpole",
+          "name": "Têtard Toxique",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "type:Têtard",
+            "type:Grenouille"
+          ],
+          "text": "Râle d’agonie : pose 1 Toxine sur une unité adverse au hasard.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 4,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "toxine",
+                "t": "enemyUnit",
+                "v": 1
+              },
+              "text": "Cri de guerre : pose 1 Toxine sur une unité adverse."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Têtard",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Têtard",
+                    "type:Grenouille"
+                  ],
+                  "statics": []
+                }
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : invoque un Têtard 1/1."
+            }
+          ],
+          "atk": 1,
+          "hp": 1,
+          "statics": [],
+          "death": [
+            {
+              "op": "toxine",
+              "t": "randomEnemyUnit",
+              "v": 1
+            }
+          ]
+        },
+        {
+          "id": "frog3_toad",
+          "name": "Crapaud Cornu",
+          "type": "ally",
+          "cost": 2,
+          "keys": [
+            "type:Grenouille"
+          ],
+          "text": "Quand une unité adverse attaque, elle reçoit 1 Toxine.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 2,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "toxine",
+                "t": "randomEnemyUnit",
+                "v": 2
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : pose 2 Toxines sur une unité adverse au hasard."
+            },
+            {
+              "lvl": 15,
+              "key": "Taunt",
+              "text": "Gagne Provocation."
+            },
+            {
+              "lvl": 20,
+              "statique": {
+                "op": "toxine_brule_le_heros",
+                "qui": "adversaire",
+                "sens": "plus",
+                "v": 1
+              },
+              "text": "Statique : au début de son tour, chaque unité adverse inflige à son contrôleur 1 dégât par Toxine qu’elle porte."
+            }
+          ],
+          "atk": 2,
+          "hp": 3,
+          "statics": [],
+          "on_attack_foe": [
+            {
+              "op": "toxine",
+              "t": "previous",
+              "v": 1
+            }
+          ]
+        },
+        {
+          "id": "frog3_contagion",
+          "name": "Contagion",
+          "type": "spell",
+          "cost": 2,
+          "keys": [
+            "type:Grenouille"
+          ],
+          "text": "Chaque unité adverse qui porte une Toxine en reçoit 1 de plus.",
+          "play": [
+            {
+              "op": "contagion",
+              "v": 1,
+              "dmg": 0
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche aussi une carte."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "contagion",
+                "v": 0,
+                "dmg": 1
+              },
+              "text": "Inflige aussi 1 dégât à chaque unité adverse qui porte une Toxine."
+            }
+          ]
+        },
+        {
+          "id": "frog3_collector",
+          "name": "Collectionneur de Poisons",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "type:Grenouille"
+          ],
+          "text": "Quand une unité adverse qui porte une Toxine meurt, pioche une carte.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 5,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "toxine",
+                "t": "randomEnemyUnit",
+                "v": 1
+              },
+              "slot": "on_unitDies_self",
+              "text": "Quand une de tes unités meurt, pose 1 Toxine sur une unité adverse au hasard."
+            },
+            {
+              "lvl": 14,
+              "aura": {
+                "key": "",
+                "atk": 0,
+                "hp": 1,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres alliés ont +0/+1."
+            },
+            {
+              "lvl": 19,
+              "statique": {
+                "op": "pioche_du_tour",
+                "qui": "toi",
+                "sens": "plus",
+                "v": 1
+              },
+              "text": "Statique : tu pioches une carte de plus au début de ton tour."
+            }
+          ],
+          "atk": 2,
+          "hp": 4,
+          "statics": [],
+          "on_unitToxinee_foe": [
+            {
+              "op": "draw",
+              "v": 1
+            }
+          ]
+        },
+        {
+          "id": "frog3_epidemic",
+          "name": "Épidémie",
+          "type": "spell",
+          "cost": 5,
+          "keys": [
+            "type:Grenouille"
+          ],
+          "text": "Pose 2 Toxines sur chaque unité adverse. Puis chaque unité adverse inflige à son contrôleur autant de dégâts que de Toxines qu’elle porte.",
+          "play": [
+            {
+              "op": "epidemie",
+              "v": 2
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 6,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche aussi une carte."
+            },
+            {
+              "lvl": 16,
+              "extra": {
+                "op": "heal",
+                "t": "ownHero",
+                "v": 6
+              },
+              "text": "Soigne aussi ton héros de 6."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "owl3",
+      "name": "Hulotte",
+      "species": "Hibou",
+      "sprite": "Characters/Owl Academic.png",
+      "role": "Bibliothécaire — Fatigue : meule sa pioche pour atteindre la fatigue avant l’adversaire, et y range ses Ex-libris",
+      "stats": {
+        "hp": 27,
+        "mana": 9,
+        "hand": 2
+      },
+      "cards": [
+        {
+          "id": "owl3_skim",
+          "name": "Lecture en diagonale",
+          "type": "spell",
+          "cost": 1,
+          "keys": [
+            "type:Oiseau"
+          ],
+          "text": "Meule 3 cartes, pioche une carte.",
+          "play": [
+            {
+              "op": "met_a_la_defausse",
+              "d_ou": "pioche",
+              "choix": "precise",
+              "carte": "",
+              "quoi": "all",
+              "argCard": "",
+              "t": "enemyUnit",
+              "qui": "toi",
+              "ordre": "dessus",
+              "n": 3
+            },
+            {
+              "op": "draw",
+              "v": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 2,
+              "extra": {
+                "op": "met_a_la_defausse",
+                "d_ou": "pioche",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "all",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "dessus",
+                "n": 2
+              },
+              "text": "Meule aussi 2 cartes."
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche aussi une carte."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "renforce_les_cartes",
+                "d_ou": "fatigue",
+                "qui": "toi",
+                "quoi": "all",
+                "ordre": "hasard",
+                "n": 99,
+                "atk": 1,
+                "hp": 1
+              },
+              "text": "Les cartes de ta pile de fatigue gagnent +1/+1."
+            }
+          ]
+        },
+        {
+          "id": "owl3_archivist",
+          "name": "Archiviste",
+          "type": "ally",
+          "cost": 2,
+          "keys": [
+            "type:Oiseau",
+            "type:Hibou"
+          ],
+          "text": "Cri de guerre : meule 2 cartes.",
+          "play": [
+            {
+              "op": "met_a_la_defausse",
+              "d_ou": "pioche",
+              "choix": "precise",
+              "carte": "",
+              "quoi": "all",
+              "argCard": "",
+              "t": "enemyUnit",
+              "qui": "toi",
+              "ordre": "dessus",
+              "n": 2
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "met_a_la_defausse",
+                "d_ou": "pioche",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "all",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "dessus",
+                "n": 2
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : meule 2 cartes."
+            },
+            {
+              "lvl": 14,
+              "extra": {
+                "op": "met_a_la_defausse",
+                "d_ou": "pioche",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "all",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "dessus",
+                "n": 1
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : meule une carte."
+            },
+            {
+              "lvl": 17,
+              "statique": {
+                "op": "mana_du_tour",
+                "qui": "toi",
+                "sens": "plus",
+                "v": 1
+              },
+              "text": "Statique : tu as 1 mana de plus par tour."
+            }
+          ],
+          "atk": 2,
+          "hp": 3,
+          "statics": []
+        },
+        {
+          "id": "owl3_annot",
+          "name": "Annotation",
+          "type": "spell",
+          "cost": 2,
+          "keys": [
+            "type:Oiseau"
+          ],
+          "text": "Les cartes de ta pile de fatigue gagnent +1/+1.",
+          "play": [
+            {
+              "op": "renforce_les_cartes",
+              "d_ou": "fatigue",
+              "qui": "toi",
+              "quoi": "all",
+              "ordre": "hasard",
+              "n": 99,
+              "atk": 1,
+              "hp": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 4,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche une carte."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "renforce_les_cartes",
+                "d_ou": "main",
+                "qui": "toi",
+                "quoi": "all",
+                "argCard": "",
+                "ordre": "hasard",
+                "n": 99,
+                "atk": 1,
+                "hp": 1
+              },
+              "text": "Les cartes de ta main gagnent aussi +1/+1."
+            },
+            {
+              "lvl": 18,
+              "extra": {
+                "op": "cree",
+                "choix": "fatigue",
+                "n": 1,
+                "atk": 0,
+                "hp": 0
+              },
+              "text": "Crée aussi une carte au hasard de ta pile de fatigue."
+            }
+          ]
+        },
+        {
+          "id": "owl3_night",
+          "name": "Veilleuse de Nuit",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "type:Oiseau",
+            "type:Hibou"
+          ],
+          "text": "Quand tu pioches dans la fatigue, gagne +1/+1.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 5,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "met_a_la_defausse",
+                "d_ou": "pioche",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "all",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "dessus",
+                "n": 1
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : meule une carte."
+            },
+            {
+              "lvl": 15,
+              "aura": {
+                "key": "",
+                "atk": 0,
+                "hp": 1,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres alliés ont +0/+1."
+            },
+            {
+              "lvl": 20,
+              "extra": {
+                "op": "buff",
+                "t": "allAllies",
+                "atk": 1,
+                "hp": 1
+              },
+              "slot": "on_fatigue_self",
+              "text": "Quand tu pioches dans la fatigue, tes alliés gagnent +1/+1."
+            }
+          ],
+          "atk": 2,
+          "hp": 4,
+          "statics": [],
+          "on_fatigue_self": [
+            {
+              "op": "buff",
+              "t": "self",
+              "atk": 1,
+              "hp": 1
+            }
+          ]
+        },
+        {
+          "id": "owl3_chancellor",
+          "name": "Chancelière",
+          "type": "ally",
+          "cost": 4,
+          "keys": [
+            "Taunt",
+            "ex_libris",
+            "type:Oiseau",
+            "type:Hibou"
+          ],
+          "text": "Provocation. Ex-libris.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 6,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "met_a_la_defausse",
+                "d_ou": "pioche",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "all",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "dessus",
+                "n": 2
+              },
+              "text": "Cri de guerre : meule 2 cartes."
+            },
+            {
+              "lvl": 16,
+              "extra": {
+                "op": "dmg",
+                "t": "enemyHero",
+                "v": 2
+              },
+              "slot": "on_fatigue_self",
+              "text": "Quand tu pioches dans la fatigue, 2 dégâts au héros adverse."
+            },
+            {
+              "lvl": 19,
+              "extra": {
+                "op": "renforce_les_cartes",
+                "d_ou": "main",
+                "qui": "toi",
+                "quoi": "sujet",
+                "argCard": "",
+                "ordre": "hasard",
+                "n": 1,
+                "atk": 1,
+                "hp": 1
+              },
+              "slot": "on_fatigue_self",
+              "text": "Quand tu pioches dans la fatigue, la carte piochée gagne +1/+1."
+            }
+          ],
+          "atk": 4,
+          "hp": 4,
+          "statics": []
+        }
+      ],
+      "switches": [
+        {
+          "id": "owl3_barn",
+          "name": "Chouette Effraie",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "elusif",
+            "type:Oiseau",
+            "type:Hibou"
+          ],
+          "text": "Élusif. Cri de guerre : meule une carte.",
+          "play": [
+            {
+              "op": "met_a_la_defausse",
+              "d_ou": "pioche",
+              "choix": "precise",
+              "carte": "",
+              "quoi": "all",
+              "argCard": "",
+              "t": "enemyUnit",
+              "qui": "toi",
+              "ordre": "dessus",
+              "n": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 2,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "buff",
+                "t": "self",
+                "atk": 1,
+                "hp": 0
+              },
+              "slot": "on_meule_self",
+              "text": "Quand tu meules une carte, gagne +1/+0."
+            },
+            {
+              "lvl": 15,
+              "aura": {
+                "key": "",
+                "atk": 1,
+                "hp": 0,
+                "scope": "sameTypeAllies"
+              },
+              "text": "Aura : tes autres Oiseaux ont +1/+0."
+            }
+          ],
+          "atk": 2,
+          "hp": 1,
+          "statics": []
+        },
+        {
+          "id": "owl3_index",
+          "name": "Index",
+          "type": "spell",
+          "cost": 3,
+          "keys": [
+            "type:Oiseau"
+          ],
+          "text": "Crée une carte au hasard de ta pile de fatigue : elle gagne +2/+2.",
+          "play": [
+            {
+              "op": "cree",
+              "choix": "fatigue",
+              "n": 1,
+              "atk": 2,
+              "hp": 2
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche une carte."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "cree",
+                "choix": "fatigue",
+                "n": 1,
+                "atk": 2,
+                "hp": 2
+              },
+              "text": "Crée aussi une seconde carte de ta pile de fatigue : elle gagne +2/+2."
+            }
+          ]
+        },
+        {
+          "id": "owl3_bookmark",
+          "name": "Marque-page",
+          "type": "ally",
+          "cost": 4,
+          "keys": [
+            "Taunt",
+            "type:Oiseau",
+            "type:Hibou"
+          ],
+          "text": "Provocation. Tu pioches une carte de plus au début de ton tour.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 4,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "met_a_la_defausse",
+                "d_ou": "pioche",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "all",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "dessus",
+                "n": 1
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : meule une carte."
+            },
+            {
+              "lvl": 14,
+              "extra": {
+                "op": "armor",
+                "v": 3
+              },
+              "slot": "on_fatigue_self",
+              "text": "Quand tu pioches dans la fatigue, ton héros gagne 3 d’armure."
+            }
+          ],
+          "atk": 2,
+          "hp": 5,
+          "statics": [
+            {
+              "op": "pioche_du_tour",
+              "qui": "toi",
+              "sens": "plus",
+              "v": 1
+            }
+          ]
+        },
+        {
+          "id": "owl3_dean",
+          "name": "Doyenne",
+          "type": "ally",
+          "cost": 5,
+          "keys": [
+            "type:Oiseau",
+            "type:Hibou"
+          ],
+          "text": "Quand tu pioches dans la fatigue, la carte piochée coûte 2 de moins.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 5,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "renforce_les_cartes",
+                "d_ou": "fatigue",
+                "qui": "toi",
+                "quoi": "all",
+                "ordre": "hasard",
+                "n": 99,
+                "atk": 1,
+                "hp": 1
+              },
+              "text": "Cri de guerre : les cartes de ta pile de fatigue gagnent +1/+1."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "dmg",
+                "t": "randomEnemyUnit",
+                "v": 2
+              },
+              "slot": "on_fatigue_self",
+              "text": "Quand tu pioches dans la fatigue, 2 dégâts à une unité adverse au hasard."
+            }
+          ],
+          "atk": 3,
+          "hp": 6,
+          "statics": [],
+          "on_fatigue_self": [
+            {
+              "op": "reduit_le_cout_de",
+              "quoi": "sujet",
+              "typeDe": "ecrit",
+              "argType": "",
+              "typeQui": "toi",
+              "argKey": "",
+              "argCard": "",
+              "v": 2,
+              "n": 0
+            }
+          ]
+        },
+        {
+          "id": "owl3_grand",
+          "name": "Grand Chancelier",
+          "type": "ally",
+          "cost": 6,
+          "keys": [
+            "ex_libris",
+            "type:Oiseau",
+            "type:Hibou"
+          ],
+          "text": "Ex-libris. Quand tu pioches dans la fatigue, un allié gagne +1/+1.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 6,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "met_a_la_defausse",
+                "d_ou": "pioche",
+                "choix": "precise",
+                "carte": "",
+                "quoi": "all",
+                "argCard": "",
+                "t": "enemyUnit",
+                "qui": "toi",
+                "ordre": "dessus",
+                "n": 3
+              },
+              "text": "Cri de guerre : meule 3 cartes."
+            },
+            {
+              "lvl": 16,
+              "aura": {
+                "key": "",
+                "atk": 1,
+                "hp": 1,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres alliés ont +1/+1."
+            }
+          ],
+          "atk": 5,
+          "hp": 6,
+          "statics": [],
+          "on_fatigue_self": [
+            {
+              "op": "buff",
+              "t": "randomAllyUnit",
+              "atk": 1,
+              "hp": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cameleon3",
+      "name": "Pastiche",
+      "species": "Cameleon",
+      "sprite": "Characters/Cameleon.png",
+      "role": "Usurpateur — MidRange : le Registre garde les types de toutes les cartes jouées",
+      "stats": {
+        "hp": 25,
+        "mana": 8,
+        "hand": 2
+      },
+      "cards": [
+        {
+          "id": "cam3_clerk",
+          "name": "Greffier",
+          "type": "ally",
+          "cost": 2,
+          "keys": [
+            "type:Cameleon",
+            "characteristique_variable:both:typesRegistre::1"
+          ],
+          "text": "Gagne +1/+1 pour chaque type différent dans le Registre.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 2,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "enregistre",
+                "n": 1
+              },
+              "text": "Cri de guerre : le Registre enregistre une carte au hasard de ta main."
+            },
+            {
+              "lvl": 14,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "slot": "on_registre_self",
+              "text": "Quand tu joues une carte qui partage un type avec le Registre, pioche une carte."
+            }
+          ],
+          "atk": 0,
+          "hp": 0,
+          "statics": []
+        },
+        {
+          "id": "cam3_librarian",
+          "name": "Bibliothécaire",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "type:Cameleon"
+          ],
+          "text": "Les cartes qui partagent un type avec une carte du Registre coûtent 1 de moins.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 3,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "donne_type_du_registre",
+                "t": "self",
+                "quoi": "un"
+              },
+              "text": "Cri de guerre : reçoit un type du Registre au hasard."
+            },
+            {
+              "lvl": 13,
+              "statique": {
+                "op": "cout_des_cartes",
+                "qui": "toi",
+                "quoi": "typeDuRegistre",
+                "argCard": "",
+                "sens": "moins",
+                "v": 1
+              },
+              "text": "Statique : les cartes qui partagent un type avec le Registre coûtent 1 de moins de plus."
+            },
+            {
+              "lvl": 17,
+              "statique": {
+                "op": "cout_des_cartes",
+                "qui": "toi",
+                "quoi": "all",
+                "argCard": "",
+                "sens": "moins",
+                "v": 1
+              },
+              "text": "Statique : tes cartes coûtent 1 de moins."
+            }
+          ],
+          "atk": 3,
+          "hp": 3,
+          "statics": [
+            {
+              "op": "cout_des_cartes",
+              "qui": "toi",
+              "quoi": "typeDuRegistre",
+              "argCard": "",
+              "sens": "moins",
+              "v": 1
+            }
+          ]
+        },
+        {
+          "id": "cam3_chronicler",
+          "name": "Chroniqueur",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "type:Cameleon"
+          ],
+          "text": "Quand un type entre pour la première fois dans le Registre, pioche une carte.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 4,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : pioche une carte."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "mana_au_prochain_tour",
+                "x": 1
+              },
+              "slot": "on_typeNouveau_any",
+              "text": "Quand un type entre pour la première fois dans le Registre, gagne 1 mana au prochain tour."
+            },
+            {
+              "lvl": 18,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "slot": "on_typeNouveau_any",
+              "text": "Quand un type entre pour la première fois dans le Registre, pioche aussi une carte."
+            }
+          ],
+          "atk": 2,
+          "hp": 4,
+          "statics": [],
+          "on_typeNouveau_any": [
+            {
+              "op": "draw",
+              "v": 1
+            }
+          ]
+        },
+        {
+          "id": "cam3_specimen",
+          "name": "Spécimen",
+          "type": "spell",
+          "cost": 4,
+          "keys": [
+            "type:Cameleon"
+          ],
+          "text": "Inflige X dégâts à une cible adverse (unité ou héros), X étant le nombre de types dans le Registre.",
+          "play": [
+            {
+              "op": "dmg",
+              "t": "enemyAny",
+              "v": {
+                "src": "typesRegistre",
+                "arg": "",
+                "plus": 0
+              }
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 5,
+              "amp": 1,
+              "text": "Effet +1"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche aussi une carte."
+            },
+            {
+              "lvl": 16,
+              "extra": {
+                "op": "dmg",
+                "t": "randomEnemyAny",
+                "v": {
+                  "src": "typesRegistre",
+                  "arg": "",
+                  "plus": 0
+                }
+              },
+              "text": "Inflige aussi X dégâts à une autre cible adverse au hasard."
+            },
+            {
+              "lvl": 20,
+              "extra": {
+                "op": "dmg",
+                "t": "enemyHero",
+                "v": {
+                  "src": "typesRegistre",
+                  "arg": "",
+                  "plus": 0
+                }
+              },
+              "text": "Inflige aussi X dégâts au héros adverse."
+            }
+          ]
+        },
+        {
+          "id": "cam3_grand",
+          "name": "Grand Registre",
+          "type": "ally",
+          "cost": 7,
+          "keys": [
+            "type:Cameleon"
+          ],
+          "text": "Cri de guerre : tes autres alliés reçoivent chaque type du Registre et +2/+2.",
+          "play": [
+            {
+              "op": "donne_type_du_registre",
+              "t": "allAllies",
+              "quoi": "tous"
+            },
+            {
+              "op": "buff",
+              "t": "allAllies",
+              "atk": 2,
+              "hp": 2
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 6,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "buff",
+                "t": "self",
+                "atk": 1,
+                "hp": 1
+              },
+              "slot": "on_typeNouveau_any",
+              "text": "Quand un type entre pour la première fois dans le Registre, gagne +1/+1."
+            },
+            {
+              "lvl": 15,
+              "extra": {
+                "op": "donne_type_du_registre",
+                "t": "allAllies",
+                "quoi": "un"
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : tes autres alliés reçoivent un type du Registre au hasard."
+            },
+            {
+              "lvl": 19,
+              "extra": {
+                "op": "relance_registre",
+                "mode": "hasard",
+                "n": 1
+              },
+              "text": "Cri de guerre : relance aussi une carte du Registre au hasard."
+            }
+          ],
+          "atk": 6,
+          "hp": 6,
+          "statics": []
+        }
+      ],
+      "switches": [
+        {
+          "id": "cam3_copyist",
+          "name": "Copiste",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "type:Cameleon"
+          ],
+          "text": "Cri de guerre : le Registre enregistre une carte au hasard de ta main (elle reste en main).",
+          "play": [
+            {
+              "op": "enregistre",
+              "n": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 2,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "buff",
+                "t": "self",
+                "atk": 1,
+                "hp": 1
+              },
+              "slot": "on_typeNouveau_any",
+              "text": "Quand un type entre pour la première fois dans le Registre, gagne +1/+1."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "enregistre",
+                "n": 1
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : le Registre enregistre une carte au hasard de ta main."
+            }
+          ],
+          "atk": 1,
+          "hp": 2,
+          "statics": []
+        },
+        {
+          "id": "cam3_mimic",
+          "name": "Mimétisme",
+          "type": "spell",
+          "cost": 2,
+          "keys": [
+            "type:Cameleon"
+          ],
+          "text": "Une unité alliée gagne +2/+2 et un type du Registre au hasard.",
+          "play": [
+            {
+              "op": "buff",
+              "t": "allyUnit",
+              "atk": 2,
+              "hp": 2
+            },
+            {
+              "op": "donne_type_du_registre",
+              "t": "allyUnit",
+              "quoi": "un"
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche aussi une carte."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "donne_type_du_registre",
+                "t": "allyUnit",
+                "quoi": "un"
+              },
+              "text": "L’unité reçoit aussi un deuxième type du Registre."
+            }
+          ]
+        },
+        {
+          "id": "cam3_ruthless",
+          "name": "Archiviste Impitoyable",
+          "type": "ally",
+          "cost": 4,
+          "keys": [
+            "type:Cameleon"
+          ],
+          "text": "Quand l’adversaire joue une carte qui partage un type avec le Registre, il perd 1 PV.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 4,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "dmg",
+                "t": "enemyHero",
+                "v": 1
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : 1 dégât au héros adverse."
+            },
+            {
+              "lvl": 14,
+              "aura": {
+                "key": "",
+                "atk": -1,
+                "hp": 0,
+                "scope": "enemyUnits"
+              },
+              "text": "Aura : les unités adverses ont -1/-0."
+            }
+          ],
+          "atk": 3,
+          "hp": 4,
+          "statics": [],
+          "on_registre_foe": [
+            {
+              "op": "dmg",
+              "t": "enemyHero",
+              "v": 1
+            }
+          ]
+        },
+        {
+          "id": "cam3_index",
+          "name": "Index du Registre",
+          "type": "spell",
+          "cost": 5,
+          "keys": [
+            "type:Cameleon"
+          ],
+          "text": "Pioche autant de cartes que de types dans le Registre.",
+          "play": [
+            {
+              "op": "draw",
+              "v": {
+                "src": "typesRegistre",
+                "arg": "",
+                "plus": 0
+              }
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 5,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "heal",
+                "t": "ownHero",
+                "v": 4
+              },
+              "text": "Soigne aussi ton héros de 4."
+            },
+            {
+              "lvl": 16,
+              "extra": {
+                "op": "cree_du_registre",
+                "n": 1,
+                "lvl": {
+                  "src": "ownerLevel",
+                  "arg": "",
+                  "plus": 0
+                }
+              },
+              "text": "Crée aussi une carte au hasard d’un type du Registre."
+            }
+          ]
+        },
+        {
+          "id": "cam3_retro",
+          "name": "Rétrospective",
+          "type": "spell",
+          "cost": 8,
+          "keys": [
+            "type:Cameleon"
+          ],
+          "text": "Pour chaque type du Registre, relance gratuitement une carte du Registre de ce type, au hasard.",
+          "play": [
+            {
+              "op": "relance_registre",
+              "mode": "parType",
+              "n": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 6,
+              "cost": -1,
+              "text": "Coût -1"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "draw",
+                "v": 1
+              },
+              "text": "Pioche aussi une carte."
+            },
+            {
+              "lvl": 15,
+              "extra": {
+                "op": "relance_registre",
+                "mode": "hasard",
+                "n": 1
+              },
+              "text": "Relance aussi une carte du Registre au hasard."
+            }
+          ]
         }
       ]
     }

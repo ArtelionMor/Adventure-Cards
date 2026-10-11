@@ -138,6 +138,15 @@ html[data-skin="juice"] {
   }
   & .hcard:not(.fx-carte) .cost { top: -10px; left: -10px; z-index: 3; }
   & .zcard .cost { top: -9px; left: -8px; width: 28px; height: 28px; font-size: 16px; }
+  /* Les marqueurs Toxine : une gemme verte, en haut a gauche, du meme contour que le cout. */
+  & .unit .tox { top: -8px; left: -8px; min-width: 26px; height: 26px; border-radius: 13px; font-size: 15px; color: #fff; background: radial-gradient(circle at 35% 30%, #b8ffd0 0 22%, #2fbf60 23% 100%); border: 3px solid var(--contour); box-shadow: 0 2px 0 var(--contour); -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  /* La patte du pistage : une gemme jaune, en haut a droite, du meme contour que le cout. */
+  & :is(.hcard:not(.fx-carte) .patte, .zcard .patte) {
+    width: 30px; height: 30px; font-size: 17px; z-index: 3; background: #ffe27a; border: 3px solid var(--contour); box-shadow: 0 2px 0 var(--contour);
+  }
+  & .hcard:not(.fx-carte) .patte { top: -10px; right: -10px; }
+  & .zcard .patte { top: -9px; right: -8px; width: 28px; height: 28px; font-size: 16px; }
+  & .zcard.dos { border: 4px solid var(--contour); border-radius: 14px; box-shadow: 0 4px 0 var(--contour); }
   & .jr-mc i { width: 22px; height: 22px; font-size: 13px; color: #fff; background: radial-gradient(circle at 35% 30%, #a8dcff 0 22%, #2e8be8 23% 100%); border: 3px solid var(--contour); -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
   & :is(.unit .pv, .bt-hero .pv) { background: #fffaec; color: var(--ink); border: 3px solid var(--contour); border-radius: 10px; -webkit-text-stroke: 0; }
   & .unit .pv { z-index: 4; top: 6px; }

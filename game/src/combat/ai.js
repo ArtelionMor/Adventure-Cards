@@ -9,9 +9,9 @@
 // part meme si l'unite meurt ; une aura compte pour ce qu'elle multiplie ; un
 // declencheur de tour compte plusieurs fois parce qu'il se repete.
 import { BALANCE } from '../config/balance.js';
-import { canPlay, legalTargets, attackableTargets, needsTarget, needsChoice, cloneBattle, playCard, attack, endTurn, placeEnMain, carteDuCoup } from './engine.js';
-import { cibleCompte, branchesDe, choixDeLaCarte, TRIGGERS, TARGETS, STATICS, ZONES, EVENTS, EFFETS_QUI_CHAINENT, hasKey, keyId, keyFields, counterValue, amountValue, cardCost, cardMatches, staticFields, targetId, targetArg, partageType, estDuType, eachSubEffect, listeEffets, typeVariable } from '../config/mechanics.js';
-import { cardById, fatiguePile, switchOf } from '../config/npcs.js';
+import { canPlay, legalTargets, attackableTargets, needsTarget, needsChoice, cloneBattle, playCard, attack, endTurn, placeEnMain, carteDuCoup, nbFatigue, pileDeFatigue } from './engine.js';
+import { cibleCompte, branchesDe, choixDeLaCarte, TRIGGERS, TARGETS, STATICS, ZONES, EVENTS, KEYWORDS, EFFETS_QUI_CHAINENT, hasKey, keyId, keyFields, counterValue, amountValue, cardCost, cardMatches, staticFields, targetId, targetArg, partageType, estDuType, eachSubEffect, listeEffets, typeVariable } from '../config/mechanics.js';
+import { cardById, switchOf } from '../config/npcs.js';
 
 const foe = k => (k === 'p' ? 'e' : 'p');
 
@@ -89,10 +89,25 @@ function faisable(e, ctx) {
   // « La carte concernee par l'evenement » n'existe qu'au moment ou l'evenement part.
   if (e.quoi === 'sujet') return true;
 
-  if (e.op === 'draw') return !!me.deck.length || !!fatiguePile().length;
+  if (e.op === 'draw') return !!me.deck.length || nbFatigue(B, k) > 0;
+  // CREE UNE CARTE DE TA PILE DE FATIGUE : une pile vide ne donne rien.
+  if (e.op === 'cree' && e.choix === 'fatigue') return nbFatigue(B, k) > 0;
   if (e.op === 'pioche_x') return me.deck.some(c => c.name === e.carte);
   if (e.op === 'pioche_une_carte_de_type') return me.deck.some(c => (e.type === 'spell') === (c.type !== 'ally'));
   if (e.op === 'reduit_le_cout_de') return me.hand.some(c => cardMatches(c, e));
+  // PISTE : il faut une carte pas encore pistee dans la main d'en face.
+  if (e.op === 'piste') return B[foe(k)].hand.some(c => !c.pistee);
+  // CONTAGION : elle ne touche que ce qui porte DEJA une Toxine ; EPIDEMIE et TOXINE veulent une unite en face
+  // (la cible, elle, est jugee plus haut).
+  if (e.op === 'contagion') return B[foe(k)].board.some(u => u.hp > 0 && (u.tox || 0) > 0);
+  if (e.op === 'epidemie') return B[foe(k)].board.some(u => u.hp > 0);
+  // CHAROGNE : rien a manger, rien a faire. Les cartes qu'un appat va fabriquer AVANT elle, dans la meme
+  // carte (« Appat 1, puis Charogne 2 »), comptent : `ctx.repas`.
+  if (e.op === 'charogne') return B[foe(k)].discard.length + (ctx.repas || 0) > 0;
+  // APPAT : il ne sert que s'il y a une Charogne a nourrir — en main, en pioche ou en jeu — et une pile
+  // de fatigue a copier. Un appat « seul » (sans personne pour manger) ne se joue pas.
+  // La pile qui nourrit est celle de L'ADVERSAIRE.
+  if (e.op === 'appat') return nbFatigue(B, foe(k)) > 0 && (ctx.repas > 0 || aDesCharognes(B, k) || porteCharogne(ctx.carte || {}));
 
   // Une copie sans modele ne fait rien : un paquet ou pas un seul ALLIE ne passe le
   // filtre ne donnera jamais de quoi se transformer (on ne copie pas un sort).
@@ -106,10 +121,38 @@ function faisable(e, ctx) {
     const z = ZONES[e.d_ou] || {};
     if (z.carte) return true;                          // creee de toutes pieces
     if (z.cible) return true;                          // le plateau : la cible a deja tranche
-    if (e.fatigue && fatiguePile().length) return true; // completee par la fatigue
+    if (e.fatigue && e.d_ou !== 'fatigue' && nbFatigue(B, e.qui === 'adversaire' ? foe(k) : k) > 0) return true; // completee par la fatigue
     return pilesVisees(B, k, e).some(pile => pile.some(c => cardMatches(c, e)));
   }
   return true;
+}
+
+/** Cette carte, ou cette unite, a-t-elle une Charogne (a un moment quelconque) ? */
+function porteCharogne(x) {
+  for (const slot of Object.keys(TRIGGERS)) {
+    for (const brut of (x && x[slot]) || []) {
+      let oui = false;
+      eachSubEffect(brut, e => { if (e.op === 'charogne') oui = true; });
+      if (oui) return true;
+    }
+  }
+  return false;
+}
+/** Le camp a-t-il de quoi manger l'appat : une Charogne dans sa main, sa pioche ou sur son plateau ? */
+const aDesCharognes = (B, k) => [...B[k].hand, ...B[k].deck].some(porteCharogne) || B[k].board.some(porteCharogne);
+/**
+ * L'adversaire peut-il remettre en jeu ce que l'appat met dans sa defausse (Retrouvailles, Imperatrice
+ * Nocturne : une carte qui reprend dans la DEFAUSSE) ? On ne lit que ce qu'on voit : son plateau et sa
+ * defausse, jamais sa main.
+ */
+function reanimationEnFace(B, k) {
+  const reprend = x => Object.keys(TRIGGERS).some(slot => (x[slot] || []).some(brut => {
+    let oui = false;
+    eachSubEffect(brut, e => { if (['pose_sur_le_plateau', 'renvoie_en_main'].includes(e.op) && e.d_ou === 'defausse' && e.qui !== 'adversaire') oui = true; });
+    return oui;
+  }));
+  const them = B[foe(k)];
+  return them.board.some(reprend) || them.discard.some(reprend);
 }
 
 /**
@@ -118,7 +161,8 @@ function faisable(e, ctx) {
  * pile ou face. Le bot regarde alors les deux cotes plutot que de parier.
  */
 function pilesVisees(B, k, e) {
-  const pile = camp => e.d_ou === 'main' ? B[camp].hand : e.d_ou === 'pioche' ? B[camp].deck : B[camp].discard;
+  const pile = camp => e.d_ou === 'fatigue' ? pileDeFatigue(B, camp)
+    : e.d_ou === 'main' ? B[camp].hand : e.d_ou === 'pioche' ? B[camp].deck : B[camp].discard;
   if (e.qui === 'adversaire') return [pile(foe(k))];
   if (e.qui === 'proprietaire' || e.qui === 'hasard') return [pile(k), pile(foe(k))];
   return [pile(k)];
@@ -276,13 +320,28 @@ function effectValue(e, ctx) {
     // meme deck fini, et on sait exactement laquelle.
     // Au hasard, on ne sait pas ce qui tombe : ca vaut un peu plus qu'une pioche,
     // un peu moins qu'une carte qu'on a choisie.
-    case 'cree': return Math.min(e.n === undefined ? 1 : n('n'), ctx.place ?? 99) * (e.choix === 'hasard' ? 1.5 : 2.2);
+    case 'cree': {
+      // Un tirage vaut un peu moins qu'une carte choisie (on ne sait pas ce qui va tomber) ; « et elle gagne
+      // +X/+Y » se paie comme le renfort d'une carte qu'on jouera plus tard.
+      const combien = Math.min(e.n === undefined ? 1 : n('n'), ctx.place ?? 99);
+      const base = e.choix === 'hasard' || e.choix === 'fatigue' ? 1.5 : 2.2;
+      const bonus = ((e.atk === undefined ? 0 : n('atk')) * 1.1 + (e.hp === undefined ? 0 : n('hp')) * 0.6) * 0.6;
+      return combien * (base + bonus);
+    }
     case 'renforce_les_cartes': {
       // Un renfort ecrit sur des cartes qu'on jouera plus tard : ca vaut moins qu'un
       // renfort sur le plateau (il faut encore les tirer et les payer), et c'est un
       // cadeau si les cartes sont a l'adversaire.
-      const combien = e.n === undefined ? 1 : n('n');
-      const gain = ((e.atk === undefined ? 0 : n('atk')) * 1.1 + (e.hp === undefined ? 0 : n('hp')) * 0.6) * combien * 0.6;
+      let combien = e.n === undefined ? 1 : n('n');
+      let poids = 0.6;
+      if (e.d_ou === 'fatigue' && ctx.B) {
+        // LA PILE DE FATIGUE : seuls ses allies profitent d'un renfort, et on ne les tirera qu'une fois la pioche
+        // finie — c'est un renfort pour la fin de partie, pas pour le tour.
+        const allies = pileDeFatigue(ctx.B, e.qui === 'adversaire' ? foe(ctx.k) : ctx.k).filter(c => c.type === 'ally' && cardMatches(c, e)).length;
+        combien = Math.min(combien, allies);
+        poids = 0.25;
+      }
+      const gain = ((e.atk === undefined ? 0 : n('atk')) * 1.1 + (e.hp === undefined ? 0 : n('hp')) * 0.6) * combien * poids;
       return gain * signeDuPaquet(e);
     }
     case 'melange_a_la_pioche':
@@ -309,6 +368,76 @@ function effectValue(e, ctx) {
       }
       const pourLeCampVise = ((e.d_ou === 'main' ? -0.6 : prix) + renfort) * combien;
       return pourLeCampVise * signeDuPaquet(e);
+    }
+    case 'toxine':
+    case 'contagion':
+    case 'epidemie': {
+      // UNE TOXINE ronge 1 PV par tour, jusqu'a la mort de l'unite — et saute alors sur une voisine. On la lit
+      // comme des degats repartis dans le temps : ~1,4 point par marqueur (le tempo d'un coup, un peu moins
+      // d'un tour d'attente), plafonne par ce que vaut l'unite entiere (la tuer, c'est tout son corps) moins ce
+      // que ses marqueurs deja poses vont deja lui prendre. L'adversaire seul porte les notres.
+      const corps = (ctx.foeBoard || []).filter(u => u.hp > 0);
+      if (!corps.length) return 0;
+      const poids = u => (u.atk || 0) * 1.3 + (u.hp || 0) * 0.35;
+      const reste = u => Math.max(0, poids(u) - (u.tox || 0) * 1.4);
+      const gain = (u, v) => Math.min(v * 1.4, reste(u));
+      if (e.op === 'toxine') {
+        const v = n('v');
+        const t = targetId(e.t);
+        if (t === 'allEnemyUnits') return corps.reduce((a, u) => a + gain(u, v), 0);
+        if (t === 'randomEnemyUnit' || t === 'previous') return (corps.reduce((a, u) => a + gain(u, v), 0) / corps.length) * 0.9;
+        return Math.max(...corps.map(u => gain(u, v)));    // une unite designee : la meilleure
+      }
+      if (e.op === 'contagion') {
+        const v = n('v'), degats = n('dmg');
+        return corps.filter(u => (u.tox || 0) > 0).reduce((a, u) => a + (v ? gain(u, v) : 0) + Math.min(degats, reste(u)), 0);
+      }
+      // EPIDEMIE : des marqueurs sur tout le plateau, puis chaque unite blesse SON heros du total qu'elle porte.
+      const v = n('v');
+      return corps.reduce((a, u) => a + gain(u, v) + ((u.tox || 0) + v) * 0.9, 0);
+    }
+    case 'piste': {
+      // UNE MARQUE NE FAIT RIEN SEULE : elle vaut ce qu'elle COUTERA quand l'adversaire jouera la carte —
+      // les punitions de nos unites en jeu (et de la carte elle-meme) et le surcout en mana que nos
+      // statiques imposent aux cartes pistees. Un petit plancher pour la gene : une carte marquee se joue
+      // mal, ou ne se joue plus, et se compte pour nos propres effets (Dressage, Battue).
+      if (!ctx.B) return Math.max(0, n('n')) * 0.4;
+      const libres = ctx.B[foe(ctx.k)].hand.filter(c => !c.pistee).length;
+      const combien = Math.min(Math.max(0, n('n')), libres);
+      if (!combien) return 0;
+      let par = 0.4;
+      for (const u of [...(ctx.board || []), ...(ctx.carte ? [ctx.carte] : [])]) {
+        par += effectsValue(u.on_pistee_foe, ctx);
+        for (const m of u.statics || []) {
+          if (m.op === 'cout_des_cartes' && m.quoi === 'pistee' && m.qui === 'adversaire' && m.sens === 'plus')
+            par += amountValue(m.v, ctx.B, ctx.k, u) * 0.8;
+        }
+      }
+      return combien * Math.max(0.4, par);
+    }
+    case 'charogne': {
+      // Ce que valent les X dernieres cartes de la defausse ADVERSE : +2 par carte (+1/+1 et un peu de
+      // tempo), plus un point par mot-cle de combat qu'un ALLIE mange transmet. Les cartes qu'un appat va
+      // fabriquer juste avant, dans la meme carte, passent d'abord (elles sont au-dessus).
+      // Vide (et sans appat devant), `faisable` l'a deja dit : zero, le bot la garde.
+      if (!ctx.B) return Math.max(0, n('n')) * 1.5;   // hors combat : on ne sait rien de la defausse
+      const discard = ctx.B[foe(ctx.k)].discard;
+      const combien = Math.max(0, n('n'));
+      const fabriquees = Math.min(combien, ctx.repas || 0);
+      const reelles = combien > fabriquees ? discard.slice(Math.max(0, discard.length - (combien - fabriquees))) : [];
+      const cles = new Set();
+      for (const c of reelles) {
+        if (c.type !== 'ally') continue;
+        for (const key of c.keys || []) if (key === keyId(key) && (KEYWORDS[key] || {}).transmissible) cles.add(key);
+      }
+      return (reelles.length + fabriquees) * 2 + cles.size * 1 + fabriquees * 0.5;
+    }
+    case 'appat': {
+      // Un repas pour une Charogne qui n'est pas encore la : 1,2 par carte (0,6 du repas de 2 qu'elle
+      // vaudra). Moins le risque que l'adversaire les remette en jeu s'il a de quoi reprendre dans sa
+      // defausse (on ne lit que son plateau et sa defausse : jamais sa main).
+      const combien = Math.max(0, n('n'));
+      return combien * (1.2 - (ctx.B && reanimationEnFace(ctx.B, ctx.k) ? 0.9 : 0));
     }
     case 'met_a_la_defausse':
     case 'exile': {
@@ -426,10 +555,14 @@ function effectValue(e, ctx) {
  */
 function effectsValue(list, ctx, amorce = false) {
   let total = 0, chaine = amorce;
+  // Les cartes qu'un appat a deja fabriquees plus haut dans la liste : une Charogne qui suit les mange.
+  let repas = ctx.repas || 0;
   for (const e of list || []) {
     const vise = targetId(e.t);
     if ((vise === 'previous' || vise === 'previousType') && !chaine) continue;
-    total += effectValue(e, ctx);
+    const c = repas === (ctx.repas || 0) ? ctx : { ...ctx, repas };
+    total += effectValue(e, c);
+    if (e.op === 'appat' && faisable(e, c)) repas += Math.max(0, amountValue(e.n === undefined ? 1 : e.n, ctx.B, ctx.k, ctx.carte || null));
     // Un effet sans destinataire (pioche, mana, armure) laisse la chaine telle quelle.
     if (EFFETS_QUI_CHAINENT.has(e.op) && faisable(e, ctx)) chaine = true;
   }
@@ -565,11 +698,35 @@ function aSujet(slot) {
   return !!(def.event && (EVENTS[def.ev] || {}).sujet);
 }
 
+/**
+ * CE QUE COUTE A CE CAMP LE FAIT DE JOUER UNE CARTE PISTEE (V3, docs/V3-HEROS.md, 4.1) : les punitions que
+ * l'adversaire a sur son plateau (« quand l'adversaire joue une carte pistee, il perd 5 PV »...), lues
+ * comme ELLES le servent — des PV, une unite, une carte. Le surcout en mana, lui, est deja dans `cardCost`.
+ * Sans ce prix le bot « joue tout » : il payerait 5 PV pour un 1/1 pistee, et Patou serait trop fort.
+ * Ce que NOS propres unites en retirent (« quand tu joues une carte pistee », rare) se retranche.
+ */
+function coutDePistage(B, k, carte) {
+  if (!carte || !carte.pistee) return 0;
+  const them = B[foe(k)];
+  const eux = { allies: them.board.length, enemies: B[k].board.length, sameType: 0, place: placeEnMain(them),
+    board: them.board, foeBoard: B[k].board, B, k: foe(k) };
+  const moi = contexte(B, k, carte);
+  let cout = 0;
+  for (const u of them.board) cout += effectsValue(u.on_pistee_foe, eux) + effectsValue(u.on_pistee_any, eux);
+  for (const u of B[k].board) cout -= effectsValue(u.on_pistee_self, moi) + effectsValue(u.on_pistee_any, moi);
+  return Math.max(0, cout);
+}
+
 /** Ce que vaut une carte si on la pose maintenant, dans cette position. */
 function cardValue(B, k, def) {
   const card = estimee(B, k, def);
   const ctx = contexte(B, k, card);
   let v = effectsValue(card.play, ctx);
+  // Une carte PISTEE se paie en plus de ce qu'elle coute en mana : les punitions d'en face.
+  v -= coutDePistage(B, k, card);
+  // EX-LIBRIS : en arrivant en defausse, elle laisse un exemplaire dans la pile de fatigue — un petit plus (on
+  // n'y tirera que la pioche finie), et rien quand elle est deja classee.
+  if (!card.classee && hasKey(card.keys, 'ex_libris')) v += 0.3;
 
   if (card.type === 'ally') {
     v += bodyValue(card, ctx, 0.7);
@@ -582,8 +739,18 @@ function cardValue(B, k, def) {
   return v;
 }
 
+/**
+ * Cette unite va-t-elle mourir de sa Toxine AVANT d'avoir pu agir ? Le tic part au debut du tour de son
+ * controleur, avant sa pioche : elle meurt sans attaquer si ses PV ne couvrent pas ses marqueurs — sauf si un
+ * Bouclier absorbe ce tour-la. Une unite condamnee ne vaut plus la peine d'etre frappee (et elle ne coute rien
+ * a perdre quand c'est la notre).
+ */
+const meurtDuTic = u => (u.tox || 0) > 0 && !u.shield && u.hp <= u.tox;
+
 /** A quel point on veut voir cette unite ADVERSE disparaitre. */
 function unitThreat(B, k, u) {
+  // Condamnee par sa Toxine : elle disparait toute seule, le coup serait perdu (son aura, au pire, dure un tour).
+  if (meurtDuTic(u)) return Math.min(0.5, (u.aura ? 1 : 0));
   const them = B[foe(k)];
   const memeType = sameTypeCount(them.board, u);
   // Les effets valorises ici sont ceux de l'unite ADVERSE : ses montants variables
@@ -652,10 +819,12 @@ function meilleureAttaque(B, k, ready) {
         if (!d) continue;
         const tue = d.hp <= u.atk;
         const meurt = u.hp <= d.atk;
-        // Ce qu'on gagne : la menace enlevee, ou juste des degats sur un gros corps.
-        const gain = tue ? unitThreat(B, k, d) : u.atk * 0.35;
-        // Ce qu'on perd : notre unite — moins son rale, qui partira quand meme.
-        const perte = meurt ? (u.atk * 1.3 + u.hp * 0.35) - effectsValue(u.death, ctx) * 0.9 : 0;
+        // Ce qu'on gagne : la menace enlevee, ou juste des degats sur un gros corps. Une unite que sa Toxine
+        // va tuer toute seule ne rapporte rien : on frappe ailleurs.
+        const gain = meurtDuTic(d) ? 0 : tue ? unitThreat(B, k, d) : u.atk * 0.35;
+        // Ce qu'on perd : notre unite — moins son rale, qui partira quand meme. Condamnee par sa propre
+        // Toxine, elle ne coute plus rien : autant qu'elle serve.
+        const perte = meurt && !meurtDuTic(u) ? (u.atk * 1.3 + u.hp * 0.35) - effectsValue(u.death, ctx) * 0.9 : 0;
         note = gain - perte;
       }
       if (!best || note > best.note) best = { note, uid: u.uid, target: t };

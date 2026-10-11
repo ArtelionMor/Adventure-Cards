@@ -119,7 +119,16 @@ export const CARD_FILTERS = {
   // de sens que sur un moment d'evenement dont le sujet est une carte
   // (`EVENTS[ev].sujetCarte`) : la validation le dit ailleurs. `sujet` la retire des
   // listes « au hasard » (le catalogue n'a pas de sujet) et des effets statiques.
-  sujet: { label: 'La carte concernée par l’événement', sujet: true }
+  sujet: { label: 'La carte concernée par l’événement', sujet: true },
+  // V3. `pistee` (docs/V3-HEROS.md, 4.1) : les cartes de la main que `piste` a marquees. `precise` le retire
+  // des tirages « au hasard » du catalogue (une carte du catalogue n'est pas pistee).
+  pistee: { label: 'Les cartes pistées', tout: 'Les cartes pistées', precise: true },
+  // DECLARE, PAS ENCORE CODE (4.6) : `implemented: false` fait dire « reste a coder » a la validation, et
+  // `cardMatches` refuse (jamais « toutes ») tant que le Registre n'existe pas.
+  typeDuRegistre: {
+    label: 'Les cartes qui partagent un type avec le Registre', tout: 'Les cartes qui partagent un type avec le Registre',
+    precise: true, implemented: false
+  }
 };
 
 // LES ZONES DU JEU — d'ou une carte peut venir, ou elle peut aller.
@@ -221,7 +230,10 @@ const paramsCarteCreee = (si = () => true) => [
     k: 'choix', type: 'choice', label: 'Quelle carte', def: 'precise',
     // « La carte de Lui » : celle de l'unite que l'effet precedent a visee — apres une
     // Copie, le modele copie. Comme la cible « Lui », elle ne designe rien en premier.
-    choices: [['precise', 'Une carte precise'], ['hasard', 'Une carte au hasard'], ['lui', 'La carte de Lui']],
+    // « Une carte de ta pile de fatigue » (V3, Index) : un modele au hasard de la pile DE CE CAMP, avec son niveau
+    // de ligne ou de resolution — elle ne vient pas d'une pioche (pas de plafond par tour, pas d'evenement).
+    choices: [['precise', 'Une carte precise'], ['hasard', 'Une carte au hasard'], ['lui', 'La carte de Lui'],
+      ['fatigue', 'Une carte de ta pile de fatigue']],
     si
   },
   { k: 'carte', type: 'cardRef', label: 'Carte créée', si: e => si(e) && (e.choix || 'precise') === 'precise' },
@@ -293,7 +305,7 @@ const paramsZone = (defautZone) => [
  */
 export const EFFETS_QUI_CHAINENT = new Set([
   'dmg', 'detruit', 'heal', 'buff', 'copie', 'switch', 'prendre_le_controle', 'summon',
-  'melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau',
+  'melange_a_la_pioche', 'renvoie_en_main', 'pose_sur_le_plateau', 'charogne', 'toxine', 'contagion', 'epidemie',
   // `choisir` rend ce que sa branche a vise : il chaine si la branche chaine.
   'choisir'
 ]);
@@ -369,7 +381,11 @@ export const EFFECTS = {
     params: [
       ...paramsCarteCreee(),
       num('n', 'Combien', 1),
-      { k: 'lvl', type: 'number', label: 'Niveau de la carte', def: 1 }
+      { k: 'lvl', type: 'number', label: 'Niveau de la carte', def: 1, si: e => e.choix !== 'fatigue' },
+      // « ET ELLE GAGNE +X/+Y » : ecrit sur la carte avant qu'elle n'arrive en main, comme le renfort d'un
+      // deplacement. Un sort n'a ni attaque ni vie et traverse sans rien recevoir.
+      num('atk', 'Bonus d’attaque', 0),
+      num('hp', 'Bonus de vie', 0)
     ],
     implemented: true
   },
@@ -382,7 +398,11 @@ export const EFFECTS = {
     params: [
       {
         k: 'd_ou', type: 'choice', label: 'Où', def: 'main',
-        choices: Object.entries(ZONES).filter(([, d]) => !d.cible && !d.carte).map(([id, d]) => [id, d.label])
+        // La pile de fatigue (V3, Annotation) : une zone pour RENFORCER seulement — ses cartes sont des modeles,
+        // chaque exemplaire qu'on en tire est une copie. Ce n'est donc pas une entree de `ZONES` : rien ne les y
+        // prelevera jamais.
+        choices: [...Object.entries(ZONES).filter(([, d]) => !d.cible && !d.carte).map(([id, d]) => [id, d.label]),
+          ['fatigue', 'De la pile de fatigue']]
       },
       {
         k: 'qui', type: 'choice', label: 'Chez qui', def: 'toi',
@@ -452,6 +472,59 @@ export const EFFECTS = {
     ],
     implemented: true
   },
+  // LA TOXINE (V3, docs/V3-HEROS.md, 4.4). Un MARQUEUR sur une unite, qui la ronge : au debut du tour de son
+  // controleur, avant sa pioche, elle PERD 1 PV par marqueur — une perte de PV, pas des degats : le Venin n'y
+  // reagit pas — et un Bouclier absorbe le tour. Quand elle meurt, ses marqueurs SAUTENT sur une autre unite
+  // du meme camp, au hasard (aucune : ils disparaissent). Jamais sur un heros.
+  toxine: {
+    label: 'Toxine',
+    desc: 'Pose X marqueurs Toxine sur l\'unite visee. Au debut du tour de son controleur, avant sa pioche, elle PERD 1 PV par marqueur (une perte de PV : le Venin n\'y reagit pas ; un Bouclier absorbe le tour et tombe). Quand elle meurt, ses marqueurs SAUTENT sur une autre unite du meme camp, au hasard. Jamais sur un heros. Amplifiable (« Effet +1 »). Un changement de forme (copie, switch) l\'en debarrasse ; une unite volee garde les siennes.',
+    params: [
+      tgt('t', 'Cible', ['enemyUnit', 'randomEnemyUnit', 'allEnemyUnits', 'previous'], 'enemyUnit'),
+      num('v', 'Toxines posees', 1)
+    ],
+    implemented: true
+  },
+  contagion: {
+    label: 'Contagion',
+    desc: 'Chaque unite ADVERSE qui porte DEJA une Toxine en recoit V de plus ; avec « degats », elle subit aussi ce nombre de degats (des degats ordinaires). Une unite sans Toxine n\'est pas touchee.',
+    params: [num('v', 'Toxines de plus', 1), num('dmg', 'Degats aussi infliges', 0)],
+    implemented: true
+  },
+  epidemie: {
+    label: 'Epidemie',
+    desc: 'Pose V Toxines sur CHAQUE unite adverse, PUIS chaque unite adverse inflige a son controleur autant de degats que de Toxines qu\'elle porte (comptees apres la pose). Les Toxines restent et continuent de tourner.',
+    params: [num('v', 'Toxines posees sur chaque unite', 2)],
+    implemented: true
+  },
+  // CHAROGNE ET APPAT (V3, docs/V3-HEROS.md, 4.3 et 4.3 bis). Deux gestes qui se completent : l'appat
+  // NOURRIT la defausse adverse, la charogne la MANGE. Aucune des deux ne touche a la pioche, a la
+  // main ni au plateau de l'adversaire, ni a TA defausse.
+  charogne: {
+    label: 'Charogne',
+    desc: 'Devore les X DERNIERES cartes de la DEFAUSSE ADVERSE — jamais les tiennes, sans aucun choix — et les EXILE. Le devoreur gagne +1/+1 par carte, plus les mots-cles de combat des allies manges (Provocation, Charge, Venin, Bouclier, Elusif, Passe-Murailles) : rien d\'autre. C\'est UN renfort : « quand cette unite recoit du renfort » part une fois par Charogne. Chaque carte exilee declenche « quand une carte est exilee d\'une defausse ». Defausse adverse vide : rien ne se passe.',
+    params: [
+      num('n', 'Cartes devorees', 1),
+      tgt('t', 'Qui devore', ['self', 'allyUnit', 'randomAllyUnit', 'previous'], 'self')
+    ],
+    implemented: true
+  },
+  appat: {
+    label: 'Appât',
+    desc: 'Fabrique X COPIES de cartes tirees au hasard de la PILE DE FATIGUE ADVERSE (a leur niveau de pile) et les pose au DESSUS de la defausse adverse : une Charogne qui suit les mange en premier. On nourrit, on ne prive jamais : la pioche, la main et le plateau adverses ne sont pas touches, et aucun evenement « defausse » ni « meule » ne part. Pile de fatigue vide : rien.',
+    params: [num('n', 'Cartes fabriquees', 1)],
+    implemented: true
+  },
+  // PISTE (V3, docs/V3-HEROS.md, 4.1). Marque des cartes de la MAIN ADVERSE, au hasard. Une marque ne fait rien
+  // seule : elle rend la carte plus chere (`cout_des_cartes` + `quoi: 'pistee'`), la fait punir quand elle est
+  // jouee (`on_pistee_*`), la laisse se defausser (`met_a_la_defausse` + `quoi: 'pistee'`) ou se compter
+  // (`cartesPistees`). Elle quitte la carte quand elle quitte la main.
+  piste: {
+    label: 'Piste',
+    desc: 'PISTE N cartes de la main adverse, TIREES AU HASARD parmi celles qui ne le sont pas deja (une carte ne se pistre qu\'une fois ; quand plus aucune n\'est disponible, l\'effet s\'arrete — « toute la main » = 99). La marque quitte la carte quand elle quitte la main ; une carte creee ou copiee n\'est pas pistee.',
+    params: [num('n', 'Cartes pistees', 1)],
+    implemented: true
+  },
   pioche_une_carte_de_type: {
     label: 'Pioche un allie ou un sort',
     desc: 'Cherche dans ton deck la premiere carte du genre demande et la met en main.',
@@ -468,7 +541,10 @@ export const EFFECTS = {
     desc: 'Reduit le cout des cartes de ta main qui correspondent au filtre. Un cout ne descend jamais sous 0. Les cartes piochees ensuite ne sont pas concernees.',
     params: [
       ...paramsFiltre(),
-      num('v', 'Reduction', 1)
+      num('v', 'Reduction', 1),
+      // Combien de cartes en profitent (V3 : « le cout d'UN sort de ta main »). 0 = toutes, ce
+      // qu'ecrivaient toutes les cartes d'avant ce champ : elles n'ont pas `n` et ne bougent pas.
+      num('n', 'Combien de cartes (0 = toutes)', 0)
     ],
     implemented: true
   },
@@ -614,6 +690,50 @@ export const EVENTS = {
   // EN PLUS de l'evenement « sort » : « quand tu lances un sort » entend aussi les reprises.
   reprise: { you: 'lances un sort depuis ta defausse', other: 'lance un sort depuis sa defausse' },
   attack: { sujet: true, you: 'attaques avec une unite', other: 'attaque avec une unite' },
+  // LE PISTAGE (V3, docs/V3-HEROS.md, 4.1). Une carte `pistee` de la main est JOUEE : l'evenement part apres
+  // le paiement et avant les effets de la carte, du cote de celui qui la joue — « quand l'adversaire joue
+  // une carte pistee » est donc `on_pistee_foe`. Il n'a pas de sujet (pas de garde, pas de « Lui »).
+  //
+  // Les trois qui suivent : `unitToxinee` est code (4.4) ; `typeNouveau` et `registre` sont DECLARES, PAS
+  // ENCORE CODES (4.6) : aucun `fireEvent` ne les envoie, `implemented: false` fait dire « reste a coder » a la
+  // validation sur toute carte qui en ecoute un.
+  pistee: {
+    you: 'joues une carte pistée', other: 'joue une carte pistée',
+    labels: {
+      self: 'Quand tu joues une carte pistée',
+      foe: 'Quand l’adversaire joue une carte pistée',
+      any: 'Quand n’importe qui joue une carte pistée'
+    }
+  },
+  // LA TOXINE (V3, 4.4). Une unite qui PORTAIT une Toxine meurt (lue avant que ses marqueurs sautent).
+  // Un evenement a part et non une garde sur `unitDies` : une garde regarde le SUJET d'un evenement, et
+  // « quand tu perds une unite » n'en a pas (la validation le refuse). Il part APRES `unitDies`.
+  unitToxinee: {
+    you: 'perds une unité qui portait une Toxine', other: 'perd une unité qui portait une Toxine',
+    labels: {
+      self: 'Quand une de tes unités qui porte une Toxine meurt',
+      foe: 'Quand une unité adverse qui porte une Toxine meurt',
+      any: 'Quand une unité qui porte une Toxine meurt'
+    }
+  },
+  // LE REGISTRE. Un TYPE entre pour la premiere fois dans le Registre (les deux camps l'alimentent).
+  typeNouveau: {
+    implemented: false, you: 'fais entrer un type dans le Registre', other: 'fait entrer un type dans le Registre',
+    labels: {
+      self: 'Quand un type que tu joues entre pour la première fois dans le Registre',
+      foe: 'Quand un type joué par l’adversaire entre pour la première fois dans le Registre',
+      any: 'Quand un type entre pour la première fois dans le Registre'
+    }
+  },
+  // LE REGISTRE, encore : la carte qu'on joue PARTAGE un type avec lui (lu avant son inscription).
+  registre: {
+    implemented: false, you: 'joues une carte qui partage un type avec le Registre', other: 'joue une carte qui partage un type avec le Registre',
+    labels: {
+      self: 'Quand tu joues une carte qui partage un type avec le Registre',
+      foe: 'Quand l’adversaire joue une carte qui partage un type avec le Registre',
+      any: 'Quand n’importe qui joue une carte qui partage un type avec le Registre'
+    }
+  },
   // LE RENFORT D'UNE UNITE EN JEU (l'effet « Renfort »). C'est le seul evenement dont
   // le SUJET est une unite et non un camp : `soi` remplace le libelle « Quand tu... »,
   // et le moment n'est ecoute que par l'unite REELLEMENT renforcee (le 4e argument de
@@ -685,7 +805,8 @@ for (const ev of Object.keys(EVENTS)) {
       label: eventLabel(ev, who),
       desc: `Tant que cette unite est en jeu, a chaque fois que ca se produit.`,
       allyOnly: true,   // il faut etre sur le plateau pour ecouter
-      event: true, ev, who
+      event: true, ev, who,
+      ...(EVENTS[ev].implemented === false ? { implemented: false } : {})
     };
   }
 }
@@ -711,7 +832,9 @@ export const AURA_SCOPES = {
 // La pioche, le mana et les invocations en sont volontairement exclus : +1 carte
 // piochee ne vaut pas +1 degat, ca se regle en ajoutant un effet, pas en amplifiant.
 // Le Card Builder lit cette liste pour prevenir quand un palier ne servirait a rien.
-export const AMPLIFIABLE = ['dmg', 'heal', 'buff', 'armor'];
+// `toxine` (V3, docs/V3-HEROS.md 4.4) : « Effet +1 » d'un Dard Empoisonne pose une Toxine de plus.
+// C'est une mecanique inventee dans le builder (pas dans EFFECTS) : `EFFECTS[op]` peut manquer.
+export const AMPLIFIABLE = ['dmg', 'heal', 'buff', 'armor', 'toxine'];
 
 // ---------------------------------------------------------------------------
 // EFFETS STATIQUES — « les [trucs] sont affectes [comme ca] ».
@@ -770,7 +893,12 @@ export const STATICS = {
       {
         k: 'cible', type: 'choice', label: 'Quel effet', def: 'dmg',
         // « Tous » : la PUISSANCE DES SORTS, tout ce qu'un palier « Amplifie » sait monter.
-        choices: [...AMPLIFIABLE.map(op => [op, EFFECTS[op].label]), ['tous', 'Tous les effets chiffrés (la puissance des sorts)']]
+        // `toxine` (amplifiable) est deja dans la liste ; `charogne` (V3) ne l'est pas : elle a sa ligne.
+        // Une carte qui POSE des Toxines (Contagion, Epidemie) y est aussi sensible : « tes Toxines en posent
+        // 1 de plus ».
+        choices: [...AMPLIFIABLE.filter(op => EFFECTS[op]).map(op => [op, op === 'toxine' ? 'Toxine (les marqueurs posés)' : EFFECTS[op].label]),
+          ['charogne', 'Charogne (les cartes dévorées)'],
+          ['tous', 'Tous les effets chiffrés (la puissance des sorts)']]
       },
       zoneParam,
       sensParam('plus'),
@@ -857,6 +985,35 @@ export const STATICS = {
     bon: 1, poids: 1.6,
     text: m => `${m.qui === 'adversaire' ? 'L’adversaire pioche' : 'Tu pioches'} ${describeAmount(m.v)} de ${motSens(m)} par tour`
   },
+  // LE PISTAGE A LA PIOCHE (V3, 4.1) : chaque carte que le camp vise PIOCHE (pioche, pioche de fatigue,
+  // pioche ciblee — pas une carte creee ni un renvoi en main) arrive pistee. `draw()` le lit par
+  // `staticTotal`, comme les autres statiques de pioche. Il ne se dose pas : il est la ou il n'est pas, d'ou
+  // les deux champs figes.
+  pistage_a_la_pioche: {
+    label: 'Les cartes piochées sont pistées',
+    desc: "Chaque carte que le camp vise pioche arrive pistee dans sa main, tant que cette unite est en jeu. Se cumule avec le surcout des cartes pistees.",
+    params: [
+      quiParam('Toi', 'L’adversaire'),
+      { k: 'sens', type: 'choice', label: 'Sens', def: 'plus', choices: [['plus', 'De plus']], si: () => false },
+      { k: 'v', type: 'number', label: 'Valeur', def: 1, si: () => false }
+    ],
+    bon: -1, poids: 1.5,
+    text: m => `Les cartes que ${m.qui === 'adversaire' ? 'l’adversaire pioche' : 'tu pioches'} sont pistées`
+  },
+  // LES TOXINES BRULENT LE HEROS (V3, 4.4) : lu AU TIC de debut de tour (`ticDeToxine`), par `staticTotal` :
+  // chaque unite du camp vise inflige alors a son controleur 1 degat par Toxine qu'elle porte, en plus de
+  // la perte de PV. Il ne se dose pas : il est la ou il n'est pas (champs figes).
+  toxine_brule_le_heros: {
+    label: 'Les Toxines brûlent le héros',
+    desc: "Au debut de son tour, chaque unite adverse inflige aussi 1 degat a son controleur par Toxine qu'elle porte, en plus de la perte de PV de la Toxine. Lu au tic de debut de tour.",
+    params: [
+      quiParam('Toi', 'L’adversaire'),
+      { k: 'sens', type: 'choice', label: 'Sens', def: 'plus', choices: [['plus', 'De plus']], si: () => false },
+      { k: 'v', type: 'number', label: 'Valeur', def: 1, si: () => false }
+    ],
+    bon: 1, poids: 1.8,
+    text: () => 'Au début de son tour, chaque unité adverse inflige 1 dégât à son contrôleur par Toxine qu’elle porte'
+  },
   mana_du_tour: {
     label: 'Le mana de chaque tour',
     desc: "Du mana en plus (ou en moins) au debut de chaque tour. Comme le mana promis, il peut depasser le mana max.",
@@ -869,7 +1026,7 @@ export const STATICS = {
 const motSens = m => (m.sens === 'plus' ? 'plus' : 'moins');
 // Le nom d'un effet au pluriel, pour que la carte se lise en francais. Un effet
 // amplifiable ajoute au registre sans passer par ici retombe sur son libelle.
-const MOTS_EFFET = { dmg: 'degats', heal: 'soins', buff: 'renforts', armor: 'armures', tous: 'effets chiffres' };
+const MOTS_EFFET = { dmg: 'degats', heal: 'soins', buff: 'renforts', armor: 'armures', toxine: 'toxines', charogne: 'charognes', tous: 'effets chiffres' };
 const motEffet = op => MOTS_EFFET[op] || ((EFFECTS[op] || {}).label || op).toLowerCase();
 /** « tes sorts » vu du porteur, « les sorts de l'adversaire » vu d'en face. */
 const paquetDe = m => (m.qui === 'adversaire'
@@ -976,7 +1133,14 @@ export const COUNTERS = {
   // pose par resolveCard(). Pour une carte de heros c'est le niveau du personnage, pour
   // une carte de PNJ le niveau auquel il joue ses cartes, pour un jeton celui de l'unite
   // qui l'a invoque. D'ou le porteur (`u`) passe partout ou un nombre est calcule.
-  ownerLevel: { label: 'Le niveau du héros propriétaire', compute: (B, k, u) => (u && u.ownerLevel) || 0 }
+  ownerLevel: { label: 'Le niveau du héros propriétaire', compute: (B, k, u) => (u && u.ownerLevel) || 0 },
+  // V3 (docs/V3-HEROS.md, 4.1) : le nombre de cartes PISTEES dans la main adverse — CODE.
+  cartesPistees: {
+    label: 'Les cartes pistées de la main adverse',
+    compute: (B, k) => ((B[k === 'p' ? 'e' : 'p'] || {}).hand || []).filter(c => c.pistee).length
+  },
+  // DECLARE, PAS ENCORE CODE (4.6) : le Registre n'existe pas, il vaut 0 — jamais un chiffre invente.
+  typesRegistre: { label: 'Les types du Registre', implemented: false, compute: () => 0 }
 };
 
 /** Le nombre suivi, ou 0 si le compteur n'existe pas (mecanique a moitie decrite). */
@@ -1079,10 +1243,12 @@ export const cibleCompte = (e, k = 't') => {
 
 // Mots-cles portes par une unite (champ `keys`).
 export const KEYWORDS = {
-  Taunt: { label: 'Provocation', desc: 'Doit etre attaquee avant le heros et les autres unites.', implemented: true },
-  Charge: { label: 'Charge', desc: 'Peut attaquer des le tour ou elle arrive.', implemented: true },
-  Venin: { label: 'Venin', desc: 'Detruit toute unite qu’elle blesse.', implemented: true },
-  Bouclier: { label: 'Bouclier', desc: 'Absorbe entierement la premiere perte de PV.', implemented: true },
+  // `transmissible` : Charogne (V3) donne a la creature qui devore les mots-cles de COMBAT des allies
+  // qu'elle mange — ces six-la, et rien d'autre (ni types, ni effets, ni caracteristiques variables).
+  Taunt: { label: 'Provocation', desc: 'Doit etre attaquee avant le heros et les autres unites.', transmissible: true, implemented: true },
+  Charge: { label: 'Charge', desc: 'Peut attaquer des le tour ou elle arrive.', transmissible: true, implemented: true },
+  Venin: { label: 'Venin', desc: 'Detruit toute unite qu’elle blesse.', transmissible: true, implemented: true },
+  Bouclier: { label: 'Bouclier', desc: 'Absorbe entierement la premiere perte de PV.', transmissible: true, implemented: true },
   // Mot-cle A PARAMETRE : il s'ecrit « type:Chien » dans `keys`. Il ne fait rien tout
   // seul — c'est une etiquette que d'autres cartes vont chercher, via la cible
   // `sameTypeAllies` ou la portee d'aura du meme nom.
@@ -1124,14 +1290,26 @@ export const KEYWORDS = {
     surSort: true,
     implemented: true
   },
+  // EX-LIBRIS (V3, docs/V3-HEROS.md, 4.5). Quand la carte ARRIVE DANS TA DEFAUSSE — jouee, morte, meulee,
+  // defaussee, par n'importe quel chemin — un exemplaire entre dans ta PILE DE FATIGUE. Une seule fois par carte
+  // (`classee`) : ce qui sort d'une pile de fatigue y est deja. L'exil et le retour en pioche ne laissent rien.
+  // `surSort` : un sort peut le porter (la validation `ex-libris-risque` surveille les gestions de masse).
+  ex_libris: {
+    label: 'Ex-libris',
+    desc: 'Quand cette carte arrive dans ta defausse — jouee, morte, meulee ou defaussee —, un exemplaire entre dans ta pile de fatigue. Une seule fois par carte.',
+    surSort: true,
+    implemented: true
+  },
   elusif: {
     label: 'Elusif',
     desc: 'Ne peut pas etre attaquee par les unites adverses. Les sorts et les effets, eux, l’atteignent toujours.',
+    transmissible: true,
     implemented: true
   },
   passe_murailles: {
     label: 'Passe-Murailles',
     desc: 'Peut frapper le heros adverse meme si des unites ont Provocation.',
+    transmissible: true,
     implemented: true
   },
   // Le cout n'est pas une valeur derivee comme atk/hp : c'est ce mot-cle, et lui seul,
@@ -1370,6 +1548,10 @@ export function cardMatches(card, e) {
     // La carte concernee par l'evenement : le moteur l'a posee dans l'effet avant de le
     // resoudre (`carteSujet`). Sans elle, le filtre ne laisse rien passer.
     case 'sujet': return !!e.carteSujet && card === e.carteSujet;
+    // V3 : la marque que `piste` pose sur une carte de la main (`card.pistee`).
+    case 'pistee': return !!card.pistee;
+    // V3 : le Registre n'existe pas encore — ne designer RIEN (le defaut ci-dessous dirait « toutes »).
+    case 'typeDuRegistre': return false;
     default: return true;
   }
 }
@@ -1408,7 +1590,8 @@ export function describeAura(a) {
   const parts = [];
   if (a.atk) parts.push((a.atk > 0 ? '+' : '') + a.atk + ' attaque');
   if (a.hp) parts.push((a.hp > 0 ? '+' : '') + a.hp + ' vie');
-  if (a.key) parts.push(keyLabel(a.key));
+  // Une aura porte un mot-cle, ou plusieurs (un palier qui en ajoute un quand elle en avait deja un).
+  if (a.key) parts.push([].concat(a.key).filter(Boolean).map(keyLabel).join(' et '));
   const scope = (AURA_SCOPES[a.scope || 'otherAllies'] || {}).label || a.scope;
   return parts.join(', ') + ' → ' + scope.toLowerCase();
 }
@@ -1435,6 +1618,7 @@ const nomDeCarte = id => {
  */
 export function describeCarteCreee(e) {
   if (e.choix === 'lui') return 'une copie de la carte de Lui';
+  if (e.choix === 'fatigue') return 'une carte de ta pile de fatigue';
   if ((e.choix || 'precise') !== 'hasard') return `« ${nomDeCarte(e.carte)} »`;
   const quoi = e.quoi || 'all';
   const nom = quoi === 'ally' ? 'un allie' : quoi === 'spell' ? 'un sort' : 'une carte';
@@ -1453,6 +1637,12 @@ export const chezQui = e => e.qui === 'adversaire' ? ' de l’adversaire'
 /** « 2 sorts de la defausse », « l'unite ciblee », « 1 × Rongeur » : la partie
  *  « quelles cartes et d'ou » d'un deplacement, commune aux trois destinations. */
 export function describeZone(e) {
+  // La pile de fatigue (Annotation) : le « chez qui » dit de QUI elle est.
+  if (e.d_ou === 'fatigue') {
+    const n = e.n === undefined ? 1 : e.n;
+    const sa = e.qui === 'adversaire' ? 'la pile de fatigue de l’adversaire' : 'ta pile de fatigue';
+    return typeof n === 'number' && n >= 99 ? `toutes les cartes de ${sa}` : `${describeAmount(n)} × ${describeFilter(e, paquetAMoi(e))} de ${sa}`;
+  }
   const z = ZONES[e.d_ou] || ZONES.defausse;
   if (z.carte) return `${describeAmount(e.n === undefined ? 1 : e.n)} × ${describeCarteCreee(e)}`;
   if (z.cible) return targetLabel(e.t).toLowerCase();
@@ -1507,7 +1697,7 @@ export function describeEffect(e) {
     case 'armor': return `${n('v')} armure`;
     case 'mana': return `+${n('v')} mana ce tour`;
     case 'mana_au_prochain_tour': return `+${n('x')} mana au prochain tour`;
-    case 'cree': return `cree ${describeAmount(e.n === undefined ? 1 : e.n)} × ${describeCarteCreee(e)} en main`;
+    case 'cree': return `cree ${describeAmount(e.n === undefined ? 1 : e.n)} × ${describeCarteCreee(e)} en main${(e.atk || e.hp) ? ` (+${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)})` : ''}`;
     case 'melange_a_la_pioche': {
       // Une carte prise sur le PLATEAU retourne toujours chez son proprietaire : le
       // choix « chez qui » ne s'applique pas, et le texte ne doit pas mentir.
@@ -1531,6 +1721,19 @@ export function describeEffect(e) {
       return `met ${describeZone(e)} a la defausse`;
     }
     case 'exile': return `exile ${describeZone(e)}`;
+    case 'charogne': {
+      const qui = e.t && e.t !== 'self' ? `${targetLabel(e.t).toLowerCase()} devore` : 'devore';
+      return `${qui} ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) de la defausse adverse (+1/+1 par carte)`;
+    }
+    case 'appat': return `fabrique ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) de la pile de fatigue adverse dans sa defausse`;
+    case 'piste': return `piste ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) de la main adverse`;
+    case 'toxine': return `pose ${describeAmount(e.v === undefined ? 1 : e.v)} Toxine(s)${t}`;
+    case 'contagion':
+      // Sans Toxine de plus (v a 0), c'est la version « degats seuls » d'un palier de Contagion.
+      return (+e.v || 0) === 0 && (+e.dmg || 0) > 0
+        ? `${describeAmount(e.dmg)} degat(s) a chaque unite adverse qui porte une Toxine`
+        : `+${describeAmount(e.v === undefined ? 1 : e.v)} Toxine${(+e.dmg || 0) > 0 ? ` et ${describeAmount(e.dmg)} degat(s)` : ''} sur chaque unite adverse qui en porte deja`;
+    case 'epidemie': return `pose ${describeAmount(e.v === undefined ? 2 : e.v)} Toxines sur chaque unite adverse, qui inflige chacune autant de degats que de Toxines a son controleur`;
     case 'prendre_le_controle': return `prend le controle${t}`;
     case 'switch': return `switche ${describeZone(e)}`;
     // Une branche vide ne dit rien plutot que « undefined » : la carte est en cours
@@ -1540,7 +1743,7 @@ export function describeEffect(e) {
     case 'copie': return `${targetLabel(e.t).toLowerCase()} devient une copie ${de(describeModele(e))}`;
     case 'pioche_x': return `cherche ${describeAmount(e.n === undefined ? 1 : e.n)} × « ${e.carte || '?'} » dans ton deck`;
     case 'pioche_une_carte_de_type': return `cherche ${describeAmount(e.n === undefined ? 1 : e.n)} ${e.type === 'spell' ? 'sort' : 'allie'}(s) dans ton deck`;
-    case 'reduit_le_cout_de': return `${describeAmount(e.v)} mana de moins pour ${describeFilter(e)} en main`;
+    case 'reduit_le_cout_de': return `${describeAmount(e.v)} mana de moins pour ${(+e.n || 0) > 0 ? (e.n > 1 ? e.n + ' cartes parmi ' : 'une carte parmi ') : ''}${describeFilter(e)} en main`;
     case 'summon': {
       if (!e.unit) return `invoque ${e.n || 1} × ?`;
       // Un jeton peut porter mots-cles, moments et aura : le dire, sinon la carte

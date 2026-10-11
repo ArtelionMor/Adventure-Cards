@@ -495,11 +495,11 @@ export function creeFx(acces) {
   const MOMENT_EFFET = { death: ['mort', 'Deathrattle'], turnStart: ['debut', 'TurnStart'], turnEnd: ['fin', 'TurnEnd'] };
   const ICONE_EVT = {
     degats: e => ['Damage', e.perdu > 1 ? e.perdu : null], soin: e => ['Heal', e.soigne > 1 ? e.soigne : null],
-    renfort: () => ['Buff', null], invoque: () => ['Summon', null], pioche: () => ['Draw', null],
+    renfort: () => ['Buff', null], invoque: () => ['Summon', null], pioche: () => ['Draw', null], piste: () => ['Track', null], toxine: () => ['Venom', null], toxineSaut: () => ['Venom', null], classe: () => ['Fatigue', null],
     armure: e => ['Armor', e.v > 1 ? e.v : null], mana: e => ['Mana', e.v > 1 ? e.v : null],
     detruit: () => ['Destroy', null], controle: () => ['Control', null],
     transforme: e => [e.mode === 'copie' ? 'Copy' : 'Switch', null],
-    deplace: e => [{ melange: 'Shuffle', cree: 'Create', exil: 'Exile', meule: 'Mill', defausse: 'Mill', renvoi: 'Return' }[e.mode] || 'Trigger', null]
+    deplace: e => [{ melange: 'Shuffle', cree: 'Create', appat: 'Create', exil: 'Exile', meule: 'Mill', defausse: 'Mill', renvoi: 'Return' }[e.mode] || 'Trigger', null]
   };
   function carteEffet(ev, enfants) {
     const f = F();

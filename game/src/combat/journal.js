@@ -34,7 +34,7 @@
 import { BALANCE } from '../config/balance.js';
 import { CHARACTER_DATA } from '../../data/characters.data.js';
 import { TRIGGERS, cardCost, choixDeLaCarte } from '../config/mechanics.js';
-import { canPlay, needsChoice, needsTarget, legalTargets, attackableTargets, playCard, attack, endTurn, other, carteDuCoup } from './engine.js';
+import { canPlay, needsChoice, needsTarget, legalTargets, attackableTargets, playCard, attack, endTurn, other, carteDuCoup, pileDeFatigue } from './engine.js';
 import { evalue, ecouteLesChoix } from './ai.js';
 
 /** La version du schema. Voir l'historique en bas de ce fichier. */
@@ -110,6 +110,8 @@ function carteJson(j, B, k, c) {
     atk: c.atk ?? null,
     pv: c.hp ?? null,
     cles: [...(c.keys || [])],
+    // Marquee par le pistage de l'adversaire (V3) : ce que l'analyse doit savoir pour expliquer un cout.
+    pistee: !!c.pistee,
     texte: c.text || '',
     perso: c.owner || null,
     niveauPerso: c.ownerLevel ?? null,
@@ -137,6 +139,8 @@ function uniteJson(j, k, u) {
     atkBase: u.baseAtk,
     pvBase: u.baseHp,
     degats: u.damage,
+    // Les marqueurs Toxine (V3) : ce qui explique une perte de PV au debut de son tour.
+    toxine: u.tox || 0,
     cles: [...(u.keys || [])],
     peutAttaquer: !!u.canAttack && u.atk > 0,
     aura: u.aura || null,
@@ -176,6 +180,9 @@ function etatCamp(j, B, k) {
     sortsTour: s.spellsTurn,
     sortsPartie: s.spellsGame,
     fatigue: s.fatigue,
+    // SA PILE DE FATIGUE (V3, Ex-libris) : propre a chaque camp, elle grossit par la defausse et se renforce par
+    // Annotation — l'analyse doit la voir. Des modeles, pas des exemplaires : ni `inst`, ni cout.
+    pileFatigue: pileDeFatigue(B, k).map(c => ({ id: c.id || null, nom: c.name, atk: c.atk ?? null, pv: c.hp ?? null, cles: [...(c.keys || [])] })),
     piocheVide: !!s.aVide
   };
 }
@@ -503,3 +510,4 @@ export function texteJournal(B) {
 
 // ---------------------------------------------------------------- historique
 // v1 — 22/09/2026 — premiere version.
+//      11/10/2026 — `etat.<camp>.pileFatigue` ajoute (la pile de fatigue propre au camp) : champ ajoute, `v` inchange.

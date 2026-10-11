@@ -59,7 +59,9 @@ function panneau(r, { avant, apres, mort, bouclier }) {
 const MODES = {
   melange: ['Shuffle', 'Remélange dans la pioche'], renvoi: ['Return', 'Renvoi en main'],
   pose: ['Summon', 'Pose sur le plateau'], meule: ['Mill', 'Meule'], defausse: ['Discard', 'Défausse'],
-  exil: ['Exile', 'Exil'], cree: ['Create', 'Création']
+  exil: ['Exile', 'Exil'], cree: ['Create', 'Création'],
+  // L'appât fabrique des cartes dans la défausse ADVERSE, qui est publique : jamais « une carte » cachée.
+  appat: ['Create', 'Appât']
 };
 
 /** Le moment (« Râle d'agonie », « Début de ton tour »...) d'un declencheur, et son icone. */
@@ -103,7 +105,11 @@ function ligneDe(e, ctx) {
       return [neg ? 'Debuff' : 'Buff', `${nom(e.cible)} <span class="${neg ? 'mal' : 'bien'}">${sgn(e.atk)}/${sgn(e.hp)}</span>${cle}${e.src ? ` <small>(${esc(e.src.nom)})</small>` : ''}`];
     }
     case 'renfortCartes':
-      return ['Buff', `<span class="bien">${sgn(e.atk)}/${sgn(e.hp)}</span> pour ${cartes(e.cartes)}`];
+      return ['Buff', `<span class="bien">${sgn(e.atk)}/${sgn(e.hp)}</span> pour ${cartes(e.cartes)}${e.zone === 'fatigue' ? ' <small>(pile de fatigue)</small>' : ''}`];
+    // EX-LIBRIS (V3) : une carte arrivee en defausse laisse un exemplaire dans la pile de fatigue de son camp. La
+    // defausse est publique : on le dit des deux cotes.
+    case 'classe':
+      return ['Fatigue', `${miniCarte(e.carte)} entre dans ${e.camp === 'p' ? 'ta' : 'sa'} pile de fatigue <small>(Ex-libris · ${e.pile})</small>`];
     case 'invoque': {
       const par = e.via === 'jeton' && e.src ? ` <small>(${esc(e.src.nom)})</small>` : e.via === 'pose' ? ' <small>(posé sur le plateau)</small>' : '';
       return ['Summon', `${miniUnite(e.unite)} arrive${par}`];
@@ -125,6 +131,18 @@ function ligneDe(e, ctx) {
     }
     case 'aVide':
       return ['Fatigue', e.fatigue ? 'Plus de pioche : on tire dans la pile de fatigue' : 'Plus aucune carte à piocher'];
+    // Le pistage (V3) : des cartes de la main adverse sont marquees. En direct, on ne dit pas LESQUELLES
+    // quand c'est l'adversaire qui en porte (on ne les voit pas) ; on dit combien.
+    case 'piste': {
+      const secret = !ctx.revele && e.camp === 'e';
+      return ['Track', `Pistage · ${secret ? `${e.cartes.length} carte${e.cartes.length > 1 ? 's' : ''} de sa main` : cartes(e.cartes)}`];
+    }
+    // La Toxine (V3) : des marqueurs se posent, puis sautent quand l'unite qui les porte meurt. Leur tic, lui,
+    // est un `degats` ordinaire (marque `toxine: true`).
+    case 'toxine':
+      return ['Venom', `${e.contagion ? 'Contagion' : e.epidemie ? 'Épidémie' : 'Toxine'} ×${e.v} sur ${e.cibles.map(miniUnite).join(' ')}`];
+    case 'toxineSaut':
+      return ['Venom', `${e.n} Toxine${e.n > 1 ? 's' : ''} de ${miniUnite(e.de)} ${e.vers ? `sautent sur ${miniUnite(e.vers)}` : 'disparaissent'}`];
     case 'deplace': {
       const [ic, label] = MODES[e.mode] || ['Trigger', e.mode];
       const secret = !ctx.revele && e.camp === 'e' && (e.mode === 'cree' || (e.mode === 'renvoi' && e.de === 'main'));

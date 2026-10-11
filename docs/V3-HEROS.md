@@ -1,7 +1,12 @@
 # Héros V3 — conception (8 octobre 2026)
 
-**Statut : conception seulement. Rien n'est codé, rien n'est dans `characters.data.js`.**
-Ce document est la base de discussion : les cartes, leurs paliers, puis les mécaniques à coder.
+**Statut (10 octobre 2026) : les 60 cartes des six héros sont dans `characters.data.js`**, avec leurs paliers —
+écrites par `scripts/gen-heros-v3.mjs` (paliers : `scripts/lib/heros-v3-paliers.mjs`), donc visibles dans le Card
+Builder, le wiki et le jeu (verrouillées : aucun boss ne les débloque encore). **Les mécaniques, elles, ne sont pas
+toutes codées** : Reprise, la meule, l'exil, les événements de défausse/fatigue, **Charogne, Appât, Pistage,
+Toxine** (10-11 octobre) et **Ex-libris avec la pile de fatigue par camp** (11 octobre) existent ; **le Registre
+n'existe pas** et les cartes de Pastiche sont *inertes* sur cette partie. Voir « 5 bis. Où en sont les cartes ».
+Ce document reste la base de discussion : les cartes, leurs paliers, puis les mécaniques à coder.
 Les sommets (niveaux 17 à 20) sont des brouillons : ils sont les plus faciles à jeter.
 
 ## 1. Ce qui est décidé
@@ -414,6 +419,27 @@ carte. Sans ça, Patou sera trop fort contre le bot.
 coût réel passe par `cardCost` ; l'événement part une fois, avant les effets ; une copie n'est pas pistée.
 **Taille : M.**
 
+**✅ CODÉ le 10 octobre 2026** (détail dans `game/src/combat/CLAUDE.md`, « Le Pistage »). Écarts et précisions :
+- **La marque** est `card.pistee`, posée par `piste` sur une carte de la main adverse. Elle part **dans `depose()`**
+  dès qu'une carte va ailleurs qu'en main (défaussée, exilée, remélangée, posée) et dans `jouerCarte` (jouée) ; une
+  carte **renvoyée en main** la garde. Miroir et switch dans la main la **gardent** (`reflete`, `autreFace`).
+- **Le moment** `pistee` part dans `jouerCarte`, après le paiement et la carte retirée de la main, **avant son
+  unité** et avant ses effets, **suivi d'un `resolveDeaths`** : une punition qui tue (« détruis une de ses unités »,
+  « 3 dégâts ») est tout à fait résolue quand la carte arrive ; si elle tue le héros, la carte ne se résout pas.
+- **Le statique** `pistage_a_la_pioche` marque les cartes **piochées** : pioche, pioche de fatigue, pioche ciblée
+  (`pisteALaPioche`). Jamais une carte créée ni renvoyée en main (ce ne sont pas des pioches).
+- **Le journal** : `carteJson` écrit `pistee` ; le récit (`refCarte`) aussi, et un événement `piste` dit les cartes
+  marquées (jamais nommées au journal texte).
+- **Règle de validation `pistage-sans-piste`** (`validate.js`, bloquante, ignorable) : lit le pistage (taxe, moment
+  `pistee`, compteur, filtre) sans en poser (`piste` ou `pistage_a_la_pioche`, sur la carte ou par un palier).
+- **Bot** : `cardValue` retranche `coutDePistage` (les punitions `on_pistee_foe` / `on_pistee_any` des unités adverses,
+  lues avec les valeurs d'effet de **leur** côté ; les gains de `on_pistee_self` des nôtres se retranchent) ; une
+  marque `piste` vaut 0,4 + les punitions de nos unités (et de la carte) + 0,8 par mana de taxe, par carte
+  marquable. Le surcout en mana est dans `cardCost`, donc dans le sac à dos.
+- **Interface** : une patte (`Track`, 🐾 en attendant le dessin) sur les cartes pistées **de ta main** ; la main
+  adverse se lit « Main N (K 🐾) » et s'ouvre **de dos** dans la fenêtre de zone (« Main adverse », seulement quand
+  une carte y est pistée : jamais un nom, jamais un coût) ; la fiche d'une carte pistée liste les punitions en face.
+
 ### 4.2 Reprise (Flashback) — CODÉE le 8 octobre 2026
 
 **État :** moteur, bot, journal, validation, builder et **fenêtre de zone** sont en place (détail dans
@@ -429,7 +455,7 @@ sans cible et avec cible, le bouton qui pulse, la carte éclairée, le sort exil
 
 **Règle.** Un sort à Reprise peut être lancé **depuis ta défausse**, à son coût normal ; il est
 **exilé** après, jamais remis en défausse. Une reprise **est** un sort lancé : elle nourrit
-`spellsGame`/`spellsTurn`, Griffeur de doigt (ex-Griffure), Tempête de Patounes, Matou Invocateur (ex-Roi des Toits).
+`spellsGame`/`spellsTurn`, Mage de l'étincelle (ex-Griffeur de doigt, ex-Griffure), Tempête de Patounes, Matou Invocateur (ex-Roi des Toits).
 
 **Moteur.**
 - Mot-clé `reprise` ; un drapeau `surSort` dans `KEYWORDS` autorise un mot-clé sur un sort (la
@@ -503,6 +529,24 @@ carte, plus les mots-clés d'alliés mangeables) ; zéro si elle est vide, donc 
 carte ; seuls les mots-clés transmissibles passent ; défausse adverse vide ; un jeton n'a pas de carte
 à manger ; `discard` reste chronologique. **Taille : S à M.**
 
+**✅ CODÉE le 10 octobre 2026** (avec l'Appât ci-dessous ; détail dans `game/src/combat/CLAUDE.md`, « Charogne et
+Appât »). Écarts et précisions :
+- **Une fois par Charogne, un seul renfort** : c'est un `buff` ordinaire appliqué à celui qui mange (donc les
+  statiques « tes renforts +1 », la Charge qui arme l'unité, les événements de renfort, tout vaut) ; les mots-clés
+  en plus passent en +0/+0, qui ne déclenchent rien.
+- L'ordre : les cartes partent à l'exil → **un événement `exil` par carte** (avant le renfort : Colosse d'Os, qui
+  grossit à chaque exil, grossit donc avant de recevoir le renfort) → le renfort.
+- **Personne pour dévorer** (un sort sans unité, aucun allié désigné) : rien n'est mangé — on ne gaspille pas la
+  nourriture. Le destinataire par défaut est `self`; `t` vaut `allyUnit`, `randomAllyUnit` ou `previous` pour un
+  sort ; `charogne` rend ses destinataires (« Lui »).
+- Statique `montant_des_effets` `cible: 'charogne'` : il s'ajoute à X (sommet 17 de Corbeau Affamé).
+- `KEYWORDS.<id>.transmissible` : le drapeau est posé sur Provocation, Charge, Venin, Bouclier, Élusif, Passe-Murailles.
+  Un mot-clé à paramètre (`type:Chien`) ne passe jamais.
+- **Bot** : valeur = 2 par carte des X dernières de la défausse adverse + 1 par mot-clé d'allié mangeable (dédoublé),
+  0 si elle est vide. Les cartes qu'un appât fabrique juste avant, **dans la même carte**, comptent (« Appât 1, puis
+  Charogne 2 » vaut quelque chose sur une défausse vide). Dans `ai.js` : `effectValue`, `faisable`, `effectsValue`.
+- **Récit** : un `deplace` d'exil porte `via: 'charogne'` ; le renfort est un `renfort` ordinaire.
+
 ### 4.3 bis Appât
 
 **Règle.** « Appât X » : X cartes tirées au hasard de la **pile de fatigue adverse** sont fabriquées
@@ -524,8 +568,8 @@ chères nourrissent.
 **Moteur.**
 - Un déplacement de zone du modèle existant : source = **pile de fatigue adverse** (la même zone
   `fatigue` que pour Annotation et Index, 4.5), destination = défausse adverse, `ordre: hasard`.
-- Tant que la pile n'est pas par camp, la source est la pile commune (`fatiguePile()`). Appât peut
-  donc être codé avec Charogne, avant la pile par camp.
+- ~~Tant que la pile n'est pas par camp, la source est la pile commune.~~ La pile est par camp depuis le 11 octobre : la source
+  est celle de **l'adversaire** (`nbFatigue(B, foe(k))` pour le bot).
 - Les copies sont neuves (`inst` en `c…`, comme pour toute carte fabriquée).
 
 **Bot.** Valeur d'un appât = repas futurs pour ses Charognes − risque de récursion adverse
@@ -535,6 +579,17 @@ aucune Charogne dans la main, la pioche ou sur le plateau.
 **Tests.** Appât ne touche ni la pioche, ni la main, ni le plateau ; les cartes arrivent au dessus ;
 une Charogne qui suit les mange en premier ; pile vide → rien ; aucun événement `defausse`/`meule` ;
 une carte déjà Ex-libris n'est pas ajoutée deux fois. **Taille : S.**
+
+**✅ CODÉ le 10 octobre 2026.** Précisions : les copies viennent de `fatiguePile()` (la pile commune) par un
+`copieDeFatigue()` à part de `carteDeFatigue()` — **ce n'est pas une pioche, aucun plafond par tour ne joue**
+(`B[camp].fatigue` ne bouge pas). Elles sont **poussées à la fin** de la défausse adverse, qui reste chronologique.
+Le récit les dit par `deplace` **`mode: 'appat'`** (et non `cree`, que le journal masque quand c'est l'adversaire qui
+reçoit : une défausse est publique). **Ex-libris** (codé le 11 octobre, 4.5) : une carte appâtée qui est Ex-libris est déjà
+dans sa pile, rien de plus — la copie naît `classee`. **Depuis le même jour la pile qui nourrit est celle de l'adversaire**
+(`copieDeFatigue(B, foe(k))`) : la sienne, renforcée par ses Annotations et grossie par ses Ex-libris.
+- **Bot** : un appât vaut 1,2 par carte (le repas d'une Charogne qui n'est pas encore là) **s'il y a une Charogne** en
+  main, en pioche ou en jeu — ou sur la carte elle-même — **et une pile de fatigue** ; moins 0,9 par carte quand
+  l'adversaire montre (plateau ou défausse, jamais sa main) une carte qui reprend dans la défausse.
 
 ### 4.4 Toxine
 
@@ -553,8 +608,10 @@ disparaissent. Jamais sur le héros.
 - Opérations : `toxine` (cible, `v` amountable, **amplifiable**), `contagion` (cible : les unités qui
   portent déjà une Toxine) et `epidemie` (pose 2 Toxines sur chaque unité adverse, **puis** chaque unité adverse
   inflige à son contrôleur autant de dégâts que de Toxines qu'elle porte, par `damageHero` ; les Toxines
-  **restent** et continuent de tourner). Garde d'événement `toxinee` : « l'unité qui meurt portait une
-  Toxine » (lue **avant** le transfert).
+  **restent** et continuent de tourner). Événement `unitToxinee` (déclaré dans le registre, `implemented: false`) :
+  « une unité qui portait une Toxine meurt » (lu **avant** le transfert) — un événement à part et non une garde sur
+  `unitDies` : une garde regarde le *sujet* d'un événement, et « quand tu perds une unité » n'en a pas (la
+  validation le refuse).
 - Statique `montant_des_effets`, `cible: 'toxine'` (sommet 17 de Dendrobate). Statique
   `toxine_brule_le_heros`, lu **au tic** de `beginTurn` (sommet 20 de Crapaud Cornu) : chaque unité inflige
   alors aussi 1 dégât à son contrôleur par Toxine. Les héros ne portent jamais de Toxine : ils reçoivent des dégâts.
@@ -572,6 +629,29 @@ elle va perdre à son prochain tour.
 sur une survivante ; disparition sans survivante ; chaîne de morts ; copie/switch effacent ; Vase +
 Toxine concentre sur la dernière unité ; Épidémie compte les marqueurs **après** la pose (2 par unité)
 et les laisse en place ; le héros adverse ne porte jamais de marqueur. **Taille : M.**
+
+**✅ CODÉE le 11 octobre 2026** (détail dans `game/src/combat/CLAUDE.md`, « La Toxine »). Précisions :
+- **Le marqueur** est `u.tox`, un état à côté de `damage`. `makeUnit` l'initialise ; `devientCopie` (copie, switch) le
+  remet à zéro ; une unité renvoyée en main ou exilée disparaît donc avec ; une unité volée le garde.
+- **Le tic** (`ticDeToxine`, dans `commenceTour`) : après la remise à zéro des attaques, **avant la pioche**, suivi d'un
+  `resolveDeaths`. Ce n'est pas `damageUnit` (donc pas de Venin, pas de riposte) : la perte de PV est écrite sur l'unité,
+  et le récit est un `degats` marqué `toxine: true`. Le Bouclier (`u.shield`) absorbe **le tour** et tombe, les marqueurs
+  restent.
+- **Le saut** (`resolveDeaths`) : une fois **tous** les morts du lot retirés du plateau, chaque porteur mort donne ses
+  marqueurs à une survivante du **même camp**, au hasard ; aucune : ils disparaissent. Le récit dit `toxineSaut`. Puis
+  `unitToxinee` part pour chaque porteur, après `unitDies`.
+- **`toxine_brule_le_heros`** est lu au tic par `staticTotal` : chaque unité inflige à son contrôleur 1 dégât par marqueur
+  (`damageHero`), que son Bouclier ait tenu ou non.
+- **Contagion** n'agit que sur les unités **adverses** qui portent déjà une Toxine ; son champ `dmg` est un vrai
+  `dmg` (les statiques de dégâts le touchent). **Épidémie** pose `v` sur chaque unité adverse, puis **un `damageHero`
+  par unité** du total APRÈS la pose.
+- **« Tes Toxines en posent 1 de plus »** (`cible: 'toxine'`) vaut pour `toxine`, `epidemie` et `contagion` (sauf une
+  Contagion « dégâts seuls », `v: 0`, qui ne pose rien et dont les dégâts ne reçoivent pas le bonus).
+- **Bot** : une Toxine vaut ~1,4 point par marqueur, plafonné par ce que vaut l'unité moins ce que ses marqueurs lui
+  prennent déjà ; Contagion et Épidémie se lisent de même (Épidémie + 0,9 par PV infligé au héros). Une unité que sa
+  Toxine tue avant d'agir (`meurtDuTic`) ne vaut plus un coup (`unitThreat` ≈ 0) et ne coûte rien à perdre.
+- **Interface** : une gemme verte (`.tox`) avec le nombre de marqueurs sur l'unité ; la fiche dit ce qu'elle perdra à
+  son prochain tour (« et en mourra », ou « son bouclier absorbera le premier tour »).
 
 ### 4.5 Meule, défausse volontaire, Ex-libris
 
@@ -602,6 +682,41 @@ touche que ma copie ; la pile de l'adversaire est intacte ; une carte exilée (R
 Impératrice (cartes qui retournent en pioche) n'ajoute rien. **Taille : L** (c'est le gros
 changement : la pile devient par camp).
 
+**✅ CODÉ le 11 octobre 2026** (Ex-libris et la pile par camp ; la meule et la défausse volontaire l'étaient depuis les
+briques communes, 4.0). Précisions, et écarts avec ce qui précède :
+- **La pile est propre à chaque camp, mais créée à la première écriture** (`s.pile`, `null` au départ : le camp lit encore
+  la pile commune `fatiguePile()`). La première écriture — Annotation, un Ex-libris qui entre — la **copie** en cartes-modèles
+  déjà résolues à leur niveau de ligne (`pileModeles`). Rien ne change tant que personne n'y touche, et un combat qui ne s'en
+  sert pas ne paie rien (`cloneBattle` non plus). Lecture : `nbFatigue(B, k)`, `pileDeFatigue(B, k)` (exportés ; le bot,
+  l'écran et le journal les lisent) ; écriture : `pileModeles` (privé).
+- **Un seul point d'arrivée en défausse** : `versLaDefausse(B, camp, carte)` — sort joué (classé APRÈS la ligne « joue »),
+  allié mort (chez son **propriétaire**), `depose(…, 'defausse')` (meule, défausse volontaire, main pleine, sort qu'on ne
+  pose pas), switch d'une unité en sort, pioche qui déborde. C'est elle qui appelle `classe()`. **L'exil** (Reprise, Charogne,
+  `exile`) et le **retour en pioche** (Impératrice) n'y passent pas : ils ne laissent rien.
+- **« Une seule fois par carte »** s'écrit `carte.classee = true`, sur la carte elle-même (donc `cloneBattle` et le journal la
+  suivent). **Une carte qui vient d'une pile de fatigue naît classée** : pioche de fatigue, Appât, Index (`copieDeFatigue`,
+  `modeleCree` → `desPile`). Une carte créée ou copiée d'ailleurs (`carteNeuve`, le reflet d'un Miroir) est **une autre
+  carte** : elle perd `classee` et se classera à son tour. C'est la règle qui ferme la boucle, pas un plafond.
+- **Le modèle qui entre** est la carte du catalogue **lue au niveau de son propriétaire** (`ownerLevel`) — ses renforts et son
+  coût du moment ne comptent pas, c'est un exemplaire neuf. Une carte hors catalogue laisse un instantané net d'elle-même.
+- **Annotation et Index n'ont plus d'effet à eux** : `renforce_les_cartes` avec `d_ou: 'fatigue'` (toutes : `n: 99`) et
+  `cree` avec `choix: 'fatigue'` (+ `atk`/`hp`, un bonus que tout `cree` a maintenant). `fatigue` n'est **pas** une entrée de
+  `ZONES` : une zone pour renforcer seulement, jamais prélevée. `cree` de la pile n'est **pas** une pioche : ni plafond par
+  tour (`B[camp].fatigue`), ni événement `fatigue`. `renforce_les_cartes` écrit **en place** sur les modèles : chaque exemplaire tiré
+  ensuite arrive déjà grossi (un sort traverse sans rien recevoir).
+- **Récit** : un événement `classe` (`camp`, `carte`, `pile` = la taille après) ; `renfortCartes` porte `zone: 'fatigue'` ; le journal de
+  décisions écrit `etat.<camp>.pileFatigue`.
+- **Validation** : `ex-libris-risque` (**bloquant**) — Ex-libris sur une carte qui `detruit` ou `dmg` toutes les unités
+  adverses (ou toutes les unités), carte ou palier ; `ex-libris-trop` (avertissement) — plus de 2 cartes à Ex-libris par héros.
+- **Bot** : `cree` de la pile et `appat` ne sont faisables que si la pile **du bon camp** n'est pas vide ; une Annotation vaut
+  ce que ses alliés rapportent (×0,25 : on ne les tire que la pioche finie) ; une carte à Ex-libris pas encore classée vaut
+  +0,3. Le bot ne sait toujours pas qu'atteindre la fatigue en premier est un plan.
+- **L'écran** : la fenêtre de la défausse a un groupe **« Ta pile de fatigue »** (cartes à Ex-libris éclairées, le reste grisé,
+  lecture seule) ; le compteur de la barre dit « Fatigue N » une fois la pioche vide.
+- **Pas fait** : une pile **adverse** lisible à l'écran (la tienne seulement) ; un compteur « cartes de ta pile » dans le
+  registre (rien ne le demande) ; `defausse volontaire` choisie par le joueur en manuel (elle reste au hasard / dessus, voir
+  4.0) — rien de ce qui précède ne l'exigeait.
+
 ### 4.6 Registre
 
 **Règle.** Le Registre est une liste, **partagée par les deux camps**, des cartes **jouées** pendant
@@ -618,8 +733,9 @@ carte « Type : tous » compte pour **+1** et fait partager un type à toute car
 - Source de type `registre` dans `TYPE_SOURCES` (Mimétisme, Index du Registre).
 - Événement `typeNouveau` : « quand un type entre pour la première fois ». Une carte qui apporte deux
   types nouveaux le déclenche deux fois ; **une carte « Type : tous » le déclenche aussi** (elle
-  ajoute 1 au compteur). Garde `registre` pour Greffier et Archiviste Impitoyable : « cette carte partage
-  un type avec le Registre » (évaluée **avant** son inscription).
+  ajoute 1 au compteur). Événement `registre` (déclaré, `implemented: false`) pour Greffier et Archiviste
+  Impitoyable : « une carte jouée partage un type avec le Registre » (lu **avant** son inscription) — un événement
+  à part, pour entendre aussi les sorts, qui n'ont pas d'unité pour sujet.
 - `enregistre` (Copiste) : ajoute au Registre une carte au hasard de la main, sans la jouer.
 - **Rétrospective** : pour chaque type nommé, tire une carte du Registre de ce type, puis les joue
   **gratuitement**, dans l'ordre, avec `autoTarget`. Les cartes sont lues avec **le niveau de leur
@@ -669,13 +785,65 @@ inutilisable à la main sans elle (il faut choisir le sort à lancer) ; pour Cha
 
 1. ✅ Briques communes (4.0) : exil, « met à la défausse », main illimitée, événements, carte sujet, « + » de la caractéristique variable.
 2. ✅ **Reprise** (4.2) et la fenêtre de zone.
-3. **Charogne** (4.3) et l'**Appât** (4.3 bis, sur la pile de fatigue commune en attendant la pile par camp).
-4. **Pistage** (4.1).
-5. **Toxine** (4.4).
-6. **Pile de fatigue par camp + Ex-libris** (4.5) — le plus invasif, donc après que le reste est stable.
+3. ✅ **Charogne** (4.3) et l'**Appât** (4.3 bis, sur la pile de fatigue commune en attendant la pile par camp) — codés le 10 octobre 2026.
+4. ✅ **Pistage** (4.1) — codé le 10 octobre 2026.
+5. ✅ **Toxine** (4.4) — codée le 11 octobre 2026.
+6. ✅ **Pile de fatigue par camp + Ex-libris** (4.5) — codés le 11 octobre 2026.
 7. **Registre** (4.6).
-8. Bot, validations, audit ; puis `heros-v3-paliers.mjs` et `gen-heros-v3.mjs` (sur le modèle de la V2).
+8. Bot, validations, audit. ✅ `heros-v3-paliers.mjs` et `gen-heros-v3.mjs` sont écrits (10 octobre 2026), **avant**
+   les mécaniques : les cartes existent et se relisent dans l'Atelier, en attendant leur moteur (5 bis).
 9. Mesures : `check-decks`, `matchups --taille 3`, `--archetypes`, `test-situations`.
+
+## 5 bis. Où en sont les cartes (10 octobre 2026)
+
+Les six héros sont **écrits en entier** : 5 + 5 cartes, trois à quatre paliers chacune (vérifiés par
+`audit-paliers.mjs` : 0 erreur, un avertissement voulu), une animation unique chacune (`test-vfx.mjs`).
+Ce qui manque est le **moteur** d'une mécanique neuve, le **Registre** (Charogne, Appât, Pistage, Toxine et Ex-libris sont codés depuis le 10-11 octobre). Elle est déclarée en deux endroits :
+
+- **les effets** inventés (`enregistre`, `donne_type_du_registre`, `relance_registre`, `cree_du_registre`) dans
+  `customMechanics` (`implemented: false`) — la liste complète, avec les cartes qui s'en servent, est dans
+  `docs/MECANIQUES-A-CODER.md` ;
+- **le reste du vocabulaire** dans `config/mechanics.js`, avec `implemented: false` : les moments `typeNouveau` et
+  `registre` (`EVENTS`), le compteur `typesRegistre`, le filtre `typeDuRegistre`.
+
+**Tout ce qui est déclaré est inerte** : aucun `fireEvent` n'envoie ces moments, aucun `staticTotal` ne lit ces
+statiques, les compteurs valent 0, le filtre du Registre ne désigne rien (jamais « toutes »), et le moteur écrit
+« pas encore codée » au journal pour un effet. La validation dit « pas encore codé » sur chaque carte concernée
+(`validate.js`, un avertissement par carte, jamais bloquant). Quand une mécanique est codée : retirer son entrée de
+`customMechanics`, ôter `implemented: false` de son vocabulaire, et relancer `check-decks`.
+
+| Héros | Joue-t-il aujourd'hui ? | Ce qui manque |
+|---|---|---|
+| 🐈 Mélusine | **Oui, en entier** | rien : Reprise, défausse volontaire, `on_defausse`, `on_reprise`, statiques de défausse existent |
+| 🦉 Hulotte | **Oui, en entier** (11 octobre) | rien : la pile de fatigue est par camp, Ex-libris (Chancelière, Grand Chancelier), Annotation et Index sont codés |
+| 🐸 Dendrobate | **Oui, en entier** (11 octobre) | rien : la Toxine est codée (marqueurs, tic, saut, Contagion, Épidémie, statiques) |
+| 🐦‍⬛ Morrigane | **Oui, en entier** (10 octobre) | rien : Charogne et Appât sont codés ; l'Appât nourrit avec la pile de fatigue **de l'adversaire** (par camp depuis le 11 octobre) |
+| 🐕 Patou | **Oui, en entier** (10 octobre) | rien : le Pistage est codé (marque, taxe, punitions, pistage à la pioche, patte à l'écran) |
+| 🦎 Pastiche | **À peine** | **Registre** (4.6) : le Registre vaut 0 type, Greffier est un 1/1 ; Mimétisme et Grand Registre donnent leurs +2/+2 |
+
+**Écarts avec la conception ci-dessus** (des choix d'écriture, à relire) :
+1. **`unitToxinee` et `registre` sont des événements**, pas des gardes (4.4, 4.6 corrigées ci-dessus) ; `unitToxinee` est codé.
+2. **La pile de fatigue** (Annotation, Index, paliers) s'écrivait avec deux effets à eux, `renforce_la_fatigue` et
+   `cree_de_la_fatigue` : **repliés le 11 octobre** dans `renforce_les_cartes` (`d_ou: 'fatigue'`) et `cree`
+   (`choix: 'fatigue'`), comme la conception le voulait (4.5). Les cartes ont été regénérées.
+3. **Le Registre** s'écrit avec `donne_type_du_registre` (Mimétisme, Grand Registre, Bibliothécaire),
+   `relance_registre` (mode « par type » = Rétrospective, mode « au hasard » = ses paliers) et `cree_du_registre`
+   (Index du Registre, niveau 16), et non une source de type `registre` (4.6).
+4. **`contagion` porte aussi `dmg`** : le palier 12 de Contagion (« inflige aussi 1 dégât à chaque unité adverse qui
+   porte une Toxine ») n'a pas de cible « les unités qui portent une Toxine » dans le registre.
+5. **Deux retouches du moteur** que les cartes demandaient, codées et testées : `reduit_le_cout_de` gagne `n` (« le coût
+   d'**un** sort de ta main » ; 0 = toutes, ce qu'écrivaient les cartes d'avant) ; une **aura peut porter plusieurs
+   mots-clés** (Dendrobate Royale : Venin à la pose, puis Bouclier au niveau 18 — un palier qui donne un mot-clé à
+   une aura qui en avait déjà un l'ajoute au lieu de le remplacer).
+6. **Choix de données** : les cartes de Pastiche portent `type:Cameleon` (sans type, aucune ne partagerait jamais un
+   type avec le Registre) ; Dendrobate prend `Frog Venomous.png`, le sprite de Reinette (la conception l'écrit ainsi) ;
+   Pastiche prend `Cameleon.png` (le caméléon dessiné pour lui reste à faire) ; « Mauvais Œil » est le nom d'une carte
+   de Corax **et** d'un switch de Mélusine (la conception les nomme pareil) ; Chaton Apprenti a deux paliers au
+   niveau 8 (« défausse une carte… » puis « … pioche une carte »), que l'audit signale et qui se lit comme un seul.
+7. **Pas faites : les retouches des héros existants** (section 3) — Reprise sur Coup de Patte, Tempête de Patounes,
+   Griffes Sournoises…, Pistage niveau 14 de Médor et Croc, les textes Toxine de Bulle et Reinette, meule et Ex-libris
+   d'Athéna et Morphée, les 0 d'attaque des V2. Les Toxines de Bulle et Reinette **casseraient** ces deux héros tant
+   que la Toxine n'est pas codée ; les retouches de Reprise, elles, se peuvent faire dès maintenant.
 
 ## 6. Vérification du calendrier
 

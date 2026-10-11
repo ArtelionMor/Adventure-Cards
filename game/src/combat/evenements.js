@@ -57,14 +57,18 @@ export function avec(B, i, fn) {
 /** Une carte : en main, a la defausse, jouee. `cout` est le cout IMPRIME ; le paye est dans `joue`. */
 export const refCarte = c => ({
   k: 'carte', nom: c.name, id: c.id, inst: c.inst, sprite: c.sprite || null, type: c.type,
-  cout: c.cost, atk: c.atk, hp: c.hp, keys: [...(c.keys || [])]
+  cout: c.cost, atk: c.atk, hp: c.hp, keys: [...(c.keys || [])],
+  // La marque du pistage au moment de la photo (une carte pistee dans la main), seulement quand elle y est.
+  ...(c.pistee ? { pistee: true } : {})
 });
 
 /** Une unite en jeu, avec ses chiffres A CET INSTANT (derives : auras comprises). */
 export const refUnite = (u, camp) => ({
-  k: 'unite', camp, uid: u.uid, nom: u.name, sprite: u.sprite || null,
+  k: 'unite', camp, uid: u.uid, nom: u.name, id: u.card ? u.card.id : null, sprite: u.sprite || null,
   atk: u.atk, hp: u.hp, maxHp: u.maxHp, keys: [...u.keys],
-  cout: u.card ? u.card.cost : null, jeton: !u.card
+  cout: u.card ? u.card.cost : null, jeton: !u.card,
+  // Les marqueurs Toxine qu'elle porte a cet instant (V3), seulement quand elle en porte.
+  ...(u.tox > 0 ? { tox: u.tox } : {})
 });
 
 /** Un heros (un camp tout entier). */

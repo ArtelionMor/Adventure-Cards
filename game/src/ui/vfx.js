@@ -34,6 +34,13 @@ const C = {
 };
 const ARC = ['#ff4d5e', '#ffb347', '#ffe45e', '#5fe08f', '#6ec1ff', '#b57cff'];
 
+/**
+ * La sous-signature d'une REGLE (« quand X alors Y ») : ecrite sous `regle` ET sous le moment exact de la
+ * carte (`on_fatigue_self`…). Le jeu cherche d'abord le moment exact (`effets.js`), et la signature
+ * CALCULEE en pose toujours un : sans ca, ce qu'on ecrit sous `regle` ne se jouerait jamais.
+ */
+const surRegle = (slot, sub) => ({ regle: sub, [slot]: sub });
+
 // ============================================================ LES 120 SIGNATURES
 export const SIGNATURES = {
   // ---- Médor (Chien, Gardien) : or et beige, pattes, os, sifflet, aboiements
@@ -190,7 +197,103 @@ export const SIGNATURES = {
   cam2_double: { lancer: ['eclats', { couleur: '#dff6ff', sens: 'dedans' }], vers: 'allies', entree: ['dedouble', {}] },
   cam2_veil: { lancer: ['voile', { couleur: 'arcenciel' }], vers: 'allies', renfort: ['clignote', {}] },
   cam2_mime: { entree: ['masques', { n: 1 }], declenche: { regle: { renfort: ['facettes', {}] } } },
-  cam2_chimera: { entree: [['arcenciel', { grand: true }], ['convocation', { couleur: C.violet, lourd: true }]], aura: ['halo', { couleur: C.violet, symbole: 'Debuff', cible: 'ennemis' }] }
+  cam2_chimera: { entree: [['arcenciel', { grand: true }], ['convocation', { couleur: C.violet, lourd: true }]], aura: ['halo', { couleur: C.violet, symbole: 'Debuff', cible: 'ennemis' }] },
+
+  // ===== LES SIX HEROS V3 (docs/V3-HEROS.md) — mecaniques pas encore codees pour la plupart : ces signatures
+  // suivent le TEXTE des cartes, et leurs moments (« quand l'adversaire joue une carte pistee »…) se joueront
+  // quand le moteur les enverra.
+  // ---- Patou (Chien, Berger) : vert d'herbe et laine, empreintes, viseur (le pistage), aboiements, crocs
+  dog3_herd: { entree: ['pattes', { couleur: '#a8d08d', n: 3, petit: true }],
+    declenche: surRegle('on_pistee_foe', { lancer: ['montee', { symbole: 'Heal', couleur: C.vert, n: 2 }], vers: 'soi' }) },
+  dog3_shepherd: { entree: [['cible', { couleur: '#a8d08d' }], ['aboiement', { couleur: '#a8d08d', petit: true }]] },
+  dog3_train: { lancer: ['pattes', { couleur: '#a8d08d', n: 6, chemin: true }], vers: 'ennemi', arrivee: ['cible', { couleur: C.rouge }] },
+  dog3_patou: { entree: [['aboiement', { couleur: C.or, grand: true }], ['convocation', { couleur: '#a8d08d', lourd: true }]],
+    declenche: surRegle('on_pistee_foe', { lancer: ['crocs', { couleur: '#ffffff', grand: true }], vers: 'ennemi', arrivee: ['souffle', { couleur: C.rouge }] }) },
+  dog3_hunt: { lancer: [['hurlement', { couleur: '#a8d08d' }], ['crocs', { couleur: '#ffffff', grand: true, rouge: true }]], vers: 'ennemi' },
+  dog3_pup: { entree: ['pattes', { couleur: '#e0c38c', n: 2, petit: true }],
+    declenche: surRegle('on_pistee_foe', { renfort: ['montee', { symbole: 'Buff', couleur: '#a8d08d', n: 2 }] }) },
+  dog3_muzzle: { lancer: ['cible', { couleur: '#e0c38c' }], vers: 'ennemi', arrivee: ['fumee', { couleur: '#a8a8a8', n: 4 }] },
+  dog3_rott: { entree: ['crocs', { couleur: '#ffffff', petit: true }],
+    declenche: surRegle('on_pistee_foe', { lancer: ['aboiement', { couleur: C.rouge }], vers: 'ennemis', arrivee: ['crocs', { couleur: '#ffffff', rouge: true }] }) },
+  dog3_beat: { lancer: ['hurlement', { couleur: '#e0c38c' }], vers: 'ennemi', arrivee: ['cible', { couleur: C.orange }] },
+  dog3_elder: { entree: [['lune', { couleur: C.lune, petite: true }], ['convocation', { couleur: '#e0c38c', lourd: true }]] },
+  // ---- Mélusine (Chat, Sorcière) : lilas, magenta et vert de chaudron — étoiles, fumée, livre, fiole, spirales
+  cat3_spark: { lancer: ['spirale', { couleur: C.lilas, n: 5 }], vers: 'ennemi', arrivee: ['etoiles', { couleur: C.magenta, n: 5 }] },
+  cat3_kit: { entree: ['etoiles', { couleur: C.lilas, n: 3 }] },
+  cat3_cauldron: { entree: [['fumee', { couleur: '#7fe0a8' }], ['bulles', { couleur: '#7fe0a8', n: 6 }]] },
+  cat3_ash: { entree: ['descente', { couleur: C.lilas }], lancer: ['cartes', { couleur: C.lilas, n: 1 }], vers: 'main' },
+  cat3_philter: { lancer: [['fiole', { couleur: '#7fe0a8' }], ['spirale', { couleur: C.magenta, n: 10 }]], vers: 'ennemi', arrivee: ['explosion', { couleur: C.magenta }] },
+  cat3_evil: { lancer: ['yeux', { couleur: '#7fe0a8' }], vers: 'ennemi', arrivee: ['fumee', { couleur: '#3a6a50', n: 5 }] },
+  cat3_divin: { lancer: [['livre', { couleur: C.lilas }], ['cartes', { couleur: C.lilas, n: 1 }]], vers: 'main' },
+  cat3_familiar: { entree: ['fumee', { couleur: '#b3a0ff', petit: true }],
+    declenche: surRegle('on_reprise_self', { renfort: ['montee', { symbole: 'Buff', couleur: C.lilas, n: 2 }] }) },
+  cat3_black: { entree: ['yeux', { couleur: C.jaune }],
+    declenche: surRegle('on_defausse_self', { lancer: ['etoiles', { couleur: C.violet, n: 3 }], vers: 'ennemi', arrivee: ['griffures', { couleur: C.violet, n: 1 }] }) },
+  cat3_sabbat: { entree: [['lune', { couleur: C.lune, nuit: true }], ['convocation', { couleur: C.magenta, lourd: true }]] },
+  // ---- Morrigane (Corbeau, Charognarde) : os blanc, rouge sombre, ailes noires — os, âmes, nuée, bec
+  crow3_hungry: { entree: [['os', { couleur: '#e8dcc0' }], ['plumes', { couleur: '#2a2236', n: 3 }]] },
+  crow3_magpie: { entree: ['plume_douce', { couleur: '#8e1f2a', n: 3 }], lancer: ['cartes', { couleur: '#8e1f2a', n: 2 }], vers: 'ennemi',
+    declenche: surRegle('on_exil_any', { renfort: ['montee', { symbole: 'Attack', couleur: '#e8dcc0', n: 2 }] }) },
+  crow3_vulture: { entree: ['ombre_ailes', { couleur: '#3a2f3f' }],
+    attaque: [['trainee', { couleur: '#8e1f2a' }], ['serres', { couleur: '#e8dcc0', quand: 'impact' }]],
+    declenche: surRegle('on_attack_self', { renfort: ['montee', { symbole: 'Buff', couleur: '#e8dcc0', n: 2 }] }) },
+  crow3_knacker: { entree: [['convocation', { couleur: '#3a2f3f', lourd: true }], ['os', { couleur: '#e8dcc0' }]],
+    declenche: surRegle('on_unitDies_foe', { lancer: ['os', { couleur: '#e8dcc0' }], vers: 'allies' }) },
+  crow3_lord: { entree: [['ombre_ailes', { couleur: '#2a1020', lourd: true }], ['couronne', { couleur: '#e8dcc0', grand: true }]] },
+  crow3_charnel: { lancer: [['os', { couleur: '#e8dcc0' }], ['cartes', { couleur: '#8e1f2a', n: 2 }]], vers: 'allies',
+    renfort: ['montee', { symbole: 'Buff', couleur: '#e8dcc0', n: 2 }] },
+  crow3_skel: { entree: [['fumee', { couleur: '#e8dcc0' }], ['yeux', { couleur: '#8e1f2a' }]],
+    declenche: { turnStart: { lancer: ['os', { couleur: '#e8dcc0' }], vers: 'allies', renfort: ['montee', { symbole: 'Buff', couleur: '#e8dcc0', n: 1 }] } } },
+  crow3_prince: { entree: [['couronne', { couleur: '#8e1f2a' }], ['os', { couleur: '#e8dcc0' }]],
+    declenche: surRegle('on_exil_any', { lancer: ['bec', { couleur: '#e8dcc0' }], vers: 'ennemi', arrivee: ['souffle', { couleur: '#8e1f2a' }] }) },
+  crow3_colossus: { entree: [['nuit', { couleur: '#14080c', lourd: true }], ['os', { couleur: '#e8dcc0' }]] },
+  crow3_lean: { entree: ['plume_douce', { couleur: '#3a2f3f', n: 2 }], attaque: [['trainee', { couleur: '#e8dcc0' }]],
+    lancer: ['cartes', { couleur: '#e8dcc0', n: 1 }], vers: 'ennemi',
+    declenche: surRegle('on_heroHurt_foe', { lancer: ['os', { couleur: '#8e1f2a' }], vers: 'allies' }) },
+  // ---- Dendrobate (Grenouille, Venin) : vert acide et violet poison — gouttes, bulles, fioles, brume
+  frog3_tree: { entree: ['bulles', { couleur: '#b6ff3c', n: 4 }], arrivee: ['gouttes', { couleur: '#b6ff3c', n: 4 }] },
+  frog3_dart: { lancer: ['pique', { couleur: '#b6ff3c' }], vers: 'ennemi', arrivee: ['gouttes', { couleur: C.poison, n: 9 }] },
+  frog3_sentinel: { entree: [['nenuphar', { couleur: '#2f7a4a', grand: true }], ['convocation', { couleur: C.poison }]],
+    attaque: [['gouttes', { couleur: '#b6ff3c', quand: 'impact' }]] },
+  frog3_slow: { lancer: [['fiole', { couleur: '#b6ff3c' }], ['fumee', { couleur: '#4a7a2a', n: 5 }]], vers: 'ennemi', arrivee: ['gouttes', { couleur: '#b6ff3c', n: 8 }] },
+  frog3_royal: { entree: [['couronne', { couleur: '#b6ff3c' }], ['convocation', { couleur: C.poison, lourd: true }]],
+    aura: ['halo', { couleur: C.poison, symbole: 'Buff' }] },
+  frog3_tadpole: { entree: ['bulles', { couleur: C.menthe, n: 3 }], mort: ['ame', { couleur: '#b6ff3c' }],
+    declenche: { death: { arrivee: ['gouttes', { couleur: '#b6ff3c', n: 3 }] } } },
+  frog3_toad: { entree: [['convocation', { couleur: '#8a6b3a' }], ['gonfle', { delai: 300 }]],
+    declenche: surRegle('on_attack_foe', { arrivee: ['gouttes', { couleur: '#b6ff3c', n: 4 }] }) },
+  frog3_contagion: { lancer: ['spirale', { couleur: '#b6ff3c', n: 8 }], vers: 'ennemis', arrivee: ['gouttes', { couleur: '#b6ff3c', n: 5 }] },
+  frog3_collector: { entree: ['bulles', { couleur: C.menthe, n: 6 }],
+    declenche: surRegle('on_unitToxinee_foe', { lancer: ['cartes', { couleur: C.menthe, n: 1 }], vers: 'main' }) },
+  frog3_epidemic: { lancer: [['pluie', { couleur: '#b6ff3c' }], ['fumee', { couleur: '#4a7a2a', grand: true }]], vers: 'ennemis', arrivee: ['gouttes', { couleur: '#b6ff3c', n: 8 }] },
+  // ---- Hulotte (Hibou, Bibliothécaire) : parchemin et bleu de nuit — livres, horloge, plumes douces, cartes qui tombent
+  owl3_skim: { lancer: [['livre', { couleur: '#d9c28a' }], ['cartes', { couleur: '#d9c28a', n: 3, melange: true }]], vers: 'defausse' },
+  owl3_archivist: { entree: ['livre', { couleur: '#c9a35a' }], lancer: ['cartes', { couleur: '#c9a35a', n: 2 }], vers: 'defausse' },
+  owl3_annot: { lancer: [['livre', { couleur: '#8fb6ff' }], ['etoiles', { couleur: '#8fb6ff', n: 5 }]], vers: 'pioche' },
+  owl3_night: { entree: ['yeux', { couleur: '#8fb6ff' }],
+    declenche: surRegle('on_fatigue_self', { renfort: ['montee', { symbole: 'Buff', couleur: '#8fb6ff', n: 2 }] }) },
+  owl3_chancellor: { entree: [['convocation', { couleur: '#d9c28a', lourd: true }], ['livre', { couleur: '#d9c28a' }]] },
+  owl3_barn: { entree: ['plume_douce', { couleur: '#d9c28a', n: 3 }], lancer: ['cartes', { couleur: '#d9c28a', n: 1 }], vers: 'defausse' },
+  owl3_index: { lancer: [['livre', { couleur: '#f4ead2' }], ['cartes', { couleur: '#f4ead2', n: 1 }]], vers: 'main', de: 'pioche' },
+  owl3_bookmark: { entree: [['convocation', { couleur: '#8fb6ff' }], ['plume_douce', { couleur: '#8fb6ff', n: 4 }]] },
+  owl3_dean: { entree: ['horloge', { couleur: '#c9a35a' }],
+    declenche: surRegle('on_fatigue_self', { lancer: ['cartes', { couleur: '#8fb6ff', n: 1 }], vers: 'main' }) },
+  owl3_grand: { entree: [['couronne', { couleur: '#d9c28a', grand: true }], ['livre', { couleur: '#d9c28a' }]],
+    declenche: surRegle('on_fatigue_self', { renfort: ['montee', { symbole: 'Buff', couleur: '#d9c28a', n: 2 }] }) },
+  // ---- Pastiche (Caméléon, Usurpateur) : arc-en-ciel et vert d'eau — éclats, masques, dédoublement, voile
+  cam3_clerk: { entree: ['eclats', { couleur: '#b8ffb0', sens: 'dedans' }] },
+  cam3_librarian: { entree: [['livre', { couleur: '#b8ffb0' }], ['facettes', {}]] },
+  cam3_chronicler: { entree: ['masques', { n: 2 }],
+    declenche: surRegle('on_typeNouveau_any', { lancer: ['cartes', { couleur: '#dff6ff', n: 1 }], vers: 'main' }) },
+  cam3_specimen: { lancer: ['eclats', { couleur: C.orange }], vers: 'ennemi', arrivee: ['faisceau', { couleur: '#b8ffb0' }] },
+  cam3_grand: { entree: [['arcenciel', { grand: true }], ['convocation', { couleur: '#b8ffb0', lourd: true }]],
+    lancer: ['voile', { couleur: 'arcenciel' }], vers: 'allies', renfort: ['montee', { symbole: 'Buff', couleur: '#b8ffb0', n: 2 }] },
+  cam3_copyist: { entree: ['dedouble', {}], lancer: ['cartes', { couleur: '#b8ffb0', n: 1 }], vers: 'main' },
+  cam3_mimic: { lancer: ['masques', { n: 1 }], vers: 'allies', renfort: ['montee', { symbole: 'Buff', couleur: '#dff6ff', n: 2 }] },
+  cam3_ruthless: { entree: ['yeux', { couleur: '#b8ffb0' }],
+    declenche: surRegle('on_registre_foe', { lancer: ['eclats', { couleur: '#dff6ff' }], vers: 'ennemi', arrivee: ['souffle', { couleur: '#b8ffb0' }] }) },
+  cam3_index: { lancer: [['livre', { couleur: '#dff6ff' }], ['cartes', { couleur: '#b8ffb0', n: 5, eventail: true }]], vers: 'main' },
+  cam3_retro: { lancer: [['arcenciel', { grand: true }], ['cartes', { couleur: C.cyan, n: 6, melange: true }]], vers: 'allies' }
 };
 
 /** Ce que fait chaque brique, en une phrase (le wiki de l'Atelier l'affiche). */

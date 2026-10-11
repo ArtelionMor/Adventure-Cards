@@ -36,11 +36,14 @@ const verifie = (nom, ok, detail) => {
 
 const lit = f => readFileSync(join(RACINE, f), 'utf8');
 const scripts = readdirSync(join(RACINE, 'scripts')).filter(f => f.endsWith('.mjs'));
+// Seuls les fichiers de CODE sont lus : chaque dossier a son CLAUDE.md, qui cite volontiers
+// `botAction(` ou `new Worker` pour les expliquer — du texte, pas une boucle de partie.
+const codeDe = (...dossier) => readdirSync(join(RACINE, ...dossier)).filter(f => /\.m?js$/.test(f));
 
 console.log('\n=== Le partage des calculs ===\n');
 
 // --- 1. Les workers ne se fabriquent qu'a un seul endroit.
-for (const f of [...scripts.map(f => `scripts/${f}`), ...readdirSync(join(RACINE, 'scripts', 'lib')).map(f => `scripts/lib/${f}`)]) {
+for (const f of [...scripts.map(f => `scripts/${f}`), ...codeDe('scripts', 'lib').map(f => `scripts/lib/${f}`)]) {
   if (f === 'scripts/lib/pool.mjs' || f === 'scripts/lib/ouvrier.mjs') continue;
   verifie(`${f} ne fabrique pas de worker`, !/new Worker\s*\(/.test(lit(f)),
     'il monte ses propres workers : ils ne voient pas les renforts. Passer par enParallele() de lib/pool.mjs.');
@@ -88,9 +91,9 @@ for (const nom of modules()) {
 const APPLIQUE = [/\bplayCard\s*\(/, /\battack\s*\(/, /\bendTurn\s*\(/];
 const BOUCLES = [
   ...scripts.map(f => `scripts/${f}`),
-  ...readdirSync(join(RACINE, 'scripts', 'lib')).map(f => `scripts/lib/${f}`),
-  ...readdirSync(join(RACINE, 'game', 'src', 'ui')).map(f => `game/src/ui/${f}`),
-  ...readdirSync(join(RACINE, 'game', 'src', 'tools')).map(f => `game/src/tools/${f}`)
+  ...codeDe('scripts', 'lib').map(f => `scripts/lib/${f}`),
+  ...codeDe('game', 'src', 'ui').map(f => `game/src/ui/${f}`),
+  ...codeDe('game', 'src', 'tools').map(f => `game/src/tools/${f}`)
 ];
 for (const f of BOUCLES) {
   if (f === 'scripts/test-partage.mjs') continue;   // il cite les motifs qu'il cherche

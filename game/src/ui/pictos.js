@@ -10,7 +10,7 @@ import { icone } from './icones.js';
 // Mot-cle -> icone. Les types (`type:Chien`, `type_tous`) sont des etiquettes, pas des effets : aucun picto.
 export const CLES = {
   Taunt: 'Taunt', Charge: 'Charge', Venin: 'Venom', Bouclier: 'Shield', elusif: 'Elusive',
-  passe_murailles: 'WallWalker', miroir: 'Mirror', reprise: 'Flashback',
+  passe_murailles: 'WallWalker', miroir: 'Mirror', reprise: 'Flashback', ex_libris: 'Fatigue',
   characteristique_variable: 'Static', cout_x_de_moins_de_plus: 'Mana'
 };
 
@@ -19,7 +19,8 @@ export const OPS = {
   dmg: 'Damage', heal: 'Heal', draw: 'Draw', armor: 'Armor', mana: 'Mana', mana_au_prochain_tour: 'Mana',
   buff: 'Buff', renforce_les_cartes: 'Buff', summon: 'Summon', pose_sur_le_plateau: 'Summon',
   cree: 'Create', melange_a_la_pioche: 'Shuffle', detruit: 'Destroy', copie: 'Copy', switch: 'Switch',
-  renvoie_en_main: 'Return', reduit_le_cout_de: 'Mana', choisir: 'Choice', controle: 'Control'
+  renvoie_en_main: 'Return', reduit_le_cout_de: 'Mana', choisir: 'Choice', controle: 'Control',
+  charogne: 'Exile', appat: 'Create', piste: 'Track', toxine: 'Venom', contagion: 'Venom', epidemie: 'Venom'
 };
 
 // Moment (slot de `TRIGGERS`) -> icone ; `play` n'en a pas (c'est l'effet lui-meme qui s'affiche).

@@ -43,6 +43,8 @@
   .wk-carte { cursor: pointer; text-align: left; font: inherit; color: inherit; }
   .wk-carte.sel { outline: 2px solid var(--accent); }
   .wk-carte.switch::after { content: "switch"; position: absolute; top: -8px; right: -4px; font-size: 9px; padding: 1px 6px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); color: var(--ink-dim); }
+  .wk-carte .xn { position: absolute; left: -4px; top: -8px; z-index: 3; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--accent); color: var(--accent); pointer-events: none; }
+  .chips-h .sep { align-self: center; color: var(--ink-dim); font-size: 12px; padding: 0 4px 0 10px; }
   .hero-t { display: flex; align-items: center; gap: 10px; margin: 18px 0 4px; }
   .hero-t img { width: 36px; height: 36px; object-fit: contain; }
   .hero-t b { font-size: 16px; } .hero-t span { color: var(--ink-dim); font-size: 13px; }
@@ -91,6 +93,7 @@
 <script type="module">
 import { CHARACTERS } from '../game/src/config/characters.js';
 import { ENCOUNTERS } from '../game/src/config/world.js';
+import { LIBRARY, NPCS, fatiguePile } from '../game/src/config/npcs.js';
 import { KEYWORDS, EFFECTS, TRIGGERS, keyLabel } from '../game/src/config/mechanics.js';
 import { icone } from '../game/src/ui/icones.js';
 import { ligneDePictos, CLES, OPS, MOMENTS } from '../game/src/ui/pictos.js';
@@ -261,27 +264,79 @@ function sceneMoment(c, h, moment) {
 
 // ============================================================ les onglets
 const hero = id => CHARACTERS.find(h => h.id === id);
-function carteHtml(c, h, estSwitch) {
+function carteHtml(c, h, estSwitch, n) {
   const ally = c.type === 'ally';
   return `<div class="hcard wk-carte ${ally ? '' : 'spell'} ${estSwitch ? 'switch' : ''}" data-id="${esc(c.id)}" data-h="${esc(h.id)}" tabindex="0">
-    <div class="cost">${c.cost}</div>${(c.sprite || h.sprite) ? `<img src="${asset(c.sprite || h.sprite)}" alt="">` : ''}
+    ${n > 1 ? `<div class="xn">×${n}</div>` : ''}<div class="cost">${c.cost}</div>${(c.sprite || h.sprite) ? `<img src="${asset(c.sprite || h.sprite)}" alt="">` : ''}
     <div class="nm">${esc(c.name)}</div>${ligneDePictos(c, { taille: 20, max: 4 })}${ally ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}</div>`;
 }
 
+// ---- les cartes qui ne sont a AUCUN heros : celles des adversaires, la pile de fatigue, les cartes libres.
+// Elles vivent dans `CHARACTER_DATA.library` (le catalogue en tient aussi les cartes des heros : un adversaire ou la pile
+// peut en jouer une, et on la montre alors avec son heros).
+const LIBRE = { id: 'libre', name: 'Carte libre', sprite: null };
+const pileDeFatigue = (() => {   // id -> { n, lvl } : les lignes de la pile, regroupees par carte
+  const m = new Map();
+  for (const l of fatiguePile()) { const id = l.card.id; const e = m.get(id) || { n: 0, lvl: l.lvl }; e.n++; m.set(id, e); }
+  return m;
+})();
+const dansUnDeck = new Set(NPCS.flatMap(n => (n.deck || []).map(l => l.card)));
+const AUTRES = [
+  { id: 'fatigue', nom: 'Pile de fatigue' },
+  { id: 'pnj', nom: 'Adversaires' },
+  { id: 'libres', nom: 'Autres cartes libres' }
+];
+
 let filtre = 'tous', choisie = null;
 function ongletCartes() {
-  const out = [`<div class="chips-h"><button class="puce ${filtre === 'tous' ? 'on' : ''}" data-f="tous">Tous</button>${CHARACTERS.map(h => `<button class="puce ${filtre === h.id ? 'on' : ''}" data-f="${esc(h.id)}">${esc(h.name)}</button>`).join('')}</div><div id="detail"></div>`];
+  const puce = (id, nom) => `<button class="puce ${filtre === id ? 'on' : ''}" data-f="${esc(id)}">${esc(nom)}</button>`;
+  const out = [`<div class="chips-h"><button class="puce ${filtre === 'tous' ? 'on' : ''}" data-f="tous">Tous</button>${CHARACTERS.map(h => puce(h.id, h.name)).join('')}<span class="sep">Hors héros</span>${AUTRES.map(a => puce(a.id, a.nom)).join('')}</div><div id="detail"></div>`];
   for (const h of CHARACTERS) {
     if (filtre !== 'tous' && filtre !== h.id) continue;
     out.push(`<div class="hero-t"><img src="${asset(h.sprite)}" alt=""><div><b>${esc(h.name)}</b><br><span>${esc(h.role || '')}</span></div></div>`);
     out.push(`<div class="grille-cartes">${h.cards.map(c => carteHtml(c, h, false)).join('')}${(h.switches || []).map(c => carteHtml(c, h, true)).join('')}</div>`);
+  }
+  const titre = (nom, texte, sprite) => `<div class="hero-t">${sprite ? `<img src="${asset(sprite)}" alt="">` : ''}<div><b>${esc(nom)}</b><br><span>${esc(texte)}</span></div></div>`;
+  const grille = lignes => `<div class="grille-cartes">${lignes.map(({ c, h, n }) => carteHtml(c, h, false, n)).join('')}</div>`;
+  const veut = id => filtre === 'tous' || filtre === id;
+  // La pile de fatigue : une copie d'une de ces cartes, au hasard, a chaque pioche d'un deck vide.
+  if (veut('fatigue')) {
+    const lignes = [...pileDeFatigue].map(([id, e]) => ({ ...trouveCarte(id), n: e.n, lvl: e.lvl })).filter(x => x.c);
+    out.push(titre('Pile de fatigue', lignes.length
+      ? `Ce qu'on tire quand la pioche est vide : une copie au hasard parmi ces ${[...pileDeFatigue.values()].reduce((a, e) => a + e.n, 0)} cartes (réglée dans le Card Builder).`
+      : 'Vide : on ne pioche plus une fois le deck fini.'));
+    if (lignes.length) out.push(grille(lignes));
+  }
+  // Les adversaires : leur deck, chaque carte avec son nombre d'exemplaires.
+  if (veut('pnj')) {
+    for (const n of NPCS) {
+      const lignes = (n.deck || []).map(l => ({ ...trouveCarte(l.card), n: l.n || 1 })).filter(x => x.c);
+      out.push(titre(n.name, `${n.hp} PV · ${n.mana} mana · main ${n.hand} · ${lignes.reduce((a, x) => a + x.n, 0)} cartes`, n.sprite));
+      out.push(grille(lignes));
+    }
+  }
+  // Les cartes libres que personne ne joue (ni deck d'adversaire, ni pile de fatigue).
+  if (veut('libres')) {
+    const lignes = LIBRARY.filter(c => !dansUnDeck.has(c.id) && !pileDeFatigue.has(c.id)).map(c => ({ c, h: LIBRE, n: 1 }));
+    out.push(titre('Autres cartes libres', 'Dans le catalogue, mais dans aucun deck d\'adversaire ni dans la pile de fatigue.'));
+    out.push(lignes.length ? grille(lignes) : '<div class="vide">Aucune.</div>');
   }
   return out.join('');
 }
 
 function trouveCarte(id) {
   for (const h of CHARACTERS) { const c = [...h.cards, ...(h.switches || [])].find(x => x.id === id); if (c) return { c, h }; }
-  return null;
+  const c = LIBRARY.find(x => x.id === id);
+  return c ? { c, h: LIBRE } : null;
+}
+
+/** Qui joue cette carte libre : les decks d'adversaires (avec le nombre d'exemplaires) et la pile de fatigue. */
+function usagesLibre(id) {
+  const out = [];
+  for (const n of NPCS) { const l = (n.deck || []).find(x => x.card === id); if (l) out.push(`${n.name} ×${l.n || 1}`); }
+  const p = pileDeFatigue.get(id);
+  if (p) out.push(`pile de fatigue ×${p.n} (niveau ${p.lvl})`);
+  return out;
 }
 
 function detailCarte() {
@@ -297,6 +352,7 @@ function detailCarte() {
     <div class="hcard fx-carte lancer grande ${ally ? '' : 'spell'}"><div class="cost">${c.cost}</div>${(c.sprite || h.sprite) ? `<img src="${asset(c.sprite || h.sprite)}" alt="">` : ''}<div class="nm">${esc(c.name)}</div>${ligneDePictos(c, { taille: 20, max: 4 })}<div class="tx">${esc(c.text || '')}</div>${ally ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}</div>
     <div style="flex:1;min-width:200px"><div style="font-size:18px;font-weight:700">${esc(c.name)}</div>
       <div class="src">${esc(h.name)} · ${ally ? 'Allié' : 'Sort'} · coût ${c.cost}${ally ? ` · ${c.atk}/${c.hp}` : ''} <span class="src">· id ${esc(c.id)}</span></div>
+      ${h === LIBRE ? `<div class="src">Jouée par : ${usagesLibre(c.id).map(esc).join(', ') || 'personne'}</div>` : ''}
       <h3>Ce qu'elle fait</h3><div id="rows"></div></div></div>`;
   const rows = f.querySelector('#rows');
   const lignes = lignesDeFait(c);

@@ -13,7 +13,7 @@
 // ignore reste dans la liste, avec `ignore` (la raison donnee) : il ne bloque plus
 // rien, mais il ne disparait pas sans laisser de trace. Ne filtre jamais sur `bad`
 // seul : passe par `bloque(s)`.
-import { TRIGGERS, EVENTS, ALL_KEYWORDS, AMPLIFIABLE, CARD_FILTERS, COUNTERS, STATICS, keyId, keyArg, keyFields, cardCost,
+import { TRIGGERS, EVENTS, EVENT_GARDES, ALL_KEYWORDS, AMPLIFIABLE, CARD_FILTERS, COUNTERS, STATICS, keyId, keyArg, keyFields, cardCost,
   isVariableAmount, targetDef, targetId, targetArg, targetLabel, describeAmount, effectParams, eachSubEffect, listeEffets, branchesDe, typeVariable } from './mechanics.js';
 import { resolveCard } from './characters.js';
 
@@ -310,6 +310,86 @@ function verifieCarte(card, proprio, ctx) {
     }
     }
   });
+  // LE VOCABULAIRE DECLARE MAIS PAS ENCORE CODE (V3) : un moment, une garde, un effet statique, un
+  // compteur ou un filtre de cartes qui porte `implemented: false`. Les effets et les mots-cles ont
+  // deja leur « reste a coder » plus haut ; ceux-la n'ont pas de registre d'effets. Ils sont inertes
+  // (le moteur n'y touche pas) : la carte fait MOINS que ce qu'elle annonce, et il faut le dire.
+  {
+    const aCoder = new Set();
+    const note = (def, repli) => { if (def && def.implemented === false) aCoder.add(def.label || repli); };
+    const noteStatique = m => {
+      note(STATICS[m.op], m.op);
+      note(CARD_FILTERS[m.quoi], m.quoi);
+    };
+    const noteMontants = e => {
+      for (const par of ((eff[e.op] || {}).params || [])) {
+        if (isVariableAmount(e[par.k])) note(COUNTERS[e[par.k].src], e[par.k].src);
+      }
+      if (e.quoi) note(CARD_FILTERS[e.quoi], e.quoi);
+    };
+    eachUnit(card, u => {
+      for (const slot of Object.keys(TRIGGERS)) {
+        if (!(u[slot] || []).length) continue;
+        note(TRIGGERS[slot], slot);
+        note(EVENT_GARDES[keyId((u.gardes || {})[slot])], '');
+      }
+      for (const m of u.statics || []) noteStatique(m);
+      for (const k of u.keys || []) {
+        if (keyId(k) === 'characteristique_variable') note(COUNTERS[keyFields(k).src], keyFields(k).src);
+      }
+    });
+    eachEffect(card, noteMontants);
+    for (const t of card.tiers || []) {
+      if (t.extra) note(TRIGGERS[t.slot || 'play'], t.slot);
+      if (t.extra && t.slot && card.gardes) note(EVENT_GARDES[keyId(card.gardes[t.slot])], '');
+      if (t.statique) noteStatique(t.statique);
+    }
+    // Les statiques des paliers d'un jeton, comme ceux du jeton lui-meme, passent par eachUnit (plus haut).
+    if (aCoder.size)
+      out.push({ bad: false, msg: `${proprio} · ${card.name} — pas encore codé, la carte fera moins que son texte : ${[...aCoder].join(' ; ')}.` });
+  }
+  // LE PISTAGE SANS PISTE (V3, docs/V3-HEROS.md, 4.1) : une carte qui LIT le pistage — une taxe sur les cartes
+  // pistees, « quand l'adversaire joue une carte pistee », le compteur des cartes pistees, un filtre « les
+  // cartes pistees » — sans en POSER un seul, ni sur elle ni par un de ses paliers (`piste`, ou le statique
+  // « les cartes piochees sont pistees »). Aucune carte de son camp ne marque : rien ne se declenchera jamais.
+  {
+    let lit = false, pose = false;
+    const lisFiltre = x => { if (x && x.quoi === 'pistee') lit = true; };
+    const ecouteLePistage = slot => !!(TRIGGERS[slot] && TRIGGERS[slot].ev === 'pistee');
+    eachUnit(card, u => {
+      for (const slot of Object.keys(TRIGGERS)) if ((u[slot] || []).length && ecouteLePistage(slot)) lit = true;
+      for (const m of u.statics || []) { lisFiltre(m); if (m.op === 'pistage_a_la_pioche') pose = true; }
+      for (const k of u.keys || []) {
+        if (keyId(k) === 'characteristique_variable' && keyFields(k).src === 'cartesPistees') lit = true;
+      }
+    });
+    eachEffect(card, e => {
+      if (e.op === 'piste') pose = true;
+      lisFiltre(e);
+      for (const par of ((eff[e.op] || {}).params || [])) {
+        if (isVariableAmount(e[par.k]) && e[par.k].src === 'cartesPistees') lit = true;
+      }
+    });
+    for (const t of card.tiers || []) {
+      if (t.extra && t.slot && ecouteLePistage(t.slot)) lit = true;
+      if (t.statique) { lisFiltre(t.statique); if (t.statique.op === 'pistage_a_la_pioche') pose = true; }
+    }
+    if (lit && !pose) out.push({ bad: true, regle: 'pistage-sans-piste',
+      msg: `${proprio} · ${card.name} — lit le pistage (une taxe, « quand une carte pistée est jouée », le compteur ou un filtre) sans en poser aucun, ni sur elle ni par un palier : aucune carte de ton camp n'est pistée, elle ne fera jamais rien.` });
+  }
+  // EX-LIBRIS ET GESTION DE MASSE (V3, docs/V3-HEROS.md, 4.5) : une carte qui laisse un exemplaire dans la pile de
+  // fatigue ne peut pas, en plus, balayer le plateau adverse — elle reviendrait a chaque pioche de fatigue. Refuse.
+  {
+    const exLibris = (card.keys || []).some(k => keyId(k) === 'ex_libris') || (card.tiers || []).some(t => t.key && keyId(t.key) === 'ex_libris');
+    if (exLibris) {
+      let balaie = null;
+      eachEffect(card, e => {
+        if ((e.op === 'detruit' || e.op === 'dmg') && ['allEnemyUnits', 'allUnits'].includes(targetId(e.t))) balaie = balaie || e.op;
+      });
+      if (balaie) out.push({ bad: true, regle: 'ex-libris-risque',
+        msg: `${proprio} · ${card.name} — Ex-libris sur une gestion de masse (${balaie === 'detruit' ? 'détruit' : 'dégâts'} sur tout le plateau adverse) : elle reviendrait à chaque pioche de fatigue. Retire l'Ex-libris ou la gestion de masse.` });
+    }
+  }
   // DEUX CIBLES A DESIGNER SUR LA MEME CARTE : le joueur n'en pointe qu'une, et
   // elle sert aux deux. Quand elles reclament des camps opposes, c'est pire qu'une
   // gene — l'une des deux ne touchera jamais rien, quel que soit le clic. On
@@ -528,6 +608,14 @@ export function validateData(DB, eff, kw, { niveau = 5 } = {}) {
     if (ids.has(c.id)) out.push({ bad: true, msg: `Deux personnages ont l'identifiant « ${c.id} ».` });
     ids.add(c.id);
     if (!c.id) out.push({ bad: true, msg: `« ${c.name} » n'a pas d'identifiant.` });
+    // EX-LIBRIS : au-dela de 2 cartes par heros, la pile de fatigue de ce heros n'est plus une fin de partie mais
+    // son deck (V3, 4.5) — a surveiller, pas bloquant.
+    {
+      const nbEx = [...(c.cards || []), ...(c.switches || [])].filter(Boolean)
+        .filter(x => (x.keys || []).some(k => keyId(k) === 'ex_libris') || (x.tiers || []).some(t => t.key && keyId(t.key) === 'ex_libris')).length;
+      if (nbEx > 2) out.push({ bad: false, regle: 'ex-libris-trop',
+        msg: `${c.name} — ${nbEx} cartes à Ex-libris (2 au plus par héros) : sa pile de fatigue se remplit plus vite qu'elle ne se vide.` });
+    }
     for (const side of ['cards', 'switches']) {
       const n = (c[side] || []).filter(Boolean).length;
       if (n !== 5) out.push({ bad: side === 'cards', msg: `${c.name} — ${n}/5 ${side === 'cards' ? 'cartes de base' : 'cartes switch'} remplies.` });
@@ -546,6 +634,20 @@ export function validateData(DB, eff, kw, { niveau = 5 } = {}) {
     }
   }
   for (const s of DB.starters || []) if (!ids.has(s)) out.push({ bad: true, msg: `Le personnage de départ « ${s} » n'existe plus.` });
+
+  // Une carte qui pose la meme mecanique en six endroits (moments, paliers) dirait six fois la meme
+  // chose : une ligne suffit (le bouton « Ignorer » en retire une seule, pas six).
+  {
+    const vus = new Set(), uniques = [];
+    for (const s of out) {
+      const cle = [s.ou || '', s.regle || '', s.bad ? 1 : 0, s.msg].join('|');
+      if (vus.has(cle)) continue;
+      vus.add(cle);
+      uniques.push(s);
+    }
+    out.length = 0;
+    out.push(...uniques);
+  }
 
   // Les constats ignores : marques (pas retires), et les ignores orphelins signales.
   for (const s of out) { const g = ignoreDe(DB, s); if (g) s.ignore = g.pourquoi || ''; }

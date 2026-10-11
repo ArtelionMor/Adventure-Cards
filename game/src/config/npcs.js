@@ -104,9 +104,11 @@ function facesDe(data) {
 
 /**
  * LA PILE DE FATIGUE — « les cartes qu'on pioche quand la pioche est vide ».
- * Une seule pile pour tout le jeu (`CHARACTER_DATA.fatigue`), editee dans le builder
+ * Une seule pile se DEFINIT pour tout le jeu (`CHARACTER_DATA.fatigue`), editee dans le builder
  * comme un deck de PNJ : des lignes qui DESIGNENT une carte du catalogue, avec un
  * nombre d'exemplaires (qui pondere le tirage) et le niveau auquel la carte sort.
+ * Chaque CAMP en a ensuite sa copie (V3, Ex-libris : `B[k].pile`, creee a la premiere
+ * ecriture) — c'est la fonction ci-dessous qui sert de modele aux deux.
  *
  * Elle ne s'epuise pas : le moteur y tire au hasard et en fabrique une copie. On rend
  * donc les MODELES (`{ card, lvl, sprite }`), pas des cartes deja resolues — c'est le

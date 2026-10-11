@@ -73,6 +73,10 @@ function makeSide(cfg) {
     aVide: false,    // son deck est epuise : il ne piochera plus (dit une seule fois)
     recycle: 0,      // cartes remises dans sa pioche ce tour-ci (garde-fou anti-boucle)
     fatigue: 0,      // pioches faites dans la pile de fatigue ce tour-ci (idem)
+    // SA PILE DE FATIGUE (V3, 4.5). `null` : il lit encore la pile commune (`fatiguePile()`), comme avant ; la
+    // premiere ecriture — Annotation, un Ex-libris qui entre — la COPIE ici (`pileModeles`) : des cartes-modeles
+    // deja resolues, que plus rien ne partage avec l'adversaire.
+    pile: null,
     // Ce que le camp a deja fait ce tour-ci, pour les trois plafonds statiques.
     jouees: 0,       // cartes jouees
     attaques: 0,     // unites qui ont attaque
@@ -164,16 +168,104 @@ function say(B, msg) {
  * boucle meme que fermait l'ancienne regle. Pile vide = ancienne regle, a l'identique.
  */
 function carteDeFatigue(B, k) {
-  const pile = fatiguePile();
-  if (!pile.length) return null;
+  if (!nbFatigue(B, k)) return null;
   const s = B[k];
   if (s.fatigue >= BALANCE.combat.maxPiochesAVideParTour) {
     say(B, `${s.name} ne peut plus piocher dans la pile de fatigue ce tour-ci.`);
     return null;
   }
   s.fatigue++;
-  const m = pile[Math.floor(Math.random() * pile.length)];
-  return { ...resolveCard(m.card, m.lvl), sprite: m.sprite };
+  return copieDeFatigue(B, k);
+}
+
+/**
+ * LA PILE DE FATIGUE DE CE CAMP (V3, docs/V3-HEROS.md, 4.5). Chaque camp a la sienne : Annotation la renforce
+ * sans toucher celle d'en face, et un Ex-libris qui arrive en defausse y fait entrer un exemplaire.
+ * `s.pile` vaut `null` tant que personne n'y a touche — le camp lit alors la pile COMMUNE, exactement comme avant ;
+ * la premiere ecriture la copie (`pileModeles`). Ni l'un ni l'autre ne change ce que voit l'adversaire.
+ */
+export const nbFatigue = (B, k) => B[k].pile ? B[k].pile.length : fatiguePile().length;
+
+const modeleDeLigne = m => ({ ...resolveCard(m.card, m.lvl), sprite: m.sprite });
+
+/** La pile du camp, en cartes-modeles — a ECRIRE : elle devient la sienne si elle ne l'etait pas encore. */
+function pileModeles(B, k) {
+  const s = B[k];
+  if (!s.pile) s.pile = fatiguePile().map(modeleDeLigne);
+  return s.pile;
+}
+
+/** La pile du camp, en lecture (le bot, l'ecran) : rien n'est cree sur le camp. */
+export function pileDeFatigue(B, k) {
+  return B[k].pile || fatiguePile().map(modeleDeLigne);
+}
+
+/**
+ * LE MODELE QU'UNE CARTE LAISSE DANS UNE PILE : la carte du catalogue, lue au NIVEAU DE SON PROPRIETAIRE — pas
+ * ses renforts du moment, ni son cout reduit : c'est un exemplaire neuf. Une carte qui n'est pas au catalogue
+ * (fabriquee, copiee) laisse un instantane net d'elle-meme.
+ */
+function modeleDePile(c) {
+  const def = c.id ? cardById(c.id) : null;
+  if (def) return { ...resolveCard(def, Math.max(1, c.ownerLevel || 1)), sprite: c.sprite || def.sprite };
+  const { inst, pistee, refletDe, classee, ...nette } = c;
+  return structuredClone(nette);
+}
+
+/**
+ * EX-LIBRIS : une carte qui arrive dans une DEFAUSSE laisse un exemplaire dans la pile de fatigue de son
+ * proprietaire — UNE SEULE FOIS PAR CARTE (`classee`). Une carte qui vient d'une pile de fatigue (pioche de
+ * fatigue, Appat, Index) naît deja classee : elle EST deja dans sa pile. La regle qui ferme la boucle est celle-la,
+ * et non un plafond : une carte ne se classe qu'une fois, ses copies jamais.
+ */
+function classe(B, camp, carte) {
+  if (!carte || carte.classee || !hasKey(carte.keys, 'ex_libris')) return;
+  carte.classee = true;
+  const pile = pileModeles(B, camp);
+  pile.push(modeleDePile(carte));
+  say(B, `${carte.name} (Ex-libris) entre dans la pile de fatigue de ${B[camp].name}.`);
+  if (B.evts) evt(B, { t: 'classe', camp, carte: refCarte(carte), pile: pile.length });
+}
+
+/**
+ * LE POINT D'ARRIVEE D'UNE DEFAUSSE. Toute carte qui y tombe — sort joue, allie mort, meule, defausse volontaire,
+ * main pleine — passe par la : c'est ce qui rend Ex-libris vrai « par n'importe quel chemin ». L'exil, lui,
+ * n'y passe pas (Reprise, Charogne) : une carte exilee ne laisse rien, et une carte qui retourne dans une pioche
+ * (Imperatrice) non plus.
+ */
+function versLaDefausse(B, camp, carte) {
+  B[camp].discard.push(carte);
+  classe(B, camp, carte);
+}
+
+/**
+ * « LES CARTES QUE L'ADVERSAIRE PIOCHE SONT PISTEES » (V3, docs/V3-HEROS.md, 4.1) : un effet statique
+ * (`pistage_a_la_pioche`), lu ici par `staticTotal` comme les autres statiques de pioche. Seule une
+ * PIOCHE marque — pioche, pioche de fatigue, pioche ciblee —, jamais une carte creee ou renvoyee en main.
+ */
+function pisteALaPioche(B, k, c) {
+  if (c && !c.pistee && staticTotal(B, k, 'pistage_a_la_pioche') > 0) c.pistee = true;
+}
+
+/**
+ * UNE COPIE NEUVE d'une carte de la pile de fatigue DE CE CAMP, au niveau de sa ligne. Ce n'est pas une
+ * pioche : elle ne compte pour aucun plafond par tour (c'est `carteDeFatigue` qui compte).
+ * L'APPAT s'en sert pour fabriquer de la nourriture dans la defausse adverse (la pile de L'ADVERSAIRE).
+ * Elle naît `classee` : elle vient de sa pile, un Ex-libris n'y retourne donc pas une seconde fois.
+ */
+function copieDeFatigue(B, k) {
+  const p = B[k].pile;
+  let c;
+  if (p) {
+    if (!p.length) return null;
+    c = structuredClone(p[Math.floor(Math.random() * p.length)]);
+  } else {
+    const pile = fatiguePile();
+    if (!pile.length) return null;
+    c = modeleDeLigne(pile[Math.floor(Math.random() * pile.length)]);
+  }
+  c.classee = true;
+  return c;
 }
 
 export function draw(B, k, n = 1) {
@@ -201,12 +293,13 @@ export function draw(B, k, n = 1) {
       if (!s.aVide) { s.aVide = true; say(B, `${s.name} a fini sa pioche : il tire dans la pile de fatigue.`); if (B.evts) evt(B, { t: 'aVide', camp: k, fatigue: true }); }
       if (mainPleine(s)) {
         say(B, `Main pleine : ${secours.name} part a la defausse.`);
-        s.discard.push(secours);
+        versLaDefausse(B, k, secours);
         if (B.evts) evt(B, { t: 'pioche', camp: k, carte: refCarte(secours), fatigue: true, perdue: true });
         continue;
       }
       say(B, `${s.name} tire ${secours.name} de la pile de fatigue.`);
       s.hand.push(secours);
+      pisteALaPioche(B, k, secours);
       if (B.evts) evt(B, { t: 'pioche', camp: k, carte: refCarte(secours), fatigue: true });
       fireEvent(B, k, 'draw');
       // Une pioche de fatigue reste une pioche, et c'est en plus un evenement a elle,
@@ -217,11 +310,12 @@ export function draw(B, k, n = 1) {
     const c = s.deck.pop();
     if (mainPleine(s)) {
       say(B, `Main pleine : ${c.name} part a la defausse.`);
-      s.discard.push(c);
+      versLaDefausse(B, k, c);
       if (B.evts) evt(B, { t: 'pioche', camp: k, carte: refCarte(c), perdue: true });
       continue;
     }
     s.hand.push(c);
+    pisteALaPioche(B, k, c);
     if (B.evts) evt(B, { t: 'pioche', camp: k, carte: refCarte(c) });
     fireEvent(B, k, 'draw');
   }
@@ -245,9 +339,10 @@ function drawMatching(B, k, n, convient, dit) {
     const perdue = mainPleine(s);
     if (perdue) {
       say(B, `Main pleine : ${c.name} part a la defausse.`);
-      s.discard.push(c);
+      versLaDefausse(B, k, c);
     } else {
       s.hand.push(c);
+      pisteALaPioche(B, k, c);
       say(B, `${s.name} pioche ${c.name}.`);
     }
     if (B.evts) evt(B, { t: 'pioche', camp: k, carte: refCarte(c), cherchee: true, perdue });
@@ -304,8 +399,8 @@ function preleve(B, k, e, target, source, last) {
   if (zone.carte) {
     const combien = Math.max(0, e.n === undefined ? 1 : e.n);
     for (let i = 0; i < combien; i++) {
-      const modele = modeleCree(e, last);
-      if (!modele) { say(B, `${rienDeTel(e)} : rien a deplacer.`); break; }
+      const modele = modeleCree(B, k, e, last);
+      if (!modele) { say(B, `${rienDeTel(B, k, e)} : rien a deplacer.`); break; }
       pris.push({ camp: campDuPaquet(k, e), carte: carteNeuve(modele, e.lvl || 1, source) });
     }
     return pris;
@@ -319,7 +414,7 @@ function preleve(B, k, e, target, source, last) {
       s2.board = s2.board.filter(u => u !== r.unit);
       // Meme regle qu'a la mort : la carte rentre chez son proprietaire, pas chez
       // celui qui la controlait.
-      if (r.unit.card) pris.push({ camp: proprio(r.unit, r.side), carte: r.unit.card, unite: r.unit });
+      if (r.unit.card) pris.push({ camp: proprio(r.unit, r.side), carte: r.unit.card, unite: r.unit, cote: r.side });
       else say(B, `${r.unit.name} n'est pas une carte : il disparait.`);   // un jeton
     }
     return pris;
@@ -355,8 +450,11 @@ function campDuPaquet(k, e, campCible) {
 }
 
 /** Le paquet qu'un effet vise : la main, la pioche ou la defausse, chez l'un ou l'autre. */
-function paquetDe(B, k, e, campCible) {
+function paquetDe(B, k, e, campCible, fatigueOk = false) {
   const camp = campDuPaquet(k, e, campCible);
+  // LA PILE DE FATIGUE n'est un paquet que pour renforcer (Annotation) : on y lit ses modeles EN PLACE. Partout
+  // ailleurs, `d_ou: 'fatigue'` retombe sur la defausse, comme tout `d_ou` inconnu — rien n'en est preleve.
+  if (fatigueOk && e.d_ou === 'fatigue') return { camp, pile: pileModeles(B, camp) };
   return { camp, pile: e.d_ou === 'main' ? B[camp].hand : e.d_ou === 'pioche' ? B[camp].deck : B[camp].discard };
 }
 
@@ -395,7 +493,7 @@ function choisitDansPaquet(B, k, e, pile, camp) {
  * On l'appelle une fois PAR EXEMPLAIRE : « 3 cartes au hasard », c'est trois tirages
  * differents, et non trois copies de la meme.
  */
-function modeleCree(e, last) {
+function modeleCree(B, k, e, last) {
   // « LA CARTE DE LUI » : celle de l'unite que l'effet precedent a visee ou transformee
   // (apres une Copie, c'est le modele copie). Elle est en jeu, donc deja resolue :
   // `carteNeuve` la recopie telle quelle au lieu de la resoudre une seconde fois.
@@ -403,6 +501,13 @@ function modeleCree(e, last) {
     const r = (last || []).find(x => x && x.kind === 'unit');
     if (!r) return null;
     return { ...(r.unit.card || carteDUnite(r.unit)), dejaResolue: true };
+  }
+  // « UNE CARTE DE TA PILE DE FATIGUE » (Index) : un modele au hasard de la pile du camp. Elle est deja resolue
+  // (`dejaResolue`) et naît classee (`desPile`) : elle EST deja dans sa pile.
+  if (e.choix === 'fatigue') {
+    const pile = pileDeFatigue(B, k);
+    if (!pile.length) return null;
+    return { ...pile[Math.floor(Math.random() * pile.length)], dejaResolue: true, desPile: true };
   }
   if ((e.choix || 'precise') !== 'hasard') return cardById(e.carte);
   const sac = catalogCards().filter(c => cardMatches(c, e));
@@ -417,15 +522,20 @@ function modeleCree(e, last) {
  */
 function carteNeuve(modele, lvl, source) {
   if (modele.dejaResolue) {
-    const { dejaResolue, inst, refletDe, ...carte } = modele;
-    return structuredClone(carte);
+    // `classee` n'est jamais recopiee : une carte neuve est une autre carte, qui se classera a son tour — sauf
+    // celle qui vient d'une pile de fatigue (`desPile`), deja dans sa pile.
+    const { dejaResolue, desPile, inst, refletDe, pistee, classee, ...carte } = modele;
+    const neuve = structuredClone(carte);
+    if (desPile) neuve.classee = true;
+    return neuve;
   }
   return { ...resolveCard(modele, lvl), sprite: modele.sprite || (source ? source.sprite : null) };
 }
 
 /** Pourquoi rien n'est apparu : une carte nommee qui n'existe plus, ou un filtre
  *  que pas une carte du catalogue ne satisfait. Les deux se disent differemment. */
-const rienDeTel = e => e.choix === 'lui' ? 'aucune unite dans « Lui »'
+const rienDeTel = (B, k, e) => e.choix === 'lui' ? 'aucune unite dans « Lui »'
+  : e.choix === 'fatigue' ? 'la pile de fatigue est vide'
   : (e.choix || 'precise') === 'hasard'
   ? `le catalogue n'a pas ${describeCarteCreee(e)}`
   : `« ${e.carte || '?'} » n'existe pas`;
@@ -454,7 +564,7 @@ function renforceCartes(B, cartes, e) {
   say(B, touchees.length
     ? `+${atk}/+${hp} pour ${touchees.join(', ')}.`
     : `+${atk}/+${hp} : aucun allie la-dedans, le bonus ne touche rien.`);
-  if (B.evts && refs.length) evt(B, { t: 'renfortCartes', atk, hp, cartes: refs });
+  if (B.evts && refs.length) evt(B, { t: 'renfortCartes', atk, hp, cartes: refs, ...(e.d_ou === 'fatigue' ? { zone: 'fatigue' } : {}) });
 }
 
 /**
@@ -468,14 +578,18 @@ function renforceCartes(B, cartes, e) {
  */
 export function depose(B, camp, carte, vers) {
   const s = B[camp];
+  // LA MARQUE DU PISTAGE QUITTE LA CARTE QUAND ELLE QUITTE LA MAIN : defaussee, exilee, remelangee ou
+  // posee, elle repart vierge. Renvoyee en main (`vers === 'main'`), elle garde la sienne.
+  if (vers !== 'main') delete carte.pistee;
   if (vers === 'pioche') { melangeDedans(B, camp, [carte]); return null; }
   // La defausse et l'exil ne sont pas des destinations de jeu : une carte y arrive, point.
   // Les evenements (meule, defausse, exil) sont dits par l'effet qui deplace, pas ici.
-  if (vers === 'defausse') { s.discard.push(carte); return null; }
+  if (vers === 'defausse') { versLaDefausse(B, camp, carte); return null; }
   if (vers === 'exil') { s.exile.push(carte); return null; }
   if (vers === 'main') {
     if (mainPleine(s)) {
-      s.discard.push(carte);
+      delete carte.pistee;
+      versLaDefausse(B, camp, carte);
       say(B, `Main pleine : ${carte.name} part a la defausse.`);
       return null;
     }
@@ -484,8 +598,8 @@ export function depose(B, camp, carte, vers) {
   }
   // Sur le plateau : seuls les allies s'y posent, et la carte n'est pas JOUEE — « A la
   // pose » ne part donc pas, exactement comme pour un jeton invoque.
-  if (carte.type !== 'ally') { say(B, `${carte.name} est un sort : il ne se pose pas.`); s.discard.push(carte); return null; }
-  if (plateauPlein(s)) { say(B, `Le plateau de ${s.name} est plein : ${carte.name} reste de cote.`); s.discard.push(carte); return null; }
+  if (carte.type !== 'ally') { say(B, `${carte.name} est un sort : il ne se pose pas.`); versLaDefausse(B, camp, carte); return null; }
+  if (plateauPlein(s)) { say(B, `Le plateau de ${s.name} est plein : ${carte.name} reste de cote.`); versLaDefausse(B, camp, carte); return null; }
   const u = makeUnit(carte);
   u.card = carte;
   s.board.push(u);
@@ -521,7 +635,7 @@ function reflete(B, k) {
   if (!modele) return;
   for (const c of B[k].hand) {
     if (!hasKey(c.keys, 'miroir') || c.refletDe === modele.marque) continue;
-    const inst = c.inst;
+    const inst = c.inst, pistee = c.pistee;
     for (const cle of Object.keys(c)) delete c[cle];
     Object.assign(c, structuredClone(modele.carte), {
       keys: [...(modele.carte.keys || []).filter(x => keyId(x) !== 'miroir'), 'miroir'],
@@ -529,6 +643,8 @@ function reflete(B, k) {
       refletDe: modele.marque
     });
     if (inst !== undefined) c.inst = inst;
+    // Le pistage reste : c'est la meme carte, reecrite sur place.
+    if (pistee) c.pistee = true;
     say(B, `Un Miroir de ${B[k].name} devient ${c.name}.`);
     if (B.evts) evt(B, { t: 'miroir', camp: k, carte: refCarte(c) });
   }
@@ -536,7 +652,7 @@ function reflete(B, k) {
 
 /** Retient la carte qu'un camp vient de jouer, telle qu'elle etait au moment de partir. */
 function retiensJouee(B, k, card) {
-  const { inst, refletDe, ...carte } = card;
+  const { inst, refletDe, classee, ...carte } = card;
   B.marques = (B.marques || 0) + 1;
   B[k].derniere = { carte: structuredClone(carte), marque: B.marques };
   reflete(B, foe(k));
@@ -577,6 +693,7 @@ function switcheUnite(B, k, r) {
   B[camp].discard.push(face);
   say(B, `${r.unit.name} se change en ${face.name} : le sort part.`);
   if (B.evts) evt(B, { t: 'transforme', mode: 'switch', de: r.unit.name, camp: r.side, sort: refCarte(face) });
+  classe(B, camp, face);
   // Personne n'est la pour designer : le sort choisit ses cibles comme le fait un
   // rale d'agonie. Il part du cote de qui CONTROLAIT l'unite.
   if ((face.play || []).length) {
@@ -611,7 +728,7 @@ const proprio = (u, camp) => u.owner || camp;
 function modeleACopier(B, k, e, target, source, last, campCible) {
   const zone = ZONES[e.d_ou] || ZONES.plateau;
   if (zone.carte) {
-    const def = modeleCree(e, last);
+    const def = modeleCree(B, k, e, last);
     // Une carte du catalogue n'appartient a personne : on la resout au niveau de
     // celle qui copie, comme le fait un jeton invoque.
     if (!def) return null;
@@ -741,7 +858,8 @@ export function refresh(B) {
       const take = src => {
         bAtk += src.aura.atk || 0;
         bHp += src.aura.hp || 0;
-        if (src.aura.key) bKeys.push(src.aura.key);
+        // Une aura porte un mot-cle, ou une LISTE (un palier qui en ajoute un a une aura qui en avait deja un).
+        if (src.aura.key) bKeys.push(...[].concat(src.aura.key).filter(Boolean));
       };
       for (const src of mine) if (auraPorte(src, u, true)) take(src);
       for (const src of theirs) if (auraPorte(src, u, false)) take(src);
@@ -829,6 +947,28 @@ function resolveDeaths(B, depth = 0) {
   }
   if (!dead.length) return;
 
+  // LA TOXINE SAUTE (V3, 4.4). Une fois TOUS les morts du lot retires du plateau — c'est fait au-dessus —,
+  // les marqueurs de chacun passent sur une survivante du MEME camp, au hasard ; s'il n'y en a plus, ils
+  // disparaissent. Jamais sur un heros, et le marqueur seul se deplace (le total ne grossit pas). On retient
+  // qui en PORTAIT : l'evenement « une unite qui portait une Toxine meurt » se lit avant le saut.
+  const portait = new Set();
+  for (const { k, u } of dead) {
+    const n = u.tox || 0;
+    if (n <= 0) continue;
+    portait.add(u);
+    u.tox = 0;
+    const survivantes = B[k].board;
+    if (survivantes.length) {
+      const v = survivantes[Math.floor(Math.random() * survivantes.length)];
+      v.tox = (v.tox || 0) + n;
+      say(B, `${n} Toxine(s) de ${u.name} sautent sur ${v.name}.`);
+      if (B.evts) evt(B, { t: 'toxineSaut', camp: k, de: { ...refUnite(u, k), tox: n }, vers: refUnite(v, k), n }, coupDe(u));
+    } else {
+      say(B, `${n} Toxine(s) de ${u.name} disparaissent : plus personne pour les porter.`);
+      if (B.evts) evt(B, { t: 'toxineSaut', camp: k, de: { ...refUnite(u, k), tox: n }, vers: null, n }, coupDe(u));
+    }
+  }
+
   for (const { k, u } of dead) {
     say(B, `${u.name} est mis hors de combat.`);
     // Sa mort a pour cause le DERNIER COUP qu'elle a recu, pas l'action qui l'entourait.
@@ -844,7 +984,7 @@ function resolveDeaths(B, depth = 0) {
       if (staticTotal(B, chez, 'cartes_jouees_remelangees', m => m.quoi !== 'sorts') > 0) {
         melangeDedans(B, chez, [u.card]);
         if (B.evts) evt(B, { t: 'deplace', mode: 'melange', camp: chez, de: 'plateau', vers: 'pioche', cartes: [refCarte(u.card)] }, mort);
-      } else B[chez].discard.push(u.card);
+      } else versLaDefausse(B, chez, u.card);
     }
     if (u.death && u.death.length && !B.over) {
       B.fired.death = (B.fired.death || 0) + 1;
@@ -853,6 +993,8 @@ function resolveDeaths(B, depth = 0) {
       avec(B, dec, () => applyEffects(B, k, u.death, autoTarget(B, k, u.death, u), u));
     }
     avec(B, mort, () => fireEvent(B, k, 'unitDies'));
+    // « Quand une unite qui portait une Toxine meurt » : apres « quand tu perds une unite ».
+    if (portait.has(u) && !B.over) avec(B, mort, () => fireEvent(B, k, 'unitToxinee'));
   }
   if (depth < 8 && !B.over) resolveDeaths(B, depth + 1);
 }
@@ -868,7 +1010,7 @@ function peutAgir(B, k) {
   if (s.deck.length) return true;                       // il piochera encore
   // Une pile de fatigue non vide se repioche a l'infini : ce camp aura toujours
   // quelque chose a tirer (le plafond du tour ne vaut que pour le tour en cours).
-  if (fatiguePile().length) return true;
+  if (nbFatigue(B, k)) return true;
   if (s.board.some(u => u.atk > 0)) return true;        // il a de quoi frapper
   return s.hand.some(c => cardCost(c, B, k) <= s.manaCap);
 }
@@ -1011,6 +1153,39 @@ export function beginTurn(B) {
   try { commenceTour(B); } finally { B.evtCause = avant; }
 }
 
+/**
+ * LE TIC DE TOXINE (V3, docs/V3-HEROS.md, 4.4). Au debut du tour de `k`, AVANT sa pioche, chaque unite
+ * de son camp qui porte des marqueurs PERD 1 PV par marqueur. Ce n'est pas un coup : le Venin n'y reagit
+ * pas (aucune source), et il ne passe pas par `damageUnit`. Un Bouclier absorbe le tour et tombe — les
+ * marqueurs, eux, restent. Les marqueurs ne s'usent pas : ils continuent de tourner jusqu'a la mort.
+ *
+ * Le statique `toxine_brule_le_heros` (sommet 20 de Crapaud Cornu) s'y lit : chaque unite inflige alors
+ * aussi a son controleur autant de degats que de Toxines (en passant par `damageHero`, donc par les
+ * statiques de degats du heros), que son Bouclier ait tenu ou non.
+ * La mort eventuelle est ramassee par l'appelant (`resolveDeaths`) : une unite qui meurt ainsi n'attaque jamais.
+ */
+function ticDeToxine(B, k) {
+  const s = B[k];
+  const brule = staticTotal(B, k, 'toxine_brule_le_heros');
+  for (const u of [...s.board]) {
+    if (B.over) return;
+    const n = u.tox || 0;
+    if (n <= 0 || u.hp <= 0) continue;
+    const avant = u.hp;
+    if (u.shield) {
+      u.shield = false;
+      say(B, `${u.name} : son bouclier absorbe la Toxine.`);
+      if (B.evts) noteCoup(u, evt(B, { t: 'degats', toxine: true, cible: refUnite(u, k), n, perdu: 0, avant, apres: avant, bouclier: true }));
+    } else {
+      u.damage += n;
+      u.hp = u.maxHp - u.damage;
+      say(B, `${u.name} perd ${n} PV (Toxine).`);
+      if (B.evts) noteCoup(u, evt(B, { t: 'degats', toxine: true, cible: refUnite(u, k), n, perdu: avant - u.hp, avant, apres: u.hp }));
+    }
+    if (brule > 0) damageHero(B, k, n * brule, B.evts ? { src: refUnite(u, k), toxine: true } : undefined);
+  }
+}
+
 function commenceTour(B) {
   if (B.over) return;
   const k = B.turn;
@@ -1046,6 +1221,11 @@ function commenceTour(B) {
     s.nextMana = 0;
   }
   for (const u of s.board) { u.canAttack = true; u.attackedThisTurn = false; }
+  // LA TOXINE ronge AVANT la pioche (V3, 4.4) : apres la remise a zero des attaques, pour qu'une unite
+  // qui en meurt n'attaque jamais — le ramassage des morts est ici, pas plus bas.
+  ticDeToxine(B, k);
+  resolveDeaths(B);
+  if (B.over) return;
   // Les deux premiers tours partent de la main de depart. Un effet statique peut faire
   // piocher plus (ou plus rien du tout) : il ne touche que CETTE pioche-la, pas celles
   // qu'une carte declenche.
@@ -1345,12 +1525,16 @@ function resolveAmounts(B, k, u, e) {
   // Pour les evenements seulement : QUI a change le montant (`via`) et si le nombre vient d'un
   // compteur (`_x`). Ces champs ne vivent que sur la copie de l'effet, le temps qu'il part.
   const via = B.evts ? [] : undefined;
+  // « Tes Toxines en posent 1 de plus » (V3, cible `toxine`) vaut pour tout ce qui POSE des marqueurs.
+  const poseDesToxines = e.op === 'contagion' || e.op === 'epidemie';
   const bonus = staticTotal(B, k, 'montant_des_effets', m =>
-    (m.cible === e.op || (m.cible === 'tous' && AMPLIFIABLE.includes(e.op)))
+    (m.cible === e.op || (m.cible === 'tous' && AMPLIFIABLE.includes(e.op)) || (m.cible === 'toxine' && poseDesToxines))
     && (m.zone !== 'defausse' || B.sourceZone === 'defausse'), via);
   let copie = null;
   for (const p of champs) {
     if (e[p.k] === undefined) continue;
+    // Une Contagion « degats seuls » (v a 0) ne pose rien, et ses degats ne sont pas des Toxines.
+    if (e.op === 'contagion' && (p.k === 'dmg' || !(+e.v > 0))) continue;
     if (typeof e[p.k] === 'number' && !bonus) continue;
     copie = copie || { ...e };
     if (B.evts && typeof e[p.k] === 'object' && !copie._x) copie._x = describeAmount(e[p.k]);
@@ -1493,10 +1677,13 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         const noms = [], crees = [];
         for (let i = 0; i < combien; i++) {
           // Au hasard : un tirage par exemplaire, donc des cartes differentes.
-          const modele = modeleCree(e, last);
-          if (!modele) { say(B, `${rienDeTel(e)} : rien n'est cree.`); break; }
+          const modele = modeleCree(B, k, e, last);
+          if (!modele) { say(B, `${rienDeTel(B, k, e)} : rien n'est cree.`); break; }
           if (mainPleine(me)) { say(B, 'Main pleine : la carte creee est perdue.'); break; }
           const nouvelle = carteNeuve(modele, e.lvl || 1, source);
+          // « ET ELLE GAGNE +X/+Y » : le meme renfort qu'un deplacement donne aux cartes qu'il vient de prendre
+          // (Index : une carte de ta pile de fatigue, +2/+2). Ecrit sur la carte, avant qu'elle n'arrive en main.
+          if (e.atk || e.hp) renforceCartes(B, [nouvelle], e);
           me.hand.push(nouvelle);
           noms.push(modele.name);
           if (B.evts) crees.push(refCarte(nouvelle));
@@ -1509,9 +1696,11 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         // On ne deplace rien : la carte reste ou elle est et grossit. Les cartes venues
         // de la pile de fatigue, elles, n'etaient nulle part — on les met dans le paquet
         // vise, deja renforcees, sinon le renfort tomberait dans le vide.
-        const { camp, pile } = paquetDe(B, k, e);
-        const cartes = choisitDansPaquet(B, k, e, pile, camp);
-        if (!cartes.length) { say(B, 'Aucune carte a renforcer.'); break; }
+        // `d_ou: 'fatigue'` : les modeles de la pile du camp, renforces EN PLACE (Annotation) — chaque
+        // exemplaire qu'on en tirera ensuite arrive deja grossi. Rien d'autre n'a le droit d'ecrire dessus.
+        const { camp, pile } = paquetDe(B, k, e, undefined, true);
+        const cartes = choisitDansPaquet(B, k, { ...e, fatigue: e.d_ou === 'fatigue' ? false : e.fatigue }, pile, camp);
+        if (!cartes.length) { say(B, e.d_ou === 'fatigue' ? 'La pile de fatigue est vide : rien a renforcer.' : 'Aucune carte a renforcer.'); break; }
         renforceCartes(B, cartes, e);
         for (const c of cartes) if (!pile.includes(c)) pile.push(c);
         break;
@@ -1535,7 +1724,7 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         if (B.evts) {
           const mode = vers === 'pioche' ? 'melange' : vers === 'main' ? 'renvoi' : 'pose';
           for (const camp of new Set(pris.map(x => x.camp))) {
-            evt(B, { t: 'deplace', mode, camp, de: e.d_ou || 'plateau', vers, src: refSource(source, k), cartes: pris.filter(x => x.camp === camp).map(x => refCarte(x.carte)) });
+            evt(B, { t: 'deplace', mode, camp, de: e.d_ou || 'plateau', vers, src: refSource(source, k), cartes: pris.filter(x => x.camp === camp).map(x => refCarte(x.carte)), unites: pris.filter(x => x.camp === camp && x.unite).map(x => refUnite(x.unite, x.cote)) });
           }
           for (const a of arrivees) evt(B, { t: 'invoque', via: 'pose', camp: a.side, unite: refUnite(a.unit, a.side) });
         }
@@ -1552,16 +1741,21 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         const { camp, pile } = paquetDe(B, k, e);
         const cartes = choisitDansPaquet(B, k, { ...e, fatigue: false }, pile, camp);
         if (!cartes.length) { say(B, exil ? 'Rien a exiler.' : 'Rien a mettre a la defausse.'); break; }
+        // Les cartes qui ARRIVENT en defausse se classent (Ex-libris) APRES le recit du deplacement, avant
+        // l'evenement de chacune : on lit « elles tombent », puis « elle entre dans la pile ».
+        const aClasser = [];
         for (const c of cartes) {
           const at = pile.indexOf(c);
           if (at >= 0) pile.splice(at, 1);
-          depose(B, camp, c, exil ? 'exil' : 'defausse');
+          if (exil) depose(B, camp, c, 'exil');
+          else { delete c.pistee; B[camp].discard.push(c); aClasser.push(c); }
         }
         const ou = e.d_ou === 'pioche' ? 'la pioche' : e.d_ou === 'main' ? 'la main' : 'la defausse';
         say(B, exil
           ? `${cartes.length} carte(s) exilee(s) de ${ou} de ${B[camp].name} : ${cartes.map(c => c.name).join(', ')}.`
           : `${cartes.length} carte(s) ${e.d_ou === 'pioche' ? 'meulee(s)' : 'defaussee(s)'} chez ${B[camp].name} : ${cartes.map(c => c.name).join(', ')}.`);
         if (B.evts) evt(B, { t: 'deplace', mode: exil ? 'exil' : e.d_ou === 'pioche' ? 'meule' : 'defausse', camp, de: e.d_ou, vers: exil ? 'exil' : 'defausse', src: refSource(source, k), cartes: cartes.map(refCarte) });
+        for (const c of aClasser) classe(B, camp, c);
         // Un evenement PAR CARTE, du cote de celui a qui elle est. Le gros des effets
         // ne ramasse pas les morts ici (fireEvent non plus) : le flux normal s'en charge.
         for (const c of cartes) {
@@ -1569,6 +1763,140 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
           if (exil) { if (e.d_ou === 'defausse') fireEvent(B, camp, 'exil'); }
           else fireEvent(B, camp, e.d_ou === 'pioche' ? 'meule' : 'defausse');
         }
+        break;
+      }
+      case 'charogne': {
+        // CHAROGNE (V3, docs/V3-HEROS.md, 4.3). Le devoreur mange les X DERNIERES cartes de la
+        // defausse ADVERSE — le dessus d'une defausse est la fin du tableau, qui reste chronologique —,
+        // sans aucun choix, et les EXILE. Ta propre defausse n'est jamais touchee : c'est ce qui laisse
+        // Morrigane se melanger avec n'importe quel heros (Reprise, Sorciere des Cendres, reanimation).
+        // Il gagne +1/+1 par carte, et les mots-cles de COMBAT des ALLIES manges, rien d'autre.
+        // Personne pour devorer : rien n'est mange (on ne gaspille pas la nourriture).
+        const mangeurs = cible(e.t || 'self').filter(r => r.kind === 'unit');
+        if (!mangeurs.length) { say(B, 'Charogne : personne pour devorer.'); break; }
+        const camp = foe(k), s = B[camp];
+        const combien = Math.max(0, e.n === undefined ? 1 : e.n);
+        const mangees = s.discard.splice(Math.max(0, s.discard.length - combien), combien);
+        if (!mangees.length) { say(B, `Charogne : la defausse de ${s.name} est vide.`); break; }
+        for (const c of mangees) depose(B, camp, c, 'exil');
+        say(B, `${mangeurs.map(r => r.unit.name).join(', ')} devore ${mangees.map(c => c.name).join(', ')} (exil de la defausse de ${s.name}).`);
+        if (B.evts) evt(B, { t: 'deplace', mode: 'exil', via: 'charogne', camp, de: 'defausse', vers: 'exil', src: refSource(source, k), cartes: mangees.map(refCarte) });
+        // Chaque carte exilee d'une defausse est un evenement (Pie Voleuse, Prince des Ossements,
+        // Colosse d'Os...) : il part AVANT le renfort, une fois par carte, chez celui a qui elle etait.
+        for (const c of mangees) {
+          if (B.over) break;
+          fireEvent(B, camp, 'exil');
+        }
+        if (B.over) break;
+        // Les mots-cles : ceux des allies manges qui se transmettent, une seule fois chacun.
+        const cles = [];
+        for (const c of mangees) {
+          if (c.type !== 'ally') continue;
+          for (const key of c.keys || []) {
+            const id = keyId(key);
+            if (key === id && (ALL_KEYWORDS[id] || {}).transmissible && !cles.includes(id)) cles.push(id);
+          }
+        }
+        // UN renfort par Charogne, pas un par carte : « quand cette unite recoit du renfort » ne part
+        // donc qu'une fois. Les mots-cles en plus passent en +0/+0 (un renfort qui n'offre qu'un
+        // mot-cle n'en est pas un : rien ne se declenche). C'est le buff ordinaire — evenements,
+        // Charge qui arme l'unite, statiques — applique a ceux qui viennent de manger.
+        const gains = [
+          { op: 'buff', t: 'previous', atk: mangees.length, hp: mangees.length, ...(cles[0] ? { key: cles[0] } : {}) },
+          ...cles.slice(1).map(key => ({ op: 'buff', t: 'previous', atk: 0, hp: 0, key }))
+        ];
+        applyEffects(B, k, gains, target, source, choix, mangeurs);
+        last = mangeurs;
+        break;
+      }
+      case 'toxine': {
+        // TOXINE (V3, docs/V3-HEROS.md, 4.4) : X marqueurs sur chaque unite visee. Un heros n'en porte jamais
+        // (une cible heros est ignoree). La cible par defaut est une unite adverse designee.
+        const recus = cible(e.t || 'enemyUnit').filter(r => r.kind === 'unit' && r.unit.hp > 0);
+        if (!recus.length) { say(B, 'Toxine : personne a empoisonner.'); break; }
+        const v = Math.max(0, e.v === undefined ? 1 : e.v);
+        if (!v) break;
+        last = recus;
+        for (const r of recus) r.unit.tox = (r.unit.tox || 0) + v;
+        say(B, `${v} Toxine(s) sur ${recus.map(r => r.unit.name).join(', ')}.`);
+        if (B.evts) evt(B, { t: 'toxine', src: refSource(source, k), v, cibles: recus.map(r => refUnite(r.unit, r.side)) });
+        break;
+      }
+      case 'contagion': {
+        // CONTAGION : seules les unites ADVERSES qui portent DEJA une Toxine en recoivent V de plus ; `dmg`
+        // (le palier « inflige aussi 1 degat ») est un vrai `dmg`, donc les statiques de degats le touchent.
+        const camp = foe(k);
+        const porteuses = B[camp].board.filter(u => u.hp > 0 && (u.tox || 0) > 0);
+        if (!porteuses.length) { say(B, 'Contagion : aucune unite adverse ne porte de Toxine.'); break; }
+        const v = Math.max(0, e.v === undefined ? 1 : e.v);
+        const degats = Math.max(0, +e.dmg || 0);
+        const touchees = porteuses.map(u => ({ kind: 'unit', side: camp, unit: u }));
+        last = touchees;
+        if (v) {
+          for (const u of porteuses) u.tox += v;
+          say(B, `Contagion : +${v} Toxine(s) sur ${porteuses.map(u => u.name).join(', ')}.`);
+          if (B.evts) evt(B, { t: 'toxine', src: refSource(source, k), v, contagion: true, cibles: touchees.map(r => refUnite(r.unit, r.side)) });
+        }
+        if (degats) applyEffects(B, k, [{ op: 'dmg', t: 'previous', v: degats }], target, source, choix, touchees);
+        break;
+      }
+      case 'epidemie': {
+        // EPIDEMIE : V Toxines sur CHAQUE unite adverse, PUIS chacune inflige a son controleur autant de
+        // degats que de Toxines qu'elle porte — comptees APRES la pose (celles d'avant comptent donc aussi).
+        // Les marqueurs restent et continuent de tourner. Un seul `damageHero` par unite : chacune « inflige ».
+        const camp = foe(k);
+        const unites = B[camp].board.filter(u => u.hp > 0);
+        if (!unites.length) { say(B, 'Epidemie : aucune unite adverse.'); break; }
+        const v = Math.max(0, e.v === undefined ? 2 : e.v);
+        last = unites.map(u => ({ kind: 'unit', side: camp, unit: u }));
+        for (const u of unites) u.tox = (u.tox || 0) + v;
+        say(B, `Epidemie : ${v} Toxine(s) sur chaque unite adverse.`);
+        if (B.evts) evt(B, { t: 'toxine', src: refSource(source, k), v, epidemie: true, cibles: unites.map(u => refUnite(u, camp)) });
+        for (const u of unites) {
+          if (B.over) break;
+          if ((u.tox || 0) > 0) damageHero(B, camp, u.tox, B.evts ? { src: refUnite(u, camp), toxine: true } : undefined);
+        }
+        break;
+      }
+      case 'piste': {
+        // PISTE (V3, docs/V3-HEROS.md, 4.1) : marque N cartes de la MAIN ADVERSE, TIREES AU HASARD parmi
+        // celles qui ne le sont pas deja (une carte ne se pistre qu'une fois). Plus aucune de libre : l'effet
+        // s'arrete au premier echec — « toute la main » s'ecrit 99. Aucune carte n'est nommee au journal
+        // (la main adverse est cachee) : le recit, lui, garde les photos, et c'est a l'ecran de les cacher.
+        const s = B[foe(k)];
+        const combien = Math.max(0, e.n === undefined ? 1 : e.n);
+        const marquees = [];
+        for (let i = 0; i < combien; i++) {
+          const libres = s.hand.filter(c => !c.pistee);
+          if (!libres.length) break;
+          const c = libres[Math.floor(Math.random() * libres.length)];
+          c.pistee = true;
+          marquees.push(c);
+        }
+        if (!marquees.length) { say(B, 'Piste : aucune carte a pister dans la main adverse.'); break; }
+        say(B, `${marquees.length} carte(s) de la main de ${s.name} ${marquees.length > 1 ? 'sont pistees' : 'est pistee'}.`);
+        if (B.evts) evt(B, { t: 'piste', camp: foe(k), src: refSource(source, k), cartes: marquees.map(refCarte) });
+        break;
+      }
+      case 'appat': {
+        // APPAT (V3, 4.3 bis) : X COPIES tirees de la pile de fatigue ADVERSE, posees au DESSUS de sa
+        // defausse. On nourrit, on ne prive jamais : sa pioche, sa main et son plateau ne sont pas
+        // touches, et AUCUN evenement ne part (ni defausse, ni meule) — ce ne sont pas ses cartes qui
+        // tombent, elles apparaissent. Pas une pioche non plus : aucun plafond par tour n'y joue.
+        const s = B[foe(k)];
+        const combien = Math.max(0, e.n === undefined ? 1 : e.n);
+        const faites = [];
+        for (let i = 0; i < combien; i++) {
+          // La pile de L'ADVERSAIRE (la sienne, renforcee par ses Annotations, grossie par ses Ex-libris) : les
+          // copies naissent classees, rien n'entre donc dans aucune pile.
+          const c = copieDeFatigue(B, foe(k));
+          if (!c) break;
+          versLaDefausse(B, foe(k), c);
+          faites.push(c);
+        }
+        if (!faites.length) { say(B, 'Appat : la pile de fatigue est vide, rien n\'est fabrique.'); break; }
+        say(B, `Appat : ${faites.map(c => c.name).join(', ')} apparai${faites.length > 1 ? 'ssent' : 't'} dans la defausse de ${s.name}.`);
+        if (B.evts) evt(B, { t: 'deplace', mode: 'appat', camp: foe(k), de: 'rien', vers: 'defausse', src: refSource(source, k), cartes: faites.map(refCarte) });
         break;
       }
       case 'copie': {
@@ -1609,6 +1937,8 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
           const face = autreFace(carte);
           const at = pile.indexOf(carte);
           if (!face || at < 0) { say(B, `${carte.name} n'a pas d'autre face.`); continue; }
+          // Switchee dans la main, elle GARDE sa marque (c'est la meme carte, de l'autre face).
+          if (carte.pistee) face.pistee = true;
           pile[at] = face;
           noms.push(`${carte.name} → ${face.name}`);
         }
@@ -1670,7 +2000,10 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
       }
       case 'reduit_le_cout_de': {
         // Les cartes DEJA en main : celles qu'on piochera ensuite gardent leur cout.
-        const touchees = me.hand.filter(c => cardMatches(c, e));
+        let touchees = me.hand.filter(c => cardMatches(c, e));
+        // « Le cout d'UN sort de ta main » (V3) : `n` > 0 en tire n au hasard, 0 les prend toutes.
+        const combien = +e.n || 0;
+        if (combien > 0 && touchees.length > combien) touchees = shuffle([...touchees]).slice(0, combien);
         for (const c of touchees) c.cost = Math.max(0, c.cost - e.v);
         say(B, touchees.length
           ? `${describeFilter(e)} : ${e.v} mana de moins (${touchees.map(c => c.name).join(', ')}).`
@@ -1755,6 +2088,8 @@ function makeUnit(c) {
     ownerLevel: c.ownerLevel || 0,
     baseKeys: keys,
     damage: 0,
+    // Les marqueurs Toxine (V3, 4.4) : un etat, comme `damage` — pas une valeur derivee de refresh().
+    tox: 0,
     sprite: c.sprite,
     shield: hasKey(keys, 'Bouclier'),
     canAttack: hasKey(keys, 'Charge'),
@@ -1821,16 +2156,21 @@ function jouerCarte(B, k, handIndex, target, choix, zone) {
   const card = pile[handIndex];
   if (!card || !canPlay(B, k, card, zone)) return false;
   const paye = cardCost(card, B, k, zone);
+  // Le pistage se lit AVANT que la carte parte, et la marque la quitte avec la main : elle ne suit ni la
+  // defausse, ni l'unite sur le plateau, ni le reflet qu'en garderait un Miroir.
+  const estPistee = !!card.pistee;
+  delete card.pistee;
   s.mana -= paye;
   s.jouees++;
   s.posees.push(card.name);
   pile.splice(handIndex, 1);
   // LA CARTE JOUEE est la cause de tout ce qu'elle fait, jusqu'a la fin de cette fonction.
-  if (B.evts) B.evtCause = evt(B, { t: 'joue', camp: k, carte: refCarte(card), paye, zone, cible: refCible(B, target), choix: choix || null });
+  if (B.evts) B.evtCause = evt(B, { t: 'joue', camp: k, carte: refCarte(card), paye, zone, cible: refCible(B, target), choix: choix || null, ...(estPistee ? { pistee: true } : {}) });
   // UN ALLIE EN JEU N'EST PAS DANS LA DEFAUSSE : il est sur le plateau, et sa carte
   // voyage avec l'unite. Elle ne tombe a la defausse qu'a sa mort. Sans cette regle,
   // « reanime un allie de ta defausse » ressusciterait une unite encore vivante et
   // « renvoie en main » dupliquerait la carte.
+  let versDefausse = false;
   if (zone === 'defausse') {
     // LA REPRISE : le sort quitte la defausse pour l'EXIL, AVANT que ses effets partent —
     // comme un sort part en defausse avant les siens. Un sort qui remelange sa defausse
@@ -1847,17 +2187,29 @@ function jouerCarte(B, k, handIndex, target, choix, zone) {
     if (staticTotal(B, k, 'cartes_jouees_remelangees', m => m.quoi !== 'allies') > 0) {
       melangeDedans(B, k, [card]);
       if (B.evts) evt(B, { t: 'deplace', mode: 'melange', camp: k, de: 'jeu', vers: 'pioche', cartes: [refCarte(card)] });
-    } else s.discard.push(card);
+    } else { s.discard.push(card); versDefausse = true; }
   }
   say(B, zone === 'defausse'
     ? `${s.name} joue ${card.name} depuis sa defausse (Reprise) : le sort est exile.`
     : `${s.name} joue ${card.name}.`);
+  // EX-LIBRIS : le sort est arrive en defausse — la ligne « joue » vient d'etre ecrite, le classement la suit.
+  if (versDefausse) classe(B, k, card);
   // Les Miroirs d'en face la refletent tout de suite — avant ses effets, qui peuvent
   // justement leur faire quitter la main (une defausse, un renvoi).
   retiensJouee(B, k, card);
   // Une carte qui quitte une DEFAUSSE pour l'exil, c'est l'evenement « exil » : Pie
   // Voleuse ou Prince des Ossements entendent donc aussi une Reprise.
   if (zone === 'defausse') fireEvent(B, k, 'exil');
+
+  // UNE CARTE PISTEE EST JOUEE (V3, 4.1) : « quand l'adversaire joue une carte pistee » part ICI — apres le
+  // paiement et AVANT les effets de la carte, qui ne partent qu'une fois la punition resolue (une unite
+  // detruite par elle ne peut plus etre visee, ni servir de cible a un renfort).
+  if (estPistee) {
+    say(B, `${card.name} etait pistee.`);
+    fireEvent(B, k, 'pistee');
+    resolveDeaths(B);
+    if (B.over) return true;
+  }
 
   let source = null;
   if (card.type === 'ally') {

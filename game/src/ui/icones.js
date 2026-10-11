@@ -16,7 +16,7 @@ export const ICONES = {
   // evenements
   Swords: '⚔', Counter: '↩', Dead: '☠', Damage: '✸', Heal: '✚', Buff: '▲', Debuff: '▼', Summon: '✦',
   Draw: '▤', Destroy: '✖', Mill: '⇩', Exile: '⊘', Create: '✧', Return: '⤴', Shuffle: '⤨', Copy: '⧉',
-  Switch: '⇄', Control: '⚑', Fatigue: '☁',
+  Switch: '⇄', Control: '⚑', Fatigue: '☁', Track: '🐾',
   // moments
   Deathrattle: '♱', Aura: '◎', Static: '∞', TurnStart: '☀', TurnEnd: '☾', Trigger: '↯',
   // mots-cles

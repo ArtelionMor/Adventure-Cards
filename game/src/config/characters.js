@@ -84,7 +84,11 @@ export function resolveCard(def, level) {
       c.aura = c.aura || { scope: t.aura.scope || 'otherAllies', atk: 0, hp: 0, key: '' };
       c.aura.atk = (c.aura.atk || 0) + (t.aura.atk || 0);
       c.aura.hp = (c.aura.hp || 0) + (t.aura.hp || 0);
-      if (t.aura.key) c.aura.key = t.aura.key;
+      // Un palier qui donne un mot-cle a une aura qui en portait deja un l'AJOUTE (liste), il ne le remplace pas.
+      if (t.aura.key) {
+        const deja = [].concat(c.aura.key || []).filter(Boolean);
+        c.aura.key = deja.length && !deja.includes(t.aura.key) ? [...deja, t.aura.key] : (deja.length ? c.aura.key : t.aura.key);
+      }
       if (t.aura.scope) c.aura.scope = t.aura.scope;
     }
     // Un palier peut aussi poser un effet statique de plus (« a partir du niveau 5,

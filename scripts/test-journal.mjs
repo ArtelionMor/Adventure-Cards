@@ -159,7 +159,9 @@ function controle(fichier, actions, queue, total) {
   for (const d of decisions) {
     const main = new Set(d.etat[d.camp].main.map(c => c.inst));
     const plateau = new Set([...d.etat.p.plateau, ...d.etat.e.plateau].map(u => u.uid));
-    if (d.coup.type === 'play') citesOk &&= main.has(d.coup.inst);
+    // Une REPRISE se joue depuis la defausse (`zone: 'defausse'`) : la carte se relit la, pas dans la main.
+    // Sans cette lecture le banc echouait des que Melusine (sorts a Reprise) entrait dans une partie.
+    if (d.coup.type === 'play') citesOk &&= d.coup.zone === 'defausse' ? d.etat[d.camp].defausse.includes(d.coup.inst) : main.has(d.coup.inst);
     if (d.coup.type === 'attack') citesOk &&= plateau.has(d.coup.uid);
     if (d.coup.cible && d.coup.cible.uid !== 'hero') citesOk &&= plateau.has(d.coup.cible.uid);
   }

@@ -13,12 +13,18 @@
 //   'vue' — lue seulement : ni l'un ni l'autre, par exemple la defausse de l'adversaire.
 import { keyId, keyLabel } from '../config/mechanics.js';
 import { el, asset, modal, closeModal } from './shell.js';
+import { icone } from './icones.js';
 
 /** Un mot-cle utile a lire sur une vignette : pas les types, qui noieraient la carte. */
 const motsCles = c => (c.keys || []).filter(k => keyId(k) !== 'type' && keyId(k) !== 'type_tous').slice(0, 3);
 
 function carteNode(x, gi) {
   const c = x.carte;
+  // UNE CARTE DE DOS (la main adverse) : ni nom, ni cout, ni geste — la lire reviendrait a la montrer. Seule sa
+  // patte (le pistage) dit quelque chose.
+  if (x.dos) {
+    return el(`<div class="zcard dos vue"><div class="nm">▤</div>${x.pistee ? `<div class="patte" title="Pistée">${icone('Track', 16)}</div>` : ''}</div>`);
+  }
   // `data-geste` : la carte se touche par les gestes de l'ecran de combat (ui/gestes.js) —
   // un tap la joue si elle est eclairee, un appui long la lit. `g` et `i` disent laquelle.
   const n = el(`

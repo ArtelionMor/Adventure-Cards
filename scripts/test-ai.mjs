@@ -8,6 +8,9 @@ import { botAction, coupsPossibles } from '../game/src/combat/ai.js';
 // Monter une position, c'est jouer des cartes — et une action passe par joue(), ici
 // comme ailleurs (cf. le banc du partage). Journal eteint, c'est un appel de plus.
 import { joue } from '../game/src/combat/journal.js';
+// La pile de fatigue est une donnee de jeu : les tests de l'appat la remplissent puis la revident.
+import { CHARACTER_DATA } from '../game/data/characters.data.js';
+CHARACTER_DATA.fatigue = [];
 
 let pass = 0, fail = 0;
 const TIRAGES = 300;
@@ -402,6 +405,114 @@ tendance('et l autre quand la position a change',
     a: { op: 'armor', v: 8 },
     b: { op: 'dmg', t: 'enemyUnit', v: 1 } }])]),
   (B, a) => a && a.type === 'play' && a.choix === 'a');
+
+// ---------------------------------------------------------------------------
+// CHAROGNE ET APPAT (docs/V3-HEROS.md, 4.3 et 4.3 bis). Une Charogne vaut ce qu'elle va MANGER :
+// les dernieres cartes de la defausse adverse (+2 par carte, plus les mots-cles d'allies), zero si
+// elle est vide. Un appat vaut un repas a venir — et RIEN s'il n'y a aucune Charogne a nourrir.
+console.log('\nCharogne et Appat');
+const charogne = n => ({ op: 'charogne', n, t: 'self' });
+const appat = n => ({ op: 'appat', n });
+/** Meme stats, meme cout : seule la Charogne distingue le gourmand du banal. */
+const gourmand = (play, cout = 3) => ally('Gourmand', 2, 2, { cost: cout, play });
+
+tendance('prefere la Charogne qui a de quoi manger a un corps identique',
+  () => {
+    const B = setup([ally('Banal', 2, 2, { cost: 3 }), gourmand([charogne(3)])], [], 3);
+    B.e.discard = [ally('Mort1', 3, 3, { keys: ['Taunt'] }), ally('Mort2', 2, 2), ally('Mort3', 1, 1)];
+    return B;
+  },
+  (B, a) => carteJouee(B, a) === 'Gourmand');
+
+tendance('un appat nourrit une Charogne qui attend en main',
+  () => {
+    CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1, lvl: 1 }];
+    // L'allie qui fait l'appat et une Charogne trop chere pour ce tour : le bot voit qu'il la nourrit.
+    const B = setup([ally('Banal', 2, 2, { cost: 3 }), ally('Pie', 2, 2, { cost: 3, play: [appat(2)] }),
+      ally('Colosse', 5, 5, { cost: 9, play: [charogne(5)] })], [], 3);
+    return B;
+  },
+  (B, a) => { CHARACTER_DATA.fatigue = []; return carteJouee(B, a) === 'Pie'; });
+
+tendance('mais un appat sans aucune Charogne a nourrir ne vaut rien : il joue le corps le plus fort',
+  () => {
+    CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1, lvl: 1 }];
+    return setup([ally('Pie', 2, 2, { cost: 3, play: [appat(2)] }), ally('Costaud', 3, 3, { cost: 3 })], [], 3);
+  },
+  (B, a) => { CHARACTER_DATA.fatigue = []; return carteJouee(B, a) === 'Costaud'; });
+
+tendance('« appat puis Charogne » vaut ce que l appat lui fabrique, meme sur une defausse vide',
+  () => {
+    CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1, lvl: 1 }];
+    return setup([ally('Banal', 2, 2, { cost: 3 }), gourmand([appat(1), charogne(2)])], [], 3);
+  },
+  (B, a) => { CHARACTER_DATA.fatigue = []; return carteJouee(B, a) === 'Gourmand'; });
+
+// ---------------------------------------------------------------------------
+// LE PISTAGE (docs/V3-HEROS.md, 4.1). Le bot « joue tout » : sans le prix des punitions, il paierait 5 PV pour un
+// 1/1 pistee, et Patou serait trop fort contre lui. Une carte pistee se joue pour ce qu'elle vaut MOINS ce que
+// l'adversaire a en reserve ; et une marque se pose quand il y a de quoi la punir ou la taxer.
+console.log('\nLe pistage');
+const punisseur = (v = 5) => ally('Berger', 1, 5, { cost: 1, on_pistee_foe: [{ op: 'dmg', t: 'enemyHero', v }] });
+
+tendance('ne paie pas 5 PV pour jouer une carte pistee : il joue la libre',
+  () => setup([{ ...ally('Pistee', 2, 2, { cost: 3 }), pistee: true }, ally('Libre', 1, 1, { cost: 3 })], [punisseur(5)], 3),
+  (B, a) => carteJouee(B, a) === 'Libre');
+
+tendance('et sans punition en face, la carte pistee se joue comme une autre (la meilleure)',
+  () => setup([{ ...ally('Pistee', 2, 2, { cost: 3 }), pistee: true }, ally('Libre', 1, 1, { cost: 3 })], [], 3),
+  (B, a) => carteJouee(B, a) === 'Pistee');
+
+tendance('une marque vaut quelque chose quand la main adverse a de quoi etre pistee',
+  () => {
+    const B = setup([ally('Pisteur', 1, 1, { cost: 2, play: [{ op: 'piste', n: 1 }] }), ally('Banal', 1, 1, { cost: 2 })], [], 2);
+    B.e.hand = [ally('Cible1', 1, 1), ally('Cible2', 1, 1)];
+    return B;
+  },
+  (B, a) => carteJouee(B, a) === 'Pisteur');
+
+// ---------------------------------------------------------------------------
+// LA TOXINE (docs/V3-HEROS.md, 4.4). Une unite qui meurt de sa Toxine avant d'agir ne vaut plus un coup ; un
+// poseur de marqueurs vaut ce que les marqueurs prendront.
+console.log('\nLa Toxine');
+
+tendance('ne frappe pas l unite que sa Toxine va tuer : il en choisit une autre',
+  () => {
+    const B = plateaux([], [ally('Frappeur', 5, 5, { cost: 1, keys: ['Charge'] })],
+      [ally('Condamnee', 4, 1, { cost: 1, keys: ['Taunt'] }), ally('Normale', 1, 2, { cost: 1, keys: ['Taunt'] })]);
+    B.e.board.find(u => u.name === 'Condamnee').tox = 1;
+    B.p.board[0].canAttack = true;
+    return B;
+  },
+  (B, a) => a && a.type === 'attack' && cibleVisee(B, a) === 'Normale');
+
+tendance('prefere un Dard empoisonne a un petit corps, quand il y a un gros plateau adverse',
+  () => setup([sort('Dard', [{ op: 'toxine', t: 'enemyUnit', v: 3 }], 3), ally('Petit', 1, 1, { cost: 3 })],
+    [ally('Colosse', 5, 5)], 3),
+  (B, a) => carteJouee(B, a) === 'Dard');
+
+tendance('et ne paie pas une Contagion quand personne ne porte de Toxine',
+  () => setup([sort('Cont', [{ op: 'contagion', v: 1, dmg: 0 }], 3), ally('Petit', 1, 1, { cost: 3 })], [ally('Colosse', 5, 5)], 3),
+  (B, a) => carteJouee(B, a) === 'Petit');
+
+// ---------------------------------------------------------------------------
+// EX-LIBRIS ET LA PILE DE FATIGUE PAR CAMP (docs/V3-HEROS.md, 4.5). Une carte qui tire dans la pile ne vaut que
+// ce que la pile contient — celle du CAMP, vide par defaut.
+console.log('\nEx-libris et la pile de fatigue');
+
+tendance('ne paie pas un Index quand sa pile de fatigue est vide',
+  () => {
+    CHARACTER_DATA.fatigue = [];
+    return setup([sort('Index', [{ op: 'cree', choix: 'fatigue', n: 1, atk: 2, hp: 2 }], 3), ally('Petit', 1, 1, { cost: 3 })], [ally('Colosse', 5, 5)], 3);
+  },
+  (B, a) => carteJouee(B, a) === 'Petit');
+
+tendance('mais en joue un quand la pile a de quoi donner',
+  () => {
+    CHARACTER_DATA.fatigue = [{ card: 'grunt1', n: 1, lvl: 1 }];
+    return setup([sort('Index', [{ op: 'cree', choix: 'fatigue', n: 1, atk: 2, hp: 2 }], 3), ally('Petit', 1, 1, { cost: 3 })], [ally('Colosse', 5, 5)], 3);
+  },
+  (B, a) => { CHARACTER_DATA.fatigue = []; return carteJouee(B, a) === 'Index'; });
 
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);

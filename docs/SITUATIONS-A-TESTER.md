@@ -389,7 +389,7 @@ tuer ? C'est le matchup qui dit si l'archétype existe.
 
 ## D2 — Felix combo (Combo)
 
-Ombre Feutrée (sorts −1) + Griffeur de doigt (1 dégât par sort lancé) + Neuf Vies (N Griffures) +
+Ombre Feutrée (sorts −1) + Mage de l'étincelle (1 dégât par sort lancé) + Neuf Vies (N Griffures) +
 Matou Invocateur (un Chat par sort). **La question** : combien de mana faut-il pour que la
 chaîne parte, et est-ce que le deck survit jusque-là ? Un Combo qui a besoin du tour 9
 contre un Aggro est un Combo qui n'existe pas.

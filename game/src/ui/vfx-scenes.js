@@ -43,6 +43,19 @@ function enfants(ops, cause, ctx) {
       case 'armor': ev({ t: 'armure', camp: 'p', v: typeof e.v === 'number' ? e.v : 2 }, cause); break;
       case 'mana': case 'mana_au_prochain_tour': ev({ t: 'mana', camp: 'p', v: 2, promis: e.op !== 'mana' }, cause); break;
       case 'copie': ev({ t: 'transforme', mode: 'copie', de: [src.nom], modele: null, unites: [src, ...allies] }, cause); break;
+      // Charogne : des cartes de la defausse adverse partent a l'exil, puis le devoreur grossit (UN renfort).
+      case 'charogne': {
+        const n = typeof e.n === 'number' ? e.n : 2;
+        ev({ t: 'deplace', mode: 'exil', via: 'charogne', camp: 'e', de: 'defausse', vers: 'exil', cartes: [] }, cause);
+        const mangeur = e.t && e.t !== 'self' ? (allies[0] || src) : src;
+        ev({ t: 'renfort', atk: n, hp: n, cle: null, cible: mangeur }, cause);
+        break;
+      }
+      case 'appat': ev({ t: 'deplace', mode: 'appat', camp: 'e', de: 'rien', vers: 'defausse', cartes: [] }, cause); break;
+      // Piste : des cartes de la main adverse portent la patte (rien ne bouge, c'est une marque).
+      case 'piste': ev({ t: 'piste', camp: 'e', cartes: [] }, cause); break;
+      // Toxine, Contagion, Epidemie : des marqueurs se posent sur l'adversaire (le tic viendra a son tour).
+      case 'toxine': case 'contagion': case 'epidemie': ev({ t: 'toxine', v: typeof e.v === 'number' ? e.v : 1, cibles: ennemis.length ? ennemis : [heroE] }, cause); break;
       case 'switch': ev({ t: 'transforme', mode: 'switch', de: src.nom, unite: allies[0] || src }, cause); break;
       default: break;
     }

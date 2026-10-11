@@ -6,7 +6,7 @@ import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist } from '../state.js';
 import { relicMods } from '../config/relics.js';
 import { TRIGGERS, COUNTERS, keyLabel, hasKey, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel, branchesDe, listeEffets } from '../config/mechanics.js';
-import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur, reprisesPossibles, draw, refresh } from '../combat/engine.js';
+import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur, reprisesPossibles, draw, refresh, nbFatigue, pileDeFatigue } from '../combat/engine.js';
 import { evt, refUnite, refHeros, refCarte } from '../combat/evenements.js';
 import { botAction } from '../combat/ai.js';
 import { joue as joueLeCoup, ouvreJournal, fermeJournal, nomDeFichier } from '../combat/journal.js';
@@ -385,11 +385,12 @@ function majUnite(n, u, side) {
   // Les chiffres se colorent comme dans un jeu de cartes : l'attaque en vert quand elle depasse celle de la carte, la vie
   // en rouge quand l'unite est blessee (un jeton n'a pas de carte : pas de reference, donc pas de vert).
   const plus = u.card && u.card.atk != null && u.atk > u.card.atk, moins = u.hp < u.maxHp;
-  const sig = [u.name, u.sprite || '', u.atk, u.hp, plus, moins, pics, ap].join('|');
+  const sig = [u.name, u.sprite || '', u.atk, u.hp, plus, moins, pics, ap, u.tox || 0].join('|');
   if (n._sig !== sig) {
     n._sig = sig;
     n.innerHTML = `
       ${u.sprite ? `<img src="${asset(u.sprite)}" alt="">` : '<img alt="">'}
+      ${u.tox > 0 ? `<div class="tox" title="${u.tox} marqueur${u.tox > 1 ? 's' : ''} Toxine">${icone('Venom', 12)}${u.tox}</div>` : ''}
       <div class="un">${u.name}</div>
       <div class="s"><span class="a${plus ? ' plus' : ''}">${u.atk}</span> / <span class="h${moins ? ' moins' : ''}">${u.hp}</span></div>
       ${pics}
@@ -426,7 +427,12 @@ function majHero(h, s, k) {
   const nom = `${s.name}${s.armor ? ` <span class="hv">${icone('Armor', 14)}${s.armor}</span>` : ''}${s.nextMana ? ` <span class="hv">${icone('Mana', 14)}+${s.nextMana}${icone('TurnStart', 12)}</span>` : ''}`;
   if (h.sigNom !== nom) { h.sigNom = nom; h.nom.innerHTML = nom; }
   // Ce qu'on peut savoir de la main adverse sans la voir : combien de cartes, et ce qui reste a piocher.
-  if (k === 'e') h.info.textContent = `Main ${s.hand.length} · Pioche ${s.deck.length}`;
+  if (k === 'e') {
+    // Le pistage (V3) : on SAIT quelles cartes sont marquees, pas lesquelles elles sont.
+    const pistees = s.hand.filter(c => c.pistee).length;
+    const info = `Main ${s.hand.length}${pistees ? ` (${pistees} ${icone('Track', 12)})` : ''} · Pioche ${s.deck.length}`;
+    if (h.sigInfo !== info) { h.sigInfo = info; h.info.innerHTML = info; }
+  }
   h.fill.style.width = `${pct}%`;
   h.txt.textContent = `${Math.max(0, s.hp)} / ${s.maxHp}`;
   // Le mana peut depasser le plafond (mana promis au tour precedent) : on affiche
@@ -448,11 +454,12 @@ function majCarte(n, c, i) {
   // moins/de plus » peut le faire bouger d'un tour a l'autre, on le signale.
   const cout = cardCost(c, B, 'p');
   const pics = ligneDePictos(c, { taille: 20, max: 4 });
-  const sig = [c.name, cout, c.cost, c.sprite || '', c.type, c.atk, c.hp, pics].join('|');
+  const sig = [c.name, cout, c.cost, c.sprite || '', c.type, c.atk, c.hp, pics, c.pistee ? 1 : 0].join('|');
   if (n._sig !== sig) {
     n._sig = sig;
     n.innerHTML = `
       <div class="cost" ${cout !== c.cost ? `title="coût de base ${c.cost}" style="color:var(--accent2)"` : ''}>${cout}</div>
+      ${c.pistee ? `<div class="patte" title="Pistée par l’adversaire">${icone('Track', 16)}</div>` : ''}
       ${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}
       <div class="nm">${c.name}</div>
       ${pics}
@@ -585,7 +592,8 @@ function majBarre() {
   c.chip.textContent = auto ? '▶ Auto' : '✋ Manuel';
   c.chip.classList.toggle('on', auto);
   c.vit.textContent = `x${fx.vitesse}`;
-  c.npioche.textContent = `Pioche ${B.p.deck.length}`;
+  // La pioche vide, ce qu'on tire est SA pile de fatigue : le compteur dit combien de modeles elle compte.
+  c.npioche.textContent = !B.p.deck.length && nbFatigue(B, 'p') ? `Fatigue ${nbFatigue(B, 'p')}` : `Pioche ${B.p.deck.length}`;
   c.def.textContent = `Défausse ${B.p.discard.length}${nbReprises ? ' ↺' + nbReprises : ''}`;
   c.def.classList.toggle('pret', !!nbReprises);
   c.ntour.textContent = `Tour ${Math.ceil(B.turnNo / 2)}`;
@@ -981,7 +989,21 @@ function renderZone() {
   // afficher le cout de la carte du bon cote.
   const groupes = [{ titre: 'Ta défausse', camp: 'p', cartes: moi }];
   if (B.p.exile.length) groupes.push({ titre: 'Ton exil', camp: 'p', cartes: lecturePile(B.p.exile) });
+  // TA PILE DE FATIGUE (V3, Ex-libris) : ce que tu tirerais, la pioche finie. Les cartes a Ex-libris sont
+  // eclairees — ce sont celles que ta defausse y a rangees —, le reste est grise. Lecture seule : un tap n'y
+  // joue rien (seul le groupe 0, ta defausse, se joue).
+  const maPile = pileDeFatigue(B, 'p');
+  if (maPile.length) {
+    groupes.push({ titre: 'Ta pile de fatigue', camp: 'p',
+      cartes: maPile.map((carte, i) => ({ carte, i, etat: hasKey(carte.keys, 'ex_libris') ? 'on' : 'off' })) });
+  }
   groupes.push({ titre: 'Défausse adverse', camp: 'e', cartes: lecturePile(B.e.discard) });
+  // LA MAIN ADVERSE, DE DOS (V3, pistage) : on ne lit jamais ce qu'elle contient — seulement quelles places
+  // portent la patte. Rien d'autre ne passe a la fenetre : ni nom, ni cout, ni mot-cle.
+  if (B.e.hand.some(c => c.pistee)) {
+    groupes.push({ titre: 'Main adverse (de dos)', camp: 'e',
+      cartes: B.e.hand.map((c, i) => ({ carte: { name: '?', type: 'ally' }, i, etat: 'vue', dos: true, pistee: !!c.pistee })) });
+  }
   const aReprise = B.p.discard.some(c => c.type !== 'ally' && hasKey(c.keys, 'reprise'));
   const aide = !aReprise ? ''
     : monTour ? 'Touche un sort éclairé pour le relancer : il coûte son prix, puis il est exilé.'
@@ -989,7 +1011,7 @@ function renderZone() {
   zoneGroupes = groupes;
   // Le combat continue derriere : on ne redessine QUE si la fenetre a change, sinon un doigt
   // pose sur une carte la verrait remplacee au pas suivant du mode auto.
-  const sig = JSON.stringify([aide, groupes.map(g => [g.titre, g.cartes.map(x => [x.carte.inst ?? x.carte.name, x.carte.atk, x.carte.hp, x.etat, x.cout, x.note])])]);
+  const sig = JSON.stringify([aide, groupes.map(g => [g.titre, g.cartes.map(x => [x.carte.inst ?? x.carte.name, x.carte.atk, x.carte.hp, x.etat, x.cout, x.note, x.pistee])])]);
   if (sig === zoneSig && !$('#modal').classList.contains('hidden')) return;
   zoneSig = sig;
   const ancien = $('#modal .sheet');
@@ -1085,6 +1107,11 @@ function inspectNode(u, side) {
   else if (u.attackedThisTurn) etat.push('a déjà attaqué ce tour');
   else etat.push('pas encore prête');
   if (u.shield) etat.push('bouclier intact');
+  // LA TOXINE (V3) : ce que sa Toxine lui prendra au debut de SON prochain tour (le Bouclier absorbe le premier).
+  if (u.tox > 0) {
+    const perdra = u.shield ? 'son bouclier absorbera le premier tour' : `perdra ${u.tox} PV au début de son tour${u.hp <= u.tox ? ' — et en mourra' : ''}`;
+    box.appendChild(ligne(`Toxine ×${u.tox}`, perdra + '. À sa mort, les marqueurs sautent sur une autre unité du même camp.'));
+  }
   box.appendChild(el(`<div class="src">${etat.join(' · ')}</div>`));
   return box;
 }
@@ -1107,6 +1134,16 @@ function ficheCarte(c, camp) {
   if (c.text) box.appendChild(ligne('Texte', c.text));
   const bFait = blocFait(c);
   if (bFait) box.appendChild(bFait);
+  // UNE CARTE PISTEE (V3) : ce que le camp d'en face a en reserve si on la joue. Le surcout en mana est deja
+  // dans le cout affiche en haut ; ici, ce qui part EN PLUS — lu sur les unites de l'adversaire.
+  if (c.pistee) {
+    const punitions = [];
+    for (const u of B[camp === 'p' ? 'e' : 'p'].board) {
+      for (const e of [...(u.on_pistee_foe || []), ...(u.on_pistee_any || [])]) punitions.push(ligne(u.name, describeEffect(e), 'si tu la joues'));
+    }
+    const b = bloc('Pistée', [ligne('Marquée', 'L’adversaire l’a à l’œil : elle coûte plus cher, et peut te coûter autre chose.'), ...punitions]);
+    if (b) box.appendChild(b);
+  }
   return box;
 }
 
