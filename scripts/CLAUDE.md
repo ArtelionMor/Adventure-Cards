@@ -36,7 +36,7 @@
 ## Les générateurs et outils ponctuels
 | Fichier | Rôle |
 |---|---|
-| `gen-sprites.mjs` | Réécrit `game/data/sprites.js` (liste des images de `Characters/`, `Machines/`, `Ressources/`, `UI/`). **Doublé en C#** (`GenereSprites()` dans `launcher/Launcher.cs`) : les deux doivent produire le même fichier. |
+| `gen-sprites.mjs` | Réécrit `game/data/sprites.js` (liste des images de `Characters/`, `Machines/`, `Ressources/`, `UI/` et des packs `Decor/<pack>/`). **Doublé en C#** (`GenereSprites()` dans `launcher/Launcher.cs`) : les deux doivent produire le même fichier. |
 | `gen-icones.ps1` | Décline `Icons/Icon.png` en icônes de l'Atelier (`builder/icons/`). |
 | `gen-heros-v2.mjs` | Écrit les six héros V2 dans `characters.data.js` (⚠ écrase leurs retouches ; paliers dans `lib/heros-v2-paliers.mjs`). |
 | `gen-heros-v3.mjs` | Écrit les **six héros V3** (`docs/V3-HEROS.md`) dans `characters.data.js` **et** déclare dans `customMechanics` les mécaniques pas encore codées (aucune depuis le 12 octobre : le Registre était la dernière), puis réécrit `docs/MECANIQUES-A-CODER.md` au format du builder (⚠ écrase leurs retouches ; paliers dans `lib/heros-v3-paliers.mjs`). À relancer **sur le Pi** si des cartes y sont en attente. |

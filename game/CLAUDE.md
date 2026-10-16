@@ -7,6 +7,7 @@
 |---|---|
 | `index.html` | La coquille (53 lignes) : `#topbar` (héros, niveau, rappel de monnaie), `#screens` (4 écrans : `screen-world`, `screen-farm`, `screen-deck`, `screen-bag`), `#nav` (barre du bas), et trois calques `#battle`, `#modal`, `#toasts`. |
 | `styles.css` | **Le seul style** (≈ 29 Ko, ≈ 360 lignes, sections commentées : top bar, nav, écrans, joystick, panneaux, ferme, deck, carte de jeu, **combat**, gestes, masque `.spot`, journal `.jr-*`, fenêtre de zone, fiche `.insp`, modale, toasts). Palette = variables `:root` (le violet nuit d'origine, skin « actuel »). L'habillage vit dans `skins/` : `juice` est le défaut (10 octobre 2026). |
+| `carte-packs.html` | **Prototype comparatif** des packs d'assets de la carte (page autonome, n'est pas importée par le jeu) : le même coin de la carte dessiné avec chaque pack. `?pack=…&cadre=…` pour un seul rendu. Voir `docs/PACKS-CARTE.md`. |
 | `src/` | Le code : `main.js`, `state.js`, et `config/` (équilibrage + registres), `combat/` (moteur + bot + journaux), `tools/` (arène, situations), `ui/` (écrans). Voir `src/CLAUDE.md`. |
 | `data/` | Les données (cartes écrites par le builder, situations, liste des sprites). Voir `data/CLAUDE.md`. |
 | `skins/` | **L'habillage du combat**, interchangeable (`juice` par défaut, `parchemin`, `bonbon`, `actuel`) : feuilles de style (`juice` en pur CSS) + sprites Kenney (CC0) pour les deux autres. Voir `skins/CLAUDE.md`. |

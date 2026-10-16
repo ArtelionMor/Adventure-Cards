@@ -7,6 +7,7 @@
 | `GRAMMAIRE-DES-PALIERS.md` | Comment écrire les paliers d'une carte pour qu'une montée de niveau se sente. | Avant de toucher aux `tiers` d'une carte |
 | `MECANIQUES-A-CODER.md` | **Généré par le Card Builder** (ne pas éditer à la main) : les mécaniques inventées, leurs cartes, où les coder. | Quand on te demande de coder une mécanique |
 | `VFX-CARTES.md` | **Les VFX des cartes** : le modèle (une animation par moment), la famille visuelle de chaque héros, les règles du banc `test-vfx.mjs`, puis l'intention carte par carte. **Codé** dans `game/src/ui/vfx.js` : 180 signatures uniques (les 120 de la V1/V2 + les 60 de la V3), 71 briques. | Avant de toucher à l'animation d'une carte, ou après avoir ajouté une carte |
+| `PACKS-CARTE.md` | **Le choix du pack d'assets de la carte** (palier 7 de la refonte overworld, 16 oct. 2026) : candidats, licences CC0 vérifiées, attribution, captures, recommandation. Le prototype : `game/carte-packs.html`. **Décidé : B+ (Medieval RTS + contours juice)**. | Avant de toucher au rendu du sol ou du décor de la carte |
 | `SITUATIONS-A-TESTER.md` | Le texte des fiches du banc de situations (mêmes `id` que `game/data/situations.js`). | Avant de toucher au banc de situations |
 
 ---

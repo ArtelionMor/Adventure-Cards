@@ -117,6 +117,7 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | `android/` | Le widget Android (Java, sans bibliothèque). | `android/CLAUDE.md` |
 | `docs/` | La conception : GDD, héros V3, grammaire des paliers, mécaniques à coder, situations. | `docs/CLAUDE.md` |
 | `Characters/` `Machines/` `Ressources/` `UI/` | Sprites (personnages, bâtiments, ressources, objets). | un `CLAUDE.md` chacun |
+| `Decor/` | Packs d'assets **tiers** (Kenney, CC0) essayés pour le sol et le décor de la carte, **pas encore branchés** (`docs/PACKS-CARTE.md`). | `Decor/CLAUDE.md` |
 | `Icons/` | Le logo et les **icônes d'interface** (`Dead.png`, + celles que dessine le game designer). | `Icons/CLAUDE.md` |
 | `V2/` | Itération plus récente d'assets, **pas câblée**. | `V2/CLAUDE.md` |
 | `mockups/` | Maquettes (cartes, widget). | `mockups/CLAUDE.md` |

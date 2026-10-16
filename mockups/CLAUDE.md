@@ -4,5 +4,6 @@
 |---|---|
 | `Carte Mockup.png`, `Carte Mockup-1.png` | Maquettes de carte (mascotte chien pastel) : **placeholders**, pas la direction artistique finale. |
 | `iPhone 17 - 1.png`, `iPhone 17 - 2.png` | Les maquettes du **widget Android** : « Simulations en cours » puis « Simulations terminées » (`android/`). |
+| `carte-packs/comparaison-*.png` | Les captures du **prototype comparatif des packs de carte** (`game/carte-packs.html`, 16 oct. 2026) : actuel, Tiny Town, Medieval RTS, Medieval RTS cerné, sur trois cadrages (`place`, `arenes`, `ensemble`). Voir `docs/PACKS-CARTE.md`. |
 
 Aucun code ne les lit. Binaires : n'ouvre une image que si la tâche porte sur ce qu'elle montre.
