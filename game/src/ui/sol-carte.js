@@ -18,7 +18,11 @@ const tuileRts = n => `${RTS}medievalTile_${n}.png`;
 const envRts = n => `${RTS}medievalEnvironment_${String(n).padStart(2, '0')}.png`;
 const fol = n => `${FOL}foliagePack_${String(n).padStart(3, '0')}.png`;
 
-/** Le contour de tout le decor : 3 px, le brun des batiments et de juice.css. `null` = sans contour (le pack B). */
+/**
+ * Le contour : 3 px, le brun des batiments et de juice.css. `null` = sans contour (le pack B). Il cerne le sol (chemins, eau,
+ * neige), les arbres et les rochers — PAS le feuillage (fleurs, touffes, buissons, troncs) : decision du game designer du
+ * 16 octobre 2026.
+ */
 export const CONTOUR = { ep: 3, couleur: '#2a1a12' };
 
 // Les couleurs du pack (relevees sur ses tuiles) : la route, sa bordure sans contour, l'ecume de l'eau, le bord de la neige.
@@ -152,21 +156,22 @@ export function creeSol({ tuile, points = [], img, contour = CONTOUR }) {
    */
   function objets(x, y, ts) {
     const out = [];
-    const pose = (entree, k, decale = .3) => {
+    // `cerne` : l'objet prend le contour (arbres, rochers) ; le feuillage, non.
+    const pose = (entree, k, decale = .3, cerne = false) => {
       const im = pret(entree[0]);
       if (!im) return;
       const dx = (hasard(x, y, k + 10) - .5) * ts * decale * 2, dy = (hasard(x, y, k + 20) - .5) * ts * .3;
-      out.push({ im, haut: entree[1] * ts, dx, dy, pieds: .92 + dy / ts });
+      out.push({ im, haut: entree[1] * ts, dx, dy, pieds: .92 + dy / ts, cerne });
     };
     const t = tuile(x, y), sol = solSous(x, y);
     const nom = sol === T.DARK ? 'bois' : sol === T.SNOW ? 'neige' : 'herbe';
-    if (t === T.TREE) { pose(choisis(ARBRES[nom], x, y, 2), 0, .12); return out; }
-    if (t === T.ROCK) { pose(choisis(ROCHERS[nom === 'neige' ? 'neige' : 'herbe'], x, y, 2), 0, .15); return out; }
+    if (t === T.TREE) { pose(choisis(ARBRES[nom], x, y, 2), 0, .12, true); return out; }
+    if (t === T.ROCK) { pose(choisis(ROCHERS[nom === 'neige' ? 'neige' : 'herbe'], x, y, 2), 0, .15, true); return out; }
     if (t === T.BUSH) { pose(choisis(BUISSONS, x, y, 2), 0); return out; }
     if (t !== T.GRASS && t !== T.DARK && t !== T.SNOW) return out;
     if (libre.has(x + ',' + y)) return out;
     const s = SEMIS[nom], l = voisin(estTerre, x, y) ? SEMIS.lisiere : {};
-    if (s.rocher && hasard(x, y, 3) < s.rocher) pose(choisis(ROCHERS.neige, x, y, 4), 1);
+    if (s.rocher && hasard(x, y, 3) < s.rocher) pose(choisis(ROCHERS.neige, x, y, 4), 1, .3, true);
     if (s.buisson && hasard(x, y, 3) < s.buisson) pose(choisis(BUISSONS, x, y, 4), 1);
     const fleur = (s.fleur || 0) + (l.fleur || 0), touffe = (s.touffe || 0) + (l.touffe || 0);
     if (hasard(x, y, 5) < fleur) {
@@ -184,7 +189,7 @@ export function creeSol({ tuile, points = [], img, contour = CONTOUR }) {
     const sw = (z.x1 - z.x0) * o.im.naturalWidth, sh = (z.y1 - z.y0) * o.im.naturalHeight;
     const h = Math.round(o.haut), w = Math.round(h * sw / sh);
     const x = sx + ts / 2 - w / 2 + o.dx, y = sy + ts * o.pieds - h;
-    if (contour) {
+    if (contour && o.cerne) {
       const ep = contour.ep;
       ctx.drawImage(cerne(o.im, w, h, ep, contour.couleur), x - ep, y - ep, w + ep * 2, h + ep * 2);
     } else {

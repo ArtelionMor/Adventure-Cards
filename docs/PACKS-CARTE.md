@@ -72,7 +72,8 @@ bâtiments. Son seul manque (les chemins larges) est déjà résolu par le trac�
   arbre comme derrière un toit. Le prototype dessine B et B+ avec **le même module** : ce qu'il montre est ce que fait le jeu.
 - **Le feuillage** est semé au hasard **fixe** par case (le même à chaque image, pour tout le monde) sur l'herbe libre : `SEMIS`
   donne la part des cases qui reçoivent une fleur, une touffe, un buisson ; plus dense en lisière des chemins et dans les bois. Pas
-  sur les points d'intérêt ni devant les façades. Les réglages (densités, tailles, contour) sont en tête du module : c'est de
+  sur les points d'intérêt ni devant les façades. **Le feuillage n'est pas cerné** (décision du game designer, même soir) : le
+  contour juice reste sur le sol (chemins, eau, neige), les arbres et les rochers. Les réglages (densités, tailles, contour) sont en tête du module : c'est de
   l'habillage, pas de l'équilibrage.
 - **Coût mesuré** : ≈ 1 ms par image pour le sol et le décor (14 ms la première, le temps de préparer les contours).
 - Rien ne change pour la marche : `BLOCKED` (`config/world.js`) décide toujours seul ; une fleur ou une touffe ne bloque rien.
