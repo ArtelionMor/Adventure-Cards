@@ -131,16 +131,76 @@ export function resolveCard(def, level) {
   return c;
 }
 
+// ------------------------------------------------------------------ amelioration d'un heros
+// Decision du game designer (12 octobre 2026) : on ameliore son HEROS, et chaque amelioration ameliore UNE carte,
+// d'un palier — cartes switch comprises (5 + 5 cartes, ~3 paliers chacune : ~30 ameliorations par heros).
+// Le niveau d'un heros est donc 1 + le nombre d'ameliorations faites ; il va jusqu'a 1 + le nombre d'etapes.
+//
+// Les etapes sont les paliers des 10 cartes, ranges par leur niveau de palier (`lvl`, celui du builder), puis
+// par emplacement, la carte de base avant sa switch ; deux paliers d'une meme carte au meme `lvl` font une seule
+// etape. C'est un AFFINAGE de l'ancien modele, pas un autre : un heros dont toutes les etapes jusqu'au palier
+// L sont faites a exactement les cartes qu'avait un heros « niveau L » — les simulations, les adversaires et
+// l'Atelier, qui parlent en niveaux de palier, ne changent pas.
+
+/** Les etapes d'amelioration d'un heros, dans l'ordre : `{ slot, face: 'base'|'switch', carte, lvl, paliers }`. */
+export function etapesDe(heros) {
+  const out = [];
+  heros.cards.forEach((base, slot) => {
+    for (const [face, carte] of [['base', base], ['switch', (heros.switches || [])[slot]]]) {
+      if (!carte) continue;
+      const parLvl = new Map();
+      for (const t of carte.tiers || []) {
+        if (!parLvl.has(t.lvl)) parLvl.set(t.lvl, []);
+        parLvl.get(t.lvl).push(t);
+      }
+      for (const [lvl, paliers] of parLvl) out.push({ slot, face, carte, lvl, paliers });
+    }
+  });
+  const rang = e => e.slot * 2 + (e.face === 'switch' ? 1 : 0);
+  return out.sort((a, b) => a.lvl - b.lvl || rang(a) - rang(b));
+}
+
+/** Le niveau maximum d'un heros : toutes ses etapes faites. */
+export const niveauMax = heros => 1 + etapesDe(heros).length;
+
+/**
+ * Le niveau de palier de chaque carte d'un heros de niveau `niveau` : `{ base: [5 niveaux], switch: [5 niveaux] }`.
+ * C'est ce que `resolveCard` recoit — le niveau du palier le plus haut que l'amelioration a atteint sur CETTE carte.
+ */
+export function niveauxDesCartes(heros, niveau) {
+  const n = { base: heros.cards.map(() => 1), switch: heros.cards.map(() => 1) };
+  for (const e of etapesDe(heros).slice(0, Math.max(0, niveau - 1))) n[e.face][e.slot] = Math.max(n[e.face][e.slot], e.lvl);
+  return n;
+}
+
+/**
+ * L'equivalent « ancien niveau » d'un heros : le palier de la derniere etape faite (1 sans aucune). C'est l'echelle
+ * des verrous de l'overworld et des rencontres, tant qu'ils ne sont pas passes a la puissance.
+ */
+export function niveauDePalier(heros, niveau) {
+  const faites = etapesDe(heros).slice(0, Math.max(0, niveau - 1));
+  return faites.length ? faites[faites.length - 1].lvl : 1;
+}
+
+/** Le niveau (nouveau) d'un heros qui avait l'ancien niveau `L` : toutes les etapes de palier <= L faites. */
+export const niveauDepuisAncien = (heros, L) => 1 + etapesDe(heros).filter(e => e.lvl <= L).length;
+
 /** Les 5 cartes effectives d'un personnage, en tenant compte des switch equipes. */
 export function characterDeck(charId, save) {
   const def = CHAR_BY_ID[charId];
   const st = save.chars[charId];
+  const niv = niveauxDesCartes(def, st.level);
+  // Les cartes RETIREES avec un joker de retrait (spec du 16 octobre 2026) : leurs emplacements ne partent pas au
+  // combat. Une sauvegarde sans `retraits` (les outils de mesure, les anciennes) garde ses cinq cartes.
+  const retirees = (save.retraits && save.retraits[charId]) || [];
   return def.cards.map((base, i) => {
-    const c = resolveCard(st.switches[i] && def.switches[i] ? def.switches[i] : base, st.level);
+    if (retirees.includes(i)) return null;
+    const sw = st.switches[i] && def.switches[i];
+    const c = resolveCard(sw ? def.switches[i] : base, sw ? niv.switch[i] : niv.base[i]);
     // La carte garde SON image si elle en a une (cas d'une carte libre reprise par un
     // heros) ; sinon elle prend celle du personnage.
     c.sprite = def.sprite || c.sprite;
     c.owner = charId;
     return c;
-  });
+  }).filter(Boolean);
 }

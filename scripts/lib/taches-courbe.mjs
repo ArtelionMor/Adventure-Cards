@@ -6,6 +6,7 @@
 // serre) — la simulation doit voir la meme difficulte que le joueur, sinon elle ment.
 import { CHAR_BY_ID, resolveCard } from '../../game/src/config/characters.js';
 import { ENCOUNTERS } from '../../game/src/config/world.js';
+import { coteEnnemi } from '../../game/src/config/ennemis.js';
 import { createBattle } from '../../game/src/combat/engine.js';
 import { joue as joueLeCoup } from '../../game/src/combat/journal.js';
 import { botAction } from '../../game/src/combat/ai.js';
@@ -24,9 +25,12 @@ function playerSide(teamIds, level) {
   };
 }
 
-function enemySide(id) {
-  const e = ENCOUNTERS[id];
+// `arene` : le niveau de l'arene (1 = jamais battue). Au-dela, l'ennemi applique son profil de progression
+// (config/ennemis.js), exactement comme en jeu (ui/battle.js, `buildEnemySide`).
+function enemySide(id, arene = 1) {
+  const e = arene > 1 ? { ...ENCOUNTERS[id], ...coteEnnemi(id, arene) } : ENCOUNTERS[id];
   return { name: e.name, sprite: e.sprite, hp: e.hp, mana: e.mana, hand: e.hand,
+           startArmor: e.startArmor || 0, startMana: e.startMana || 0,
            deck: e.deck.map(c => ({ ...c })) };
 }
 
@@ -47,11 +51,11 @@ function run(p, e, ia, vues) {
 }
 
 /** `runs` parties d'une equipe contre une rencontre. */
-export function joue({ equipe, rencontre, niveau, runs }) {
+export function joue({ equipe, rencontre, niveau, arene = 1, runs }) {
   let win = 0, stuck = 0;
   const vues = new Set();
   for (let i = 0; i < runs; i++) {
-    const r = run(playerSide(equipe, niveau), enemySide(rencontre), ENCOUNTERS[rencontre].ia, vues);
+    const r = run(playerSide(equipe, niveau), enemySide(rencontre, arene), ENCOUNTERS[rencontre].ia, vues);
     if (r === 'p') win++;
     else if (r === 'stuck') stuck++;
   }

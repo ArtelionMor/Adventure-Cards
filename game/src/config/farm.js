@@ -1,6 +1,7 @@
 // GAME CONFIG — mini-jeu de Ferme (source unique de la monnaie C).
 // Boucle : planter -> recolter -> poser a l'etale -> une vente passe toutes les 15 min
 // et achete tout ce qui est en vente, au prix proportionnel a la rarete (GDD).
+import { BALANCE } from './balance.js';
 
 const SPECIES = [
   { id: 'carrot', name: 'Carotte', art: 'Carrot', building: 'Machines/Carrot Farm.png', mult: 1.0 },
@@ -22,11 +23,13 @@ for (const s of SPECIES) {
       building: s.building,
       // Un tier plus rare pousse plus lentement mais vaut nettement plus.
       growMs: Math.round(50000 * Math.pow(1.85, tier - 1)),
-      price: Math.round(8 * s.mult * Math.pow(2.35, tier - 1)),
-      // Rythme de deblocage : un nouveau palier tous les 2 niveaux de heros.
-      reqLevel: 1 + (tier - 1) * 2
+      price: Math.round(8 * s.mult * Math.pow(2.35, tier - 1))
+      // Plus de niveau requis (spec du 16 octobre 2026) : une culture se TROUVE dans la nature (`estConnue`).
     });
   }
 }
 
 export const CROP_BY_ID = Object.fromEntries(CROPS.map(c => [c.id, c]));
+
+/** Le joueur connait-il cette culture ? Les tiers bas d'office (`BALANCE.farm.tierLibre`), les autres une fois trouves. */
+export const estConnue = (crop, discovered = {}) => crop.tier <= BALANCE.farm.tierLibre || !!discovered[crop.id];

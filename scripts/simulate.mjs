@@ -15,6 +15,9 @@
 //     --paliers 1,2,3     combien de heros par palier, en surchargeant la config
 //     --csv fichier.csv   une ligne par combinaison, pour croiser dans un tableur
 //     --jobs 4            combinaisons en parallele (defaut : un par coeur moins un ; 1 = sans worker)
+//     --niveau 1          niveau des heros, pour tous les paliers (« toutes les arenes faisables au niveau 1 »)
+//     --arene 5           niveau des ARENES : l'ennemi applique son profil de progression jusque-la
+//                         (config/ennemis.js ; defaut 1, le niveau d'une arene jamais battue)
 import { writeFileSync } from 'node:fs';
 import { CHARACTERS, CHAR_BY_ID } from '../game/src/config/characters.js';
 import { ENCOUNTERS } from '../game/src/config/world.js';
@@ -31,7 +34,9 @@ const RUNS = Number(positionnel) || BALANCE.simulation.parties;
 const fichierCsv = valeur('csv', null);
 // « --paliers 1,2,3 » remplace le nombre de heros de chaque palier sans toucher au reste.
 const surcharge = valeur('paliers', '').split(',').filter(Boolean).map(Number);
-const PALIERS = BALANCE.simulation.paliers.map((p, i) => ({ ...p, heros: surcharge[i] || p.heros }));
+const niveauForce = Number(valeur('niveau', 0)) || 0;
+const ARENE = Math.max(1, Number(valeur('arene', 1)) || 1);
+const PALIERS = BALANCE.simulation.paliers.map((p, i) => ({ ...p, heros: surcharge[i] || p.heros, niveau: niveauForce || p.niveau }));
 const JOBS = nombreDeJobs();
 
 const seenPending = new Set();
@@ -75,7 +80,7 @@ const pc = x => Math.round(x * 100) + '%';
 const col = (s, n) => String(s).padEnd(n);
 const colD = (s, n) => String(s).padStart(n);
 
-console.log(`\nCourbe de difficulte : ${RUNS} partie(s) par combinaison.`);
+console.log(`\nCourbe de difficulte : ${RUNS} partie(s) par combinaison${ARENE > 1 ? `, arenes au niveau ${ARENE}` : ''}.`);
 for (const p of plan) {
   console.log(`  ${p.heros} heros, niveau ${p.niveau} — ${p.rencontres.join(', ')}`
     + ` — ${p.equipes.length} combinaison(s)`);
@@ -96,7 +101,7 @@ console.log('-'.repeat(large + 33 + 40));
 // equipe a fini, comme avant la parallelisation.
 const taches = [];
 for (const p of plan) for (const id of p.rencontres) for (const equipe of p.equipes)
-  taches.push({ equipe, rencontre: id, heros: p.heros, niveau: p.niveau, runs: RUNS });
+  taches.push({ equipe, rencontre: id, heros: p.heros, niveau: p.niveau, arene: ARENE, runs: RUNS });
 
 const debut = Date.now();
 let scores = [];

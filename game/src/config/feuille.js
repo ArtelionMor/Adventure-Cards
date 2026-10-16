@@ -176,5 +176,48 @@ export function appliqueRencontres(nodes, lignes) {
   return nodes;
 }
 
+// Les TEXTES DE LA FICHE D'ARENE (spec du 16 octobre 2026) : `role`, `archetype` (« Aggro Tempo », « Contrôle
+// Pillow Fort »), `question`, `reponse` (la strategie optimale), `punit` et `heros_conseilles` (« dog, frog (Médor,
+// Patou, Bulle) » : les noms entre parentheses designent les heros, sinon les identifiants ; « tous » = aucun en
+// particulier). Tous facultatifs : une case vide laisse le texte de config/arenes.js.
+
+const sansAccent = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+/** « Contrôle Pillow Fort » -> { archetype: 'Contrôle', sousArchetype: 'Pillow Fort' }. */
+function decoupeArchetype(v) {
+  const mots = String(v).trim().split(/\s+/);
+  const tete = sansAccent(mots[0]);
+  const archetype = tete.startsWith('control') ? 'Contrôle' : tete === 'aggro' ? 'Aggro' : tete === 'combo' ? 'Combo' : mots[0];
+  return { archetype, sousArchetype: mots.slice(1).join(' ') || null };
+}
+
+/** « dog, frog (Médor, Patou, Bulle) » -> ['dog', 'dog3', 'frog'] (les heros connus seulement). */
+export function herosDepuisTexte(v, characters = []) {
+  const s = String(v || '').trim();
+  if (!s || sansAccent(s) === 'tous') return [];
+  const par = s.match(/\(([^)]*)\)/);
+  const noms = (par ? par[1] : s).split(/[,;/]+/).map(x => x.trim()).filter(Boolean);
+  const out = [];
+  for (const n of noms) {
+    const c = characters.find(h => h.id === n || sansAccent(h.name) === sansAccent(n));
+    if (c && !out.includes(c.id)) out.push(c.id);
+  }
+  return out;
+}
+
+/** Pose les colonnes de fiche de l'onglet « encounters » sur les arenes (mutees en place). Une case vide ne change rien. */
+export function appliqueArenes(arenes, lignes, characters = []) {
+  for (const l of lignes || []) {
+    const a = (arenes || []).find(x => x.ennemi === String(l.id) || x.id === String(l.id));
+    if (!a) continue;
+    const plein = k => l[k] !== undefined && String(l[k]).trim() !== '';
+    if (plein('role')) a.role = String(l.role).trim();
+    if (plein('archetype')) Object.assign(a, decoupeArchetype(l.archetype));
+    for (const k of ['question', 'reponse', 'punit']) if (plein(k)) a[k] = String(l[k]).trim();
+    if (plein('heros_conseilles')) a.herosConseilles = herosDepuisTexte(l.heros_conseilles, characters);
+  }
+  return arenes;
+}
+
 /** La feuille regle-t-elle ce champ ? (`colonne` : une cle de COLONNES_HEROS) — le builder grise la case. */
 export const reglePar = (lignes, id, colonne) => (lignes || []).some(l => String(l.id) === id && l[colonne] !== undefined && l[colonne] !== '');

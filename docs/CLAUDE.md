@@ -7,6 +7,7 @@
 | `GRAMMAIRE-DES-PALIERS.md` | Comment écrire les paliers d'une carte pour qu'une montée de niveau se sente. | Avant de toucher aux `tiers` d'une carte |
 | `MECANIQUES-A-CODER.md` | **Généré par le Card Builder** (ne pas éditer à la main) : les mécaniques inventées, leurs cartes, où les coder. | Quand on te demande de coder une mécanique |
 | `VFX-CARTES.md` | **Les VFX des cartes** : le modèle (une animation par moment), la famille visuelle de chaque héros, les règles du banc `test-vfx.mjs`, puis l'intention carte par carte. **Codé** dans `game/src/ui/vfx.js` : 180 signatures uniques (les 120 de la V1/V2 + les 60 de la V3), 71 briques. | Avant de toucher à l'animation d'une carte, ou après avoir ajouté une carte |
+| `PROMPTS-IMAGES-CARTES.md` | **Généré** (`python scripts/gen-art.py --liste <export> --prompts docs/PROMPTS-IMAGES-CARTES.md`) : pour chacune des 210 cartes, le prompt d'image à copier-coller dans Gemini, le nom du fichier et les portraits à joindre. Source : `scripts/art-sujets.json` (ne pas éditer ce fichier-ci). | Pour dessiner l'image d'une carte |
 | `SITUATIONS-A-TESTER.md` | Le texte des fiches du banc de situations (mêmes `id` que `game/data/situations.js`). | Avant de toucher au banc de situations |
 
 ---

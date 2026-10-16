@@ -47,13 +47,17 @@ export function fmtTime(ms) {
   return Math.floor(m / 60) + 'h' + String(m % 60).padStart(2, '0');
 }
 
-/** Rappel contextuel de monnaie, dans l'esprit "5/16 needed to unlock this" du GDD. */
-export function setContext(text) {
-  $('#contextCurrency').innerHTML = text || '';
-}
-
 export const CURRENCY_NAME = {
   A: 'Fanions',        // distribues en explorant l'overworld
   B: 'Sceaux',         // debloquent les cartes switch (collecte a trancher, cf. GDD)
-  C: 'Legumes'         // monnaie de la Ferme : upgrades + progression path
+  C: 'Pièces',         // ameliorations des heros + progression path (la Ferme en rapporte)
+  G: 'Gemmes'          // affichees dans la barre du haut ; rien ne les depense encore
 };
+
+/** Un montant court, comme la maquette : 950, 12.5k, 999k, 1.2M. */
+export function court(n) {
+  const a = Math.abs(n);
+  if (a < 1000) return String(Math.floor(n));
+  const [v, u] = a < 1e6 ? [n / 1e3, 'k'] : [n / 1e6, 'M'];
+  return (Math.abs(v) < 100 ? Math.floor(v * 10) / 10 : Math.floor(v)) + u;
+}
