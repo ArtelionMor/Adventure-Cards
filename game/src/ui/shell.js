@@ -1,7 +1,18 @@
 // Helpers UI partages (pas de framework : le prototype doit rester portable).
 
-/** Chemin d'asset : les dossiers de sprites sont servis depuis la racine du projet. */
-export const asset = p => '/' + p.split('/').map(encodeURIComponent).join('/');
+import { VIGNETTES } from '../../data/vignettes.js';
+
+/**
+ * Chemin d'asset : les dossiers de sprites sont servis depuis la racine du projet. Une image qui a sa VERSION
+ * ALLEGEE (game/vignettes/, WebP de 512 px au plus, `scripts/gen-vignettes.py`) est servie allegee : les originaux
+ * font 2000 px et ~1,5 Mo, et ralentissaient chaque menu sur le telephone. Sans vignette : l'original.
+ */
+const ALLEGEES = new Set(VIGNETTES);
+const encode = p => p.split('/').map(encodeURIComponent).join('/');
+export const asset = p => {
+  if (!p) return '/';
+  return ALLEGEES.has(p) ? '/game/vignettes/' + encode(p.replace(/\.[^./]+$/, '.webp')) : '/' + encode(p);
+};
 
 export const $ = sel => document.querySelector(sel);
 export const $$ = sel => [...document.querySelectorAll(sel)];

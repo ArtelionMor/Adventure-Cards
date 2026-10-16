@@ -101,6 +101,9 @@ export const BALANCE = {
   // L'INTERFACE DE COMBAT. Ce ne sont pas des regles de jeu, mais le « toucher » : ce qui
   // fait qu'un geste se lit comme un tap (agir) ou comme un appui long (lire).
   ui: {
+    // L'ECRAN DE CHARGEMENT (ui/chargement.js) : combien d'images il demande a la fois, et au bout de combien de
+    // temps il laisse entrer quand meme (le reste continue de se charger derriere).
+    chargement: { parallele: 8, maxMs: 30000 },
     appuiLongMs: 400,       // au-dela de cette duree, le doigt pose LIT la carte au lieu d'agir
     toleranceDoigtPx: 10,   // un doigt qui glisse de plus que ca fait defiler, il ne lit ni n'agit
 

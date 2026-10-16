@@ -769,3 +769,12 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .pf-rec { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
 .pf-rec img { width: 26px; height: 26px; object-fit: contain; }
 .hero-chip { cursor: pointer; }
+
+/* ---------- l'ECRAN DE CHARGEMENT (ui/chargement.js) : au-dessus de tout, il s'efface quand les images sont pretes ---------- */
+#chargement { position: absolute; inset: 0; z-index: 100; display: grid; place-content: center; justify-items: center; gap: 14px; background: #98d35a; color: #2b1c1f; transition: opacity .35s ease; }
+#chargement.fini { opacity: 0; pointer-events: none; }
+#chargement img { width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 4px 0 rgba(43,28,31,.35)); }
+#chargement .chg-titre { font: 28px "Lilita One", "Arial Rounded MT Bold", system-ui, sans-serif; color: #fff; -webkit-text-stroke: 5px #2b1c1f; paint-order: stroke fill; }
+#chargement .chg-barre { width: 220px; height: 18px; border-radius: 10px; background: #4a3532; border: 3px solid #2b1c1f; overflow: hidden; box-shadow: 0 3px 0 #2b1c1f; }
+#chargement .chg-barre i { display: block; height: 100%; width: 0; background: linear-gradient(180deg, #ffef9f 0 40%, #ffb92a 40% 100%); transition: width .15s linear; }
+#chargement .chg-texte { font: 14px "Lilita One", system-ui, sans-serif; color: #2b1c1f; }

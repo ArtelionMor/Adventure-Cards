@@ -8,6 +8,7 @@
 // lui, est en C# et refait ce balayage dans `launcher/Launcher.cs` — les deux serveurs
 // exposent `POST /api/sprites`, comme ils exposent deja `POST /api/write`.)
 import { readdirSync, writeFileSync, existsSync } from 'fs';
+import { spawnSync } from 'child_process';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -34,7 +35,24 @@ export function genereSprites() {
     `// Genere par scripts/gen-sprites.mjs — ne pas editer a la main.\nexport const SPRITES = ${JSON.stringify(out, null, 2)};\n`,
     'utf8'
   );
+  vignettes();
   return out;
+}
+
+/**
+ * Les VERSIONS ALLEGEES des images (scripts/gen-vignettes.py, Python + Pillow) : seules les nouvelles ou modifiees
+ * sont refaites. Sans Python ou sans Pillow, on le dit et on continue : le jeu prend alors les originaux.
+ */
+export function vignettes() {
+  for (const py of ['python3', 'python']) {
+    const r = spawnSync(py, [join(root, 'scripts', 'gen-vignettes.py')], { cwd: root, encoding: 'utf8', timeout: 600000 });
+    if (r.error) continue;                       // cet executable n'existe pas ici : on essaie le suivant
+    if (r.status !== 0) console.warn('gen-vignettes.py :', (r.stderr || '').trim().split(/\r?\n/).pop());
+    else console.log((r.stdout || '').trim());
+    return r.status === 0;
+  }
+  console.warn('gen-vignettes.py : Python introuvable, les images restent en taille originale.');
+  return false;
 }
 
 // Lance en ligne de commande : on ecrit et on dit ce qu'on a trouve.

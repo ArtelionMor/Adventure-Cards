@@ -11,6 +11,7 @@ import { renderDeck } from './ui/deck.js';
 import { renderBag } from './ui/bag.js';
 import { renderArene } from './ui/arene.js';
 import { ouvreProfil } from './ui/profil.js';
+import { chargeLeJeu } from './ui/chargement.js';
 import { openBattle } from './ui/battle.js';
 
 let current = 'world';
@@ -119,4 +120,5 @@ window.AC = {
   level: (id, l) => { save.chars[id].level = l; persist(); refreshTop(); }
 };
 
-boot();
+// L'ecran de chargement d'abord : les images du jeu chargees et gardees, les menus les affichent ensuite sans attendre.
+chargeLeJeu().then(boot);

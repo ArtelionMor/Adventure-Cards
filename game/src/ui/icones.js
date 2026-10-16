@@ -72,6 +72,18 @@ export function icone(nom, taille = 20) {
   return `<img class="ico" style="--s:${taille}px" src="/Icons/${encodeURIComponent(nom)}.png" alt="" data-ico="${nom}">`;
 }
 
+/**
+ * Pour l'ECRAN DE CHARGEMENT (ui/chargement.js) : les fichiers a precharger — l'icone dessinee de chaque nom
+ * (`absente(nom)` est rappele si elle n'existe pas : plus de 404 ni de signe qui clignote dans les menus) et
+ * chaque pictogramme Kenney.
+ */
+export function imagesDesIcones() {
+  return [
+    ...Object.keys(ICONES).map(nom => ({ url: `/Icons/${encodeURIComponent(nom)}.png`, absente: () => absentes.add(nom) })),
+    ...[...new Set(Object.values(KENNEY))].map(f => ({ url: `/Icons/Kenney/${f}.png` }))
+  ];
+}
+
 // Un fichier d'icone introuvable : le signe prend sa place, et on s'en souvient. L'evenement
 // `error` d'une image ne remonte pas, d'ou l'ecoute en CAPTURE sur le document.
 if (typeof document !== 'undefined') {
