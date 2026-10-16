@@ -21,7 +21,7 @@ const fol = n => `${FOL}foliagePack_${String(n).padStart(3, '0')}.png`;
 /**
  * Le contour : 3 px, le brun des batiments et de juice.css. `null` = sans contour (le pack B). Il cerne le sol (chemins, eau,
  * neige), les arbres et les rochers — PAS le feuillage (fleurs, touffes, buissons, troncs) : decision du game designer du
- * 16 octobre 2026.
+ * 16 octobre 2026. Le PIED d'un tronc n'est pas cerne non plus : l'arbre sort du sol au lieu d'y etre pose.
  */
 export const CONTOUR = { ep: 3, couleur: '#2a1a12' };
 
@@ -156,16 +156,16 @@ export function creeSol({ tuile, points = [], img, contour = CONTOUR }) {
    */
   function objets(x, y, ts) {
     const out = [];
-    // `cerne` : l'objet prend le contour (arbres, rochers) ; le feuillage, non.
-    const pose = (entree, k, decale = .3, cerne = false) => {
+    // `cerne` : l'objet prend le contour (arbres, rochers) ; le feuillage, non. `piedLibre` : sauf sous son pied (les arbres).
+    const pose = (entree, k, decale = .3, cerne = false, piedLibre = false) => {
       const im = pret(entree[0]);
       if (!im) return;
       const dx = (hasard(x, y, k + 10) - .5) * ts * decale * 2, dy = (hasard(x, y, k + 20) - .5) * ts * .3;
-      out.push({ im, haut: entree[1] * ts, dx, dy, pieds: .92 + dy / ts, cerne });
+      out.push({ im, haut: entree[1] * ts, dx, dy, pieds: .92 + dy / ts, cerne, piedLibre });
     };
     const t = tuile(x, y), sol = solSous(x, y);
     const nom = sol === T.DARK ? 'bois' : sol === T.SNOW ? 'neige' : 'herbe';
-    if (t === T.TREE) { pose(choisis(ARBRES[nom], x, y, 2), 0, .12, true); return out; }
+    if (t === T.TREE) { pose(choisis(ARBRES[nom], x, y, 2), 0, .12, true, true); return out; }
     if (t === T.ROCK) { pose(choisis(ROCHERS[nom === 'neige' ? 'neige' : 'herbe'], x, y, 2), 0, .15, true); return out; }
     if (t === T.BUSH) { pose(choisis(BUISSONS, x, y, 2), 0); return out; }
     if (t !== T.GRASS && t !== T.DARK && t !== T.SNOW) return out;
@@ -191,7 +191,7 @@ export function creeSol({ tuile, points = [], img, contour = CONTOUR }) {
     const x = sx + ts / 2 - w / 2 + o.dx, y = sy + ts * o.pieds - h;
     if (contour && o.cerne) {
       const ep = contour.ep;
-      ctx.drawImage(cerne(o.im, w, h, ep, contour.couleur), x - ep, y - ep, w + ep * 2, h + ep * 2);
+      ctx.drawImage(cerne(o.im, w, h, ep, contour.couleur, o.piedLibre), x - ep, y - ep, w + ep * 2, h + ep * 2);
     } else {
       ctx.drawImage(o.im, z.x0 * o.im.naturalWidth, z.y0 * o.im.naturalHeight, sw, sh, x, y, w, h);
     }
@@ -279,10 +279,11 @@ function zoneVisible(im) {
   return z;
 }
 
-// Une image cernee d'un contour plein, a la taille ou on la dessine (une toile par image et par taille).
+// Une image cernee d'un contour plein, a la taille ou on la dessine (une toile par image et par taille). `piedLibre` : pas de
+// contour SOUS l'image (la bande de `ep` sous sa derniere ligne) — le pied d'un tronc entre dans le sol.
 const cernes = new Map();
-function cerne(im, w, h, ep, couleur) {
-  const cle = im.src + '|' + w + '|' + h + '|' + ep + '|' + couleur;
+function cerne(im, w, h, ep, couleur, piedLibre = false) {
+  const cle = im.src + '|' + w + '|' + h + '|' + ep + '|' + couleur + '|' + piedLibre;
   if (cernes.has(cle)) return cernes.get(cle);
   const z = zoneVisible(im), dpr = Math.min(window.devicePixelRatio || 1, 2);
   const W = Math.ceil((w + ep * 2) * dpr), H = Math.ceil((h + ep * 2) * dpr);
@@ -298,6 +299,7 @@ function cerne(im, w, h, ep, couleur) {
     const a = i / 16 * Math.PI * 2;
     g.drawImage(sil, Math.cos(a) * ep * dpr, Math.sin(a) * ep * dpr);
   }
+  if (piedLibre) g.clearRect(0, (ep + h) * dpr - 1, W, H);
   g.drawImage(im, ...src, ep * dpr, ep * dpr, w * dpr, h * dpr);
   cernes.set(cle, c);
   return c;
