@@ -78,6 +78,9 @@ export function empreinte() {
   for (const d of ['game/src/combat', 'game/src/config', 'game/src/tools'])
     for (const f of readdirSync(join(RACINE, d)).filter(f => f.endsWith('.js')).sort()) fichiers.push(`${d}/${f}`);
   for (const m of modules()) fichiers.push(`scripts/lib/${m}.mjs`);
+  // La Google Sheet change les PV et le mana des heros (config/feuille.js, onglet « heroes ») : une synchro
+  // pas tiree sur un renfort lui ferait jouer d'autres statistiques que le Pi.
+  fichiers.push('game/data/feuille.data.js');
   return hache(fichiers);
 }
 

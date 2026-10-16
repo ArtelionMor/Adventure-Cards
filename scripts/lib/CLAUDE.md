@@ -7,7 +7,7 @@
 |---|---|
 | `pool.mjs` | **`enParallele(module, contexte, tâches)`** : file de travail sur tous les cœurs + les renforts (paquets qui rapetissent vers la fin ; un renfort qui lâche ne perd rien). |
 | `ouvrier.mjs` | Un worker du pool : charge le module de tâches, le prépare une fois, joue les tâches reçues. |
-| `renforts.mjs` | Côté Pi : la liste des machines, leur sondage, l'**empreinte du code** (`empreinte()`, fichiers `.js` de `game/src/{combat,config,tools}` + `taches-*.mjs`), l'envoi des paquets (`joueLot`). |
+| `renforts.mjs` | Côté Pi : la liste des machines, leur sondage, l'**empreinte du code** (`empreinte()`, fichiers `.js` de `game/src/{combat,config,tools}` + `taches-*.mjs` + `game/data/feuille.data.js`, qui change les PV et le mana), l'envoi des paquets (`joueLot`). |
 | `renfort-lot.mjs` | Côté renfort : un paquet joué dans un processus neuf, avec le crochet du brouillon. |
 | `taches-matchups.mjs` / `taches-courbe.mjs` / `taches-analyse.mjs` / `taches-controle.mjs` | Les **modules de tâches** (`prepare(contexte)` + `joue(tâche)`, résultat en JSON) de `matchups`, `simulate`, `analyse-cartes`, `check-decks`. Un nouveau `taches-*.mjs` est reconnu tout seul par les renforts. |
 | `progression.mjs` | La barre de progression d'un calcul (terminal, ou ligne-marqueur `@@progression` pour le serveur). |

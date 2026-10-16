@@ -4,7 +4,7 @@
 
 | Fichier | Rôle | Écrit par |
 |---|---|---|
-| `feuille.data.js` | **Généré** depuis la Google Sheet « Config Adventure-Cards » (onglet « animations » → `BALANCE.ui.fx`, via `config/feuille.js`) ; tout ce qui commence par `~` n'est pas exporté. Ne pas l'éditer à la main. | `scripts/sync-feuille.mjs` ou la page « Feuille » de l'Atelier (sur le Pi : commit puis `git pull`) |
+| `feuille.data.js` | **Généré** depuis la Google Sheet « Config Adventure-Cards » (onglets « animations » → `BALANCE.ui.fx`, « heroes » → statistiques des héros et adversaires, « encounters » → puissance requise des combats, via `config/feuille.js`) ; tout ce qui commence par `~` n'est pas exporté. Ne pas l'éditer à la main. ⚠ Il change les PV et le mana : il est dans l'empreinte des renforts (`git pull` partout après une synchro). | `scripts/sync-feuille.mjs` ou la page « Feuille » de l'Atelier (sur le Pi : commit puis `git pull`) |
 | `characters.data.js` | **`CHARACTER_DATA`** : `characters` (héros, 5 cartes + switch, paliers), `library` (cartes libres), `npcs` (adversaires), `fatigue` (la pile), `ignores` (constats ignorés), `customMechanics` (mécaniques à coder), `starters`, `version`. | **Le Card Builder** (« Appliquer au jeu ») — et sur le Pi, c'est là qu'il écrit : vérifier `git status` là-bas avant de le modifier ici. |
 | `situations.js` | Les positions du banc de situations (`SITUATIONS`, `FAMILLES`) ; les mêmes `id` que `docs/SITUATIONS-A-TESTER.md`. | À la main |
 | `sprites.js` | La liste des images de `Characters/`, `Machines/`, `Ressources/`, `UI/` (`SPRITES`). **Généré** : `node scripts/gen-sprites.mjs` ou le bouton « 🔄 Actualiser les images » du builder. | `scripts/gen-sprites.mjs` |

@@ -2,7 +2,7 @@
 
 | Fichier | Contenu | Quand le lire |
 |---|---|---|
-| `GDD.md` | **Le game design doc** : piliers, boucle de jeu, deckbuilding, monnaies, combat, architecture idle, art. Les 2 seuls points ⚠ NON DÉCIDÉ y sont marqués. | Avant tout travail sur le jeu |
+| `GDD.md` | **Le game design doc** : piliers, boucle de jeu, deckbuilding, monnaies, combat, architecture idle, art. Les 2 seuls points ⚠ NON DÉCIDÉ y sont marqués, et une section ⚠ EN RÉFLEXION (taille du deck, places d'équipe, mana de départ, choix guidé de l'équipe, 16 oct. 2026). | Avant tout travail sur le jeu |
 | `V3-HEROS.md` | Les six héros V3 : cartes, paliers, mécaniques à coder, **ordre de codage**, ce qui est ✅ codé. Garde les décisions du game designer. **Les 60 cartes sont dans `characters.data.js`** (`scripts/gen-heros-v3.mjs`, 10 octobre 2026), **Tout est codé** (Charogne, Appât, Pistage, Toxine, Ex-libris et le Registre, du 10 au 12 octobre) : les six héros jouent en entier (section « 5 bis »). | Avant de toucher à Reprise, Charogne, Appât, Pistage, Toxine, Ex-libris, Registre |
 | `GRAMMAIRE-DES-PALIERS.md` | Comment écrire les paliers d'une carte pour qu'une montée de niveau se sente. | Avant de toucher aux `tiers` d'une carte |
 | `MECANIQUES-A-CODER.md` | **Généré par le Card Builder** (ne pas éditer à la main) : les mécaniques inventées, leurs cartes, où les coder. | Quand on te demande de coder une mécanique |

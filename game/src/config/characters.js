@@ -6,7 +6,16 @@
 // Un deck = 3 personnages = 15 cartes melangees dans un paquet unique.
 // Les effets et mots-cles disponibles sont decrits dans config/mechanics.js.
 import { CHARACTER_DATA } from '../../data/characters.data.js';
+import { FEUILLE } from '../../data/feuille.data.js';
+import { SPRITES } from '../../data/sprites.js';
 import { AMPLIFIABLE, TRIGGERS, amplify, effectParams, eachSubEffect, listeEffets, branchesDe } from './mechanics.js';
+import { appliqueHeros } from './feuille.js';
+
+// La Google Sheet (onglet « heroes ») commande les statistiques des heros et des adversaires : nom, image, PV,
+// mana max, archetype (config/feuille.js). Posee une fois, ici, sur les donnees du builder — tout ce qui importe
+// la config (jeu, scripts, pages du builder) voit donc les memes chiffres. Un brouillon passe a l'arene la recoit
+// aussi (`tools/arene.js`).
+appliqueHeros(CHARACTER_DATA, FEUILLE.heroes, SPRITES);
 
 export const CHARACTERS = CHARACTER_DATA.characters;
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));

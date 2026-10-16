@@ -44,6 +44,7 @@
   <div class="haut">
     <a class="retour" href="accueil.html">← Atelier</a>
     <h1>Feuille</h1>
+    <a id="ouvrir" class="retour" style="margin-left:auto" href="https://docs.google.com/spreadsheets/d/1B01tuggXdbvqO3_7wh2YserIoDVnarMXCPXPaYbSGCY/edit" target="_blank" rel="noopener">Ouvrir la feuille ↗</a>
   </div>
   <p class="muted">La game config se règle dans la Google Sheet « Config Adventure-Cards ». Ici, on la <b>lit</b>, on voit ce qui changerait, puis on l'<b>applique au jeu</b>.
     Tout ce qui commence par <b>~</b> (onglet, colonne, ligne) n'est pas exporté.</p>
@@ -80,7 +81,7 @@ function dessine(a, ecrit) {
   } else h += `<p class="muted">Rien ne change : ${identiques} ligne(s) déjà identiques au jeu.</p>`;
   if (invalides.length) h += `<h2>Ignorées : mauvaise forme (${invalides.length})</h2><table>` + invalides.map(p => `<tr><td class="id ko">${esc(p.id)}</td><td>${esc(p.raison)} — lu : ${fmt(p.apres)}</td></tr>`).join('') + '</table>';
   if (inconnus.length) h += `<h2>Ignorées : inconnues du jeu (${inconnus.length})</h2><table>` + inconnus.map(p => `<tr><td class="id inc">${esc(p.id)}</td><td>${esc(p.raison)}</td></tr>`).join('') + '</table>';
-  if (a.retires.length) h += `<h2>Retirées de la feuille (${a.retires.length})</h2><p class="muted">${a.retires.map(esc).join(', ')} — elles retombent sur la valeur de <code>balance.js</code>.</p>`;
+  if (a.retires.length) h += `<h2>Retirées de la feuille (${a.retires.length})</h2><p class="muted">${a.retires.map(esc).join(', ')} — elles retombent sur la valeur de <code>balance.js</code> (ou celle du Card Builder pour un héros).</p>`;
   $('#resultat').innerHTML = h;
 }
 
@@ -114,6 +115,12 @@ $('#appliquer').onclick = async () => {
   } catch (e) { bandeau('ko', 'Écriture impossible', e.message); }
   $('#voir').disabled = false;
 };
+</script>
+<script type="module">
+// Le lien suit la feuille de la derniere synchro (le serveur peut en lire une autre : ADVENTURE_FEUILLE).
+import('/game/data/feuille.data.js?t=' + Date.now()).then(({ FEUILLE }) => {
+  if (FEUILLE && FEUILLE.feuille) document.getElementById('ouvrir').href = `https://docs.google.com/spreadsheets/d/${FEUILLE.feuille}/edit`;
+}).catch(() => {});
 </script>
 </body>
 </html>

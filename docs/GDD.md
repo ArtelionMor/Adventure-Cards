@@ -4,7 +4,7 @@ Idle RPG mobile (F2P) avec exploration overworld et combats de cartes. Nom de tr
 
 Roadmap technique : prototype **PWA** d'abord (pour valider la boucle), portage **Godot ou Unity** ensuite pour le produit final.
 
-Convention de ce doc : tout est décidé sauf les 2 points marqués **⚠ NON DÉCIDÉ**.
+Convention de ce doc : tout est décidé sauf les 2 points marqués **⚠ NON DÉCIDÉ** et la section marquée **⚠ EN RÉFLEXION**.
 Les sections marquées **✅ implémenté** existent et tournent dans le prototype ; les autres sont de la conception pas encore codée.
 
 ## État du prototype (31/08/2026)
@@ -57,6 +57,23 @@ Vue du dessus, 2D, façon **Don't Starve**. Rencontres d'ennemis, PNJ, marchands
   - Général (façon hyper-casual) : vitesse, nombre de personnages équipables (1→2→3), nombre de plants simultanés à la Ferme, nombre de plantes vendables en même temps... débloqués via le progression path (monnaie C).
 - **Déblocage d'un personnage** : la monnaie A est distribuée en explorant l'overworld. Elle débloque l'**option d'acheter** un personnage une fois son boss vaincu (le boss gate l'éligibilité, la monnaie A gate l'achat effectif). Le joueur peut **économiser** sa monnaie A plutôt que de la dépenser sur un perso dont le style ne lui plaît pas, pour débloquer instantanément un futur perso préféré sans le re-grind.
 - **Cadence de déblocage des personnages** (nombre de nouveaux persos disponibles) : 6 le jour 1, puis 4, 3, 2, 1/jour, puis 1 tous les 2 jours — gérée via une game config par le game designer (l'utilisateur).
+
+### Taille du deck, places d'équipe, choix guidé — ⚠ EN RÉFLEXION (16 octobre 2026)
+Rien de ce qui suit n'est décidé ni codé. C'est la réflexion du game designer, puis les pistes de Claude.
+
+**Ce que veut le game designer.**
+- Le **mana max monte avec les niveaux du héros** (la feuille met 3 au départ). Problème : à 1 ou 2 de mana, des cartes sont injouables → le deck doit se **présenter de manière progressive**.
+- Une **puissance du joueur** qui monte avec les améliorations et **ouvre des places de héros** en plus.
+- Des moyens de **retirer des cartes** : un deck n'a pas de plafond, mais un **minimum de 15 cartes** (valeur à revoir). Sans ça, 7 héros font 70 cartes : aucune stratégie n'est consistante, et ouvrir une place devient un **désavantage**.
+- **Ne pas complexifier le deckbuilding.** Magic est le pire cas (on peut tout jouer, rien ne dit ce qui est intelligent, on s'enferme dans des couleurs sans en voir l'intérêt) ; Hearthstone est plus clair (saisons, peu de cartes, aucune carte hors de son héros), et déjà un peu compliqué. La peur : devoir choisir 6 héros parmi 15, puis 20 cartes parmi 60 (150 avec les 15 héros), pour battre un boss.
+- **Le choix guidé** : sur un donjon, des **héros conseillés** surlignés (« recommandé pour ce combat » sur chacun) et un **tri**, héros non possédés compris ; la combinaison a un **titre** (« Rage Savante » : chiens + hiboux + corbeaux) ; puis **trois decks suggérés** pour cette combinaison, le meilleur dans cette situation mis en avant, et « il vous manque 3 cartes » quand des switch manquent.
+
+**Pistes de Claude** (à trancher) :
+1. *Le deck qui se dévoile* : une carte n'entre dans le deck que quand le héros a le mana max pour la payer. Une règle lisible, qui règle d'un coup les cartes injouables et la présentation progressive. Les paliers de mana (`mana_max_up` de `progress_profile`) disent alors quand chaque carte arrive. Rappel du moteur : en combat, le mana de l'équipe est le **plus haut** de ses héros, les PV la **somme** (3 × 20 = 60).
+2. *Plus de places = plus de choix, pas plus de cartes* : le deck garde une taille dans une fourchette (15 au minimum), et ouvrir une place élargit le **réservoir** où l'on choisit, au lieu d'allonger le paquet. Ça touche deux règles d'aujourd'hui (« 5 + 5 cartes par héros », et « on ne mesure que des trios ») : les outils de mesure devront suivre la taille d'équipe réelle.
+3. *Les recommandations se calculent, elles ne s'inventent pas* : `simulate.mjs` joue déjà toutes les équipes contre chaque rencontre. « Héros conseillés » et « trois decks suggérés » peuvent sortir de ces mesures (le meilleur deck mélangé de chaque combinaison contre chaque adversaire), rangés en données comme les cartes ; pas d'IA en jeu.
+4. *Les titres de combinaison* sont du contenu : une table famille + famille + famille → nom, qui peut vivre dans la Google Sheet comme les héros.
+5. « *Il vous manque 3 cartes* » se compte simplement : un deck suggéré dit, pour chaque emplacement, la face de base ou la switch ; ce qui manque, ce sont les switch pas encore achetées.
 
 ## Anatomie de carte ✅ implémenté
 
@@ -153,6 +170,7 @@ Reportée volontairement — pas nécessaire pour la phase de prototype actuelle
 
 - ⚠ Collecte précise de la monnaie B (le "butin de combat" n'est qu'une hypothèse non confirmée — le prototype la teste, ça ne la valide pas).
 - ⚠ Existence/usage d'une monnaie dure F2P (pure spéculation, jamais engagée).
+- ⚠ Taille du deck, places d'équipe au-delà de 3, mana de départ et choix guidé de l'équipe : en réflexion (voir « Taille du deck, places d'équipe, choix guidé »).
 
 ## Prochains chantiers possibles
 

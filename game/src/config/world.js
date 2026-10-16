@@ -5,6 +5,8 @@
 // passages qui rythment la progression, pas un decoupage en chapitres.
 
 import { NPC_BY_ID, npcSide } from './npcs.js';
+import { FEUILLE } from '../../data/feuille.data.js';
+import { appliqueRencontres } from './feuille.js';
 
 export const TILE = {
   GRASS: 0, SAND: 1, WATER: 2, TREE: 3, ROCK: 4, PATH: 5, DARK: 6, SNOW: 7, BUSH: 8
@@ -78,6 +80,11 @@ export const WORLD = {
       unlocks: 'owl', sprite: 'Characters/Owl Great Horned Owl.png' }
   ]
 };
+
+// La Google Sheet (onglet « encounters », colonne `power_needed`) donne a un combat un verrou de PUISSANCE
+// (`reqPower`), qui remplace son niveau requis (`reqLevel`) : config/feuille.js, et `verrouDe` dans state.js.
+// Les passages (`gate`) n'ont pas d'adversaire : ils gardent leur niveau requis.
+appliqueRencontres(WORLD.nodes, FEUILLE.encounters);
 
 // ---------------------------------------------------------------------------
 // RENCONTRES. Le MONDE dit ou elles sont et ce qu'elles rapportent ; le DECK et les

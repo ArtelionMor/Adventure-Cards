@@ -19,11 +19,15 @@ function ecrit(a) {
   console.log(`Onglets exportes : ${a.onglets.join(', ') || '(aucun)'}`);
   if (a.ignores.length) console.log(`Onglets ignores (~) : ${a.ignores.join(', ')}`);
   if (a.sansEffet.length) console.log(`Exportes mais sans effet dans le jeu (rien ne les lit encore) : ${a.sansEffet.join(', ')}`);
-  console.log(`\n${a.plan.length} ligne(s) dans « animations » : ${change.length} change(nt), ${a.plan.length - change.length - invalides.length - inconnus.length} identique(s)`);
+  for (const o of [...new Set(a.plan.map(p => p.onglet))]) {
+    const l = a.plan.filter(p => p.onglet === o);
+    const ch = l.filter(p => p.etat === 'change').length;
+    console.log(`\n« ${o} » : ${l.length} valeur(s), ${ch} change(nt), ${l.filter(p => p.etat === 'identique').length} identique(s)`);
+  }
   for (const p of change) console.log(`  ~ ${p.id.padEnd(20)} ${JSON.stringify(p.avant)} -> ${JSON.stringify(p.apres)}${p.nom ? '   (' + p.nom + ')' : ''}`);
   for (const p of invalides) console.log(`  ! ${p.id.padEnd(20)} IGNOREE : ${p.raison} (valeur lue : ${JSON.stringify(p.apres)})`);
   for (const p of inconnus) console.log(`  ? ${p.id.padEnd(20)} IGNOREE : ${p.raison}`);
-  for (const id of a.retires) console.log(`  - ${id.padEnd(20)} n'est plus dans la feuille : retombe sur la valeur de balance.js`);
+  for (const id of a.retires) console.log(`  - ${id.padEnd(20)} n'est plus dans la feuille : retombe sur la valeur de balance.js (ou du builder)`);
 }
 
 try {

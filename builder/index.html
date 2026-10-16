@@ -319,7 +319,13 @@
 // Le bouton « Actualiser les images » la remplace en memoire : d'ou la variable.
 import { SPRITES as SPRITES_DU_FICHIER } from '../game/data/sprites.js';
 let SPRITES = SPRITES_DU_FICHIER;
-import { CHARACTER_DATA } from '../game/data/characters.data.js';
+// `?brut` : une copie du module que config/characters.js n'a pas touchee. La Google Sheet (onglet « heroes ») se
+// pose au chargement sur les donnees du jeu ; le builder, lui, doit garder et reecrire SES valeurs — sinon
+// « Appliquer au jeu » graverait celles de la feuille dans le fichier, et vider une case de la feuille ne
+// rendrait plus rien.
+import { CHARACTER_DATA } from '../game/data/characters.data.js?brut';
+import { FEUILLE } from '../game/data/feuille.data.js';
+import { reglePar, planifieHeros } from '../game/src/config/feuille.js';
 import { effectParams, listeEffets, EVENT_GARDES, momentLabel, EFFECTS, KEYWORDS, TARGETS, AMPLIFIABLE, TRIGGERS, TOKEN_TRIGGERS, BASE_TRIGGERS, EVENTS, EVENT_WHO, eventSlot, AURA_SCOPES, STATICS, CARD_FILTERS, ZONES, COUNTERS, IMPLEMENTED_AS, keyId, keyArg, keyLabel, keyFields, keyFrom, targetId, targetArg, targetDef, isVariableAmount, describeAmount, describeStatic, describeEffect } from '../game/src/config/mechanics.js';
 import { DEFAULT_TIERS } from '../game/src/config/characters.js';
 import { BALANCE } from '../game/src/config/balance.js';
@@ -347,6 +353,20 @@ function nettoieCustoms(db) {
     }));
   }
   return db;
+}
+
+// La feuille commande le nom, l'image, les PV, le mana max et l'archetype des heros et des adversaires
+// (decision du 16 octobre 2026) : la case est grisee et montre la valeur de la feuille. Le brouillon garde celle du
+// builder, qui revient si la case de la feuille se vide.
+const FEUILLE_HEROS = FEUILLE.heroes || [];
+const VERROU = ' disabled title="Réglé dans la Google Sheet (onglet heroes) : la feuille gagne sur cette case"';
+const verrou = (id, col) => (reglePar(FEUILLE_HEROS, id, col) ? VERROU : '');
+/** Ce que le jeu affichera : la valeur de la feuille si elle en pose une valide, sinon celle du builder. */
+function vu(x, col, valeur, pnj = false) {
+  if (!reglePar(FEUILLE_HEROS, x.id, col)) return valeur;
+  const p = planifieHeros(pnj ? { characters: [], npcs: [x] } : { characters: [x], npcs: [] }, FEUILLE_HEROS.filter(l => String(l.id) === x.id), SPRITES)
+    .find(e => e.id === `${x.id}.${col}`);
+  return p && (p.etat === 'change' || p.etat === 'identique') ? p.apres : valeur;
 }
 
 const FILE_DATA = structuredClone(CHARACTER_DATA);
@@ -743,12 +763,12 @@ function renderCharForm() {
   box.innerHTML = `
     <div style="display:grid;grid-template-columns:110px 1fr;gap:16px;align-items:start">
       <div>
-        <img src="${asset(c.sprite)}" style="width:110px;aspect-ratio:1;object-fit:contain;background:var(--bg);border:1px solid var(--line);border-radius:12px">
-        <button class="btn btn--sm" id="pickSprite" style="width:100%;margin-top:8px">Changer</button>
+        <img src="${asset(vu(c, 'sprite', c.sprite))}" style="width:110px;aspect-ratio:1;object-fit:contain;background:var(--bg);border:1px solid var(--line);border-radius:12px">
+        <button class="btn btn--sm" id="pickSprite" style="width:100%;margin-top:8px"${verrou(c.id, 'sprite')}>Changer</button>
       </div>
       <div>
         <div class="grid2">
-          <div class="field"><label>Nom</label><input class="input" id="fName" value="${esc(c.name)}"></div>
+          <div class="field"><label>Nom</label><input class="input" id="fName" value="${esc(vu(c, 'name', c.name))}"${verrou(c.id, 'name')}></div>
           <div class="field"><label>Identifiant (code)</label><input class="input" id="fId" value="${esc(c.id)}"></div>
         </div>
         <div class="grid2">
@@ -756,8 +776,8 @@ function renderCharForm() {
           <div class="field"><label>Rôle / archétype</label><input class="input" id="fRole" value="${esc(c.role || '')}"></div>
         </div>
         <div class="grid3">
-          <div class="field"><label>PV</label><input class="input" type="number" id="fHp" value="${c.stats.hp}"></div>
-          <div class="field"><label>Mana max</label><input class="input" type="number" id="fMana" value="${c.stats.mana}"></div>
+          <div class="field"><label>PV</label><input class="input" type="number" id="fHp" value="${vu(c, 'PV_Max', c.stats.hp)}"${verrou(c.id, 'PV_Max')}></div>
+          <div class="field"><label>Mana max</label><input class="input" type="number" id="fMana" value="${vu(c, 'Mana_Max', c.stats.mana)}"${verrou(c.id, 'Mana_Max')}></div>
           <div class="field"><label>Cartes en main</label><input class="input" type="number" id="fHand" value="${c.stats.hand}"></div>
         </div>
         <label class="chip ${(DB.starters || []).includes(c.id) ? 'chip--on' : ''}" id="fStarter" style="cursor:pointer">
@@ -1158,17 +1178,17 @@ function renderNpcForm() {
   box.innerHTML = `
     <div style="display:grid;grid-template-columns:110px 1fr;gap:16px;align-items:start">
       <div>
-        <img src="${asset(n.sprite || 'Characters/Dog.png')}" style="width:110px;aspect-ratio:1;object-fit:contain;background:var(--bg);border:1px solid var(--line);border-radius:12px">
-        <button class="btn btn--sm" id="nSprite" style="width:100%;margin-top:8px">Changer</button>
+        <img src="${asset(vu(n, 'sprite', n.sprite, true) || 'Characters/Dog.png')}" style="width:110px;aspect-ratio:1;object-fit:contain;background:var(--bg);border:1px solid var(--line);border-radius:12px">
+        <button class="btn btn--sm" id="nSprite" style="width:100%;margin-top:8px"${verrou(n.id, 'sprite')}>Changer</button>
       </div>
       <div>
         <div class="grid2">
-          <div class="field"><label>Nom</label><input class="input" id="nName" value="${esc(n.name)}"></div>
+          <div class="field"><label>Nom</label><input class="input" id="nName" value="${esc(vu(n, 'name', n.name, true))}"${verrou(n.id, 'name')}></div>
           <div class="field"><label>Identifiant (code)</label><input class="input" id="nId" value="${esc(n.id)}"></div>
         </div>
         <div class="grid3">
-          <div class="field"><label>PV</label><input class="input" type="number" id="nHp" value="${n.hp}"></div>
-          <div class="field"><label>Mana max</label><input class="input" type="number" id="nMana" value="${n.mana}"></div>
+          <div class="field"><label>PV</label><input class="input" type="number" id="nHp" value="${vu(n, 'PV_Max', n.hp, true)}"${verrou(n.id, 'PV_Max')}></div>
+          <div class="field"><label>Mana max</label><input class="input" type="number" id="nMana" value="${vu(n, 'Mana_Max', n.mana, true)}"${verrou(n.id, 'Mana_Max')}></div>
           <div class="field"><label>Cartes en main</label><input class="input" type="number" id="nHand" value="${n.hand}"></div>
         </div>
         <div class="grid3">

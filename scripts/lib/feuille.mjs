@@ -8,7 +8,8 @@
 // onglet, une colonne, une ligne dont l'identifiant commence par « ~ » — n'est PAS exporte.
 //
 // Ce que ca produit : `game/data/feuille.data.js` (`FEUILLE = { synchro, feuille, <onglet>: [lignes] }`), que
-// `game/src/config/balance.js` pose sur `BALANCE.ui.fx` (voir `game/src/config/feuille.js`).
+// `game/src/config/balance.js` pose sur `BALANCE.ui.fx` et `characters.js` sur les heros et adversaires (onglet
+// « heroes ») — voir `game/src/config/feuille.js`.
 // Utilise par `scripts/sync-feuille.mjs` (ligne de commande) et par `/api/feuille` (page « Feuille » de l'Atelier).
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -89,25 +90,51 @@ export function convertis(grille) {
 
 /** Ce que le jeu contient AUJOURD'HUI : la ligne `FEUILLE` ecrite par la derniere synchro, et `BALANCE.ui.fx` effectif. */
 function etatDuJeu() {
+  // Les heros et adversaires sont lus TELS QUE LE BUILDER LES A ECRITS (le fichier de donnees brut) : la feuille
+  // se pose dessus au chargement, et l'apercu doit dire ce qu'elle change par rapport a eux.
   const script = `
     import { BALANCE } from ${JSON.stringify(pathToFileURL(path.join(RACINE, 'game/src/config/balance.js')).href)};
     import { FEUILLE } from ${JSON.stringify(pathToFileURL(FICHIER).href)};
-    process.stdout.write(JSON.stringify({ racine: { ui: { fx: BALANCE.ui.fx }, combat: { autoStepMs: BALANCE.combat.autoStepMs } }, feuille: FEUILLE }));`;
-  return JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
+    import { SPRITES } from ${JSON.stringify(pathToFileURL(path.join(RACINE, 'game/data/sprites.js')).href)};
+    const brut = await import(${JSON.stringify(pathToFileURL(path.join(RACINE, 'game/data/characters.data.js')).href + '?brut')});
+    const d = brut.CHARACTER_DATA;
+    const tri = x => ({ id: x.id, name: x.name, sprite: x.sprite, stats: x.stats, hp: x.hp, mana: x.mana, archetype: x.archetype });
+    // Les points du monde, eux, portent deja la derniere synchro (world.js la pose) : « avant » = ce que le jeu a.
+    const { WORLD } = await import(${JSON.stringify(pathToFileURL(path.join(RACINE, 'game/src/config/world.js')).href)});
+    const noeuds = WORLD.nodes.filter(n => n.enemy).map(n => ({ id: n.id, name: n.name, enemy: n.enemy, reqPower: n.reqPower }));
+    process.stdout.write(JSON.stringify({ racine: { ui: { fx: BALANCE.ui.fx }, combat: { autoStepMs: BALANCE.combat.autoStepMs } },
+      donnees: { characters: d.characters.map(tri), npcs: (d.npcs || []).map(tri) }, noeuds, sprites: SPRITES, feuille: FEUILLE }));`;
+  return JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8', maxBuffer: 1 << 24 }));
 }
+
+/** Les onglets que le jeu lit, et comment chacun se compare. */
+export const BRANCHES = ['animations', 'heroes', 'encounters'];
 
 /**
  * Compare la feuille a ce que le jeu a. `plan` : une entree par ligne (voir `planifie`), `retires` : les
  * identifiants que la derniere synchro avait et que la feuille n'a plus (leur valeur retombe a celle de balance.js).
  */
 export async function apercu() {
-  const { planifie } = await import(pathToFileURL(path.join(RACINE, 'game/src/config/feuille.js')).href);
+  const { planifie, planifieHeros, planifieRencontres, COLONNES_HEROS } = await import(pathToFileURL(path.join(RACINE, 'game/src/config/feuille.js')).href);
   const lue = await lisLaFeuille();
   const jeu = etatDuJeu();
-  const plan = planifie(jeu.racine, lue.onglets.animations || []).map(({ objet, ...p }) => p);
-  const ids = new Set((lue.onglets.animations || []).map(l => String(l.id)));
-  const retires = (jeu.feuille.animations || []).map(l => String(l.id)).filter(id => !ids.has(id));
-  const sansEffet = Object.keys(lue.onglets).filter(n => n !== 'animations');
+  const plan = [
+    ...planifie(jeu.racine, lue.onglets.animations || []).map(({ objet, ...p }) => ({ onglet: 'animations', ...p })),
+    ...planifieHeros(jeu.donnees, lue.onglets.heroes || [], jeu.sprites).map(({ cible, chemin, ...p }) => ({ onglet: 'heroes', ...p })),
+    ...planifieRencontres(jeu.noeuds, lue.onglets.encounters || []).map(({ points, ...p }) => ({ onglet: 'encounters', ...p }))
+  ];
+  // Ce que la derniere synchro posait et que la feuille ne pose plus : la valeur retombe sur balance.js / le builder
+  // (pour un combat : son niveau requis).
+  const posees = (onglet, lignes) => onglet === 'heroes'
+    ? (lignes || []).flatMap(l => Object.keys(COLONNES_HEROS).filter(c => l[c] !== undefined && l[c] !== '').map(c => `${l.id}.${c}`))
+    : onglet === 'encounters'
+      ? (lignes || []).filter(l => l.power_needed !== undefined && l.power_needed !== '').map(l => `${l.id}.power_needed`)
+      : (lignes || []).map(l => String(l.id));
+  const retires = BRANCHES.flatMap(o => {
+    const ids = new Set(posees(o, lue.onglets[o]));
+    return posees(o, jeu.feuille[o]).filter(id => !ids.has(id));
+  });
+  const sansEffet = Object.keys(lue.onglets).filter(n => !BRANCHES.includes(n));
   return { onglets: Object.keys(lue.onglets), ignores: lue.ignores, sansEffet, plan, retires, lue };
 }
 
@@ -116,7 +143,8 @@ export function ecris(onglets) {
   const objet = { synchro: new Date().toISOString(), feuille: ID_FEUILLE, ...onglets };
   const source = `// FICHIER GENERE par scripts/sync-feuille.mjs (ou le bouton « Feuille » de l'Atelier) : ne pas l'editer a la main.
 // Il vient de la Google Sheet « Config Adventure-Cards ». Les onglets, colonnes et lignes en « ~ » ne sont pas exportes.
-// Les valeurs de l'onglet « animations » remplacent celles de BALANCE.ui.fx (game/src/config/feuille.js).
+// Les valeurs de l'onglet « animations » remplacent celles de BALANCE.ui.fx, celles de « heroes » les statistiques
+// des heros et des adversaires (game/src/config/feuille.js).
 export const FEUILLE = ${JSON.stringify(objet, null, 2)};
 `;
   const crlf = fs.existsSync(FICHIER) && fs.readFileSync(FICHIER, 'utf8').includes('\r\n');

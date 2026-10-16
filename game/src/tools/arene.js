@@ -18,6 +18,13 @@ import { npcSide } from '../config/npcs.js';
 import { createBattle } from '../combat/engine.js';
 import { botAction } from '../combat/ai.js';
 import { joue, ouvreJournal, fermeJournal } from '../combat/journal.js';
+import { FEUILLE } from '../../data/feuille.data.js';
+import { SPRITES } from '../../data/sprites.js';
+import { appliqueHeros } from '../config/feuille.js';
+
+// Un brouillon du builder recoit les statistiques de la Google Sheet comme le fichier du jeu (config/characters.js
+// les y pose au chargement) : sans ca, la page d'equilibrage mesurerait d'autres PV et un autre mana que le jeu.
+const avecFeuille = data => (data === CHARACTER_DATA ? data : appliqueHeros(data, FEUILLE.heroes, SPRITES));
 
 /** Un camp a partir de cartes deja resolues. Le socle de tous les autres. */
 export function campDeCartes(nom, stats, cartes, sprite = '') {
@@ -33,6 +40,7 @@ export function campDeCartes(nom, stats, cartes, sprite = '') {
  * de base ou les cartes switch — sans quoi la moitie du jeu ne serait jamais testee.
  */
 export function campPerso(ids, level, cote = 'cards', data = CHARACTER_DATA) {
+  data = avecFeuille(data);
   const chars = ids.map(id => (data.characters || []).find(c => c.id === id)).filter(Boolean);
   if (!chars.length) return null;
   const cartes = chars.flatMap(ch => (ch[cote] || ch.cards || []).filter(Boolean)
@@ -55,6 +63,7 @@ export function campPerso(ids, level, cote = 'cards', data = CHARACTER_DATA) {
  * est la moyenne sur cet ensemble. Mesurer une combinaison precise, c'est autre chose.
  */
 export function campMelange(ids, level, data = CHARACTER_DATA) {
+  data = avecFeuille(data);
   const chars = ids.map(id => (data.characters || []).find(c => c.id === id)).filter(Boolean);
   if (!chars.length) return null;
   return () => {
@@ -79,7 +88,7 @@ export function campMelange(ids, level, data = CHARACTER_DATA) {
 
 /** Le camp d'un adversaire (PNJ), tel que le builder l'a defini. */
 export function campPnj(id, data = CHARACTER_DATA) {
-  const side = npcSide(id, data);
+  const side = npcSide(id, avecFeuille(data));
   return side ? { ...side, deck: side.deck.map(c => ({ ...c })) } : null;
 }
 

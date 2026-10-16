@@ -2,7 +2,7 @@
 
 Idle RPG mobile (F2P) : exploration overworld + combats de cartes + deckbuilding + mini-jeu de Ferme.
 
-Avant de travailler sur ce projet, lis **`docs/GDD.md`** : c'est le document de conception à jour, avec toutes les mécaniques décidées (deckbuilding, monnaies, combat, architecture idle, art/anim) et les 2 seuls points encore réellement non tranchés (marqués ⚠ NON DÉCIDÉ dedans).
+Avant de travailler sur ce projet, lis **`docs/GDD.md`** : c'est le document de conception à jour, avec toutes les mécaniques décidées (deckbuilding, monnaies, combat, architecture idle, art/anim) et les 2 seuls points encore réellement non tranchés (marqués ⚠ NON DÉCIDÉ dedans), plus une réflexion ouverte (⚠ EN RÉFLEXION : taille du deck, places d'équipe, choix guidé).
 
 **Les héros V3** (six nouveaux héros, leurs paliers, les mécaniques à coder et l'ordre du codage)
 sont dans **`docs/V3-HEROS.md`** : à lire avant de toucher à Reprise, Charogne, Appât, Pistage, Toxine,
@@ -131,6 +131,7 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | ajouter ou changer une carte, un héros, un adversaire | dans le **Card Builder** (`builder/index.html`) — jamais dans le code |
 | coder une mécanique nouvelle | lire `docs/MECANIQUES-A-CODER.md`, puis `config/mechanics.js` + `combat/engine.js` + `combat/ai.js` |
 | régler un coût, un timer, un plafond, le bot | `game/src/config/balance.js` |
+| régler la game config dans la **Google Sheet** | [« Config Adventure-Cards »](https://docs.google.com/spreadsheets/d/1B01tuggXdbvqO3_7wh2YserIoDVnarMXCPXPaYbSGCY/edit) → page « Feuille » de l'Atelier (lien en haut) ou `scripts/sync-feuille.mjs` sur le Pi ; onglets branchés : `animations`, `heroes` (la feuille commande les **statistiques** des héros et adversaires, le builder les **cartes**), `encounters` (puissance requise) — `game/src/config/feuille.js` ; `~` = pas exporté |
 | modifier l'écran de combat, les gestes, le journal graphique | `game/src/ui/` (+ `game/styles.css`) |
 | changer l'aspect (couleurs, cadres, polices) ou une animation de carte | `game/skins/juice.css` ; `game/src/ui/vfx.js` (`SIGNATURES`, cf. `docs/VFX-CARTES.md`) |
 | modifier la carte du monde, un bâtiment, une rencontre | `game/src/config/world.js` (placement) + `game/src/ui/overworld.js` (dessin) |
