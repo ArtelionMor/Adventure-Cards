@@ -41,16 +41,19 @@
 </head>
 <body>
 <header>
-  <h1>Quel pack pour le sol et le décor de la carte ?</h1>
+  <h1>Les packs essayés pour le sol et le décor de la carte</h1>
   <p>Le même coin de la carte (la place centrale, le Marchand Ambulant, les arènes du Chat et du Corbeau), dessiné avec chaque pack.
      Les bâtiments et les personnages ne changent pas : seuls le sol, les chemins, l'eau, les arbres et les rochers changent.
-     Rien n'est branché dans le jeu ; la carte du jeu reste celle de <code>draw()</code>.</p>
+     <b>Retenu le 16 octobre 2026 : B+</b>, que dessine maintenant <code>draw()</code> (<code>src/ui/sol-carte.js</code>).</p>
 </header>
 <div class="barre" id="cadres"></div>
 <div class="grille" id="grille"></div>
 <div class="source" id="source"></div>
 
 <script type="module">
+// B et B+ sont dessines par le module du jeu (src/ui/sol-carte.js) : ce que montre la page est ce que dessine draw().
+import { creeSol, IMAGES_SOL, CONTOUR } from './src/ui/sol-carte.js';
+
 // --------------------------------------------------------------------------- la scene
 // Instantane du coin de la carte du 16 octobre 2026 (WORLD.version 2 : buildMap(), cases x 22..49, y 14..44),
 // pris pour que tous les rendus dessinent exactement les memes cases. Si la carte en direct (src/config/world.js)
@@ -129,15 +132,12 @@ function charge(chemin) {
   return cache.get(chemin);
 }
 const TINY = n => `Decor/Kenney Tiny Town/tile_${String(n).padStart(4, '0')}.png`;
-const RTS_TUILE = n => `Decor/Kenney Medieval RTS/medievalTile_${n}.png`;
-const RTS_ENV = n => `Decor/Kenney Medieval RTS/medievalEnvironment_${String(n).padStart(2, '0')}.png`;
 const IM = {};
 async function chargeTout() {
   const chemins = new Set(['Characters/Dog.png']);
   for (const p of S.points) { if (p.sprite) chemins.add(p.sprite); if (p.ennemi) chemins.add(p.ennemi); }
   for (const n of [0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 24, 25, 26, 27, 28, 29, 36, 37, 38, 39, 40, 41, 42]) chemins.add(TINY(n));
-  for (const n of [13, 27, 29, 57, 58]) chemins.add(RTS_TUILE(n));
-  for (const n of [1, 2, 3, 4, 5, 7, 8, 12, 14, 19, 21]) chemins.add(RTS_ENV(n));
+  for (const c of IMAGES_SOL) chemins.add(c);
   await Promise.all([...chemins].map(async c => { IM[c] = await charge(c); }));
 }
 
@@ -259,19 +259,10 @@ function couche(ctx, est, vue, { fond, bord, ep, rond }) {
   cheminDeCouche(p, est, x0 - 1, x1 + 1, y0 - 1, y1 + 1, ts, camx, camy, 0, rond);
   ctx.fillStyle = fond; ctx.fill(p, 'nonzero');
 }
-function motif(ctx, im, taille, vue) {
-  const c = document.createElement('canvas'); c.width = c.height = Math.max(1, Math.round(taille));
-  c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-  const p = ctx.createPattern(c, 'repeat');
-  p.setTransform(new DOMMatrix().translate(-vue.camx % taille, -vue.camy % taille));
-  return p;
-}
-
 // --------------------------------------------------------------------------- les packs
 // sol(ctx, vue) dessine le sol de toutes les cases ; decor(x, y, ...) rend les objets d'une case (arbres, rochers...),
 // tries ensuite avec les batiments et le joueur, du plus loin au plus proche.
 const TILE_COLOR = { 0: '#3f6b3a', 1: '#9c8455', 2: '#2c4d76', 3: '#2b4a2a', 4: '#57505e', 5: '#7a6647', 6: '#2f4433', 7: '#a8b6c4', 8: '#375c33' };
-const BRUN = '#2a1a12';
 
 const PACKS = {
   actuel: {
@@ -346,50 +337,17 @@ const PACKS = {
   },
 
   rts: {
-    titre: 'B · Kenney Medieval RTS (vectoriel plat)',
-    note: 'Aplats vectoriels, coins arrondis. Le pack n\'a que des routes d\'une case : les chemins larges sont tracés ici, à ses couleurs.',
-    sol(ctx, vue, contour) { solRts(ctx, vue, contour); },
-    decor(x, y, ts) { return decorRts(x, y, ts); }
+    titre: 'B · Medieval RTS + Foliage Pack (vectoriel plat)',
+    note: "Aplats vectoriels, coins arrondis, feuillage semé. Le pack n'a que des routes d'une case : les chemins larges sont tracés à ses couleurs.",
+    solCarte: () => SOL_B
   },
 
   'rts-contour': {
-    titre: 'B+ · Medieval RTS + contours « juice »',
-    note: 'Le même pack, cerné du brun presque noir des bâtiments (3 px) : chemins, eau, arbres et rochers.',
-    contour: { ep: 3, couleur: BRUN },
-    sol(ctx, vue, contour) { solRts(ctx, vue, contour); },
-    decor(x, y, ts) { return decorRts(x, y, ts); }
+    titre: 'B+ · le même, cerné des contours « juice » (retenu)',
+    note: "Cerné du brun presque noir des bâtiments (3 px). C'est ce que dessine draw() depuis le 16 octobre 2026.",
+    solCarte: () => SOL_BPLUS
   }
 };
-
-function solRts(ctx, vue, contour) {
-  const { x0, x1, y0, y1, ts, camx, camy } = vue;
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-    const sx = Math.round(x * ts - camx), sy = Math.round(y * ts - camy);
-    ctx.drawImage(IM[RTS_TUILE(hasard(x, y, 1) < .5 ? 57 : 58)], sx, sy, ts + 1, ts + 1);
-  }
-  const ep = contour ? contour.ep : Math.max(2, ts * .07);
-  couche(ctx, estBois, vue, { fond: 'rgba(0,52,30,.28)', rond: true });
-  couche(ctx, estNeige, vue, { fond: motif(ctx, IM[RTS_TUILE(29)], ts * 2, vue), bord: contour ? contour.couleur : '#bfe3f2', ep, rond: true });
-  couche(ctx, coucheEau, vue, { fond: motif(ctx, IM[RTS_TUILE(27)], ts * 2, vue), bord: contour ? contour.couleur : '#e9f8ff', ep, rond: true });
-  // La route du pack (#d9a24d), bordee de son vert sombre (#219853).
-  couche(ctx, estTerre, vue, { fond: '#d9a24d', bord: contour ? contour.couleur : '#219853', ep, rond: true });
-}
-function decorRts(x, y, ts) {
-  const t = tuile(x, y), sol = solSous(x, y);
-  if (t === T.TREE) {
-    const n = sol === T.DARK || sol === T.SNOW ? choisis([3, 3, 2], x, y, 2) : choisis([1, 21, 3], x, y, 2);
-    return { im: IM[RTS_ENV(n)], haut: ts * (n === 2 ? 1.0 : 1.45) };
-  }
-  if (t === T.ROCK) { const n = choisis([7, 8, 14], x, y, 2); return { im: IM[RTS_ENV(n)], haut: ts * (n === 14 ? .55 : .6) }; }
-  if (t === T.BUSH) return { im: IM[RTS_ENV(12)], haut: ts * .45 };
-  if ((t === T.GRASS || t === T.DARK) && !pointsProches(x, y)) {
-    const h = hasard(x, y, 3);
-    if (h < .015) return { im: IM[RTS_ENV(4)], haut: ts * .22 };
-    if (h < .03) return { im: IM[RTS_ENV(5)], haut: ts * .22 };
-    if (h < .06) return { im: IM[RTS_ENV(choisis([12, 19], x, y, 4))], haut: ts * .35 };
-  }
-  return null;
-}
 
 // --------------------------------------------------------------------------- le rendu d'une vue
 // Les cadres : `place` et `marais` a l'echelle du jeu (une case = 48 px, cf. docs/PACKS-CARTE.md : Tiny Town veut
@@ -416,14 +374,19 @@ function rendu(cv, idPack, idCadre) {
     y0: Math.floor(camy / ts) - 1, y1: Math.ceil((camy + HAUTEUR) / ts) + 2
   };
   ctx.fillStyle = '#131a20'; ctx.fillRect(0, 0, LARGEUR, HAUTEUR);
-  pack.sol(ctx, vue, pack.contour);
+  const sc = pack.solCarte && pack.solCarte();
+  if (sc) sc.dessine(ctx, vue); else pack.sol(ctx, vue);
 
   // Decor, points d'interet et joueur, du plus loin au plus proche (par les pieds), comme draw().
   const items = [], noms = [];
   for (let y = vue.y0; y <= vue.y1 + 2; y++) for (let x = vue.x0 - 1; x <= vue.x1 + 1; x++) {
+    const sx = x * ts - camx, sy = y * ts - camy;
+    if (sc) {
+      for (const o of sc.objets(x, y, ts)) items.push({ y: y + o.pieds, draw: () => sc.dessineObjet(ctx, o, sx, sy, ts) });
+      continue;
+    }
     const o = pack.decor(x, y, ts);
     if (!o) continue;
-    const sx = x * ts - camx, sy = y * ts - camy;
     const dx = (hasard(x, y, 5) - .5) * ts * .25;
     items.push({ y: y + .9, draw: () => objet(ctx, o.im, sx, sy, ts, o.haut, pack.contour, dx) });
   }
@@ -479,6 +442,9 @@ function etiquette(ctx, text, x, y) {
 
 // --------------------------------------------------------------------------- la page
 await chargeTout();
+const pointsSol = S.points.map(p => ({ x: p.x, y: p.y, grand: !!S.tailles[p.type] }));
+const SOL_B = creeSol({ tuile, points: pointsSol, img: c => IM[c], contour: null });
+const SOL_BPLUS = creeSol({ tuile, points: pointsSol, img: c => IM[c], contour: CONTOUR });
 const params = new URLSearchParams(location.search);
 const seul = PACKS[params.get('pack')] ? params.get('pack') : null;
 let cadre = CADRES[params.get('cadre')] ? params.get('cadre') : 'place';

@@ -117,7 +117,7 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | `android/` | Le widget Android (Java, sans bibliothèque). | `android/CLAUDE.md` |
 | `docs/` | La conception : GDD, héros V3, grammaire des paliers, mécaniques à coder, situations. | `docs/CLAUDE.md` |
 | `Characters/` `Machines/` `Ressources/` `UI/` | Sprites (personnages, bâtiments, ressources, objets). | un `CLAUDE.md` chacun |
-| `Decor/` | Packs d'assets **tiers** (Kenney, CC0) essayés pour le sol et le décor de la carte, **pas encore branchés** (`docs/PACKS-CARTE.md`). | `Decor/CLAUDE.md` |
+| `Decor/` | Packs d'assets **tiers** (Kenney, CC0) du sol et du décor de la carte : **Medieval RTS + Foliage Pack**, dessinés par `game/src/ui/sol-carte.js` ; Tiny Town (essayé, écarté) ne sert qu'au prototype (`docs/PACKS-CARTE.md`). | `Decor/CLAUDE.md` |
 | `Icons/` | Le logo et les **icônes d'interface** (`Dead.png`, + celles que dessine le game designer). | `Icons/CLAUDE.md` |
 | `V2/` | Itération plus récente d'assets, **pas câblée**. | `V2/CLAUDE.md` |
 | `mockups/` | Maquettes (cartes, widget). | `mockups/CLAUDE.md` |
@@ -134,6 +134,7 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | régler un coût, un timer, un plafond, le bot | `game/src/config/balance.js` |
 | régler la game config dans la **Google Sheet** | [« Config Adventure-Cards »](https://docs.google.com/spreadsheets/d/1B01tuggXdbvqO3_7wh2YserIoDVnarMXCPXPaYbSGCY/edit) → page « Feuille » de l'Atelier (lien en haut) ou `scripts/sync-feuille.mjs` sur le Pi ; onglets branchés : `animations`, `heroes` (la feuille commande les **statistiques** des héros et adversaires, le builder les **cartes**), `encounters` (puissance requise) — `game/src/config/feuille.js` ; `~` = pas exporté |
 | modifier l'écran de combat, les gestes, le journal graphique | `game/src/ui/` (+ `game/styles.css`) |
+| changer le sol, les chemins, les arbres ou le feuillage de la carte | `game/src/ui/sol-carte.js` (le pack B+, cf. `docs/PACKS-CARTE.md`) |
 | changer l'aspect (couleurs, cadres, polices) ou une animation de carte | `game/skins/juice.css` ; `game/src/ui/vfx.js` (`SIGNATURES`, cf. `docs/VFX-CARTES.md`) |
 | modifier la carte du monde, un bâtiment, une rencontre | `game/src/config/world.js` (placement) + `game/src/ui/overworld.js` (dessin) |
 | mesurer l'équilibre | `scripts/matchups.mjs`, `simulate.mjs`, `check-decks.mjs`, `analyse-cartes.mjs` (ou `builder/balance.html`) |

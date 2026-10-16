@@ -13,7 +13,7 @@ import { fileURLToPath } from 'url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // `Decor/...` : les packs d'assets tiers essayes pour la carte (docs/PACKS-CARTE.md), un dossier par pack.
-export const FOLDERS = ['Characters', 'Machines', 'Ressources', 'UI', 'Decor/Kenney Tiny Town', 'Decor/Kenney Medieval RTS'];
+export const FOLDERS = ['Characters', 'Machines', 'Ressources', 'UI', 'Decor/Kenney Tiny Town', 'Decor/Kenney Medieval RTS', 'Decor/Kenney Foliage Pack'];
 
 /** Ce que contiennent les dossiers d'images, ici et maintenant. */
 export function scanSprites() {

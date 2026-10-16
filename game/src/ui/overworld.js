@@ -7,6 +7,7 @@ import { CHAR_BY_ID } from '../config/characters.js';
 import { save, persist, partyLevel, gain, spend } from '../state.js';
 import { $, el, asset, toast, modal, closeModal, setContext } from './shell.js';
 import { openBattle } from './battle.js';
+import { creeSol } from './sol-carte.js';
 
 const map = buildMap();
 const cols = WORLD.cols, rows = WORLD.rows;
@@ -190,6 +191,9 @@ function frame(t) {
   requestAnimationFrame(frame);
 }
 
+// Le sol de la carte (ui/sol-carte.js), cree au premier dessin.
+let sol = null;
+
 function draw(t) {
   const w = save.world;
   const W = cv.clientWidth, H = cv.clientHeight;
@@ -202,39 +206,9 @@ function draw(t) {
   const x0 = Math.max(0, Math.floor(camx / ts)), x1 = Math.min(cols - 1, Math.ceil((camx + W) / ts));
   const y0 = Math.max(0, Math.floor(camy / ts)), y1 = Math.min(rows - 1, Math.ceil((camy + H) / ts));
 
-  for (let y = y0; y <= y1; y++) {
-    for (let x = x0; x <= x1; x++) {
-      const tl = map[y * cols + x];
-      const sx = Math.round(x * ts - camx), sy = Math.round(y * ts - camy);
-      // Base : sol de la region (l'arbre et le rocher poussent sur de l'herbe).
-      const ground = tl === TILE.TREE || tl === TILE.ROCK ? TILE.GRASS : tl;
-      cx.fillStyle = TILE_COLOR[ground];
-      cx.fillRect(sx, sy, ts + 1, ts + 1);
-      // Bruit de damier discret pour casser l'aplat.
-      if ((x + y) % 2 === 0) { cx.fillStyle = 'rgba(0,0,0,.05)'; cx.fillRect(sx, sy, ts + 1, ts + 1); }
-
-      if (tl === TILE.TREE) {
-        cx.fillStyle = '#3c2b1d';
-        cx.fillRect(sx + ts * .44, sy + ts * .55, ts * .12, ts * .3);
-        cx.fillStyle = '#28502a';
-        cx.beginPath(); cx.arc(sx + ts / 2, sy + ts * .46, ts * .34, 0, 7); cx.fill();
-        cx.fillStyle = '#356b36';
-        cx.beginPath(); cx.arc(sx + ts * .44, sy + ts * .4, ts * .24, 0, 7); cx.fill();
-      } else if (tl === TILE.ROCK) {
-        cx.fillStyle = '#6a6270';
-        cx.beginPath();
-        cx.moveTo(sx + ts * .2, sy + ts * .78);
-        cx.lineTo(sx + ts * .38, sy + ts * .3);
-        cx.lineTo(sx + ts * .62, sy + ts * .26);
-        cx.lineTo(sx + ts * .82, sy + ts * .78);
-        cx.closePath(); cx.fill();
-      } else if (tl === TILE.WATER) {
-        cx.fillStyle = 'rgba(255,255,255,.07)';
-        const o = Math.sin((t / 600) + x * .7 + y * .5) * 3;
-        cx.fillRect(sx + 6, sy + ts * .5 + o, ts - 12, 2);
-      }
-    }
-  }
+  // Le sol et le decor : le pack B+ (Kenney Medieval RTS + Foliage Pack, cernes des contours juice) — ui/sol-carte.js.
+  if (!sol) sol = creeSol({ tuile: tileAt, points: WORLD.nodes.map(n => ({ x: n.x, y: n.y, grand: !!tailleDe(n) })), img });
+  sol.dessine(cx, { x0, x1, y0, y1, ts, camx, camy, t });
 
   // barrieres de niveau
   const lvl = partyLevel();
@@ -267,6 +241,12 @@ function draw(t) {
     // Les pieds d'un batiment sont sur sa porte (le centre de sa case) : le joueur qui se
     // tient devant la porte est devant lui, celui qui la franchit passe derriere.
     items.push({ y: n.y + (unites ? .5 : .92), draw: () => dessinePoint(n, sx, sy, t, unites, noms) });
+  }
+  // Le decor (arbres, rochers, feuillage) se trie avec eux : on passe derriere un arbre comme derriere un toit.
+  // Deux rangees de plus en bas : un arbre plante sous l'ecran depasse dedans.
+  for (let y = y0; y <= Math.min(rows - 1, y1 + 2); y++) for (let x = Math.max(0, x0 - 1); x <= Math.min(cols - 1, x1 + 1); x++) {
+    const sx = x * ts - camx, sy = y * ts - camy;
+    for (const o of sol.objets(x, y, ts)) items.push({ y: y + o.pieds, draw: () => sol.dessineObjet(cx, o, sx, sy, ts) });
   }
   const leader = CHAR_BY_ID[save.team.find(Boolean) || 'dog'];
   items.push({ y: w.py + .38, draw: () => {

@@ -357,7 +357,7 @@ static class Launcher
     // scripts/gen-sprites.mjs ; ici on est en C#, donc ce balayage est ecrit deux fois.
     // Les deux doivent produire le MEME fichier : meme ordre (ordinal, comme le .sort()
     // de JavaScript), meme mise en forme, memes fins de ligne.
-    static readonly string[] SpriteFolders = { "Characters", "Machines", "Ressources", "UI", "Decor/Kenney Tiny Town", "Decor/Kenney Medieval RTS" };
+    static readonly string[] SpriteFolders = { "Characters", "Machines", "Ressources", "UI", "Decor/Kenney Tiny Town", "Decor/Kenney Medieval RTS", "Decor/Kenney Foliage Pack" };
     static readonly string[] SpriteExt = { ".png", ".jpg", ".jpeg", ".webp", ".gif" };
 
     /** Balaye les dossiers, reecrit game/data/sprites.js, et rend le JSON de la liste. */
