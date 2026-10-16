@@ -15,6 +15,8 @@ avec **Medieval RTS + Foliage Pack** (`game/src/ui/sol-carte.js`, décision du g
 - ⚠ **Foliage Pack : prendre le dossier `PNG/Default size`, pas `PNG/Retina`** — le second numérote ses fichiers **décalés d'un cran**
   (son `foliagePack_001` est la fleur rouge, `062` dans l'autre) : une fleur demandée y sort en arbre d'automne. Medieval RTS, lui,
   vient de `PNG/Retina` (même numérotation que `Default size`).
+- ⚠ Medieval RTS pose une **ombre presque transparente** (opacité 26/255) sous ses arbres et ses buissons : `sol-carte.js` l'ignore
+  pour mesurer un objet et pour le cerner (`OPAQUE`), sinon le contour entoure l'ombre au lieu du pied.
 - Les archives complètes ne sont pas dans le dépôt : les retélécharger depuis la page du pack (lien « Continue without donating »).
 - Attribution (facultative en CC0, prévue dans les crédits) : « Kenney (www.kenney.nl) ».
 - Binaires : n'ouvre une image que si la tâche porte sur ce qu'elle montre.

@@ -21,7 +21,7 @@ const fol = n => `${FOL}foliagePack_${String(n).padStart(3, '0')}.png`;
 /**
  * Le contour : 3 px, le brun des batiments et de juice.css. `null` = sans contour (le pack B). Il cerne le sol (chemins, eau,
  * neige), les arbres et les rochers — PAS le feuillage (fleurs, touffes, buissons, troncs) : decision du game designer du
- * 16 octobre 2026. Le PIED d'un tronc n'est pas cerne non plus : l'arbre sort du sol au lieu d'y etre pose.
+ * 16 octobre 2026. Le PIED d'un tronc ou d'un rocher n'est pas cerne non plus : il sort du sol au lieu d'y etre pose.
  */
 export const CONTOUR = { ep: 3, couleur: '#2a1a12' };
 
@@ -156,7 +156,7 @@ export function creeSol({ tuile, points = [], img, contour = CONTOUR }) {
    */
   function objets(x, y, ts) {
     const out = [];
-    // `cerne` : l'objet prend le contour (arbres, rochers) ; le feuillage, non. `piedLibre` : sauf sous son pied (les arbres).
+    // `cerne` : l'objet prend le contour (arbres, rochers) ; le feuillage, non. `piedLibre` : sauf sous son pied (arbres, rochers).
     const pose = (entree, k, decale = .3, cerne = false, piedLibre = false) => {
       const im = pret(entree[0]);
       if (!im) return;
@@ -166,12 +166,12 @@ export function creeSol({ tuile, points = [], img, contour = CONTOUR }) {
     const t = tuile(x, y), sol = solSous(x, y);
     const nom = sol === T.DARK ? 'bois' : sol === T.SNOW ? 'neige' : 'herbe';
     if (t === T.TREE) { pose(choisis(ARBRES[nom], x, y, 2), 0, .12, true, true); return out; }
-    if (t === T.ROCK) { pose(choisis(ROCHERS[nom === 'neige' ? 'neige' : 'herbe'], x, y, 2), 0, .15, true); return out; }
+    if (t === T.ROCK) { pose(choisis(ROCHERS[nom === 'neige' ? 'neige' : 'herbe'], x, y, 2), 0, .15, true, true); return out; }
     if (t === T.BUSH) { pose(choisis(BUISSONS, x, y, 2), 0); return out; }
     if (t !== T.GRASS && t !== T.DARK && t !== T.SNOW) return out;
     if (libre.has(x + ',' + y)) return out;
     const s = SEMIS[nom], l = voisin(estTerre, x, y) ? SEMIS.lisiere : {};
-    if (s.rocher && hasard(x, y, 3) < s.rocher) pose(choisis(ROCHERS.neige, x, y, 4), 1, .3, true);
+    if (s.rocher && hasard(x, y, 3) < s.rocher) pose(choisis(ROCHERS.neige, x, y, 4), 1, .3, true, true);
     if (s.buisson && hasard(x, y, 3) < s.buisson) pose(choisis(BUISSONS, x, y, 4), 1);
     const fleur = (s.fleur || 0) + (l.fleur || 0), touffe = (s.touffe || 0) + (l.touffe || 0);
     if (hasard(x, y, 5) < fleur) {
@@ -257,7 +257,10 @@ function couche(ctx, est, vue, { fond, bord, ep = 0 }) {
 }
 
 // --------------------------------------------------------------------------- images
-// La zone VISIBLE d'une image (comme zoneVisible() dans overworld.js) : les marges transparentes ne comptent pas.
+// La zone VISIBLE d'une image (comme zoneVisible() dans overworld.js) : les marges transparentes ne comptent pas, ni l'OMBRE
+// presque transparente que Medieval RTS pose sous ses arbres et ses buissons (opacite 26/255) : sans quoi le contour et le
+// pied se calent sur l'ombre et non sur le tronc.
+const OPAQUE = 64;
 const zones = new Map();
 function zoneVisible(im) {
   if (zones.has(im)) return zones.get(im);
@@ -268,7 +271,7 @@ function zoneVisible(im) {
   const d = g.getImageData(0, 0, N, N).data;
   let x0 = N, y0 = N, x1 = -1, y1 = -1;
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-    if (d[(y * N + x) * 4 + 3] <= 20) continue;
+    if (d[(y * N + x) * 4 + 3] <= OPAQUE) continue;
     if (x < x0) x0 = x;
     if (x > x1) x1 = x;
     if (y < y0) y0 = y;
@@ -280,7 +283,8 @@ function zoneVisible(im) {
 }
 
 // Une image cernee d'un contour plein, a la taille ou on la dessine (une toile par image et par taille). `piedLibre` : pas de
-// contour SOUS l'image (la bande de `ep` sous sa derniere ligne) — le pied d'un tronc entre dans le sol.
+// contour au PIED de l'image (son dernier dixieme, `PIED`) — le pied d'un tronc ou d'un rocher entre dans le sol.
+const PIED = .1;
 const cernes = new Map();
 function cerne(im, w, h, ep, couleur, piedLibre = false) {
   const cle = im.src + '|' + w + '|' + h + '|' + ep + '|' + couleur + '|' + piedLibre;
@@ -291,6 +295,10 @@ function cerne(im, w, h, ep, couleur, piedLibre = false) {
   const sil = document.createElement('canvas'); sil.width = W; sil.height = H;
   const gs = sil.getContext('2d');
   gs.drawImage(im, ...src, ep * dpr, ep * dpr, w * dpr, h * dpr);
+  // La silhouette ne garde que les pixels franchement opaques : 16 copies decalees d'une ombre a 10 % la rendraient pleine.
+  const px = gs.getImageData(0, 0, W, H), d = px.data;
+  for (let i = 3; i < d.length; i += 4) d[i] = d[i] > OPAQUE ? 255 : 0;
+  gs.putImageData(px, 0, 0);
   gs.globalCompositeOperation = 'source-in';
   gs.fillStyle = couleur; gs.fillRect(0, 0, W, H);
   const c = document.createElement('canvas'); c.width = W; c.height = H;
@@ -299,7 +307,9 @@ function cerne(im, w, h, ep, couleur, piedLibre = false) {
     const a = i / 16 * Math.PI * 2;
     g.drawImage(sil, Math.cos(a) * ep * dpr, Math.sin(a) * ep * dpr);
   }
-  if (piedLibre) g.clearRect(0, (ep + h) * dpr - 1, W, H);
+  // Le pied : le contour s'efface sur le dernier dixieme de la hauteur et dessous (une base arrondie, comme celle des sapins,
+  // remonte au-dessus de la derniere ligne). L'image est dessinee par-dessus : seul le contour disparait.
+  if (piedLibre) g.clearRect(0, (ep + h * (1 - PIED)) * dpr, W, H);
   g.drawImage(im, ...src, ep * dpr, ep * dpr, w * dpr, h * dpr);
   cernes.set(cle, c);
   return c;
