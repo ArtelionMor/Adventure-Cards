@@ -736,6 +736,1965 @@ export const CHARACTER_DATA = {
           "hp": 2
         }
       ]
+    },
+    {
+      "id": "adv_lapin_terrier",
+      "name": "Lapin - Terrier",
+      "type": "ally",
+      "cost": 2,
+      "keys": [
+        "type:Lapin"
+      ],
+      "text": "Râle d’agonie : invoque un Lapereau 1/1.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 2,
+      "hp": 1,
+      "statics": [],
+      "death": [
+        {
+          "op": "summon",
+          "n": 1,
+          "unit": {
+            "name": "Lapereau",
+            "atk": 1,
+            "hp": 1,
+            "keys": [
+              "type:Lapin"
+            ],
+            "statics": []
+          }
+        }
+      ],
+      "sprite": "Characters/Rabbit.png"
+    },
+    {
+      "id": "adv_lapin_sauteur",
+      "name": "Lapin - Sauteur de haies",
+      "type": "ally",
+      "cost": 3,
+      "keys": [
+        "passe_murailles",
+        "type:Lapin"
+      ],
+      "text": "Passe-Murailles.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 3,
+      "hp": 2,
+      "statics": [],
+      "sprite": "Characters/Rabbit English Lop.png"
+    },
+    {
+      "id": "adv_lapin_carotte",
+      "name": "Lapin - Carotte volée",
+      "type": "spell",
+      "cost": 1,
+      "keys": [
+        "type:Lapin"
+      ],
+      "text": "Pioche une carte. Tu auras 1 mana de plus au prochain tour.",
+      "play": [
+        {
+          "op": "draw",
+          "v": 1
+        },
+        {
+          "op": "mana_au_prochain_tour",
+          "x": 1
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Rabbit.png"
+    },
+    {
+      "id": "adv_chat_gouttiere",
+      "name": "Chat - Matou de gouttière",
+      "type": "ally",
+      "cost": 2,
+      "keys": [
+        "Charge",
+        "type:Chat"
+      ],
+      "text": "Charge. Quand il attaque, 1 dégât au héros adverse.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 3,
+      "hp": 1,
+      "statics": [],
+      "gardes": {
+        "on_attack_self": "moi"
+      },
+      "on_attack_self": [
+        {
+          "op": "dmg",
+          "t": "enemyHero",
+          "v": 1
+        }
+      ],
+      "sprite": "Characters/Cat Chat de Gouttière.png"
+    },
+    {
+      "id": "adv_chat_caid",
+      "name": "Chat - Caïd du quartier",
+      "type": "ally",
+      "cost": 4,
+      "keys": [
+        "type:Chat"
+      ],
+      "text": "Les dégâts subis par le héros adverse : 1 de plus.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 3,
+      "hp": 3,
+      "statics": [
+        {
+          "op": "degats_du_heros",
+          "qui": "adversaire",
+          "sens": "plus",
+          "v": 1
+        }
+      ],
+      "sprite": "Characters/Cat Ginger.png"
+    },
+    {
+      "id": "adv_chat_course",
+      "name": "Chat - Course effrénée",
+      "type": "spell",
+      "cost": 2,
+      "keys": [
+        "type:Chat"
+      ],
+      "text": "Un allié gagne +2/+0 et Charge. Pioche une carte.",
+      "play": [
+        {
+          "op": "buff",
+          "t": "allyUnit",
+          "atk": 2,
+          "hp": 0,
+          "key": "Charge"
+        },
+        {
+          "op": "draw",
+          "v": 1
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 3,
+          "amp": 1,
+          "text": "Effet +1"
+        },
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        },
+        {
+          "lvl": 11,
+          "amp": 2,
+          "text": "Effet +2"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Cat Siamese.png"
+    },
+    {
+      "id": "adv_corbeau_glaneur",
+      "name": "Corbeau - Glaneur",
+      "type": "ally",
+      "cost": 2,
+      "keys": [
+        "type:Oiseau",
+        "type:Corbeau"
+      ],
+      "text": "Fin de ton tour : gagne +1/+1.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 1,
+      "hp": 2,
+      "statics": [],
+      "turnEnd": [
+        {
+          "op": "buff",
+          "t": "self",
+          "atk": 1,
+          "hp": 1
+        }
+      ],
+      "sprite": "Characters/Crow.png"
+    },
+    {
+      "id": "adv_corbeau_nuee",
+      "name": "Corbeau - Nuée",
+      "type": "ally",
+      "cost": 4,
+      "keys": [
+        "type:Oiseau",
+        "type:Corbeau",
+        "characteristique_variable:atk:allyUnits::1"
+      ],
+      "text": "Attaque = le nombre de tes alliés en jeu, +1.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 1,
+      "hp": 3,
+      "statics": [],
+      "sprite": "Characters/Crow Three Eyes.png"
+    },
+    {
+      "id": "adv_corbeau_rire",
+      "name": "Corbeau - Rire moqueur",
+      "type": "spell",
+      "cost": 2,
+      "keys": [
+        "type:Oiseau"
+      ],
+      "text": "Au choix : 3 dégâts à une unité adverse, ou +2/+2 à un allié.",
+      "play": [
+        {
+          "op": "choisir",
+          "a": [
+            {
+              "op": "dmg",
+              "t": "enemyUnit",
+              "v": 3
+            }
+          ],
+          "b": [
+            {
+              "op": "buff",
+              "t": "allyUnit",
+              "atk": 2,
+              "hp": 2
+            }
+          ]
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 3,
+          "amp": 1,
+          "text": "Effet +1"
+        },
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        },
+        {
+          "lvl": 11,
+          "amp": 2,
+          "text": "Effet +2"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Crow White.png"
+    },
+    {
+      "id": "adv_loup_hurlement",
+      "name": "Loup - Hurlement",
+      "type": "spell",
+      "cost": 3,
+      "keys": [
+        "type:Loup"
+      ],
+      "text": "2 dégâts à toutes les unités adverses. Gagne 2 d’armure.",
+      "play": [
+        {
+          "op": "dmg",
+          "t": "allEnemyUnits",
+          "v": 2
+        },
+        {
+          "op": "armor",
+          "v": 2
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 3,
+          "amp": 1,
+          "text": "Effet +1"
+        },
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        },
+        {
+          "lvl": 11,
+          "amp": 2,
+          "text": "Effet +2"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Big Bad Wolf.png"
+    },
+    {
+      "id": "adv_loup_mere",
+      "name": "Loup - Mère de la meute",
+      "type": "ally",
+      "cost": 5,
+      "keys": [
+        "Taunt",
+        "type:Loup"
+      ],
+      "text": "Provocation. Quand l’adversaire joue un allié, 1 dégât à cet allié.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 4,
+      "hp": 5,
+      "statics": [],
+      "on_ally_foe": [
+        {
+          "op": "dmg",
+          "t": "previous",
+          "v": 1
+        }
+      ],
+      "sprite": "Characters/Big Bad Wolf Mythic.png"
+    },
+    {
+      "id": "adv_loup_fourrure",
+      "name": "Loup - Garde à fourrure",
+      "type": "ally",
+      "cost": 3,
+      "keys": [
+        "Taunt",
+        "Bouclier",
+        "type:Loup"
+      ],
+      "text": "Provocation. Bouclier.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 2,
+      "hp": 3,
+      "statics": [],
+      "sprite": "Characters/Big Bad Wolf.png"
+    },
+    {
+      "id": "adv_loup_flair",
+      "name": "Loup - Flair",
+      "type": "spell",
+      "cost": 1,
+      "keys": [
+        "type:Loup"
+      ],
+      "text": "Piste 2 cartes de la main adverse. Pioche une carte.",
+      "play": [
+        {
+          "op": "piste",
+          "n": 2
+        },
+        {
+          "op": "draw",
+          "v": 1
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Big Bad Wolf.png"
+    },
+    {
+      "id": "adv_crapaud_bave",
+      "name": "Crapaud - Bave",
+      "type": "spell",
+      "cost": 1,
+      "keys": [
+        "type:Grenouille"
+      ],
+      "text": "Pose 2 Toxines sur une unité adverse.",
+      "play": [
+        {
+          "op": "toxine",
+          "t": "enemyUnit",
+          "v": 2
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 3,
+          "amp": 1,
+          "text": "Effet +1"
+        },
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        },
+        {
+          "lvl": 11,
+          "amp": 2,
+          "text": "Effet +2"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Frog Toad.png"
+    },
+    {
+      "id": "adv_crapaud_tetard",
+      "name": "Crapaud - Têtard venimeux",
+      "type": "ally",
+      "cost": 1,
+      "keys": [
+        "Venin",
+        "type:Grenouille"
+      ],
+      "text": "Venin. Râle d’agonie : pose 1 Toxine sur une unité adverse au hasard.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 1,
+      "hp": 1,
+      "statics": [],
+      "death": [
+        {
+          "op": "toxine",
+          "t": "randomEnemyUnit",
+          "v": 1
+        }
+      ],
+      "sprite": "Characters/Frog Venomous.png"
+    },
+    {
+      "id": "adv_crapaud_roi",
+      "name": "Crapaud - Roi du marais",
+      "type": "ally",
+      "cost": 4,
+      "keys": [
+        "type:Grenouille"
+      ],
+      "text": "Tes Toxines en posent 1 de plus. Quand une unité adverse qui porte une Toxine meurt, pioche une carte.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 3,
+      "hp": 4,
+      "statics": [
+        {
+          "op": "montant_des_effets",
+          "qui": "toi",
+          "sens": "plus",
+          "v": 1,
+          "cible": "toxine",
+          "zone": "toutes"
+        }
+      ],
+      "on_unitToxinee_foe": [
+        {
+          "op": "draw",
+          "v": 1
+        }
+      ],
+      "sprite": "Characters/Frog.png"
+    },
+    {
+      "id": "adv_pieuvre_ancre",
+      "name": "Pieuvre - Ancre rouillée",
+      "type": "ally",
+      "cost": 3,
+      "keys": [
+        "Taunt",
+        "type:Pieuvre"
+      ],
+      "text": "Provocation. Tes autres alliés ont +0/+1.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 2,
+      "hp": 5,
+      "statics": [],
+      "aura": {
+        "scope": "otherAllies",
+        "atk": 0,
+        "hp": 1,
+        "key": ""
+      },
+      "sprite": "Characters/Octopus Pirate.png"
+    },
+    {
+      "id": "adv_pieuvre_encre",
+      "name": "Pieuvre - Nuage d’encre",
+      "type": "ally",
+      "cost": 5,
+      "keys": [
+        "Taunt",
+        "type:Pieuvre"
+      ],
+      "text": "Provocation. L’adversaire n’attaque pas avec plus de 2 unités par tour.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 3,
+      "hp": 5,
+      "statics": [
+        {
+          "op": "nombre_d_attaques",
+          "qui": "adversaire",
+          "v": 2
+        }
+      ],
+      "sprite": "Characters/Octopus.png"
+    },
+    {
+      "id": "adv_pieuvre_tresor",
+      "name": "Pieuvre - Coffre au trésor",
+      "type": "spell",
+      "cost": 2,
+      "keys": [
+        "type:Pieuvre"
+      ],
+      "text": "Gagne 4 d’armure. Pioche un allié de ton deck.",
+      "play": [
+        {
+          "op": "armor",
+          "v": 4
+        },
+        {
+          "op": "pioche_une_carte_de_type",
+          "type": "ally",
+          "n": 1
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 3,
+          "amp": 1,
+          "text": "Effet +1"
+        },
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        },
+        {
+          "lvl": 11,
+          "amp": 2,
+          "text": "Effet +2"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Octopus Pirate.png"
+    },
+    {
+      "id": "adv_capitaine_abordage",
+      "name": "Grenouille - À l’abordage",
+      "type": "spell",
+      "cost": 3,
+      "keys": [
+        "reprise",
+        "type:Grenouille"
+      ],
+      "text": "Détruit une unité adverse. Reprise.",
+      "play": [
+        {
+          "op": "detruit",
+          "t": "enemyUnit"
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Frog Captain.png"
+    },
+    {
+      "id": "adv_capitaine_canonnade",
+      "name": "Grenouille - Canonnade",
+      "type": "spell",
+      "cost": 4,
+      "keys": [
+        "type:Grenouille"
+      ],
+      "text": "3 dégâts à toutes les unités adverses.",
+      "play": [
+        {
+          "op": "dmg",
+          "t": "allEnemyUnits",
+          "v": 3
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 3,
+          "amp": 1,
+          "text": "Effet +1"
+        },
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        },
+        {
+          "lvl": 11,
+          "amp": 2,
+          "text": "Effet +2"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Frog Captain.png"
+    },
+    {
+      "id": "adv_capitaine_quartier",
+      "name": "Grenouille - Quartier-maître",
+      "type": "ally",
+      "cost": 3,
+      "keys": [
+        "type:Grenouille"
+      ],
+      "text": "Cri de guerre : gagne 2 d’armure. Quand tu lances un sort depuis ta défausse, pioche une carte.",
+      "play": [
+        {
+          "op": "armor",
+          "v": 2
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 2,
+      "hp": 4,
+      "statics": [],
+      "on_reprise_self": [
+        {
+          "op": "draw",
+          "v": 1
+        }
+      ],
+      "sprite": "Characters/Frog.png"
+    },
+    {
+      "id": "adv_renard_bourrasque",
+      "name": "Renard - Bourrasque",
+      "type": "spell",
+      "cost": 2,
+      "keys": [
+        "type:Renard"
+      ],
+      "text": "Renvoie une unité adverse dans la main de son propriétaire.",
+      "play": [
+        {
+          "op": "renvoie_en_main",
+          "d_ou": "plateau",
+          "choix": "precise",
+          "carte": "",
+          "quoi": "all",
+          "argCard": "",
+          "t": "enemyUnit",
+          "qui": "toi",
+          "ordre": "hasard",
+          "n": 1,
+          "fatigue": false,
+          "atk": 0,
+          "hp": 0
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Fox Snow.png"
+    },
+    {
+      "id": "adv_renard_givre",
+      "name": "Renard - Renard de givre",
+      "type": "ally",
+      "cost": 3,
+      "keys": [
+        "elusif",
+        "type:Renard"
+      ],
+      "text": "Élusif. Cri de guerre : une unité adverse perd 2 d’attaque.",
+      "play": [
+        {
+          "op": "buff",
+          "t": "enemyUnit",
+          "atk": -2,
+          "hp": 0
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 3,
+      "hp": 2,
+      "statics": [],
+      "sprite": "Characters/Fox Snow.png"
+    },
+    {
+      "id": "adv_renard_traque",
+      "name": "Renard - Meneur de traque",
+      "type": "ally",
+      "cost": 4,
+      "keys": [
+        "Charge",
+        "type:Renard"
+      ],
+      "text": "Charge. Quand une de tes unités attaque, elle gagne +1/+0.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 3,
+      "hp": 3,
+      "statics": [],
+      "on_attack_self": [
+        {
+          "op": "buff",
+          "t": "previous",
+          "atk": 1,
+          "hp": 0
+        }
+      ],
+      "sprite": "Characters/Fox Wild.png"
+    },
+    {
+      "id": "adv_duc_sentence",
+      "name": "Hibou - Sentence",
+      "type": "spell",
+      "cost": 5,
+      "keys": [
+        "cout_x_de_moins_de_plus:moins:0:enemyUnits:",
+        "type:Hibou"
+      ],
+      "text": "Coûte 1 de moins par unité adverse. Détruit une unité adverse.",
+      "play": [
+        {
+          "op": "detruit",
+          "t": "enemyUnit"
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Owl Great Horned Owl.png"
+    },
+    {
+      "id": "adv_duc_archiviste",
+      "name": "Hibou - Archiviste",
+      "type": "ally",
+      "cost": 4,
+      "keys": [
+        "type:Oiseau",
+        "type:Hibou"
+      ],
+      "text": "Tu pioches 1 carte de plus par tour.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 2,
+      "hp": 5,
+      "statics": [
+        {
+          "op": "pioche_du_tour",
+          "qui": "toi",
+          "sens": "plus",
+          "v": 1
+        }
+      ],
+      "sprite": "Characters/Owl Academic.png"
+    },
+    {
+      "id": "adv_duc_eclipse",
+      "name": "Hibou - Éclipse",
+      "type": "ally",
+      "cost": 6,
+      "keys": [
+        "type:Oiseau",
+        "type:Hibou"
+      ],
+      "text": "L’adversaire a 1 mana de moins par tour.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 5,
+      "hp": 6,
+      "statics": [
+        {
+          "op": "mana_du_tour",
+          "qui": "adversaire",
+          "sens": "moins",
+          "v": 1
+        }
+      ],
+      "sprite": "Characters/Owl Cosmonaute.png"
+    },
+    {
+      "id": "adv_paresseux_hamac",
+      "name": "Paresseux - Hamac",
+      "type": "ally",
+      "cost": 2,
+      "keys": [
+        "Taunt",
+        "type:Paresseux"
+      ],
+      "text": "Provocation. Fin de ton tour : soigne 2 PV à ton héros.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 1,
+      "hp": 5,
+      "statics": [],
+      "turnEnd": [
+        {
+          "op": "heal",
+          "t": "ownHero",
+          "v": 2
+        }
+      ],
+      "sprite": "Characters/Sloth.png"
+    },
+    {
+      "id": "adv_paresseux_sieste",
+      "name": "Paresseux - Grande sieste",
+      "type": "spell",
+      "cost": 3,
+      "keys": [
+        "type:Paresseux"
+      ],
+      "text": "Gagne 5 d’armure. Tes alliés gagnent +0/+2.",
+      "play": [
+        {
+          "op": "armor",
+          "v": 5
+        },
+        {
+          "op": "buff",
+          "t": "allAllies",
+          "atk": 0,
+          "hp": 2
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 3,
+          "amp": 1,
+          "text": "Effet +1"
+        },
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        },
+        {
+          "lvl": 11,
+          "amp": 2,
+          "text": "Effet +2"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Sloth CosmoSloth.png"
+    },
+    {
+      "id": "adv_paresseux_coussin",
+      "name": "Paresseux - Coussin géant",
+      "type": "ally",
+      "cost": 4,
+      "keys": [
+        "Taunt",
+        "type:Paresseux"
+      ],
+      "text": "Provocation. Les dégâts subis par ton héros : 1 de moins.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 2,
+      "hp": 6,
+      "statics": [
+        {
+          "op": "degats_du_heros",
+          "qui": "toi",
+          "sens": "moins",
+          "v": 1
+        }
+      ],
+      "sprite": "Characters/Sloth VolcanoSloth.png"
+    },
+    {
+      "id": "adv_rougegorge_pique",
+      "name": "Rouge-Gorge - Piqué",
+      "type": "spell",
+      "cost": 1,
+      "keys": [
+        "reprise",
+        "type:Oiseau"
+      ],
+      "text": "2 dégâts au héros adverse. Reprise.",
+      "play": [
+        {
+          "op": "dmg",
+          "t": "enemyHero",
+          "v": 2
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 3,
+          "amp": 1,
+          "text": "Effet +1"
+        },
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        },
+        {
+          "lvl": 11,
+          "amp": 2,
+          "text": "Effet +2"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Robin.png"
+    },
+    {
+      "id": "adv_rougegorge_chant",
+      "name": "Rouge-Gorge - Chant de l’aube",
+      "type": "ally",
+      "cost": 2,
+      "keys": [
+        "Charge",
+        "type:Oiseau"
+      ],
+      "text": "Charge. Quand tu lances un sort, gagne +1/+0.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 2,
+      "hp": 1,
+      "statics": [],
+      "on_spell_self": [
+        {
+          "op": "buff",
+          "t": "self",
+          "atk": 1,
+          "hp": 0
+        }
+      ],
+      "sprite": "Characters/Robin.png"
+    },
+    {
+      "id": "adv_rougegorge_kamikaze",
+      "name": "Rouge-Gorge - Kamikaze",
+      "type": "ally",
+      "cost": 1,
+      "keys": [
+        "Charge",
+        "type:Oiseau"
+      ],
+      "text": "Charge. Râle d’agonie : 1 dégât au héros adverse.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 2,
+      "hp": 1,
+      "statics": [],
+      "death": [
+        {
+          "op": "dmg",
+          "t": "enemyHero",
+          "v": 1
+        }
+      ],
+      "sprite": "Characters/Robin.png"
+    },
+    {
+      "id": "adv_kitsune_illusion",
+      "name": "Kitsune - Illusion",
+      "type": "spell",
+      "cost": 2,
+      "keys": [
+        "type:Panda"
+      ],
+      "text": "Crée un Miroir en main. Pioche une carte.",
+      "play": [
+        {
+          "op": "cree",
+          "choix": "precise",
+          "carte": "miroir",
+          "quoi": "all",
+          "argCard": "",
+          "n": 1,
+          "lvl": 1
+        },
+        {
+          "op": "draw",
+          "v": 1
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Red Panda Kitsune.png"
+    },
+    {
+      "id": "adv_kitsune_metamorphe",
+      "name": "Kitsune - Métamorphe",
+      "type": "ally",
+      "cost": 3,
+      "keys": [
+        "type_tous"
+      ],
+      "text": "Type : tous. Cri de guerre : devient la copie d’une unité en jeu.",
+      "play": [
+        {
+          "op": "copie",
+          "t": "self",
+          "d_ou": "plateau",
+          "choix": "precise",
+          "carte": "",
+          "quoi": "all",
+          "argCard": "",
+          "tm": "anyUnit",
+          "qui": "toi",
+          "ordre": "hasard"
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 2,
+      "hp": 2,
+      "statics": [],
+      "sprite": "Characters/Red Panda.png"
+    },
+    {
+      "id": "adv_kitsune_queues",
+      "name": "Kitsune - Neuf Queues",
+      "type": "ally",
+      "cost": 7,
+      "keys": [
+        "cout_x_de_moins_de_plus:moins:0:spellsGame:",
+        "type:Panda"
+      ],
+      "text": "Coûte 1 de moins par sort joué cette partie. Râle d’agonie : crée 2 sorts au hasard.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 5,
+      "hp": 5,
+      "statics": [],
+      "death": [
+        {
+          "op": "cree",
+          "choix": "hasard",
+          "carte": "",
+          "quoi": "spell",
+          "argCard": "",
+          "n": 2,
+          "lvl": 1
+        }
+      ],
+      "sprite": "Characters/Red Panda Kitsune.png"
+    },
+    {
+      "id": "adv_chevre_rumination",
+      "name": "Chèvre - Rumination",
+      "type": "spell",
+      "cost": 2,
+      "keys": [
+        "type:Chèvre"
+      ],
+      "text": "L’adversaire meule 2 cartes. Gagne 2 d’armure.",
+      "play": [
+        {
+          "op": "met_a_la_defausse",
+          "d_ou": "pioche",
+          "choix": "precise",
+          "carte": "",
+          "quoi": "all",
+          "argCard": "",
+          "t": "enemyUnit",
+          "qui": "adversaire",
+          "ordre": "dessus",
+          "n": 2
+        },
+        {
+          "op": "armor",
+          "v": 2
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 3,
+          "amp": 1,
+          "text": "Effet +1"
+        },
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        },
+        {
+          "lvl": 11,
+          "amp": 2,
+          "text": "Effet +2"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Goat.png"
+    },
+    {
+      "id": "adv_chevre_bouquetin",
+      "name": "Chèvre - Bouquetin obstiné",
+      "type": "ally",
+      "cost": 3,
+      "keys": [
+        "Taunt",
+        "ex_libris",
+        "type:Chèvre"
+      ],
+      "text": "Provocation. Ex-libris.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 2,
+      "hp": 5,
+      "statics": [],
+      "sprite": "Characters/Goat.png"
+    },
+    {
+      "id": "adv_chevre_vieille",
+      "name": "Chèvre - Vieille bique",
+      "type": "ally",
+      "cost": 5,
+      "keys": [
+        "type:Chèvre"
+      ],
+      "text": "Quand l’adversaire pioche dans la fatigue, il perd 2 PV.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 3,
+      "hp": 6,
+      "statics": [],
+      "on_fatigue_foe": [
+        {
+          "op": "dmg",
+          "t": "enemyHero",
+          "v": 2
+        }
+      ],
+      "sprite": "Characters/Goat.png"
+    },
+    {
+      "id": "adv_chevre_mangetout",
+      "name": "Chèvre - Mange-tout",
+      "type": "ally",
+      "cost": 2,
+      "keys": [
+        "type:Chèvre"
+      ],
+      "text": "Quand l’adversaire meule une carte, gagne +1/+1.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 2,
+      "hp": 3,
+      "statics": [],
+      "on_meule_foe": [
+        {
+          "op": "buff",
+          "t": "self",
+          "atk": 1,
+          "hp": 1
+        }
+      ],
+      "sprite": "Characters/Goat.png"
+    },
+    {
+      "id": "adv_robot_tentacule",
+      "name": "Pieuvre - Tentacule mécanique",
+      "type": "ally",
+      "cost": 2,
+      "keys": [
+        "type:Pieuvre"
+      ],
+      "text": "Quand une unité adverse meurt, gagne +1/+1.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 2,
+      "hp": 2,
+      "statics": [],
+      "on_unitDies_foe": [
+        {
+          "op": "buff",
+          "t": "self",
+          "atk": 1,
+          "hp": 1
+        }
+      ],
+      "sprite": "Characters/Octopus Robot.png"
+    },
+    {
+      "id": "adv_robot_recycleuse",
+      "name": "Pieuvre - Recycleuse",
+      "type": "ally",
+      "cost": 4,
+      "keys": [
+        "type:Pieuvre"
+      ],
+      "text": "Cri de guerre : Charogne 2 (dévore les 2 dernières cartes de la défausse adverse).",
+      "play": [
+        {
+          "op": "charogne",
+          "n": 2,
+          "t": "self"
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 3,
+      "hp": 3,
+      "statics": [],
+      "sprite": "Characters/Octopus Robot.png"
+    },
+    {
+      "id": "adv_robot_usine",
+      "name": "Pieuvre - Chaîne de montage",
+      "type": "spell",
+      "cost": 5,
+      "keys": [
+        "type:Pieuvre"
+      ],
+      "text": "Pose sur le plateau 2 alliés au hasard de ta pioche.",
+      "play": [
+        {
+          "op": "pose_sur_le_plateau",
+          "d_ou": "pioche",
+          "choix": "precise",
+          "carte": "",
+          "quoi": "ally",
+          "typeDe": "ecrit",
+          "typeQui": "toi",
+          "argCard": "",
+          "t": "enemyUnit",
+          "qui": "toi",
+          "ordre": "hasard",
+          "n": 2,
+          "fatigue": false,
+          "atk": 0,
+          "hp": 0
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "coût -1"
+        }
+      ],
+      "statics": [],
+      "sprite": "Characters/Octopus Robot.png"
     }
   ],
   "npcs": [
@@ -750,19 +2709,31 @@ export const CHARACTER_DATA = {
       "deck": [
         {
           "card": "grunt1",
-          "n": 5
+          "n": 4
         },
         {
           "card": "grunt2",
-          "n": 5
+          "n": 3
         },
         {
           "card": "bolt",
-          "n": 5
+          "n": 3
         },
         {
           "card": "card_bjidas",
-          "n": 5
+          "n": 3
+        },
+        {
+          "card": "adv_lapin_terrier",
+          "n": 3
+        },
+        {
+          "card": "adv_lapin_sauteur",
+          "n": 2
+        },
+        {
+          "card": "adv_lapin_carotte",
+          "n": 2
         }
       ],
       "ia": "naif"
@@ -778,27 +2749,39 @@ export const CHARACTER_DATA = {
       "deck": [
         {
           "card": "grunt2",
-          "n": 5
+          "n": 2
         },
         {
           "card": "rush1",
-          "n": 5
+          "n": 4
         },
         {
           "card": "bolt",
-          "n": 5
+          "n": 4
         },
         {
           "card": "card_i5eghg",
-          "n": 5
+          "n": 3
         },
         {
           "card": "wall1",
-          "n": 5
+          "n": 3
         },
         {
           "card": "card_ta7prz",
           "n": 2
+        },
+        {
+          "card": "adv_chat_gouttiere",
+          "n": 4
+        },
+        {
+          "card": "adv_chat_caid",
+          "n": 2
+        },
+        {
+          "card": "adv_chat_course",
+          "n": 3
         }
       ],
       "ia": "naif"
@@ -813,24 +2796,32 @@ export const CHARACTER_DATA = {
       "level": 1,
       "deck": [
         {
-          "card": "grunt2",
-          "n": 5
-        },
-        {
           "card": "grunt3",
-          "n": 5
+          "n": 4
         },
         {
           "card": "bolt",
-          "n": 5
+          "n": 4
         },
         {
           "card": "wall1",
-          "n": 5
+          "n": 3
         },
         {
           "card": "card_y5uc9s",
-          "n": 5
+          "n": 4
+        },
+        {
+          "card": "adv_corbeau_glaneur",
+          "n": 4
+        },
+        {
+          "card": "adv_corbeau_nuee",
+          "n": 3
+        },
+        {
+          "card": "adv_corbeau_rire",
+          "n": 3
         }
       ]
     },
@@ -849,11 +2840,7 @@ export const CHARACTER_DATA = {
         },
         {
           "card": "wall2",
-          "n": 2
-        },
-        {
-          "card": "rush1",
-          "n": 2
+          "n": 1
         },
         {
           "card": "smash",
@@ -861,6 +2848,22 @@ export const CHARACTER_DATA = {
         },
         {
           "card": "rally",
+          "n": 1
+        },
+        {
+          "card": "adv_loup_hurlement",
+          "n": 1
+        },
+        {
+          "card": "adv_loup_mere",
+          "n": 1
+        },
+        {
+          "card": "adv_loup_fourrure",
+          "n": 2
+        },
+        {
+          "card": "adv_loup_flair",
           "n": 1
         }
       ],
@@ -881,20 +2884,24 @@ export const CHARACTER_DATA = {
           "n": 2
         },
         {
-          "card": "wall1",
-          "n": 2
-        },
-        {
           "card": "grunt3",
-          "n": 2
-        },
-        {
-          "card": "potion",
           "n": 1
         },
         {
           "card": "card_urlyni",
+          "n": 1
+        },
+        {
+          "card": "adv_crapaud_bave",
           "n": 2
+        },
+        {
+          "card": "adv_crapaud_tetard",
+          "n": 2
+        },
+        {
+          "card": "adv_crapaud_roi",
+          "n": 1
         }
       ]
     },
@@ -909,7 +2916,7 @@ export const CHARACTER_DATA = {
       "deck": [
         {
           "card": "grunt3",
-          "n": 4
+          "n": 2
         },
         {
           "card": "grunt4",
@@ -917,11 +2924,23 @@ export const CHARACTER_DATA = {
         },
         {
           "card": "smash",
-          "n": 3
+          "n": 2
         },
         {
           "card": "wall1",
-          "n": 3
+          "n": 1
+        },
+        {
+          "card": "adv_pieuvre_ancre",
+          "n": 2
+        },
+        {
+          "card": "adv_pieuvre_encre",
+          "n": 1
+        },
+        {
+          "card": "adv_pieuvre_tresor",
+          "n": 2
         }
       ]
     },
@@ -936,11 +2955,11 @@ export const CHARACTER_DATA = {
       "deck": [
         {
           "card": "venomite",
-          "n": 4
+          "n": 3
         },
         {
           "card": "wall2",
-          "n": 4
+          "n": 3
         },
         {
           "card": "grunt4",
@@ -948,15 +2967,15 @@ export const CHARACTER_DATA = {
         },
         {
           "card": "smash",
-          "n": 3
+          "n": 2
         },
         {
           "card": "rally",
-          "n": 3
+          "n": 2
         },
         {
           "card": "potion",
-          "n": 2
+          "n": 1
         },
         {
           "card": "card_viekke",
@@ -965,6 +2984,18 @@ export const CHARACTER_DATA = {
         {
           "card": "card_winkd1",
           "n": 1
+        },
+        {
+          "card": "adv_capitaine_abordage",
+          "n": 2
+        },
+        {
+          "card": "adv_capitaine_canonnade",
+          "n": 1
+        },
+        {
+          "card": "adv_capitaine_quartier",
+          "n": 2
         }
       ],
       "ia": "dur",
@@ -981,19 +3012,31 @@ export const CHARACTER_DATA = {
       "deck": [
         {
           "card": "rush1",
-          "n": 5
+          "n": 3
         },
         {
           "card": "grunt4",
-          "n": 3
+          "n": 2
         },
         {
           "card": "smash",
-          "n": 4
+          "n": 2
         },
         {
           "card": "grunt3",
-          "n": 3
+          "n": 2
+        },
+        {
+          "card": "adv_renard_bourrasque",
+          "n": 2
+        },
+        {
+          "card": "adv_renard_givre",
+          "n": 2
+        },
+        {
+          "card": "adv_renard_traque",
+          "n": 2
         }
       ]
     },
@@ -1008,23 +3051,23 @@ export const CHARACTER_DATA = {
       "deck": [
         {
           "card": "wall2",
-          "n": 5
-        },
-        {
-          "card": "grunt4",
-          "n": 5
-        },
-        {
-          "card": "smash",
           "n": 4
         },
         {
-          "card": "rally",
+          "card": "grunt4",
+          "n": 4
+        },
+        {
+          "card": "smash",
           "n": 3
         },
         {
+          "card": "rally",
+          "n": 2
+        },
+        {
           "card": "potion",
-          "n": 3
+          "n": 2
         },
         {
           "card": "card_viekke",
@@ -1032,6 +3075,18 @@ export const CHARACTER_DATA = {
         },
         {
           "card": "card_4vap0r",
+          "n": 1
+        },
+        {
+          "card": "adv_duc_sentence",
+          "n": 2
+        },
+        {
+          "card": "adv_duc_archiviste",
+          "n": 2
+        },
+        {
+          "card": "adv_duc_eclipse",
           "n": 1
         }
       ],

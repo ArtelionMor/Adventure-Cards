@@ -1,4 +1,6 @@
 // Ajoute (ou remplace) les six heros V3 dans characters.data.js — leur SOURCE est docs/V3-HEROS.md.
+// Pose aussi les 44 CARTES DES ADVERSAIRES (cartes libres) et les decks des 9 adversaires du builder :
+// scripts/lib/cartes-adversaires.mjs (⚠ ecrase les retouches faites depuis dans le builder, comme pour les heros).
 // ⚠ Relancer ECRASE les six heros V3 par leur definition d'ici : toute retouche faite depuis dans le
 // builder sur Patou, Melusine, Morrigane, Dendrobate, Hulotte ou Pastiche serait perdue.
 // A utiliser pour (re)generer le point de depart ; apres, on edite dans le builder.
@@ -17,6 +19,7 @@
 // Le fichier docs/MECANIQUES-A-CODER.md est reecrit dans le format du Card Builder.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fabrique } from './lib/heros-v3-paliers.mjs';
+import { CARTES_ADVERSAIRES, DECKS_ADVERSAIRES } from './lib/cartes-adversaires.mjs';
 import { eachEffect, eachUnit } from '../game/src/config/validate.js';
 import { keyId, EFFECTS, KEYWORDS } from '../game/src/config/mechanics.js';
 
@@ -334,6 +337,16 @@ for (const id of Object.keys(TIERS)) if (!V3.some(h => [...h.cards, ...h.switche
 
 const ids = new Set(V3.map(h => h.id));
 D.characters = D.characters.filter(h => !ids.has(h.id)).concat(V3);
+
+// Les cartes des adversaires (scripts/lib/cartes-adversaires.mjs, docs/CARTES-ADVERSAIRES.md) : cartes libres
+// remplacees par identifiant, et deck des adversaires du builder reecrit.
+const idsAdv = new Set(CARTES_ADVERSAIRES.map(c => c.id));
+D.library = D.library.filter(c => !idsAdv.has(c.id)).concat(CARTES_ADVERSAIRES);
+for (const [id, deck] of Object.entries(DECKS_ADVERSAIRES)) {
+  const pnj = D.npcs.find(n => n.id === id);
+  if (!pnj) throw new Error('adversaire inconnu : ' + id);
+  pnj.deck = Object.entries(deck).map(([card, n]) => ({ card, n }));
+}
 
 // Les mecaniques inventees : on remplace celles du meme identifiant, on garde les autres.
 // Une mecanique CODEE (elle est dans EFFECTS / KEYWORDS) n'a plus rien a faire ici : on la retire.

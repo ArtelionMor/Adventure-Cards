@@ -28,6 +28,7 @@
 | Fichier | Rôle |
 |---|---|
 | `heros-v2-paliers.mjs` | Les paliers des six héros V2 (utilisé par `scripts/gen-heros-v2.mjs`). |
+| `cartes-adversaires.mjs` | Les **44 cartes des adversaires** (`CARTES_ADVERSAIRES`) et les decks des 9 adversaires du builder (`DECKS_ADVERSAIRES`), utilisés par `scripts/gen-heros-v3.mjs` (conception : `docs/CARTES-ADVERSAIRES.md`). |
 | `heros-v3-paliers.mjs` | Les paliers des six héros V3, recopiés de `docs/V3-HEROS.md` niveau par niveau (utilisé par `scripts/gen-heros-v3.mjs`). |
 
 ## Règles

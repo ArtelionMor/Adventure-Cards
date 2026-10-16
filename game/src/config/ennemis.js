@@ -10,8 +10,9 @@
 // cumulees. Les ameliorations d'un ennemi sont plus nombreuses et plus fortes que celles d'un heros : c'est ce
 // qui garde le defi quand le joueur progresse.
 //
-// Ou vit la donnee : un onglet `enemy_progress_profile` de la feuille (meme schema que `progress_profile`) gagne
-// s'il existe et donne des lignes pour ce profil ; sinon, les profils PROVISOIRES ci-dessous.
+// Ou vit la donnee : l'onglet `enemy_progress_profile` de la feuille (meme schema que `progress_profile`), UN PROFIL
+// PAR ADVERSAIRE, dont l'`id` est celui de l'adversaire (`cat1`, `wolf`…) : il gagne des qu'il a des lignes pour lui.
+// Sinon, les profils PROVISOIRES ci-dessous (`standard`, `boss`).
 import { CHARACTER_DATA } from '../../data/characters.data.js';
 import { FEUILLE } from '../../data/feuille.data.js';
 import { NPC_BY_ID, npcDeck } from './npcs.js';
@@ -22,20 +23,25 @@ import { NPC_BY_ID, npcDeck } from './npcs.js';
 export const ENNEMIS_PROVISOIRES = [
   // Controle Pillow Fort : il se blinde de Provocations et de soins, et gagne avec un chien qui grandit a chaque tour.
   { id: 'sloth1', name: 'Paresseux Batisseur', sprite: 'Characters/Sloth.png', hp: 34, mana: 7, hand: 4, ia: 'normal', level: 1,
-    deck: [{ card: 'wall1', n: 5 }, { card: 'wall2', n: 3 }, { card: 'potion', n: 3 }, { card: 'grunt3', n: 2 }, { card: 'card_njt2j1', n: 2 }] },
+    deck: [{ card: 'wall1', n: 3 }, { card: 'wall2', n: 2 }, { card: 'potion', n: 2 }, { card: 'card_njt2j1', n: 2 },
+      { card: 'adv_paresseux_hamac', n: 2 }, { card: 'adv_paresseux_sieste', n: 2 }, { card: 'adv_paresseux_coussin', n: 2 }] },
   // Aggro Turbo : des Charges partout, il ne regarde pas ton plateau.
   { id: 'robin1', name: 'Rouge-Gorge Fou', sprite: 'Characters/Robin.png', hp: 24, mana: 6, hand: 4, ia: 'normal', level: 1,
-    deck: [{ card: 'rush1', n: 4 }, { card: 'card_9g5803', n: 5 }, { card: 'bolt', n: 4 }, { card: 'crow2_dive', n: 2 }] },
+    deck: [{ card: 'rush1', n: 3 }, { card: 'card_9g5803', n: 2 }, { card: 'bolt', n: 2 }, { card: 'crow2_dive', n: 2 },
+      { card: 'adv_rougegorge_pique', n: 2 }, { card: 'adv_rougegorge_chant', n: 2 }, { card: 'adv_rougegorge_kamikaze', n: 2 }] },
   // Combo : les cartes du cameleon Mirage (prisme, miroir, choeur), qui copient et se repondent.
   { id: 'panda1', name: 'Kitsune Farceur', sprite: 'Characters/Red Panda Kitsune.png', hp: 30, mana: 7, hand: 4, ia: 'normal', level: 1,
-    deck: [{ card: 'cam2_prism', n: 3 }, { card: 'cam2_mirror', n: 3 }, { card: 'cam2_choir', n: 3 }, { card: 'fox_raid', n: 3 }, { card: 'bolt', n: 3 }] },
+    deck: [{ card: 'cam2_prism', n: 2 }, { card: 'cam2_mirror', n: 2 }, { card: 'cam2_choir', n: 2 }, { card: 'fox_raid', n: 2 }, { card: 'bolt', n: 1 },
+      { card: 'adv_kitsune_illusion', n: 2 }, { card: 'adv_kitsune_metamorphe', n: 2 }, { card: 'adv_kitsune_queues', n: 2 }] },
   // Fatigue : un deck court et epais en PV, qui veut t'emmener a la pile de fatigue.
   { id: 'goat1', name: 'Chevre Tetue', sprite: 'Characters/Goat.png', hp: 40, mana: 7, hand: 4, ia: 'normal', level: 1,
-    deck: [{ card: 'owl2_nest', n: 3 }, { card: 'owl2_lull', n: 3 }, { card: 'wall1', n: 3 }, { card: 'potion', n: 3 }] },
+    deck: [{ card: 'owl2_nest', n: 2 }, { card: 'owl2_lull', n: 2 }, { card: 'wall1', n: 1 }, { card: 'potion', n: 1 },
+      { card: 'adv_chevre_rumination', n: 2 }, { card: 'adv_chevre_bouquetin', n: 2 }, { card: 'adv_chevre_vieille', n: 1 }, { card: 'adv_chevre_mangetout', n: 1 }] },
   // Aggro MidRange : il s'adapte — retraits (Equarrisseur, Souffle) quand tu poses, corps solides sinon.
   // Mesure (16 oct., trios niveau 1) : a 36 PV / 8 mana avec deux Pieuvres Mecaniques, la mediane etait 0 % : adouci.
   { id: 'octo2', name: 'Pieuvre Robot', sprite: 'Characters/Octopus Robot.png', hp: 30, mana: 7, hand: 4, ia: 'normal', level: 1,
-    deck: [{ card: 'card_winkd1', n: 1 }, { card: 'grunt3', n: 3 }, { card: 'crow3_vulture', n: 3 }, { card: 'crow3_knacker', n: 2 }, { card: 'smash', n: 2 }, { card: 'bolt', n: 3 }] }
+    deck: [{ card: 'card_winkd1', n: 1 }, { card: 'grunt3', n: 2 }, { card: 'crow3_vulture', n: 2 }, { card: 'crow3_knacker', n: 2 }, { card: 'smash', n: 1 }, { card: 'bolt', n: 2 },
+      { card: 'adv_robot_tentacule', n: 2 }, { card: 'adv_robot_recycleuse', n: 1 }, { card: 'adv_robot_usine', n: 1 }] }
 ];
 const PROVISOIRE_PAR_ID = Object.fromEntries(ENNEMIS_PROVISOIRES.map(e => [e.id, e]));
 
@@ -90,8 +96,11 @@ export const PROFILS = {
   }
 };
 
-/** Le profil de chaque ennemi (absent : `standard`). PROVISOIRE. */
+/** Le profil provisoire de chaque ennemi (absent : `standard`), quand la feuille n'en a pas a son nom. PROVISOIRE. */
 export const PROFIL_DE = { wolf: 'boss', frogboss: 'boss', owlboss: 'boss' };
+
+/** Le profil que suit un ennemi : le sien dans la feuille s'il y en a un, le provisoire sinon. */
+export const profilDe = id => ((FEUILLE.enemy_progress_profile || []).some(l => String(l.id) === id) ? id : (PROFIL_DE[id] || 'standard'));
 
 /** Les lignes `{ id, level, upgrade, value }` d'un profil provisoire (meme forme que `progress_profile`). */
 function lignesProvisoires(id) {
@@ -135,7 +144,7 @@ export function cumulJusqua(profil, niveau) {
 export function coteEnnemi(id, niveau = 1, data = CHARACTER_DATA) {
   const def = data === CHARACTER_DATA ? ennemiDef(id) : ((data.npcs || []).find(n => n.id === id) || PROVISOIRE_PAR_ID[id]);
   if (!def) return null;
-  const a = cumulJusqua(PROFIL_DE[id] || 'standard', niveau);
+  const a = cumulJusqua(profilDe(id), niveau);
   const deck = npcDeck({ ...def, level: (def.level || 1) + a.card_level }, data).map(c => (c.type === 'ally'
     ? { ...c, atk: (c.atk || 0) + a.buff_attack_ally, hp: (c.hp || 0) + a.buff_defense_ally }
     : c));

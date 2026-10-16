@@ -108,7 +108,8 @@ function etatDuJeu() {
 }
 
 /** Les onglets que le jeu lit, et comment chacun se compare. */
-export const BRANCHES = ['animations', 'heroes', 'encounters'];
+// `enemy_progress_profile` est lu tel quel par config/ennemis.js (un profil par adversaire) : pas de plan, juste les ids.
+export const BRANCHES = ['animations', 'heroes', 'encounters', 'enemy_progress_profile'];
 
 /**
  * Compare la feuille a ce que le jeu a. `plan` : une entree par ligne (voir `planifie`), `retires` : les
