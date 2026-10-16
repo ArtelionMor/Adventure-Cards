@@ -14,13 +14,16 @@
   <header id="topbar">
     <div class="hero-chip">
       <img id="topPortrait" alt="">
-      <div>
+      <div class="top-id">
         <div id="topName">—</div>
         <div class="xpbar"><i id="topXp"></i></div>
+        <div id="topLevel" class="lvl">1</div>
       </div>
-      <div id="topLevel" class="lvl">1</div>
     </div>
-    <div id="contextCurrency" class="ctx-cur"></div>
+    <div class="monnaies">
+      <span class="m" id="topCoin"></span>
+      <span class="m" id="topGem"></span>
+    </div>
   </header>
 
   <main id="screens">
@@ -31,6 +34,7 @@
       <div id="interactBtn" class="interact hidden">Entrer</div>
     </section>
 
+    <section class="screen hidden" id="screen-arene"></section>
     <section class="screen hidden" id="screen-farm"></section>
     <section class="screen hidden" id="screen-deck"></section>
     <section class="screen hidden" id="screen-bag"></section>
@@ -38,6 +42,7 @@
 
   <nav id="nav">
     <button data-go="world" class="active"><span>🗺️</span>Carte</button>
+    <button data-go="arene"><span>⚔️</span>Arène</button>
     <button data-go="farm"><span>🌱</span>Ferme</button>
     <button data-go="deck"><span>🃏</span>Deck</button>
     <button data-go="bag"><span>🎒</span>Sac</button>

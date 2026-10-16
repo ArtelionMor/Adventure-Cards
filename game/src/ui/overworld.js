@@ -1,12 +1,17 @@
 // Overworld : vue du dessus, deplacement libre, points d'interet.
-// La progression est rythmee par les NIVEAUX REQUIS (barrieres + rencontres), pas par
-// un decoupage en niveaux fermes : le monde entier est la des le prototype (GDD).
+// Refonte du 16 octobre 2026 (spec « Overworld + Arenes ») : plus de niveau requis ni de passage ferme. Les
+// combats sont des ARENES (un batiment) : entrer ouvre leur fiche (ui/arene.js), toutes sont ouvertes.
+import { BALANCE } from '../config/balance.js';
 import { WORLD, TILE, TILE_COLOR, BLOCKED, buildMap, ENCOUNTERS } from '../config/world.js';
 import { RELICS, RELIC_BY_ID } from '../config/relics.js';
 import { CHAR_BY_ID } from '../config/characters.js';
-import { save, persist, partyLevel, gain, spend } from '../state.js';
-import { $, el, asset, toast, modal, closeModal, setContext } from './shell.js';
+import { CROP_BY_ID } from '../config/farm.js';
+import { t } from '../config/textes.js';
+import { save, persist, gain, spend, areneDe, etatArene, decouvreCultures } from '../state.js';
+import { $, el, asset, toast, modal, closeModal } from './shell.js';
 import { openBattle } from './battle.js';
+import { ouvreFicheArene } from './arene.js';
+import { ouvreProfil } from './profil.js';
 import { creeSol } from './sol-carte.js';
 
 const map = buildMap();
@@ -32,6 +37,8 @@ function img(path) {
 
 function nodeSprite(n) {
   if (n.sprite) return n.sprite;
+  if (n.type === 'arena') return (areneDe(n) || {}).batiment || ENCOUNTERS[n.enemy].sprite;
+  if (n.type === 'forage') return (CROP_BY_ID[n.crops[0]] || {}).sprite || null;
   if (n.type === 'fight' || n.type === 'boss') return ENCOUNTERS[n.enemy].sprite;
   if (n.type === 'chest') return 'UI/Vault.png';
   if (n.type === 'shop') return 'Machines/Coffee shop.png';
@@ -62,13 +69,14 @@ export function initWorld() {
   const COURSE = 40;   // eloignement du doigt pour la pleine vitesse (le bouton va jusque-la)
   const ZONE_MORTE = 0.12;
   const monde = $('#screen-world');
-  let origine = null;
+  let origine = null, touche = null;
   const setKnob = (dx, dy) => { knob.style.transform = `translate(${dx * COURSE}px, ${dy * COURSE}px)`; };
   cv.addEventListener('pointerdown', e => {
     if (stick.active || (e.pointerType === 'mouse' && e.button !== 0)) return;
     stick.active = true; stick.id = e.pointerId; cv.setPointerCapture(e.pointerId);
     const r = monde.getBoundingClientRect();
     origine = { x: e.clientX, y: e.clientY };
+    touche = { x: e.clientX, y: e.clientY, at: performance.now(), loin: false };
     j.style.left = (e.clientX - r.left - RAYON) + 'px';
     j.style.top = (e.clientY - r.top - RAYON) + 'px';
     setKnob(0, 0);
@@ -77,6 +85,13 @@ export function initWorld() {
   cv.addEventListener('pointermove', e => { if (stick.active && e.pointerId === stick.id) move(e); });
   const stop = e => {
     if (e && e.pointerId !== stick.id) return;
+    // UN TAP SUR LE JOUEUR (court, sans glisser, sur son sprite) ouvre son PROFIL (ui/profil.js).
+    if (e && e.type === 'pointerup' && touche && !touche.loin && performance.now() - touche.at < 350 && surLeJoueur(e)) {
+      stick.active = false; stick.id = null; stick.x = stick.y = 0;
+      j.classList.add('hidden');
+      ouvreProfil();
+      return;
+    }
     stick.active = false; stick.id = null; stick.x = stick.y = 0;
     j.classList.add('hidden');
   };
@@ -84,6 +99,7 @@ export function initWorld() {
   cv.addEventListener('pointercancel', stop);
   cv.addEventListener('contextmenu', e => e.preventDefault());
   function move(e) {
+    if (touche && Math.hypot(e.clientX - touche.x, e.clientY - touche.y) > 10) touche.loin = true;
     let dx = (e.clientX - origine.x) / COURSE;
     let dy = (e.clientY - origine.y) / COURSE;
     const m = Math.hypot(dx, dy);
@@ -95,6 +111,14 @@ export function initWorld() {
   }
 
   $('#interactBtn').onclick = interact;
+}
+
+/** Le doigt est-il sur le sprite du joueur ? (il est dessine au centre du canvas, pieds un peu plus bas) */
+function surLeJoueur(e) {
+  const r = cv.getBoundingClientRect();
+  const ts = WORLD.tile;
+  const x = e.clientX - r.left - r.width / 2, y = e.clientY - r.top - r.height / 2;
+  return Math.abs(x) < ts * 0.7 && y > -ts * 1.1 && y < ts * 0.5;
 }
 
 function resize() {
@@ -116,14 +140,7 @@ export function stopWorld() { running = false; }
 
 // --------------------------------------------------------------- simulation
 function blockedAt(x, y) {
-  if (BLOCKED.has(tileAt(x, y))) return true;
-  const lvl = partyLevel();
-  for (const n of WORLD.nodes) {
-    if (n.type !== 'gate') continue;
-    if (lvl >= n.reqLevel) continue;
-    if (Math.hypot(n.x + 0.5 - x, n.y + 0.5 - y) < 3) return true;
-  }
-  return false;
+  return BLOCKED.has(tileAt(x, y));
 }
 
 function step(dt) {
@@ -136,7 +153,7 @@ function step(dt) {
   const m = Math.hypot(dx, dy);
   if (m > 1) { dx /= m; dy /= m; }
 
-  const speed = 4.6; // tuiles par seconde
+  const speed = WORLD.vitesse; // cases par seconde
   const nx = w.px + dx * speed * dt;
   const ny = w.py + dy * speed * dt;
   // Deplacement axe par axe : on glisse le long des murs au lieu de rester coince.
@@ -145,27 +162,23 @@ function step(dt) {
 
   // point d'interet le plus proche
   near = null;
-  let best = 1.6;
+  let best = BALANCE.arenes.interactionTuiles;
   for (const n of WORLD.nodes) {
     const d = Math.hypot(n.x + 0.5 - w.px, n.y + 0.5 - w.py);
     if (d < best) { best = d; near = n; }
-    if (d < 6) save.world.seen[n.id] = true;
+    // DECOUVERTE : un point vu de pres le reste ; une arene vue apparait dans l'onglet « Arene ».
+    if (d < BALANCE.arenes.decouverteTuiles) save.world.seen[n.id] = true;
   }
   const btn = $('#interactBtn');
   const hint = $('#worldHint');
-  if (near && near.type !== 'gate') {
+  if (near) {
     btn.classList.remove('hidden');
     btn.textContent = labelFor(near);
     hint.textContent = titleFor(near);
     hint.classList.add('on');
   } else {
     btn.classList.add('hidden');
-    if (near && near.type === 'gate') {
-      hint.textContent = partyLevel() >= near.reqLevel
-        ? `${near.name} — le passage est ouvert`
-        : `${near.name} — niveau ${near.reqLevel} requis (tu es niveau ${partyLevel()})`;
-      hint.classList.add('on');
-    } else hint.classList.remove('on');
+    hint.classList.remove('on');
   }
 }
 
@@ -174,11 +187,14 @@ function labelFor(n) {
   if (n.type === 'shop') return 'Marchander';
   if (n.type === 'npc') return 'Parler';
   if (n.type === 'teleport') return 'Voyager';
+  if (n.type === 'forage') return save.world.cleared[n.id] ? 'Cueilli' : 'Cueillir';
+  if (n.type === 'arena') return 'Entrer';
   return save.world.cleared[n.id] ? 'Rejouer' : 'Combattre';
 }
+// Le titre d'un point : une arene dit son niveau (il monte a chaque victoire), le reste son nom.
+const suffixe = n => (n.type === 'arena' ? ` · niv. ${etatArene(n.arene).niveau}` : '');
 function titleFor(n) {
-  const lvl = n.reqLevel ? ` · niveau ${n.reqLevel}` : '';
-  return n.name + lvl;
+  return n.name + suffixe(n);
 }
 
 // ------------------------------------------------------------------- rendu
@@ -210,28 +226,12 @@ function draw(t) {
   if (!sol) sol = creeSol({ tuile: tileAt, points: WORLD.nodes.map(n => ({ x: n.x, y: n.y, grand: !!tailleDe(n) })), img });
   sol.dessine(cx, { x0, x1, y0, y1, ts, camx, camy, t });
 
-  // barrieres de niveau
-  const lvl = partyLevel();
-  for (const n of WORLD.nodes.filter(n => n.type === 'gate')) {
-    const open = lvl >= n.reqLevel;
-    const sx = n.x * ts - camx, sy = n.y * ts - camy;
-    cx.save();
-    cx.globalAlpha = open ? .25 : .8;
-    cx.strokeStyle = open ? '#7fd6a6' : '#ff7a86';
-    cx.lineWidth = 4;
-    cx.setLineDash([10, 8]);
-    cx.beginPath(); cx.arc(sx + ts / 2, sy + ts / 2, ts * 2.8, 0, 7); cx.stroke();
-    cx.restore();
-    label(cx, open ? n.name : `${n.name} · niv. ${n.reqLevel}`, sx + ts / 2, sy - 6);
-  }
-
   // points d'interet et joueur, DU PLUS LOIN AU PLUS PROCHE : un batiment fait plusieurs
   // cases de haut, et le joueur qui passe derriere (au nord de sa porte) doit etre cache par
   // lui, pas dessine par-dessus. Chaque element dit ou sont ses PIEDS (`y`, en cases).
   // Les noms sont ecrits apres, tous ensemble : un nom ne doit jamais etre recouvert.
   const items = [], noms = [];
   for (const n of WORLD.nodes) {
-    if (n.type === 'gate') continue;
     const sx = n.x * ts - camx, sy = n.y * ts - camy;
     const unites = tailleDe(n);
     // Un grand objet depasse de sa case de tous les cotes : on ne l'ecarte qu'une fois sorti
@@ -320,7 +320,15 @@ function dessinePoint(n, sx, sy, t, unites, noms) {
     cx.beginPath(); cx.ellipse(cxp, bas - ts * .08, ww * .42, ts * .22, 0, 0, 7); cx.fill();
     cx.restore();
     cx.drawImage(im, z.x0 * im.naturalWidth, z.y0 * im.naturalHeight, sw, sh, cxp - ww / 2, bas - hh, ww, hh);
-    noms.push({ text: n.name + (n.reqLevel ? ` · niv.${n.reqLevel}` : ''), x: cxp, y: bas - hh - 4 });
+    // Une ARENE montre son adversaire devant sa porte, a l'echelle d'un personnage : on reconnait qui y attend.
+    if (n.type === 'arena') {
+      const ie = img(ENCOUNTERS[n.enemy] && ENCOUNTERS[n.enemy].sprite);
+      if (ie && ie.complete && ie.naturalWidth) {
+        const s = ts * 1.35;
+        cx.drawImage(ie, cxp + ts * .55, bas - s + ts * .1 + Math.sin(t / 500 + n.x) * 2, s, s);
+      }
+    }
+    noms.push({ text: n.name + suffixe(n), x: cxp, y: bas - hh - 4 });
     return;
   }
 
@@ -333,7 +341,7 @@ function dessinePoint(n, sx, sy, t, unites, noms) {
 
   if (pret) {
     cx.save();
-    if (done && (n.type === 'chest')) cx.globalAlpha = .4;
+    if (done && (n.type === 'chest' || n.type === 'forage')) cx.globalAlpha = .4;
     const s = ts * (n.type === 'boss' ? 1.7 : 1.25);
     cx.drawImage(im, sx + ts / 2 - s / 2, sy + ts - s + bob, s, s);
     cx.restore();
@@ -345,7 +353,7 @@ function dessinePoint(n, sx, sy, t, unites, noms) {
     cx.strokeStyle = '#9ad7ff'; cx.lineWidth = 3;
     cx.beginPath(); cx.arc(sx + ts / 2, sy + ts / 2, ts * .5, 0, 7); cx.stroke();
   }
-  noms.push({ text: n.name + (n.reqLevel ? ` · niv.${n.reqLevel}` : ''), x: sx + ts / 2, y: sy - 4 });
+  noms.push({ text: n.name + suffixe(n), x: sx + ts / 2, y: sy - 4 });
 }
 
 function label(ctx, text, x, y) {
@@ -364,6 +372,8 @@ function label(ctx, text, x, y) {
 function interact() {
   if (!near || $('#screen-world').classList.contains('hidden')) return;
   const n = near;
+  if (n.type === 'arena') return ouvreFicheArene(n, { avant: stopWorld, apres: () => { startWorld(); refreshTop(); } });
+  if (n.type === 'forage') return doForage(n);
   if (n.type === 'fight' || n.type === 'boss') return doFight(n);
   if (n.type === 'chest') return doChest(n);
   if (n.type === 'shop') return doShop(n);
@@ -371,17 +381,24 @@ function interact() {
   if (n.type === 'teleport') return doTeleport(n);
 }
 
+// Un ancien point de combat (`fight`/`boss`) : plus de verrou, le combat part directement. La carte n'en porte plus
+// depuis la refonte (ce sont des arenes) ; le chemin reste pour une rencontre ajoutee a la main.
 function doFight(n) {
-  const lvl = partyLevel();
-  if (n.reqLevel && lvl < n.reqLevel) {
-    toast(`Niveau ${n.reqLevel} requis — tu es niveau ${lvl}. Ameliore un personnage a la Ferme.`);
-    return;
-  }
   stopWorld();
   openBattle(n, () => {
     startWorld();
     refreshTop();
   });
+}
+
+// CUEILLETTE : le point fait connaitre ses cultures a la Ferme (une fois), puis il est vide.
+function doForage(n) {
+  const neuves = decouvreCultures(n.crops || []);
+  save.world.cleared[n.id] = true;
+  persist();
+  toast(neuves.length
+    ? t('ferme.trouve', { liste: neuves.map(id => (CROP_BY_ID[id] || {}).name || id).join(', ') })
+    : t('ferme.dejaTrouve'));
 }
 
 function doChest(n) {

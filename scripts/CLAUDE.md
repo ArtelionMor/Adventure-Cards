@@ -1,6 +1,6 @@
 # scripts/ — serveur de dev, outils de mesure, bancs de test, générateurs
 
-> Tout est du Node sans dépendance (`.mjs`) sauf `devserver.js` et les `.ps1`. Les briques partagées sont dans `lib/` (voir `lib/CLAUDE.md`).
+> Tout est du Node sans dépendance (`.mjs`) sauf `devserver.js`, les `.ps1` et `gen-art.py` (Python : Pillow, numpy, scipy). Les briques partagées sont dans `lib/` (voir `lib/CLAUDE.md`).
 > `devserver.js` fait ≈ 900 lignes et `test-triggers.mjs` ≈ 3 600 : **Grep**, ne les lis pas en entier.
 
 ## Le serveur
@@ -14,7 +14,7 @@
 | Fichier | Rôle |
 |---|---|
 | `matchups.mjs` | Matrice deck contre deck (`--taille 3`/`--trio`, `--pnj`, `--adversaires`, `--archetypes`, `--mix`, `--fort`…). |
-| `simulate.mjs` | **Courbe de difficulté** : toutes les équipes contre chaque rencontre du monde (`--paliers 3,3,3`). |
+| `simulate.mjs` | **Courbe de difficulté** : toutes les équipes contre chaque rencontre du monde (`--paliers 3,3,3`). `--niveau 1` force le niveau des héros sur tous les paliers (« toutes les arènes faisables au niveau 1 ») ; `--arene N` joue les ennemis au niveau d'arène N (profil de `config/ennemis.js`). |
 | `check-decks.mjs` | **Les erreurs** : règles de `config/validate.js` puis vraies parties (carte jamais jouée, moment jamais déclenché). |
 | `analyse-cartes.mjs` | Ce que le bot a préféré, par carte, et pourquoi (écart contre le meilleur coup). |
 | `audit-paliers.mjs` | Audit des paliers de niveau (aucune partie jouée) — voir `docs/GRAMMAIRE-DES-PALIERS.md`. |
@@ -37,6 +37,7 @@
 | Fichier | Rôle |
 |---|---|
 | `gen-sprites.mjs` | Réécrit `game/data/sprites.js` (liste des images de `Characters/`, `Machines/`, `Ressources/`, `UI/` et des packs `Decor/<pack>/`). **Doublé en C#** (`GenereSprites()` dans `launcher/Launcher.cs`) : les deux doivent produire le même fichier. |
+| `gen-art.py` + `art-sujets.json` | **L'image d'une carte, du nom au PNG détouré** (Python). Lit l'export « cartes-niveau-N-….json » de l'Atelier (`--liste`), écrit le prompt (gabarit « Dans le style graphique des images, sur un fond rose, dessine… » + portraits de `Characters/` en références), demande des variantes à l'API Gemini (`GEMINI_API_KEY`, API Interactions, modèle `gemini-nano-banana-2.1`), **détoure le rose en local** (remplace Icons8) et signale les rendus ratés (sujet coupé, fond pas uni, zone rose gardée). Sorties dans `art-sortie/<id>/` (ignoré par git) + `planche-NN.png` ; `--choisir "<carte>" <n>` copie le PNG dans `Characters/<Espèce> <Carte>.png`. `--etat`, `--a-blanc` (prompts sans appel), `--verifier` (autocontrôle sans réseau), `--prompts f.md` (écrit **tous** les prompts à copier-coller : `docs/PROMPTS-IMAGES-CARTES.md`), `--detourer <fichier|dossier>` (détoure des images prises à la main dans Gemini, sans API), `--references` (range les **10 mêmes images de référence, SÉPARÉES**, dans `art-sortie/references-style/` : dans Gemini, « + », Importer des fichiers, Ctrl+A). ⚠ Le gabarit est **exactement** « Dans ce style graphique, sur fond rose, dessine … » : toute consigne ajoutée (« autocollant », « de face », « marge »…) a fait dériver le style. ⚠ **Jamais de planche** (les références fondues en une image) : avec UNE image jointe Gemini la modifie (il repeint le fond et pose le personnage dessus, planche rose ou blanche) ; avec PLUSIEURS il crée une image neuve d'après leur style. Un navigateur ne copie qu'une image à la fois, et coller 10 fichiers (lanceur Windows `Set-Clipboard`) n'a pas marché dans Gemini : on joint par le dialogue de fichiers, ou par un Gem (10 fichiers de connaissances, à tester). Le **sujet** de chaque carte se décide à la main dans `art-sujets.json` (clé = id) : sans sujet, la carte est sautée. N'écrit jamais `characters.data.js`. ⚠ La requête n'a pas encore été éprouvée avec une vraie clé. |
 | `gen-icones.ps1` | Décline `Icons/Icon.png` en icônes de l'Atelier (`builder/icons/`). |
 | `gen-heros-v2.mjs` | Écrit les six héros V2 dans `characters.data.js` (⚠ écrase leurs retouches ; paliers dans `lib/heros-v2-paliers.mjs`). |
 | `gen-heros-v3.mjs` | Écrit les **six héros V3** (`docs/V3-HEROS.md`) dans `characters.data.js` **et** déclare dans `customMechanics` les mécaniques pas encore codées (aucune depuis le 12 octobre : le Registre était la dernière), puis réécrit `docs/MECANIQUES-A-CODER.md` au format du builder (⚠ écrase leurs retouches ; paliers dans `lib/heros-v3-paliers.mjs`). À relancer **sur le Pi** si des cartes y sont en attente. |

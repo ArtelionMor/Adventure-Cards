@@ -13,6 +13,8 @@ export const ICONES = {
   Log: '☰', Close: '✕', Auto: '▶', Manual: '✋', Deck: '▤', Discard: '▥',
   // valeurs
   Mana: '◆', Attack: '⚔', Health: '♥', Armor: '⛨',
+  // monnaies (dessins tires de la maquette Figma du game designer, 12 octobre 2026)
+  Coin: '●', Gem: '◆',
   // evenements
   Swords: '⚔', Counter: '↩', Dead: '☠', Damage: '✸', Heal: '✚', Buff: '▲', Debuff: '▼', Summon: '✦',
   Draw: '▤', Destroy: '✖', Mill: '⇩', Exile: '⊘', Create: '✧', Return: '⤴', Shuffle: '⤨', Copy: '⧉',
@@ -23,6 +25,8 @@ export const ICONES = {
   Taunt: '▣', Charge: '➤', Venom: '☣', Shield: '◍', Elusive: '◌', WallWalker: '⇉', Mirror: '◫', Flashback: '↺',
   // resultats d'un coup
   Cancel: '⊗', Choice: '⑂',
+  // l'ecran d'equipe : la coche d'un heros dans l'equipe
+  Check: '✔',
   // fin de combat
   Victory: '★', Defeat: '✖'
 };

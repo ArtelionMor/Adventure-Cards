@@ -108,7 +108,7 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | `game/src/config/` | **Game config** (`balance.js` : tout ce qui se tune) et **registres** (`mechanics.js`), personnages, adversaires, monde, validation, courbes. | `game/src/config/CLAUDE.md` |
 | `game/src/combat/` | **Moteur**, bot, journal de décisions, événements du combat. Pas de DOM. | `game/src/combat/CLAUDE.md` |
 | `game/src/tools/` | L'**arène** de mesure (deck contre deck) et le montage des **situations**. | `game/src/tools/CLAUDE.md` |
-| `game/src/ui/` | Les **écrans** : combat, overworld, deck, ferme, sac, journal graphique, gestes, icônes. | `game/src/ui/CLAUDE.md` |
+| `game/src/ui/` | Les **écrans** : combat, overworld, arènes, profil, deck, ferme, sac, journal graphique, gestes, icônes. | `game/src/ui/CLAUDE.md` |
 | `game/data/` | Les données : **cartes** (écrites par le builder), situations, liste des sprites. | `game/data/CLAUDE.md` |
 | `builder/` | **L'Atelier** : Card Builder, équilibrage, courbes, situations, lancer un calcul, versions (pages autonomes, PWA). | `builder/CLAUDE.md` |
 | `scripts/` | Serveur de dev, outils de mesure, **bancs de test**, générateurs. | `scripts/CLAUDE.md` |
@@ -137,6 +137,8 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | changer le sol, les chemins, les arbres ou le feuillage de la carte | `game/src/ui/sol-carte.js` (le pack B+, cf. `docs/PACKS-CARTE.md`) |
 | changer l'aspect (couleurs, cadres, polices) ou une animation de carte | `game/skins/juice.css` ; `game/src/ui/vfx.js` (`SIGNATURES`, cf. `docs/VFX-CARTES.md`) |
 | modifier la carte du monde, un bâtiment, une rencontre | `game/src/config/world.js` (placement) + `game/src/ui/overworld.js` (dessin) |
+| changer une arène (fiche, archétype, héros conseillés), un ennemi provisoire, sa progression | `game/src/config/arenes.js`, `game/src/config/ennemis.js` (+ onglets `encounters` / `enemy_progress_profile` de la feuille) ; l'écran : `game/src/ui/arene.js` |
+| changer l'arbre du profil du joueur, les jokers, les decks enregistrés | `game/src/config/profil.js`, `BALANCE.profil` / `BALANCE.decks` ; écrans `game/src/ui/profil.js`, `arene.js` |
 | mesurer l'équilibre | `scripts/matchups.mjs`, `simulate.mjs`, `check-decks.mjs`, `analyse-cartes.mjs` (ou `builder/balance.html`) |
 | lancer un calcul depuis le téléphone, les renforts, l'IA locale | `builder/lancer.html` + `scripts/devserver.js` + `scripts/lib/` |
 | ajouter une icône | déposer `Icons/<Nom>.png` (noms : `game/src/ui/icones.js`) |

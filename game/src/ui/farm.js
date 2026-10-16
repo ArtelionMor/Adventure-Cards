@@ -1,10 +1,15 @@
 // Mini-jeu de Ferme : la seule source de monnaie C.
 // Planter -> recolter -> poser a l'etale. Une vente passe toutes les 15 min et achete
 // tout ce qui est en vente. C'est aussi le support des gains hors-ligne (GDD).
+// Depuis le 16 octobre 2026 (spec « Ferme reformee »), on plante sur un CHAMP EN GRILLE (`BALANCE.farm.grille`) :
+// toucher une case vide choisit le legume, une case mure le recolte, une case fermee (la suivante) s'achete. Les
+// cultures ne demandent plus de niveau : elles se TROUVENT sur la carte (`estConnue`, points « cueillette »).
+// L'economie (pousse, panier, etale, ventes, plafond hors-ligne) ne change pas.
 import { BALANCE } from '../config/balance.js';
-import { CROPS, CROP_BY_ID } from '../config/farm.js';
+import { CROPS, CROP_BY_ID, estConnue } from '../config/farm.js';
 import { relicMods } from '../config/relics.js';
-import { save, persist, gain, spend, partyLevel } from '../state.js';
+import { t } from '../config/textes.js';
+import { save, persist, gain, spend } from '../state.js';
 import { $, el, asset, toast, modal, closeModal, fmtTime } from './shell.js';
 
 const growMs = crop => Math.round(crop.growMs * (1 - Math.min(0.6, relicMods(save).farmSpeed)));
@@ -53,46 +58,46 @@ export function renderFarm() {
     </div>`);
   wrap.appendChild(head);
 
-  // ------------------------------------------------------------- parcelles
-  const plots = el(`<div class="card-panel"><h3>Parcelles</h3><div class="plots"></div></div>`);
-  const grid = plots.querySelector('.plots');
-  for (let i = 0; i < BALANCE.farm.maxPlots; i++) {
-    if (i >= f.plotCount) {
-      const cost = BALANCE.costs.farmPlot(i);
-      const n = el(`<div class="plot locked" title="Debloquer : ${cost} legumes"></div>`);
+  // ------------------------------------------------------------- le champ
+  const { cols } = BALANCE.farm.grille;
+  const champ = el(`<div class="card-panel"><h3>${t('ferme.champ')}</h3><div class="plots champ" style="grid-template-columns:repeat(${cols}, 1fr)"></div></div>`);
+  const grid = champ.querySelector('.plots');
+  f.cases.forEach((p, i) => {
+    if (i >= f.caseCount) {
+      const cost = BALANCE.costs.farmCase(i);
+      const n = el(`<div class="plot locked" title="${t('ferme.ouvrir', { n: cost })}"></div>`);
       n.onclick = () => {
-        if (i !== f.plotCount) { toast('Debloque les parcelles dans l’ordre.'); return; }
-        if (!spend('C', cost)) { toast(`Il te manque ${cost - save.cur.C} legumes.`); return; }
-        f.plotCount++; persist(); renderFarm();
+        if (i !== f.caseCount) { toast(t('ferme.dansLOrdre')); return; }
+        if (!spend('C', cost)) { toast(`Il te manque ${cost - save.cur.C} pièces.`); return; }
+        f.caseCount++; persist(); renderFarm();
       };
       grid.appendChild(n);
-      continue;
+      return;
     }
-    const p = f.plots[i];
     if (!p) {
       const n = el('<div class="plot empty"></div>');
       n.onclick = () => choosePlant(i);
       grid.appendChild(n);
-    } else {
-      const crop = CROP_BY_ID[p.cropId];
-      const total = growMs(crop);
-      const left = p.at + total - Date.now();
-      const pct = Math.max(0, Math.min(1, 1 - left / total)) * 100;
-      const n = el(`
-        <div class="plot ${left <= 0 ? 'ready' : ''}">
-          <img src="${asset(crop.sprite)}" alt="">
-          <div class="grow"><i style="width:${pct}%"></i></div>
-        </div>`);
-      n.onclick = () => {
-        if (left > 0) { toast(`${crop.name} : pret dans ${fmtTime(left)}`); return; }
-        f.plots[i] = null;
-        f.basket[crop.id] = (f.basket[crop.id] || 0) + 1;
-        persist(); renderFarm();
-      };
-      grid.appendChild(n);
+      return;
     }
-  }
-  wrap.appendChild(plots);
+    const crop = CROP_BY_ID[p.cropId];
+    const total = growMs(crop);
+    const left = p.at + total - Date.now();
+    const pct = Math.max(0, Math.min(1, 1 - left / total)) * 100;
+    const n = el(`
+      <div class="plot ${left <= 0 ? 'ready' : ''}">
+        <img src="${asset(crop.sprite)}" alt="">
+        <div class="grow"><i style="width:${pct}%"></i></div>
+      </div>`);
+    n.onclick = () => {
+      if (left > 0) { toast(`${crop.name} : pret dans ${fmtTime(left)}`); return; }
+      f.cases[i] = null;
+      f.basket[crop.id] = (f.basket[crop.id] || 0) + 1;
+      persist(); renderFarm();
+    };
+    grid.appendChild(n);
+  });
+  wrap.appendChild(champ);
 
   // ---------------------------------------------------------------- panier
   const basketIds = Object.keys(f.basket).filter(k => f.basket[k] > 0);
@@ -168,23 +173,24 @@ function putOnStall(cropId) {
   renderFarm();
 }
 
-function choosePlant(plotIndex) {
-  const lvl = partyLevel();
-  const box = el('<div><h2>Que planter ?</h2></div>');
+// Que planter sur la case `i` : les cultures CONNUES (tiers bas d'office, les autres trouvees sur la carte) ; les
+// autres restent dans la liste, grisees, avec ou les trouver.
+function choosePlant(i) {
+  const box = el(`<div><h2>${t('ferme.planter')}</h2></div>`);
   const list = el('<div class="cardlist"></div>');
   for (const c of CROPS) {
-    const ok = lvl >= c.reqLevel;
+    const ok = estConnue(c, save.farm.discovered);
     const row = el(`
       <div class="gcard" style="opacity:${ok ? 1 : .4}">
         <img class="port" src="${asset(c.sprite)}" alt="">
         <div>
           <div class="nm">${c.name}</div>
-          <div class="tx">${fmtTime(growMs(c))} · vaut ${c.price} legumes${ok ? '' : ` · niveau ${c.reqLevel} requis`}</div>
+          <div class="tx">${fmtTime(growMs(c))} · vaut ${c.price} pièces${ok ? '' : ` · ${t('ferme.inconnue')}`}</div>
         </div>
         <div class="st">T${c.tier}</div>
       </div>`);
     if (ok) row.onclick = () => {
-      save.farm.plots[plotIndex] = { cropId: c.id, at: Date.now() };
+      save.farm.cases[i] = { cropId: c.id, at: Date.now() };
       persist(); closeModal(); renderFarm();
     };
     list.appendChild(row);

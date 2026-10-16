@@ -12,7 +12,31 @@ export const BALANCE = {
   },
 
   progression: {
+    // Le palier le plus haut qu'une carte peut porter (l'echelle `lvl` des paliers du builder). Le NIVEAU d'un heros,
+    // lui, compte ses ameliorations (une par palier : `etapesDe` dans config/characters.js) et va plus haut.
     maxLevel: 20,
+    // LA PUISSANCE (annexe de la spec « Refonte Overworld + Arenes », 16 octobre 2026) : un nombre qui mesure la
+    // progression du joueur. Elle part de 0 (`base`, c'etait 100 par heros) et ne fait que monter : la somme des
+    // points de tout ce qui est debloque ou ameliore, chaque type d'evenement valant `gains[type]` — la colonne
+    // `increase_power` de l'onglet `~settings` (la feuille prevaut si elle change). `parAmelioration` = une
+    // amelioration de heros (le « +10 power » du bouton Upgrade : un palier de carte, `card_level_up`).
+    // Elle ne verrouille rien : la fiche d'arene affiche « puissance conseillee » (`power_needed`) a cote d'elle.
+    // puissanceJoueur() = tout ce que le joueur possede ; puissanceEquipe() = les heros alignes (state.js).
+    puissance: {
+      base: 0,
+      parAmelioration: 10,
+      gains: {
+        card_level_up: 10, health_up: 10, mana_max_up: 10, starting_armor_up: 10, starting_hand_cards: 10,
+        extra_card_in_deck: 10, fatigue_cards_buff: 10,
+        start_mana: 50,
+        buff_attack_ally: 20, buff_defense_ally: 20,
+        nouveauHeros: 15,       // « new hero »
+        nouveauTrinket: 10,     // « new trinket » (les reliques du Sac)
+        retourAfk: 50,          // « AFK return » — pas encore branche
+        amelioration: 10,       // « upgrade » : amelioration generique (place d'equipe, joker du profil)
+        premium: 75             // « premium » — pas encore branche
+      }
+    },
     // XP necessaire pour passer du niveau L au niveau L+1
     xpToNext: L => Math.round(30 + 18 * L + 4 * L * L),
     xpPerFight: 14,
@@ -20,15 +44,18 @@ export const BALANCE = {
   },
 
   costs: {
-    // Monnaie C : ameliorer un personnage du niveau L au niveau L+1
+    // Monnaie C (les pieces) : passer du palier L au palier L+1. Une amelioration ne coute qu'une PART de ce prix :
+    // le cout d'un palier se partage entre les etapes qui l'atteignent (`coutEtape` dans state.js).
     charUpgrade: L => Math.round(18 + 12 * L + 1.6 * L * L),
     // Monnaie B : debloquer une carte switch
     switchCard: 25,
     // Monnaie A : acheter un personnage (apres avoir battu son boss)
     charUnlock: 40,
     // Monnaie C : progression path des stats generales (slots equipables, parcelles...)
-    rosterSlots: [0, 150, 400],      // cout pour passer a 2 puis 3 persos equipes
-    farmPlot: n => 25 + n * 45,      // cout de la parcelle n+1
+    rosterSlots: [0, 150, 400],      // cout pour passer a 2 puis 3 persos equipes — inutilise : les 3 places sont ouvertes (12 oct. 2026)
+    // Monnaie C : ouvrir la case n+1 du champ de la Ferme (la grille, `farm.grille`). PROVISOIRE : reprend la
+    // formule de l'ancienne parcelle, adoucie (une case vaut moins qu'une parcelle, et il y en a plus).
+    farmCase: n => 15 + n * 20,
     stallSlot: n => 60 + n * 90      // cout du slot d'etale n+1
   },
 
@@ -187,11 +214,40 @@ export const BALANCE = {
 
   farm: {
     saleIntervalMs: 15 * 60 * 1000,  // une vente toutes les 15 min (GDD)
-    startPlots: 2,
-    maxPlots: 8,
+    // LE CHAMP EN GRILLE (spec du 16 octobre 2026) : le joueur pose ses legumes sur des cases. `cols` x `rows`
+    // cases, dont `casesDeDepart` ouvertes ; les autres s'ouvrent dans l'ordre (`costs.farmCase`). PROVISOIRE.
+    grille: { cols: 5, rows: 5 },
+    casesDeDepart: 4,
+    // Les legumes se TROUVENT dans la nature : les tiers <= `tierLibre` sont connus d'office, les autres
+    // s'apprennent sur la carte (points « cueillette », config/world.js). PROVISOIRE.
+    tierLibre: 2,
     startStallSlots: 2,
     maxStallSlots: 6,
     offlineCapMs: 12 * 60 * 60 * 1000 // plafond des gains hors-ligne
+  },
+
+  // LES ARENES (spec « Refonte Overworld + Arenes », 16 octobre 2026). Toutes ouvertes des le depart, au niveau 1 ;
+  // chaque victoire fait monter l'arene d'un niveau, et l'adversaire applique alors son profil de progression
+  // (config/ennemis.js) jusqu'a ce niveau. PROVISOIRE.
+  arenes: {
+    niveauParVictoire: 1,
+    niveauMax: 40,            // le profil d'un ennemi s'arrete la (au-dela, l'arene garde son dernier niveau)
+    decouverteTuiles: 6,      // a cette distance du batiment, l'arene apparait dans l'onglet « Arene »
+    interactionTuiles: 1.6    // la porte : a cette distance, le bouton « Entrer » apparait
+  },
+
+  // LES DECKS ENREGISTRES : une equipe (heros, faces switch, cartes retirees) qu'on recharge d'un toucher avant un
+  // combat, pour ne pas tout refaire a chaque adversaire. PROVISOIRE.
+  decks: {
+    max: 6,
+    // Taille minimale d'un deck (GDD « EN REFLEXION », 16 octobre 2026) : en dessous, on ne peut pas combattre.
+    tailleMin: 15
+  },
+
+  // LE PROFIL DU JOUEUR : 25 niveaux (config/profil.js dit ce que chacun rapporte), payes en XP de combat
+  // (`rewards.xp` des rencontres, config/world.js). PROVISOIRE : la courbe.
+  profil: {
+    xpPourNiveau: L => Math.round(40 + 22 * L + 2 * L * L)   // XP pour passer du niveau L a L+1
   },
 
   // Cadence de deblocage des personnages : nombre de nouveaux persos rendus

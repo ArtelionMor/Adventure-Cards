@@ -68,7 +68,9 @@ function makeSide(cfg) {
     board: [],
     // Mana promis pour le PROCHAIN tour (effet `mana_au_prochain_tour`). Il s'ajoute
     // au mana du tour et peut donc depasser le mana max : c'est l'interet de l'effet.
-    nextMana: 0,
+    // `startMana` (facultatif) : du mana en plus a SON premier tour — l'amelioration `start_mana` d'un ennemi
+    // d'arene (config/ennemis.js). Il passe par le mana promis, le meme chemin que l'effet ci-dessus.
+    nextMana: cfg.startMana || 0,
     turns: 0,        // tours joues par ce camp, pour les caracteristiques variables
     aVide: false,    // son deck est epuise : il ne piochera plus (dit une seule fois)
     recycle: 0,      // cartes remises dans sa pioche ce tour-ci (garde-fou anti-boucle)

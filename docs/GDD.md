@@ -39,7 +39,7 @@ Overworld (explorer) → Combat (s'affronter, auto ou manuel) → Base/Ferme (fa
 Vue du dessus, 2D, façon **Don't Starve**. Rencontres d'ennemis, PNJ, marchands exclusifs, téléporteurs à débloquer. Structure de campagne façon **AFK Journey**.
 
 - Le monde complet est construit **dès le prototype** (pas de version "couloir" réduite).
-- Les chemins sont **verrouillés par un niveau de personnage requis** pour rythmer la progression.
+- **Refonte du 16 octobre 2026** (spec « Overworld + Arènes + Ferme en grille + Profil joueur ») : la carte est **compacte**, en étoile autour d'une place (moins de ~15 s de marche jusqu'à n'importe quelle arène). Chaque combat est une **arène** — un bâtiment (`Machines/`, 7 personnages de haut) avec sa **fiche** (archétype, ce que le combat demande, stratégie optimale, ce qu'il punit, héros conseillés, puissance conseillée) puis le **choix d'équipe** (decks enregistrés, jokers de retrait). **Toutes les arènes sont ouvertes dès le départ, au niveau 1** ; une victoire fait monter l'arène d'un niveau et son ennemi applique son profil de progression. L'onglet **Arène** liste les arènes découvertes et lance leur fiche à distance. Les légumes se **trouvent** sur la carte (points de cueillette). Un **profil du joueur** (25 niveaux, XP de combat) donne héros recrutables, places d'équipe et jokers. ~~Les chemins sont verrouillés par un niveau de personnage requis.~~
 - Des objets à passifs façon **relics de Slay the Spire** sont trouvés en explorant l'overworld — pas des cartes, pas une monnaie.
 - Des légumes (monnaie C) peuvent être cachés dans des coffres en overworld pour pousser à l'exploration.
 
@@ -48,10 +48,11 @@ Vue du dessus, 2D, façon **Don't Starve**. Rencontres d'ennemis, PNJ, marchands
 ## Deckbuilding & personnages ✅ implémenté
 
 - Un deck = **3 personnages**, chacun avec **5 cartes** fixes en nombre → **15 cartes** mélangées dans un **paquet unique** en combat (façon **Slay the Spire**, pas de paquets séparés par personnage).
-- Le nombre de personnages **équipables en même temps** est lui-même une progression : **1 → 2 → 3**, débloquée via un progression path alimenté par la monnaie C (voir Monnaies).
+- Le nombre de personnages **équipables en même temps** est lui-même une progression : **1 → 2 → 3**, débloquée via un progression path alimenté par la monnaie C (voir Monnaies). *Depuis le 12 octobre 2026 : les 3 places sont ouvertes d'office (on ne joue jamais seul hors tutoriel) ; le tutoriel les refermera.*
 - Les **3 premiers personnages** sont distribués pendant le **tutoriel** ; le joueur ne peut au tout début en équiper qu'un seul à la fois.
 - Chaque slot de carte peut être remplacé par une **carte switch** (1 alternative par slot → 5 switch possibles par personnage). Objectif de design : chaque switch montre une autre facette de la mécanique de jeu de cartes propre à ce personnage. Une fois la switch achetée (monnaie B), le joueur bascule librement entre les deux faces.
-- Un personnage peut être **amélioré** (monnaie C) : l'upgrade modifie la puissance de ses cartes via des **paliers de niveau cumulatifs** (voir Anatomie de carte). Le niveau d'un personnage vient **uniquement** de la monnaie C dépensée — il n'y a pas d'XP de combat.
+- Un personnage peut être **amélioré** (monnaie C, **les pièces**) : l'upgrade modifie la puissance de ses cartes via des **paliers de niveau cumulatifs** (voir Anatomie de carte). Le niveau d'un personnage vient **uniquement** de la monnaie C dépensée — il n'y a pas d'XP de combat.
+  **Une amélioration = un palier d'une carte** (décision du 12 octobre 2026) : on améliore son héros, et chaque amélioration améliore ses cartes une par une, cartes switch comprises (5 + 5 cartes, ~3 paliers chacune : ~30 améliorations par héros). Chaque amélioration donne de la **puissance** (`BALANCE.progression.puissance`) ; c'est elle qui verrouille la progression : les seuils se posent dans la Google Sheet (onglet `encounters`, colonne `power_needed`, branchée le 16 octobre 2026) ; un combat sans seuil et les passages lisent encore le niveau de palier de l'équipe. Écrans : `mockups/Deck Screen.png` et `Upgrade Deck Screen.png`.
 - Les stats d'un personnage jouent sur deux plans (brainstorm volontairement ouvert, liste non figée) :
   - Combat : PV, mana max, nombre de cartes en main au début du combat.
   - Général (façon hyper-casual) : vitesse, nombre de personnages équipables (1→2→3), nombre de plants simultanés à la Ferme, nombre de plantes vendables en même temps... débloqués via le progression path (monnaie C).
@@ -118,7 +119,7 @@ Outil de game design servi à `/builder/index.html`, sur le modèle du builder d
 
 ## Monnaies & progression ✅ implémenté
 
-Principe directeur : une activité → une monnaie → un usage. Les monnaies ne s'affichent **pas** en permanence dans une barre — elles vivent dans l'inventaire et remontent seulement de façon contextuelle (ex. "5/16 needed to unlock this"). Nombre total de monnaies volontairement laissé flexible.
+Principe directeur : une activité → une monnaie → un usage. ~~Les monnaies ne s'affichent pas en permanence dans une barre.~~ *Changé par la maquette « Deck Screen » (12 octobre 2026) : les **pièces** (C) et les **gemmes** sont toujours dans la barre du haut ; les autres monnaies restent dans l'inventaire.* Nombre total de monnaies volontairement laissé flexible.
 
 | Monnaie | Collecte | Usage |
 |---|---|---|

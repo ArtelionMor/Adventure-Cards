@@ -1,12 +1,16 @@
 // Point d'entree : navigation, bandeau, sauvegarde, regime idle.
 import { BALANCE } from './config/balance.js';
 import { CHAR_BY_ID } from './config/characters.js';
-import { save, persist, partyLevel, upgradeCost } from './state.js';
-import { $, $$, el, asset, toast, modal, closeModal, setContext, fmtTime } from './ui/shell.js';
+import { CHAR_BY_ID as HEROS, niveauMax } from './config/characters.js';
+import { save, persist, upgradeCost } from './state.js';
+import { $, $$, el, asset, toast, modal, closeModal, fmtTime, court } from './ui/shell.js';
+import { icone } from './ui/icones.js';
 import { initWorld, startWorld, stopWorld, setRefreshTop } from './ui/overworld.js';
 import { renderFarm, processFarm } from './ui/farm.js';
 import { renderDeck } from './ui/deck.js';
 import { renderBag } from './ui/bag.js';
+import { renderArene } from './ui/arene.js';
+import { ouvreProfil } from './ui/profil.js';
 import { openBattle } from './ui/battle.js';
 
 let current = 'world';
@@ -20,6 +24,7 @@ function go(screen) {
   if (screen === 'farm') renderFarm();
   if (screen === 'deck') renderDeck();
   if (screen === 'bag') renderBag();
+  if (screen === 'arene') renderArene();
   refreshTop();
 }
 
@@ -31,17 +36,12 @@ function refreshTop() {
   $('#topName').textContent = c.name;
   $('#topLevel').textContent = st.level;
   // La barre montre la progression vers la prochaine amelioration, pas de l'XP :
-  // dans le GDD, un personnage monte en niveau en depensant de la monnaie C.
-  const cost = upgradeCost(id);
-  $('#topXp').style.width = Math.min(100, save.cur.C / cost * 100) + '%';
-
-  // Rappel de monnaie strictement contextuel (GDD).
-  if (current === 'deck') setContext(`<b>${save.cur.C}</b>/${cost} legumes pour le prochain niveau`);
-  else if (current === 'farm') setContext(`vente dans <b>${fmtTime(save.farm.nextSaleAt - Date.now())}</b>`);
-  else if (current === 'world') {
-    const lvl = partyLevel();
-    setContext(`niveau d'equipe <b>${lvl}</b>`);
-  } else setContext('');
+  // dans le GDD, un personnage monte en niveau en depensant des pieces (monnaie C).
+  const cost = st.level < niveauMax(HEROS[id]) ? upgradeCost(id) : 0;
+  $('#topXp').style.width = (cost ? Math.min(100, save.cur.C / cost * 100) : 100) + '%';
+  // Les monnaies, toujours la (maquette « Deck Screen », 12 octobre 2026).
+  $('#topCoin').innerHTML = `${icone('Coin', 15)}<b>${court(save.cur.C)}</b>`;
+  $('#topGem').innerHTML = `${icone('Gem', 15)}<b>${court(save.cur.G || 0)}</b>`;
 }
 setRefreshTop(refreshTop);
 
@@ -85,6 +85,8 @@ function offlineReport() {
 function boot() {
   initWorld();
   $$('#nav button').forEach(b => b.onclick = () => go(b.dataset.go));
+  // L'avatar de la barre du haut ouvre le PROFIL DU JOUEUR (ui/profil.js), comme toucher le joueur sur la carte.
+  $('#topbar .hero-chip').onclick = ouvreProfil;
   go('world');
   offlineReport();
   wakeLock();
@@ -94,9 +96,9 @@ function boot() {
     persist();
     const box = el(`<div>
       <h2>Adventure Card</h2>
-      <p>Tes trois compagnons t'ont ete confies, mais tu ne peux en emmener <b>qu'un seul</b> pour l'instant.</p>
-      <p class="muted">Explore, combats (le mode auto joue pour toi), fais pousser des legumes a la Ferme,
-      puis depense-les pour monter tes personnages en niveau et ouvrir les chemins verrouilles.</p>
+      <p>Tes trois compagnons t'ont ete confies.</p>
+      <p class="muted">Explore : chaque bâtiment est une arène, toutes sont ouvertes. Combats (le mode auto joue pour toi),
+      fais pousser des légumes à la Ferme, puis dépense tes pièces pour améliorer tes héros.</p>
     </div>`);
     const b = el('<button class="btn">C’est parti</button>');
     b.onclick = closeModal;
@@ -112,7 +114,7 @@ function boot() {
 window.AC = {
   save, persist, go,
   fight: enc => { stopWorld(); openBattle({ id: 'debug', name: 'Test', enemy: enc }, () => { startWorld(); refreshTop(); }); },
-  give: (k, n) => { save.cur[k] += n; persist(); refreshTop(); },
+  give: (k, n) => { save.cur[k] = (save.cur[k] || 0) + n; persist(); refreshTop(); },
   teleport: (x, y) => { save.world.px = x; save.world.py = y; persist(); },
   level: (id, l) => { save.chars[id].level = l; persist(); refreshTop(); }
 };

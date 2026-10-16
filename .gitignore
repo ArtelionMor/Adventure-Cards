@@ -16,3 +16,6 @@ android/.idea/
 
 # Ce que sort le bouton « Exporter JSON » du builder, quand on le telecharge dans le repo
 game/data/adventure-card-data.json
+
+# Sorties de scripts/gen-art.py : variantes, planches-contact, rendus bruts (jetables)
+art-sortie/

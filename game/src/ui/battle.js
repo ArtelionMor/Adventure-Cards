@@ -3,7 +3,8 @@
 import { BALANCE } from '../config/balance.js';
 import { CHAR_BY_ID, CHARACTERS, characterDeck } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
-import { save, team, gain, persist } from '../state.js';
+import { save, team, gain, persist, gagneXp, noteCombatArene } from '../state.js';
+import { coteEnnemi } from '../config/ennemis.js';
 import { relicMods } from '../config/relics.js';
 import { TRIGGERS, COUNTERS, keyLabel, hasKey, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel, branchesDe, listeEffets } from '../config/mechanics.js';
 import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur, reprisesPossibles, draw, refresh, nbFatigue, pileDeFatigue } from '../combat/engine.js';
@@ -90,14 +91,17 @@ export function buildPlayerSide() {
   };
 }
 
-function buildEnemySide(encId) {
-  const enc = ENCOUNTERS[encId];
+// `niveau` : celui de l'arene (config/ennemis.js applique le profil de progression de l'ennemi jusque-la).
+function buildEnemySide(encId, niveau = 1) {
+  const enc = niveau > 1 ? { ...ENCOUNTERS[encId], ...coteEnnemi(encId, niveau) } : ENCOUNTERS[encId];
   return {
     name: enc.name,
     sprite: enc.sprite,
     hp: enc.hp,
     mana: enc.mana,
     hand: enc.hand,
+    startArmor: enc.startArmor || 0,
+    startMana: enc.startMana || 0,
     // Le deck du PNJ vient des donnees du builder, deja resolu carte par carte.
     deck: enc.deck.map(c => ({ ...c, sprite: c.sprite || enc.sprite }))
   };
@@ -134,7 +138,7 @@ export function openBattle(node, done) {
   dernierJournal = null;
   // `evenements` : le combat se raconte en donnees (combat/evenements.js), c'est ce que lit le
   // journal graphique. Seul le jeu l'allume — ni le bot, ni les simulations n'en paient le prix.
-  B = createBattle(buildPlayerSide(), buildEnemySide(node.enemy), { node, evenements: true });
+  B = createBattle(buildPlayerSide(), buildEnemySide(node.enemy, node.niveau || 1), { node, evenements: true });
   if (enregistreLesCombats()) {
     const enc = ENCOUNTERS[node.enemy] || {};
     ouvreJournal(B, {
@@ -1222,6 +1226,13 @@ function finish() {
     gain('A', r.A);
     gain('B', r.B);
     recompenses.push({ label: 'Fanions', n: r.A }, { label: 'Sceaux', n: r.B });
+    // L'XP du PROFIL DU JOUEUR (config/profil.js) : un niveau atteint donne ses recompenses tout de suite.
+    if (r.xp) {
+      const p = gagneXp(r.xp);
+      recompenses.push({ label: 'XP', n: r.xp });
+      for (const n of p.niveaux) notes.push(`Niveau du joueur ${n} !`);
+      notes.push(...p.notes);
+    }
     // Un boss peut annoncer un heros qui n'existe plus (le Grand Mechant Loup annonce `fox`, devenu
     // `cameleon`) : sans cette garde la victoire plantait avant l'ecran de fin.
     if (ctx.unlocks && save.chars[ctx.unlocks] && CHAR_BY_ID[ctx.unlocks]) {
@@ -1230,6 +1241,11 @@ function finish() {
     }
     save.world.cleared[ctx.id] = true;
     persist();
+  }
+  // Une ARENE monte d'un niveau a chaque victoire (state.js) ; la fiche montre le prochain.
+  if (ctx.arene) {
+    const a = noteCombatArene(ctx.arene, win);
+    if (win) notes.push(`L'arène passe au niveau ${a.niveau}.`);
   }
 
   const ferme = () => {
