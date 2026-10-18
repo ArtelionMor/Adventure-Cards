@@ -12,10 +12,38 @@ designer — ne pas rouvrir ce qui y est tranché.
 
 ## Vocabulaire : archétypes et niveaux de jeu
 Quand on parle d'un deck ou de la façon de le jouer, ces mots ont **ce sens-là** — dans
-les échanges, les docs, les commentaires et les analyses.
+les échanges, les docs, les commentaires et les analyses. **La référence, ce sont les trois
+PDF du game designer** dans `docs/` (« Vocabulaire et définition pour jeu de cartes » :
+*Decks et Archétypes*, *Les types de joueurs*, *Level Design*), écrits pour qu'un LLM aborde
+le jeu comme lui. Ils pèsent lourd (images) : l'essentiel est ici, ne les rouvrir que pour
+le détail.
 
-**Les archétypes.** La catégorisation, c'est **Combo**, **Aggro**, **Contrôle**. On peut
-y adosser un qualificatif :
+**Ressources et tour de résolution.** Un archétype convertit ses ressources abondantes ou
+secondaires (PV, cartes en main, cartes du deck) en ressources critiques (mana, tempo). Son
+**tour de résolution** est celui où il est censé gagner : par étouffement (*lock* :
+l'adversaire ne peut plus rien faire), en tuant, ou par une victoire alternative. Ce tour
+atteint ou sécurisé, il sacrifie toutes les ressources qui ne lui servent plus. Le coût réel
+d'une carte dépend donc de l'archétype : Teferi's Protection (3 mana) en coûte 6 à 12 à un
+Aggro qui garde son mana ouvert tour après tour par peur d'un *board wipe*.
+
+**La META** (*Most Efficient Tactic Available*) — l'ensemble des decks performants, joués
+pour gagner. À ne pas confondre avec le **méta-jeu** au sens de l'industrie, la couche
+au-dessus du jeu (ici : la progression ; investir dans Médor parce qu'il est niveau 6 quand
+Athéna et Felix sont niveau 10, c'est du méta-jeu). Une META saine est un
+**pierre-feuille-ciseaux à trois archétypes**, dicté par l'ordre des tours de résolution —
+dans les formats classiques, Aggro bat Contrôle (trop lent à stabiliser), Contrôle bat Combo
+(neutralise ses pièces au bon moment), Combo bat Aggro (gagne d'un coup avant lui). Si cet
+ordre se casse, un deck devient omniprésent.
+
+**La volatilité** (ou consistance) — au sens de l'écart-type, l'écart entre la réussite et
+l'échec d'un deck. Un deck volatil n'est pas faible : il n'exécute pas son plan
+régulièrement. Faible volatilité = « je peux affirmer que mon deck fera ce pour quoi il est
+construit, à temps ». Un nouveau deck n'a de raison d'exister que s'il bat son homologue en
+**vitesse** (le tour de résolution), en **volatilité**, ou les deux.
+
+**Les archétypes** — la philosophie de victoire (« comment je gagne, concrètement ? ») :
+**Combo**, **Aggro**, **Contrôle**. On peut y adosser un qualificatif, qui dit comment le
+deck s'y prend :
 
 - **Tempo** — essaie de prendre l'adversaire de vitesse, avec un faible niveau
   d'interaction.
@@ -29,25 +57,43 @@ y adosser un qualificatif :
 - **Fatigue** — ne cherche qu'à aller à la Fatigue (la pile de fatigue, cf. « Finir sa
   pioche ») pour y profiter d'un avantage, même minime, et gagner.
 
-**Technique, tactique, stratégie, plan** — quatre niveaux, du plus fin au plus large, à
-ne pas confondre :
+Turbo et Pillow Fort sont, dans le PDF, des **familles de verbes de la stratégie** (avec
+Reaction/Permission, Attrition/Value, Cheat, Steal, Burn, Go Wide/Tall) : le qualificatif
+décrit la stratégie du deck, l'archétype sa façon de gagner.
 
-- **La technique** (micro) — l'habileté, physique ou mentale, à ordonner les
-  interactions. **Elle est absente de ce jeu.** Exemple dans Magic : savoir que Tangle
-  Wire peut s'engager elle-même, et ordonner les déclencheurs de son tour pour qu'elle
-  perde son marqueur « temps » avant que son effet parte — et avoir ainsi un permanent
-  de moins à engager que l'adversaire.
-- **La tactique** (méso) — se joue **en partie** : comprendre l'environnement dans
-  lequel la partie se déroule, comprendre le matchup, savoir ce qui se passe au niveau
-  technique, et ordonner ses tours pour mener le match jusqu'à la victoire.
-- **La stratégie** (pré-méta) — se joue **avant le match** : le prévoir, comprendre le
-  méta-jeu dans lequel on se place, choisir les bonnes cartes (switcher ou non certaines
-  cartes, prendre les bons trinkets), changer un héros pour un autre. Exemple : mettre
-  Athéna à la place de Médor contre le Grand-Duc, parce qu'on sait qu'il faudra forcer
-  une colère de Kamaji en menaçant avec une grosse créature.
-- **Le plan** (méta-jeu) — se joue **sur la progression** : investir plus de ressources
-  dans Médor parce qu'Athéna et Felix sont niveau 10 et lui niveau 6, qu'on perd donc
-  les matchups où c'est lui qui est fort, et qu'on veut avancer dans le jeu.
+**Plan, archétype, stratégie, tactique, technique** — cinq niveaux, du plus large au plus
+fin, à ne pas confondre. Spike a un challenge pour chacun (sauf l'archétype) :
+
+- **Le plan** — la fenêtre d'exploitation de la META : « à quel tour dois-je gagner, et
+  avec quelle régularité, pour surperformer les decks dominants ? » (vitesse et
+  volatilité). C'est aussi relire ses parties : « et si ça s'était passé comme ça ? ». Il
+  faut laisser Spike analyser ses parties (le journal graphique) ; un jeu trop aléatoire
+  rend le plan impossible et le perd.
+- **L'archétype** — Combo, Aggro, Contrôle (cf. plus haut).
+- **La stratégie** — ce que le deck va faire dans la partie : les **verbes** qui guident
+  le choix des cartes (« chercher des réponses », « soutenir le board », « nettoyer le
+  board », « mettre de la pression », « accélérer la partie »…) et leur famille. En partie,
+  c'est comprendre **son rôle** : qui est qui, quand agresser, quand se préparer à la
+  contre-attaque, quand dépenser ses PV pour préserver le reste. Trop peu de stratégies
+  viables, et le jeu perd Spike.
+- **La tactique** — naît de l'observation de la META : quelles cartes sont bonnes,
+  lesquelles sont fiables, et pourquoi ; puis s'adapter avec les armes dont on dispose,
+  surtout quand le matchup n'est pas pur (un Contrôle avec un combo, un Aggro avec de la
+  prophylaxie). Exemple : mettre Athéna à la place de Médor contre le Grand-Duc, parce
+  qu'il faudra forcer une colère de Kamaji en menaçant avec une grosse créature. Un deck
+  purement tactique est un « Good Stuff ». Des constructions de deck trop strictes perdent
+  Spike.
+- **La technique** — la façon dont le joueur joue le deck : calcul, compréhension des
+  règles, connaissance de la META, jouer autour d'une carte, bluffer, gérer son stress ;
+  elle englobe aussi les adversaires qu'on s'attend à croiser. Sa part la plus fine
+  n'existe pas dans ce jeu : ordonner ses déclencheurs, comme dans Magic pour que Tangle
+  Wire perde son marqueur « temps » avant que son effet parte.
+
+**Top-Down ou Bottom-Up.** Top-Down part du plan (« gagner au tour 4 avec une forte
+résilience ») et en déduit l'archétype, la stratégie, puis les cartes : performant, mais pas
+forcément plaisant. Bottom-Up part de cartes ou d'une tactique qu'on aime et les raffine
+jusqu'à tomber sur un archétype : plaisant, pas forcément performant. Spike construit
+Top-Down, Timmy Bottom-Up, Johnny l'un ou l'autre.
 
 
 ## Philosophie de design : Timmy, Johnny, Spike
@@ -58,12 +104,18 @@ Le game designer juge une carte ou une mécanique avec la taxonomie de **Mark Ro
   à 8 mana, le sort qui fait un truc de fou (Métamorphose ultime : un board de petits chats
   qui deviennent tous la grosse matriarche). Lui permettre de **fabriquer un moment
   exceptionnel**, même s'il n'arrive qu'une fois sur cent : qu'il soit possible compte.
+  Il joue pour des expériences viscérales : une partie n'est vraiment gagnée que si elle
+  mérite d'être racontée, et des facteurs aléatoires aux fortes conséquences l'excitent.
 - **Johnny** cherche les **combos** : c'est lui qui trouvera « Griffure + Miroir +
   Découverte » et écrira qu'il a cassé la méta. On le laisse faire — un combo à 4-5 cartes
-  qui tue d'un coup arrive trop rarement pour déranger la méta.
+  qui tue d'un coup arrive trop rarement pour déranger la méta. Il joue pour être
+  **reconnu** : par association (endosser un stéréotype), par l'originalité (combos
+  improbables, archétypes non soutenus), par la performance, et en dernier recours par la
+  destruction (casser le jeu par ses failles).
 - **Spike** est le joueur compétitif qui optimise — le « niveau designer » : c'est pour lui
   que le jeu est **principalement équilibré**. Il ne jouera pas les combos de Johnny, qui ne
-  sont pas ce qu'il y a de plus efficace.
+  sont pas ce qu'il y a de plus efficace. Il joue pour être **challengé** : analyse,
+  mémoire, technique, plan, stratégie, tactique (cf. « Vocabulaire »).
 
 Ce qui en découle, et qui vaut pour toute proposition :
 
@@ -76,6 +128,37 @@ Ce qui en découle, et qui vaut pour toute proposition :
   en est un, c'est un **bot** qui ne sait pas s'arrêter (cf. « Le bot »).
 - **Pas de passif de héros pour l'instant** : toute mécanique est **portée par une carte**
   (un mot-clé sur la carte, des cartes générées par d'autres).
+
+**Le level design d'un jeu de cartes** (PDF *Level Design*) — le design des cartes **et** du
+pool, autour d'une question : dans quelle situation met-on le joueur ?
+
+- **Toute carte a une intention** : sa place dans la META, et rien au-delà. On l'écrit
+  « As a Game Maker » et « As a Player », pour Timmy, Johnny et Spike — une carte peut ne
+  pas être pour l'un d'eux (Lightning Bolt n'est pas pour Johnny). Puis on l'adapte pour
+  remplir cette intention de la façon la plus simple et la plus pure, en surveillant ses
+  métriques : une carte qui vise un objectif en remplit souvent un autre.
+- **Une carte se conçoit dans son contexte**, jamais seule : sinon on fabrique des METAs
+  tenues par des cartes équilibrées en apparence et bien trop fortes en réalité.
+- **Simple, c'est souvent puissant**, et un prix posé pour un effet ne remonte plus
+  (Time Walk, Big Game Hunter). Pas de ressource créée ex nihilo (Pot of Greed) : piocher
+  a un contrecoût, piocher deux cartes est la récompense en bout de chaîne d'un archétype.
+- **Le power creep est le risque n° 1** — une dette de design : faire une carte qui
+  remplit son intention en surclassant les autres est trop facile. Préférer les cartes
+  **latérales** (qui ouvrent un archétype) aux **verticales** (qui surclassent les
+  existantes).
+- **Rational Level Design** : placer la carte, dimension par dimension (dégâts, type,
+  interaction possible, coût…), sur un spectre qui va de « injouable » à « retourne la
+  méta », avec la question « dans combien de situations est-elle intéressante à jouer ? »
+  et des chiffres tirés de vraies parties (ici : les outils de mesure) ; puis resserrer
+  jusqu'au bon réglage, sans trahir l'intention.
+- **Le Card Pool est LE sujet.** Il s'évalue au **nombre d'occurrences d'un même verbe**,
+  pas au nombre de cartes : plus de redondance, moins de volatilité et des tours de
+  résolution plus précoces — trop de redondance pour un Aggro ou un Combo tue le temps de
+  réaction du Contrôle et casse le pierre-feuille-ciseaux. **Chaque angle d'attaque majeur
+  a sa soupape de sécurité ciblée** (menaces contre réponses), sans jamais une réponse qui
+  règle tout pour pas cher. Le pool nourrit les trois joueurs : des points de bascule
+  spectaculaires pour Timmy, des effets « ouverts » pour Johnny, de la granularité
+  tactique (cartes tech situationnelles) pour Spike.
 
 
 ## Stack visée

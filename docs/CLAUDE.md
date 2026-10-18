@@ -11,10 +11,21 @@
 | `PACKS-CARTE.md` | **Le choix du pack d'assets de la carte** (palier 7 de la refonte overworld, 16 oct. 2026) : candidats, licences CC0 vérifiées, attribution, captures, recommandation. Le prototype : `game/carte-packs.html`. **Décidé : B+ (Medieval RTS + contours juice)**. | Avant de toucher au rendu du sol ou du décor de la carte |
 | `PROMPTS-IMAGES-CARTES.md` | **Généré** (`python scripts/gen-art.py --liste <export> --prompts docs/PROMPTS-IMAGES-CARTES.md`) : pour chacune des 210 cartes, le prompt d'image à copier-coller dans Gemini, le nom du fichier et les portraits à joindre. Source : `scripts/art-sujets.json` (ne pas éditer ce fichier-ci). | Pour dessiner l'image d'une carte |
 | `SITUATIONS-A-TESTER.md` | Le texte des fiches du banc de situations (mêmes `id` que `game/data/situations.js`). | Avant de toucher au banc de situations |
+| `Vocabulaire_et_dfinition_pour_jeu_de_cartes_-_Decks_et_Archtypes.pdf` | **Le vocabulaire du game designer** (PDF, 6 p.) : ressources converties, **tour de résolution**, META et son pierre-feuille-ciseaux, **volatilité**, puis plan / archétype / stratégie / tactique / technique (Top-Down vs Bottom-Up). | Avant de parler d'archétype, de META ou d'équilibre entre decks |
+| `Vocabulaire_et_dfinition_pour_jeu_de_cartes_-_Les_types_de_joueurs.pdf` | Timmy, Johnny, Spike en détail (PDF, 6 p.) : les quatre expériences de Timmy, les quatre reconnaissances de Johnny, les six challenges de Spike (chacun rattaché à technique, plan, stratégie, tactique). | Avant de juger une carte « pour qui » |
+| `Vocabulaire_et_dfinition_pour_jeu_de_cartes_-_Level_Design.pdf` | Le **level design** d'un jeu de cartes (PDF, 12 p.) : intention « As a Game Maker / As a Player », simplicité, power creep et dette de design, **Rational Level Design** (le spectre injouable → casse la méta), **Card Pool** (redondance et volatilité, menaces vs réponses, cartes latérales plutôt que verticales). | Avant de concevoir ou de retoucher une carte |
 
 ---
 
 # Le détail
+
+## Les trois PDF de vocabulaire
+Écrits par le game designer pour qu'un LLM aborde le jeu comme lui : **ils font foi** sur le sens
+des mots (plan, archétype, stratégie, tactique, technique, META, volatilité, tour de résolution) et
+sur la façon de concevoir une carte. **L'essentiel est recopié dans le `CLAUDE.md` racine**
+(« Vocabulaire » et « Philosophie de design ») : ne les ouvrir que pour le détail — ils pèsent
+4 à 6 Mo (images) et se lisent par pages (`pages`). Un changement de vocabulaire se reporte dans les
+deux.
 
 ## Les paliers de niveau
 **`docs/GRAMMAIRE-DES-PALIERS.md`** — comment écrire les paliers d'une carte pour qu'une montée
