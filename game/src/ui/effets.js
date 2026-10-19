@@ -159,26 +159,24 @@ export function creeFx(acces) {
   }
 
   /**
-   * L'OEIL QUI S'OUVRE (dessins du game designer, 20 oct. 2026) : une regle « quand X » se declenche — l'oeil, ferme sur
-   * la carte, s'ouvre au-dessus de l'unite (ferme, 25, 50, 75 %, ouvert), regarde un instant, puis se referme.
+   * L'OEIL QUI S'OUVRE (maquette du game designer, 20 oct. 2026) : une regle « quand X » se declenche — l'oeil, ferme sur
+   * le bord haut de sa carte (ui/battle.js), s'ouvre LA OU IL EST, etape par etape (`oeilPasMs` chacune : ferme, 25, 50,
+   * 75 %, ouvert), reste ouvert le temps que la carte-effet se montre (`ouvertMs`), puis se referme. L'etape est notee
+   * sur le noeud (`data-oeil`) : la carte redessinee entre-temps la reprend. Sans oeil sur la carte (unite morte), rien.
    */
-  function oeil(ev) {
-    const n = noeudDe(ev.src);
-    if (!n) return;
-    const r = rectDe(n);
-    const d = pose('fx-oeil', `<img src="${urlIcone(OEIL[0])}" alt="">`, { x: r.x, y: r.y - r.h * .12, w: r.w, h: 0 });
-    const img = d.firstElementChild;
-    const pas = 70, tenue = 520;
-    OEIL.forEach((nom, i) => apres(i * pas, () => { img.src = urlIcone(nom); }));
-    [...OEIL].reverse().forEach((nom, i) => apres(OEIL.length * pas + tenue + i * pas, () => { img.src = urlIcone(nom); }));
-    const total = OEIL.length * pas * 2 + tenue;
-    anime(d, [
-      { transform: 'translate(-50%,-50%) scale(.6)', opacity: 0 },
-      { transform: 'translate(-50%,-50%) scale(1.1)', opacity: 1, offset: .12 },
-      { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: .85 },
-      { transform: 'translate(-50%,-50%) scale(.9)', opacity: 0 }
-    ], { duration: T(total), easing: 'ease-out' });
-    ephemere(d, total);
+  function oeil(ev, ouvertMs) {
+    const f = F();
+    const etape = k => {
+      const n = noeudDe(ev.src);
+      if (!n || !n.dataset) return;
+      n.dataset.oeil = k;
+      const img = n.querySelector('.oeil-carte img');
+      if (img) img.src = urlIcone(OEIL[k]);
+      if (k === OEIL.length - 1 && img) anime(img, [{ transform: 'scale(1)' }, { transform: 'scale(1.2)', offset: .4 }, { transform: 'scale(1)' }], { duration: T(f.oeilPasMs * 3), fill: 'none' });
+    };
+    OEIL.forEach((_, k) => apres(k * f.oeilPasMs, () => etape(k)));
+    const ferme = (OEIL.length - 1) * f.oeilPasMs + ouvertMs;
+    for (let k = OEIL.length - 2; k >= 0; k--) apres(ferme + (OEIL.length - 2 - k) * f.oeilPasMs, () => etape(k));
   }
 
   /** Un chiffre qui s'envole depuis une cible. `taille` 1 = normal, plus gros pour un gros coup. */
@@ -589,7 +587,7 @@ export function creeFx(acces) {
   };
   function carteEffet(ev, enfants) {
     const f = F();
-    const [classe, momentIcone] = MOMENT_EFFET[ev.moment] || ['regle', 'Trigger'];
+    const [classe, momentIcone] = MOMENT_EFFET[ev.moment] || ['regle', String(ev.moment).startsWith('on_') ? 'Watch' : 'Trigger'];
     const vus = new Set();
     const pics = [];
     for (const e of enfants) {
@@ -759,8 +757,12 @@ export function creeFx(acces) {
         case 'declenche': {
           // Les pictogrammes viennent de ce que ce declenchement a provoque (ses enfants dans le recit).
           const enfants = lot.filter(e => e.cause === ev.i);
-          // Une regle « quand X » : l'oeil de l'unite s'ouvre d'abord, puis la carte-effet dit ce qu'elle fait.
-          if (String(ev.moment).startsWith('on_')) apres(t, () => oeil(ev));
+          // Une regle « quand X » : l'oeil de sa carte s'ouvre D'ABORD (lentement : « il faut etre beaucoup plus lent sur
+          // les triggers », game designer), puis la carte-effet dit ce qu'elle fait ; l'oeil se referme apres.
+          const veille = String(ev.moment).startsWith('on_');
+          const ouvre = veille ? OEIL.length * f.oeilPasMs : 0;
+          if (veille) apres(t, () => oeil(ev, f.effetVolMs + f.effetTenueMs + f.effetSortieMs));
+          t += ouvre;
           apres(t, () => carteEffet(ev, enfants));
           // Et l'animation de CE moment-la, propre a la carte : son rale d'agonie, son debut de tour, sa regle.
           const sg = signatureDe(idDe(ev.src));
@@ -774,7 +776,9 @@ export function creeFx(acces) {
               lanceTout(sub.lancer, touches.length ? touches : visees(sub, ev), n ? centreDe(rectDe(n)) : undefined);
             });
           }
-          t += f.effetVolMs + f.effetTenueMs * .6 + (sub && sub.lancer ? f.lancerMs * .6 : 0);
+          // La suite attend que la carte-effet ait ete LUE (toute sa tenue), puis son lancer.
+          t += f.effetVolMs + f.effetTenueMs + (sub && sub.lancer ? f.lancerMs * .6 : 0);
+          if (veille) marque(t + f.effetSortieMs + OEIL.length * f.oeilPasMs);
           groupe = null;
           break;
         }

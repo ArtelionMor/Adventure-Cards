@@ -6,7 +6,7 @@ import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist, gagneXp, noteCombatArene, etatArene } from '../state.js';
 import { coteEnnemi } from '../config/ennemis.js';
 import { relicMods } from '../config/relics.js';
-import { TRIGGERS, COUNTERS, keyLabel, hasKey, typesOf, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel, branchesDe, listeEffets } from '../config/mechanics.js';
+import { TRIGGERS, EVENT_TRIGGERS, COUNTERS, keyLabel, hasKey, typesOf, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel, branchesDe, listeEffets } from '../config/mechanics.js';
 import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur, reprisesPossibles, draw, refresh, nbFatigue, pileDeFatigue } from '../combat/engine.js';
 import { evt, refUnite, refHeros, refCarte } from '../combat/evenements.js';
 import { botAction } from '../combat/ai.js';
@@ -16,7 +16,13 @@ import { ouvreZone } from './zone.js';
 import { installeGestes } from './gestes.js';
 import { apercuAttaque, apercuCarte, pilule } from './apercu.js';
 import { creeJournal } from './journal.js';
-import { icone, urlIcone, BRUME } from './icones.js';
+import { icone, urlIcone, BRUME, OEIL } from './icones.js';
+
+// L'OEIL D'UNE CARTE A REGLE « QUAND X » (maquette du game designer, 20 oct. 2026) : pose en grand sur le bord haut de la
+// carte, ferme tant que rien ne se passe. Quand la regle se declenche, ui/effets.js (`oeil`) l'ouvre ici meme, etape par
+// etape, en notant l'etape sur le noeud (`data-oeil`) : un redessin de la carte pendant l'animation garde l'oeil ou il en est.
+const veille = x => EVENT_TRIGGERS.some(s => (x[s] || []).length);
+const oeilDeCarte = n => `<div class="oeil-carte"><img src="${urlIcone(OEIL[Number(n.dataset.oeil) || 0])}" alt=""></div>`;
 import { gardeCombat } from './combats.js';
 import { ouvreRevue } from './revue.js';
 import { creeFx } from './effets.js';
@@ -393,7 +399,8 @@ function majUnite(n, u, side) {
   // en rouge quand l'unite est blessee (un jeton n'a pas de carte : pas de reference, donc pas de vert).
   const plus = u.card && u.card.atk != null && u.atk > u.card.atk, moins = u.hp < u.maxHp;
   const elusif = hasKey(u.keys, 'elusif');
-  const sig = [u.name, u.sprite || '', u.atk, u.hp, plus, moins, pics, ap, u.tox || 0, elusif, !!u.shield].join('|');
+  const oeil = veille(u);
+  const sig = [u.name, u.sprite || '', u.atk, u.hp, plus, moins, pics, ap, u.tox || 0, elusif, !!u.shield, oeil].join('|');
   if (n._sig !== sig) {
     n._sig = sig;
     n.innerHTML = `
@@ -404,6 +411,7 @@ function majUnite(n, u, side) {
       ${pics}
       ${elusif ? `<div class="brume">${BRUME.map((f, i) => `<img class="b${i}" src="${urlIcone(f)}" alt="">`).join('')}</div>` : ''}
       ${u.shield ? `<div class="ecu">${icone('Shield', 34)}</div>` : ''}
+      ${oeil ? oeilDeCarte(n) : ''}
       ${ap ? `<div class="pv">${ap}</div>` : ''}`;
   }
   n.classList.toggle('taunt', hasKey(u.keys, 'Taunt'));
@@ -481,7 +489,8 @@ function majCarte(n, c, i) {
   // moins/de plus » peut le faire bouger d'un tour a l'autre, on le signale.
   const cout = cardCost(c, B, 'p');
   const pics = ligneDePictos(c, { taille: 26, max: 2 });
-  const sig = [c.name, cout, c.cost, c.sprite || '', c.type, c.atk, c.hp, pics, c.pistee ? 1 : 0].join('|');
+  const oeil = veille(c);
+  const sig = [c.name, cout, c.cost, c.sprite || '', c.type, c.atk, c.hp, pics, c.pistee ? 1 : 0, oeil].join('|');
   if (n._sig !== sig) {
     n._sig = sig;
     n.innerHTML = `
@@ -490,6 +499,7 @@ function majCarte(n, c, i) {
       ${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}
       <div class="nm">${c.name}</div>
       ${pics}
+      ${oeil ? oeilDeCarte(n) : ''}
       ${c.type === 'ally' ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}`;
   }
   n.classList.toggle('spell', c.type === 'spell');

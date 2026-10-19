@@ -148,9 +148,12 @@ export const BALANCE = {
       volMs: 340,               // la carte jouee vole de la main au centre
       tenueMs: 420,             // elle reste lisible au centre avant de se resoudre
       sortieMs: 240,            // puis elle rejoint sa destination (plateau ou defausse)
-      effetVolMs: 260,          // une carte-effet (rale d'agonie, debut/fin de tour...) part de son unite vers le centre
-      effetTenueMs: 520,        // elle reste lisible
-      effetSortieMs: 200,       // puis disparait
+      // LES DECLENCHEMENTS (rale d'agonie, debut/fin de tour, regles « quand X ») : « il faut etre beaucoup plus lent sur
+      // les triggers » (game designer, 20 oct. 2026). La suite attend toute la tenue de la carte-effet.
+      effetVolMs: 450,          // une carte-effet part de son unite vers le centre
+      effetTenueMs: 1500,       // elle reste lisible
+      effetSortieMs: 350,       // puis disparait
+      oeilPasMs: 140,           // « quand X » : chaque etape de l'oeil qui s'ouvre (5 etapes), avant la carte-effet
       popMs: 420,               // l'arrivee d'une unite (rebond)
       anneauMs: 620,            // l'anneau d'un changement d'etat (bouclier, aura, armure, mana)
       banniereMs: 1000,         // la banniere « Ton tour » traverse l'ecran

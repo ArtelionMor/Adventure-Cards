@@ -720,9 +720,10 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6); }
 /* La carte morte (ui/effets.js, `mort`) : assombrie, son personnage remplace par le crane, avant de voler a la defausse. */
 .fx-morte { filter: brightness(.42) saturate(.35); }
 .fx-morte > img { opacity: 0; }
-/* L'oeil qui s'ouvre au-dessus d'une unite dont la regle « quand X » se declenche (ui/effets.js, `oeil`). */
-.fx-oeil { position: absolute; z-index: 9; pointer-events: none; line-height: 0; }
-.fx-oeil img { width: 72px; height: auto; filter: drop-shadow(0 2px 0 rgba(255,255,255,.9)) drop-shadow(0 3px 2px rgba(23, 11, 18, .5)); }
+/* L'OEIL d'une carte a regle « quand X » (maquette du game designer, 20 oct. 2026) : en grand, a cheval sur le bord haut
+   de la carte (main ou plateau). Ferme ; ui/effets.js (`oeil`) l'ouvre en place quand la regle se declenche. */
+.oeil-carte { position: absolute; left: 50%; top: 0; width: 104%; translate: -50% -50%; z-index: 3; pointer-events: none; line-height: 0; }
+.oeil-carte img { width: 100%; height: auto; filter: drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 1px 0 #fff); }
 .fx-crane { position: absolute; left: 50%; top: 46%; z-index: 2; line-height: 0; pointer-events: none; filter: drop-shadow(0 3px 0 rgba(23, 11, 18, .8)); }
 .hcard.nouvelle { animation: arrive calc(var(--fx-pioche, 380) * 1ms * var(--fx-k, 1)) calc(var(--r, 0) * var(--fx-pioche-decalage, 80) * 1ms * var(--fx-k, 1)) backwards cubic-bezier(.2,.9,.3,1.15); }
 @keyframes arrive { from { transform: translateY(70px) scale(.7); opacity: 0; } }

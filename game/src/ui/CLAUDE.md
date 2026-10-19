@@ -133,9 +133,13 @@ Auto, ou si la carte (l'unité) ne peut pas agir (bulle qui dit pourquoi).
 - **La fiche dit le moins possible** : le texte de la carte (écrit dans le builder) précédé des icônes de ses moments et
   effets, sinon une ligne générée par effet ; puis le **nom** de chaque mot-clé, sans sa définition. Plus de ligne d'état.
 - **Les dessins du game designer (20 oct. 2026)** : les pictos de la face font **26 px** (en colonne à gauche sur le plateau,
-  en rangée dans la main) ; une règle « **quand X** » (les 48 moments `on_*`, `EVENT_TRIGGERS`) porte l'**œil fermé**
-  (`Watch`, une case 1,6 fois plus large : le dessin est large), qui **s'ouvre** au-dessus de l'unité quand sa règle se
-  déclenche (`oeil` dans `effets.js` : fermé → 25 → 50 → 75 % → ouvert, une pause, puis il se referme) ; le **râle
+  en rangée dans la main) ; une carte à règle « **quand X** » (les 48 moments `on_*`, `EVENT_TRIGGERS`) porte l'**œil
+  fermé en grand, à cheval sur son bord haut** (`.oeil-carte`, main et plateau ; plus de picto dans la rangée), qui
+  **s'ouvre en place** quand sa règle se déclenche (`oeil` dans `effets.js` : fermé → 25 → 50 → 75 % → ouvert,
+  `oeilPasMs` par étape) ; la carte-effet ne se montre qu'une fois l'œil ouvert, et il se referme après elle. L'étape est
+  notée sur le nœud (`data-oeil`) : un redessin de la carte pendant l'animation la reprend. Les déclenchements sont
+  lents (« beaucoup plus lent sur les triggers ») : `effetVolMs` 450, `effetTenueMs` 1 500 (la suite attend toute la
+  tenue), `effetSortieMs` 350 ; le **râle
   d'agonie** prend le crâne (`Dead`) ; le **Venin**, la fiole de poison ; **Élusif**, quatre bandes de **brume** qui
   dérivent sur la carte en changeant d'opacité (`.brume`, `@keyframes brume-derive`) ; le **Bouclier** (`Shield.png`)
   s'affiche en badge sur le coin haut droit tant qu'il tient (`.ecu`), en plus du halo doré.
