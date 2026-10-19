@@ -661,7 +661,7 @@ function emptyCard(type = 'ally', name = 'Nouvelle carte') {
 function emptyChar() {
   return {
     id: 'perso_' + Math.random().toString(36).slice(2, 6),
-    name: 'Nouveau personnage', species: '', sprite: 'Characters/Dog.png', role: '',
+    name: 'Nouveau personnage', species: '', sprite: 'Graphical Assets/Characters/Dog/Dog.png', role: '',
     stats: { hp: 26, mana: 7, hand: 4 },
     cards: Array.from({ length: 5 }, (_, i) => emptyCard('ally', 'Carte ' + (i + 1))),
     switches: Array.from({ length: 5 }, (_, i) => emptyCard('ally', 'Switch ' + (i + 1)))
@@ -732,7 +732,7 @@ function renderNpcs() {
     const row = document.createElement('div');
     row.className = 'charrow' + (n.id === selNpc ? ' charrow--active' : '');
     const cartes = (n.deck || []).reduce((a, l) => a + (l.n || 1), 0);
-    row.innerHTML = `<img src="${asset(n.sprite || 'Characters/Dog.png')}" alt="">
+    row.innerHTML = `<img src="${asset(n.sprite || 'Graphical Assets/Characters/Dog/Dog.png')}" alt="">
       <div style="flex:1;min-width:0">
         <div class="nm">${esc(n.name)}</div>
         <div class="sub">${n.hp} PV · ${cartes} carte(s)</div>
@@ -860,7 +860,7 @@ function donneCarte(cd) {
 
 /**
  * ACTUALISER LA LISTE DES IMAGES. Un navigateur ne sait pas lire un dossier : c'est le
- * serveur qui rebalaye `Characters/`, `Machines/`, `Ressources/`, `UI/` et reecrit
+ * serveur qui rebalaye `Graphical Assets/{Characters,Buildings,Ressources,Old UI}/` (sous-dossiers compris) et reecrit
  * game/data/sprites.js — POST /api/sprites, implemente dans `scripts/devserver.js`
  * ET dans `launcher/Launcher.cs`, comme /api/write. Il rend la liste dans la foulee :
  * on la garde en memoire, donc une image ajoutee apparait sans recharger la page.
@@ -876,7 +876,7 @@ async function relitLesSprites() {
 }
 
 function pickSprite(done) {
-  let cur = 'Characters';
+  let cur = 'Graphical Assets/Characters';
   const draw = () => {
     // Recalcule apres chaque actualisation : un dossier peut apparaitre, et celui
     // qu'on regardait peut avoir disparu.
@@ -884,12 +884,12 @@ function pickSprite(done) {
     if (!SPRITES[cur]) cur = folders[0];
     openModal('Choisir un sprite', `
       <div class="chips" style="margin-bottom:12px">
-        ${folders.map(f => `<span class="chip ${f === cur ? 'chip--on' : ''}" data-f="${f}">${f}</span>`).join('')}
+        ${folders.map(f => `<span class="chip ${f === cur ? 'chip--on' : ''}" data-f="${f}">${f.replace(/^Graphical Assets\//, '')}</span>`).join('')}
         <span class="chip" id="majSprites" title="Relit les dossiers d'images : à faire après en avoir ajouté une">🔄 Actualiser les images</span>
       </div>
       <div class="sprites">
         ${(SPRITES[cur] || []).map(n => `<div class="sprite" data-p="${esc(cur + '/' + n)}">
-          <img src="${asset(cur + '/' + n)}" alt=""><span>${esc(n.replace(/\.\w+$/, ''))}</span></div>`).join('')}
+          <img src="${asset(cur + '/' + n)}" alt=""><span>${esc(n.split('/').pop().replace(/\.\w+$/, ''))}</span></div>`).join('')}
       </div>`);
     $('#modalBox').querySelectorAll('[data-f]').forEach(n => n.onclick = () => { cur = n.dataset.f; draw(); });
     $('#modalBox').querySelectorAll('[data-p]').forEach(n => n.onclick = () => { done(n.dataset.p); closeModal(); });
@@ -1178,7 +1178,7 @@ function renderNpcForm() {
   box.innerHTML = `
     <div style="display:grid;grid-template-columns:110px 1fr;gap:16px;align-items:start">
       <div>
-        <img src="${asset(vu(n, 'sprite', n.sprite, true) || 'Characters/Dog.png')}" style="width:110px;aspect-ratio:1;object-fit:contain;background:var(--bg);border:1px solid var(--line);border-radius:12px">
+        <img src="${asset(vu(n, 'sprite', n.sprite, true) || 'Graphical Assets/Characters/Dog/Dog.png')}" style="width:110px;aspect-ratio:1;object-fit:contain;background:var(--bg);border:1px solid var(--line);border-radius:12px">
         <button class="btn btn--sm" id="nSprite" style="width:100%;margin-top:8px"${verrou(n.id, 'sprite')}>Changer</button>
       </div>
       <div>
@@ -2322,7 +2322,7 @@ $('#addFree').onclick = () => {
 };
 $('#newNpc').onclick = () => {
   const n = { id: 'pnj_' + Math.random().toString(36).slice(2, 6), name: 'Nouvel adversaire',
-    sprite: 'Characters/Rabbit.png', hp: 24, mana: 6, hand: 3, level: 1, deck: [] };
+    sprite: 'Graphical Assets/Characters/Rabbit/Rabbit.png', hp: 24, mana: 6, hand: 3, level: 1, deck: [] };
   npcs().push(n); selNpc = n.id; save(); renderAll();
 };
 $('#dupNpc').onclick = () => {

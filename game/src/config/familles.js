@@ -27,6 +27,20 @@ export const RARETE_DES_HEROS = {
   dog3: 'epique', cat3: 'epique', crow3: 'epique', frog3: 'epique', owl3: 'epique', cameleon3: 'epique'
 };
 
+// LA COULEUR D'UN TYPE de carte (`type:Lapin`) : la puce « Type » de la fiche d'appui long (maquette « Combat Screen
+// Zoom on a card », 19 octobre 2026) en prend une part par type — le Lapin Mecanique, Lapin ET Robot, a une puce
+// mi-jaune mi-grise. Un type absent de la table prend la couleur de la famille qui porte cette espece, sinon le gris
+// creme de `TYPE_PAR_DEFAUT`. Habillage, pas equilibrage.
+export const COULEURS_DES_TYPES = {
+  Chien: '#ffbfbf', Chat: '#bff9ff', Corbeau: '#ddd0ff', Oiseau: '#cfe3ff', Faucon: '#ffd9a8',
+  Grenouille: '#c2ffbf', 'Têtard': '#e2ffc9', Hibou: '#ffe6b3', Chouette: '#ffe6b3', Cameleon: '#ffd3f1',
+  Loup: '#c9c9d6', Lapin: '#f6e7a0', Robot: '#b7b7b7'
+};
+export const TYPE_PAR_DEFAUT = '#e0d6c4';
+
+/** La couleur du type `t` (table, puis famille de l'espece, puis le defaut). */
+export const couleurDuType = t => COULEURS_DES_TYPES[t] || (FAMILLES.find(f => f.especes.includes(t)) || {}).fond || TYPE_PAR_DEFAUT;
+
 /** La famille d'un heros (l'objet de `FAMILLES`). */
 export const familleDe = heros => FAMILLES.find(f => f.especes.includes(heros.species)) || FAMILLES[FAMILLES.length - 1];
 

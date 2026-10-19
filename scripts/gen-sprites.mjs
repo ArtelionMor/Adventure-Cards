@@ -13,16 +13,33 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-// `Decor/...` : les packs d'assets tiers essayes pour la carte (docs/PACKS-CARTE.md), un dossier par pack.
-export const FOLDERS = ['Characters', 'Machines', 'Ressources', 'UI', 'Decor/Kenney Tiny Town', 'Decor/Kenney Medieval RTS', 'Decor/Kenney Foliage Pack'];
+// Les images du game designer sont rangees dans `Graphical Assets/` (19 octobre 2026), les personnages par espece
+// (`Graphical Assets/Characters/Dog/Dog Cocker.png`) : chaque dossier est balaye AVEC ses sous-dossiers, et un nom
+// de la liste peut donc contenir un `/` (« Dog/Dog Cocker.png »). `Decor/...` : les packs d'assets tiers essayes pour
+// la carte (docs/PACKS-CARTE.md), un dossier par pack. `Graphical Assets/Icons` et `CardBack` n'y sont pas : ce
+// sont des images d'interface, pas des portraits (scripts/gen-vignettes.py les allege a part).
+export const FOLDERS = [
+  'Graphical Assets/Characters', 'Graphical Assets/Buildings', 'Graphical Assets/Ressources', 'Graphical Assets/Old UI',
+  'Decor/Kenney Tiny Town', 'Decor/Kenney Medieval RTS', 'Decor/Kenney Foliage Pack'
+];
 
-/** Ce que contiennent les dossiers d'images, ici et maintenant. */
+/** Les images d'un dossier et de ses sous-dossiers, en chemins relatifs avec des `/`. */
+function images(dir, prefixe = '') {
+  const out = [];
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.isDirectory()) out.push(...images(join(dir, e.name), prefixe + e.name + '/'));
+    else if (/\.(png|jpg|jpeg|webp|gif)$/i.test(e.name)) out.push(prefixe + e.name);
+  }
+  return out;
+}
+
+/** Ce que contiennent les dossiers d'images, ici et maintenant. Tri ordinal (comme `StringComparer.Ordinal` en C#). */
 export function scanSprites() {
   const out = {};
   for (const f of FOLDERS) {
     const dir = join(root, f);
     if (!existsSync(dir)) continue;
-    out[f] = readdirSync(dir).filter(n => /\.(png|jpg|jpeg|webp|gif)$/i.test(n)).sort();
+    out[f] = images(dir).sort();
   }
   return out;
 }
@@ -45,13 +62,16 @@ export function genereSprites() {
  */
 export function vignettes() {
   for (const py of ['python3', 'python']) {
+    // Cet executable n'existe pas ici, ou n'a pas Pillow : on essaie le suivant. (Sous Windows, `python3` est souvent
+    // le raccourci du Microsoft Store, qui existe mais repond « Python est introuvable ».)
+    if (spawnSync(py, ['-c', 'import PIL'], { encoding: 'utf8' }).status !== 0) continue;
     const r = spawnSync(py, [join(root, 'scripts', 'gen-vignettes.py')], { cwd: root, encoding: 'utf8', timeout: 600000 });
-    if (r.error) continue;                       // cet executable n'existe pas ici : on essaie le suivant
+    if (r.error) continue;
     if (r.status !== 0) console.warn('gen-vignettes.py :', (r.stderr || '').trim().split(/\r?\n/).pop());
     else console.log((r.stdout || '').trim());
     return r.status === 0;
   }
-  console.warn('gen-vignettes.py : Python introuvable, les images restent en taille originale.');
+  console.warn('gen-vignettes.py : Python ou Pillow introuvable, les images restent en taille originale.');
   return false;
 }
 

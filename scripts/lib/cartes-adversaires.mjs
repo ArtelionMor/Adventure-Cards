@@ -8,6 +8,9 @@
 // Paliers : 2/5/10 pour un allie, 3/6/11 pour un sort (GDD, « Anatomie de carte ») — c'est ce qui donne du sens a
 // `card_level` dans les profils de progression des adversaires (onglet enemy_progress_profile).
 
+import { SPRITES } from '../../game/data/sprites.js';
+import { cheminPersonnage } from '../../game/src/config/feuille.js';
+
 const allyTiers = () => [
   { lvl: 2, stats: { atk: 0, hp: 1 }, text: '+0/+1' },
   { lvl: 5, stats: { atk: 1, hp: 0 }, text: '+1/+0' },
@@ -17,7 +20,8 @@ const spellTiers = () => [{ lvl: 3, amp: 1, text: 'Effet +1' }, { lvl: 6, cost: 
 // Un sort sans montant a amplifier : ses paliers baissent son cout.
 const spellTiersCout = () => [{ lvl: 6, cost: -1, text: 'coût -1' }];
 
-const C = n => `Characters/${n}.png`;
+// Un portrait par son nom nu, cherche dans le sous-dossier de son espece (Graphical Assets/Characters/<Espece>/).
+const C = n => cheminPersonnage(n, SPRITES);
 const ally = o => ({
   id: o.id, name: o.name, type: 'ally', cost: o.cost, keys: o.keys || [], text: o.text,
   play: o.play || [], tiers: o.tiers || allyTiers(), atk: o.atk, hp: o.hp, statics: o.statics || [],

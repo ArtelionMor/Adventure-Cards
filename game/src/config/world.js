@@ -67,9 +67,9 @@ export const WORLD = {
   // identifiants des anciens combats (f1, b1...) sont gardes : la sauvegarde s'en sert (`world.cleared`).
   nodes: [
     { id: 'tuto', type: 'npc', x: 26, y: 31, name: 'Vieux Chêne',
-      sprite: 'UI/Tree.png',
+      sprite: 'Graphical Assets/Old UI/Tree.png',
       dialog: "Toutes les arènes sont ouvertes. Approche-toi d'un bâtiment pour voir qui t'y attend." },
-    { id: 's1', type: 'shop', x: 34, y: 28, name: 'Marchand Ambulant', sprite: 'Machines/Coffee shop.png' },
+    { id: 's1', type: 'shop', x: 34, y: 28, name: 'Marchand Ambulant', sprite: 'Graphical Assets/Buildings/Coffee shop.png' },
 
     // Premier anneau : les arenes d'apprentissage.
     { id: 'f1', type: 'arena', anneau: 1, x: 30, y: 17, arene: 'rabbit1', enemy: 'rabbit1' },

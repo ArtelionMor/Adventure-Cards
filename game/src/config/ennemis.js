@@ -22,24 +22,24 @@ import { NPC_BY_ID, npcDeck } from './npcs.js';
 // builder qui porte le meme identifiant GAGNE : il suffit de le creer la-bas pour que celui-ci ne serve plus.
 export const ENNEMIS_PROVISOIRES = [
   // Controle Pillow Fort : il se blinde de Provocations et de soins, et gagne avec un chien qui grandit a chaque tour.
-  { id: 'sloth1', name: 'Paresseux Batisseur', sprite: 'Characters/Sloth.png', hp: 34, mana: 7, hand: 4, ia: 'normal', level: 1,
+  { id: 'sloth1', name: 'Paresseux Batisseur', sprite: 'Graphical Assets/Characters/Sloth/Sloth.png', hp: 34, mana: 7, hand: 4, ia: 'normal', level: 1,
     deck: [{ card: 'wall1', n: 3 }, { card: 'wall2', n: 2 }, { card: 'potion', n: 2 }, { card: 'card_njt2j1', n: 2 },
       { card: 'adv_paresseux_hamac', n: 2 }, { card: 'adv_paresseux_sieste', n: 2 }, { card: 'adv_paresseux_coussin', n: 2 }] },
   // Aggro Turbo : des Charges partout, il ne regarde pas ton plateau.
-  { id: 'robin1', name: 'Rouge-Gorge Fou', sprite: 'Characters/Robin.png', hp: 24, mana: 6, hand: 4, ia: 'normal', level: 1,
+  { id: 'robin1', name: 'Rouge-Gorge Fou', sprite: 'Graphical Assets/Characters/Birds/Robin.png', hp: 24, mana: 6, hand: 4, ia: 'normal', level: 1,
     deck: [{ card: 'rush1', n: 3 }, { card: 'card_9g5803', n: 2 }, { card: 'bolt', n: 2 }, { card: 'crow2_dive', n: 2 },
       { card: 'adv_rougegorge_pique', n: 2 }, { card: 'adv_rougegorge_chant', n: 2 }, { card: 'adv_rougegorge_kamikaze', n: 2 }] },
   // Combo : les cartes du cameleon Mirage (prisme, miroir, choeur), qui copient et se repondent.
-  { id: 'panda1', name: 'Kitsune Farceur', sprite: 'Characters/Red Panda Kitsune.png', hp: 30, mana: 7, hand: 4, ia: 'normal', level: 1,
+  { id: 'panda1', name: 'Kitsune Farceur', sprite: 'Graphical Assets/Characters/Red Panda/Red Panda Kitsune.png', hp: 30, mana: 7, hand: 4, ia: 'normal', level: 1,
     deck: [{ card: 'cam2_prism', n: 2 }, { card: 'cam2_mirror', n: 2 }, { card: 'cam2_choir', n: 2 }, { card: 'fox_raid', n: 2 }, { card: 'bolt', n: 1 },
       { card: 'adv_kitsune_illusion', n: 2 }, { card: 'adv_kitsune_metamorphe', n: 2 }, { card: 'adv_kitsune_queues', n: 2 }] },
   // Fatigue : un deck court et epais en PV, qui veut t'emmener a la pile de fatigue.
-  { id: 'goat1', name: 'Chevre Tetue', sprite: 'Characters/Goat.png', hp: 40, mana: 7, hand: 4, ia: 'normal', level: 1,
+  { id: 'goat1', name: 'Chevre Tetue', sprite: 'Graphical Assets/Characters/Goat/Goat.png', hp: 40, mana: 7, hand: 4, ia: 'normal', level: 1,
     deck: [{ card: 'owl2_nest', n: 2 }, { card: 'owl2_lull', n: 2 }, { card: 'wall1', n: 1 }, { card: 'potion', n: 1 },
       { card: 'adv_chevre_rumination', n: 2 }, { card: 'adv_chevre_bouquetin', n: 2 }, { card: 'adv_chevre_vieille', n: 1 }, { card: 'adv_chevre_mangetout', n: 1 }] },
   // Aggro MidRange : il s'adapte — retraits (Equarrisseur, Souffle) quand tu poses, corps solides sinon.
   // Mesure (16 oct., trios niveau 1) : a 36 PV / 8 mana avec deux Pieuvres Mecaniques, la mediane etait 0 % : adouci.
-  { id: 'octo2', name: 'Pieuvre Robot', sprite: 'Characters/Octopus Robot.png', hp: 30, mana: 7, hand: 4, ia: 'normal', level: 1,
+  { id: 'octo2', name: 'Pieuvre Robot', sprite: 'Graphical Assets/Characters/Octopus/Octopus Robot.png', hp: 30, mana: 7, hand: 4, ia: 'normal', level: 1,
     deck: [{ card: 'card_winkd1', n: 1 }, { card: 'grunt3', n: 2 }, { card: 'crow3_vulture', n: 2 }, { card: 'crow3_knacker', n: 2 }, { card: 'smash', n: 1 }, { card: 'bolt', n: 2 },
       { card: 'adv_robot_tentacule', n: 2 }, { card: 'adv_robot_recycleuse', n: 1 }, { card: 'adv_robot_usine', n: 1 }] }
 ];

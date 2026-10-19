@@ -85,7 +85,7 @@ const RETIREES = new Set(['renforce_la_fatigue', 'cree_de_la_fatigue', 'enregist
 // ------------------------------------------------------------------ PATOU (Chien) — le berger, Contrôle Soft
 const CHIEN = ['type:Chien'];
 const dog3 = {
-  id: 'dog3', name: 'Patou', species: 'Chien', sprite: 'Characters/Dog Cocker.png',
+  id: 'dog3', name: 'Patou', species: 'Chien', sprite: 'Graphical Assets/Characters/Dog/Dog Cocker.png',
   role: 'Berger — Contrôle Soft : taxe, punit et défausse ce que l’adversaire veut jouer',
   stats: { hp: 30, mana: 7, hand: 2 },
   cards: [
@@ -131,7 +131,7 @@ const dog3 = {
 const CHAT = ['type:Chat'];
 const chat = tok('Chat', 2, 2, CHAT);
 const cat3 = {
-  id: 'cat3', name: 'Mélusine', species: 'Chat', sprite: 'Characters/Cat Witch.png',
+  id: 'cat3', name: 'Mélusine', species: 'Chat', sprite: 'Graphical Assets/Characters/Cat/Cat Witch.png',
   role: 'Sorcière — Combo : ses sorts se relancent depuis la défausse, sa défausse est une seconde main',
   stats: { hp: 25, mana: 8, hand: 2 },
   cards: [
@@ -170,7 +170,7 @@ const cat3 = {
 // ------------------------------------------------------------------ MORRIGANE (Corbeau) — la charognarde, Aggro MidRange
 const CORB = ['type:Oiseau', 'type:Corbeau'];
 const crow3 = {
-  id: 'crow3', name: 'Morrigane', species: 'Corbeau', sprite: 'Characters/Crow Skeleton.png',
+  id: 'crow3', name: 'Morrigane', species: 'Corbeau', sprite: 'Graphical Assets/Characters/Crow/Crow Skeleton.png',
   role: 'Charognarde — Aggro MidRange : dévore la défausse adverse, tient mieux la longueur qu’un Turbo',
   stats: { hp: 24, mana: 8, hand: 2 },
   cards: [
@@ -209,7 +209,7 @@ const crow3 = {
 const GREN = ['type:Grenouille'];
 const tetard = tok('Têtard', 1, 1, ['type:Têtard', 'type:Grenouille']);
 const frog3 = {
-  id: 'frog3', name: 'Dendrobate', species: 'Grenouille', sprite: 'Characters/Frog Venomous.png',
+  id: 'frog3', name: 'Dendrobate', species: 'Grenouille', sprite: 'Graphical Assets/Characters/Frog/Frog Venomous.png',
   role: 'Venin — Contrôle Hard : des Toxines, un 1 pour 1 ou un 1 pour 2, aucune unité au-delà de 5',
   stats: { hp: 28, mana: 7, hand: 2 },
   cards: [
@@ -248,7 +248,7 @@ const frog3 = {
 // ------------------------------------------------------------------ HULOTTE (Hibou) — la bibliothecaire, Fatigue
 const HIB = ['type:Oiseau', 'type:Hibou'];
 const owl3 = {
-  id: 'owl3', name: 'Hulotte', species: 'Hibou', sprite: 'Characters/Owl Academic.png',
+  id: 'owl3', name: 'Hulotte', species: 'Hibou', sprite: 'Graphical Assets/Characters/Owl/Owl Academic.png',
   role: 'Bibliothécaire — Fatigue : meule sa pioche pour atteindre la fatigue avant l’adversaire, et y range ses Ex-libris',
   stats: { hp: 27, mana: 9, hand: 2 },
   cards: [
@@ -286,7 +286,7 @@ const owl3 = {
 // ------------------------------------------------------------------ PASTICHE (Caméléon) — l'usurpateur, MidRange
 const CAM = ['type:Cameleon'];
 const cameleon3 = {
-  id: 'cameleon3', name: 'Pastiche', species: 'Cameleon', sprite: 'Characters/Cameleon.png',
+  id: 'cameleon3', name: 'Pastiche', species: 'Cameleon', sprite: 'Graphical Assets/Characters/Cameleon/Cameleon.png',
   role: 'Usurpateur — MidRange : le Registre garde les types de toutes les cartes jouées',
   stats: { hp: 25, mana: 8, hand: 2 },
   cards: [

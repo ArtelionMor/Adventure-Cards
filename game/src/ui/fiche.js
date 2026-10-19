@@ -2,44 +2,65 @@
 // comme la liste de bonus d'une carte de Hearthstone — « ce qui la modifie, et d'ou ca vient ». Demande du game
 // designer (9 octobre 2026) : les pictogrammes de la vignette doivent pouvoir s'apprendre ici, et la liste de ce
 // qui agit sur l'unite remplace les paliers de niveau (pas ce qu'il y a de plus utile en plein combat).
+//
+// La mise en forme suit la maquette « Combat Screen Zoom on a card » (19 octobre 2026) : ce que la carte FAIT s'ecrit
+// « icones : texte » (vert pour un effet, jaune pour un mot-cle) ; ce qui la MODIFIE s'ecrit sous le portrait de sa
+// source, le nom de la source en titre et le changement dessous (vert s'il l'aide, rouge s'il la desservit).
 import { TRIGGERS, KEYWORDS, keyId, keyLabel, momentLabel, describeEffect, describeAura, describeStatic } from '../config/mechanics.js';
 import { icone } from './icones.js';
+import { asset } from './shell.js';
 import { iconeDeCle, iconeDeOp, iconeDeMoment } from './pictos.js';
 
-/** Une ligne : une icone a gauche, un titre en gras, un texte, et d'ou ca vient (en retrait). */
-export function ligneIco(nom, titre, texte, source) {
+const div = (cl, html) => {
   const d = document.createElement('div');
-  d.className = 'ln li';
-  d.innerHTML = `<span class="lico">${icone(nom, 24)}</span><span class="ltx"><b>${titre}</b> ${texte || ''}${source ? ` <span class="src">— ${source}</span>` : ''}</span>`;
+  d.className = cl;
+  d.innerHTML = html;
   return d;
+};
+
+/** Une ligne de ce que fait la carte : ses icones (separees par des virgules), puis « : texte ». `ton` : effet / cle. */
+export function ligneEffet(icones, texte, ton = 'effet') {
+  return div(`fl ${ton}`, `<span class="fl-ico">${icones.filter(Boolean).map(n => icone(n, 26)).join('<i>,</i>')}</span><span class="fl-tx">: ${texte}</span>`);
 }
 
-/** Les mots-cles de `x` (hors types, qui sont des etiquettes) : icone, nom, ce que ca fait. */
+/**
+ * Une ligne de ce qui modifie l'unite : le portrait de la SOURCE (ou une icone, sans portrait), son nom en titre, et
+ * le changement dessous. `ton` : bon (vert) ou mal (rouge) ; `eteint` : ce qui ne s'applique plus (grise).
+ */
+export function ligneSource({ sprite, ico, titre, texte, ton = 'bon', eteint = false }) {
+  const tete = sprite ? `<img src="${asset(sprite)}" alt="">` : icone(ico || 'Buff', 28);
+  return div(`fs ${ton}${eteint ? ' eteint' : ''}`, `<span class="fs-port">${tete}</span><span class="fs-tx"><b>${titre}</b><em>${texte}</em></span>`);
+}
+
+/** Les mots-cles de `x` (hors types, qui sont des etiquettes) : icone, puis « Nom — ce que ca fait ». */
 function lignesDeMots(x) {
   const out = [];
   for (const k of x.keys || []) {
     const ic = iconeDeCle(k);
     if (!ic) continue;
     const def = KEYWORDS[keyId(k)];
-    out.push(ligneIco(ic, keyLabel(k), def ? def.desc : '', 'sur la carte'));
+    out.push(ligneEffet([ic], `${keyLabel(k)}${def && def.desc ? ' — ' + def.desc : ''}`, 'cle'));
   }
   return out;
 }
 
 /** Ce qu'une carte ou une unite FAIT : mots-cles, effets de chaque moment (un par ligne), aura, statiques. */
 export function lignesDeFait(x) {
-  const out = lignesDeMots(x);
+  const out = [];
   for (const slot of Object.keys(TRIGGERS)) {
     for (const e of x[slot] || []) {
-      out.push(ligneIco(iconeDeMoment(slot) || iconeDeOp(e.op), momentLabel(slot, x), describeEffect(e)));
+      const mom = iconeDeMoment(slot);
+      const quand = slot === 'play' ? '' : `${momentLabel(slot, x)} — `;
+      out.push(ligneEffet([mom, iconeDeOp(e.op)], quand + describeEffect(e)));
     }
   }
-  if (x.aura) out.push(ligneIco('Aura', 'Aura', describeAura(x.aura), 'portée par elle'));
-  for (const m of x.statics || []) out.push(ligneIco('Static', 'Effet continu', describeStatic(m), 'tant qu’elle est en jeu'));
-  return out;
+  if (x.aura) out.push(ligneEffet(['Aura'], `Aura — ${describeAura(x.aura)}`));
+  for (const m of x.statics || []) out.push(ligneEffet(['Static'], `${describeStatic(m)} (tant qu’elle est en jeu)`));
+  return out.concat(lignesDeMots(x));
 }
 
 const signe = v => (v >= 0 ? '+' : '') + v;
+const fois = n => (n > 1 ? ` (${n} fois)` : '');
 
 /**
  * Les renforts reçus par l'unite `u` (camp `camp`), un par SOURCE, lus dans le recit du combat (`B.evts`).
@@ -52,17 +73,22 @@ export function lignesDeRenforts(B, u, camp, dAtk, dHp) {
     if (e.t !== 'renfort' || !e.cible || e.cible.uid !== u.uid || e.cible.camp !== camp) continue;
     const nom = e.src ? e.src.nom : 'un effet';
     const cle = `${nom}|${e.atk}|${e.hp}|${e.cle || ''}`;
-    const g = groupes.get(cle) || { nom, atk: e.atk || 0, hp: e.hp || 0, cle: e.cle, n: 0 };
+    const g = groupes.get(cle) || { nom, sprite: e.src ? e.src.sprite : null, atk: e.atk || 0, hp: e.hp || 0, cle: e.cle, n: 0 };
     g.n++;
     groupes.set(cle, g);
     somA += e.atk || 0; somH += e.hp || 0;
   }
   const out = [];
   for (const g of groupes.values()) {
-    const montant = `${signe(g.atk)}/${signe(g.hp)}`;
-    const cle = g.cle ? ` · ${keyLabel(g.cle)}` : '';
-    out.push(ligneIco(g.cle && iconeDeCle(g.cle) && !g.atk && !g.hp ? iconeDeCle(g.cle) : 'Buff', montant + cle, '', `${g.n > 1 ? g.n + ' × ' : ''}${g.nom}`));
+    const chiffres = g.atk || g.hp;
+    const atk = g.atk * g.n, hp = g.hp * g.n;
+    const texte = [chiffres ? `${signe(atk)}/${signe(hp)} : ${atk + hp >= 0 ? 'renfort' : 'affaiblissement'}` : '', g.cle ? `gagne ${keyLabel(g.cle)}` : '']
+      .filter(Boolean).join(' · ');
+    out.push(ligneSource({ sprite: g.sprite, ico: g.cle && iconeDeCle(g.cle) ? iconeDeCle(g.cle) : 'Buff', titre: g.nom + fois(g.n), texte, ton: atk + hp < 0 ? 'mal' : 'bon' }));
   }
-  if (dAtk - somA || dHp - somH) out.push(ligneIco('Buff', `${signe(dAtk - somA)}/${signe(dHp - somH)}`, '', 'autres renforts'));
+  if (dAtk - somA || dHp - somH) {
+    const a = dAtk - somA, h = dHp - somH;
+    out.push(ligneSource({ ico: a + h < 0 ? 'Debuff' : 'Buff', titre: 'Autres renforts', texte: `${signe(a)}/${signe(h)}`, ton: a + h < 0 ? 'mal' : 'bon' }));
+  }
   return out;
 }

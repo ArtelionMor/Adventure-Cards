@@ -356,8 +356,12 @@ static class Launcher
     // Card Builder). Le serveur de dev fait la meme chose en appelant
     // scripts/gen-sprites.mjs ; ici on est en C#, donc ce balayage est ecrit deux fois.
     // Les deux doivent produire le MEME fichier : meme ordre (ordinal, comme le .sort()
-    // de JavaScript), meme mise en forme, memes fins de ligne.
-    static readonly string[] SpriteFolders = { "Characters", "Machines", "Ressources", "UI", "Decor/Kenney Tiny Town", "Decor/Kenney Medieval RTS", "Decor/Kenney Foliage Pack" };
+    // de JavaScript), meme mise en forme, memes fins de ligne. Chaque dossier est balaye
+    // avec ses sous-dossiers (les personnages sont ranges par espece :
+    // « Graphical Assets/Characters/Dog/Dog Cocker.png » -> « Dog/Dog Cocker.png »).
+    static readonly string[] SpriteFolders = {
+        "Graphical Assets/Characters", "Graphical Assets/Buildings", "Graphical Assets/Ressources", "Graphical Assets/Old UI",
+        "Decor/Kenney Tiny Town", "Decor/Kenney Medieval RTS", "Decor/Kenney Foliage Pack" };
     static readonly string[] SpriteExt = { ".png", ".jpg", ".jpeg", ".webp", ".gif" };
 
     /** Balaye les dossiers, reecrit game/data/sprites.js, et rend le JSON de la liste. */
@@ -370,10 +374,10 @@ static class Launcher
             string dir = Path.Combine(Root, dossier);
             if (!Directory.Exists(dir)) continue;
             List<string> noms = new List<string>();
-            foreach (string f in Directory.GetFiles(dir))
+            foreach (string f in Directory.GetFiles(dir, "*", SearchOption.AllDirectories))
             {
                 string ext = Path.GetExtension(f).ToLowerInvariant();
-                if (Array.IndexOf(SpriteExt, ext) >= 0) noms.Add(Path.GetFileName(f));
+                if (Array.IndexOf(SpriteExt, ext) >= 0) noms.Add(f.Substring(dir.Length + 1).Replace('\\', '/'));
             }
             noms.Sort(StringComparer.Ordinal);
             if (!premierDossier) json.Append(",\n");

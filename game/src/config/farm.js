@@ -4,10 +4,10 @@
 import { BALANCE } from './balance.js';
 
 const SPECIES = [
-  { id: 'carrot', name: 'Carotte', art: 'Carrot', building: 'Machines/Carrot Farm.png', mult: 1.0 },
-  { id: 'nenuphar', name: 'Nenuphar', art: 'Nenuphar', building: 'Machines/Nenuphar Farm.png', mult: 1.25 },
-  { id: 'nest', name: 'Nid', art: 'Nest', building: 'Machines/Nest Factory.png', mult: 1.6 },
-  { id: 'pillow', name: 'Coussin', art: 'Pillow', building: 'Machines/Pillow Maker.png', mult: 2.1 }
+  { id: 'carrot', name: 'Carotte', art: 'Carrot', building: 'Graphical Assets/Buildings/Carrot Farm.png', mult: 1.0 },
+  { id: 'nenuphar', name: 'Nenuphar', art: 'Nenuphar', building: 'Graphical Assets/Buildings/Nenuphar Farm.png', mult: 1.25 },
+  { id: 'nest', name: 'Nid', art: 'Nest', building: 'Graphical Assets/Buildings/Nest Factory.png', mult: 1.6 },
+  { id: 'pillow', name: 'Coussin', art: 'Pillow', building: 'Graphical Assets/Buildings/Pillow Maker.png', mult: 2.1 }
 ];
 
 // Un "plant" = une espece a un palier de rarete (Tier 1..6).
@@ -19,7 +19,7 @@ for (const s of SPECIES) {
       species: s.id,
       name: `${s.name} T${tier}`,
       tier,
-      sprite: `Ressources/${s.art} Tier ${tier}.png`,
+      sprite: `Graphical Assets/Ressources/${s.art}/${s.art} Tier ${tier}.png`,
       building: s.building,
       // Un tier plus rare pousse plus lentement mais vaut nettement plus.
       growMs: Math.round(50000 * Math.pow(1.85, tier - 1)),

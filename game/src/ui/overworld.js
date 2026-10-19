@@ -40,8 +40,8 @@ function nodeSprite(n) {
   if (n.type === 'arena') return (areneDe(n) || {}).batiment || ENCOUNTERS[n.enemy].sprite;
   if (n.type === 'forage') return (CROP_BY_ID[n.crops[0]] || {}).sprite || null;
   if (n.type === 'fight' || n.type === 'boss') return ENCOUNTERS[n.enemy].sprite;
-  if (n.type === 'chest') return 'UI/Vault.png';
-  if (n.type === 'shop') return 'Machines/Coffee shop.png';
+  if (n.type === 'chest') return 'Graphical Assets/Old UI/Vault.png';
+  if (n.type === 'shop') return 'Graphical Assets/Buildings/Coffee shop.png';
   return null;
 }
 

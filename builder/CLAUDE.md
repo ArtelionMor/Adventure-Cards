@@ -21,7 +21,7 @@
 | `feuille.html` | **Feuille** : la game config se règle dans la Google Sheet « Config Adventure-Cards » (bouton « Ouvrir la feuille ↗ », qui suit l'id de `feuille.data.js`) ; « Voir les changements » (aperçu) puis « Appliquer au jeu » (écrit `game/data/feuille.data.js` **sur la machine du serveur**). Tout ce qui commence par `~` (onglet, colonne, ligne) n'est pas exporté. | `GET/POST /api/feuille`, `scripts/lib/feuille.mjs` |
 | `sw.js` | Service worker : **notifications seulement**, aucun cache. | `scripts/lib/push.mjs` |
 | `manifest.webmanifest` | La PWA « Atelier ». | `icons/` |
-| `icons/` | Icônes de l'Atelier (tirées de `Icons/Icon.png` par `scripts/gen-icones.ps1`). | — |
+| `icons/` | Icônes de l'Atelier (tirées de `Graphical Assets/Icons/Icon.png` par `scripts/gen-icones.ps1`). | — |
 | `telechargements/` | `widget-atelier.apk`, le **seul `.apk` versionné** (servi par le Pi). | `android/` |
 
 Clés `localStorage` : `adventureCardBuilder.v1` (brouillon), `adventureCardBuilder.focus`, `adventureCardBalance.v1` (+ `.courbe`), `adventureCardCourbes.v1`, `adventureCardLancer.v1`.
@@ -46,8 +46,8 @@ et `docs/MECANIQUES-A-CODER.md` via `POST /api/write` (implémenté dans `script
 Node : elle doit rester correcte, mais ce n'est plus elle qu'on exerce tous les jours.
 
 **Les images disponibles** (le portrait d'un héros, d'un PNJ ou d'une carte) viennent de
-`game/data/sprites.js`, la liste des fichiers de `Characters/`, `Machines/`, `Ressources/`
-et `UI/`. Un navigateur ne sait pas lire un dossier : c'est le serveur qui les rebalaye,
+`game/data/sprites.js`, la liste des fichiers de `Graphical Assets/{Characters,Buildings,Ressources,Old UI}/`
+(sous-dossiers compris ; la fenêtre en fait un onglet par dossier). Un navigateur ne sait pas lire un dossier : c'est le serveur qui les rebalaye,
 sur `POST /api/sprites` — le bouton **🔄 Actualiser les images** de la fenêtre « Choisir un
 sprite ». À faire après avoir déposé une image ; en ligne de commande, c'est le même
 balayage avec `node scripts/gen-sprites.mjs`. La liste revient dans la réponse et remplace
@@ -254,7 +254,7 @@ un brouillon est-il en cours dans ce navigateur, où en est le dernier calcul du
 `builder/manifest.webmanifest` en fait une **PWA installable** (« Atelier », portée `/` :
 le jeu s'ouvre dans la même fenêtre). Toutes les pages du builder pointent vers ce
 manifeste, donc on installe depuis n'importe laquelle. Les icônes (`builder/icons/`) sont
-le logo `Icons/Icon.png`, déclinées par `scripts/gen-icones.ps1` (transparentes pour
+le logo `Graphical Assets/Icons/Icon.png`, déclinées par `scripts/gen-icones.ps1` (transparentes pour
 l'onglet et l'app, sur fond plein pour Android « maskable » et iOS, silhouette blanche pour
 le badge de notification) : à relancer quand le logo change.
 

@@ -276,7 +276,7 @@ for (let g = 0; g < PARTIES; g++) {
   };
   const { gardeCombat, listeCombats, chargeCombat } = await import('../game/src/ui/combats.js');
   const { B } = partie(3, true);
-  const meta = n => ({ nom: `Combat ${n}`, gagnant: 'p', tours: 9, equipe: 'Toi', heros: { p: 'Characters/Dog.png', e: 'Characters/Cat.png' }, evts: B.evts });
+  const meta = n => ({ nom: `Combat ${n}`, gagnant: 'p', tours: 9, equipe: 'Toi', heros: { p: 'Graphical Assets/Characters/Dog/Dog.png', e: 'Graphical Assets/Characters/Cat/Cat.png' }, evts: B.evts });
 
   const id = gardeCombat(meta(0));
   const relu = chargeCombat(id);

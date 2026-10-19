@@ -16,13 +16,13 @@ export function renderBag() {
   const cur = el(`<div class="card-panel"><h3>Monnaies</h3></div>`);
   cur.appendChild(el(`
     <div class="cardlist">
-      <div class="gcard"><img class="port" src="${asset('UI/Coins.png')}" alt="">
+      <div class="gcard"><img class="port" src="${asset('Graphical Assets/Old UI/Coins.png')}" alt="">
         <div><div class="nm">${CURRENCY_NAME.A} · ${save.cur.A}</div>
         <div class="tx">Trouves en explorant. Servent a recruter un personnage dont le boss est vaincu.</div></div></div>
-      <div class="gcard spell"><img class="port" src="${asset('UI/Vault.png')}" alt="">
+      <div class="gcard spell"><img class="port" src="${asset('Graphical Assets/Old UI/Vault.png')}" alt="">
         <div><div class="nm">${CURRENCY_NAME.B} · ${save.cur.B}</div>
         <div class="tx">Debloquent les cartes switch. ⚠ Leur collecte n'est pas tranchee dans le GDD : ici, butin de combat.</div></div></div>
-      <div class="gcard"><img class="port" src="${asset('Ressources/Carrot Tier 3.png')}" alt="">
+      <div class="gcard"><img class="port" src="${asset('Graphical Assets/Ressources/Carrot/Carrot Tier 3.png')}" alt="">
         <div><div class="nm">${CURRENCY_NAME.C} · ${save.cur.C}</div>
         <div class="tx">Monnaie de la Ferme. Ameliore les personnages et paie le progression path.</div></div></div>
     </div>`));

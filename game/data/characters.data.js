@@ -61,7 +61,7 @@ export const CHARACTER_DATA = {
       "atk": 1,
       "hp": 2,
       "statics": [],
-      "sprite": "Characters/Rabbit.png"
+      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit.png"
     },
     {
       "id": "grunt2",
@@ -78,7 +78,7 @@ export const CHARACTER_DATA = {
       "atk": 2,
       "hp": 2,
       "statics": [],
-      "sprite": "Characters/Rabbit.png"
+      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit.png"
     },
     {
       "id": "grunt3",
@@ -102,7 +102,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Rabbit Robot.png"
+      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit Robot.png"
     },
     {
       "id": "grunt4",
@@ -119,7 +119,7 @@ export const CHARACTER_DATA = {
       "atk": 8,
       "hp": 8,
       "statics": [],
-      "sprite": "Characters/Rabbit English Lop.png"
+      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit English Lop.png"
     },
     {
       "id": "wall1",
@@ -143,7 +143,7 @@ export const CHARACTER_DATA = {
       "atk": 1,
       "hp": 4,
       "statics": [],
-      "sprite": "Characters/Sloth.png"
+      "sprite": "Graphical Assets/Characters/Sloth/Sloth.png"
     },
     {
       "id": "wall2",
@@ -160,7 +160,7 @@ export const CHARACTER_DATA = {
       "atk": 3,
       "hp": 6,
       "statics": [],
-      "sprite": "Characters/Dog Gniocci.png"
+      "sprite": "Graphical Assets/Characters/Dog/Dog Gniocci.png"
     },
     {
       "id": "rush1",
@@ -184,7 +184,7 @@ export const CHARACTER_DATA = {
           "t": "self"
         }
       ],
-      "sprite": "Characters/Crow Volcanic.png"
+      "sprite": "Graphical Assets/Characters/Crow/Crow Volcanic.png"
     },
     {
       "id": "bolt",
@@ -201,7 +201,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "tiers": [],
-      "sprite": "Characters/Cat Bug.png"
+      "sprite": "Graphical Assets/Characters/Cat/Cat Bug.png"
     },
     {
       "id": "smash",
@@ -218,7 +218,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "tiers": [],
-      "sprite": "Characters/Big Bad Wolf.png"
+      "sprite": "Graphical Assets/Characters/Big Bad Wolf/Big Bad Wolf.png"
     },
     {
       "id": "potion",
@@ -241,7 +241,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "tiers": [],
-      "sprite": "Characters/Dog.png"
+      "sprite": "Graphical Assets/Characters/Dog/Dog.png"
     },
     {
       "id": "rally",
@@ -265,7 +265,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "tiers": [],
-      "sprite": "Characters/Rabbit.png"
+      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit.png"
     },
     {
       "id": "venomite",
@@ -282,7 +282,7 @@ export const CHARACTER_DATA = {
       "atk": 1,
       "hp": 1,
       "statics": [],
-      "sprite": "Characters/Frog Venomous.png"
+      "sprite": "Graphical Assets/Characters/Frog/Frog Venomous.png"
     },
     {
       "id": "card_bjidas",
@@ -332,7 +332,7 @@ export const CHARACTER_DATA = {
           "key": "Taunt"
         }
       ],
-      "sprite": "Characters/Rabbit Myxomatose.png"
+      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit Myxomatose.png"
     },
     {
       "id": "card_viekke",
@@ -353,7 +353,7 @@ export const CHARACTER_DATA = {
       ],
       "tiers": [],
       "statics": [],
-      "sprite": "Characters/Owl Great Horned Owl.png"
+      "sprite": "Graphical Assets/Characters/Owl/Owl Great Horned Owl.png"
     },
     {
       "id": "card_uge5tx",
@@ -369,7 +369,7 @@ export const CHARACTER_DATA = {
       "atk": 1,
       "hp": 1,
       "statics": [],
-      "sprite": "Characters/Owl Great Horned Owl.png"
+      "sprite": "Graphical Assets/Characters/Owl/Owl Great Horned Owl.png"
     },
     {
       "id": "card_urlyni",
@@ -391,7 +391,7 @@ export const CHARACTER_DATA = {
         "hp": 0,
         "key": ""
       },
-      "sprite": "Characters/Dog German Shepherd.png"
+      "sprite": "Graphical Assets/Characters/Dog/Dog German Shepherd.png"
     },
     {
       "id": "card_i5eghg",
@@ -419,7 +419,7 @@ export const CHARACTER_DATA = {
       ],
       "tiers": [],
       "statics": [],
-      "sprite": "Characters/Cat Siamese.png"
+      "sprite": "Graphical Assets/Characters/Cat/Cat Siamese.png"
     },
     {
       "id": "card_njt2j1",
@@ -444,7 +444,7 @@ export const CHARACTER_DATA = {
       "atk": 1,
       "hp": 1,
       "statics": [],
-      "sprite": "Characters/Dog German Shepherd.png"
+      "sprite": "Graphical Assets/Characters/Dog/Dog German Shepherd.png"
     },
     {
       "id": "card_kgwz53",
@@ -470,7 +470,7 @@ export const CHARACTER_DATA = {
       "atk": 2,
       "hp": 2,
       "statics": [],
-      "sprite": "Characters/Cat Menkoun.png"
+      "sprite": "Graphical Assets/Characters/Cat/Cat Menkoun.png"
     },
     {
       "id": "card_l7cd1z",
@@ -505,7 +505,7 @@ export const CHARACTER_DATA = {
       "atk": 1,
       "hp": 1,
       "statics": [],
-      "sprite": "Characters/Crow Three Eyes.png"
+      "sprite": "Graphical Assets/Characters/Crow/Crow Three Eyes.png"
     },
     {
       "id": "card_4hz1f1",
@@ -530,7 +530,7 @@ export const CHARACTER_DATA = {
       "atk": 2,
       "hp": 2,
       "statics": [],
-      "sprite": "Characters/Frog Toad.png"
+      "sprite": "Graphical Assets/Characters/Frog/Frog Toad.png"
     },
     {
       "id": "card_r7qoup",
@@ -549,7 +549,7 @@ export const CHARACTER_DATA = {
       "atk": 2,
       "hp": 2,
       "statics": [],
-      "sprite": "Characters/Owl Snow.png"
+      "sprite": "Graphical Assets/Characters/Owl/Owl Snow.png"
     },
     {
       "id": "card_fhdq9s",
@@ -576,7 +576,7 @@ export const CHARACTER_DATA = {
       "atk": 2,
       "hp": 2,
       "statics": [],
-      "sprite": "Characters/Falcon.png"
+      "sprite": "Graphical Assets/Characters/Birds/Falcon.png"
     },
     {
       "id": "card_9g5803",
@@ -592,7 +592,7 @@ export const CHARACTER_DATA = {
       "atk": 2,
       "hp": 1,
       "statics": [],
-      "sprite": "Characters/Robin.png",
+      "sprite": "Graphical Assets/Characters/Birds/Robin.png",
       "on_attack_self": [
         {
           "op": "draw",
@@ -625,7 +625,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Big Bad Wolf.png"
+      "sprite": "Graphical Assets/Characters/Big Bad Wolf/Big Bad Wolf.png"
     },
     {
       "id": "card_ta7prz",
@@ -649,7 +649,7 @@ export const CHARACTER_DATA = {
       "atk": 1,
       "hp": 1,
       "statics": [],
-      "sprite": "Characters/Cat Bug.png"
+      "sprite": "Graphical Assets/Characters/Cat/Cat Bug.png"
     },
     {
       "id": "card_y5uc9s",
@@ -675,7 +675,7 @@ export const CHARACTER_DATA = {
       "atk": 1,
       "hp": 1,
       "statics": [],
-      "sprite": "Characters/Falcon.png"
+      "sprite": "Graphical Assets/Characters/Birds/Falcon.png"
     },
     {
       "id": "card_4vap0r",
@@ -703,7 +703,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Owl Great Horned Owl.png"
+      "sprite": "Graphical Assets/Characters/Owl/Owl Great Horned Owl.png"
     },
     {
       "id": "card_winkd1",
@@ -727,7 +727,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Octopus Robot.png",
+      "sprite": "Graphical Assets/Characters/Octopus/Octopus Robot.png",
       "on_heroHurt_self": [
         {
           "op": "buff",
@@ -791,7 +791,7 @@ export const CHARACTER_DATA = {
           }
         }
       ],
-      "sprite": "Characters/Rabbit.png"
+      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit.png"
     },
     {
       "id": "adv_lapin_sauteur",
@@ -833,7 +833,7 @@ export const CHARACTER_DATA = {
       "atk": 3,
       "hp": 2,
       "statics": [],
-      "sprite": "Characters/Rabbit English Lop.png"
+      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit English Lop.png"
     },
     {
       "id": "adv_lapin_carotte",
@@ -862,7 +862,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Rabbit.png"
+      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit.png"
     },
     {
       "id": "adv_chat_gouttiere",
@@ -914,7 +914,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Cat Chat de Gouttière.png"
+      "sprite": "Graphical Assets/Characters/Cat/Cat Chat de Gouttière.png"
     },
     {
       "id": "adv_chat_caid",
@@ -962,7 +962,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Cat Ginger.png"
+      "sprite": "Graphical Assets/Characters/Cat/Cat Ginger.png"
     },
     {
       "id": "adv_chat_course",
@@ -1004,7 +1004,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Cat Siamese.png"
+      "sprite": "Graphical Assets/Characters/Cat/Cat Siamese.png"
     },
     {
       "id": "adv_corbeau_glaneur",
@@ -1054,7 +1054,7 @@ export const CHARACTER_DATA = {
           "hp": 1
         }
       ],
-      "sprite": "Characters/Crow.png"
+      "sprite": "Graphical Assets/Characters/Crow/Crow.png"
     },
     {
       "id": "adv_corbeau_nuee",
@@ -1097,7 +1097,7 @@ export const CHARACTER_DATA = {
       "atk": 1,
       "hp": 3,
       "statics": [],
-      "sprite": "Characters/Crow Three Eyes.png"
+      "sprite": "Graphical Assets/Characters/Crow/Crow Three Eyes.png"
     },
     {
       "id": "adv_corbeau_rire",
@@ -1146,7 +1146,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Crow White.png"
+      "sprite": "Graphical Assets/Characters/Crow/Crow White.png"
     },
     {
       "id": "adv_loup_hurlement",
@@ -1186,7 +1186,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Big Bad Wolf.png"
+      "sprite": "Graphical Assets/Characters/Big Bad Wolf/Big Bad Wolf.png"
     },
     {
       "id": "adv_loup_mere",
@@ -1235,7 +1235,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Big Bad Wolf Mythic.png"
+      "sprite": "Graphical Assets/Characters/Big Bad Wolf/Big Bad Wolf Mythic.png"
     },
     {
       "id": "adv_loup_fourrure",
@@ -1278,7 +1278,7 @@ export const CHARACTER_DATA = {
       "atk": 2,
       "hp": 3,
       "statics": [],
-      "sprite": "Characters/Big Bad Wolf.png"
+      "sprite": "Graphical Assets/Characters/Big Bad Wolf/Big Bad Wolf.png"
     },
     {
       "id": "adv_loup_flair",
@@ -1307,7 +1307,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Big Bad Wolf.png"
+      "sprite": "Graphical Assets/Characters/Big Bad Wolf/Big Bad Wolf.png"
     },
     {
       "id": "adv_crapaud_bave",
@@ -1343,7 +1343,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Frog Toad.png"
+      "sprite": "Graphical Assets/Characters/Frog/Frog Toad.png"
     },
     {
       "id": "adv_crapaud_tetard",
@@ -1392,7 +1392,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Frog Venomous.png"
+      "sprite": "Graphical Assets/Characters/Frog/Frog Venomous.png"
     },
     {
       "id": "adv_crapaud_roi",
@@ -1448,7 +1448,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Frog.png"
+      "sprite": "Graphical Assets/Characters/Frog/Frog.png"
     },
     {
       "id": "adv_pieuvre_ancre",
@@ -1496,7 +1496,7 @@ export const CHARACTER_DATA = {
         "hp": 1,
         "key": ""
       },
-      "sprite": "Characters/Octopus Pirate.png"
+      "sprite": "Graphical Assets/Characters/Octopus/Octopus Pirate.png"
     },
     {
       "id": "adv_pieuvre_encre",
@@ -1544,7 +1544,7 @@ export const CHARACTER_DATA = {
           "v": 2
         }
       ],
-      "sprite": "Characters/Octopus.png"
+      "sprite": "Graphical Assets/Characters/Octopus/Octopus.png"
     },
     {
       "id": "adv_pieuvre_tresor",
@@ -1584,7 +1584,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Octopus Pirate.png"
+      "sprite": "Graphical Assets/Characters/Octopus/Octopus Pirate.png"
     },
     {
       "id": "adv_capitaine_abordage",
@@ -1610,7 +1610,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Frog Captain.png"
+      "sprite": "Graphical Assets/Characters/Frog/Frog Captain.png"
     },
     {
       "id": "adv_capitaine_canonnade",
@@ -1646,7 +1646,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Frog Captain.png"
+      "sprite": "Graphical Assets/Characters/Frog/Frog Captain.png"
     },
     {
       "id": "adv_capitaine_quartier",
@@ -1698,7 +1698,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Frog.png"
+      "sprite": "Graphical Assets/Characters/Frog/Frog.png"
     },
     {
       "id": "adv_renard_bourrasque",
@@ -1734,7 +1734,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Fox Snow.png"
+      "sprite": "Graphical Assets/Characters/Fox/Fox Snow.png"
     },
     {
       "id": "adv_renard_givre",
@@ -1783,7 +1783,7 @@ export const CHARACTER_DATA = {
       "atk": 3,
       "hp": 2,
       "statics": [],
-      "sprite": "Characters/Fox Snow.png"
+      "sprite": "Graphical Assets/Characters/Fox/Fox Snow.png"
     },
     {
       "id": "adv_renard_traque",
@@ -1833,7 +1833,7 @@ export const CHARACTER_DATA = {
           "hp": 0
         }
       ],
-      "sprite": "Characters/Fox Wild.png"
+      "sprite": "Graphical Assets/Characters/Fox/Fox Wild.png"
     },
     {
       "id": "adv_duc_sentence",
@@ -1859,7 +1859,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Owl Great Horned Owl.png"
+      "sprite": "Graphical Assets/Characters/Owl/Owl Great Horned Owl.png"
     },
     {
       "id": "adv_duc_archiviste",
@@ -1908,7 +1908,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Owl Academic.png"
+      "sprite": "Graphical Assets/Characters/Owl/Owl Academic.png"
     },
     {
       "id": "adv_duc_eclipse",
@@ -1957,7 +1957,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Owl Cosmonaute.png"
+      "sprite": "Graphical Assets/Characters/Owl/Owl Cosmonaute.png"
     },
     {
       "id": "adv_paresseux_hamac",
@@ -2006,7 +2006,7 @@ export const CHARACTER_DATA = {
           "v": 2
         }
       ],
-      "sprite": "Characters/Sloth.png"
+      "sprite": "Graphical Assets/Characters/Sloth/Sloth.png"
     },
     {
       "id": "adv_paresseux_sieste",
@@ -2047,7 +2047,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Sloth CosmoSloth.png"
+      "sprite": "Graphical Assets/Characters/Sloth/Sloth CosmoSloth.png"
     },
     {
       "id": "adv_paresseux_coussin",
@@ -2096,7 +2096,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Sloth VolcanoSloth.png"
+      "sprite": "Graphical Assets/Characters/Sloth/Sloth VolcanoSloth.png"
     },
     {
       "id": "adv_rougegorge_pique",
@@ -2133,7 +2133,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Robin.png"
+      "sprite": "Graphical Assets/Characters/Birds/Robin.png"
     },
     {
       "id": "adv_rougegorge_chant",
@@ -2183,7 +2183,7 @@ export const CHARACTER_DATA = {
           "hp": 0
         }
       ],
-      "sprite": "Characters/Robin.png"
+      "sprite": "Graphical Assets/Characters/Birds/Robin.png"
     },
     {
       "id": "adv_rougegorge_kamikaze",
@@ -2232,7 +2232,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Characters/Robin.png"
+      "sprite": "Graphical Assets/Characters/Birds/Robin.png"
     },
     {
       "id": "adv_kitsune_illusion",
@@ -2266,7 +2266,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Red Panda Kitsune.png"
+      "sprite": "Graphical Assets/Characters/Red Panda/Red Panda Kitsune.png"
     },
     {
       "id": "adv_kitsune_metamorphe",
@@ -2320,7 +2320,7 @@ export const CHARACTER_DATA = {
       "atk": 2,
       "hp": 2,
       "statics": [],
-      "sprite": "Characters/Red Panda.png"
+      "sprite": "Graphical Assets/Characters/Red Panda/Red Panda.png"
     },
     {
       "id": "adv_kitsune_queues",
@@ -2373,7 +2373,7 @@ export const CHARACTER_DATA = {
           "lvl": 1
         }
       ],
-      "sprite": "Characters/Red Panda Kitsune.png"
+      "sprite": "Graphical Assets/Characters/Red Panda/Red Panda Kitsune.png"
     },
     {
       "id": "adv_chevre_rumination",
@@ -2420,7 +2420,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Goat.png"
+      "sprite": "Graphical Assets/Characters/Goat/Goat.png"
     },
     {
       "id": "adv_chevre_bouquetin",
@@ -2463,7 +2463,7 @@ export const CHARACTER_DATA = {
       "atk": 2,
       "hp": 5,
       "statics": [],
-      "sprite": "Characters/Goat.png"
+      "sprite": "Graphical Assets/Characters/Goat/Goat.png"
     },
     {
       "id": "adv_chevre_vieille",
@@ -2511,7 +2511,7 @@ export const CHARACTER_DATA = {
           "v": 2
         }
       ],
-      "sprite": "Characters/Goat.png"
+      "sprite": "Graphical Assets/Characters/Goat/Goat.png"
     },
     {
       "id": "adv_chevre_mangetout",
@@ -2560,7 +2560,7 @@ export const CHARACTER_DATA = {
           "hp": 1
         }
       ],
-      "sprite": "Characters/Goat.png"
+      "sprite": "Graphical Assets/Characters/Goat/Goat.png"
     },
     {
       "id": "adv_robot_tentacule",
@@ -2609,7 +2609,7 @@ export const CHARACTER_DATA = {
           "hp": 1
         }
       ],
-      "sprite": "Characters/Octopus Robot.png"
+      "sprite": "Graphical Assets/Characters/Octopus/Octopus Robot.png"
     },
     {
       "id": "adv_robot_recycleuse",
@@ -2656,7 +2656,7 @@ export const CHARACTER_DATA = {
       "atk": 3,
       "hp": 3,
       "statics": [],
-      "sprite": "Characters/Octopus Robot.png"
+      "sprite": "Graphical Assets/Characters/Octopus/Octopus Robot.png"
     },
     {
       "id": "adv_robot_usine",
@@ -2694,14 +2694,14 @@ export const CHARACTER_DATA = {
         }
       ],
       "statics": [],
-      "sprite": "Characters/Octopus Robot.png"
+      "sprite": "Graphical Assets/Characters/Octopus/Octopus Robot.png"
     }
   ],
   "npcs": [
     {
       "id": "rabbit1",
       "name": "Lapin Chapardeur",
-      "sprite": "Characters/Rabbit.png",
+      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit.png",
       "hp": 20,
       "mana": 5,
       "hand": 3,
@@ -2741,7 +2741,7 @@ export const CHARACTER_DATA = {
     {
       "id": "cat1",
       "name": "Chat de Ruelle",
-      "sprite": "Characters/Cat Ginger.png",
+      "sprite": "Graphical Assets/Characters/Cat/Cat Ginger.png",
       "hp": 24,
       "mana": 6,
       "hand": 3,
@@ -2789,7 +2789,7 @@ export const CHARACTER_DATA = {
     {
       "id": "crow1",
       "name": "Corbeau Rieur",
-      "sprite": "Characters/Crow White.png",
+      "sprite": "Graphical Assets/Characters/Crow/Crow White.png",
       "hp": 26,
       "mana": 6,
       "hand": 4,
@@ -2828,7 +2828,7 @@ export const CHARACTER_DATA = {
     {
       "id": "wolf",
       "name": "Grand Mechant Loup",
-      "sprite": "Characters/Big Bad Wolf.png",
+      "sprite": "Graphical Assets/Characters/Big Bad Wolf/Big Bad Wolf.png",
       "hp": 42,
       "mana": 8,
       "hand": 4,
@@ -2873,7 +2873,7 @@ export const CHARACTER_DATA = {
     {
       "id": "frog1",
       "name": "Crapaud Baveux",
-      "sprite": "Characters/Frog Toad.png",
+      "sprite": "Graphical Assets/Characters/Frog/Frog Toad.png",
       "hp": 32,
       "mana": 7,
       "hand": 4,
@@ -2908,7 +2908,7 @@ export const CHARACTER_DATA = {
     {
       "id": "octo1",
       "name": "Pieuvre Pirate",
-      "sprite": "Characters/Octopus Pirate.png",
+      "sprite": "Graphical Assets/Characters/Octopus/Octopus Pirate.png",
       "hp": 36,
       "mana": 7,
       "hand": 4,
@@ -2947,7 +2947,7 @@ export const CHARACTER_DATA = {
     {
       "id": "frogboss",
       "name": "Capitaine Grenouille",
-      "sprite": "Characters/Frog Captain.png",
+      "sprite": "Graphical Assets/Characters/Frog/Frog Captain.png",
       "hp": 76,
       "mana": 9,
       "hand": 5,
@@ -3004,7 +3004,7 @@ export const CHARACTER_DATA = {
     {
       "id": "fox1",
       "name": "Renard des Neiges",
-      "sprite": "Characters/Fox Snow.png",
+      "sprite": "Graphical Assets/Characters/Fox/Fox Snow.png",
       "hp": 40,
       "mana": 8,
       "hand": 4,
@@ -3043,7 +3043,7 @@ export const CHARACTER_DATA = {
     {
       "id": "owlboss",
       "name": "Grand-Duc",
-      "sprite": "Characters/Owl Great Horned Owl.png",
+      "sprite": "Graphical Assets/Characters/Owl/Owl Great Horned Owl.png",
       "hp": 105,
       "mana": 10,
       "hand": 5,
@@ -3099,7 +3099,7 @@ export const CHARACTER_DATA = {
       "id": "dog",
       "name": "Médor",
       "species": "Chien",
-      "sprite": "Characters/Dog.png",
+      "sprite": "Graphical Assets/Characters/Dog/Dog.png",
       "role": "Gardien — tient la ligne / Appelle la meute",
       "stats": {
         "hp": 32,
@@ -3795,7 +3795,7 @@ export const CHARACTER_DATA = {
       "id": "cat",
       "name": "Felix",
       "species": "Chat",
-      "sprite": "Characters/Cat Bug.png",
+      "sprite": "Graphical Assets/Characters/Cat/Cat Bug.png",
       "role": "Mille coupures",
       "stats": {
         "hp": 26,
@@ -4309,7 +4309,7 @@ export const CHARACTER_DATA = {
       "id": "crow",
       "name": "Corax",
       "species": "Corbeau",
-      "sprite": "Characters/Crow.png",
+      "sprite": "Graphical Assets/Characters/Crow/Crow.png",
       "role": "Filou — pioche et degats directs",
       "stats": {
         "hp": 24,
@@ -4837,7 +4837,7 @@ export const CHARACTER_DATA = {
       "id": "frog",
       "name": "Bulle",
       "species": "Grenouille",
-      "sprite": "Characters/Frog.png",
+      "sprite": "Graphical Assets/Characters/Frog/Frog.png",
       "role": "Venin — use l’adversaire",
       "stats": {
         "hp": 28,
@@ -5341,7 +5341,7 @@ export const CHARACTER_DATA = {
       "id": "owl",
       "name": "Athena",
       "species": "Chouette",
-      "sprite": "Characters/Owl.png",
+      "sprite": "Graphical Assets/Characters/Owl/Owl.png",
       "role": "Controle — mana et cartes",
       "stats": {
         "hp": 26,
@@ -5844,7 +5844,7 @@ export const CHARACTER_DATA = {
       "id": "cameleon",
       "name": "Miracle",
       "species": "Cameleon",
-      "sprite": "Characters/Cameleon.png",
+      "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png",
       "role": "Support Tribal - Améliore et soutien",
       "stats": {
         "hp": 25,
@@ -5912,7 +5912,7 @@ export const CHARACTER_DATA = {
             }
           ],
           "statics": [],
-          "sprite": "Characters/Cameleon.png"
+          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
         },
         {
           "id": "fox_dash",
@@ -5937,7 +5937,7 @@ export const CHARACTER_DATA = {
           ],
           "tiers": [],
           "statics": [],
-          "sprite": "Characters/Cameleon.png"
+          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
         },
         {
           "id": "fox_snare",
@@ -5999,7 +5999,7 @@ export const CHARACTER_DATA = {
           "atk": 2,
           "hp": 2,
           "statics": [],
-          "sprite": "Characters/Cameleon.png"
+          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
         },
         {
           "id": "fox_raid",
@@ -6072,7 +6072,7 @@ export const CHARACTER_DATA = {
               "lesDeux": true
             }
           ],
-          "sprite": "Characters/Cameleon.png"
+          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
         },
         {
           "id": "fox_wild",
@@ -6103,7 +6103,7 @@ export const CHARACTER_DATA = {
             }
           ],
           "statics": [],
-          "sprite": "Characters/Cameleon.png"
+          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
         }
       ],
       "switches": [
@@ -6152,7 +6152,7 @@ export const CHARACTER_DATA = {
             "hp": 0,
             "key": "type_tous"
           },
-          "sprite": "Characters/Cameleon.png"
+          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
         },
         {
           "id": "fox_ambush",
@@ -6189,7 +6189,7 @@ export const CHARACTER_DATA = {
               "text": "Crée aussi un Miroir."
             }
           ],
-          "sprite": "Characters/Cameleon.png"
+          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
         },
         {
           "id": "fox_bandit",
@@ -6230,7 +6230,7 @@ export const CHARACTER_DATA = {
             }
           ],
           "statics": [],
-          "sprite": "Characters/Cameleon.png"
+          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
         },
         {
           "id": "fox_frenzy",
@@ -6313,7 +6313,7 @@ export const CHARACTER_DATA = {
             }
           ],
           "statics": [],
-          "sprite": "Characters/Cameleon.png"
+          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
         }
       ]
     },
@@ -6321,7 +6321,7 @@ export const CHARACTER_DATA = {
       "id": "dog2",
       "name": "Croc",
       "species": "Chien",
-      "sprite": "Characters/Dog German Shepherd.png",
+      "sprite": "Graphical Assets/Characters/Dog/Dog German Shepherd.png",
       "role": "Meute — Aggro Turbo : charge, frappe le héros, sacrifie",
       "stats": {
         "hp": 26,
@@ -6907,7 +6907,7 @@ export const CHARACTER_DATA = {
       "id": "cat2",
       "name": "Mistigri",
       "species": "Chat",
-      "sprite": "Characters/Cat Siamese.png",
+      "sprite": "Graphical Assets/Characters/Cat/Cat Siamese.png",
       "role": "Maraudeur — Aggro Tempo : des Chats rapides, qui reviennent",
       "stats": {
         "hp": 25,
@@ -7515,7 +7515,7 @@ export const CHARACTER_DATA = {
       "id": "crow2",
       "name": "Sirocco",
       "species": "Faucon",
-      "sprite": "Characters/Falcon.png",
+      "sprite": "Graphical Assets/Characters/Birds/Falcon.png",
       "role": "Rapace — Aggro Tempo : une main pleine, des coups qui comptent",
       "stats": {
         "hp": 24,
@@ -8093,7 +8093,7 @@ export const CHARACTER_DATA = {
       "id": "frog2",
       "name": "Reinette",
       "species": "Grenouille",
-      "sprite": "Characters/Frog Venomous.png",
+      "sprite": "Graphical Assets/Characters/Frog/Frog Venomous.png",
       "role": "Marais — Combo croissance : chaque renfort déclenche quelque chose",
       "stats": {
         "hp": 27,
@@ -8781,7 +8781,7 @@ export const CHARACTER_DATA = {
       "id": "owl2",
       "name": "Morphée",
       "species": "Hibou",
-      "sprite": "Characters/Owl Snow.png",
+      "sprite": "Graphical Assets/Characters/Owl/Owl Snow.png",
       "role": "Veilleur — Contrôle Pillow Fort : le temps joue pour lui",
       "stats": {
         "hp": 28,
@@ -9330,7 +9330,7 @@ export const CHARACTER_DATA = {
       "id": "cameleon2",
       "name": "Mirage",
       "species": "Cameleon",
-      "sprite": "Characters/Cameleon.png",
+      "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png",
       "role": "Imitateur — Support : donne à chacun le type qu’il lui faut",
       "stats": {
         "hp": 25,
@@ -9907,7 +9907,7 @@ export const CHARACTER_DATA = {
       "id": "dog3",
       "name": "Patou",
       "species": "Chien",
-      "sprite": "Characters/Dog Cocker.png",
+      "sprite": "Graphical Assets/Characters/Dog/Dog Cocker.png",
       "role": "Berger — Contrôle Soft : taxe, punit et défausse ce que l’adversaire veut jouer",
       "stats": {
         "hp": 30,
@@ -10519,7 +10519,7 @@ export const CHARACTER_DATA = {
       "id": "cat3",
       "name": "Mélusine",
       "species": "Chat",
-      "sprite": "Characters/Cat Witch.png",
+      "sprite": "Graphical Assets/Characters/Cat/Cat Witch.png",
       "role": "Sorcière — Combo : ses sorts se relancent depuis la défausse, sa défausse est une seconde main",
       "stats": {
         "hp": 25,
@@ -11153,7 +11153,7 @@ export const CHARACTER_DATA = {
       "id": "crow3",
       "name": "Morrigane",
       "species": "Corbeau",
-      "sprite": "Characters/Crow Skeleton.png",
+      "sprite": "Graphical Assets/Characters/Crow/Crow Skeleton.png",
       "role": "Charognarde — Aggro MidRange : dévore la défausse adverse, tient mieux la longueur qu’un Turbo",
       "stats": {
         "hp": 24,
@@ -11738,7 +11738,7 @@ export const CHARACTER_DATA = {
       "id": "frog3",
       "name": "Dendrobate",
       "species": "Grenouille",
-      "sprite": "Characters/Frog Venomous.png",
+      "sprite": "Graphical Assets/Characters/Frog/Frog Venomous.png",
       "role": "Venin — Contrôle Hard : des Toxines, un 1 pour 1 ou un 1 pour 2, aucune unité au-delà de 5",
       "stats": {
         "hp": 28,
@@ -12262,7 +12262,7 @@ export const CHARACTER_DATA = {
       "id": "owl3",
       "name": "Hulotte",
       "species": "Hibou",
-      "sprite": "Characters/Owl Academic.png",
+      "sprite": "Graphical Assets/Characters/Owl/Owl Academic.png",
       "role": "Bibliothécaire — Fatigue : meule sa pioche pour atteindre la fatigue avant l’adversaire, et y range ses Ex-libris",
       "stats": {
         "hp": 27,
@@ -12914,7 +12914,7 @@ export const CHARACTER_DATA = {
       "id": "cameleon3",
       "name": "Pastiche",
       "species": "Cameleon",
-      "sprite": "Characters/Cameleon.png",
+      "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png",
       "role": "Usurpateur — MidRange : le Registre garde les types de toutes les cartes jouées",
       "stats": {
         "hp": 25,

@@ -8,17 +8,22 @@
 // ecouteurs vivaient sur l'element touche. Le geste se souvient du noeud touche, pas de sa place
 // a l'ecran.
 //
-// Un doigt qui glisse de plus de `tolerance` pixels ne lit ni n'agit : c'est un defilement (la
-// main defile a l'horizontale), et le navigateur envoie alors `pointercancel`.
+// Un doigt qui glisse de plus de `tolerance` pixels ne lit ni n'agit. Si l'ecran le veut (`glisse`), il TIRE le
+// noeud touche : c'est le glisser-deposer d'une carte de la main (demande du game designer, 19 octobre 2026) ; sinon
+// c'est un defilement, et le navigateur envoie `pointercancel`.
 import { BALANCE } from '../config/balance.js';
 
 /**
  * Pose les gestes sur `racine`. Les rappels recoivent le noeud `[data-geste]` touche :
  *   tap(noeud)    — le doigt s'est leve avant l'appui long, sans bouger ;
  *   lire(noeud)   — l'appui long a commence (le doigt est toujours pose) ;
- *   finLire()     — le doigt s'est leve (ou a glisse) : on referme ce qu'on a ouvert.
+ *   finLire()     — le doigt s'est leve (ou a glisse) : on referme ce qu'on a ouvert ;
+ *   glisse        — facultatif, le glisser-deposer : `debut(noeud, ev)` dit s'il accepte de tirer ce noeud (sinon le
+ *                   glissement ne fait rien), puis `bouge(ev)` a chaque pas et `lache(ev, annule)` au relachement.
+ *                   Un relachement qui termine un glisser porte `ev.gesteGlisse = true` (l'ecran n'y voit pas un
+ *                   « toucher le fond »).
  */
-export function installeGestes(racine, { tap, lire, finLire }) {
+export function installeGestes(racine, { tap, lire, finLire, glisse = null }) {
   const ms = BALANCE.ui.appuiLongMs, tolerance = BALANCE.ui.toleranceDoigtPx;
   let g = null;
   const noeud = ev => (ev.target.closest ? ev.target.closest('[data-geste]') : null);
@@ -32,11 +37,15 @@ export function installeGestes(racine, { tap, lire, finLire }) {
   });
 
   racine.addEventListener('pointermove', ev => {
-    if (!g || ev.pointerId !== g.id || g.bouge) return;
+    if (!g || ev.pointerId !== g.id) return;
+    if (g.tire) { glisse.bouge(ev); return; }
+    if (g.bouge) return;
     if (Math.hypot(ev.clientX - g.x, ev.clientY - g.y) <= tolerance) return;
     g.bouge = true;
     clearTimeout(g.t);
-    if (g.long) finLire();
+    // Lire puis glisser : on referme la lecture et on tire la carte (on peut lire avant de jouer).
+    if (g.long) { finLire(); g.long = false; }
+    if (glisse && glisse.debut(g.n, ev)) { g.tire = true; glisse.bouge(ev); }
   });
 
   const fin = (ev, annule) => {
@@ -44,6 +53,7 @@ export function installeGestes(racine, { tap, lire, finLire }) {
     clearTimeout(g.t);
     const s = g;
     g = null;
+    if (s.tire) { ev.gesteGlisse = true; glisse.lache(ev, annule); return; }
     if (s.long) { if (!s.bouge) finLire(); return; }
     if (!annule && !s.bouge) tap(s.n);
   };

@@ -22,6 +22,7 @@ import {
 } from '../state.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
 import { panneauEquipe } from './deck.js';
+import { icone } from './icones.js';
 import { openBattle } from './battle.js';
 
 /** Le point du monde qui porte une arene. */
@@ -32,26 +33,30 @@ const echappe = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<
 /**
  * Ouvre la fiche de l'arene du point `n`. `avant()` est appele juste avant le combat (la carte s'arrete),
  * `apres(gagne)` au retour du combat — ou a la fermeture de la fiche sans combattre (`gagne` = null).
+ * `niveau` : le niveau a jouer (choisi dans l'onglet, un niveau deja battu se rejoue) ; le niveau courant sinon.
  */
-export function ouvreFicheArene(n, { avant = () => {}, apres = () => {} } = {}) {
+export function ouvreFicheArene(n, { avant = () => {}, apres = () => {}, niveau = null } = {}) {
   const a = areneDe(n);
   if (!a) return;
   save.world.seen[n.id] = true;
   persist();
-  presentation(n, a, { avant, apres });
+  presentation(n, a, { avant, apres, niveau });
 }
+
+/** Le niveau que la fiche fera jouer. */
+const niveauJoue = (a, cb) => cb.niveau || etatArene(a.id).niveau;
 
 // --------------------------------------------------------------- etape 1 : l'ennemi
 function presentation(n, a, cb) {
-  const etat = etatArene(a.id);
-  const ennemi = coteEnnemi(a.ennemi, etat.niveau) || ENCOUNTERS[a.ennemi] || {};
+  const niveau = niveauJoue(a, cb);
+  const ennemi = coteEnnemi(a.ennemi, niveau) || ENCOUNTERS[a.ennemi] || {};
   const heros = a.herosConseilles.map(id => CHAR_BY_ID[id]).filter(Boolean);
   const box = el(`<div class="ar-fiche">
     <div class="ar-tete">
       <div class="ar-portrait"><img class="ar-bat" src="${asset(a.batiment)}" alt=""><img class="ar-ennemi" src="${asset(ennemi.sprite || '')}" alt=""></div>
       <div>
         <h2>${echappe(n.name)}</h2>
-        <div class="ar-puces"><span class="ar-puce arch">${echappe(libelleArchetype(a))}</span><span class="ar-puce">${t('arene.niveau', { n: etat.niveau })}</span></div>
+        <div class="ar-puces"><span class="ar-puce arch">${echappe(libelleArchetype(a))}</span><span class="ar-puce">${t('arene.niveau', { n: niveau })}</span></div>
         <div class="muted">${echappe(a.role || '')} · ${ennemi.hp ?? '?'} PV · ${(ennemi.deck || []).length} cartes</div>
       </div>
     </div>
@@ -135,32 +140,89 @@ function choixEquipe(n, a, cb) {
     closeModal();
     cb.avant();
     // Le combat existant, inchange : le point du monde porte l'arene, le niveau est celui de l'arene.
-    openBattle({ ...n, niveau: etatArene(a.id).niveau }, gagne => cb.apres(gagne));
+    openBattle({ ...n, niveau: niveauJoue(a, cb) }, gagne => cb.apres(gagne));
   };
   box.appendChild(boutons);
   modal(box).classList.add('dk-feuille', 'ar-feuille');
 }
 
 // --------------------------------------------------------------- l'onglet « Arene »
+// Une CARTE par arene decouverte (maquette « Arena Screen », 19 octobre 2026) : le batiment en fond, l'ennemi en
+// grand, son nom, son archetype, la mecanique de son deck (`signature`, config/arenes.js), l'equipe conseillee (avec
+// ce qu'il reste a faire pour chaque heros) et le CHOIX DU NIVEAU — fleches, niveaux battus coches, la recompense
+// au-dessus. Toucher la carte ouvre la fiche au niveau choisi ; les fleches ne l'ouvrent pas.
+
+// Le niveau choisi par arene, le temps de la session (au depart : le niveau courant, celui qu'on n'a pas encore battu).
+const choisis = new Map();
+
+/** Ou en est un heros conseille : recrute (« Upgrade »), recrutable (« Unlock »), ou pas encore decouvert. */
+function statutHeros(h) {
+  const st = save.chars[h.id] || {};
+  if (st.owned) return { cl: 'ameliorer', mot: t('deck.ameliorer') };
+  if (st.bossBeaten) return { cl: 'debloquer', mot: t('arene.debloquer') };
+  return { cl: 'inconnu', mot: t('arene.inconnu') };
+}
+
+function carteArene(a, n) {
+  const etat = etatArene(a.id);
+  const max = Math.max(1, etat.niveau);
+  if (!choisis.has(a.id) || choisis.get(a.id) > max) choisis.set(a.id, max);
+  const enc = ENCOUNTERS[a.ennemi] || {};
+  const heros = a.herosConseilles.map(id => CHAR_BY_ID[id]).filter(Boolean);
+  const equipe = heros.length
+    ? heros.map(h => {
+      const s = statutHeros(h);
+      return `<div class="arn-h ${s.cl}"><img src="${asset(h.sprite)}" alt=""><span>${echappe(h.name)}</span><em>${s.mot}</em></div>`;
+    }).join('')
+    : `<p>${t('arene.tousConseilles')}</p>`;
+  const sig = a.signature ? `<div class="arn-sig">${icone(a.signature.icone, 30)}<span>${echappe(a.signature.texte)}</span></div>` : '';
+  const c = el(`<div class="arn" role="button">
+    <img class="arn-bat" src="${asset(a.batiment)}" alt="">
+    <img class="arn-ennemi" src="${asset(enc.sprite || '')}" alt="">
+    <div class="arn-droite">
+      <h3>${echappe(n.name)}</h3>
+      <div class="arn-corps">
+        <div class="arn-gauche">
+          <span class="arn-arch">${echappe(libelleArchetype(a))}</span>
+          <div class="arn-equipe"><b>${t('arene.equipeConseillee')}</b>${equipe}</div>
+        </div>
+        <div class="arn-col">
+          ${sig}
+          <div class="arn-niv"></div>
+        </div>
+      </div>
+    </div>
+  </div>`);
+  const niv = c.querySelector('.arn-niv');
+  const dessine = () => {
+    const k = choisis.get(a.id);
+    const gain = enc.rewards ? enc.rewards.A : null;
+    const pilule = (v, cl) => (v < 1 ? '<span class="arn-p vide"></span>'
+      : `<span class="arn-p ${cl} ${v <= etat.meilleur ? 'battu' : ''} ${v > max ? 'ferme' : ''}">${cl === 'cur' ? t('deck.niveau', { n: v }) : v}${v <= etat.meilleur && cl !== 'cur' ? icone('Validate', 26) : ''}</span>`);
+    niv.innerHTML = `
+      ${gain != null ? `<div class="arn-gain">${icone('Fanion', 16)}<b>${gain}</b></div>` : ''}
+      <div class="arn-rail"><i></i></div>
+      <div class="arn-choix">
+        <button class="arn-fl g" ${k <= 1 ? 'disabled' : ''} aria-label="niveau précédent"></button>
+        <div class="arn-pilules">${pilule(k - 1, 'prec')}${pilule(k, 'cur')}${pilule(k + 1, 'suiv')}</div>
+        <button class="arn-fl d" ${k >= max ? 'disabled' : ''} aria-label="niveau suivant"></button>
+      </div>`;
+    niv.querySelector('.g').onclick = ev => { ev.stopPropagation(); if (k > 1) { choisis.set(a.id, k - 1); dessine(); } };
+    niv.querySelector('.d').onclick = ev => { ev.stopPropagation(); if (k < max) { choisis.set(a.id, k + 1); dessine(); } };
+  };
+  dessine();
+  c.onclick = () => ouvreFicheArene(n, { niveau: choisis.get(a.id), apres: () => renderArene() });
+  return c;
+}
+
 /** L'onglet : une carte par arene decouverte, dans l'ordre de config/arenes.js. */
 export function renderArene() {
   const root = $('#screen-arene');
   root.innerHTML = '';
-  const wrap = el(`<div class="pad ar-onglet"><h2>${t('arene.onglet')}</h2><div class="ar-grille"></div></div>`);
-  const grille = wrap.querySelector('.ar-grille');
+  const wrap = el(`<div class="pad ar-onglet"><h2>${t('arene.onglet')}</h2><div class="arn-liste"></div></div>`);
+  const liste = wrap.querySelector('.arn-liste');
   const vues = ARENES.map(a => ({ a, n: noeudDeLArene(a.id) })).filter(x => x.n && save.world.seen[x.n.id]);
-  if (!vues.length) grille.appendChild(el(`<p class="muted">${t('arene.vide')}</p>`));
-  for (const { a, n } of vues) {
-    const etat = etatArene(a.id);
-    const sprite = (ENCOUNTERS[a.ennemi] || {}).sprite || '';
-    const c = el(`<button class="ar-flash ${etat.victoires ? 'battue' : ''}">
-      <div class="ar-portrait"><img class="ar-bat" src="${asset(a.batiment)}" alt=""><img class="ar-ennemi" src="${asset(sprite)}" alt=""></div>
-      <b>${echappe(n.name)}</b>
-      <span class="ar-puce arch">${echappe(libelleArchetype(a))}</span>
-      <span class="ar-statut">${t('arene.niveau', { n: etat.niveau })} · ${etat.meilleur ? t('arene.battue', { n: etat.meilleur }) : t('arene.jamais')}</span>
-    </button>`);
-    c.onclick = () => ouvreFicheArene(n, { apres: () => renderArene() });
-    grille.appendChild(c);
-  }
+  if (!vues.length) liste.appendChild(el(`<p class="muted">${t('arene.vide')}</p>`));
+  for (const { a, n } of vues) liste.appendChild(carteArene(a, n));
   root.appendChild(wrap);
 }

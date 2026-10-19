@@ -15,6 +15,10 @@ export const TEXTES = {
   'deck.puissance': '+{n} power',
   // Les ARENES : la fiche (presentation de l'ennemi, puis choix de l'equipe) et l'onglet (16 octobre 2026).
   'arene.onglet': 'Arènes',
+  // La carte d'une arene dans l'onglet : les mots de la maquette « Arena Screen » (19 octobre 2026), comme l'ecran d'equipe.
+  'arene.equipeConseillee': 'Suggested team',
+  'arene.debloquer': 'Unlock',
+  'arene.inconnu': 'Undiscovered',
   'arene.vide': "Aucune arène découverte : approche-toi d'un bâtiment sur la carte.",
   'arene.niveau': 'Niveau {n}',
   'arene.jamais': 'Jamais battue',

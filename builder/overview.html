@@ -412,7 +412,7 @@ function pnjHTML(n) {
     `<div style="height:${Math.round(c / hautMax * 30) + 2}px" title="${c} carte(s) à ${i} mana"><span>${i}</span></div>`).join('');
   return `<section class="char">
     <div class="char__head">
-      <img src="${asset(n.sprite || 'Characters/Dog.png')}" alt="">
+      <img src="${asset(n.sprite || 'Graphical Assets/Characters/Dog/Dog.png')}" alt="">
       <div class="char__id">
         <div class="nm">${esc(n.name)} <span class="sub">· adversaire${n.boss ? ' · boss' : ''}</span></div>
         <div class="sub">cartes au niveau ${n.level || 1}${n.ia ? ' · bot « ' + esc(n.ia) + ' »' : ''}</div>

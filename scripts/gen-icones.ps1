@@ -1,4 +1,4 @@
-# LES ICONES DE L'ATELIER — refaites a partir du logo (Icons\Icon.png, carre, fond transparent).
+# LES ICONES DE L'ATELIER — refaites a partir du logo (Graphical Assets\Icons\Icon.png, carre, fond transparent).
 #
 #   powershell -ExecutionPolicy Bypass -File scripts\gen-icones.ps1 [-Logo chemin.png]
 #
@@ -14,7 +14,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
 $racine = Split-Path -Parent $PSScriptRoot
-if (-not $Logo) { $Logo = Join-Path $racine 'Icons\Icon.png' }
+if (-not $Logo) { $Logo = Join-Path $racine 'Graphical Assets\Icons\Icon.png' }
 $sortie = Join-Path $racine 'builder\icons'
 $src = [System.Drawing.Image]::FromFile((Resolve-Path -LiteralPath $Logo).Path)
 

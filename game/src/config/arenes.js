@@ -19,8 +19,28 @@ export const ARCHETYPES = ['Aggro', 'Contrôle', 'Combo'];
 export const SOUS_ARCHETYPES = ['Tempo', 'MidRange', 'Turbo', 'Hard', 'Soft', 'Pillow Fort', 'Fatigue'];
 
 // Le batiment de chaque arene : thème libre pour l'instant, rapproche de l'archetype quand c'est evident
-// (Pillow Maker <-> Pillow Fort). Les sprites sont dans Machines/ (le Coffee shop reste la boutique).
-const B = n => `Machines/${n}.png`;
+// (Pillow Maker <-> Pillow Fort). Les sprites sont dans Graphical Assets/Buildings/ (le Coffee shop reste la boutique).
+const B = n => `Graphical Assets/Buildings/${n}.png`;
+
+// LA SIGNATURE d'une arene : la mecanique qui saute aux yeux dans le deck de l'ennemi, une icone (ui/icones.js) et
+// quelques mots, sur la carte de l'onglet « Arene » (maquette « Arena Screen », 19 octobre 2026). Lue sur le deck de
+// chaque ennemi (mot-cle ou moment le plus frequent) : PROVISOIRE, a relire par le game designer.
+const SIGNATURES = {
+  rabbit1: { icone: 'WallWalker', texte: 'Passe-Murailles' },
+  cat1: { icone: 'Charge', texte: 'Charges et dégâts directs' },
+  crow1: { icone: 'TurnEnd', texte: 'Effets de fin de tour' },
+  wolf: { icone: 'Taunt', texte: 'Provocations' },
+  frog1: { icone: 'Venom', texte: 'Venin et Toxine' },
+  octo1: { icone: 'Taunt', texte: 'Murs de Provocations' },
+  frogboss: { icone: 'Destroy', texte: 'Destructions' },
+  fox1: { icone: 'Charge', texte: 'Charges et Élusifs' },
+  owlboss: { icone: 'Destroy', texte: 'Destructions en série' },
+  sloth1: { icone: 'Taunt', texte: 'Provocations qui grandissent' },
+  robin1: { icone: 'Charge', texte: 'Charges' },
+  panda1: { icone: 'Create', texte: 'Cartes créées' },
+  goat1: { icone: 'Armor', texte: 'Armure' },
+  octo2: { icone: 'Dead', texte: 'Charognards' }
+};
 
 /** Les arenes, dans l'ordre de l'onglet « Arene ». `ennemi` = l'identifiant de config/ennemis.js. PROVISOIRE. */
 export const ARENES = [
@@ -67,7 +87,7 @@ export const ARENES = [
   { id: 'octo2', ennemi: 'octo2', batiment: B('Tennis ball Factory'), role: 'examen', archetype: 'Aggro', sousArchetype: 'MidRange',
     question: 'Tu sais jouer contre quelqu\'un qui s\'adapte ?', reponse: 'Varier les menaces ; garder un retrait pour sa Pieuvre Mécanique', punit: 'Tout investir dans une seule grosse unite',
     herosConseilles: ['cat3', 'owl3', 'crow3'], typeDeck: 'Pieuvre Mécanique, Brutes, Vautours et Équarrisseurs de Morrigane, Souffle' }
-].map(a => ({ textesValides: false, ...a }));
+].map(a => ({ textesValides: false, signature: SIGNATURES[a.id] || null, ...a }));
 
 export const ARENE_PAR_ID = Object.fromEntries(ARENES.map(a => [a.id, a]));
 

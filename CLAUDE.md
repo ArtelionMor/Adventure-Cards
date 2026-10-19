@@ -179,7 +179,7 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 - Les gros fichiers ne se lisent **jamais en entier** : `game/src/combat/engine.js` (≈ 2 000 l.), `game/src/combat/ai.js` (≈ 1 200), `game/src/config/mechanics.js` (≈ 1 560),
   `game/src/ui/battle.js` (≈ 1 030), `builder/index.html` (≈ 2 400), `builder/lancer.html` (≈ 1 300), `scripts/devserver.js` (≈ 900), `scripts/test-triggers.mjs` (≈ 3 600),
   `game/data/characters.data.js` (≈ 7 900) → **Grep** le nom d'une fonction (chaque `CLAUDE.md` donne les bons) puis Read avec `offset`/`limit`.
-- Les images (`Characters/`, `Machines/`, `Ressources/`, `UI/`, `Icons/`, `V2/`, `mockups/`) sont des binaires : ne les ouvre que si la tâche porte sur ce qu'elles montrent.
+- Les images (`Graphical Assets/`, `mockups/`) sont des binaires : ne les ouvre que si la tâche porte sur ce qu'elles montrent.
 - **Tiens ces `CLAUDE.md` à jour** : un fichier ajouté = une ligne dans la table de son dossier ; un invariant qui change = la section concernée. Un `CLAUDE.md` qui ment coûte plus de tokens que pas de `CLAUDE.md`.
 
 ## Carte du projet
@@ -199,10 +199,8 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | `launcher/` | Le lanceur Windows (`Launcher.cs` → `AdventureCard.exe`). | `launcher/CLAUDE.md` |
 | `android/` | Le widget Android (Java, sans bibliothèque). | `android/CLAUDE.md` |
 | `docs/` | La conception : GDD, héros V3, grammaire des paliers, mécaniques à coder, situations. | `docs/CLAUDE.md` |
-| `Characters/` `Machines/` `Ressources/` `UI/` | Sprites (personnages, bâtiments, ressources, objets). | un `CLAUDE.md` chacun |
+| `Graphical Assets/` | **Toutes les images du game designer** (rangées le 19 oct. 2026) : `Characters/<Espèce>/` (portraits), `Buildings/` (bâtiments, arènes), `Ressources/` (Ferme, Sac), `Old UI/` (petits objets : coffre, arbre, reliques), `Icons/` (le logo et les **icônes d'interface**, + `Icons/Kenney/`), `CardBack/` (dos de carte) ; et, pas câblés, `Socials/` et trois packs `Kenney_*`. Les données citent le chemin complet (`Graphical Assets/Characters/Dog/Dog Cocker.png`) ; le jeu affiche leurs vignettes (`game/vignettes/`). | `Graphical Assets/CLAUDE.md`, `Graphical Assets/Icons/CLAUDE.md` |
 | `Decor/` | Packs d'assets **tiers** (Kenney, CC0) du sol et du décor de la carte : **Medieval RTS + Foliage Pack**, dessinés par `game/src/ui/sol-carte.js` ; Tiny Town (essayé, écarté) ne sert qu'au prototype (`docs/PACKS-CARTE.md`). | `Decor/CLAUDE.md` |
-| `Icons/` | Le logo et les **icônes d'interface** (`Dead.png`, + celles que dessine le game designer). | `Icons/CLAUDE.md` |
-| `V2/` | Itération plus récente d'assets, **pas câblée**. | `V2/CLAUDE.md` |
 | `mockups/` | Maquettes (cartes, widget). | `mockups/CLAUDE.md` |
 | `combatLogs/` | Anciens exports de mesures (archives). | `combatLogs/CLAUDE.md` |
 | `build/` | Sorties de compilation, ignorées par git (vide). | — |
@@ -224,7 +222,7 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | changer l'arbre du profil du joueur, les jokers, les decks enregistrés | `game/src/config/profil.js`, `BALANCE.profil` / `BALANCE.decks` ; écrans `game/src/ui/profil.js`, `arene.js` |
 | mesurer l'équilibre | `scripts/matchups.mjs`, `simulate.mjs`, `check-decks.mjs`, `analyse-cartes.mjs` (ou `builder/balance.html`) |
 | lancer un calcul depuis le téléphone, les renforts, l'IA locale | `builder/lancer.html` + `scripts/devserver.js` + `scripts/lib/` |
-| ajouter une icône | déposer `Icons/<Nom>.png` (noms : `game/src/ui/icones.js`) |
+| ajouter une icône | déposer `Graphical Assets/Icons/<Nom>.png` (noms : `game/src/ui/icones.js`) ; une grande image : `python scripts/gen-vignettes.py` |
 | comprendre une décision de design | `docs/GDD.md`, `docs/V3-HEROS.md`, et la mémoire du projet |
 
 ## Taille d'équipe : jamais de solo, on ne mesure que les trios et plus

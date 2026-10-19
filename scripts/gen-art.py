@@ -5,12 +5,12 @@
 La chaîne qui se faisait à la main (Gemini → Figma → Icons8), en une commande :
   1. prend une carte dans l'export « cartes-niveau-N-….json » de l'Atelier ;
   2. écrit le prompt (le gabarit « Dans le style graphique des images, sur un fond rose,
-     dessine … ») avec des images de référence prises dans Characters/ ;
+     dessine … ») avec des images de référence prises dans Graphical Assets/Characters/ ;
   3. demande N variantes à l'API Gemini ;
   4. détoure le fond rose EN LOCAL (plus d'Icons8) et signale les rendus ratés : sujet coupé
      par le cadre, fond pas uni, sujet minuscule ;
   5. dépose les variantes dans art-sortie/<id>/ et fait des planches-contact. On choisit, puis
-     --choisir copie le PNG dans Characters/ sous le bon nom.
+     --choisir copie le PNG dans Graphical Assets/Characters/ sous le bon nom.
 
 Le SUJET (« un labrador commandant genre Napoléon ») reste une décision de game design : il se
 écrit dans scripts/art-sujets.json (clé = id de la carte). Sans sujet, la carte est sautée.
@@ -51,7 +51,7 @@ from scipy import ndimage as ndi
 
 # ─────────────────────────────── Réglages ───────────────────────────────
 RACINE = Path(__file__).resolve().parent.parent
-DOSSIER_SPRITES = RACINE / "Characters"          # où vivent les portraits (et d'où viennent les références)
+DOSSIER_SPRITES = RACINE / "Graphical Assets" / "Characters"   # les portraits, un sous-dossier par espèce (et les références)
 DOSSIER_SORTIE = RACINE / "art-sortie"           # variantes et planches (ignoré par git)
 FICHIER_SUJETS = Path(__file__).resolve().parent / "art-sujets.json"
 
@@ -72,13 +72,13 @@ GABARIT = "Dans ce style graphique, sur fond rose, dessine {sujet}."
 # de l'app Gemini est de 10 fichiers par message). ⚠ Ne jamais les fondre en une planche : une image unique est
 # prise pour le support à MODIFIER (Gemini repeint le fond et pose le personnage dessus, que la planche soit rose
 # ou blanche) ; avec plusieurs images, il en crée une nouvelle d'après leur style.
-REFERENCES_FIXES = ["Cameleon Cosmoléon.png", "Cat Menkoun.png", "Cat Witch.png", "Chien de Berger.png",
+REFERENCES_FIXES = ["Cameleon Cosmoléon.png", "Cat Menkoun.png", "Cat Witch.png", "Dog Chien de Berger.png",
                     "Dog Chef de Meute.png", "Dog Chiot de Garde.png", "Dog Prince des Cabots.png",
                     "Fox Robin Hood.png", "Frog Captain.png", "Owl Academic.png"]
 DOSSIER_REFERENCES = DOSSIER_SORTIE / "references-style"   # `--references` y copie les 10, à joindre d'un coup
 TAILLE_REFERENCE = 1024                          # px : réduites avant l'envoi à l'API
 
-# Les noms d'espèce de l'export (français) → préfixe des fichiers de Characters/.
+# Les noms d'espèce de l'export (français) → préfixe des fichiers de Graphical Assets/Characters/.
 ESPECES_EN = {"Chien": "Dog", "Chat": "Cat", "Corbeau": "Crow", "Grenouille": "Frog",
               "Chouette": "Owl", "Hibou": "Owl", "Faucon": "Falcon", "Cameleon": "Cameleon"}
 
@@ -172,7 +172,24 @@ def charge_sujets():
 
 
 def images_existantes():
-    return {norm(p.stem): p for p in DOSSIER_SPRITES.glob("*.png")}
+    return {norm(p.stem): p for p in DOSSIER_SPRITES.rglob("*.png")}
+
+
+def portrait(nom):
+    """Un portrait par son nom de fichier, dans le sous-dossier de son espèce ; None s'il n'existe pas."""
+    return next(DOSSIER_SPRITES.rglob(nom), None)
+
+
+def dossier_espece(fichier):
+    """Où ranger un nouveau portrait : le sous-dossier dont le nom ouvre celui du fichier (« Dog … » → Dog/), sinon
+    celui d'un portrait de la même espèce (« Falcon … » → Birds/, à côté de Falcon.png), sinon la racine."""
+    especes = sorted((d for d in DOSSIER_SPRITES.iterdir() if d.is_dir()), key=lambda d: -len(d.name))
+    dossier = next((d for d in especes if fichier.startswith(d.name + " ")), None)
+    if dossier:
+        return dossier
+    mot = fichier.split(" ")[0].removesuffix(".png")
+    voisin = next((p for p in DOSSIER_SPRITES.rglob("*.png") if p.stem.split(" ")[0] == mot), None)
+    return voisin.parent if voisin else DOSSIER_SPRITES
 
 
 def image_de(carte, existantes):
@@ -201,7 +218,7 @@ def trouve_carte(requete, cartes):
 # ─────────────────────────────── Références et prompt ───────────────────────────────
 def choisit_references(carte, sujet):
     """Les 10 mêmes images de référence, séparées, pour toutes les cartes."""
-    return [DOSSIER_SPRITES / n for n in REFERENCES_FIXES if (DOSSIER_SPRITES / n).exists()]
+    return [p for p in map(portrait, REFERENCES_FIXES) if p]
 
 
 def prepare_reference(chemin):
@@ -218,15 +235,15 @@ def commande_references():
     DOSSIER_REFERENCES.mkdir(parents=True, exist_ok=True)
     manquantes, n = [], 0
     for i, nom in enumerate(REFERENCES_FIXES, start=1):
-        src = DOSSIER_SPRITES / nom
-        if src.exists():
+        src = portrait(nom)
+        if src:
             shutil.copyfile(src, DOSSIER_REFERENCES / f"{i:02d} {nom}")
             n += 1
         else:
             manquantes.append(nom)
     print(f"{n} image(s) dans {DOSSIER_REFERENCES}")
     for nom in manquantes:
-        print(f"  introuvable dans Characters/ : {nom}")
+        print(f"  introuvable dans Graphical Assets/Characters/ : {nom}")
     return 1 if manquantes else 0
 
 
@@ -470,7 +487,7 @@ def commande_etat(cartes, sujets):
     avec_sujet = [c for c in cartes if c["id"] in sujets]
     print(f"{len(cartes)} cartes dont {sum(1 for c in cartes if c['hero'])} de héros "
           f"et {sum(1 for c in cartes if not c['hero'])} libres.")
-    print(f"  portrait déjà dans Characters/ : {len(avec_image)}")
+    print(f"  portrait déjà dans Graphical Assets/Characters/ : {len(avec_image)}")
     print(f"  sujet écrit (art-sujets.json)  : {len(avec_sujet)}")
     reste = [c for c in cartes if not image_de(c, exist) and c["id"] not in sujets]
     print(f"  sans portrait ET sans sujet    : {len(reste)}")
@@ -533,7 +550,7 @@ def commande_generer(args, cartes, sujets):
     if args.a_blanc:
         for c, prompt, refs, n in taches:
             if n == 1:
-                print(f"\n● {c['nom']}  ({c['id']}, {c['ou']})  →  Characters/{c['fichier']}")
+                print(f"\n● {c['nom']}  ({c['id']}, {c['ou']})  →  Graphical Assets/Characters/{c['fichier']}")
                 print("  références :", ", ".join(p.name for p in refs) or "(aucune)")
                 print("  prompt     :", prompt)
         print(f"\n{len(taches)} appel(s) pour {len(retenues)} carte(s), modèle {args.modele}. "
@@ -596,9 +613,9 @@ def commande_prompts(args, cartes, sujets):
         "2. Télécharge l'image et nomme-la comme indiqué (`Fichier`), dans un même dossier.",
         "3. `python scripts/gen-art.py --detourer <dossier>` retire le rose (sans Figma ni Icons8) → `art-sortie/detoure/`.",
         "   Il signale les rendus à refaire : sujet coupé par le cadre, fond pas uni, zone rose gardée.",
-        "4. Copie le PNG dans `Characters/`, puis `node scripts/gen-sprites.mjs`, et règle le sprite de la carte dans le Card Builder.",
+        "4. Copie le PNG dans `Graphical Assets/Characters/`, puis `node scripts/gen-sprites.mjs`, et règle le sprite de la carte dans le Card Builder.",
         "",
-        "✅ = la carte a déjà un portrait dans `Characters/` (le prompt est là au cas où on le refait).",
+        "✅ = la carte a déjà un portrait dans `Graphical Assets/Characters/` (le prompt est là au cas où on le refait).",
         "",
     ]
     groupes, ordre = {}, []
@@ -661,7 +678,7 @@ def commande_choisir(args, cartes):
     src = DOSSIER_SORTIE / carte["id"] / f"v{int(n)}.png"
     if not src.exists():
         raise SystemExit(f"Introuvable : {rel(src)}")
-    dest = DOSSIER_SPRITES / carte["fichier"]
+    dest = dossier_espece(carte["fichier"]) / carte["fichier"]
     if dest.exists() and not args.ecraser:
         raise SystemExit(f"{rel(dest)} existe déjà (--ecraser pour le remplacer).")
     shutil.copyfile(src, dest)
@@ -740,7 +757,7 @@ def main():
     ap.add_argument("--prompts", metavar="FICHIER.md", help="écrit les prompts de toutes les cartes à copier-coller")
     ap.add_argument("--detourer", metavar="FICHIER_OU_DOSSIER", help="détoure des images déjà téléchargées (sans API)")
     ap.add_argument("--references", action="store_true", help="range les 10 images de référence dans art-sortie/references-style/")
-    ap.add_argument("--choisir", nargs=2, metavar=("CARTE", "N"), help="copie art-sortie/<id>/vN.png dans Characters/")
+    ap.add_argument("--choisir", nargs=2, metavar=("CARTE", "N"), help="copie art-sortie/<id>/vN.png dans Graphical Assets/Characters/")
     ap.add_argument("--ecraser", action="store_true", help="avec --choisir : remplace un portrait existant")
     args = ap.parse_args()
 

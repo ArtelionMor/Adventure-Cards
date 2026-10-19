@@ -94,8 +94,21 @@ export const COLONNES_HEROS = {
   deck_category: { h: ['archetype'],   n: ['archetype'], forme: 'texte',  nom: 'archetype' }
 };
 
-/** « Dog German Shepherd » -> « Characters/Dog German Shepherd.png » ; un chemin complet est garde tel quel. */
-const cheminSprite = v => (/[/\\]/.test(v) ? v : `Characters/${v}${/\.png$/i.test(v) ? '' : '.png'}`);
+/** Le dossier des portraits : un sous-dossier par espece (« Graphical Assets/Characters/Dog/Dog Cocker.png »). */
+export const DOSSIER_PERSONNAGES = 'Graphical Assets/Characters';
+
+/**
+ * « Dog German Shepherd » -> « Graphical Assets/Characters/Dog/Dog German Shepherd.png » : un nom nu (avec ou sans
+ * `.png`) est cherche dans les sous-dossiers d'espece de `sprites` (`SPRITES` de game/data/sprites.js), pour que la
+ * feuille n'ait pas a savoir ou l'image est rangee. Un chemin complet est garde tel quel ; un nom introuvable donne un
+ * chemin a la racine du dossier, que la validation refuse.
+ */
+export function cheminPersonnage(v, sprites = null) {
+  if (/[/\\]/.test(v)) return v;
+  const nom = /\.png$/i.test(v) ? v : `${v}.png`;
+  const trouve = ((sprites && sprites[DOSSIER_PERSONNAGES]) || []).find(f => f.split('/').pop() === nom);
+  return `${DOSSIER_PERSONNAGES}/${trouve || nom}`;
+}
 
 /** Le parent du champ et sa cle, en creant les objets intermediaires (`stats`). */
 function champ(objet, chemin) {
@@ -124,7 +137,7 @@ export function planifieHeros(donnees, lignes, sprites = null) {
       const lu = (heros ? def.h : def.n).reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), cible);
       const avant = lu === undefined ? null : lu;
       let apres = def.forme === 'nombre' ? nombre(l[col]) : String(l[col]).trim();
-      if (def.forme === 'sprite' && apres) apres = cheminSprite(apres);
+      if (def.forme === 'sprite' && apres) apres = cheminPersonnage(apres, sprites);
       let raison = null;
       if (apres === null || apres === '') raison = 'la valeur attendue est ' + (def.forme === 'nombre' ? 'un nombre' : 'un texte');
       else if (def.forme === 'nombre' && !(apres > 0)) raison = 'il faut un nombre plus grand que 0';

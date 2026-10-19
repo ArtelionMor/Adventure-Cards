@@ -47,7 +47,7 @@ const handPump = (atk, hp) => ({ op: 'renforce_les_cartes', d_ou: 'main', qui: '
 const WOLF = ['type:Loup', 'type:Chien'];
 const cub = tok('Louveteau', 2, 1, ['Charge', ...WOLF]);
 const dog2 = {
-  id: 'dog2', name: 'Croc', species: 'Chien', sprite: 'Characters/Dog German Shepherd.png',
+  id: 'dog2', name: 'Croc', species: 'Chien', sprite: 'Graphical Assets/Characters/Dog/Dog German Shepherd.png',
   role: 'Meute — Aggro Turbo : charge, frappe le héros, sacrifie',
   stats: { hp: 26, mana: 7, hand: 2 },
   cards: [
@@ -87,7 +87,7 @@ const dog2 = {
 // ------------------------------------------------------------------ CHAT V2 : Mistigri
 const kitten = tok('Chaton', 1, 1, ['passe_murailles', 'type:Chat']);
 const cat2 = {
-  id: 'cat2', name: 'Mistigri', species: 'Chat', sprite: 'Characters/Cat Siamese.png',
+  id: 'cat2', name: 'Mistigri', species: 'Chat', sprite: 'Graphical Assets/Characters/Cat/Cat Siamese.png',
   role: 'Maraudeur — Aggro Tempo : des Chats rapides, qui reviennent',
   stats: { hp: 25, mana: 8, hand: 2 },
   cards: [
@@ -127,7 +127,7 @@ const cat2 = {
 // ------------------------------------------------------------------ CORBEAU V2 : Sirocco (Faucon)
 const FALC = ['type:Oiseau', 'type:Faucon'];
 const crow2 = {
-  id: 'crow2', name: 'Sirocco', species: 'Faucon', sprite: 'Characters/Falcon.png',
+  id: 'crow2', name: 'Sirocco', species: 'Faucon', sprite: 'Graphical Assets/Characters/Birds/Falcon.png',
   role: 'Rapace — Aggro Tempo : une main pleine, des coups qui comptent',
   stats: { hp: 24, mana: 8, hand: 2 },
   cards: [
@@ -168,7 +168,7 @@ const TAD = ['type:Têtard', 'type:Grenouille'];
 const tad = tok('Têtard', 1, 1, TAD, { on_renfort_self: [{ op: 'buff', t: 'self', atk: 1, hp: 1 }] });
 const FR = ['type:Grenouille'];
 const frog2 = {
-  id: 'frog2', name: 'Reinette', species: 'Grenouille', sprite: 'Characters/Frog Venomous.png',
+  id: 'frog2', name: 'Reinette', species: 'Grenouille', sprite: 'Graphical Assets/Characters/Frog/Frog Venomous.png',
   role: 'Marais — Combo croissance : chaque renfort déclenche quelque chose',
   stats: { hp: 27, mana: 7, hand: 2 },
   cards: [
@@ -209,7 +209,7 @@ const frog2 = {
 // ------------------------------------------------------------------ CHOUETTE V2 : Morphée (Hibou)
 const OWL = ['type:Oiseau', 'type:Hibou'];
 const owl2 = {
-  id: 'owl2', name: 'Morphée', species: 'Hibou', sprite: 'Characters/Owl Snow.png',
+  id: 'owl2', name: 'Morphée', species: 'Hibou', sprite: 'Graphical Assets/Characters/Owl/Owl Snow.png',
   role: 'Veilleur — Contrôle Pillow Fort : le temps joue pour lui',
   stats: { hp: 28, mana: 9, hand: 2 },
   cards: [
@@ -249,7 +249,7 @@ const owl2 = {
 // ------------------------------------------------------------------ CAMELEON V2 : Mirage
 const ALL = ['type_tous'];
 const cam2 = {
-  id: 'cameleon2', name: 'Mirage', species: 'Cameleon', sprite: 'Characters/Cameleon.png',
+  id: 'cameleon2', name: 'Mirage', species: 'Cameleon', sprite: 'Graphical Assets/Characters/Cameleon/Cameleon.png',
   role: 'Imitateur — Support : donne à chacun le type qu’il lui faut',
   stats: { hp: 25, mana: 8, hand: 2 },
   cards: [

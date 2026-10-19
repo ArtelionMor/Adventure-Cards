@@ -22,9 +22,16 @@ import sys
 from PIL import Image
 
 RACINE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-# Les dossiers allegés : ceux des gros sprites (les tuiles de Decor/ et les icones sont deja petites).
-DOSSIERS = ['Characters', 'Machines', 'Ressources', 'UI']
+# Les dossiers allegés : ceux des gros sprites (les tuiles de Decor/ et les icones sont deja petites). Ce sont des cles
+# de sprites.js ; un nom peut y contenir un sous-dossier (les personnages sont ranges par espece : « Dog/Dog Cocker.png »).
+DOSSIERS = ['Graphical Assets/Characters', 'Graphical Assets/Buildings', 'Graphical Assets/Ressources', 'Graphical Assets/Old UI']
 TAILLE_MAX = 512        # pixels, plus grand cote : assez pour un batiment de 7 personnages sur un ecran x2
+# Les images d'INTERFACE dessinees en 2000 px (icones de la navigation, dos de carte : ~1 a 3 Mo chacune) : on
+# balaye ces dossiers directement (sprites.js ne les liste pas) et on les reduit plus fort — elles ne s'affichent
+# jamais a plus de ~100 pixels. Une petite image (une icone de 64 px) n'est pas touchee.
+INTERFACE = ['Graphical Assets/Icons', 'Graphical Assets/CardBack']
+TAILLE_INTERFACE = 256
+SEUIL_INTERFACE = 100_000   # octets : en dessous, l'original est deja leger
 QUALITE = 85            # WebP avec transparence
 SORTIE = os.path.join(RACINE, 'game', 'vignettes')
 LISTE = os.path.join(RACINE, 'game', 'data', 'vignettes.js')
@@ -41,21 +48,37 @@ def main():
     tout = '--tout' in sys.argv
     sprites = suivies()
     faites, refaites = [], 0
+
+    def allege(dossier, nom, taille):
+        nonlocal refaites
+        src = os.path.join(RACINE, dossier, nom)
+        rel = f'{dossier}/{nom}'
+        dst = os.path.join(SORTIE, dossier, os.path.splitext(nom)[0] + '.webp')
+        if not os.path.exists(src):
+            # L'original a disparu (dossier deplace, renomme) mais sa vignette est la : on la GARDE. Sinon un
+            # rangement des images sur le disque viderait la liste, et le jeu perdrait tous ses sprites d'un coup.
+            if os.path.exists(dst):
+                faites.append(rel)
+            return
+        if tout or not os.path.exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src):
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            with Image.open(src) as im:
+                im = im.convert('RGBA')
+                im.thumbnail((taille, taille), Image.LANCZOS)
+                im.save(dst, 'WEBP', quality=QUALITE, method=6)
+            refaites += 1
+        faites.append(rel)
+
     for dossier in DOSSIERS:
         for nom in sprites.get(dossier, []):
-            src = os.path.join(RACINE, dossier, nom)
-            if not os.path.exists(src):
-                continue
-            rel = f'{dossier}/{nom}'
-            dst = os.path.join(SORTIE, dossier, os.path.splitext(nom)[0] + '.webp')
-            if tout or not os.path.exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src):
-                os.makedirs(os.path.dirname(dst), exist_ok=True)
-                with Image.open(src) as im:
-                    im = im.convert('RGBA')
-                    im.thumbnail((TAILLE_MAX, TAILLE_MAX), Image.LANCZOS)
-                    im.save(dst, 'WEBP', quality=QUALITE, method=6)
-                refaites += 1
-            faites.append(rel)
+            allege(dossier, nom, TAILLE_MAX)
+    for dossier in INTERFACE:
+        racine = os.path.join(RACINE, dossier)
+        if not os.path.isdir(racine):
+            continue
+        for nom in sorted(os.listdir(racine)):
+            if nom.lower().endswith('.png') and os.path.getsize(os.path.join(racine, nom)) >= SEUIL_INTERFACE:
+                allege(dossier, nom, TAILLE_INTERFACE)
     faites.sort()
     with open(LISTE, 'w', encoding='utf-8', newline='\n') as f:
         f.write('// Genere par scripts/gen-vignettes.py — ne pas editer a la main.\n')

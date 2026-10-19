@@ -323,10 +323,59 @@ button.btn:disabled { opacity: .4; cursor: default; }
 /* ---------- combat ---------- */
 .overlay { position: absolute; inset: 0; background: rgba(10,8,15,.94); z-index: 20; display: flex; flex-direction: column; }
 #battle { padding: 0; }
-.bt-side { display: grid; gap: 6px; padding: 8px 10px; }
-.bt-hero { display: flex; align-items: center; gap: 8px; position: relative; border-radius: 12px; }
+/* LA MISE EN PAGE (maquette « Combat Screen », 19 octobre 2026), de haut en bas : l'adversaire (ses piles a gauche, son
+   portrait rond au centre, sa main de dos en eventail a droite), les deux plateaux, la ligne du joueur (avatar, PV,
+   Auto), puis le plateau de la main (mana, main, pioche et defausse qui depassent du bas). Sur les bords, des onglets :
+   Menu, Registre, Log a gauche ; Fin de tour et la vitesse a droite. */
+.bt-haut { position: relative; flex: none; height: 158px; }
+.bt-hero { position: relative; border-radius: 12px; }
 .bt-hero .hnm { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .bt-hero img { width: 42px; height: 42px; object-fit: contain; }
+.bt-hero.e { position: absolute; left: 50%; top: 8px; width: 104px; height: 104px; margin-left: -52px; border-radius: 50%; }
+.bt-hero.e img { width: 100%; height: 100%; border-radius: 50%; object-fit: contain; }
+.bt-hero.e .hn { position: absolute; left: 10px; right: 10px; bottom: 7px; text-align: center; font-size: 8.5px; line-height: 1; }
+.bt-hero.e .lvl { position: absolute; right: -2px; top: -2px; }
+.bt-hero.e .pv { position: absolute; left: 50%; top: 30%; translate: -50% 0; z-index: 3; white-space: nowrap; }
+.bt-hpe { position: absolute; left: 50%; top: 120px; width: 210px; margin-left: -105px; }
+.bt-hpe .hx { position: absolute; left: 100%; top: 2px; margin-left: 6px; display: flex; gap: 4px; white-space: nowrap; font-size: 12px; }
+.bt-mana { display: flex; align-items: center; gap: 6px; }
+.bt-mana b { font-size: 14px; }
+.bt-haut .bt-mana { position: absolute; right: 10px; top: 92px; }
+.bt-piles { display: flex; }
+.bt-piles.e { position: absolute; left: 12px; top: 12px; gap: 6px; }
+.bt-pile { position: relative; width: 58px; height: 58px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; flex: none; }
+.bt-pile .bt-face { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; border-radius: 12px; background: var(--panel2); }
+.bt-pile .bt-face img { width: 100%; height: 100%; object-fit: cover; }
+.bt-pile.defausse .bt-face img { object-fit: contain; }
+.bt-pile.vide .bt-face { background: none; border: 2px dashed currentColor; opacity: .35; }
+.bt-pile b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 22px; line-height: 1; }
+.bt-pile .bt-rep { position: absolute; top: -8px; right: -8px; display: flex; align-items: center; gap: 1px; padding: 1px 5px; font-style: normal; font-size: 12px; border-radius: 999px; background: var(--accent2); }
+/* La main adverse, de dos : un eventail qui depasse du coin haut droit (on voit combien elle en a). L'adversaire la
+   TIENT en face : les cartes pendent depuis le haut (pivot au-dessus de l'ecran) et leur dos est a l'envers. */
+.bt-eventail { position: absolute; right: 0; top: 0; width: 140px; height: 86px; padding: 0; border: 0; background: none; cursor: pointer; overflow: hidden; }
+.bt-dos { position: absolute; left: 58%; top: -6px; width: 40px; height: 52px; margin-left: -20px; rotate: calc(var(--t) * max(-80deg, var(--n) * -14deg)); transform-origin: 50% -140%; }
+.bt-dos img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; rotate: 180deg; }
+.bt-dos .ico { position: absolute; right: 2px; bottom: 2px; }
+/* La ligne du joueur. */
+.bt-joueur { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 10px 8px; }
+.bt-hero.p { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.bt-hid { flex: 1; min-width: 0; }
+/* Le plateau de la main : la pioche et la defausse depassent du bas de l'ecran (coupees par le bord). */
+.bt-basmain { flex: none; position: relative; display: flex; flex-direction: column; align-items: center; overflow: hidden; padding-top: 6px; }
+.bt-piles.p { height: 46px; gap: 84px; justify-content: center; }
+.bt-piles.p .bt-pile { width: 70px; height: 70px; }
+/* Les onglets des bords, au-dessus des plateaux et du journal. */
+.bt-onglets { position: absolute; z-index: 8; display: flex; flex-direction: column; gap: 8px; }
+.bt-onglets.g { left: 0; top: 168px; align-items: flex-start; }
+.bt-onglets.d { right: 0; top: 37%; align-items: flex-end; }
+.bt-onglet { position: relative; writing-mode: vertical-rl; rotate: 180deg; padding: 12px 6px; font: inherit; font-size: 15px; cursor: pointer; border-radius: 12px 0 0 12px; }
+/* `height: max-content` : sans elle, un bouton ecrit a la verticale prenait la hauteur de son voisin (46 px) et coupait
+   son texte (« Fin de tour »). */
+.bt-onglet { height: max-content; white-space: nowrap; }
+.bt-onglet.fin { rotate: none; display: block; padding: 14px 7px; border-radius: 12px 0 0 12px; }
+.bt-onglet.fin .ico { rotate: 90deg; margin-top: 8px; }
+.bt-onglet .bdg { position: absolute; bottom: -6px; left: -6px; rotate: 180deg; writing-mode: horizontal-tb; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; font-size: 11px; display: grid; place-items: center; }
+.bt-onglets.d .vitesse { margin-right: 6px; }
 .hpbar { flex: 1; height: 14px; background: #3a1f26; border-radius: 8px; overflow: hidden; position: relative; }
 .hpbar i { display: block; height: 100%; background: linear-gradient(90deg, #ff5f6d, #ff9a6b); }
 .hpbar b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; }
@@ -372,6 +421,17 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .unit .kw { font-size: 9px; color: var(--ink-dim); }
 
 .bt-hand { display: flex; gap: 6px; padding: 8px; overflow-x: auto; background: var(--bg2); border-top: 1px solid var(--line); }
+/* L'eventail (plus de trois cartes) : ui/battle.js (`etaleLaMain`) pose le chevauchement, la rotation et l'arc. La carte
+   choisie passe devant les autres. */
+.bt-hand.eventail .hcard { margin-left: var(--chev, 0px); margin-top: var(--arc, 0px); rotate: var(--rot, 0deg); transform-origin: 50% 100%; }
+.bt-hand .hcard.sel { z-index: 5; }
+/* Le glisser-deposer (ui/battle.js, `debutTir`) : le navigateur ne doit pas prendre le glissement pour un defilement.
+   La carte tiree reste a sa place, palie ; son double suit le doigt, au-dessus de tout, sans recevoir de toucher. */
+.bt-hand, .bt-hand .hcard { touch-action: none; }
+.bt-hand .hcard.tiree { opacity: .25; }
+.tir-fantome { position: fixed; z-index: 60; margin: 0 !important; rotate: none !important; scale: 1.12; pointer-events: none; animation: none !important; transition: opacity .1s; }
+.tir-fantome.rentre { opacity: .55; }
+#battle.spot .lit.survol { scale: 1.08; outline-width: 4px; }
 .hcard {
   min-width: 92px; max-width: 92px; background: linear-gradient(180deg, var(--panel2), var(--panel));
   border: 1px solid var(--line); border-top: 3px solid var(--ally); border-radius: 10px; padding: 6px;
@@ -392,8 +452,6 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .zcard.dos { align-content: center; justify-items: center; min-height: 64px; background: repeating-linear-gradient(45deg, var(--panel) 0 6px, var(--line) 6px 12px); }
 .zcard.dos .nm { font-size: 18px; color: var(--ink-dim); }
 .hcard .st { position: absolute; bottom: 4px; right: 6px; font-size: 11px; font-weight: 800; }
-.bt-bar { display: flex; gap: 8px; padding: 8px; background: var(--bg2); align-items: center; }
-.bt-bar .grow { flex: 1; }
 .autochip { font-size: 11px; padding: 6px 10px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); cursor: pointer; }
 .autochip.on { background: var(--accent2); color: #0d2c1d; font-weight: 700; }
 
@@ -403,7 +461,7 @@ button.btn:disabled { opacity: .4; cursor: default; }
    Le menu du navigateur (« enregistrer l'image ») est coupe : l'appui long est a nous. */
 [data-geste] { touch-action: manipulation; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .unit > *, .hcard > *, .zcard > *, .bt-hero > * { pointer-events: none; }
-.bt-hand { touch-action: pan-x; }
+.bt-hand { touch-action: none; }   /* la main ne defile plus (eventail) : un glissement y tire une carte */
 
 /* ---------- l'action engagee : le masque noir ---------- */
 /* Tout s'eteint sauf l'acteur et ses cibles, qui restent en couleur et contoures. C'est un
@@ -414,8 +472,8 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .bt-bandeau { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 6; max-width: 92%; text-align: center; background: rgba(10,8,15,.94); border: 1px solid var(--accent); border-radius: 14px; padding: 6px 14px; font-size: 13px; font-weight: 600; pointer-events: none; }
 .bt-bandeau small { display: block; font-size: 11px; font-weight: 400; color: var(--ink-dim); }
 #battle.spot .bt-bandeau { display: block; }
-#battle [data-geste], #battle .bt-bar { transition: filter .15s; }
-#battle.spot [data-geste]:not(.lit), #battle.spot .bt-bar { filter: brightness(.22) saturate(.2); }
+#battle [data-geste], #battle :is(.bt-ctrl, .bt-hpe, .bt-mana) { transition: filter .15s; }
+#battle.spot [data-geste]:not(.lit), #battle.spot :is(.bt-ctrl, .bt-hpe, .bt-mana) { filter: brightness(.22) saturate(.2); }
 #battle.spot .lit { filter: none; outline: 2px solid var(--accent); outline-offset: 1px; position: relative; z-index: 2; box-shadow: 0 0 14px rgba(255,196,107,.6); }
 #battle.spot .lit.acteur { outline-color: var(--accent2); box-shadow: 0 0 14px rgba(127,214,166,.6); }
 #battle.spot .lit:not(.acteur) { animation: halo 1s ease-in-out infinite; }
@@ -562,6 +620,39 @@ button.btn:disabled { opacity: .4; cursor: default; }
 /* D'ou vient le bonus : sans la source, « +2/+2 » n'apprend rien au joueur. */
 .insp .src { color: var(--ink-dim); font-size: 11px; }
 .insp .tier { font-size: 11px; color: var(--ink-dim); }
+/* LA FICHE (maquette « Combat Screen Zoom on a card », 19 octobre 2026) : la carte en grand, son identite a cote ; ce
+   qu'elle fait (« icones : texte », vert pour un effet, jaune pour un mot-cle) ; un trait ; ce qui la modifie, sous le
+   portrait de chaque source (vert si ca l'aide, rouge sinon, grise si ca ne s'applique plus). */
+.lecture .sheet:has(.fiche) { width: min(340px, 92vw); max-height: 78vh; overflow: hidden; padding: 16px 16px 12px; }
+.fiche { gap: 8px; }
+.fi-tete { display: grid; grid-template-columns: 112px 1fr; gap: 12px; align-items: center; }
+.fi-carte { position: relative; width: 112px; height: 112px; border-radius: 18px; background: var(--panel2); }
+.fi-carte img { position: absolute; left: 50%; top: -16px; width: 88%; height: 78%; translate: -50% 0; object-fit: contain; }
+.fi-carte .cost { position: absolute; top: -10px; left: -10px; z-index: 2; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; background: var(--mana); }
+.fi-id { min-width: 0; display: grid; gap: 4px; justify-items: start; }
+.fi-id .nm { font-size: 18px; line-height: 1.1; }
+.fi-stats { display: flex; align-items: center; gap: 3px; font-size: 24px; line-height: 1; }
+.fi-stats .h { margin-left: 8px; }
+.fi-type { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: var(--panel2); }
+.fi-id .src { font-size: 11px; color: var(--ink-dim); }
+.fi-texte { margin: 0; font-size: 12px; font-style: italic; color: var(--ink-dim); }
+.fi-fait, .fi-mods { display: grid; gap: 6px; }
+.fl { display: flex; align-items: center; gap: 2px; font-size: 13px; line-height: 1.15; }
+.fl-ico { display: inline-flex; align-items: center; gap: 1px; flex: none; }
+.fl-ico i { font-style: normal; }
+.fl.effet { color: var(--accent2); }
+.fl.cle { color: var(--accent); }
+.fi-trait { width: 100%; height: 0; margin: 2px 0; border: 0; border-top: 2px solid rgba(255, 185, 42, .45); }
+.fi-mods { max-height: 34vh; overflow: hidden; -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent); mask-image: linear-gradient(180deg, #000 80%, transparent); }
+.fs { display: grid; grid-template-columns: 40px 1fr; gap: 8px; align-items: center; }
+.fs-port { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 9px; background: var(--panel2); overflow: hidden; }
+.fs-port img { width: 100%; height: 100%; object-fit: contain; }
+.fs-tx { display: grid; min-width: 0; }
+.fs-tx b { font-size: 12px; font-weight: 600; }
+.fs-tx em { font-style: normal; font-size: 13px; line-height: 1.15; }
+.fs.bon em { color: var(--accent2); }
+.fs.mal em { color: var(--danger); }
+.fs.eteint { opacity: .35; }
 .insp .tier.on { color: var(--accent2); }
 .insp .tier.off::before { content: "🔒 "; }
 .insp .actions { display: flex; gap: 8px; }
@@ -630,15 +721,12 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .hcard .st { font-size: 12px; }
 .hpbar { height: 16px; }
 .hpbar b { font-size: 11px; }
-.hinfo { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
 .autochip, .vitesse { font-size: 12px; min-height: 38px; display: inline-flex; align-items: center; }
 .zlink { display: inline-block; padding: 8px 4px; }
 .zcard .nm { font-size: 11px; }
 .zcard .tx { font-size: 10px; }
 .zcard .chip { font-size: 9px; }
 .zcard .note { font-size: 10px; }
-.bt-bar .grow { font-size: 12px; }
-.bt-bar .grow { font-size: 11px; line-height: 1.2; }
 .zlink { padding: 7px 2px; }
 
 /* ---------- les pictogrammes (ui/pictos.js, ui/icones.js) : ce que fait une carte, sans texte ---------- */
@@ -744,14 +832,58 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .ar-carte.retiree { opacity: .45; text-decoration: line-through; background: #e3d9c8; }
 .ar-taille { font-weight: 700; text-align: center; }
 .ar-taille.non { color: #c0392b; }
-/* l'onglet */
+/* l'onglet : une carte par arene (maquette « Arena Screen », 19 octobre 2026). La teinte tourne d'une carte a l'autre ;
+   le batiment en fond, palis ; l'ennemi en grand a gauche ; a droite son nom, l'archetype et l'equipe conseillee qui
+   pend sous lui, la mecanique de son deck et le choix du niveau. */
 .ar-onglet h2 { margin: 0 0 10px; }
-.ar-grille { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.ar-flash { font: inherit; display: grid; justify-items: center; gap: 4px; padding: 10px 6px; background: var(--dk-creme, #fff3d8); color: #2b1c1f; border: 3px solid #2b1c1f; border-radius: 10px; box-shadow: 0 4px 0 #2b1c1f; cursor: pointer; }
-.ar-flash:active { transform: translateY(2px); }
-.ar-flash b { font-size: 14px; text-align: center; }
-.ar-flash.battue { background: #dff7e6; }
-.ar-statut { font-size: 11px; opacity: .8; text-align: center; }
+.arn-liste { display: grid; gap: 12px; }
+.arn { --teinte: #f6e7a0; position: relative; height: 160px; overflow: hidden; cursor: pointer; color: #2b1c1f; background: var(--teinte); border: 4px solid #2b1c1f; border-radius: 20px; box-shadow: inset 0 4px 0 rgba(255,255,255,.55), 0 5px 0 #2b1c1f; }
+.arn:active { translate: 0 2px; }
+.arn-liste .arn:nth-child(5n+2) { --teinte: #b9ef9e; }
+.arn-liste .arn:nth-child(5n+3) { --teinte: #c3eefc; }
+.arn-liste .arn:nth-child(5n+4) { --teinte: #ffd3ec; }
+.arn-liste .arn:nth-child(5n+5) { --teinte: #ddd2ff; }
+.arn-bat { position: absolute; left: -4%; top: -14%; width: 78%; height: 128%; object-fit: cover; opacity: .38; pointer-events: none; }
+.arn-ennemi { position: absolute; left: 0; bottom: 4px; width: 44%; height: 94%; object-fit: contain; object-position: center bottom; pointer-events: none;
+  filter: drop-shadow(2px 0 0 #2b1c1f) drop-shadow(-2px 0 0 #2b1c1f) drop-shadow(0 2px 0 #2b1c1f) drop-shadow(0 -2px 0 #2b1c1f); }
+.arn-droite { position: absolute; left: 43%; right: 6px; top: 6px; bottom: 6px; display: flex; flex-direction: column; min-width: 0; }
+.arn h3 { margin: 0 0 4px; text-transform: none; letter-spacing: 0; font-size: 21px; font-weight: 400; line-height: 1.05; color: #fff; -webkit-text-stroke: 5px #2b1c1f; paint-order: stroke fill; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arn-corps { flex: 1; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 5px; min-height: 0; }
+.arn-gauche { display: flex; flex-direction: column; align-items: stretch; min-width: 0; }
+.arn-arch { position: relative; z-index: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; padding: 1px 4px; background: linear-gradient(180deg, #fff1a8 0 50%, #ffd34f 50% 100%); border: 3px solid #2b1c1f; border-radius: 999px; box-shadow: 0 2px 0 #2b1c1f; }
+.arn-equipe { margin: -5px 4px 0; padding: 7px 3px 4px; display: grid; gap: 1px; font-size: 10px; background: #c6f2b4; border: 3px solid #2b1c1f; border-top-width: 0; border-radius: 0 0 10px 10px; }
+.arn-equipe b { font-weight: 400; font-size: 10px; text-align: center; color: #fff; -webkit-text-stroke: 3px #2b1c1f; paint-order: stroke fill; }
+.arn-equipe p { margin: 0; font-size: 10px; text-align: center; line-height: 1.15; }
+.arn-h { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; align-items: center; gap: 2px; }
+.arn-h img { width: 14px; height: 14px; object-fit: contain; }
+.arn-h span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arn-h em { font-style: normal; font-size: 7px; line-height: 1.35; padding: 0 3px; border: 1.5px solid #2b1c1f; border-radius: 999px; background: #d9d4cc; }
+.arn-h.debloquer em { background: #3fd6a2; }
+.arn-h.ameliorer em { background: #ffb92a; }
+.arn-h.inconnu img { filter: brightness(0); opacity: .75; }
+.arn-col { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+.arn-sig { display: grid; grid-template-columns: 26px 1fr; align-items: center; gap: 3px; font-size: 11px; line-height: 1.1; color: #2b1c1f; }
+/* L'icone de la mecanique : verte d'eau cernee, comme la maquette (un picto Kenney prend la couleur du texte). */
+.arn-sig .ico { width: 26px; height: 26px; color: #17a37a; filter: drop-shadow(1px 0 0 #2b1c1f) drop-shadow(-1px 0 0 #2b1c1f) drop-shadow(0 1px 0 #2b1c1f) drop-shadow(0 -1px 0 #2b1c1f); }
+.arn-niv { display: grid; gap: 2px; }
+.arn-gain { display: flex; justify-content: center; align-items: center; gap: 3px; font-size: 13px; }
+.arn-gain b { font-weight: 400; }
+.arn-rail { position: relative; height: 6px; margin: 0 6px; border-radius: 3px; background: linear-gradient(90deg, transparent, #6b5a5e 18% 82%, transparent); }
+.arn-rail i { position: absolute; left: 50%; top: -5px; width: 9px; height: 16px; margin-left: -4.5px; background: #ffe27a; border: 2px solid #2b1c1f; border-radius: 4px; }
+.arn-choix { display: grid; grid-template-columns: 13px minmax(0, 1fr) 13px; align-items: center; gap: 2px; }
+/* Les fleches : un triangle orange cerne de brun (deux triangles l'un sur l'autre). */
+.arn-fl { position: relative; width: 13px; height: 20px; padding: 0; border: 0; background: #2b1c1f; cursor: pointer; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
+.arn-fl::after { content: ""; position: absolute; inset: 4px 2px 4px 4px; background: #ffb92a; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
+.arn-fl.d, .arn-fl.d::after { clip-path: polygon(0 0, 100% 50%, 0 100%); }
+.arn-fl.d::after { inset: 4px 4px 4px 2px; }
+.arn-fl:disabled { opacity: .3; cursor: default; }
+.arn-pilules { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; }
+.arn-p { position: relative; justify-self: center; font-size: 11px; padding: 0 5px; white-space: nowrap; background: #fff3d8; border: 2px solid #2b1c1f; border-radius: 999px; opacity: .45; }
+.arn-p.cur { z-index: 1; opacity: 1; font-size: 13px; padding: 1px 7px; background: linear-gradient(180deg, #fff1a8 0 50%, #ffd34f 50% 100%); border-width: 3px; box-shadow: 0 2px 0 #2b1c1f; }
+.arn-p.battu { opacity: .8; }
+.arn-p.ferme { opacity: .28; }
+.arn-p.vide { visibility: hidden; }
+.arn-p .ico { position: absolute; left: 50%; top: 50%; translate: -50% -60%; }
 
 /* ---------- le PROFIL DU JOUEUR (ui/profil.js) ---------- */
 .pf-tete { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; }

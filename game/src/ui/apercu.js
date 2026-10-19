@@ -9,7 +9,7 @@
 // vrai : l'apercu en montre UN tirage. La cible, elle, est toujours celle que le joueur a
 // designee, donc le cas courant (un sort de degats sur une unite) est exact.
 import { cloneBattle, attack, playCard } from '../combat/engine.js';
-import { asset } from './shell.js';
+import { urlIcone } from './icones.js';
 
 /** L'etat qui compte d'une cible : un heros (ses PV) ou une unite (attaque, vie, bouclier). */
 function lis(B, side, uid) {
@@ -58,7 +58,7 @@ export function apercuCarte(B, k, index, zone, choix, cibles) {
   return out;
 }
 
-const MORT = `<img class="mort" src="${asset('Icons/Dead.png')}" alt="">`;
+const MORT = `<img class="mort" src="${urlIcone('Dead')}" alt="">`;
 
 /**
  * Le texte de l'apercu, en HTML : une ligne pour la cible, et une seconde — l'icone « mort »

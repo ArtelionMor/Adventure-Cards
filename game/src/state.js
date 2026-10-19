@@ -282,13 +282,17 @@ export function etatArene(id) {
   return save.arenes[id];
 }
 
-/** Note l'issue d'un combat d'arene : une victoire fait monter l'arene (`BALANCE.arenes`). */
-export function noteCombatArene(id, gagne) {
+/**
+ * Note l'issue d'un combat d'arene joue au niveau `joue` (le niveau courant par defaut). Une victoire au niveau
+ * courant fait monter l'arene (`BALANCE.arenes`) ; un niveau deja battu, rejoue depuis l'onglet, ne la fait pas monter.
+ */
+export function noteCombatArene(id, gagne, joue) {
   const a = etatArene(id);
+  const niveau = joue || a.niveau;
   if (gagne) {
     a.victoires++;
-    a.meilleur = Math.max(a.meilleur, a.niveau);
-    a.niveau = Math.min(BALANCE.arenes.niveauMax, a.niveau + BALANCE.arenes.niveauParVictoire);
+    a.meilleur = Math.max(a.meilleur, niveau);
+    if (niveau >= a.niveau) a.niveau = Math.min(BALANCE.arenes.niveauMax, a.niveau + BALANCE.arenes.niveauParVictoire);
   } else a.defaites++;
   persist();
   return a;

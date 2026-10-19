@@ -61,24 +61,53 @@ html[data-skin="juice"] {
     background: #ffb92a; border: 1px solid var(--contour); text-shadow: 0 1px 0 #000; box-shadow: inset 2px 2px 0 #ffef9f, 0 1px 0 var(--contour);
   }
   & #topLevel { position: absolute; right: -2px; top: 2px; }
-  /* La navigation : l'onglet actif est un bouton jaune qui se leve. */
-  & #nav { background: #fff3d8; border-top: 4px solid var(--contour); box-shadow: inset 0 4px 0 #fff; padding: 6px 8px 8px; gap: 6px; }
-  & #nav button { color: var(--ink-dim); font-size: 12px; border: 3px solid transparent; border-radius: 14px; padding: 4px 0; transition: transform .1s ease-out; }
-  & #nav button span { filter: drop-shadow(0 2px 0 rgba(43, 28, 31, .35)); }
+  /* La navigation (maquette « Arena Screen », 19 octobre 2026) : un dessin par ecran, sans texte ; l'ecran actif est une
+     grande tuile jaune qui depasse de la barre vers le haut. */
+  & #nav { position: relative; z-index: 3; background: #fff3d8; border-top: 4px solid var(--contour); box-shadow: inset 0 4px 0 #fff; padding: 4px 6px 6px; gap: 4px; align-items: end; }
+  & #nav button { height: 62px; padding: 0; display: grid; place-items: center; border: 4px solid transparent; border-radius: 18px; transition: transform .1s ease-out; }
+  & #nav button .ico { width: 50px; height: 50px; filter: drop-shadow(0 3px 0 rgba(43, 28, 31, .35)); }
   & #nav button.active {
-    color: #fff; background: linear-gradient(180deg, #ffe27a 0 50%, #ffb92a 50% 100%); border-color: var(--contour);
-    -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill;
-    box-shadow: inset 0 3px 0 rgba(255,255,255,.7), 0 3px 0 var(--contour); transform: translateY(-3px);
+    height: 96px; margin-top: -34px; background: linear-gradient(180deg, #ffe27a 0 50%, #ffb92a 50% 100%); border-color: var(--contour);
+    box-shadow: inset 0 4px 0 rgba(255,255,255,.7), 0 4px 0 var(--contour);
   }
+  & #nav button.active .ico { width: 78px; height: 78px; }
 
   /* ================================================================ combat : les heros */
   & .bt-hero img { width: 48px; height: 48px; padding: 2px; background: #fff3d8; border: 3px solid var(--contour); border-radius: 14px; box-shadow: 0 3px 0 var(--contour); }
+  & .bt-hero.p img { width: 42px; height: 42px; background: #bfe6ff; }
   & .bt-hero > div { min-width: 0; }
+  /* L'adversaire : un medaillon rose, son nom ecrit dedans, son niveau en pastille. */
+  & .bt-hero.e { background: #ffd6de; border: 4px solid var(--contour); box-shadow: inset 0 4px 0 rgba(255,255,255,.6), 0 4px 0 var(--contour); }
+  & .bt-hero.e img { width: 100%; height: 100%; padding: 6px 6px 16px; background: none; border: 0; box-shadow: none; }
+  & .bt-hero.e .hn { color: #3a2517; font-size: 10px; }
+  & .bt-hero.e .lvl { min-width: 26px; height: 26px; font-size: 15px; border-width: 2px; }
+  & .bt-hpe .hpbar { height: 24px; }
+  & .bt-hpe .hx { color: #fff; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & .bt-mana b { color: #fff; font-size: 16px; -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill; }
+  & .bt-basmain .bt-mana b { color: #2e8be8; -webkit-text-stroke: 0; }
+  /* Les piles : des dos de carte empiles (la pioche), la derniere carte assombrie (la defausse), le nombre dessus. */
+  & .bt-pile .bt-face { border: 3px solid var(--contour); border-radius: 12px; background: #bfe6ff; }
+  & .bt-pile.pioche:not(.vide) .bt-face { box-shadow: 3px 3px 0 #fff3d8, 5px 5px 0 var(--contour), 7px 7px 0 #fff3d8, 9px 9px 0 var(--contour); }
+  & .bt-pile.defausse:not(.vide) .bt-face { background: #4a5a78; box-shadow: 0 3px 0 var(--contour); }
+  & .bt-pile.defausse .bt-face img { filter: brightness(.5); }
+  & .bt-pile.vide .bt-face { border: 3px dashed rgba(43,28,31,.35); background: rgba(255,255,255,.2); opacity: 1; }
+  & .bt-pile b { color: #fff; font-size: 24px; -webkit-text-stroke: 5px var(--contour); paint-order: stroke fill; }
+  & .bt-pile .bt-rep { color: #fff; background: #3fbf3a; border: 2px solid var(--contour); -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & .bt-dos img { border: 3px solid var(--contour); border-radius: 9px; }
+  /* Les onglets des bords : jaunes a gauche, vert pour la fin du tour ; ils sortent du bord de l'ecran. */
+  & .bt-onglet { color: #fff; border: 3px solid var(--contour); border-right: 0; -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill;
+    background: linear-gradient(90deg, #ffb92a 0 50%, #ffe27a 50% 100%); box-shadow: inset -3px 0 0 rgba(255,255,255,.7), -3px 0 0 var(--contour); }
+  & .bt-onglet.fin { font-size: 17px; background: linear-gradient(90deg, #8bf05c 0 50%, #35b52f 50% 100%); box-shadow: inset 3px 0 0 rgba(255,255,255,.7), -3px 3px 0 var(--contour); }
+  & .bt-onglet.fin .ico { color: #fff; filter: drop-shadow(1px 0 0 var(--contour)) drop-shadow(-1px 0 0 var(--contour)) drop-shadow(0 1px 0 var(--contour)) drop-shadow(0 -1px 0 var(--contour)); }
+  & .bt-onglet.fin:disabled { filter: grayscale(.8); }
+  & .bt-onglet .bdg { background: #ff3d4f; color: #fff; border: 2px solid #fff; -webkit-text-stroke: 0; box-shadow: 0 0 0 2px var(--contour); }
+  & .bt-onglets .vitesse { width: 46px; height: 46px; font-size: 18px; }
+  & .autochip { display: inline-flex; align-items: center; gap: 4px; font-size: 18px; padding: 6px 12px; }
+  & .autochip .ico { color: #fff; }
   & .bt-hero .hnm { color: #fff; font-size: 13px; white-space: nowrap; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
   & .bt-hero .hn { overflow: hidden; text-overflow: ellipsis; }
   & .bt-hero .hv { color: #bfe6ff; }
   & .bt-hero .pv:empty { display: none; }
-  & .hinfo { color: #fff; -webkit-text-stroke: 2px var(--contour); paint-order: stroke fill; }
   & .hpbar { height: 22px; background: #4a3532; border: 3px solid var(--contour); border-radius: 12px; box-shadow: inset 0 3px 0 rgba(0,0,0,.35), 0 3px 0 var(--contour); }
   & .hpbar i { background: linear-gradient(180deg, #ff8fa3 0 35%, #ff4b6b 35% 100%); border-radius: 8px; box-shadow: inset 0 -3px 0 rgba(150,0,30,.25); }
   & .hpbar b { color: #fff; font-size: 13px; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
@@ -89,10 +118,11 @@ html[data-skin="juice"] {
   /* ================================================================ combat : les plateaux se partagent l'ecran */
   & .board { max-height: none; flex: 1 1 0; min-height: 96px; }
   & .bwrap { padding-top: 14px; }
-  & .bt-mid { flex: 0 0 40px; min-height: 40px; }
-  /* Chaque camp a sa bande, a peine teintee : le champ de bataille se lit d'un coup d'oeil. */
-  & #boardE { background: rgba(224, 82, 74, .16); border-radius: 18px; margin: 0 8px; }
-  & #boardP { background: rgba(63, 134, 221, .16); border-radius: 18px; margin: 0 8px; }
+  & .bt-mid { flex: 0 0 24px; min-height: 24px; }
+  /* Chaque camp a sa bande, a peine teintee : le champ de bataille se lit d'un coup d'oeil. Les bandes laissent la place
+     des onglets des bords (une unite du bout du plateau ne passe pas dessous). */
+  & #boardE { background: rgba(43, 28, 31, .10); border-radius: 18px; margin: 0 40px; }
+  & #boardP { background: rgba(255, 255, 255, .16); border-radius: 18px; margin: 0 40px; }
 
   /* ================================================================ combat : les unites et les cartes de la main sont des CARRES
      (la maquette du game designer). Un cadre de couleur, un ciel clair, une colline creme ; le personnage DEBORDE du cadre
@@ -162,13 +192,13 @@ html[data-skin="juice"] {
   & .fx-carte { border-width: 3px; border-style: solid; border-radius: 12px; background: #fff4da; box-shadow: 0 6px 0 rgba(43,28,31,.55); }
   & .fx-n { -webkit-text-stroke: 6px var(--contour); }
 
-  /* La main : un plateau creme qui monte du bas, sur plusieurs rangees. */
+  /* La main : un plateau creme qui monte du bas, une seule rangee — a plat jusqu'a trois cartes, en eventail au-dela. */
+  & .bt-basmain { width: 100%; background: #fff3d8; border-top: 4px solid var(--contour); border-radius: 22px 22px 0 0; box-shadow: inset 0 4px 0 #fff; }
   & .bt-hand {
-    flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 14px 10px; max-height: 40vh;
-    overflow-x: hidden; overflow-y: auto; touch-action: pan-y; padding: 20px 10px 10px;
-    background: #fff3d8; border-top: 4px solid var(--contour); border-radius: 18px 18px 0 0; box-shadow: inset 0 4px 0 #fff;
+    width: 100%; flex-wrap: nowrap; justify-content: center; gap: 14px; overflow: visible; touch-action: none;
+    padding: 18px 12px 12px; background: none; border: 0;
   }
-  & .bt-bar { background: #ffe9b8; border-top: 0; box-shadow: inset 0 3px 0 rgba(255,255,255,.7); }
+  & .bt-hand.eventail { gap: 0; }
 
   /* ================================================================ boutons : jaunes par defaut, ils s'enfoncent quand on les touche */
   /* ⚠ `:where` (specificite nulle) : avec `:is`, la liste prendrait la specificite de `.jr-onglets button` et ecraserait
@@ -196,6 +226,34 @@ html[data-skin="juice"] {
   /* ================================================================ fenetres : creme, contour epais */
   & .sheet { background: #fff3d8; border: 4px solid var(--contour); border-radius: 20px; color: var(--ink); box-shadow: inset 0 4px 0 #fff, 0 6px 0 var(--contour); }
   & .insp .tete img { background: #bfe6ff; border: 3px solid var(--contour); border-radius: 14px; }
+  /* La fiche d'appui long : la carte au cadre bleu (violet pour un sort), les chiffres cernes, les lignes vertes et
+     jaunes cernees de brun comme sur la maquette. */
+  & .fi-carte { --cadre: var(--ally); background: radial-gradient(ellipse 130% 62% at 50% 112%, #fff3d8 0 64%, transparent 65%), #bfe6ff;
+    border: 4px solid var(--contour); box-shadow: inset 0 0 0 4px var(--cadre), 0 5px 0 var(--contour); }
+  & .fi-carte.spell { --cadre: var(--spell); background: radial-gradient(ellipse 130% 62% at 50% 112%, #fff3d8 0 64%, transparent 65%), #e6d4ff; }
+  & .fi-carte.adverse { --cadre: #e0524a; background: radial-gradient(ellipse 130% 62% at 50% 112%, #fff3d8 0 64%, transparent 65%), #ffd9cf; }
+  & .fi-carte img { filter: drop-shadow(2px 0 0 var(--contour)) drop-shadow(-2px 0 0 var(--contour)) drop-shadow(0 2px 0 var(--contour)) drop-shadow(0 -2px 0 var(--contour)); }
+  & .fi-carte .cost { color: #fff; background: radial-gradient(circle at 35% 30%, #a8dcff 0 22%, #2e8be8 23% 100%); border: 3px solid var(--contour); box-shadow: 0 2px 0 var(--contour); -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & .fi-id .nm { color: var(--ink); font-size: 19px; }
+  & .fi-stats > span { -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill; }
+  & .fi-stats .a { color: #ffd23a; }
+  & .fi-stats .a.plus { color: #4dff2e; }
+  & .fi-stats .h { color: #ff6a3d; }
+  & .fi-stats .h.moins { color: #ff2a3a; }
+  & .fi-stats .ico.k { color: #ffd23a; }
+  & .fi-stats .ico.k:last-child { color: #ff5a3d; }
+  & .fi-sort { color: #fff; font-size: 18px; }
+  & .fi-type { color: #fff; font-size: 13px; border: 3px solid var(--contour); -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & :is(.fl, .fs-tx em) { -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & .fl.effet { color: #3fe08a; }
+  & .fl.cle { color: #ffd23a; }
+  & .fl .ico.k { color: #3fd6a2; filter: drop-shadow(1px 0 0 var(--contour)) drop-shadow(-1px 0 0 var(--contour)) drop-shadow(0 1px 0 var(--contour)) drop-shadow(0 -1px 0 var(--contour)); }
+  & .fl.cle .ico.k { color: #ffd23a; }
+  & .fs-port { background: #bfe6ff; border: 3px solid var(--contour); box-shadow: 0 2px 0 var(--contour); }
+  & .fs-tx b { color: var(--ink); }
+  & .fs.bon em { color: #3fe08a; }
+  & .fs.mal em { color: #ff6a6a; }
+  & .fi-texte { color: var(--ink-dim); }
   & :is(.insp .chip, .zcard .chip, .puce, .zgrp h4 .n) { background: #fffaec; border: 2px solid var(--contour); color: var(--ink); }
   & :is(.bt-bandeau, .toast) { background: #fffaec; color: var(--ink); border: 3px solid var(--contour); box-shadow: 0 4px 0 var(--contour); }
   & .bt-bandeau { border-radius: 14px; }

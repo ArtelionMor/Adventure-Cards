@@ -85,7 +85,7 @@ function offlineReport() {
 // ------------------------------------------------------------------ boot
 function boot() {
   initWorld();
-  $$('#nav button').forEach(b => b.onclick = () => go(b.dataset.go));
+  $$('#nav button').forEach(b => { b.innerHTML = icone(b.dataset.ico, 46); b.onclick = () => go(b.dataset.go); });
   // L'avatar de la barre du haut ouvre le PROFIL DU JOUEUR (ui/profil.js), comme toucher le joueur sur la carte.
   $('#topbar .hero-chip').onclick = ouvreProfil;
   go('world');

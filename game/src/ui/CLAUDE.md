@@ -8,8 +8,8 @@
 
 | Fichier | Rôle | Exports |
 |---|---|---|
-| `battle.js` | **L'écran de combat** : coque persistante (`monteLaCoque`), `render()` incrémental (`syncListe`), mode Auto/Manuel (`loop`, `reprendLaMain`), action engagée + masque noir (`majFocus`), jouer/attaquer/viser (`tape`, `tapeUnite`, `designe`, `onCardClick`), fenêtre de la défausse, lecture par appui long (`inspectNode`, `ficheCarte`), fin de combat (`finish`). Pose `data-carte` (l'id de la carte) sur chaque unité, que lisent les animations, et colore ses chiffres (`.plus` : attaque au-dessus de la carte, `.moins` : blessée). Porte la console de triche (`AC.triche`, 5 touchers sur « Tour N »). | `openBattle`, `buildPlayerSide` |
-| `gestes.js` | **Tap = agir, appui long = lire** : écouteurs délégués (pointer events), tolérance de glissement. Réglages dans `BALANCE.ui`. | `installeGestes` |
+| `battle.js` | **L'écran de combat** (mise en page de la maquette « Combat Screen », 19 oct. 2026, voir « La mise en page du combat ») : coque persistante (`monteLaCoque` : haut adverse `heroNode('e')` + piles `pileNode`/`majPile` + éventail de dos `majEventail`, ligne du joueur, plateau de la main, onglets des bords, menu `ouvreMenu`), `render()` incrémental (`syncListe`), main à plat ou en éventail (`etaleLaMain`), mode Auto/Manuel (`loop`, `reprendLaMain`), action engagée + masque noir (`majFocus`), jouer/attaquer/viser (`tape`, `tapeUnite`, `designe`, `onCardClick`), **glisser-déposer** (`debutTir`, `bougeTir`, `lacheTir`), fenêtre de la défausse, lecture par appui long (`inspectNode`, `ficheCarte`, `teteFiche`), fin de combat (`finish`). Pose `data-carte` (l'id de la carte) sur chaque unité, que lisent les animations, et colore ses chiffres (`.plus` : attaque au-dessus de la carte, `.moins` : blessée). Porte la console de triche (`AC.triche`, 5 touchers sur « Tour N » dans le Menu). | `openBattle`, `buildPlayerSide` |
+| `gestes.js` | **Tap = agir, appui long = lire, glisser = tirer** : écouteurs délégués (pointer events), tolérance de glissement ; le glisser (`glisse.debut/bouge/lache`) est facultatif, seul `#battle` le pose. Réglages dans `BALANCE.ui`. | `installeGestes` |
 | `apercu.js` | **Aperçu d'un coup** sous chaque cible : joue le coup sur une copie du combat (`cloneBattle`) et compare avant/après. | `apercuAttaque`, `apercuCarte`, `pilule` |
 | `effets.js` | **Les animations du combat** : lit les nouveaux événements de `B.evts` après chaque `render()` et joue, sur la couche `.fx` (jamais touchable), élan (un double de l'unité, le plateau coupe ce qui dépasse), éclair, secousse, chiffres flottants, carte jouée qui vole, pop d'invocation, fantôme de mort, anneaux, bannière de tour, auras (détectées par changement de chiffres). WAAPI, `setTimeout` (rien ne dépend de `requestAnimationFrame`), file bornée. Réglages : `BALANCE.ui.fx` (remplacés par la feuille Google, `config/feuille.js`). La carte d'une unité se lit sur l'événement (`ref.id`) ou, à défaut, sur son nœud (`data-carte`, posé par `battle.js`) : `idDe()`. Console : `AC.fx.ralenti`, `AC.fx.trace = console.log` (chaque brique jouée), `AC.fx.montre('crocs')`. | `creeFx` |
 | `vfx.js` | **Les VFX par carte** : `SIGNATURES` donne à **chacune des 180 cartes** (base + switch) une signature écrite à la main, **toutes différentes**, dans la famille visuelle de son héros (`docs/VFX-CARTES.md`) ; `signatureDe(id)` la pose sur `signatureAuto` (calculée depuis les effets, mots-clés, moments), qui comble les moments non dits et anime une carte nouvelle. Une signature a un moment par champ : `lancer`/`arrivee`/`soin`/`renfort`/`entree`, `attaque` (traînée = Charge, fantôme = Passe-Murailles, venin à l'impact), `mort`, `declenche{death,turnStart,turnEnd,regle}`, `aura` ; chaque champ est `[brique, options]` ou une liste. `creeBriques(api)` = les **71 briques** procédurales (décrites dans `BRIQUES_DOC`). Banc : `node scripts/test-vfx.mjs` — ⚠ une carte ajoutée ou renommée le fait échouer tant qu'elle n'a pas sa signature. | `signatureDe`, `signatureAuto`, `SIGNATURES`, `creeBriques`, `BRIQUES_DOC` |
@@ -20,12 +20,12 @@
 | `combats.js` | **Les 5 derniers combats gardés** (`localStorage` `adventureCard.combats.v1`, à part de la sauvegarde). | `gardeCombat`, `listeCombats`, `chargeCombat` |
 | `revue.js` | « Revoir le combat » : le journal sur un combat fini, tout révélé. | `ouvreRevue` |
 | `pictos.js` | **Ce que fait une carte, sans texte** : `ligneDePictos(x)` rend une ligne d'icônes à hauteur fixe (mots-clés, moments, effets avec montant ; 4 au plus, le reste à l'appui long) — une carte garde donc **toujours la même taille**. Tables `CLES`, `OPS`, `MOMENTS` → noms d'icônes. | `ligneDePictos`, `pictosDe`, `iconeDeCle` |
-| `fiche.js` | **Les lignes de la fiche** (appui long) : une icône, un titre, un texte et une **source** par chose — mots-clés, effets de chaque moment, aura, statiques, et chaque **renfort avec sa source** (lue dans `B.evts`, comme la liste de bonus de Hearthstone). Remplace les paliers de niveau, retirés de la fiche. | `ligneIco`, `lignesDeFait`, `lignesDeRenforts` |
-| `icones.js` | **Registre des icônes** : `icone('Nom', taille)` → `Icons/Nom.png`, sinon un signe de remplacement. Ne jamais écrire un pictogramme en dur. | `icone`, `ICONES` |
+| `fiche.js` | **Les lignes de la fiche** (appui long, maquette « Combat Screen Zoom on a card », 19 oct. 2026) : ce que la carte **fait** en `ligneEffet` (« icônes : texte », vert pour un effet, jaune pour un mot-clé) ; ce qui la **modifie** en `ligneSource` (portrait de la source, son nom et « (N fois) » en titre, le changement dessous : vert / rouge / grisé `eteint`), dont chaque **renfort avec sa source** (lue dans `B.evts`, sprite compris). | `ligneEffet`, `ligneSource`, `lignesDeFait`, `lignesDeRenforts` |
+| `icones.js` | **Registre des icônes** : `icone('Nom', taille)` → `Graphical Assets/Icons/Nom.png` (sa version allégée si `vignettes.js` la liste : `urlIcone`), sinon le picto Kenney (`Graphical Assets/Icons/Kenney/`), sinon un signe. Ne jamais écrire un pictogramme en dur. Le dossier a changé le 19 oct. 2026 (`DOSSIER_ICONES`). | `icone`, `urlIcone`, `ICONES`, `DOSSIER_ICONES` |
 | `zone.js` | **Fenêtre de zone** (défausse, exil, **ta pile de fatigue**, main adverse de dos) : cartes éclairées/grisées ; une carte `dos` n'a ni nom, ni coût, ni geste, seulement sa patte de pistage. Ne sait rien du combat. | `ouvreZone` |
 | `overworld.js` | **La carte** : canvas, joystick flottant, points d'intérêt, tri du plus loin au plus proche (bâtiments, joueur **et décor** de `sol-carte.js` : le sol et le décor sont dessinés par lui), échelle des bâtiments. **Plus aucun verrou** (16 oct. 2026) : une **arène** (`type: 'arena'`) s'ouvre par « Entrer » → `ouvreFicheArene` (`arene.js`), son adversaire est dessiné devant la porte et son nom porte son niveau ; une **cueillette** (`forage`) fait connaître des cultures à la Ferme ; la découverte (`save.world.seen`) et la porte se règlent dans `BALANCE.arenes`. **Un tap sur le joueur** (court, sans glisser, sur son sprite : `surLeJoueur`) ouvre le Profil. | `initWorld`, `startWorld`, `stopWorld`, `refreshTop` |
 | `sol-carte.js` | **Le sol et le décor de la carte** (pack B+, décidé le 16 octobre 2026, `docs/PACKS-CARTE.md`) : Kenney Medieval RTS + Foliage Pack (`Decor/`). Le contour brun juice (`CONTOUR`, ajouté au rendu) cerne le sol, les arbres et les rochers, **pas le feuillage** ni le **pied des troncs et des rochers** (décisions du game designer). Chemins, eau, neige et bois en **couches tracées par quarts de case** (coins arrondis, congés) ; feuillage **semé** au hasard fixe par case (`SEMIS` : fleurs, touffes, buissons, plus dense en lisière et dans les bois). Ne décide rien de la marche (`BLOCKED`). ≈ 1 ms par image. Aussi utilisé par `game/carte-packs.html`. | `creeSol`, `IMAGES_SOL`, `CONTOUR` |
-| `arene.js` | **Les arènes** : la **fiche** en deux étapes dans une même fenêtre — l'ennemi (archétype, ce que le combat demande, stratégie optimale, ce qu'il punit, son deck, héros conseillés, « puissance conseillée — ta puissance », textes marqués provisoires) puis **l'équipe** (le panneau de `deck.js`, les héros conseillés étoilés, les **decks enregistrés** — un toucher recharge, deux touchers sur × oublient —, les **jokers de retrait** et la taille minimale du deck, « Combattre » → `openBattle({ ...point, niveau })`, mode auto par défaut) ; et **l'onglet Arène** (`renderArene` : une carte par arène découverte, niveau et meilleur résultat). Pas de `prompt`/`confirm`. | `ouvreFicheArene`, `renderArene`, `noeudDeLArene` |
+| `arene.js` | **Les arènes** : la **fiche** en deux étapes dans une même fenêtre — l'ennemi (archétype, ce que le combat demande, stratégie optimale, ce qu'il punit, son deck, héros conseillés, « puissance conseillée — ta puissance », textes marqués provisoires) puis **l'équipe** (le panneau de `deck.js`, les héros conseillés étoilés, les **decks enregistrés** — un toucher recharge, deux touchers sur × oublient —, les **jokers de retrait** et la taille minimale du deck, « Combattre » → `openBattle({ ...point, niveau })`, mode auto par défaut) ; et **l'onglet Arène** (`renderArene`/`carteArene`, maquette « Arena Screen », 19 oct. 2026) : une carte par arène découverte — bâtiment en fond, ennemi en grand, nom, archétype, **signature** (la mécanique du deck, `config/arenes.js`), **équipe conseillée** avec l'état de chaque héros (Upgrade = recruté, Unlock = recrutable, Undiscovered), **choix du niveau** (flèches entre 1 et le niveau courant, niveaux battus cochés, récompense en Fanions au-dessus) ; toucher la carte ouvre la fiche **au niveau choisi** (`ouvreFicheArene(n, { niveau })`). Rejouer un niveau battu ne fait pas monter l'arène (`noteCombatArene(id, gagne, joue)`). Pas de `prompt`/`confirm`. | `ouvreFicheArene`, `renderArene`, `noeudDeLArene` |
 | `profil.js` | **Le profil du joueur** (une fenêtre) : niveau, XP, puissance du joueur, places, jokers, et l'**arbre de 25 niveaux** (`config/profil.js`), le prochain niveau centré. Libellé neutre « Profil » (pas « plan »). | `ouvreProfil` |
 | `deck.js` | **L'écran d'équipe** et **la fiche d'amélioration** — `panneauEquipe({ conseilles, apres })` est exporté : la fiche d'arène s'en sert (une vignette par place ouverte, `save.rosterSlots` ; le choix d'un héros rappelle `apres` en se fermant) — d'après les maquettes du game designer (`mockups/Deck Screen.png`, `Upgrade Deck Screen.png`, 12 oct. 2026) : l'équipe (3 vignettes, un toucher change le héros de la place), la collection rangée par famille (`config/familles.js`, puces de tri), la fiche (`ficheHeros`) dont le carrousel fait défiler les **étapes** d'amélioration (une carte à un palier, `etapesDe`), la frise de toutes les étapes, le bouton Upgrade (pièces, « +N power »). Le bouton switch (icône seule) équipe l'autre face d'un emplacement. **Aucun texte de plus que la maquette** : les mots viennent de `t('deck.…')`. Style : `styles.css`, section « deck » (habillage propre, indépendant du skin). | `renderDeck` |
 | `farm.js` | Mini-jeu de Ferme (monnaie C) et gains hors-ligne. **Champ en grille** (16 oct. 2026, `BALANCE.farm.grille`) : une case vide → choisir le légume (seules les cultures **connues** : `estConnue`), une case mûre → récolter, la case fermée suivante → l'acheter (`costs.farmCase`). Plus de niveau requis. | `renderFarm`, `processFarm` |
@@ -81,6 +81,42 @@ relit le plateau avec `auraPorte()`, **la même** règle de portée que `refresh
 copies de cette règle divergeraient fatalement.
 
 
+## La mise en page du combat (maquettes du 19 octobre 2026)
+Maquettes `mockups/Combat Screen.png`, `Combat Screen more than 3 cards.png`, `Combat Screen Zoom on a card.png`.
+- **En haut, l'adversaire** (`.bt-haut`) : sa pioche (dos empilés + nombre) et sa défausse (la dernière carte assombrie +
+  nombre) à gauche, son **médaillon** rond au centre (nom dedans, niveau de l'arène en pastille ; c'est lui la cible
+  `data-geste="hero"`), ses PV dessous (`.bt-hpe`, hors du médaillon pour que le halo n'entoure que lui), sa main **de
+  dos en éventail** en haut à droite (les cartes pendent depuis le haut, dos retournés : il les tient en face ; une carte
+  pistée porte sa patte) et son mana dessous. Le dos des cartes : `DOS_DE_CARTE` (`Graphical Assets/CardBack/`).
+- **Les bords** : onglets Menu (le tour, les 5 touchers de triche, le journal en texte), Registre (la fenêtre de zone),
+  Log (le journal graphique, badge) à gauche ; Fin de tour et la vitesse (x1/x2) à droite. ⚠ Un bouton écrit à la
+  verticale (`writing-mode`) prend la hauteur de son voisin : `.bt-onglet` a `height: max-content`.
+- **En bas** : la ligne du joueur (avatar, nom, PV, bouton Auto/Manuel `#autoChip`), puis le plateau de la main
+  (`.bt-basmain`) : le mana au-dessus, la main, et la pioche et la défausse **qui dépassent du bas** (coupées par le
+  bord). Toucher une pile ou l'éventail adverse ouvre la fenêtre de zone ; la défausse (`#defBtn`) sautille et porte
+  « ↺N » quand une Reprise attend.
+- **La main ne défile plus** : à plat jusqu'à 3 cartes (`MAIN_A_PLAT`), en **éventail** au-delà (`etaleLaMain` : les
+  cartes se chevauchent juste assez pour tenir, tournent par `rotate` et suivent un arc par la marge — `transform` et
+  `translate` restent aux animations). Recalculée à chaque `render()` et quand la main change de largeur
+  (`ResizeObserver`).
+- **Le masque** (`#battle.spot`) éteint aussi les contrôles (`.bt-ctrl`), les PV adverses et les manas.
+
+## Le glisser-déposer (demande du game designer, 19 octobre 2026)
+En plus du toucher : on **tire une carte de la main**. `gestes.js` appelle `glisse.debut` quand le doigt glisse au-delà
+de la tolérance (après un appui long aussi : la lecture se ferme et la carte part) ; `battle.js` refuse hors de son tour,
+en Auto, ou si la carte n'est pas jouable (bulle qui dit pourquoi). Un **double** de la carte (`.tir-fantome`) suit le
+doigt, au-dessus de lui ; la carte d'origine pâlit (`.tiree`).
+- Une carte **à cible** (sans « Choisir ») engage l'action pendant le glissement : même masque, mêmes cibles éclairées,
+  même aperçu que le toucher ; la cible survolée grossit (`.survol`). Lâchée **sur une cible légale**, elle se joue
+  (`designe`) ; ailleurs, elle revient.
+- Une carte **sans cible** (ou « Choisir », qui pose sa question au lâcher) se joue lâchée **au-dessus de la main**
+  (`onCardClick`) ; lâchée sur la main, elle y revient sans rien coûter.
+- Le coup passe par les mêmes fonctions que le toucher, donc par `joueLeCoup`. Le relâchement d'un glisser porte
+  `ev.gesteGlisse` : l'écouteur « toucher le fond » l'ignore. La main et ses cartes sont en `touch-action: none` (sinon
+  le navigateur prend le glissement pour un défilement et envoie `pointercancel`).
+- Éprouvé dans le navigateur intégré (PointerEvent) : un sort à cible lâché sur le héros adverse (aperçu « 20 → 18 »,
+  joué), lâché sur le plateau vide (revenu en main), une unité lâchée sur le plateau (posée).
+
 ## Les gestes du combat : tap = agir, appui long = lire
 **Décision du game designer (8 octobre 2026).** Avant, un tap sur une unité ouvrait sa fiche
 et attaquer demandait 3 touches ; c'est inversé. Tout passe par `ui/gestes.js`
@@ -106,7 +142,7 @@ et attaquer demandait 3 touches ; c'est inversé. Tout passe par `ui/gestes.js`
   **toucher le fond ou n'importe quoi d'autre annule**. Le héros adverse est une cible comme
   une autre, avec le même halo (il n'en avait aucun avant).
 - **L'aperçu** (`ui/apercu.js`) : sous chaque cible, ce qui lui arriverait — « 6 → 4 », « 1/1 →
-  3/3 », « bouclier brisé », ou l'icône `Icons/Dead.png` et « mort » quand le coup la tue.
+  3/3 », « bouclier brisé », ou l'icône `Graphical Assets/Icons/Dead.png` et « mort » quand le coup la tue.
   Quand c'est l'unité qui **attaque** qui ne survit pas à la riposte, l'icône et « riposte »
   s'ajoutent. ⚠ Il n'est **pas calculé par une formule** : il **joue le coup sur une copie du
   combat** (`cloneBattle`, comme le bot) et compare l'avant et l'après — Bouclier, Venin,
@@ -155,7 +191,7 @@ sur le bouton de la défausse).
 lignes, 32 % de l'écran) est remplacé par un **panneau qui s'ouvre et se ferme avec une
 icône**, et qui montre les actions **sous forme de scènes** : le duel de deux unités avec leurs
 valeurs avant (barrées) et après (en rouge), le sort et sa cible, l'invocation, la mort avec
-`Icons/Dead.png`, les conséquences **en retrait sous leur cause**. Références : le journal de
+`Graphical Assets/Icons/Dead.png`, les conséquences **en retrait sous leur cause**. Références : le journal de
 Backpack Battle (sa version texte, « mal faite » aux yeux du game designer, en est le contre-
 exemple) et sa propre maquette d'un duel (coût en haut à droite, attaque en bas à gauche, vie
 barrée puis valeur en rouge, épées croisées au milieu). Trois usages à servir :
@@ -177,7 +213,7 @@ Le **récit en données** (les événements, `B.evts`) est décrit dans `game/sr
   Tous / Toi / Adversaire. Il ne **reconstruit rien** : un événement qui arrive ne redessine que la
   scène de sa racine, et le défilement reste (collé en bas s'il y était). Le journal texte (`B.log`)
   n'est plus à l'écran : il reste pour les outils, et `⬇ texte` (en-tête du panneau) le télécharge.
-- **Les icônes** (`ui/icones.js`) : `icone('Swords', 24)` rend `Icons/Swords.png` s'il existe, un
+- **Les icônes** (`ui/icones.js`) : `icone('Swords', 24)` rend `Graphical Assets/Icons/Swords.png` s'il existe, un
   **signe de remplacement** sinon (un 404 par icône absente, une fois), et prend la place du signe
   **tout seul** le jour où le fichier est déposé. **Ne jamais écrire un pictogramme en dur dans un
   écran.** La liste des noms (`ICONES`) est celle demandée au game designer le 8 octobre 2026 ; une

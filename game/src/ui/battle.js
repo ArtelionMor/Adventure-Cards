@@ -3,10 +3,10 @@
 import { BALANCE } from '../config/balance.js';
 import { CHAR_BY_ID, CHARACTERS, characterDeck } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
-import { save, team, gain, persist, gagneXp, noteCombatArene } from '../state.js';
+import { save, team, gain, persist, gagneXp, noteCombatArene, etatArene } from '../state.js';
 import { coteEnnemi } from '../config/ennemis.js';
 import { relicMods } from '../config/relics.js';
-import { TRIGGERS, COUNTERS, keyLabel, hasKey, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel, branchesDe, listeEffets } from '../config/mechanics.js';
+import { TRIGGERS, COUNTERS, keyLabel, hasKey, typesOf, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel, branchesDe, listeEffets } from '../config/mechanics.js';
 import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur, reprisesPossibles, draw, refresh, nbFatigue, pileDeFatigue } from '../combat/engine.js';
 import { evt, refUnite, refHeros, refCarte } from '../combat/evenements.js';
 import { botAction } from '../combat/ai.js';
@@ -24,7 +24,8 @@ import { montreFin } from './fin.js';
 import { ligneDePictos } from './pictos.js';
 import { fabrique } from './vfx-scenes.js';
 import { cardById } from '../config/npcs.js';
-import { ligneIco, lignesDeFait, lignesDeRenforts } from './fiche.js';
+import { couleurDuType } from '../config/familles.js';
+import { ligneSource, lignesDeFait, lignesDeRenforts } from './fiche.js';
 import { skinCourant, skinSuivant, ecouteSkin } from './skin.js';   // l'habillage du combat (skins/*.css), AC.skin()
 
 let B = null;
@@ -125,7 +126,7 @@ export function openBattle(node, done) {
     plateau: camp => (camp === 'p' ? coque.boardP : coque.boardE),
     pioche: () => coque.npioche,
     main: () => coque.main,
-    defausse: camp => (camp === 'p' ? coque.def : coque.heroE.n),
+    defausse: camp => (camp === 'p' ? coque.def : coque.defE.n),
     heros: camp => (camp === 'p' ? coque.heroP : coque.heroE).n,
     unite: (camp, uid) => (camp === 'p' ? coque.boardP : coque.boardE).firstElementChild._n.get(uid) || null,
     unites: camp => [...(camp === 'p' ? coque.boardP : coque.boardE).firstElementChild.children]
@@ -406,20 +407,35 @@ function majUnite(n, u, side) {
   n.classList.toggle('sel', selUnit === u.uid);
 }
 
+// LE HAUT ET LE BAS DE L'ECRAN (maquette « Combat Screen », 19 octobre 2026). L'adversaire en haut : sa pioche et sa
+// defausse a gauche, son portrait rond au milieu (nom dedans, niveau en pastille, PV dessous), sa main en eventail de
+// dos a droite et son mana dessous. Le joueur en bas : son avatar, son nom et ses PV ; son mana est sur le plateau de
+// la main. Le noeud `n` est celui qu'on touche (`data-geste="hero"`) et que le masque eclaire quand il est une cible.
 function heroNode(k) {
-  const n = el(`
-    <div class="bt-hero" data-geste="hero" data-side="${k}" data-uid="hero">
-      <img alt="">
-      <div style="flex:1">
-        <div class="hnm"><span class="hn"></span><span class="pv"></span></div>
-        <div class="hpbar"><i></i><b></b></div>
-      <div class="hinfo"></div>
-      </div>
-      <div class="manapips"></div>
-    </div>`);
+  const n = k === 'e'
+    ? el(`
+      <div class="bt-hero e" data-geste="hero" data-side="e" data-uid="hero">
+        <img alt="">
+        <span class="hn"></span>
+        <span class="lvl"></span>
+        <span class="pv"></span>
+      </div>`)
+    : el(`
+      <div class="bt-hero p" data-geste="hero" data-side="p" data-uid="hero">
+        <img alt="">
+        <div class="bt-hid">
+          <div class="hnm"><span class="hn"></span><span class="pv"></span></div>
+          <div class="hpbar"><i></i><b></b></div>
+        </div>
+      </div>`);
+  // Les PV de l'adversaire vivent hors du portrait : le halo d'une cible ne doit entourer que lui.
+  const hors = k === 'e' ? el('<div class="bt-hpe"><div class="hpbar"><i></i><b></b></div><span class="hx"></span></div>') : null;
+  const mana = el('<div class="bt-mana"><b></b><div class="manapips"></div></div>');
+  const q = sel => n.querySelector(sel) || (hors && hors.querySelector(sel));
   return {
-    n, img: n.querySelector('img'), nom: n.querySelector('.hn'), pv: n.querySelector('.pv'),
-    info: n.querySelector('.hinfo'), fill: n.querySelector('.hpbar i'), txt: n.querySelector('.hpbar b'), pips: n.querySelector('.manapips')
+    n, hors, mana, img: n.querySelector('img'), nom: n.querySelector('.hn'), pv: n.querySelector('.pv'), lvl: n.querySelector('.lvl'),
+    extra: hors ? hors.querySelector('.hx') : null, fill: q('.hpbar i'), txt: q('.hpbar b'),
+    pips: mana.querySelector('.manapips'), manaTxt: mana.querySelector('b')
   };
 }
 
@@ -428,15 +444,12 @@ function majHero(h, s, k) {
   const src = asset(s.sprite);
   if (h.img.getAttribute('src') !== src) h.img.setAttribute('src', src);
   // L'armure et le mana promis se disent par leur icone, pas par un signe ecrit a la main.
-  const nom = `${s.name}${s.armor ? ` <span class="hv">${icone('Armor', 14)}${s.armor}</span>` : ''}${s.nextMana ? ` <span class="hv">${icone('Mana', 14)}+${s.nextMana}${icone('TurnStart', 12)}</span>` : ''}`;
+  const extra = `${s.armor ? `<span class="hv">${icone('Armor', 14)}${s.armor}</span>` : ''}${s.nextMana ? `<span class="hv">${icone('Mana', 14)}+${s.nextMana}${icone('TurnStart', 12)}</span>` : ''}`;
+  const nom = h.extra ? s.name : `${s.name}${extra ? ' ' + extra : ''}`;
   if (h.sigNom !== nom) { h.sigNom = nom; h.nom.innerHTML = nom; }
-  // Ce qu'on peut savoir de la main adverse sans la voir : combien de cartes, et ce qui reste a piocher.
-  if (k === 'e') {
-    // Le pistage (V3) : on SAIT quelles cartes sont marquees, pas lesquelles elles sont.
-    const pistees = s.hand.filter(c => c.pistee).length;
-    const info = `Main ${s.hand.length}${pistees ? ` (${pistees} ${icone('Track', 12)})` : ''} · Pioche ${s.deck.length}`;
-    if (h.sigInfo !== info) { h.sigInfo = info; h.info.innerHTML = info; }
-  }
+  if (h.extra && h.sigExtra !== extra) { h.sigExtra = extra; h.extra.innerHTML = extra; }
+  // Le niveau de l'adversaire : celui de l'arene (le profil de progression de l'ennemi, config/ennemis.js).
+  if (h.lvl) h.lvl.textContent = (ctx && ctx.niveau) || 1;
   h.fill.style.width = `${pct}%`;
   h.txt.textContent = `${Math.max(0, s.hp)} / ${s.maxHp}`;
   // Le mana peut depasser le plafond (mana promis au tour precedent) : on affiche
@@ -445,6 +458,7 @@ function majHero(h, s, k) {
   const sigPips = `${n}:${s.mana}`;
   if (h.sigPips !== sigPips) {
     h.sigPips = sigPips;
+    h.manaTxt.textContent = `${s.mana}/${s.manaCap}`;
     h.pips.innerHTML = Array.from({ length: n }, (_, i) => `<i class="pip ${i < s.mana ? 'on' : ''}"></i>`).join('');
   }
   const ap = pilule(apercus.get(`${k}:hero`));
@@ -478,22 +492,149 @@ function plateauNode(id) {
   return el(`<div class="board" id="${id}"><div class="bwrap"></div></div>`);
 }
 
+// Le dos des cartes (pioches, main adverse) : un des dos dessines par le game designer (Graphical Assets/CardBack/).
+const DOS_DE_CARTE = 'Graphical Assets/CardBack/CardBack Cozy.png';
+
+/** Une pioche (des dos empiles, le nombre dessus) ou une defausse (la derniere carte, le nombre dessus). */
+function pileNode(quoi, camp) {
+  const n = el(`<button class="bt-pile ${quoi} ${camp} bt-ctrl" aria-label="${quoi === 'pioche' ? 'Pioche' : 'Défausse'}"><span class="bt-face"></span><b></b><em class="bt-rep hidden"></em></button>`);
+  return { n, face: n.querySelector('.bt-face'), nb: n.querySelector('b'), rep: n.querySelector('.bt-rep') };
+}
+
+function majPile(p, quoi, s, k) {
+  if (quoi === 'pioche') {
+    // La pioche vide, ce qu'on tire est SA pile de fatigue : le compteur dit combien de modeles elle compte.
+    const fatigue = !s.deck.length && nbFatigue(B, k);
+    const sig = `${s.deck.length}|${fatigue}`;
+    if (p.sig === sig) return;
+    p.sig = sig;
+    p.n.classList.toggle('vide', !s.deck.length);
+    p.n.classList.toggle('fatigue', !!fatigue);
+    p.face.innerHTML = s.deck.length ? `<img src="${asset(DOS_DE_CARTE)}" alt="">` : (fatigue ? icone('Fatigue', 28) : '');
+    p.nb.textContent = s.deck.length || fatigue || 0;
+    p.n.title = fatigue ? `Fatigue ${fatigue}` : `Pioche ${s.deck.length}`;
+    return;
+  }
+  const der = s.discard[s.discard.length - 1];
+  const sig = `${s.discard.length}|${der ? der.inst ?? der.name : ''}`;
+  if (p.sig === sig) return;
+  p.sig = sig;
+  p.n.classList.toggle('vide', !s.discard.length);
+  p.n.classList.toggle('spell', !!der && der.type === 'spell');
+  p.face.innerHTML = der && der.sprite ? `<img src="${asset(der.sprite)}" alt="">` : '';
+  p.nb.textContent = s.discard.length;
+}
+
+/** La main de l'adversaire, de dos, en eventail. Une carte pistee (V3) porte sa patte. */
+function majEventail(c) {
+  const main = B.e.hand;
+  const sig = main.map(x => (x.pistee ? 1 : 0)).join('');
+  if (c.sigEventail === sig) return;
+  c.sigEventail = sig;
+  const n = main.length;
+  const dos = asset(DOS_DE_CARTE);
+  c.eventail.title = `Main ${n}`;
+  c.eventail.innerHTML = main.map((x, i) => {
+    const t = n > 1 ? i / (n - 1) - 0.5 : 0;
+    return `<span class="bt-dos" style="--i:${i};--n:${n};--t:${t.toFixed(3)}"><img src="${dos}" alt="">${x.pistee ? icone('Track', 16) : ''}</span>`;
+  }).join('');
+}
+
+/**
+ * LA MAIN : a plat jusqu'a trois cartes, en EVENTAIL au-dela (maquettes « Combat Screen » et « more than 3 cards ») :
+ * les cartes se chevauchent juste assez pour tenir dans la largeur, tournent de part et d'autre du centre et suivent
+ * un arc. Rien ne defile. La rotation passe par `rotate` et l'arc par la marge : `transform` et `translate` sont
+ * aux animations (WAAPI d'ui/effets.js, sautillement du skin).
+ */
+const MAIN_A_PLAT = 3;
+function etaleLaMain(main) {
+  const cartes = [...main.children];
+  const n = cartes.length;
+  const eventail = n > MAIN_A_PLAT;
+  main.classList.toggle('eventail', eventail);
+  if (!eventail) {
+    for (const c of cartes) for (const v of ['--chev', '--rot', '--arc']) c.style.removeProperty(v);
+    return;
+  }
+  const cs = getComputedStyle(main);
+  const W = main.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const cw = cartes[0].offsetWidth;
+  const angle = Math.min(22, 3 + n * 2.5);   // degres, de chaque cote
+  // Une carte tournee deborde de sa place : on garde de quoi loger le coin des deux cartes du bout.
+  const marge = cw * Math.sin(angle * Math.PI / 180) * 2.4;
+  const pas = Math.min(cw * 0.86, (W - cw - marge) / (n - 1));
+  cartes.forEach((c, i) => {
+    const t = i / (n - 1) - 0.5;
+    c.style.setProperty('--chev', i ? `${pas - cw}px` : '0px');
+    c.style.setProperty('--rot', `${(t * 2 * angle).toFixed(2)}deg`);
+    c.style.setProperty('--arc', `${(t * t * 4 * 16).toFixed(1)}px`);
+  });
+}
+
+/** Le menu du combat : le tour, et ce qui ne sert pas a chaque coup (le journal en texte). */
+function ouvreMenu() {
+  fermeLecture();
+  reinitSelection();
+  render();
+  const box = el(`<div class="bt-menu">
+    <h3>Menu</h3>
+    <p class="bt-tour"></p>
+    <button class="btn ghost" data-k="zone">Défausse et Registre</button>
+    <button class="btn ghost" data-k="texte">Télécharger le journal (texte)</button>
+    <button class="btn" data-k="fermer">Reprendre</button>
+  </div>`);
+  const tour = box.querySelector('.bt-tour');
+  tour.textContent = `Tour ${Math.ceil(B.turnNo / 2)}`;
+  // Cinq touchers sur « Tour N » ouvrent le panneau de triche.
+  let touches = [];
+  tour.addEventListener('pointerdown', ev => {
+    ev.stopPropagation();
+    const t = Date.now();
+    touches = touches.filter(x => t - x < 2000);
+    touches.push(t);
+    if (touches.length >= 5) { touches = []; closeModal(); coque.triche.classList.toggle('ouvert'); }
+  });
+  box.querySelector('[data-k="zone"]').onclick = () => { closeModal(); ouvreDefausse(); };
+  box.querySelector('[data-k="texte"]').onclick = telechargeTexte;
+  box.querySelector('[data-k="fermer"]').onclick = closeModal;
+  modal(box);
+}
+
+/** Le journal en TEXTE, telechargeable : c'est l'outil du game designer, plus celui du joueur. */
+function telechargeTexte() {
+  const texte = [`${B.p.name} contre ${B.e.name} — tour ${B.turnNo}`,
+    `PV ${B.p.hp}/${B.p.maxHp} contre ${B.e.hp}/${B.e.maxHp}`, ''].concat(B.log).join('\n');
+  const url = URL.createObjectURL(new Blob(['﻿' + texte], { type: 'text/plain;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `combat-${B.e.name.replace(/\s+/g, '-')}.txt`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
 /** Construit, une fois par combat, tout ce qui ne bouge pas. */
 function monteLaCoque(root) {
   root.innerHTML = '';
   const c = {};
   c.fx = el('<div class="fx"></div>');
-  const haut = el('<div class="bt-side"></div>');
+
+  // --- l'adversaire
+  c.haut = el('<div class="bt-haut"></div>');
   c.heroE = heroNode('e');
-  haut.appendChild(c.heroE.n);
-  root.appendChild(haut);
+  c.piocheE = pileNode('pioche', 'e');
+  c.defE = pileNode('defausse', 'e');
+  c.eventail = el('<button class="bt-eventail bt-ctrl" aria-label="Main adverse"></button>');
+  const piles = el('<div class="bt-piles e"></div>');
+  piles.append(c.piocheE.n, c.defE.n);
+  c.haut.append(piles, c.heroE.n, c.heroE.hors, c.eventail, c.heroE.mana);
+  root.appendChild(c.haut);
 
   c.boardE = plateauNode('boardE');
   root.appendChild(c.boardE);
 
   // La zone entre les deux plateaux : elle porte le bandeau d'instruction (l'action engagee) et
   // ne recouvre ni l'acteur, ni les cibles. Le journal n'est plus du texte qui mange un tiers de
-  // l'ecran : il a son panneau, qu'on ouvre avec l'icone de la barre (ui/journal.js).
+  // l'ecran : il a son panneau, qu'on ouvre avec l'onglet « Log » (ui/journal.js).
   c.mid = el('<div class="bt-mid"></div>');
   root.appendChild(c.mid);
   c.journal = creeJournal({
@@ -505,68 +646,63 @@ function monteLaCoque(root) {
   // Enregistrement en cours : le joueur doit le SAVOIR, une partie ne s'enregistre pas
   // dans son dos. Le point rouge reste dans l'en-tete du journal.
   if (B.journal) c.journal.extra(el('<span class="rec" title="Ce combat est enregistré (journal de décisions)">⏺</span>'));
-  // Le journal en TEXTE, telechargeable : c'est l'outil du game designer, plus celui du joueur.
   const dl = el('<button class="jr-dl" title="Télécharger le journal en texte">⬇ texte</button>');
-  dl.onclick = () => {
-    const texte = [`${B.p.name} contre ${B.e.name} — tour ${B.turnNo}`,
-      `PV ${B.p.hp}/${B.p.maxHp} contre ${B.e.hp}/${B.e.maxHp}`, ''].concat(B.log).join('\n');
-    const url = URL.createObjectURL(new Blob(['﻿' + texte], { type: 'text/plain;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `combat-${B.e.name.replace(/\s+/g, '-')}.txt`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-  };
+  dl.onclick = telechargeTexte;
   c.journal.extra(dl);
   root.appendChild(c.journal.n);
 
   c.boardP = plateauNode('boardP');
   root.appendChild(c.boardP);
 
-  const bas = el('<div class="bt-side"></div>');
+  // --- le joueur : son avatar, son nom, ses PV, et le bouton Auto
+  c.joueur = el('<div class="bt-joueur"></div>');
   c.heroP = heroNode('p');
-  bas.appendChild(c.heroP.n);
-  root.appendChild(bas);
+  c.chip = el('<button class="autochip bt-ctrl" id="autoChip"></button>');
+  c.joueur.append(c.heroP.n, c.chip);
+  root.appendChild(c.joueur);
 
+  // --- le plateau de la main : le mana, la main, la pioche et la defausse qui depassent en bas
+  c.basMain = el('<div class="bt-basmain"></div>');
   c.main = el('<div class="bt-hand"></div>');
-  root.appendChild(c.main);
+  c.piocheP = pileNode('pioche', 'p');
+  c.defP = pileNode('defausse', 'p');
+  const pilesP = el('<div class="bt-piles p"></div>');
+  pilesP.append(c.piocheP.n, c.defP.n);
+  c.basMain.append(c.heroP.mana, c.main, pilesP);
+  root.appendChild(c.basMain);
+  // L'eventail se recalcule quand la main change de largeur (rotation de l'ecran, fenetre redimensionnee).
+  new ResizeObserver(() => { if (coque === c) etaleLaMain(c.main); }).observe(c.main);
+  // Ce que les animations et la fenetre de zone appellent « la pioche » et « la defausse » du joueur.
+  c.npioche = c.piocheP.n;
+  c.def = c.defP.n;
+  c.def.id = 'defBtn';
 
-  c.bar = el(`
-    <div class="bt-bar">
-      <div class="autochip" id="autoChip"></div>
-      <button class="vitesse" id="vitesse" aria-label="Vitesse du combat"></button>
-      <button class="ib" id="logBtn" aria-label="Journal du combat">${icone('Log', 24)}<b class="bdg hidden"></b></button>
-      <div class="grow muted"><span class="npioche"></span> · <button class="zlink" id="defBtn" title="Voir la défausse"></button> · <span class="ntour"></span></div>
-      <button class="btn" id="endTurn">Fin du tour</button>
+  // --- les onglets des bords : Menu, Registre, Log a gauche ; Fin de tour et la vitesse a droite
+  const gauche = el(`<div class="bt-onglets g">
+      <button class="bt-onglet bt-ctrl" id="menuBtn">Menu</button>
+      <button class="bt-onglet bt-ctrl" id="registreBtn">Registre</button>
+      <button class="bt-onglet bt-ctrl" id="logBtn">Log<b class="bdg hidden"></b></button>
     </div>`);
-  root.appendChild(c.bar);
-  c.chip = c.bar.querySelector('#autoChip');
-  c.vit = c.bar.querySelector('#vitesse');
+  const droite = el(`<div class="bt-onglets d">
+      <button class="bt-onglet fin bt-ctrl" id="endTurn"><span>Fin de tour</span>${icone('TurnEnd', 22)}</button>
+      <button class="vitesse bt-ctrl" id="vitesse" aria-label="Vitesse du combat"></button>
+    </div>`);
+  root.append(gauche, droite);
+  c.vit = droite.querySelector('#vitesse');
   c.vit.onclick = () => { fx.cycleVitesse(); majBarre(); };
-  c.def = c.bar.querySelector('#defBtn');
-  c.fin = c.bar.querySelector('#endTurn');
-  c.npioche = c.bar.querySelector('.npioche');
-  c.ntour = c.bar.querySelector('.ntour');
-  c.logBtn = c.bar.querySelector('#logBtn');
-  c.badge = c.bar.querySelector('.bdg');
-  // Cinq touchers sur « Tour N » ouvrent le panneau de triche.
+  c.fin = droite.querySelector('#endTurn');
+  c.logBtn = gauche.querySelector('#logBtn');
+  c.badge = c.logBtn.querySelector('.bdg');
   c.triche = panneauTriche();
   root.appendChild(c.triche);
-  let touches = [];
-  c.ntour.addEventListener('pointerdown', ev => {
-    ev.stopPropagation();
-    const t = Date.now();
-    touches = touches.filter(x => t - x < 2000);
-    touches.push(t);
-    if (touches.length >= 5) { touches = []; c.triche.classList.toggle('ouvert'); }
-  });
-  for (const e of ['pointerup', 'pointercancel']) c.ntour.addEventListener(e, ev => ev.stopPropagation());
+  gauche.querySelector('#menuBtn').onclick = ouvreMenu;
+  gauche.querySelector('#registreBtn').onclick = ouvreDefausse;
   c.logBtn.onclick = () => {
     reinitSelection();
     c.journal.bascule();
     render();
   };
-  c.def.onclick = ouvreDefausse;
+  for (const p of [c.def, c.defE.n, c.piocheP.n, c.piocheE.n, c.eventail]) p.onclick = ouvreDefausse;
   c.chip.onclick = () => {
     auto = !auto;
     reinitSelection();
@@ -589,28 +725,29 @@ function monteLaCoque(root) {
 
 function majBarre() {
   const c = coque;
-  // Des sorts a REPRISE a relancer maintenant : le bouton de la defausse le dit, sinon on
-  // ne penserait pas a l'ouvrir. A ton tour et en mode manuel seulement — sinon rien ne se
-  // joue d'un clic.
+  // Des sorts a REPRISE a relancer maintenant : la defausse le dit, sinon on ne penserait pas a l'ouvrir. A ton tour
+  // et en mode manuel seulement — sinon rien ne se joue d'un toucher.
   const nbReprises = !auto && B.turn === 'p' && !B.over ? reprisesPossibles(B, 'p').length : 0;
-  c.chip.textContent = auto ? '▶ Auto' : '✋ Manuel';
+  const chip = auto ? `Auto ${icone('Auto', 18)}` : `Manuel ${icone('Manual', 18)}`;
+  if (c.sigChip !== chip) { c.sigChip = chip; c.chip.innerHTML = chip; }
   c.chip.classList.toggle('on', auto);
   c.vit.textContent = `x${fx.vitesse}`;
-  // La pioche vide, ce qu'on tire est SA pile de fatigue : le compteur dit combien de modeles elle compte.
-  c.npioche.textContent = !B.p.deck.length && nbFatigue(B, 'p') ? `Fatigue ${nbFatigue(B, 'p')}` : `Pioche ${B.p.deck.length}`;
-  // Le Registre, quand il contient quelque chose : combien de types (le meme pour les deux camps).
-  const nbTypes = B.registre ? B.registre.types.length + B.registre.tous.length : 0;
-  c.def.textContent = `Défausse ${B.p.discard.length}${nbReprises ? ' ↺' + nbReprises : ''}${nbTypes ? ' · Registre ' + nbTypes : ''}`;
+  majPile(c.piocheP, 'pioche', B.p, 'p');
+  majPile(c.defP, 'defausse', B.p, 'p');
+  majPile(c.piocheE, 'pioche', B.e, 'e');
+  majPile(c.defE, 'defausse', B.e, 'e');
+  majEventail(c);
+  c.defP.rep.classList.toggle('hidden', !nbReprises);
+  if (nbReprises) c.defP.rep.innerHTML = `${icone('Flashback', 14)}${nbReprises}`;
   c.def.classList.toggle('pret', !!nbReprises);
-  c.ntour.textContent = `Tour ${Math.ceil(B.turnNo / 2)}`;
   c.fin.disabled = !(B.turn === 'p' && !auto);
-  // Le badge de l'icone du journal : combien de scenes depuis la derniere fois qu'on l'a ouvert.
+  // Le badge de l'onglet du journal : combien de scenes depuis la derniere fois qu'on l'a ouvert.
   const nl = c.journal.nonLus();
   c.badge.textContent = nl > 9 ? '9+' : String(nl);
   c.badge.classList.toggle('hidden', !nl);
-  // Le panneau tient entre le heros adverse et la barre : on lui donne la place qu'ils laissent.
-  c.journal.n.style.top = c.heroE.n.parentElement.offsetHeight + 'px';
-  c.journal.n.style.bottom = c.bar.offsetHeight + 'px';
+  // Le panneau tient entre le haut de l'ecran et la ligne du joueur : on lui donne la place qu'ils laissent.
+  c.journal.n.style.top = c.haut.offsetHeight + 'px';
+  c.journal.n.style.bottom = Math.max(0, $('#battle').clientHeight - c.joueur.offsetTop) + 'px';
 }
 
 function render() {
@@ -638,6 +775,7 @@ function render() {
     setTimeout(() => n.classList.remove('nouvelle'), 1500 * BALANCE.ui.fx.ralenti);
     return n;
   }, majCarte);
+  etaleLaMain(c.main);
   majBarre();
   majFocus();
   // Les vignettes ne sont mises a l'echelle qu'une fois tout l'ecran en place : c'est
@@ -944,19 +1082,96 @@ function lisCe(n) {
   renderLecture();
 }
 
+// ------------------------------------------------------------- glisser-deposer une carte
+// GLISSER UNE CARTE POUR LA JOUER (demande du game designer, 19 octobre 2026), en plus du toucher. La carte suit le
+// doigt ; une carte qui demande une cible eclaire ses cibles legales (le meme masque et le meme apercu que le
+// toucher) et se joue LACHEE SUR L'UNE D'ELLES ; les autres se jouent lachees n'importe ou au-dessus de la main. Lachee
+// ailleurs, ou sur la main, elle y retourne sans rien couter. Une carte « Choisir » pose sa question au lacher, puis
+// demande sa cible comme au toucher. Le coup passe par les memes fonctions que le toucher (`joue`, `designe`,
+// `onCardClick`), donc par `joueLeCoup`.
+let tir = null;   // { i, carte, noeud, fantome, dx, dy, cible: bool, survol }
+
+/** Le noeud touchable sous le doigt (le fantome ne recoit aucun toucher). */
+const sousLeDoigt = ev => {
+  const x = document.elementFromPoint(ev.clientX, ev.clientY);
+  return x && x.closest ? x.closest('[data-geste="unit"], [data-geste="hero"]') : null;
+};
+
+function debutTir(n, ev) {
+  if (n.dataset.geste !== 'main' || !peutEngager()) return false;
+  const i = +n.dataset.i;
+  const carte = B.p.hand[i];
+  if (!carte) return false;
+  if (!canPlay(B, 'p', carte)) { toast(raisonCarte(carte, 'main')); return false; }
+  reinitSelection();
+  // Une carte a cible (sans choix de branche) eclaire ses cibles pendant qu'on la tire.
+  const cible = !needsChoice(carte) && needsTarget(carte, null) && legalTargets(B, 'p', carte, null).length > 0;
+  if (cible) { selCard = i; selZone = 'main'; calculeApercus(); }
+  const r = n.getBoundingClientRect();
+  const fantome = n.cloneNode(true);
+  fantome.classList.remove('nouvelle', 'sel', 'lit', 'acteur');
+  fantome.classList.add('tir-fantome');
+  fantome.removeAttribute('data-geste');
+  fantome.style.cssText += `;left:${r.left}px;top:${r.top}px;width:${n.offsetWidth}px;height:${n.offsetHeight}px;`;
+  $('#battle').appendChild(fantome);
+  n.classList.add('tiree');
+  tir = { i, carte, noeud: n, fantome, dx: ev.clientX - r.left - r.width / 2, dy: ev.clientY - r.top - r.height / 2, cible, survol: null };
+  render();
+  return true;
+}
+
+function bougeTir(ev) {
+  if (!tir) return;
+  const w = tir.fantome.offsetWidth, h = tir.fantome.offsetHeight;
+  tir.fantome.style.left = `${ev.clientX - w / 2}px`;
+  // La carte se tient AU-DESSUS du doigt : on voit ou on la pose.
+  tir.fantome.style.top = `${ev.clientY - h * 0.85}px`;
+  const n = tir.cible ? sousLeDoigt(ev) : null;
+  const vise = n && n.classList.contains('lit') && !n.classList.contains('acteur') ? n : null;
+  if (vise !== tir.survol) {
+    if (tir.survol) tir.survol.classList.remove('survol');
+    if (vise) vise.classList.add('survol');
+    tir.survol = vise;
+  }
+  // Au-dessus de la main, la carte « rentre » : le fantome le dit en palissant.
+  tir.fantome.classList.toggle('rentre', ev.clientY > coque.basMain.getBoundingClientRect().top);
+}
+
+function lacheTir(ev, annuleGeste) {
+  if (!tir) return;
+  const t = tir;
+  tir = null;
+  t.fantome.remove();
+  t.noeud.classList.remove('tiree');
+  if (t.survol) t.survol.classList.remove('survol');
+  if (annuleGeste || !B || B.over || !peutEngager() || B.p.hand[t.i] !== t.carte) { annule(); return; }
+  if (t.cible) {
+    const n = sousLeDoigt(ev);
+    // Comme un toucher (`tape`) : l'uid tel que le noeud le porte.
+    if (n && designe(n.dataset.side, n.dataset.uid)) return;
+    annule();
+    return;
+  }
+  // Sans cible : jouee si on la lache au-dessus de la main (sur le terrain).
+  const surLaMain = ev.clientY > coque.basMain.getBoundingClientRect().top;
+  reinitSelection();
+  if (surLaMain) { render(); return; }
+  onCardClick(t.i);
+}
+
 /** Les ecouteurs, poses une fois pour toutes sur les elements qui ne changent jamais. */
 function poseLesGestes() {
   if (gestesPoses) return;
   gestesPoses = true;
   const gestes = { tap: tape, lire: lisCe, finLire: fermeLecture };
-  installeGestes($('#battle'), gestes);
+  installeGestes($('#battle'), { ...gestes, glisse: { debut: debutTir, bouge: bougeTir, lache: lacheTir } });
   installeGestes($('#modal'), gestes);
   // Toucher le fond (ni une carte, ni une unite, ni un bouton) annule l'action engagee — ou,
   // en Auto, rend la main au joueur.
   $('#battle').addEventListener('pointerup', ev => {
     // Le chip Auto/Manuel est un <div> : sans `.autochip` ici, son toucher comptait aussi comme « toucher le fond »
     // (donc reprendre la main), puis son propre clic rebasculait en Auto — impossible de quitter l'Auto en le touchant.
-    if (ev.target.closest('[data-geste], button, .autochip')) return;
+    if (ev.gesteGlisse || ev.target.closest('[data-geste], button, .autochip')) return;
     if (engage()) annule();
     else reprendLaMain();
   });
@@ -1040,59 +1255,82 @@ function renderZone() {
 }
 
 // ------------------------------------------------------------- lecture (appui long)
-/** Une ligne « Titre : texte », avec sa source en gris quand il y en a une. */
-function ligne(titre, texte, source) {
-  const src = source ? ` <span class="src">— ${source}</span>` : '';
-  return el(`<div class="ln"><b>${titre}</b><span>${texte}${src}</span></div>`);
+// LA FICHE (maquette « Combat Screen Zoom on a card », 19 octobre 2026) : la carte en grand a gauche, son nom, son
+// attaque et sa vie, ses types ; dessous ce qu'elle FAIT (« icones : texte ») ; puis, apres un trait, ce qui la
+// MODIFIE en ce moment, chaque chose sous le portrait de sa source (ui/fiche.js).
+
+
+
+/** Le fond de la puce « Type » : une part de couleur par type, en biais (config/familles.js, `couleurDuType`). */
+function fondDesTypes(types) {
+  const k = types.length;
+  const parts = types.map((t, i) => `${couleurDuType(t)} ${(i * 100 / k).toFixed(1)}% ${((i + 1) * 100 / k).toFixed(1)}%`);
+  return `linear-gradient(135deg, ${parts.join(', ')})`;
 }
 
-function bloc(titre, lignes) {
+/** L'en-tete : la carte en grand (cout, dessin), le nom, l'attaque et la vie, les types, une ligne d'etat. */
+function teteFiche({ nom, sprite, cout, coutBase, sort, atk, hp, maxHp, plus, moins, types, note, adverse = false }) {
+  const stats = sort ? '<span class="fi-sort">Sort</span>'
+    : `<span class="a${plus ? ' plus' : ''}">${atk}</span>${icone('Attack', 24)}<span class="h${moins ? ' moins' : ''}">${hp}${maxHp != null ? '/' + maxHp : ''}</span>${icone('Health', 24)}`;
+  return el(`
+    <div class="fi-tete">
+      <div class="fi-carte${sort ? ' spell' : ''}${adverse ? ' adverse' : ''}">
+        ${cout != null ? `<div class="cost" ${coutBase != null && coutBase !== cout ? `title="coût de base ${coutBase}"` : ''}>${cout}</div>` : ''}
+        ${sprite ? `<img src="${asset(sprite)}" alt="">` : ''}
+      </div>
+      <div class="fi-id">
+        <div class="nm">${nom}</div>
+        <div class="fi-stats">${stats}</div>
+        ${types.length ? `<span class="fi-type" style="background:${fondDesTypes(types)}">Type : ${types.join(' & ')}</span>` : ''}
+        ${note ? `<div class="src">${note}</div>` : ''}
+      </div>
+    </div>`);
+}
+
+/** Ce qu'une carte ou une unite FAIT, une ligne par chose (voir ui/fiche.js). */
+function blocFait(x, texte) {
+  const lignes = lignesDeFait(x);
+  if (texte) lignes.unshift(el(`<p class="fi-texte">${texte}</p>`));
   if (!lignes.length) return null;
-  const n = el(`<section><h4>${titre}</h4></section>`);
+  const n = el('<section class="fi-fait"></section>');
   lignes.forEach(l => n.appendChild(l));
   return n;
 }
 
-/** Ce qu'une carte ou une unite FAIT, une ligne par chose, chacune avec son icone (voir ui/fiche.js). */
-function blocFait(x) {
-  return bloc('Ce qu’elle fait', lignesDeFait(x));
-}
-
 /**
- * La fiche d'une unite : la meme unite en grand, avec
- *   - ce qui la MODIFIE en ce moment et D'OU ca vient (auras nommees par leur porteur,
- *     renforts recus, caracteristique variable). C'est tout l'interet de la vue
- *     inspectee : le plateau montre « 4/5 », la fiche explique pourquoi ;
- *   - ce qu'elle FAIT (ses moments, son aura, ses effets statiques) ;
- *   - ses PALIERS, debloques ou non, tels que son niveau de resolution les a laisses.
- * Elle s'ouvre en MAINTENANT l'unite (ui/gestes.js) et se referme quand on la lache : elle
- * n'a donc ni bouton « Attaquer » ni bouton « Fermer ».
+ * La fiche d'une unite : la meme unite en grand, avec ce qu'elle FAIT (ses moments, son aura, ses effets statiques)
+ * puis ce qui la MODIFIE en ce moment et D'OU ca vient (renforts recus, auras nommees par leur porteur,
+ * caracteristique variable). C'est tout l'interet de la vue inspectee : le plateau montre « 4/5 », la fiche explique
+ * pourquoi. Elle s'ouvre en MAINTENANT l'unite (ui/gestes.js) et se referme quand on la lache : elle n'a donc ni
+ * bouton « Attaquer » ni bouton « Fermer ».
  */
 function inspectNode(u, side) {
-  const box = el('<div class="insp"></div>');
-  const blesse = u.damage ? ` · ${u.damage} dégât${u.damage > 1 ? 's' : ''} subi${u.damage > 1 ? 's' : ''}` : '';
-  box.appendChild(el(`
-    <div class="tete">
-      ${u.sprite ? `<img src="${asset(u.sprite)}" alt="">` : '<img alt="">'}
-      <div style="min-width:0">
-        <div class="nm">${u.name}</div>
-        <div class="stats"><span class="a">${icone('Attack', 20)} ${u.atk}</span> · <span class="h">${icone('Health', 20)} ${Math.max(0, u.hp)}/${u.maxHp}</span></div>
-        <div class="src">${side === 'p' ? 'Ton allié' : 'Unité adverse'}${blesse}</div>
-        <div class="chips">${u.keys.map(x => `<span class="chip">${keyLabel(x)}</span>`).join('')}</div>
-      </div>
-    </div>`));
+  const box = el('<div class="insp fiche"></div>');
+  const etat = [side === 'p' ? 'Ton allié' : 'Unité adverse'];
+  if (u.atk <= 0) etat.push('0 attaque : elle ne frappe pas');
+  else if (u.canAttack) etat.push('prête à attaquer');
+  else if (u.attackedThisTurn) etat.push('a déjà attaqué ce tour');
+  else etat.push('pas encore prête');
+  if (u.shield) etat.push('bouclier intact');
+  box.appendChild(teteFiche({
+    nom: u.name, sprite: u.sprite, cout: u.card ? u.card.cost : null, sort: false,
+    atk: u.atk, hp: Math.max(0, u.hp), maxHp: u.maxHp, plus: u.card && u.card.atk != null && u.atk > u.card.atk, moins: u.hp < u.maxHp,
+    types: typesOf(u), note: etat.join(' · '), adverse: side === 'e'
+  }));
+
+  const bFait = blocFait(u);
+  if (bFait) box.appendChild(bFait);
 
   // --- ce qui la modifie en ce moment, et par qui
   const mods = [];
   const dAtk = u.baseAtk - u.printedAtk, dHp = u.baseHp - u.printedHp;
-  const signe = v => (v >= 0 ? '+' : '') + v;
   // Chaque renfort avec sa SOURCE (lue dans le recit du combat), comme la liste de bonus de Hearthstone.
   mods.push(...lignesDeRenforts(B, u, side, dAtk, dHp));
   if (u.variable) {
     const c = COUNTERS[u.variable.src];
     const quoi = u.variable.stat === 'both' ? 'attaque et vie' : u.variable.stat === 'hp' ? 'vie' : 'attaque';
     const dit = (c ? c.label.toLowerCase() : u.variable.src) + (c && c.needsArg ? ` « ${u.variable.arg || '?'} »` : '');
-    mods.push(ligneIco('Static', 'Variable', `${quoi} = ${u.variable.x}`, dit));
+    mods.push(ligneSource({ ico: 'Static', titre: `Variable : ${dit}`, texte: `${quoi} = ${u.variable.x}` }));
   }
   // Les auras : le combat n'en garde que le total, `aurasSur` retrouve les porteurs.
   // Depuis que le plateau n'a plus de plafond, neuf Chiots donnent neuf fois la meme
@@ -1103,62 +1341,48 @@ function inspectNode(u, side) {
     const cle = `${a.src.name}|${a.camp}|${dit}`;
     const vu = parPorteur.get(cle);
     if (vu) vu.n++;
-    else parPorteur.set(cle, { n: 1, dit, nom: a.src.name, camp: a.camp });
+    else parPorteur.set(cle, { n: 1, dit, nom: a.src.name, sprite: a.src.sprite, camp: a.camp });
   }
   for (const a of parPorteur.values()) {
-    mods.push(ligneIco('Aura', 'Aura', a.dit, `${a.n > 1 ? a.n + ' × ' : ''}${a.nom} (${a.camp === side ? 'allié' : 'en face'})`));
+    mods.push(ligneSource({ sprite: a.sprite, ico: 'Aura', titre: `${a.nom}${a.n > 1 ? ` (${a.n} fois)` : ''}`, texte: `aura : ${a.dit}`, ton: a.camp === side ? 'bon' : 'mal' }));
   }
-  if (mods.length) mods.unshift(ligne('Imprimé', `${u.printedAtk}/${u.printedHp}`, 'ce que la carte annonçait'));
-  const bMods = bloc('Ce qui la modifie', mods);
-  if (bMods) box.appendChild(bMods);
-
-  // --- ce qu'elle fait, puis ses paliers. Un jeton n'a pas de carte : il n'en a donc pas.
-  const bFait = blocFait(u);
-  if (bFait) box.appendChild(bFait);
-
-  // --- etat
-  const etat = [];
-  if (u.atk <= 0) etat.push('0 attaque : elle ne frappe pas');
-  else if (u.canAttack) etat.push('prête à attaquer');
-  else if (u.attackedThisTurn) etat.push('a déjà attaqué ce tour');
-  else etat.push('pas encore prête');
-  if (u.shield) etat.push('bouclier intact');
   // LA TOXINE (V3) : ce que sa Toxine lui prendra au debut de SON prochain tour (le Bouclier absorbe le premier).
   if (u.tox > 0) {
     const perdra = u.shield ? 'son bouclier absorbera le premier tour' : `perdra ${u.tox} PV au début de son tour${u.hp <= u.tox ? ' — et en mourra' : ''}`;
-    box.appendChild(ligne(`Toxine ×${u.tox}`, perdra + '. À sa mort, les marqueurs sautent sur une autre unité du même camp.'));
+    mods.push(ligneSource({ ico: 'Venom', titre: `Toxine ×${u.tox}`, texte: perdra + '. À sa mort, les marqueurs sautent sur une autre unité du même camp.', ton: 'mal' }));
   }
-  box.appendChild(el(`<div class="src">${etat.join(' · ')}</div>`));
+  if (mods.length) {
+    box.appendChild(el('<hr class="fi-trait">'));
+    const n = el('<section class="fi-mods"></section>');
+    mods.forEach(l => n.appendChild(l));
+    box.appendChild(n);
+  }
   return box;
 }
 
 /** La fiche d'une CARTE (main, defausse, exil) : ce que la vignette n'a pas la place de dire. */
 function ficheCarte(c, camp) {
-  const box = el('<div class="insp"></div>');
+  const box = el('<div class="insp fiche"></div>');
   const cout = cardCost(c, B, camp);
   const ally = c.type === 'ally';
-  box.appendChild(el(`
-    <div class="tete">
-      ${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : '<img alt="">'}
-      <div style="min-width:0">
-        <div class="nm">${c.name}</div>
-        <div class="stats">${ally ? `<span class="a">${icone('Attack', 20)} ${c.atk}</span> · <span class="h">${icone('Health', 20)} ${c.hp}</span>` : 'Sort'}</div>
-        <div class="src">Coût ${cout}${cout !== c.cost ? ` (de base ${c.cost})` : ''} · ${ally ? 'Allié' : 'Sort'}</div>
-        <div class="chips">${(c.keys || []).map(x => `<span class="chip">${keyLabel(x)}</span>`).join('')}</div>
-      </div>
-    </div>`));
-  if (c.text) box.appendChild(ligne('Texte', c.text));
-  const bFait = blocFait(c);
+  box.appendChild(teteFiche({
+    nom: c.name, sprite: c.sprite, cout, coutBase: c.cost, sort: !ally, atk: c.atk, hp: c.hp, maxHp: null,
+    types: typesOf(c), note: cout !== c.cost ? `Coût ${cout} (de base ${c.cost})` : '', adverse: camp === 'e'
+  }));
+  const bFait = blocFait(c, c.text);
   if (bFait) box.appendChild(bFait);
   // UNE CARTE PISTEE (V3) : ce que le camp d'en face a en reserve si on la joue. Le surcout en mana est deja
   // dans le cout affiche en haut ; ici, ce qui part EN PLUS — lu sur les unites de l'adversaire.
   if (c.pistee) {
-    const punitions = [];
+    box.appendChild(el('<hr class="fi-trait">'));
+    const n = el('<section class="fi-mods"></section>');
+    n.appendChild(ligneSource({ ico: 'Track', titre: 'Pistée', texte: 'L’adversaire l’a à l’œil : elle coûte plus cher, et peut te coûter autre chose.', ton: 'mal' }));
     for (const u of B[camp === 'p' ? 'e' : 'p'].board) {
-      for (const e of [...(u.on_pistee_foe || []), ...(u.on_pistee_any || [])]) punitions.push(ligne(u.name, describeEffect(e), 'si tu la joues'));
+      for (const e of [...(u.on_pistee_foe || []), ...(u.on_pistee_any || [])]) {
+        n.appendChild(ligneSource({ sprite: u.sprite, titre: u.name, texte: `si tu la joues : ${describeEffect(e)}`, ton: 'mal' }));
+      }
     }
-    const b = bloc('Pistée', [ligne('Marquée', 'L’adversaire l’a à l’œil : elle coûte plus cher, et peut te coûter autre chose.'), ...punitions]);
-    if (b) box.appendChild(b);
+    box.appendChild(n);
   }
   return box;
 }
@@ -1192,7 +1416,6 @@ function renderLecture() {
   if (!contenu) { fermeLecture(); return; }
   const sheet = el('<div class="sheet"></div>');
   sheet.appendChild(contenu);
-  sheet.appendChild(el('<div class="src">Relâche pour fermer</div>'));
   const p = panneauLecture();
   p.replaceChildren(sheet);
   p.classList.remove('hidden');
@@ -1244,8 +1467,9 @@ function finish() {
   }
   // Une ARENE monte d'un niveau a chaque victoire (state.js) ; la fiche montre le prochain.
   if (ctx.arene) {
-    const a = noteCombatArene(ctx.arene, win);
-    if (win) notes.push(`L'arène passe au niveau ${a.niveau}.`);
+    const avant = etatArene(ctx.arene).niveau;
+    const a = noteCombatArene(ctx.arene, win, ctx.niveau);
+    if (a.niveau > avant) notes.push(`L'arène passe au niveau ${a.niveau}.`);
   }
 
   const ferme = () => {

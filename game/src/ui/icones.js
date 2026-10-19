@@ -1,4 +1,4 @@
-// LES ICONES DU JEU. Chacune est un fichier `Icons/<Nom>.png` (celui que dessine le game
+// LES ICONES DU JEU. Chacune est un fichier `Graphical Assets/Icons/<Nom>.png` (celui que dessine le game
 // designer) ; tant qu'il n'existe pas, l'ecran montre un SIGNE de remplacement a sa place, et le
 // jour ou le fichier est depose il prend la place tout seul — sans une ligne a changer ici.
 //
@@ -8,6 +8,8 @@
 //
 // Nom → signe de remplacement. La liste est celle demandee au game designer (8 octobre 2026) ;
 // ajouter une icone = une ligne ici, et le fichier le jour ou il existe.
+import { asset } from './shell.js';
+
 export const ICONES = {
   // interface
   Log: '☰', Close: '✕', Auto: '▶', Manual: '✋', Deck: '▤', Discard: '▥',
@@ -28,16 +30,25 @@ export const ICONES = {
   // l'ecran d'equipe : la coche d'un heros dans l'equipe
   Check: '✔',
   // fin de combat
-  Victory: '★', Defeat: '✖'
+  Victory: '★', Defeat: '✖',
+  // la barre de navigation (maquette « Arena Screen », 19 octobre 2026) : un dessin par ecran
+  Arena: '⚔', Farm: '🌱', Map: '🗺', 'Icon Deck': '▤', Shop: '🛒',
+  // les recompenses d'une arene (monnaies A et B), la coche d'un niveau battu
+  Fanion: '⚑', Sceau: '✪', Validate: '✔'
 };
 
-// DES PICTOS DE TRAVAIL, en attendant les dessins du game designer. `Icons/Kenney/<fichier>.png` : le pack
+// Le dossier des icones (depuis le rangement du 19 octobre 2026 : `Icons/` est devenu `Graphical Assets/Icons/`).
+export const DOSSIER_ICONES = 'Graphical Assets/Icons';
+/** L'adresse du dessin de `nom` : sa version allegee quand elle existe (les icones de navigation font 2000 px). */
+export const urlIcone = nom => asset(`${DOSSIER_ICONES}/${nom}.png`);
+
+// DES PICTOS DE TRAVAIL, en attendant les dessins du game designer. `Graphical Assets/Icons/Kenney/<fichier>.png` : le pack
 // « Board Game Icons » de Kenney (CC0, licence a cote), blanc sur transparent, donc TEINTABLE (on le pose en
 // masque, il prend la `color` du texte autour). Ordre de repli, pour chaque nom :
-//   1. `Icons/<Nom>.png`, le dessin du game designer, des qu'il existe ;
+//   1. `Graphical Assets/Icons/<Nom>.png`, le dessin du game designer, des qu'il existe ;
 //   2. le pictogramme Kenney ci-dessous ;
 //   3. le signe de `ICONES`.
-// Remplacer un picto de travail = deposer `Icons/<Nom>.png`, sans toucher a ce fichier.
+// Remplacer un picto de travail = deposer `Graphical Assets/Icons/<Nom>.png`, sans toucher a ce fichier.
 const KENNEY = {
   Mana: 'suit_diamonds', Attack: 'sword', Health: 'suit_hearts', Armor: 'shield',
   Swords: 'sword', Counter: 'arrow_counterclockwise', Dead: 'skull', Damage: 'fire', Heal: 'suit_hearts',
@@ -48,13 +59,14 @@ const KENNEY = {
   Deathrattle: 'dice_skull', Aura: 'hexagon_outline', Static: 'tag_infinite', TurnStart: 'hourglass_top', TurnEnd: 'hourglass_bottom', Trigger: 'exploding',
   Taunt: 'tag_shield', Charge: 'arrow_right', Venom: 'flask_full', Shield: 'shield', Elusive: 'hexagon_question',
   WallWalker: 'structure_wall', Mirror: 'hexagon_switch', Flashback: 'arrow_rotate',
-  Victory: 'crown_a', Defeat: 'skull'
+  Victory: 'crown_a', Defeat: 'skull', Fanion: 'flag_triangle', Sceau: 'award'
 };
+const urlKenney = f => asset(`${DOSSIER_ICONES}/Kenney/${f}.png`);
 
 /** Le pictogramme Kenney teintable de `nom`, ou null. */
 const masque = (nom, style) => {
   const f = KENNEY[nom];
-  return f ? `<span class="ico k" style="${style}--m:url('/Icons/Kenney/${f}.png')" data-ico="${nom}"></span>` : null;
+  return f ? `<span class="ico k" style="${style}--m:url('${urlKenney(f)}')" data-ico="${nom}"></span>` : null;
 };
 
 // Les icones dont le fichier manque : on ne les redemande pas (un 404 de plus par icone et par
@@ -69,7 +81,7 @@ export function icone(nom, taille = 20) {
   const g = ICONES[nom];
   if (g === undefined) return `<span class="ico g" style="--s:${taille}px" title="icone inconnue : ${nom}">[${nom}]</span>`;
   if (absentes.has(nom)) return masque(nom, `--s:${taille}px;`) || `<span class="ico g" style="--s:${taille}px" data-ico="${nom}">${g}</span>`;
-  return `<img class="ico" style="--s:${taille}px" src="/Icons/${encodeURIComponent(nom)}.png" alt="" data-ico="${nom}">`;
+  return `<img class="ico" style="--s:${taille}px" src="${urlIcone(nom)}" alt="" data-ico="${nom}">`;
 }
 
 /**
@@ -79,8 +91,8 @@ export function icone(nom, taille = 20) {
  */
 export function imagesDesIcones() {
   return [
-    ...Object.keys(ICONES).map(nom => ({ url: `/Icons/${encodeURIComponent(nom)}.png`, absente: () => absentes.add(nom) })),
-    ...[...new Set(Object.values(KENNEY))].map(f => ({ url: `/Icons/Kenney/${f}.png` }))
+    ...Object.keys(ICONES).map(nom => ({ url: urlIcone(nom), absente: () => absentes.add(nom) })),
+    ...[...new Set(Object.values(KENNEY))].map(f => ({ url: urlKenney(f) }))
   ];
 }
 

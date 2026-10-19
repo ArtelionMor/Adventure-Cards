@@ -40,17 +40,19 @@
     <section class="screen hidden" id="screen-bag"></section>
   </main>
 
+  <!-- La navigation (maquette « Arena Screen », 19 octobre 2026) : un dessin par ecran, sans texte. main.js pose les
+       icones (`data-ico`, ui/icones.js) ; l'ecran actif est une grande tuile jaune qui depasse vers le haut. -->
   <nav id="nav">
-    <button data-go="world" class="active"><span>🗺️</span>Carte</button>
-    <button data-go="arene"><span>⚔️</span>Arène</button>
-    <button data-go="farm"><span>🌱</span>Ferme</button>
-    <button data-go="deck"><span>🃏</span>Deck</button>
-    <button data-go="bag"><span>🎒</span>Sac</button>
+    <button data-go="farm" data-ico="Farm" aria-label="Ferme"></button>
+    <button data-go="arene" data-ico="Arena" aria-label="Arène"></button>
+    <button data-go="world" data-ico="Map" aria-label="Carte" class="active"></button>
+    <button data-go="deck" data-ico="Icon Deck" aria-label="Deck"></button>
+    <button data-go="bag" data-ico="Shop" aria-label="Sac"></button>
   </nav>
 
   <!-- L'ECRAN DE CHARGEMENT : il charge les images du jeu, puis s'efface (src/ui/chargement.js). -->
   <div id="chargement">
-    <img src="/Icons/Icon.png" alt="">
+    <img src="/game/vignettes/Graphical%20Assets/Icons/Icon.webp" alt="">
     <div class="chg-titre">Adventure Card</div>
     <div class="chg-barre"><i></i></div>
     <div class="chg-texte">Chargement…</div>
