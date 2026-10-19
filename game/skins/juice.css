@@ -150,13 +150,22 @@ html[data-skin="juice"] {
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 110' preserveAspectRatio='none'%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23dcdcdc'/%3E%3Cstop offset='1' stop-color='%23878787'/%3E%3C/linearGradient%3E%3Cpath fill-rule='evenodd' fill='url%28%23g%29' stroke='%232b1c1f' stroke-width='3.5' stroke-linejoin='round' d='M5 14 Q5 7 12 6.5 L50 2 L88 6.5 Q95 7 95 14 L87 78 Q86 83 81 86.5 L50 108 L19 86.5 Q14 83 13 78 Z M20 11.5 H80 Q84 11.5 84 15.5 V82.5 Q84 86.5 80 86.5 H20 Q16 86.5 16 82.5 V15.5 Q16 11.5 20 11.5 Z'/%3E%3Cpath d='M14 9.6 L50 5.6 L86 9.6' fill='none' stroke='%23fff' stroke-opacity='.6' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
     filter: drop-shadow(0 4px 0 rgba(43, 28, 31, .9));
   }
-  /* LE BOUCLIER (il absorbe le prochain coup) : un halo d'or autour de la carte. */
+  /* LE BOUCLIER (il absorbe le prochain coup) : le dessin du bouclier (`Shield`, game designer) en badge sur le coin haut
+     droit, et un halo d'or autour de la carte. Les deux partent quand le bouclier se brise. */
+  & .unit .ecu { position: absolute; top: -12px; right: -12px; z-index: 4; line-height: 0; pointer-events: none;
+    filter: drop-shadow(0 2px 0 var(--contour)); }
   & .unit.bouclier::after {
     display: block; content: ""; position: absolute; inset: -8px; border-radius: 24px; pointer-events: none;
     border: 3px solid #fff3a0; box-shadow: 0 0 12px 4px rgba(255, 214, 70, .85), inset 0 0 12px 2px rgba(255, 226, 90, .6);
   }
-  /* ELUSIF (on ne peut pas le cibler) : le personnage est a moitie transparent. */
-  & .unit.elusif > img { opacity: .55; }
+  /* ELUSIF (on ne peut pas le cibler) : quatre bandes de brume (dessins du game designer) derivent sur la carte en
+     changeant d'opacite (`@keyframes brume-derive`, plus bas). */
+  & .unit .brume { position: absolute; inset: 6% 0 22%; z-index: 2; pointer-events: none; overflow: hidden; border-radius: 12px; }
+  & .unit .brume img { position: absolute; width: 78%; height: 22%; object-fit: fill; animation: brume-derive 3.4s ease-in-out infinite alternate; }
+  & .unit .brume .b0 { top: 4%; left: 2%; animation-duration: 3.1s; }
+  & .unit .brume .b1 { top: 28%; left: 22%; animation-duration: 3.9s; animation-delay: -1.2s; }
+  & .unit .brume .b2 { top: 52%; left: 4%; animation-duration: 3.4s; animation-delay: -2.1s; }
+  & .unit .brume .b3 { top: 74%; left: 18%; animation-duration: 4.3s; animation-delay: -.6s; }
   /* Le personnage : plus haut que le cadre, un contour noir epais fait de quatre ombres sans flou. */
   & :is(.unit, .hcard:not(.fx-carte)) > img {
     position: absolute; left: 50%; top: -14px; width: 84%; height: 74%; margin: 0; transform: translateX(-50%); object-fit: contain;
@@ -173,8 +182,11 @@ html[data-skin="juice"] {
   & .unit .s .a.plus { color: #4dff2e; }
   & .unit .s .h.moins { color: #ff2a3a; }
   /* Deux pictogrammes au plus sur la face (battle.js), a leur taille : rien n'est coupe ; le reste se lit a l'appui long. */
-  & :is(.unit, .hcard:not(.fx-carte)) .pic { position: absolute; left: 6px; bottom: 6px; height: 22px; max-width: none; overflow: visible; flex-wrap: nowrap; gap: 2px; }
-  & :is(.unit, .hcard:not(.fx-carte)) .pic .ico { width: 20px; height: 20px; }
+  & :is(.unit, .hcard:not(.fx-carte)) .pic { position: absolute; left: 5px; bottom: 5px; height: 28px; max-width: none; overflow: visible; flex-wrap: nowrap; gap: 2px; }
+  & :is(.unit, .hcard:not(.fx-carte)) .pic .ico { width: 26px; height: 26px; }
+  & :is(.unit, .hcard:not(.fx-carte)) .pic img.ico[data-ico="Watch"] { width: 38px; }
+  /* Sur le plateau, les deux pictos s'empilent en COLONNE a gauche : en rangee, le second passait sous les chiffres. */
+  & .unit .pic { flex-direction: column-reverse; align-items: flex-start; height: auto; gap: 1px; }
   & :is(.unit, .hcard:not(.fx-carte)) .pic b { font-size: 13px; color: #fff; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
   & .bt-eventail .bt-nb { color: #fff; -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill; }
   /* Le cout : une gemme bleue, le chiffre blanc cerne. */
@@ -240,6 +252,8 @@ html[data-skin="juice"] {
   & .autochip.on { background: linear-gradient(180deg, #8bf05c 0 50%, #35b52f 50% 100%); }
   & .jr-onglets button.on { background: linear-gradient(180deg, #ffe27a 0 50%, #ffb92a 50% 100%); }
   & .jr-x { background: linear-gradient(180deg, #ff8fa8 0 50%, #ee3d63 50% 100%); }
+  & .btn.rouge { background: linear-gradient(180deg, #ff8f8f 0 50%, #e8433f 50% 100%); }
+  & .btn.rouge.sur { background: linear-gradient(180deg, #ff5c5c 0 50%, #b81f1f 50% 100%); }
   & .ib .bdg { background: #ff3d4f; color: #fff; border: 2px solid #fff; -webkit-text-stroke: 0; box-shadow: 0 0 0 2px var(--contour); }
   & .btn:disabled { filter: grayscale(.8); transform: none; box-shadow: inset 0 3px 0 rgba(255,255,255,.4), 0 2px 0 var(--contour); }
 
@@ -356,11 +370,13 @@ html[data-skin="juice"] {
    La propriete `translate` (et non `transform`) : aucun conflit avec les animations du moteur (WAAPI), et les cartes
    qui arrivent (`.nouvelle`), les cibles (`.targetable`) et la carte jouee (`.fx-carte`) gardent les leurs. */
 @keyframes juice-hop { 0%, 100% { translate: 0 0; } 50% { translate: 0 -6px; } }
+/* La brume d'une unite Elusive : elle derive d'un cote a l'autre et s'epaissit puis s'eclaircit. */
+@keyframes brume-derive { from { translate: -14% 0; opacity: .35; } to { translate: 16% 0; opacity: .9; } }
 html[data-skin="juice"] .unit.ready:not(.targetable) { animation: juice-hop 1s ease-in-out infinite; }
 html[data-skin="juice"] .hcard:not(.no, .nouvelle, .fx-carte, .sel) { animation: juice-hop 1.5s ease-in-out infinite; }
 html[data-skin="juice"] .hcard:not(.no):nth-child(2n) { animation-delay: -.5s; }
 html[data-skin="juice"] .hcard:not(.no):nth-child(3n) { animation-delay: -1s; }
 html[data-skin="juice"] .plot.ready { animation: juice-hop 1s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-  html[data-skin="juice"] :is(.unit, .hcard, .plot) { animation: none !important; }
+  html[data-skin="juice"] :is(.unit, .hcard, .plot, .brume img) { animation: none !important; }
 }

@@ -21,7 +21,7 @@
 | `revue.js` | « Revoir le combat » : le journal sur un combat fini, tout révélé. | `ouvreRevue` |
 | `pictos.js` | **Ce que fait une carte, sans texte** : `ligneDePictos(x)` rend une ligne d'icônes à hauteur fixe (mots-clés, moments, effets avec montant ; 4 au plus, le reste à l'appui long) — une carte garde donc **toujours la même taille**. Tables `CLES`, `OPS`, `MOMENTS` → noms d'icônes. | `ligneDePictos`, `pictosDe`, `iconeDeCle` |
 | `fiche.js` | **Les lignes de la fiche** (appui long, maquette « Combat Screen Zoom on a card », 19 oct. 2026) : ce que la carte **fait** en `ligneEffet` (« icônes : texte », vert pour un effet, jaune pour un mot-clé) ; ce qui la **modifie** en `ligneSource` (portrait de la source, son nom et « (N fois) » en titre, le changement dessous : vert / rouge / grisé `eteint`), dont chaque **renfort avec sa source** (lue dans `B.evts`, sprite compris). | `ligneEffet`, `ligneSource`, `lignesDeFait`, `lignesDeRenforts` |
-| `icones.js` | **Registre des icônes** : `icone('Nom', taille)` → `Graphical Assets/Icons/Nom.png` (sa version allégée si `vignettes.js` la liste : `urlIcone`), sinon le picto Kenney (`Graphical Assets/Icons/Kenney/`), sinon un signe. Ne jamais écrire un pictogramme en dur. Le dossier a changé le 19 oct. 2026 (`DOSSIER_ICONES`). | `icone`, `urlIcone`, `ICONES`, `DOSSIER_ICONES` |
+| `icones.js` | **Registre des icônes** : `icone('Nom', taille)` → `Graphical Assets/Icons/Nom.png` (sa version allégée si `vignettes.js` la liste : `urlIcone`), sinon le picto Kenney (`Graphical Assets/Icons/Kenney/`), sinon un signe. Ne jamais écrire un pictogramme en dur. Le dossier a changé le 19 oct. 2026 (`DOSSIER_ICONES`). `FICHIERS` donne le dessin d'une icône qui ne porte pas son nom (20 oct. 2026 : râle d'agonie = `Dead`, Venin = `Poison`, « quand X » = `Watch` → `Eye/Eye Close`) ; `OEIL` les 5 étapes de l'œil qui s'ouvre, `BRUME` les 4 bandes de brume d'Élusif (préchargées par l'écran de chargement). | `icone`, `urlIcone`, `ICONES`, `FICHIERS`, `OEIL`, `BRUME`, `DOSSIER_ICONES` |
 | `zone.js` | **Fenêtre de zone** (défausse, exil, **ta pile de fatigue**, main adverse de dos) : cartes éclairées/grisées ; une carte `dos` n'a ni nom, ni coût, ni geste, seulement sa patte de pistage. Ne sait rien du combat. | `ouvreZone` |
 | `overworld.js` | **La carte** : canvas, joystick flottant, points d'intérêt, tri du plus loin au plus proche (bâtiments, joueur **et décor** de `sol-carte.js` : le sol et le décor sont dessinés par lui), échelle des bâtiments. **Plus aucun verrou** (16 oct. 2026) : une **arène** (`type: 'arena'`) s'ouvre par « Entrer » → `ouvreFicheArene` (`arene.js`), son adversaire est dessiné devant la porte et son nom porte son niveau ; une **cueillette** (`forage`) fait connaître des cultures à la Ferme ; la découverte (`save.world.seen`) et la porte se règlent dans `BALANCE.arenes`. **Un tap sur le joueur** (court, sans glisser, sur son sprite : `surLeJoueur`) ouvre le Profil. | `initWorld`, `startWorld`, `stopWorld`, `refreshTop` |
 | `sol-carte.js` | **Le sol et le décor de la carte** (pack B+, décidé le 16 octobre 2026, `docs/PACKS-CARTE.md`) : Kenney Medieval RTS + Foliage Pack (`Decor/`). Le contour brun juice (`CONTOUR`, ajouté au rendu) cerne le sol, les arbres et les rochers, **pas le feuillage** ni le **pied des troncs et des rochers** (décisions du game designer). Chemins, eau, neige et bois en **couches tracées par quarts de case** (coins arrondis, congés) ; feuillage **semé** au hasard fixe par case (`SEMIS` : fleurs, touffes, buissons, plus dense en lisière et dans les bois). Ne décide rien de la marche (`BLOCKED`). ≈ 1 ms par image. Aussi utilisé par `game/carte-packs.html`. | `creeSol`, `IMAGES_SOL`, `CONTOUR` |
@@ -88,7 +88,7 @@ Maquettes `mockups/Combat Screen.png`, `Combat Screen more than 3 cards.png`, `C
   `data-geste="hero"`), ses PV dessous (`.bt-hpe`, hors du médaillon pour que le halo n'entoure que lui), sa main **de
   dos en éventail** en haut à droite (les cartes pendent depuis le haut, dos retournés : il les tient en face ; une carte
   pistée porte sa patte) et son mana dessous. Le dos des cartes : `DOS_DE_CARTE` (`Graphical Assets/CardBack/`).
-- **Les bords** : onglets Menu (le tour, les 5 touchers de triche, le journal en texte), Registre (la fenêtre de zone),
+- **Les bords** : onglets Menu (une fenêtre qui met le combat en pause, avec Abandonner : voir « Le Menu du combat »), Registre (la fenêtre de zone),
   Log (le journal graphique, badge) à gauche ; Fin de tour et la vitesse (x1/x2/x4) à droite. ⚠ Un bouton écrit à la
   verticale (`writing-mode`) prend la hauteur de son voisin : `.bt-onglet` a `height: max-content`.
 - **En bas** : la ligne du joueur (avatar, nom, PV, bouton Auto/Manuel `#autoChip`), puis le plateau de la main
@@ -132,6 +132,21 @@ Auto, ou si la carte (l'unité) ne peut pas agir (bulle qui dit pourquoi).
   (`.unit.bouclier::after`) ; **Élusif** = le personnage à moitié transparent (`.unit.elusif`).
 - **La fiche dit le moins possible** : le texte de la carte (écrit dans le builder) précédé des icônes de ses moments et
   effets, sinon une ligne générée par effet ; puis le **nom** de chaque mot-clé, sans sa définition. Plus de ligne d'état.
+- **Les dessins du game designer (20 oct. 2026)** : les pictos de la face font **26 px** (en colonne à gauche sur le plateau,
+  en rangée dans la main) ; une règle « **quand X** » (les 48 moments `on_*`, `EVENT_TRIGGERS`) porte l'**œil fermé**
+  (`Watch`, une case 1,6 fois plus large : le dessin est large), qui **s'ouvre** au-dessus de l'unité quand sa règle se
+  déclenche (`oeil` dans `effets.js` : fermé → 25 → 50 → 75 % → ouvert, une pause, puis il se referme) ; le **râle
+  d'agonie** prend le crâne (`Dead`) ; le **Venin**, la fiole de poison ; **Élusif**, quatre bandes de **brume** qui
+  dérivent sur la carte en changeant d'opacité (`.brume`, `@keyframes brume-derive`) ; le **Bouclier** (`Shield.png`)
+  s'affiche en badge sur le coin haut droit tant qu'il tient (`.ecu`), en plus du halo doré.
+
+## Le Menu du combat (20 octobre 2026)
+L'onglet Menu ouvre une fenêtre qui **met le combat en pause** (`enPause` : le mode Auto ne joue plus tant qu'elle est
+ouverte ; la fermer relance `loop()`). Boutons : Reprendre, Vitesse (x1/x2/x4), Défausse et Registre, Journal du combat,
+Télécharger le journal (texte), et **Abandonner** — deux touchers (« Toucher encore pour abandonner »), jamais de boîte de
+dialogue. L'abandon (`abandonne`) ne passe pas par le moteur : le combat est fermé avant sa fin (`B.abandon`), `finish()`
+le compte en **défaite** (« Tu as abandonné. », pas de récompense, l'arène note une défaite, Réessayer proposé) et
+`fermeJournal` l'écrit « abandon » dans le journal de décisions. Les 5 touchers sur « Tour N » ouvrent toujours la triche.
 
 ## La vitesse et l'attaque (19 octobre 2026)
 - Le bouton des bords passe **x1 → x2 → x4** (`BALANCE.ui.fx.vitesses`). Tous les temps de `BALANCE.ui.fx` (et de l'onglet

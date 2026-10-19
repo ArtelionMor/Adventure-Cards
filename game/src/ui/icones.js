@@ -34,13 +34,28 @@ export const ICONES = {
   // la barre de navigation (maquette « Arena Screen », 19 octobre 2026) : un dessin par ecran
   Arena: '⚔', Farm: '🌱', Map: '🗺', 'Icon Deck': '▤', Shop: '🛒',
   // les recompenses d'une arene (monnaies A et B), la coche d'un niveau battu
-  Fanion: '⚑', Sceau: '✪', Validate: '✔'
+  Fanion: '⚑', Sceau: '✪', Validate: '✔',
+  // « QUAND X » (une regle qui reagit a ce qui se passe : un sort lance, un allie qui arrive...) : l'oeil, ferme sur la
+  // carte, qui s'ouvre quand sa regle se declenche (ui/effets.js, `oeil`). Dessins du game designer, 20 oct. 2026.
+  Watch: '◉'
 };
+
+// Quand le dessin d'une icone ne porte pas son nom (rangé dans un sous-dossier, ou partage avec une autre icone) : le
+// fichier, relatif a `DOSSIER_ICONES`, sans extension. Choix du game designer (20 oct. 2026) : le rale d'agonie prend le
+// crane de la mort, le Venin la fiole de poison, « quand X » l'oeil ferme.
+export const FICHIERS = {
+  Deathrattle: 'Dead', Venom: 'Poison', Watch: 'Eye/Eye Close'
+};
+// Les cinq etapes de l'oeil qui s'ouvre (ui/effets.js), de ferme a ouvert.
+export const OEIL = ['Eye/Eye Close', 'Eye/Eye 25%', 'Eye/Eye 50%', 'Eye/Eye 75%', 'Eye/Eye Open'];
+// Les quatre bandes de brume d'une unite ELUSIVE (ui/battle.js), du plus clair au plus sombre : elles derivent sur la
+// carte et changent d'opacite (CSS, `.brume`).
+export const BRUME = ['Fog/White Fog', 'Fog/Grey Fog', 'Fog/Dark Grey Fog', 'Fog/Dark Fog'];
 
 // Le dossier des icones (depuis le rangement du 19 octobre 2026 : `Icons/` est devenu `Graphical Assets/Icons/`).
 export const DOSSIER_ICONES = 'Graphical Assets/Icons';
 /** L'adresse du dessin de `nom` : sa version allegee quand elle existe (les icones de navigation font 2000 px). */
-export const urlIcone = nom => asset(`${DOSSIER_ICONES}/${nom}.png`);
+export const urlIcone = nom => asset(`${DOSSIER_ICONES}/${FICHIERS[nom] || nom}.png`);
 
 // DES PICTOS DE TRAVAIL, en attendant les dessins du game designer. `Graphical Assets/Icons/Kenney/<fichier>.png` : le pack
 // « Board Game Icons » de Kenney (CC0, licence a cote), blanc sur transparent, donc TEINTABLE (on le pose en
@@ -92,7 +107,9 @@ export function icone(nom, taille = 20) {
 export function imagesDesIcones() {
   return [
     ...Object.keys(ICONES).map(nom => ({ url: urlIcone(nom), absente: () => absentes.add(nom) })),
-    ...[...new Set(Object.values(KENNEY))].map(f => ({ url: urlKenney(f) }))
+    ...[...new Set(Object.values(KENNEY))].map(f => ({ url: urlKenney(f) })),
+    // les etapes de l'oeil et les bandes de brume, animees en combat : chargees d'avance, elles ne clignotent pas
+    ...[...OEIL, ...BRUME].map(f => ({ url: asset(`${DOSSIER_ICONES}/${f}.png`) }))
   ];
 }
 

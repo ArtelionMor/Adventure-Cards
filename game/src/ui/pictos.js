@@ -4,7 +4,7 @@
 // texte change la taille de la carte (les jetons faisaient des effets bizarres). Une ligne de pictogrammes
 // de HAUTEUR FIXE la remplace ; le texte complet reste a l'appui long (la fiche). Les icones sont celles de
 // `icones.js` (le dessin du game designer quand il existe, un pictogramme de travail sinon).
-import { keyId, TRIGGERS } from '../config/mechanics.js';
+import { keyId, TRIGGERS, EVENT_TRIGGERS } from '../config/mechanics.js';
 import { icone } from './icones.js';
 
 // Mot-cle -> icone. Les types (`type:Chien`, `type_tous`) sont des etiquettes, pas des effets : aucun picto.
@@ -32,7 +32,8 @@ export const iconeDeCle = k => CLES[keyId(k)] || null;
 
 /** L'icone d'un effet (`op`), « Trigger » s'il est inconnu ; celle d'un moment (slot de `TRIGGERS`), ou null. */
 export const iconeDeOp = op => OPS[op] || 'Trigger';
-export const iconeDeMoment = slot => MOMENTS[slot] || null;
+// Une regle « quand X » (un moment `on_*` du registre, `EVENT_TRIGGERS`) : l'oeil.
+export const iconeDeMoment = slot => MOMENTS[slot] || (TRIGGERS[slot] && TRIGGERS[slot].event ? 'Watch' : null);
 
 /** Un montant a cote de l'icone : le nombre s'il est fixe, « X » s'il depend d'un compteur. */
 const montant = v => (typeof v === 'number' ? (v > 1 || v < 0 ? v : null) : v && typeof v === 'object' ? 'X' : null);
@@ -54,6 +55,7 @@ export function pictosDe(x, { effets = true, max = 4 } = {}) {
       if (slot === 'death' && effets) for (const e of x[slot]) if (OPS[e.op]) ajoute(OPS[e.op], montant(e.v), e.op);
     }
   }
+  if (EVENT_TRIGGERS.some(slot => (x[slot] || []).length)) ajoute('Watch', null, 'Quand…');
   if (x.aura) ajoute('Aura', null, 'Aura');
   if ((x.statics || []).length) ajoute('Static', null, 'Effet continu');
   if (effets) for (const e of x.play || []) ajoute(OPS[e.op] || 'Trigger', montant(e.v), e.op);

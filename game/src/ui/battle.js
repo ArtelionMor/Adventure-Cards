@@ -16,7 +16,7 @@ import { ouvreZone } from './zone.js';
 import { installeGestes } from './gestes.js';
 import { apercuAttaque, apercuCarte, pilule } from './apercu.js';
 import { creeJournal } from './journal.js';
-import { icone } from './icones.js';
+import { icone, urlIcone, BRUME } from './icones.js';
 import { gardeCombat } from './combats.js';
 import { ouvreRevue } from './revue.js';
 import { creeFx } from './effets.js';
@@ -36,6 +36,7 @@ let selZone = 'main'; // d'ou part la carte choisie : 'main', ou 'defausse' (une
 let selChoix = null;  // la branche choisie sur une carte « Choisir », en attente de cible
 let selUnit = null;   // uid d'une unite prete
 let onDone = null;
+let enPause = false;  // le menu est ouvert : le mode Auto attend
 let ctx = null;
 // Ce que le doigt est en train de LIRE (appui long), ou null : { kind: 'unit', side, uid } ou
 // { kind: 'carte', carte, camp }. Comme la fenetre de zone, la lecture se redessine a chaque
@@ -136,6 +137,7 @@ export function openBattle(node, done) {
   poseLesGestes();
   closeModal();
   auto = true;
+  enPause = false;
   dernierJournal = null;
   // `evenements` : le combat se raconte en donnees (combat/evenements.js), c'est ce que lit le
   // journal graphique. Seul le jeu l'allume — ni le bot, ni les simulations n'en paient le prix.
@@ -319,7 +321,7 @@ function panneauTriche() {
 
 function loop() {
   clearTimeout(timer);
-  if (!B || B.over) return;
+  if (!B || B.over || enPause) return;
   const isBot = B.turn === 'e' || auto;
   if (!isBot) return;                       // au joueur de jouer
   timer = setTimeout(() => {
@@ -386,11 +388,12 @@ function majUnite(n, u, side) {
   n.dataset.atk = u.atk;
   n.dataset.hp = u.hp;
   const ap = pilule(apercus.get(`${side}:${u.uid}`));
-  const pics = ligneDePictos(u, { effets: false, taille: 20, max: 2 });
+  const pics = ligneDePictos(u, { effets: false, taille: 26, max: 2 });
   // Les chiffres se colorent comme dans un jeu de cartes : l'attaque en vert quand elle depasse celle de la carte, la vie
   // en rouge quand l'unite est blessee (un jeton n'a pas de carte : pas de reference, donc pas de vert).
   const plus = u.card && u.card.atk != null && u.atk > u.card.atk, moins = u.hp < u.maxHp;
-  const sig = [u.name, u.sprite || '', u.atk, u.hp, plus, moins, pics, ap, u.tox || 0].join('|');
+  const elusif = hasKey(u.keys, 'elusif');
+  const sig = [u.name, u.sprite || '', u.atk, u.hp, plus, moins, pics, ap, u.tox || 0, elusif, !!u.shield].join('|');
   if (n._sig !== sig) {
     n._sig = sig;
     n.innerHTML = `
@@ -399,13 +402,15 @@ function majUnite(n, u, side) {
       <div class="un">${u.name}</div>
       <div class="s"><span class="a${plus ? ' plus' : ''}">${u.atk}</span> / <span class="h${moins ? ' moins' : ''}">${u.hp}</span></div>
       ${pics}
+      ${elusif ? `<div class="brume">${BRUME.map((f, i) => `<img class="b${i}" src="${urlIcone(f)}" alt="">`).join('')}</div>` : ''}
+      ${u.shield ? `<div class="ecu">${icone('Shield', 34)}</div>` : ''}
       ${ap ? `<div class="pv">${ap}</div>` : ''}`;
   }
   n.classList.toggle('taunt', hasKey(u.keys, 'Taunt'));
   // Les capacites qui changent la facon de jouer se VOIENT sur la carte, pas seulement par leur icone
   // (demande du game designer, 19 oct. 2026) : Provocation = bouclier de pierre, Bouclier = halo d'or, Elusif = palot.
   n.classList.toggle('bouclier', !!u.shield);
-  n.classList.toggle('elusif', hasKey(u.keys, 'elusif'));
+  n.classList.toggle('elusif', elusif);
   n.classList.toggle('porte-aura', !!u.aura);   // un halo qui reste tant que le porteur d'une aura est en jeu
   n.classList.toggle('ready', side === 'p' && u.canAttack && u.atk > 0);
   n.classList.toggle('sel', selUnit === u.uid);
@@ -475,7 +480,7 @@ function majCarte(n, c, i) {
   // Le cout affiche est celui qu'on va vraiment payer : le mot-cle « Cout X de
   // moins/de plus » peut le faire bouger d'un tour a l'autre, on le signale.
   const cout = cardCost(c, B, 'p');
-  const pics = ligneDePictos(c, { taille: 20, max: 2 });
+  const pics = ligneDePictos(c, { taille: 26, max: 2 });
   const sig = [c.name, cout, c.cost, c.sprite || '', c.type, c.atk, c.hp, pics, c.pistee ? 1 : 0].join('|');
   if (n._sig !== sig) {
     n._sig = sig;
@@ -577,20 +582,39 @@ function etaleLaMain(main) {
   });
 }
 
-/** Le menu du combat : le tour, et ce qui ne sert pas a chaque coup (le journal en texte). */
+/**
+ * LE MENU DU COMBAT (« un vrai menu, avec un moyen d'abandonner », game designer, 20 oct. 2026). Il MET LE COMBAT EN
+ * PAUSE tant qu'il est ouvert (le mode Auto ne joue plus) : Reprendre, la vitesse, la defausse et le Registre, le journal,
+ * et ABANDONNER — deux touchers (le premier demande, le second abandonne), jamais de boite de dialogue.
+ */
 function ouvreMenu() {
   fermeLecture();
   reinitSelection();
   render();
+  enPause = true;
+  clearTimeout(timer);
   const box = el(`<div class="bt-menu">
     <h3>Menu</h3>
     <p class="bt-tour"></p>
-    <button class="btn ghost" data-k="zone">Défausse et Registre</button>
-    <button class="btn ghost" data-k="texte">Télécharger le journal (texte)</button>
     <button class="btn" data-k="fermer">Reprendre</button>
+    <button class="btn ghost" data-k="vitesse"></button>
+    <button class="btn ghost" data-k="zone">Défausse et Registre</button>
+    <button class="btn ghost" data-k="journal">Journal du combat</button>
+    <button class="btn ghost petit" data-k="texte">Télécharger le journal (texte)</button>
+    <button class="btn rouge" data-k="abandon">Abandonner</button>
   </div>`);
   const tour = box.querySelector('.bt-tour');
   tour.textContent = `Tour ${Math.ceil(B.turnNo / 2)}`;
+  const vit = box.querySelector('[data-k="vitesse"]');
+  const ditVitesse = () => { vit.textContent = `Vitesse x${fx.vitesse}`; };
+  ditVitesse();
+  vit.onclick = () => { fx.cycleVitesse(); ditVitesse(); majBarre(); };
+  box.querySelector('[data-k="journal"]').onclick = () => { closeModal(); coque.journal.bascule(); render(); };
+  const ab = box.querySelector('[data-k="abandon"]');
+  ab.onclick = () => {
+    if (!ab.classList.contains('sur')) { ab.classList.add('sur'); ab.textContent = 'Toucher encore pour abandonner'; return; }
+    abandonne();
+  };
   // Cinq touchers sur « Tour N » ouvrent le panneau de triche.
   let touches = [];
   tour.addEventListener('pointerdown', ev => {
@@ -603,7 +627,22 @@ function ouvreMenu() {
   box.querySelector('[data-k="zone"]').onclick = () => { closeModal(); ouvreDefausse(); };
   box.querySelector('[data-k="texte"]').onclick = telechargeTexte;
   box.querySelector('[data-k="fermer"]').onclick = closeModal;
-  modal(box);
+  // Fermer le menu (Reprendre, ou toucher a cote) relance le combat la ou il s'etait arrete.
+  modal(box, () => { enPause = false; if (B && !B.over) loop(); });
+}
+
+/**
+ * ABANDONNER : le combat s'arrete la, compte comme une DEFAITE (pas de recompense, l'arene note une defaite) et le
+ * journal de decisions l'ecrit « abandon » (`fermeJournal` le reconnait : un combat ferme avant sa fin). Le moteur n'y
+ * est pour rien : c'est le joueur qui quitte la table.
+ */
+function abandonne() {
+  if (!B || B.over) return;
+  B.abandon = true;
+  enPause = true;   // la fermeture du menu ne doit pas relancer le bot
+  closeModal();
+  clearTimeout(timer);
+  finish();
 }
 
 /** Le journal en TEXTE, telechargeable : c'est l'outil du game designer, plus celui du joueur. */
@@ -1556,8 +1595,8 @@ function finish() {
   const root = $('#battle');
   root.classList.remove('spot');
   montreFin({
-    racine: root, issue: win ? 'victoire' : (B.winner === 'e' ? 'defaite' : 'nul'),
-    sousTitre: win ? `${enc.name} est vaincu.` : `${enc.name} tient bon. Reviens plus fort.`,
+    racine: root, issue: win ? 'victoire' : (B.abandon || B.winner === 'e' ? 'defaite' : 'nul'),
+    sousTitre: win ? `${enc.name} est vaincu.` : B.abandon ? 'Tu as abandonné.' : `${enc.name} tient bon. Reviens plus fort.`,
     recompenses, notes, boutons
   });
 }

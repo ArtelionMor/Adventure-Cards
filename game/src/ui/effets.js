@@ -16,7 +16,7 @@
 import { BALANCE } from '../config/balance.js';
 import { cardById } from '../config/npcs.js';
 import { asset } from './shell.js';
-import { icone } from './icones.js';
+import { icone, urlIcone, OEIL } from './icones.js';
 import { ligneDePictos, iconeDeCle } from './pictos.js';
 import { creeBriques, signatureDe } from './vfx.js';
 import { t as texte } from '../config/textes.js';
@@ -156,6 +156,29 @@ export function creeFx(acces) {
     if (style) Object.assign(d.style, style);
     acces.couche().appendChild(d);
     return d;
+  }
+
+  /**
+   * L'OEIL QUI S'OUVRE (dessins du game designer, 20 oct. 2026) : une regle « quand X » se declenche — l'oeil, ferme sur
+   * la carte, s'ouvre au-dessus de l'unite (ferme, 25, 50, 75 %, ouvert), regarde un instant, puis se referme.
+   */
+  function oeil(ev) {
+    const n = noeudDe(ev.src);
+    if (!n) return;
+    const r = rectDe(n);
+    const d = pose('fx-oeil', `<img src="${urlIcone(OEIL[0])}" alt="">`, { x: r.x, y: r.y - r.h * .12, w: r.w, h: 0 });
+    const img = d.firstElementChild;
+    const pas = 70, tenue = 520;
+    OEIL.forEach((nom, i) => apres(i * pas, () => { img.src = urlIcone(nom); }));
+    [...OEIL].reverse().forEach((nom, i) => apres(OEIL.length * pas + tenue + i * pas, () => { img.src = urlIcone(nom); }));
+    const total = OEIL.length * pas * 2 + tenue;
+    anime(d, [
+      { transform: 'translate(-50%,-50%) scale(.6)', opacity: 0 },
+      { transform: 'translate(-50%,-50%) scale(1.1)', opacity: 1, offset: .12 },
+      { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: .85 },
+      { transform: 'translate(-50%,-50%) scale(.9)', opacity: 0 }
+    ], { duration: T(total), easing: 'ease-out' });
+    ephemere(d, total);
   }
 
   /** Un chiffre qui s'envole depuis une cible. `taille` 1 = normal, plus gros pour un gros coup. */
@@ -736,6 +759,8 @@ export function creeFx(acces) {
         case 'declenche': {
           // Les pictogrammes viennent de ce que ce declenchement a provoque (ses enfants dans le recit).
           const enfants = lot.filter(e => e.cause === ev.i);
+          // Une regle « quand X » : l'oeil de l'unite s'ouvre d'abord, puis la carte-effet dit ce qu'elle fait.
+          if (String(ev.moment).startsWith('on_')) apres(t, () => oeil(ev));
           apres(t, () => carteEffet(ev, enfants));
           // Et l'animation de CE moment-la, propre a la carte : son rale d'agonie, son debut de tour, sa regle.
           const sg = signatureDe(idDe(ev.src));

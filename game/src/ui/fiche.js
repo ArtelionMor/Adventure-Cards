@@ -20,7 +20,7 @@ const div = (cl, html) => {
 
 /** Une ligne de ce que fait la carte : ses icones (separees par des virgules), puis « : texte ». `ton` : effet / cle. */
 export function ligneEffet(icones, texte, ton = 'effet') {
-  return div(`fl ${ton}`, `<span class="fl-ico">${icones.filter(Boolean).map(n => icone(n, 26)).join('<i>,</i>')}</span><span class="fl-tx">: ${texte}</span>`);
+  return div(`fl ${ton}`, `<span class="fl-ico">${icones.filter(Boolean).map(n => icone(n, 32)).join('<i>,</i>')}</span><span class="fl-tx">: ${texte}</span>`);
 }
 
 /**

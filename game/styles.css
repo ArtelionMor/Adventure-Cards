@@ -381,6 +381,13 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .bt-onglet.fintour .ico { rotate: 90deg; margin-top: 8px; }
 .bt-onglet .bdg { position: absolute; bottom: -6px; left: -6px; rotate: 180deg; writing-mode: horizontal-tb; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; font-size: 11px; display: grid; place-items: center; }
 .bt-onglets.d .vitesse { margin-right: 6px; }
+/* Le Menu du combat (une fenetre) : de grands boutons, Abandonner en rouge et en dernier. */
+.bt-menu { display: grid; gap: 10px; min-width: min(280px, 80vw); }
+.bt-menu h3 { margin: 0; text-align: center; font-size: 24px; text-transform: none; letter-spacing: 0; color: var(--ink); }
+.bt-menu .bt-tour { margin: -4px 0 4px; text-align: center; font-size: 13px; opacity: .7; }
+.bt-menu .btn { width: 100%; font-size: 18px; padding: 11px 12px; }
+.bt-menu .btn.petit { font-size: 13px; padding: 6px 10px; }
+.bt-menu .btn.rouge { margin-top: 8px; }
 .hpbar { flex: 1; height: 14px; background: #3a1f26; border-radius: 8px; overflow: hidden; position: relative; }
 .hpbar i { display: block; height: 100%; background: linear-gradient(90deg, #ff5f6d, #ff9a6b); }
 .hpbar b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; }
@@ -526,6 +533,8 @@ button.btn:disabled { opacity: .4; cursor: default; }
 /* ---------- les icones (ui/icones.js) ---------- */
 /* Un fichier `Icons/<Nom>.png` quand il existe, un signe de remplacement sinon. */
 .ico { width: var(--s, 20px); height: var(--s, 20px); object-fit: contain; display: inline-block; vertical-align: middle; flex: none; }
+/* L'oeil (« quand X ») est un dessin large : une case 1,6 fois plus large, sinon il est ecrase dans le carre. */
+img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6); }
 .ico.g { display: inline-flex; align-items: center; justify-content: center; font-size: calc(var(--s, 20px) * .8); line-height: 1; color: var(--accent); font-style: normal; }
 
 /* ---------- le bouton du journal, dans la barre ---------- */
@@ -711,6 +720,9 @@ button.btn:disabled { opacity: .4; cursor: default; }
 /* La carte morte (ui/effets.js, `mort`) : assombrie, son personnage remplace par le crane, avant de voler a la defausse. */
 .fx-morte { filter: brightness(.42) saturate(.35); }
 .fx-morte > img { opacity: 0; }
+/* L'oeil qui s'ouvre au-dessus d'une unite dont la regle « quand X » se declenche (ui/effets.js, `oeil`). */
+.fx-oeil { position: absolute; z-index: 9; pointer-events: none; line-height: 0; }
+.fx-oeil img { width: 72px; height: auto; filter: drop-shadow(0 2px 0 rgba(255,255,255,.9)) drop-shadow(0 3px 2px rgba(23, 11, 18, .5)); }
 .fx-crane { position: absolute; left: 50%; top: 46%; z-index: 2; line-height: 0; pointer-events: none; filter: drop-shadow(0 3px 0 rgba(23, 11, 18, .8)); }
 .hcard.nouvelle { animation: arrive calc(var(--fx-pioche, 380) * 1ms * var(--fx-k, 1)) calc(var(--r, 0) * var(--fx-pioche-decalage, 80) * 1ms * var(--fx-k, 1)) backwards cubic-bezier(.2,.9,.3,1.15); }
 @keyframes arrive { from { transform: translateY(70px) scale(.7); opacity: 0; } }
