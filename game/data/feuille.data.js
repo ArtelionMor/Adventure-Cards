@@ -3,7 +3,7 @@
 // Les valeurs de l'onglet « animations » remplacent celles de BALANCE.ui.fx, celles de « heroes » les statistiques
 // des heros et des adversaires (game/src/config/feuille.js).
 export const FEUILLE = {
-  "synchro": "2026-10-19T19:47:22.324Z",
+  "synchro": "2026-10-19T21:40:54.518Z",
   "feuille": "1B01tuggXdbvqO3_7wh2YserIoDVnarMXCPXPaYbSGCY",
   "heroes_kin": [
     {
@@ -477,7 +477,7 @@ export const FEUILLE = {
     {
       "id": "tenueMs",
       "name": "Carte jouée",
-      "value": 1500
+      "value": 5000
     },
     {
       "id": "sortieMs",
