@@ -3,7 +3,7 @@
 // Les valeurs de l'onglet « animations » remplacent celles de BALANCE.ui.fx, celles de « heroes » les statistiques
 // des heros et des adversaires (game/src/config/feuille.js).
 export const FEUILLE = {
-  "synchro": "2026-10-19T23:26:10.528Z",
+  "synchro": "2026-10-19T23:42:29.469Z",
   "feuille": "1B01tuggXdbvqO3_7wh2YserIoDVnarMXCPXPaYbSGCY",
   "heroes_kin": [
     {
@@ -57,7 +57,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "aggro",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "cat",
@@ -67,7 +67,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "combo",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "crow",
@@ -77,7 +77,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "aggro",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "frog",
@@ -87,7 +87,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "aggro",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "owl",
@@ -97,7 +97,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "control",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "cameleon",
@@ -107,7 +107,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "combo",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "dog2",
@@ -117,7 +117,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "aggro",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "cat2",
@@ -127,7 +127,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "aggro",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "crow2",
@@ -137,7 +137,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "combo",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "frog2",
@@ -147,7 +147,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "aggro",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "owl2",
@@ -157,7 +157,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "control",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "cameleon2",
@@ -167,7 +167,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "aggro",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "dog3",
@@ -177,7 +177,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "combo",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "cat3",
@@ -187,7 +187,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "combo",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "crow3",
@@ -197,7 +197,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "combo",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "frog3",
@@ -207,7 +207,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "control",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "owl3",
@@ -217,7 +217,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "combo",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "cameleon3",
@@ -227,7 +227,7 @@ export const FEUILLE = {
       "is_hero": true,
       "deck_category": "combo",
       "PV_Max": 20,
-      "Mana_Max": 3
+      "Mana_Max": 10
     },
     {
       "id": "rabbit1",
@@ -236,7 +236,8 @@ export const FEUILLE = {
       "sprite": "Rabbit",
       "is_hero": false,
       "deck_category": "aggro",
-      "PV_Max": 10
+      "PV_Max": 10,
+      "Mana_Max": 10
     },
     {
       "id": "cat1",
@@ -245,7 +246,8 @@ export const FEUILLE = {
       "sprite": "Cat",
       "is_hero": false,
       "deck_category": "combo",
-      "PV_Max": 20
+      "PV_Max": 20,
+      "Mana_Max": 10
     },
     {
       "id": "crow1",
@@ -254,7 +256,8 @@ export const FEUILLE = {
       "sprite": "Crow",
       "is_hero": false,
       "deck_category": "aggro",
-      "PV_Max": 20
+      "PV_Max": 20,
+      "Mana_Max": 10
     },
     {
       "id": "wolf",
@@ -263,7 +266,8 @@ export const FEUILLE = {
       "sprite": "Big Bad Wolf",
       "is_hero": false,
       "deck_category": "control",
-      "PV_Max": 20
+      "PV_Max": 20,
+      "Mana_Max": 10
     },
     {
       "id": "frog1",
@@ -272,7 +276,8 @@ export const FEUILLE = {
       "sprite": "Frog Toad",
       "is_hero": false,
       "deck_category": "combo",
-      "PV_Max": 20
+      "PV_Max": 20,
+      "Mana_Max": 10
     },
     {
       "id": "octo1",
@@ -281,7 +286,8 @@ export const FEUILLE = {
       "sprite": "Octopus Pirate",
       "is_hero": false,
       "deck_category": "aggro",
-      "PV_Max": 20
+      "PV_Max": 20,
+      "Mana_Max": 10
     },
     {
       "id": "frogboss",
@@ -290,7 +296,8 @@ export const FEUILLE = {
       "sprite": "Frog Captain",
       "is_hero": false,
       "deck_category": "control",
-      "PV_Max": 20
+      "PV_Max": 20,
+      "Mana_Max": 10
     },
     {
       "id": "fox1",
@@ -299,7 +306,8 @@ export const FEUILLE = {
       "sprite": "Fox Snow",
       "is_hero": false,
       "deck_category": "control",
-      "PV_Max": 20
+      "PV_Max": 20,
+      "Mana_Max": 10
     },
     {
       "id": "owlboss",
@@ -308,7 +316,8 @@ export const FEUILLE = {
       "sprite": "Owl Great Horned Owl",
       "is_hero": false,
       "deck_category": "control",
-      "PV_Max": 20
+      "PV_Max": 20,
+      "Mana_Max": 10
     }
   ],
   "encounters": [
