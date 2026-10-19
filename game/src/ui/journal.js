@@ -25,15 +25,22 @@ const pl = (n, mot) => `${n} ${mot}${Math.abs(n) > 1 ? 's' : ''}`;
 const nom = r => `<b>${esc(r && r.nom)}</b>`;
 const sprite = r => (r && r.sprite ? `<img class="jr-sp" src="${asset(r.sprite)}" alt="">` : '<span class="jr-sp vide"></span>');
 
+/**
+ * Ce qui rend une carte du journal LISIBLE (game designer, 20 oct. 2026 : « quand on clique sur les cartes dans les logs,
+ * ça ouvre rien ») : son identifiant de carte, que l'ecran de combat lit au toucher et a l'appui long (`data-geste`
+ * « journal », ui/battle.js) pour ouvrir sa fiche. Un heros ou un jeton n'a pas de carte : rien.
+ */
+const lisible = r => (r && r.id ? ` data-geste="journal" data-carte="${esc(r.id)}" data-camp="${esc(r.camp || '')}" data-sprite="${esc(r.sprite || '')}"` : '');
+
 /** Une carte, en petit : son cout, son dessin, son nom. */
 function miniCarte(r, cout) {
-  return `<span class="jr-mc ${r.type === 'spell' ? 'sort' : 'allie'}"><i>${cout ?? r.cout ?? ''}</i>${sprite(r)}<b>${esc(r.nom)}</b></span>`;
+  return `<span class="jr-mc ${r.type === 'spell' ? 'sort' : 'allie'}"${lisible(r)}><i>${cout ?? r.cout ?? ''}</i>${sprite(r)}<b>${esc(r.nom)}</b></span>`;
 }
 const cartes = liste => liste.map(c => miniCarte(c)).join(' ');
 /** Une carte qu'on n'a pas le droit de voir (la main de l'adversaire, en direct). */
 const carteCachee = n => `<span class="jr-mc cache"><i>?</i><b>${n > 1 ? n + ' cartes' : 'une carte'}</b></span>`;
 /** Une unite, en petit : son dessin, son nom, ses chiffres. */
-const miniUnite = r => `<span class="jr-mu">${sprite(r)}${nom(r)}<small>${r.atk}/${r.hp}</small></span>`;
+const miniUnite = r => `<span class="jr-mu"${lisible(r)}>${sprite(r)}${nom(r)}<small>${r.atk}/${r.hp}</small></span>`;
 /** Ce qu'une designation montre : un heros, une unite, une carte. */
 const miniRef = r => (!r ? '' : r.k === 'carte' ? miniCarte(r) : r.k === 'unite' ? miniUnite(r) : `<span class="jr-mu">${sprite(r)}${nom(r)}</span>`);
 
@@ -44,7 +51,7 @@ const miniRef = r => (!r ? '' : r.k === 'carte' ? miniCarte(r) : r.k === 'unite'
  */
 function panneau(r, { avant, apres, mort, bouclier }) {
   const change = apres !== avant;
-  return `<div class="jr-u ${mort ? 'mort' : ''}">
+  return `<div class="jr-u ${mort ? 'mort' : ''}"${lisible(r)}>
     ${sprite(r)}
     ${r.cout !== null && r.cout !== undefined && r.k === 'unite' ? `<span class="co">${r.cout}</span>` : ''}
     ${r.k === 'unite' ? `<span class="a">${r.atk}</span>` : ''}

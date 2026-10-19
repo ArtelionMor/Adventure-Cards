@@ -11,12 +11,9 @@
 //   'on'  — eclairee : on peut la jouer d'un geste (un clic appelle `onChoix`) ;
 //   'off' — grisee : sans objet ici (pas le mot-cle, pas assez de mana...) ;
 //   'vue' — lue seulement : ni l'un ni l'autre, par exemple la defausse de l'adversaire.
-import { keyId, keyLabel } from '../config/mechanics.js';
 import { el, asset, modal, closeModal } from './shell.js';
 import { icone } from './icones.js';
-
-/** Un mot-cle utile a lire sur une vignette : pas les types, qui noieraient la carte. */
-const motsCles = c => (c.keys || []).filter(k => keyId(k) !== 'type' && keyId(k) !== 'type_tous').slice(0, 3);
+import { ligneDePictos } from './pictos.js';
 
 function carteNode(x, gi) {
   const c = x.carte;
@@ -27,15 +24,15 @@ function carteNode(x, gi) {
   }
   // `data-geste` : la carte se touche par les gestes de l'ecran de combat (ui/gestes.js) —
   // un tap la joue si elle est eclairee, un appui long la lit. `g` et `i` disent laquelle.
+  // LA CARTE CARREE de la main, SANS TEXTE (« trop de texte quand on ouvre la defausse », game designer, 20 oct. 2026) :
+  // le cout, le personnage, deux pictogrammes et les chiffres. Son nom et ce qu'elle fait se lisent a l'appui long ;
+  // une carte qu'on peut relancer (Reprise) est eclairee (`on`), le reste grise ou lu seulement.
   const n = el(`
-    <div class="zcard ${c.type === 'spell' ? 'spell' : ''} ${x.etat}" data-geste="zone" data-g="${gi}" data-i="${x.i}">
+    <div class="zcard carre ${c.type === 'spell' ? 'spell' : ''} ${x.etat}" data-geste="zone" data-g="${gi}" data-i="${x.i}" title="${String(c.name || '').replace(/"/g, '&quot;')}">
       <div class="cost">${x.cout ?? c.cost}</div>
       ${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}
-      <div class="nm">${c.name}</div>
-      <div class="tx">${c.text || ''}</div>
-      ${motsCles(c).length ? `<div class="chips">${motsCles(c).map(k => `<span class="chip">${keyLabel(k)}</span>`).join('')}</div>` : ''}
+      ${ligneDePictos(c, { taille: 20, max: 2, plus: false })}
       ${c.type === 'ally' ? `<div class="st">${c.atk}/${c.hp}</div>` : ''}
-      ${x.note ? `<div class="note">${x.note}</div>` : ''}
     </div>`);
   return n;
 }

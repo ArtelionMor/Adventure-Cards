@@ -381,6 +381,8 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .bt-onglet.fintour .ico { rotate: 90deg; margin-top: 8px; }
 .bt-onglet .bdg { position: absolute; bottom: -6px; left: -6px; rotate: 180deg; writing-mode: horizontal-tb; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; font-size: 11px; display: grid; place-items: center; }
 .bt-onglets.d .vitesse { margin-right: 6px; }
+/* Le journal ouvert prend toute la largeur : les onglets se retirent (le journal se ferme par sa croix). */
+#battle.jr-ouvert .bt-onglets { display: none; }
 /* Le Menu du combat (une fenetre) : de grands boutons, Abandonner en rouge et en dernier. */
 .bt-menu { display: grid; gap: 10px; min-width: min(280px, 80vw); }
 .bt-menu h3 { margin: 0; text-align: center; font-size: 24px; text-transform: none; letter-spacing: 0; color: var(--ink); }
@@ -533,8 +535,12 @@ button.btn:disabled { opacity: .4; cursor: default; }
 /* ---------- les icones (ui/icones.js) ---------- */
 /* Un fichier `Icons/<Nom>.png` quand il existe, un signe de remplacement sinon. */
 .ico { width: var(--s, 20px); height: var(--s, 20px); object-fit: contain; display: inline-block; vertical-align: middle; flex: none; }
+/* Une icone DESSINEE est une <img> : les regles qui placent le personnage d'une carte (`.upg-face img`, `.hcard img`,
+   `.dk-vig img`…) l'attrapaient aussi, et le crane du rale d'agonie prenait la taille du personnage (vu sur l'ecran
+   d'amelioration, 20 oct. 2026). Sa taille est celle demandee a `icone()` (`--s`), partout. */
+img.ico { position: static !important; width: var(--s, 20px) !important; height: var(--s, 20px) !important; margin: 0 !important; translate: none !important; }
 /* L'oeil (« quand X ») est un dessin large : une case 1,6 fois plus large, sinon il est ecrase dans le carre. */
-img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6); }
+img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 .ico.g { display: inline-flex; align-items: center; justify-content: center; font-size: calc(var(--s, 20px) * .8); line-height: 1; color: var(--accent); font-style: normal; }
 
 /* ---------- le bouton du journal, dans la barre ---------- */
@@ -620,6 +626,8 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6); }
 .zgrp h4 { margin: 0; display: flex; gap: 6px; align-items: center; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-dim); }
 .zgrp h4 .n { padding: 0 7px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); font-size: 10px; letter-spacing: 0; }
 .zcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 10px 6px; }
+/* Carrees, elles ont besoin d'air au-dessus (le personnage deborde) et entre elles. */
+.zcards:has(.carre) { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 18px 10px; padding-top: 10px; }
 .zcard {
   position: relative; display: grid; gap: 3px; align-content: start; min-height: 92px; padding: 8px 6px 6px;
   background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--line);

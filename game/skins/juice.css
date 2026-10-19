@@ -292,14 +292,29 @@ html[data-skin="juice"] {
   & :is(.bt-bandeau, .toast) { background: #fffaec; color: var(--ink); border: 3px solid var(--contour); box-shadow: 0 4px 0 var(--contour); }
   & .bt-bandeau { border-radius: 14px; }
 
-  /* La fenetre de zone garde la forme d'une carte a plat (elle porte du texte). */
+  /* La fenetre de zone (defausse, exil, fatigue, Registre) : la CARTE CARREE de la main, sans texte (20 oct. 2026) ; le
+     nom et l'effet se lisent a l'appui long. */
   & .zcard {
     border: 3px solid var(--contour); border-radius: 12px; padding: 9px 5px 5px;
     background: linear-gradient(180deg, var(--ciel) 0 58px, #fff4da 58px);
     box-shadow: inset 0 0 0 3px var(--cadre), inset 0 5px 0 3px rgba(255,255,255,.35), 0 3px 0 var(--contour);
   }
+  & .zcard.carre {
+    display: block; aspect-ratio: 1; min-height: 0; padding: 0; overflow: visible;
+    border: 4px solid var(--contour); border-radius: 16px;
+    background: radial-gradient(ellipse 130% 62% at 50% 112%, #fff3d8 0 64%, transparent 65%), var(--ciel);
+    box-shadow: inset 0 0 0 4px var(--cadre), 0 4px 0 var(--contour);
+  }
+  & .zcard.carre > img {
+    position: absolute; left: 50%; top: -12px; width: 84%; height: 74%; margin: 0; translate: -50% 0; object-fit: contain;
+    filter: drop-shadow(2px 0 0 var(--contour)) drop-shadow(-2px 0 0 var(--contour)) drop-shadow(0 2px 0 var(--contour)) drop-shadow(0 -2px 0 var(--contour));
+  }
+  & .zcard.carre .pic { position: absolute; left: 5px; bottom: 5px; height: 22px; overflow: visible; }
+  & .zcard.carre .pic .ico { width: 20px; height: 20px; }
+  & .zcard.carre .st { position: absolute; right: 6px; bottom: 3px; margin: 0; font-size: 19px; line-height: 1; color: #ffd23a; -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill; }
   & .zcard.spell { --cadre: var(--spell); --ciel: #e6d4ff; }
   & .zcard .st { -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; font-size: 14px; color: #ffd23a; }
+  & .zcard.carre .st { font-size: 19px; -webkit-text-stroke: 4px var(--contour); }
   & .zcard.on { box-shadow: inset 0 0 0 3px var(--cadre), 0 0 0 4px #fff, 0 0 14px rgba(255,255,255,.9), 0 3px 0 var(--contour); outline: 0; }
 
   /* Le journal. */

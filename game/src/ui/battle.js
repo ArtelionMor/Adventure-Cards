@@ -394,7 +394,7 @@ function majUnite(n, u, side) {
   n.dataset.atk = u.atk;
   n.dataset.hp = u.hp;
   const ap = pilule(apercus.get(`${side}:${u.uid}`));
-  const pics = ligneDePictos(u, { effets: false, taille: 26, max: 2 });
+  const pics = ligneDePictos(u, { effets: false, taille: 26, max: 2, plus: false });
   // Les chiffres se colorent comme dans un jeu de cartes : l'attaque en vert quand elle depasse celle de la carte, la vie
   // en rouge quand l'unite est blessee (un jeton n'a pas de carte : pas de reference, donc pas de vert).
   const plus = u.card && u.card.atk != null && u.atk > u.card.atk, moins = u.hp < u.maxHp;
@@ -488,7 +488,7 @@ function majCarte(n, c, i) {
   // Le cout affiche est celui qu'on va vraiment payer : le mot-cle « Cout X de
   // moins/de plus » peut le faire bouger d'un tour a l'autre, on le signale.
   const cout = cardCost(c, B, 'p');
-  const pics = ligneDePictos(c, { taille: 26, max: 2 });
+  const pics = ligneDePictos(c, { taille: 26, max: 2, plus: false });
   const oeil = veille(c);
   const sig = [c.name, cout, c.cost, c.sprite || '', c.type, c.atk, c.hp, pics, c.pistee ? 1 : 0, oeil].join('|');
   if (n._sig !== sig) {
@@ -797,6 +797,9 @@ function majBarre() {
   c.def.classList.toggle('pret', !!nbReprises);
   c.fin.disabled = !(B.turn === 'p' && !auto);
   // Le badge de l'onglet du journal : combien de scenes depuis la derniere fois qu'on l'a ouvert.
+  // Le journal ouvert prend toute la largeur : les onglets des bords se retirent (ils cachaient « Tous »). Il se ferme
+  // par sa croix.
+  $('#battle').classList.toggle('jr-ouvert', !c.journal.n.classList.contains('hidden'));
   const nl = c.journal.nonLus();
   c.badge.textContent = nl > 9 ? '9+' : String(nl);
   c.badge.classList.toggle('hidden', !nl);
@@ -1109,6 +1112,9 @@ function reprendLaMain() {
 
 /** Ce qu'un tap fait, selon le noeud `[data-geste]` touche. */
 function tape(n) {
+  // Une carte du JOURNAL : un toucher n'y a rien d'autre a faire, il ouvre donc sa fiche, qui reste jusqu'au toucher
+  // suivant (et ne rend pas la main en Auto : on lit le combat qu'on regarde).
+  if (n.dataset.geste === 'journal') { lisCe(n); fermeAuProchainToucher(); return; }
   if (reprendLaMain()) return;
   const d = n.dataset;
   if (d.geste === 'unit') tapeUnite(d.side, d.uid);
@@ -1135,8 +1141,20 @@ function lisCe(n) {
     const g = zoneGroupes[+d.g];
     const x = g && g.cartes.find(y => y.i === +d.i);
     if (x) lecture = { kind: 'carte', carte: x.carte, camp: g.camp };
+  } else if (d.geste === 'journal') {
+    // Le journal ne garde qu'une PHOTO de la carte : on relit sa definition dans le catalogue, par son identifiant
+    // (la carte de base : ses paliers du moment ne sont pas dans la photo).
+    let c = null;
+    try { c = cardById(d.carte); } catch { c = null; }
+    // Le dessin vient de la photo : une carte de heros ne porte pas toujours le sien dans le catalogue.
+    if (c) lecture = { kind: 'carte', carte: c.sprite || !d.sprite ? c : { ...c, sprite: d.sprite }, camp: d.camp === 'e' ? 'e' : 'p' };
   }
   renderLecture();
+}
+
+/** Une fiche ouverte d'un toucher (pas d'un appui) : elle se ferme au prochain toucher, ou qu'il tombe. */
+function fermeAuProchainToucher() {
+  setTimeout(() => document.addEventListener('pointerdown', () => fermeLecture(), { capture: true, once: true }), 0);
 }
 
 // ------------------------------------------------------------- glisser-deposer une carte, viser d'un geste

@@ -63,8 +63,10 @@ export function pictosDe(x, { effets = true, max = 4 } = {}) {
 }
 
 /** La ligne de pictogrammes, en HTML, a hauteur fixe (une ligne, jamais plus). */
-export function ligneDePictos(x, { taille = 16, ...opt } = {}) {
+// `plus: false` : pas de « +N » pour ce qui ne tient pas (les faces de carte du combat : il mordait sur les chiffres, et
+// l'appui long montre tout).
+export function ligneDePictos(x, { taille = 16, plus = true, ...opt } = {}) {
   const { liste, reste } = pictosDe(x, opt);
   const html = liste.map(p => `<span class="pc" title="${p.titre || p.nom}">${icone(p.nom, taille)}${p.n !== null ? `<b>${p.n}</b>` : ''}</span>`).join('');
-  return `<div class="pic">${html}${reste ? `<span class="pc plus">+${reste}</span>` : ''}</div>`;
+  return `<div class="pic">${html}${reste && plus ? `<span class="pc plus">+${reste}</span>` : ''}</div>`;
 }
