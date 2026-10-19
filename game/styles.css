@@ -340,7 +340,10 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .bt-hpe .hx { position: absolute; left: 100%; top: 2px; margin-left: 6px; display: flex; gap: 4px; white-space: nowrap; font-size: 12px; }
 .bt-mana { display: flex; align-items: center; gap: 6px; }
 .bt-mana b { font-size: 14px; }
-.bt-haut .bt-mana { position: absolute; right: 10px; top: 92px; }
+/* Le mana adverse tient dans la colonne de droite, sans deborder sur le medaillon : petits cristaux, sur deux rangs s'il le faut. */
+.bt-haut .bt-mana { position: absolute; right: 8px; top: 86px; width: calc(50% - 64px); flex-wrap: wrap; justify-content: flex-end; gap: 2px 4px; }
+.bt-haut .manapips { gap: 3px; max-width: 100%; justify-content: flex-end; }
+.bt-haut .pip { width: 11px; height: 11px; }
 .bt-piles { display: flex; }
 .bt-piles.e { position: absolute; left: 12px; top: 12px; gap: 6px; }
 .bt-pile { position: relative; width: 58px; height: 58px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; flex: none; }
@@ -353,7 +356,9 @@ button.btn:disabled { opacity: .4; cursor: default; }
 /* La main adverse, de dos : un eventail qui depasse du coin haut droit (on voit combien elle en a). L'adversaire la
    TIENT en face : les cartes pendent depuis le haut (pivot au-dessus de l'ecran) et leur dos est a l'envers. */
 .bt-eventail { position: absolute; right: 0; top: 0; width: 140px; height: 86px; padding: 0; border: 0; background: none; cursor: pointer; overflow: hidden; }
-.bt-dos { position: absolute; left: 58%; top: -6px; width: 40px; height: 52px; margin-left: -20px; rotate: calc(var(--t) * max(-80deg, var(--n) * -14deg)); transform-origin: 50% -140%; }
+.bt-dos { position: absolute; left: 58%; top: -6px; width: 40px; height: 52px; margin-left: -20px; rotate: calc(var(--t) * max(-56deg, var(--n) * -12deg)); transform-origin: 50% -140%; }
+/* Au-dela de 7 cartes, l'eventail ne s'elargit plus : le nombre le dit. */
+.bt-eventail .bt-nb { position: absolute; right: 6px; bottom: 4px; z-index: 2; font-size: 15px; }
 .bt-dos img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; rotate: 180deg; }
 .bt-dos .ico { position: absolute; right: 2px; bottom: 2px; }
 /* La ligne du joueur. */
@@ -372,8 +377,8 @@ button.btn:disabled { opacity: .4; cursor: default; }
 /* `height: max-content` : sans elle, un bouton ecrit a la verticale prenait la hauteur de son voisin (46 px) et coupait
    son texte (« Fin de tour »). */
 .bt-onglet { height: max-content; white-space: nowrap; }
-.bt-onglet.fin { rotate: none; display: block; padding: 14px 7px; border-radius: 12px 0 0 12px; }
-.bt-onglet.fin .ico { rotate: 90deg; margin-top: 8px; }
+.bt-onglet.fintour { rotate: none; display: block; padding: 14px 7px; border-radius: 12px 0 0 12px; }
+.bt-onglet.fintour .ico { rotate: 90deg; margin-top: 8px; }
 .bt-onglet .bdg { position: absolute; bottom: -6px; left: -6px; rotate: 180deg; writing-mode: horizontal-tb; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; font-size: 11px; display: grid; place-items: center; }
 .bt-onglets.d .vitesse { margin-right: 6px; }
 .hpbar { flex: 1; height: 14px; background: #3a1f26; border-radius: 8px; overflow: hidden; position: relative; }
@@ -428,9 +433,31 @@ button.btn:disabled { opacity: .4; cursor: default; }
 /* Le glisser-deposer (ui/battle.js, `debutTir`) : le navigateur ne doit pas prendre le glissement pour un defilement.
    La carte tiree reste a sa place, palie ; son double suit le doigt, au-dessus de tout, sans recevoir de toucher. */
 .bt-hand, .bt-hand .hcard { touch-action: none; }
+/* Une carte garde sa forme CARREE quel que soit leur nombre : c'est le chevauchement qui plie, jamais la largeur. */
+#battle .bt-hand .hcard { flex: 0 0 auto; }
 .bt-hand .hcard.tiree { opacity: .25; }
-.tir-fantome { position: fixed; z-index: 60; margin: 0 !important; rotate: none !important; scale: 1.12; pointer-events: none; animation: none !important; transition: opacity .1s; }
-.tir-fantome.rentre { opacity: .55; }
+/* ⚠ `#battle … .hcard` : le skin pose `position: relative` sur toute `.hcard` avec une specificite plus forte — le double
+   rentrait alors dans la colonne de l'ecran et poussait tout le bas vers le haut (vu sur le telephone, 19 oct. 2026). */
+#battle .tir-fantome.hcard { position: fixed !important; z-index: 60; margin: 0 !important; rotate: none !important; scale: 1.12; pointer-events: none; animation: none !important; transition: opacity .1s; }
+#battle .tir-fantome.rentre { opacity: .55; }
+/* VISER d'un geste : la carte qui vise se souleve ; un trait courbe va d'elle au doigt ; une grosse cible rouge (bien
+   plus large que le doigt, qui cache ce qu'il touche) entoure le doigt, et se resserre sur une cible legale. */
+#battle .bt-hand .hcard.visante { z-index: 6; scale: 1.12; translate: 0 -14px; animation: none; }
+.tir-trait { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 58; pointer-events: none; overflow: visible; }
+.tir-trait path { fill: none; stroke-linecap: round; }
+.tir-trait .fond { stroke: #2b1c1f; stroke-width: 12; }
+.tir-trait .dessus { stroke: #ff4d4d; stroke-width: 6; stroke-dasharray: 2 14; }
+.tir-cible { position: absolute; z-index: 59; width: 112px; height: 112px; margin: -56px 0 0 -56px; pointer-events: none; border-radius: 50%;
+  border: 6px solid #ff3b3b; box-shadow: 0 0 0 3px #2b1c1f, inset 0 0 0 3px #2b1c1f, inset 0 0 0 18px rgba(255, 59, 59, .18);
+  transition: scale .12s ease-out, background-color .12s; }
+/* La croix de visee : quatre traits qui laissent le centre libre (le doigt y est). */
+.tir-cible i, .tir-cible::before, .tir-cible::after { position: absolute; content: ""; background: #ff3b3b; box-shadow: 0 0 0 2px #2b1c1f; }
+.tir-cible::before { left: 50%; top: -14px; bottom: -14px; width: 6px; margin-left: -3px;
+  -webkit-mask: linear-gradient(#000 0 26px, transparent 26px calc(100% - 26px), #000 calc(100% - 26px)); mask: linear-gradient(#000 0 26px, transparent 26px calc(100% - 26px), #000 calc(100% - 26px)); }
+.tir-cible::after { top: 50%; left: -14px; right: -14px; height: 6px; margin-top: -3px;
+  -webkit-mask: linear-gradient(90deg, #000 0 26px, transparent 26px calc(100% - 26px), #000 calc(100% - 26px)); mask: linear-gradient(90deg, #000 0 26px, transparent 26px calc(100% - 26px), #000 calc(100% - 26px)); }
+.tir-cible i { inset: 30px; border-radius: 50%; background: none; border: 4px solid #ff3b3b; box-shadow: 0 0 0 2px #2b1c1f, inset 0 0 0 2px #2b1c1f; }
+.tir-cible.sur { scale: .82; background-color: rgba(255, 59, 59, .32); }
 #battle.spot .lit.survol { scale: 1.08; outline-width: 4px; }
 .hcard {
   min-width: 92px; max-width: 92px; background: linear-gradient(180deg, var(--panel2), var(--panel));
@@ -681,6 +708,10 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .vitesse { font-size: 11px; padding: 6px 10px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); cursor: pointer; font-weight: 700; }
 .fx-carte { position: absolute; left: 0; top: 0; will-change: transform, opacity; box-shadow: 0 6px 22px rgba(0,0,0,.6); }
 .fx-mort { position: absolute; will-change: transform, opacity; }
+/* La carte morte (ui/effets.js, `mort`) : assombrie, son personnage remplace par le crane, avant de voler a la defausse. */
+.fx-morte { filter: brightness(.42) saturate(.35); }
+.fx-morte > img { opacity: 0; }
+.fx-crane { position: absolute; left: 50%; top: 46%; z-index: 2; line-height: 0; pointer-events: none; filter: drop-shadow(0 3px 0 rgba(23, 11, 18, .8)); }
 .hcard.nouvelle { animation: arrive calc(var(--fx-pioche, 380) * 1ms * var(--fx-k, 1)) calc(var(--r, 0) * var(--fx-pioche-decalage, 80) * 1ms * var(--fx-k, 1)) backwards cubic-bezier(.2,.9,.3,1.15); }
 @keyframes arrive { from { transform: translateY(70px) scale(.7); opacity: 0; } }
 .fx-carte .nm { padding-bottom: 12px; }

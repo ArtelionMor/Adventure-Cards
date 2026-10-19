@@ -6,7 +6,7 @@
 // La mise en forme suit la maquette « Combat Screen Zoom on a card » (19 octobre 2026) : ce que la carte FAIT s'ecrit
 // « icones : texte » (vert pour un effet, jaune pour un mot-cle) ; ce qui la MODIFIE s'ecrit sous le portrait de sa
 // source, le nom de la source en titre et le changement dessous (vert s'il l'aide, rouge s'il la desservit).
-import { TRIGGERS, KEYWORDS, keyId, keyLabel, momentLabel, describeEffect, describeAura, describeStatic } from '../config/mechanics.js';
+import { TRIGGERS, keyLabel, momentLabel, describeEffect, describeAura, describeStatic } from '../config/mechanics.js';
 import { icone } from './icones.js';
 import { asset } from './shell.js';
 import { iconeDeCle, iconeDeOp, iconeDeMoment } from './pictos.js';
@@ -32,30 +32,37 @@ export function ligneSource({ sprite, ico, titre, texte, ton = 'bon', eteint = f
   return div(`fs ${ton}${eteint ? ' eteint' : ''}`, `<span class="fs-port">${tete}</span><span class="fs-tx"><b>${titre}</b><em>${texte}</em></span>`);
 }
 
-/** Les mots-cles de `x` (hors types, qui sont des etiquettes) : icone, puis « Nom — ce que ca fait ». */
+/** Les mots-cles de `x` (hors types, qui sont des etiquettes) : leur icone et leur NOM, rien de plus (le dessin de la
+ *  carte dit deja le reste : la Provocation porte son bouclier de pierre). */
 function lignesDeMots(x) {
   const out = [];
   for (const k of x.keys || []) {
     const ic = iconeDeCle(k);
-    if (!ic) continue;
-    const def = KEYWORDS[keyId(k)];
-    out.push(ligneEffet([ic], `${keyLabel(k)}${def && def.desc ? ' — ' + def.desc : ''}`, 'cle'));
+    if (ic) out.push(ligneEffet([ic], keyLabel(k), 'cle'));
   }
   return out;
 }
 
-/** Ce qu'une carte ou une unite FAIT : mots-cles, effets de chaque moment (un par ligne), aura, statiques. */
-export function lignesDeFait(x) {
+/**
+ * Ce qu'une carte ou une unite FAIT, le plus court possible (« il y a trop de texte », game designer, 19 oct. 2026) :
+ * le TEXTE de la carte quand le builder en a un (ecrit par le game designer, plus court que la description generee),
+ * precede des icones de ses moments et de ses effets ; sinon une ligne par effet, generee. Puis ses mots-cles.
+ */
+export function lignesDeFait(x, texte = x.text) {
   const out = [];
+  const icones = [];
+  const genere = [];
   for (const slot of Object.keys(TRIGGERS)) {
     for (const e of x[slot] || []) {
-      const mom = iconeDeMoment(slot);
-      const quand = slot === 'play' ? '' : `${momentLabel(slot, x)} — `;
-      out.push(ligneEffet([mom, iconeDeOp(e.op)], quand + describeEffect(e)));
+      const ic = [iconeDeMoment(slot), iconeDeOp(e.op)].filter(Boolean);
+      for (const n of ic) if (!icones.includes(n)) icones.push(n);
+      genere.push(ligneEffet(ic, (slot === 'play' ? '' : `${momentLabel(slot, x)} : `) + describeEffect(e)));
     }
   }
-  if (x.aura) out.push(ligneEffet(['Aura'], `Aura — ${describeAura(x.aura)}`));
-  for (const m of x.statics || []) out.push(ligneEffet(['Static'], `${describeStatic(m)} (tant qu’elle est en jeu)`));
+  if (x.aura) { icones.push('Aura'); genere.push(ligneEffet(['Aura'], describeAura(x.aura))); }
+  for (const m of x.statics || []) { if (!icones.includes('Static')) icones.push('Static'); genere.push(ligneEffet(['Static'], describeStatic(m))); }
+  if (texte) out.push(ligneEffet(icones.slice(0, 3), texte));
+  else out.push(...genere);
   return out.concat(lignesDeMots(x));
 }
 

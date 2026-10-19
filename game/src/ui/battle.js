@@ -386,7 +386,7 @@ function majUnite(n, u, side) {
   n.dataset.atk = u.atk;
   n.dataset.hp = u.hp;
   const ap = pilule(apercus.get(`${side}:${u.uid}`));
-  const pics = ligneDePictos(u, { effets: false, taille: 16, max: 3 });
+  const pics = ligneDePictos(u, { effets: false, taille: 20, max: 2 });
   // Les chiffres se colorent comme dans un jeu de cartes : l'attaque en vert quand elle depasse celle de la carte, la vie
   // en rouge quand l'unite est blessee (un jeton n'a pas de carte : pas de reference, donc pas de vert).
   const plus = u.card && u.card.atk != null && u.atk > u.card.atk, moins = u.hp < u.maxHp;
@@ -402,6 +402,10 @@ function majUnite(n, u, side) {
       ${ap ? `<div class="pv">${ap}</div>` : ''}`;
   }
   n.classList.toggle('taunt', hasKey(u.keys, 'Taunt'));
+  // Les capacites qui changent la facon de jouer se VOIENT sur la carte, pas seulement par leur icone
+  // (demande du game designer, 19 oct. 2026) : Provocation = bouclier de pierre, Bouclier = halo d'or, Elusif = palot.
+  n.classList.toggle('bouclier', !!u.shield);
+  n.classList.toggle('elusif', hasKey(u.keys, 'elusif'));
   n.classList.toggle('porte-aura', !!u.aura);   // un halo qui reste tant que le porteur d'une aura est en jeu
   n.classList.toggle('ready', side === 'p' && u.canAttack && u.atk > 0);
   n.classList.toggle('sel', selUnit === u.uid);
@@ -471,7 +475,7 @@ function majCarte(n, c, i) {
   // Le cout affiche est celui qu'on va vraiment payer : le mot-cle « Cout X de
   // moins/de plus » peut le faire bouger d'un tour a l'autre, on le signale.
   const cout = cardCost(c, B, 'p');
-  const pics = ligneDePictos(c, { taille: 20, max: 4 });
+  const pics = ligneDePictos(c, { taille: 20, max: 2 });
   const sig = [c.name, cout, c.cost, c.sprite || '', c.type, c.atk, c.hp, pics, c.pistee ? 1 : 0].join('|');
   if (n._sig !== sig) {
     n._sig = sig;
@@ -534,10 +538,12 @@ function majEventail(c) {
   const n = main.length;
   const dos = asset(DOS_DE_CARTE);
   c.eventail.title = `Main ${n}`;
-  c.eventail.innerHTML = main.map((x, i) => {
-    const t = n > 1 ? i / (n - 1) - 0.5 : 0;
-    return `<span class="bt-dos" style="--i:${i};--n:${n};--t:${t.toFixed(3)}"><img src="${dos}" alt="">${x.pistee ? icone('Track', 16) : ''}</span>`;
-  }).join('');
+  // Sept dos au plus : au-dela, l'eventail tiendrait tout l'ecran (Neuf Vies remplit la main) ; le nombre le dit.
+  const vus = main.slice(0, 7), k = vus.length;
+  c.eventail.innerHTML = vus.map((x, i) => {
+    const t = k > 1 ? i / (k - 1) - 0.5 : 0;
+    return `<span class="bt-dos" style="--i:${i};--n:${k};--t:${t.toFixed(3)}"><img src="${dos}" alt="">${x.pistee ? icone('Track', 16) : ''}</span>`;
+  }).join('') + (n > 7 ? `<b class="bt-nb">${n}</b>` : '');
 }
 
 /**
@@ -684,7 +690,7 @@ function monteLaCoque(root) {
       <button class="bt-onglet bt-ctrl" id="logBtn">Log<b class="bdg hidden"></b></button>
     </div>`);
   const droite = el(`<div class="bt-onglets d">
-      <button class="bt-onglet fin bt-ctrl" id="endTurn"><span>Fin de tour</span>${icone('TurnEnd', 22)}</button>
+      <button class="bt-onglet fintour bt-ctrl" id="endTurn"><span>Fin de tour</span>${icone('TurnEnd', 22)}</button>
       <button class="vitesse bt-ctrl" id="vitesse" aria-label="Vitesse du combat"></button>
     </div>`);
   root.append(gauche, droite);
@@ -911,7 +917,9 @@ function majFocus() {
     const n = noeudDe(t.side, t.uid);
     if (n) n.classList.add('lit');
   }
-  c.bandeau.innerHTML = `${texte}<small>Touche le fond pour annuler</small>`;
+  // Pendant une visee au doigt, le trait et la cible disent tout : pas de bandeau.
+  c.bandeau.textContent = tir ? '' : 'Choisis une cible';
+  c.bandeau.classList.toggle('hidden', !!tir);
 }
 
 // ------------------------------------------------------------- interactions
@@ -1082,31 +1090,67 @@ function lisCe(n) {
   renderLecture();
 }
 
-// ------------------------------------------------------------- glisser-deposer une carte
-// GLISSER UNE CARTE POUR LA JOUER (demande du game designer, 19 octobre 2026), en plus du toucher. La carte suit le
-// doigt ; une carte qui demande une cible eclaire ses cibles legales (le meme masque et le meme apercu que le
-// toucher) et se joue LACHEE SUR L'UNE D'ELLES ; les autres se jouent lachees n'importe ou au-dessus de la main. Lachee
-// ailleurs, ou sur la main, elle y retourne sans rien couter. Une carte « Choisir » pose sa question au lacher, puis
-// demande sa cible comme au toucher. Le coup passe par les memes fonctions que le toucher (`joue`, `designe`,
-// `onCardClick`), donc par `joueLeCoup`.
-let tir = null;   // { i, carte, noeud, fantome, dx, dy, cible: bool, survol }
+// ------------------------------------------------------------- glisser-deposer une carte, viser d'un geste
+// GLISSER POUR JOUER (demandes du game designer, 19 octobre 2026), en plus du toucher. Deux gestes :
+//   - POSER : une carte SANS cible suit le doigt et se joue lachee n'importe ou au-dessus de la main ; lachee sur la
+//     main, elle y retourne sans rien couter. Une carte « Choisir » pose sa question au lacher.
+//   - VISER : une carte A CIBLE, ou une unite prete a attaquer, reste a sa place ; un TRAIT part d'elle vers le doigt,
+//     et une grosse CIBLE ROUGE entoure le doigt (le doigt cache ce qu'il touche : la cible doit deborder autour).
+//     Les cibles legales s'eclairent (le meme masque et le meme apercu que le toucher) ; lache sur l'une d'elles, le
+//     coup part, ailleurs il est annule.
+// Le coup passe par les memes fonctions que le toucher (`joue`, `designe`, `onCardClick`), donc par `joueLeCoup`.
+let tir = null;   // { mode: 'pose' | 'vise', i, carte, noeud, fantome, trait, cible, survol }
 
-/** Le noeud touchable sous le doigt (le fantome ne recoit aucun toucher). */
+/** Le noeud touchable sous le doigt (le fantome, le trait et la cible ne recoivent aucun toucher). */
 const sousLeDoigt = ev => {
   const x = document.elementFromPoint(ev.clientX, ev.clientY);
   return x && x.closest ? x.closest('[data-geste="unit"], [data-geste="hero"]') : null;
 };
 
+/** Le trait et la cible de la visee, poses sur l'ecran de combat (ils ne recoivent aucun toucher). */
+function viseur() {
+  const root = $('#battle');
+  const trait = el(`<svg class="tir-trait" xmlns="http://www.w3.org/2000/svg"><path class="fond"/><path class="dessus"/></svg>`);
+  const cible = el('<div class="tir-cible"><i></i></div>');
+  root.append(trait, cible);
+  return { trait, cible };
+}
+
 function debutTir(n, ev) {
-  if (n.dataset.geste !== 'main' || !peutEngager()) return false;
+  if (!peutEngager()) return false;
+  // VISER avec une unite : celle qui est prete a attaquer.
+  if (n.dataset.geste === 'unit') {
+    if (n.dataset.side !== 'p') return false;
+    const u = B.p.board.find(x => x.uid === n.dataset.uid);
+    if (!u) return false;
+    const raison = raisonUnite(u);
+    if (raison) { toast(raison); return false; }
+    reinitSelection();
+    selUnit = u.uid;
+    calculeApercus();
+    tir = { mode: 'vise', noeud: n, survol: null, ...viseur() };
+    render();
+    bougeTir(ev);
+    return true;
+  }
+  if (n.dataset.geste !== 'main') return false;
   const i = +n.dataset.i;
   const carte = B.p.hand[i];
   if (!carte) return false;
   if (!canPlay(B, 'p', carte)) { toast(raisonCarte(carte, 'main')); return false; }
   reinitSelection();
-  // Une carte a cible (sans choix de branche) eclaire ses cibles pendant qu'on la tire.
-  const cible = !needsChoice(carte) && needsTarget(carte, null) && legalTargets(B, 'p', carte, null).length > 0;
-  if (cible) { selCard = i; selZone = 'main'; calculeApercus(); }
+  // VISER avec une carte a cible (sans choix de branche) : elle reste dans la main, soulevee.
+  if (!needsChoice(carte) && needsTarget(carte, null) && legalTargets(B, 'p', carte, null).length > 0) {
+    selCard = i;
+    selZone = 'main';
+    calculeApercus();
+    n.classList.add('visante');
+    tir = { mode: 'vise', i, carte, noeud: n, survol: null, ...viseur() };
+    render();
+    bougeTir(ev);
+    return true;
+  }
+  // POSER : un double de la carte suit le doigt.
   const r = n.getBoundingClientRect();
   const fantome = n.cloneNode(true);
   fantome.classList.remove('nouvelle', 'sel', 'lit', 'acteur');
@@ -1115,44 +1159,61 @@ function debutTir(n, ev) {
   fantome.style.cssText += `;left:${r.left}px;top:${r.top}px;width:${n.offsetWidth}px;height:${n.offsetHeight}px;`;
   $('#battle').appendChild(fantome);
   n.classList.add('tiree');
-  tir = { i, carte, noeud: n, fantome, dx: ev.clientX - r.left - r.width / 2, dy: ev.clientY - r.top - r.height / 2, cible, survol: null };
+  tir = { mode: 'pose', i, carte, noeud: n, fantome };
   render();
+  bougeTir(ev);
   return true;
 }
 
 function bougeTir(ev) {
   if (!tir) return;
-  const w = tir.fantome.offsetWidth, h = tir.fantome.offsetHeight;
-  tir.fantome.style.left = `${ev.clientX - w / 2}px`;
-  // La carte se tient AU-DESSUS du doigt : on voit ou on la pose.
-  tir.fantome.style.top = `${ev.clientY - h * 0.85}px`;
-  const n = tir.cible ? sousLeDoigt(ev) : null;
+  if (tir.mode === 'pose') {
+    const w = tir.fantome.offsetWidth, h = tir.fantome.offsetHeight;
+    tir.fantome.style.left = `${ev.clientX - w / 2}px`;
+    // La carte se tient AU-DESSUS du doigt : on voit ou on la pose.
+    tir.fantome.style.top = `${ev.clientY - h * 0.85}px`;
+    // Au-dessus de la main, la carte « rentre » : le double le dit en palissant.
+    tir.fantome.classList.toggle('rentre', ev.clientY > coque.basMain.getBoundingClientRect().top);
+    return;
+  }
+  // VISER : le trait part du centre de la source et se courbe jusqu'au doigt ; la cible suit le doigt.
+  const rr = $('#battle').getBoundingClientRect();
+  const s = tir.noeud.getBoundingClientRect();
+  const x0 = s.left + s.width / 2 - rr.left, y0 = s.top + s.height / 2 - rr.top;
+  const x1 = ev.clientX - rr.left, y1 = ev.clientY - rr.top;
+  const cx = (x0 + x1) / 2 + (y1 - y0) * 0.12, cy = Math.min(y0, y1) - 40;
+  const d = `M${x0},${y0} Q${cx},${cy} ${x1},${y1}`;
+  for (const p of tir.trait.querySelectorAll('path')) p.setAttribute('d', d);
+  tir.cible.style.left = `${x1}px`;
+  tir.cible.style.top = `${y1}px`;
+  const n = sousLeDoigt(ev);
   const vise = n && n.classList.contains('lit') && !n.classList.contains('acteur') ? n : null;
   if (vise !== tir.survol) {
     if (tir.survol) tir.survol.classList.remove('survol');
     if (vise) vise.classList.add('survol');
     tir.survol = vise;
+    tir.cible.classList.toggle('sur', !!vise);
   }
-  // Au-dessus de la main, la carte « rentre » : le fantome le dit en palissant.
-  tir.fantome.classList.toggle('rentre', ev.clientY > coque.basMain.getBoundingClientRect().top);
 }
 
 function lacheTir(ev, annuleGeste) {
   if (!tir) return;
   const t = tir;
   tir = null;
-  t.fantome.remove();
-  t.noeud.classList.remove('tiree');
+  if (t.fantome) t.fantome.remove();
+  if (t.trait) { t.trait.remove(); t.cible.remove(); }
+  t.noeud.classList.remove('tiree', 'visante');
   if (t.survol) t.survol.classList.remove('survol');
-  if (annuleGeste || !B || B.over || !peutEngager() || B.p.hand[t.i] !== t.carte) { annule(); return; }
-  if (t.cible) {
+  const encore = t.carte ? B && B.p.hand[t.i] === t.carte : B && B.p.board.some(u => u.uid === selUnit);
+  if (annuleGeste || !B || B.over || !peutEngager() || !encore) { annule(); return; }
+  if (t.mode === 'vise') {
     const n = sousLeDoigt(ev);
     // Comme un toucher (`tape`) : l'uid tel que le noeud le porte.
     if (n && designe(n.dataset.side, n.dataset.uid)) return;
     annule();
     return;
   }
-  // Sans cible : jouee si on la lache au-dessus de la main (sur le terrain).
+  // POSER : jouee si on la lache au-dessus de la main (sur le terrain).
   const surLaMain = ev.clientY > coque.basMain.getBoundingClientRect().top;
   reinitSelection();
   if (surLaMain) { render(); return; }
@@ -1287,10 +1348,9 @@ function teteFiche({ nom, sprite, cout, coutBase, sort, atk, hp, maxHp, plus, mo
     </div>`);
 }
 
-/** Ce qu'une carte ou une unite FAIT, une ligne par chose (voir ui/fiche.js). */
+/** Ce qu'une carte ou une unite FAIT : son texte (ou ses effets) puis ses mots-cles (voir ui/fiche.js). */
 function blocFait(x, texte) {
-  const lignes = lignesDeFait(x);
-  if (texte) lignes.unshift(el(`<p class="fi-texte">${texte}</p>`));
+  const lignes = lignesDeFait(x, texte);
   if (!lignes.length) return null;
   const n = el('<section class="fi-fait"></section>');
   lignes.forEach(l => n.appendChild(l));
@@ -1306,19 +1366,13 @@ function blocFait(x, texte) {
  */
 function inspectNode(u, side) {
   const box = el('<div class="insp fiche"></div>');
-  const etat = [side === 'p' ? 'Ton allié' : 'Unité adverse'];
-  if (u.atk <= 0) etat.push('0 attaque : elle ne frappe pas');
-  else if (u.canAttack) etat.push('prête à attaquer');
-  else if (u.attackedThisTurn) etat.push('a déjà attaqué ce tour');
-  else etat.push('pas encore prête');
-  if (u.shield) etat.push('bouclier intact');
   box.appendChild(teteFiche({
     nom: u.name, sprite: u.sprite, cout: u.card ? u.card.cost : null, sort: false,
     atk: u.atk, hp: Math.max(0, u.hp), maxHp: u.maxHp, plus: u.card && u.card.atk != null && u.atk > u.card.atk, moins: u.hp < u.maxHp,
-    types: typesOf(u), note: etat.join(' · '), adverse: side === 'e'
+    types: typesOf(u), note: '', adverse: side === 'e'
   }));
 
-  const bFait = blocFait(u);
+  const bFait = blocFait(u, u.card ? u.card.text : '');
   if (bFait) box.appendChild(bFait);
 
   // --- ce qui la modifie en ce moment, et par qui
@@ -1349,7 +1403,7 @@ function inspectNode(u, side) {
   // LA TOXINE (V3) : ce que sa Toxine lui prendra au debut de SON prochain tour (le Bouclier absorbe le premier).
   if (u.tox > 0) {
     const perdra = u.shield ? 'son bouclier absorbera le premier tour' : `perdra ${u.tox} PV au début de son tour${u.hp <= u.tox ? ' — et en mourra' : ''}`;
-    mods.push(ligneSource({ ico: 'Venom', titre: `Toxine ×${u.tox}`, texte: perdra + '. À sa mort, les marqueurs sautent sur une autre unité du même camp.', ton: 'mal' }));
+    mods.push(ligneSource({ ico: 'Venom', titre: `Toxine ×${u.tox}`, texte: perdra, ton: 'mal' }));
   }
   if (mods.length) {
     box.appendChild(el('<hr class="fi-trait">'));
@@ -1367,7 +1421,7 @@ function ficheCarte(c, camp) {
   const ally = c.type === 'ally';
   box.appendChild(teteFiche({
     nom: c.name, sprite: c.sprite, cout, coutBase: c.cost, sort: !ally, atk: c.atk, hp: c.hp, maxHp: null,
-    types: typesOf(c), note: cout !== c.cost ? `Coût ${cout} (de base ${c.cost})` : '', adverse: camp === 'e'
+    types: typesOf(c), note: '', adverse: camp === 'e'
   }));
   const bFait = blocFait(c, c.text);
   if (bFait) box.appendChild(bFait);
@@ -1376,7 +1430,7 @@ function ficheCarte(c, camp) {
   if (c.pistee) {
     box.appendChild(el('<hr class="fi-trait">'));
     const n = el('<section class="fi-mods"></section>');
-    n.appendChild(ligneSource({ ico: 'Track', titre: 'Pistée', texte: 'L’adversaire l’a à l’œil : elle coûte plus cher, et peut te coûter autre chose.', ton: 'mal' }));
+    n.appendChild(ligneSource({ ico: 'Track', titre: 'Pistée', texte: 'coûte plus cher', ton: 'mal' }));
     for (const u of B[camp === 'p' ? 'e' : 'p'].board) {
       for (const e of [...(u.on_pistee_foe || []), ...(u.on_pistee_any || [])]) {
         n.appendChild(ligneSource({ sprite: u.sprite, titre: u.name, texte: `si tu la joues : ${describeEffect(e)}`, ton: 'mal' }));

@@ -89,7 +89,7 @@ Maquettes `mockups/Combat Screen.png`, `Combat Screen more than 3 cards.png`, `C
   dos en éventail** en haut à droite (les cartes pendent depuis le haut, dos retournés : il les tient en face ; une carte
   pistée porte sa patte) et son mana dessous. Le dos des cartes : `DOS_DE_CARTE` (`Graphical Assets/CardBack/`).
 - **Les bords** : onglets Menu (le tour, les 5 touchers de triche, le journal en texte), Registre (la fenêtre de zone),
-  Log (le journal graphique, badge) à gauche ; Fin de tour et la vitesse (x1/x2) à droite. ⚠ Un bouton écrit à la
+  Log (le journal graphique, badge) à gauche ; Fin de tour et la vitesse (x1/x2/x4) à droite. ⚠ Un bouton écrit à la
   verticale (`writing-mode`) prend la hauteur de son voisin : `.bt-onglet` a `height: max-content`.
 - **En bas** : la ligne du joueur (avatar, nom, PV, bouton Auto/Manuel `#autoChip`), puis le plateau de la main
   (`.bt-basmain`) : le mana au-dessus, la main, et la pioche et la défausse **qui dépassent du bas** (coupées par le
@@ -101,21 +101,54 @@ Maquettes `mockups/Combat Screen.png`, `Combat Screen more than 3 cards.png`, `C
   (`ResizeObserver`).
 - **Le masque** (`#battle.spot`) éteint aussi les contrôles (`.bt-ctrl`), les PV adverses et les manas.
 
-## Le glisser-déposer (demande du game designer, 19 octobre 2026)
-En plus du toucher : on **tire une carte de la main**. `gestes.js` appelle `glisse.debut` quand le doigt glisse au-delà
-de la tolérance (après un appui long aussi : la lecture se ferme et la carte part) ; `battle.js` refuse hors de son tour,
-en Auto, ou si la carte n'est pas jouable (bulle qui dit pourquoi). Un **double** de la carte (`.tir-fantome`) suit le
-doigt, au-dessus de lui ; la carte d'origine pâlit (`.tiree`).
-- Une carte **à cible** (sans « Choisir ») engage l'action pendant le glissement : même masque, mêmes cibles éclairées,
-  même aperçu que le toucher ; la cible survolée grossit (`.survol`). Lâchée **sur une cible légale**, elle se joue
-  (`designe`) ; ailleurs, elle revient.
-- Une carte **sans cible** (ou « Choisir », qui pose sa question au lâcher) se joue lâchée **au-dessus de la main**
-  (`onCardClick`) ; lâchée sur la main, elle y revient sans rien coûter.
+## Le glisser-déposer et la visée d'un geste (demandes du game designer, 19 octobre 2026)
+En plus du toucher, deux gestes (`debutTir`, `bougeTir`, `lacheTir`). `gestes.js` appelle `glisse.debut` quand le doigt
+glisse au-delà de la tolérance (après un appui long aussi : la lecture se ferme) ; `battle.js` refuse hors de son tour, en
+Auto, ou si la carte (l'unité) ne peut pas agir (bulle qui dit pourquoi).
+- **Poser** : une carte **sans cible** a un **double** (`.tir-fantome`) qui suit le doigt, au-dessus de lui ; la carte
+  d'origine pâlit (`.tiree`). Lâchée **au-dessus de la main**, elle se joue (`onCardClick` ; « Choisir » pose sa question
+  au lâcher) ; sur la main, elle y revient sans rien coûter. ⚠ Le double doit rester `position: fixed` : le skin pose
+  `position: relative` sur toute `.hcard` avec une spécificité plus forte, et le double rentrait alors dans la colonne de
+  l'écran, poussant tout le bas vers le haut (vu sur le téléphone) — d'où `#battle .tir-fantome.hcard`.
+- **Viser** : une carte **à cible** (soulevée, `.visante`) ou une **unité prête à attaquer** reste à sa place ; un
+  **trait** courbe (`.tir-trait`, SVG) va d'elle au doigt et une **grosse cible rouge** (`.tir-cible`, 112 px : le doigt
+  cache ce qu'il touche) l'entoure, et se resserre sur une cible légale (`.sur`). Même masque, mêmes cibles éclairées,
+  même aperçu que le toucher. Lâché sur une cible légale, le coup part (`designe`) ; ailleurs, il est annulé. Pas de
+  bandeau pendant la visée.
 - Le coup passe par les mêmes fonctions que le toucher, donc par `joueLeCoup`. Le relâchement d'un glisser porte
   `ev.gesteGlisse` : l'écouteur « toucher le fond » l'ignore. La main et ses cartes sont en `touch-action: none` (sinon
   le navigateur prend le glissement pour un défilement et envoie `pointercancel`).
 - Éprouvé dans le navigateur intégré (PointerEvent) : un sort à cible lâché sur le héros adverse (aperçu « 20 → 18 »,
-  joué), lâché sur le plateau vide (revenu en main), une unité lâchée sur le plateau (posée).
+  joué), lâché sur le plateau vide (revenu en main), une unité lâchée sur le plateau (posée), une unité qui vise une
+  Provocation (trait, cible resserrée, attaque jouée).
+
+## Ce qui se voit sur une carte (19 octobre 2026)
+- **Deux pictogrammes au plus** sur la face d'une unité ou d'une carte de la main (`ligneDePictos(…, { max: 2 })`), à 20 px,
+  jamais coupés (le reste se lit à l'appui long). La main garde des cartes **carrées** quel que soit leur nombre (`flex: 0 0
+  auto` : c'est le chevauchement de l'éventail qui plie) ; l'éventail adverse montre **7 dos au plus**, et le nombre au-delà.
+- **Les capacités se voient sans icône** (demande du game designer) : **Provocation** = un bouclier de pierre derrière la
+  carte (`.unit.taunt::before`, un SVG en ligne dont le trou de la carte est découpé — devant ou derrière, il ne la cache
+  jamais : une unité animée ou éteinte par le masque fait son propre plan d'empilement) ; **Bouclier** = un halo d'or
+  (`.unit.bouclier::after`) ; **Élusif** = le personnage à moitié transparent (`.unit.elusif`).
+- **La fiche dit le moins possible** : le texte de la carte (écrit dans le builder) précédé des icônes de ses moments et
+  effets, sinon une ligne générée par effet ; puis le **nom** de chaque mot-clé, sans sa définition. Plus de ligne d'état.
+
+## La vitesse et l'attaque (19 octobre 2026)
+- Le bouton des bords passe **x1 → x2 → x4** (`BALANCE.ui.fx.vitesses`). Tous les temps de `BALANCE.ui.fx` (et de l'onglet
+  « animations » de la feuille) sont ceux de **x1, qui doit se lire** ; x2 et x4 les divisent.
+- **L'attaque en cinq temps** (`elan`, `dureesAttaque` dans `effets.js`, maquette du game designer) : recul
+  (`attaqueReculMs`), tenue (`attaqueTenueMs`), charge avec des **rémanences** (`attaqueChargeMs`, `attaqueRemanences`),
+  collé pendant le coup — c'est là que tombent les chiffres (`attaqueImpactMs`) —, retour (`attaqueRetourMs`). L'action
+  suivante attend que l'attaquant soit revenu (`libre` dans `joue`). Remplace `elanMs` / `elanImpact`.
+- **La mort** (`mort`) : après `mortDelaiMs`, la carte s'assombrit et montre le **crâne** (`mortMs`), puis **vole vers la
+  défausse de son camp** (`mortVolMs`), qui sursaute en la recevant ; un jeton s'efface sur place.
+- ⚠ **Deux bugs anciens corrigés** : `photo()` rangeait les unités sous `Number(uid)` alors que les uid sont des chaînes
+  (« u12 ») — aucune unité morte n'avait de fantôme, elle disparaissait sans animation (et la détection des auras ne
+  trouvait rien) ; et la fin de chaque film effaçait **tous** les fantômes, y compris ceux du film suivant. La taille d'un
+  fantôme se lit sur la mise en page (taille × échelle du plateau), pas sur le rectangle affiché (une unité en plein
+  « pop » d'arrivée laissait un fantôme de 14 px).
+- ⚠ La classe `fin` est celle de l'écran de fin de combat (`position: absolute`) : l'onglet « Fin de tour » s'appelle
+  `.fintour` (avec `fin`, il recouvrait le bouton de vitesse).
 
 ## Les gestes du combat : tap = agir, appui long = lire
 **Décision du game designer (8 octobre 2026).** Avant, un tap sur une unité ouvrait sa fiche

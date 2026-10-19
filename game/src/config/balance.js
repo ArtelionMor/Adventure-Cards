@@ -113,12 +113,21 @@ export const BALANCE = {
     // comprenne ce qui se passe sans connaitre les cartes. Le mode auto attend donc la fin des
     // effets avant le coup suivant.
     fx: {
-      vitesses: [1, 2],         // les crans du bouton de vitesse (x1, x2) ; pas de « sauter »
+      // Les crans du bouton de vitesse (x1, x2, x4 ; pas de « sauter »). Tous les temps ci-dessous sont ceux de x1 :
+      // x1 doit se LIRE (on comprend chaque coup), x2 et x4 les divisent (demande du game designer, 19 oct. 2026).
+      vitesses: [1, 2, 4],
       fileMaxMs: 1200,          // en manuel, un film attend la fin du precedent, au plus ce temps (jamais de retard qui s'accumule)
       pauseApresMs: 320,        // en auto, le calme laisse apres les effets avant le coup suivant
-      elanMs: 460,              // l'attaquant : recul, elan, retour (duree totale)
-      elanImpact: 0.58,         // a quelle fraction de l'elan le coup touche
-      elanPart: 0.6,            // quelle part du trajet vers la cible l'attaquant parcourt
+      // L'ATTAQUE EN CINQ TEMPS (maquette du game designer, 19 oct. 2026) : l'attaquant RECULE (il prend son elan),
+      // TIENT un instant, FONCE sur sa cible en laissant des remanences, reste COLLE pendant le coup (les chiffres
+      // tombent), puis REVIENT a sa place. Remplace `elanMs` / `elanImpact` (un seul bond, trop nerveux).
+      attaqueReculMs: 450,
+      attaqueTenueMs: 220,
+      attaqueChargeMs: 300,
+      attaqueImpactMs: 420,
+      attaqueRetourMs: 420,
+      attaqueRemanences: 4,     // les doubles laisses derriere pendant la charge
+      elanPart: 0.6,            // quelle part du trajet vers la cible l'attaquant parcourt (1 = jusqu'a son centre)
       cadenceMs: 380,           // entre deux coups distincts d'une meme action (6 Foudre de suite)
       ripostePauseMs: 300,      // entre le coup et la riposte
       groupeMs: 45,             // entre deux cibles du MEME effet (une zone touche « ensemble »)
@@ -155,8 +164,11 @@ export const BALANCE = {
         confettis: 34,          // la pluie de la victoire
         confettiMs: 2600
       },
-      mortDelaiMs: 260,         // entre le coup qui tue et la mort
+      // LA MORT : apres le coup (`mortDelaiMs`), la carte s'assombrit et montre le crane (`mortMs`), puis vole vers la
+      // defausse de son camp (`mortVolMs`) — un jeton, qui n'a pas de carte, s'efface sur place.
+      mortDelaiMs: 260,
       mortMs: 520,
+      mortVolMs: 650,
       ralenti: 1                // x N sur tous les temps : pour regarder un effet en capture
     }
   },

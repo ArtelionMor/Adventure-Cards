@@ -81,11 +81,19 @@ export function creeFx(acces) {
     const nv = new Map();
     for (const camp of ['p', 'e']) {
       for (const n of acces.unites(camp)) {
-        const uid = Number(n.dataset.uid);
+        // L'uid tel que le moteur le donne (« u12 ») : un `Number()` ici donnait NaN, aucune photo ne se retrouvait, et
+        // une unite morte disparaissait sans son animation.
+        const uid = n.dataset.uid;
         const clone = n.cloneNode(true);
         clone.removeAttribute('data-geste');
         clone.classList.remove('sel', 'ready', 'lit', 'acteur', 'targetable');
-        nv.set(cle(camp, uid), { rect: rectDe(n), s: echelleDe(n), clone, atk: Number(n.dataset.atk), hp: Number(n.dataset.hp) });
+        // La taille se lit sur la mise en page (taille de la carte x echelle du plateau), pas sur le rectangle affiche : une
+        // unite photographiee pendant son « pop » d'arrivee laissait un fantome de 14 px.
+        const b = rectDe(n);
+        const u = parseFloat(n.parentElement && n.parentElement.style.getPropertyValue('--u')) || 1;
+        const w = n.offsetWidth * u, h = n.offsetHeight * u;
+        const rect = w ? { x: b.x + b.w / 2 - w / 2, y: b.y + b.h / 2 - h / 2, w, h } : b;
+        nv.set(cle(camp, uid), { rect, s: w ? u : echelleDe(n), clone, atk: Number(n.dataset.atk), hp: Number(n.dataset.hp) });
       }
     }
     photos = nv;
@@ -241,7 +249,7 @@ export function creeFx(acces) {
     let rang = 0;
     for (const camp of ['p', 'e']) {
       for (const n of acces.unites(camp)) {
-        const uid = Number(n.dataset.uid);
+        const uid = n.dataset.uid;   // « u12 », comme dans `photo()` (un `Number()` ne retrouvait aucune photo)
         const av = photos.get(cle(camp, uid));
         if (!av || couverts.has(cle(camp, uid))) continue;
         const da = Number(n.dataset.atk) - av.atk, dh = Number(n.dataset.hp) - av.hp;
@@ -274,7 +282,17 @@ export function creeFx(acces) {
     ], { duration: T(ms), easing: 'linear', fill: 'none' });
   }
 
-  /** L'elan : recul, bond vers la cible, retour. Rend le delai (ms, vitesse x1) jusqu'au coup. */
+  /** Les temps d'une attaque (ms a x1) : quand le coup touche, et quand l'attaquant est revenu a sa place. */
+  function dureesAttaque() {
+    const f = F();
+    const impact = f.attaqueReculMs + f.attaqueTenueMs + f.attaqueChargeMs;
+    return { impact, total: impact + f.attaqueImpactMs + f.attaqueRetourMs };
+  }
+
+  /**
+   * L'ATTAQUE EN CINQ TEMPS (maquette du game designer, 19 oct. 2026) : l'attaquant RECULE en grossissant un peu (il
+   * prend son elan), TIENT, FONCE sur sa cible en laissant des remanences, reste COLLE le temps du coup, puis REVIENT.
+   */
   function elan(src, cible) {
     const f = F();
     const n = noeudDe(src);
@@ -295,15 +313,39 @@ export function creeFx(acces) {
     const s = vivant ? 1 : echelleDe(n);
     const dx = ((b.x + b.w / 2) - (a.x + a.w / 2)) * f.elanPart / s;
     const dy = ((b.y + b.h / 2) - (a.y + a.h / 2)) * f.elanPart / s;
+    const d = dureesAttaque();
+    const o = ms => Math.min(1, ms / d.total);
+    const recul = `translate(${-dx * .2}px, ${-dy * .2}px) scale(1.08)`;
+    const colle = `translate(${dx}px, ${dy}px) scale(1.12)`;
     const n0 = porteur.style.zIndex;
     porteur.style.zIndex = 8;
     anime(porteur, [
-      { transform: 'translate(0,0) scale(1)', offset: 0 },
-      { transform: `translate(${-dx * .12}px, ${-dy * .12}px) scale(.94)`, offset: .22, easing: 'cubic-bezier(.5,0,.9,.4)' },
-      { transform: `translate(${dx}px, ${dy}px) scale(1.15)`, offset: f.elanImpact, easing: 'ease-out' },
+      { transform: 'translate(0,0) scale(1)', offset: 0, easing: 'ease-out' },
+      { transform: recul, offset: o(f.attaqueReculMs) },
+      { transform: recul, offset: o(f.attaqueReculMs + f.attaqueTenueMs), easing: 'cubic-bezier(.55,0,1,.6)' },
+      { transform: colle, offset: o(d.impact) },
+      { transform: colle, offset: o(d.impact + f.attaqueImpactMs), easing: 'ease-in-out' },
       { transform: 'translate(0,0) scale(1)', offset: 1 }
-    ], { duration: T(f.elanMs), fill: 'none' });
-    apres(f.elanMs, () => {
+    ], { duration: T(d.total), fill: 'none' });
+    // Les REMANENCES : des doubles fixes laisses le long de la charge, qui s'effacent.
+    const k = vivant ? Math.max(0, Math.round(f.attaqueRemanences || 0)) : 0;
+    for (let i = 1; i <= k; i++) {
+      const p = i / (k + 1);
+      apres(f.attaqueReculMs + f.attaqueTenueMs + f.attaqueChargeMs * p, () => {
+        if (!n.isConnected) return;
+        const g = cloneUnite(n);
+        g.style.visibility = 'visible';
+        g.firstElementChild.style.visibility = 'visible';
+        g.style.zIndex = 7;
+        const x = -dx * .2 + (dx * 1.2) * p, y = -dy * .2 + (dy * 1.2) * p;
+        anime(g, [
+          { transform: `translate(${x}px, ${y}px) scale(1.1)`, opacity: .55 },
+          { transform: `translate(${x}px, ${y}px) scale(1.1)`, opacity: 0 }
+        ], { duration: T(f.attaqueImpactMs), easing: 'ease-out' });
+        ephemere(g, f.attaqueImpactMs);
+      });
+    }
+    apres(d.total, () => {
       porteur.style.zIndex = n0;
       if (env) { env.remove(); if (enElan.delete(n)) n.style.visibility = ''; }
     });
@@ -430,7 +472,11 @@ export function creeFx(acces) {
     if (art) lanceTout(art, [r], undefined, { noeud: n }); else etincelles(r, COULEUR.renfort, 5);
   }
 
-  /** La mort : le fantome tremble, s'eclaire puis se brise. */
+  /**
+   * LA MORT (maquette du game designer, 19 oct. 2026) : la carte s'assombrit et son personnage laisse place au CRANE
+   * (`mortMs`), puis elle VOLE jusqu'a la defausse de son camp en retrecissant (`mortVolMs`), qui sursaute en la
+   * recevant. Un jeton n'a pas de carte : il s'efface sur place.
+   */
   function mort(ev) {
     const f = F();
     const u = ev.unite;
@@ -438,22 +484,39 @@ export function creeFx(acces) {
     if (!env) return;
     const r = rectDe(env);
     eclair(r);
-    etincelles(r, '#fff', 10);
     const sg = signatureDe(idDe(u));
     if (sg && sg.mort) lanceTout(sg.mort, [r]);
-    const ic = pose('fx-mort', icone('Dead', 46), r);
-    anime(ic, [
-      { transform: 'translate(-50%,-50%) scale(.3)', opacity: 0 },
-      { transform: 'translate(-50%,-60%) scale(1.3)', opacity: 1, offset: .3 },
-      { transform: 'translate(-50%,-110%) scale(1)', opacity: 0 }
-    ], { duration: T(f.mortMs * 1.6), easing: 'ease-out' });
-    ephemere(ic, f.mortMs * 1.6);
-    anime(env, [
-      { transform: 'scale(1) rotate(0deg)', opacity: 1 },
-      { transform: 'scale(1.18) rotate(-4deg)', opacity: 1, offset: .25 },
-      { transform: 'scale(.7) rotate(9deg)', opacity: 0 }
-    ], { duration: T(f.mortMs), easing: 'ease-in' });
-    apres(f.mortMs, () => retireFantome(u.camp, u.uid));
+    const carte = env.firstElementChild;
+    if (carte) carte.classList.add('fx-morte');
+    const crane = document.createElement('div');
+    crane.className = 'fx-crane';
+    crane.innerHTML = icone('Dead', Math.round(r.w * .62));
+    env.appendChild(crane);
+    anime(crane, [
+      { transform: 'translate(-50%,-50%) scale(.2)', opacity: 0 },
+      { transform: 'translate(-50%,-50%) scale(1.2)', opacity: 1, offset: .5 },
+      { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }
+    ], { duration: T(Math.min(f.mortMs, 420)), easing: 'ease-out' });
+    apres(f.mortMs, () => {
+      const dest = u.jeton ? null : acces.defausse(u.camp);
+      if (!dest) {
+        anime(env, [{ opacity: 1 }, { opacity: 0, transform: 'scale(.8)' }], { duration: T(f.mortVolMs), easing: 'ease-in' });
+        apres(f.mortVolMs, () => retireFantome(u.camp, u.uid));
+        return;
+      }
+      const b = rectDe(dest);
+      const tx = (b.x + b.w / 2) - (r.x + r.w / 2), ty = (b.y + b.h / 2) - (r.y + r.h / 2);
+      const sc = Math.max(.2, Math.min(1, b.w / r.w));
+      anime(env, [
+        { transform: 'translate(0,0) scale(1) rotate(0deg)' },
+        { transform: `translate(${tx * .15}px, ${ty * .15 - 18}px) scale(1.05) rotate(-6deg)`, offset: .2 },
+        { transform: `translate(${tx}px, ${ty}px) scale(${sc}) rotate(0deg)` }
+      ], { duration: T(f.mortVolMs), easing: 'cubic-bezier(.45,0,.7,1)' });
+      apres(f.mortVolMs, () => {
+        retireFantome(u.camp, u.uid);
+        anime(dest, [{ transform: 'scale(1)' }, { transform: 'scale(1.18)', offset: .4 }, { transform: 'scale(1)' }], { duration: T(260), fill: 'none' });
+      });
+    });
   }
 
   /** La carte complete (ses effets) depuis le catalogue : la photo de l'evenement n'a que ses mots-cles. */
@@ -590,7 +653,8 @@ export function creeFx(acces) {
 
     // Les unites qui meurent dans ce lot: on les garde a l'ecran (fantome) le temps de les
     // faire souffrir, puisque `syncListe` a deja retire leur noeud.
-    for (const ev of lot) if (ev.t === 'meurt') faitFantome(ev.unite.camp, ev.unite.uid);
+    const mesMorts = lot.filter(ev => ev.t === 'meurt').map(ev => ev.unite);
+    for (const u of mesMorts) faitFantome(u.camp, u.uid);
     acces.racine().style.setProperty('--fx-k', reglage.ralenti / reglage.vitesse);
     // Une unite qui arrive reste cachee jusqu'a ce que sa carte la depose (`pop`).
     for (const ev of lot) {
@@ -614,6 +678,7 @@ export function creeFx(acces) {
     let t = retard;                 // l'horloge du film
     const impact = new Map();       // indice d'evenement -> heure du coup
     let groupe = null;              // le dernier groupe (meme cause, meme type) : { cause, t, type }
+    let libre = t;                  // quand l'ecran est libre pour l'action suivante (attaquant revenu, morts rangees)
     const heure = ev => {           // quand un evenement « simple » joue : ensemble avec ses voisins de meme cause
       if (groupe && groupe.cause === ev.cause && groupe.type === ev.t) return groupe.t + f.groupeMs * (++groupe.n);
       groupe = { cause: ev.cause, type: ev.t, t, n: 0 };
@@ -625,15 +690,21 @@ export function creeFx(acces) {
     for (const ev of lot) {
       switch (ev.t) {
         case 'attaque': {
+          // Une attaque attend que la precedente soit revenue a sa place : on suit un coup a la fois.
+          t = Math.max(t, libre);
+          const da = dureesAttaque();
           apres(t, () => elan(ev.src, ev.cible));
           // Ce que SA CARTE fait quand elle attaque : traînee de vitesse (Charge), rémanence fantome (Passe-Murailles), venin a l'impact.
           const sa = signatureDe(idDe(ev.src));
           if (sa && sa.attaque) {
             const liste = Array.isArray(sa.attaque[0]) ? sa.attaque : [sa.attaque];
-            const tImpact = t + f.elanMs * f.elanImpact;
-            for (const [nom, opt] of liste) apres(opt && opt.quand === 'impact' ? tImpact : t, () => lanceAttaque(nom, opt, ev));
+            const tImpact = t + da.impact;
+            const tCharge = t + f.attaqueReculMs + f.attaqueTenueMs;
+            for (const [nom, opt] of liste) apres(opt && opt.quand === 'impact' ? tImpact : tCharge, () => lanceAttaque(nom, opt, ev));
           }
-          t += f.elanMs * f.elanImpact;
+          libre = t + da.total;
+          marque(libre);
+          t += da.impact;
           groupe = null;
           impact.set(ev.i, t);
           break;
@@ -649,6 +720,7 @@ export function creeFx(acces) {
           break;
         }
         case 'joue': {
+          t = Math.max(t, libre);
           apres(t, () => carteJouee(ev));
           t += f.volMs + f.tenueMs;
           // Sa signature : ce qui PART de la carte, des qu'elle s'est montree au centre.
@@ -712,6 +784,7 @@ export function creeFx(acces) {
           break;
         }
         case 'tour': {
+          t = Math.max(t, libre);
           apres(t, () => banniere(ev));
           t += f.banniereAvanceMs;
           groupe = null;
@@ -737,17 +810,25 @@ export function creeFx(acces) {
           const base = impact.has(ev.cause) ? impact.get(ev.cause) : t;
           const at = base + f.mortDelaiMs;
           apres(at, () => mort(ev));
+          // La suite attend que la carte morte ait rejoint sa defausse : on la voit partir.
+          libre = Math.max(libre, at + f.mortMs + f.mortVolMs);
           t = Math.max(t, at + f.mortMs * .5);
-          marque(at + f.mortMs);
+          marque(at + f.mortMs + f.mortVolMs);
           break;
         }
         default: break;
       }
     }
     auras(couverts);
+    t = Math.max(t, libre);
     marque(t);
-    // Un fantome oublie (sa mort n'a pas ete jouee) ne reste pas : on le retire a la fin du film.
-    apres(t + f.mortMs, () => { for (const n of caches) n.style.visibility = ''; caches.clear(); for (const [k, env] of fantomes) { env.remove(); fantomes.delete(k); } });
+    // Un fantome oublie (sa mort n'a pas ete jouee) ne reste pas : on le retire a la fin du film. Seulement CEUX DE CE
+    // FILM : le film suivant a souvent deja commence, et balayer tous les fantomes effacait ses morts avant leur crane.
+    apres(t + f.mortMs, () => {
+      for (const n of caches) n.style.visibility = '';
+      caches.clear();
+      for (const u of mesMorts) retireFantome(u.camp, u.uid);
+    });
     return t;
   }
 
@@ -756,7 +837,7 @@ export function creeFx(acces) {
     /** Combien de temps (ms reelles) avant la fin du film en cours. */
     reste: () => Math.max(0, fin - Date.now()),
     get vitesse() { return reglage.vitesse; },
-    /** Passe au cran de vitesse suivant (x1 -> x2 -> x1) et le retient. */
+    /** Passe au cran de vitesse suivant (x1 -> x2 -> x4 -> x1) et le retient. */
     cycleVitesse() {
       const v = F().vitesses;
       reglage.vitesse = v[(v.indexOf(reglage.vitesse) + 1) % v.length];

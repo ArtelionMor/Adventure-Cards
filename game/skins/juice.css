@@ -97,9 +97,9 @@ html[data-skin="juice"] {
   /* Les onglets des bords : jaunes a gauche, vert pour la fin du tour ; ils sortent du bord de l'ecran. */
   & .bt-onglet { color: #fff; border: 3px solid var(--contour); border-right: 0; -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill;
     background: linear-gradient(90deg, #ffb92a 0 50%, #ffe27a 50% 100%); box-shadow: inset -3px 0 0 rgba(255,255,255,.7), -3px 0 0 var(--contour); }
-  & .bt-onglet.fin { font-size: 17px; background: linear-gradient(90deg, #8bf05c 0 50%, #35b52f 50% 100%); box-shadow: inset 3px 0 0 rgba(255,255,255,.7), -3px 3px 0 var(--contour); }
-  & .bt-onglet.fin .ico { color: #fff; filter: drop-shadow(1px 0 0 var(--contour)) drop-shadow(-1px 0 0 var(--contour)) drop-shadow(0 1px 0 var(--contour)) drop-shadow(0 -1px 0 var(--contour)); }
-  & .bt-onglet.fin:disabled { filter: grayscale(.8); }
+  & .bt-onglet.fintour { font-size: 17px; background: linear-gradient(90deg, #8bf05c 0 50%, #35b52f 50% 100%); box-shadow: inset 3px 0 0 rgba(255,255,255,.7), -3px 3px 0 var(--contour); }
+  & .bt-onglet.fintour .ico { color: #fff; filter: drop-shadow(1px 0 0 var(--contour)) drop-shadow(-1px 0 0 var(--contour)) drop-shadow(0 1px 0 var(--contour)) drop-shadow(0 -1px 0 var(--contour)); }
+  & .bt-onglet.fintour:disabled { filter: grayscale(.8); }
   & .bt-onglet .bdg { background: #ff3d4f; color: #fff; border: 2px solid #fff; -webkit-text-stroke: 0; box-shadow: 0 0 0 2px var(--contour); }
   & .bt-onglets .vitesse { width: 46px; height: 46px; font-size: 18px; }
   & .autochip { display: inline-flex; align-items: center; gap: 4px; font-size: 18px; padding: 6px 12px; }
@@ -140,7 +140,23 @@ html[data-skin="juice"] {
   & .hcard:not(.fx-carte) { width: var(--carte-main); height: var(--carte-main); min-width: 0; max-width: none; }
   & .unit[data-side="e"] { --cadre: #e0524a; --ciel: #ffd9cf; }
   & .hcard.spell { --cadre: var(--spell); --ciel: #e6d4ff; }
-  & .unit.taunt { --cadre: #f2a81d; --ciel: #ffeaa8; }
+  /* LA PROVOCATION SE VOIT : un bouclier de pierre derriere la carte (maquette du game designer, 19 oct. 2026), qui
+     deborde sur les cotes et en pointe dessous. Le cadre garde la couleur du camp. Le dessin est un SVG en ligne (pas de
+     fichier) ; `z-index: -1` le pose derriere toutes les unites du plateau (`.bwrap` porte le contexte). */
+  & .unit.taunt::before {
+    content: ""; position: absolute; left: -24%; right: -24%; top: -16%; bottom: -32%; z-index: -1; pointer-events: none;
+    /* Le trou de la carte est decoupe dans le dessin (`evenodd`) : devant ou derriere, le bouclier ne la cache jamais
+       (une unite animee ou eteinte par le masque fait son propre plan, et un `z-index: -1` y passe DEVANT son fond). */
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 110' preserveAspectRatio='none'%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23dcdcdc'/%3E%3Cstop offset='1' stop-color='%23878787'/%3E%3C/linearGradient%3E%3Cpath fill-rule='evenodd' fill='url%28%23g%29' stroke='%232b1c1f' stroke-width='3.5' stroke-linejoin='round' d='M5 14 Q5 7 12 6.5 L50 2 L88 6.5 Q95 7 95 14 L87 78 Q86 83 81 86.5 L50 108 L19 86.5 Q14 83 13 78 Z M20 11.5 H80 Q84 11.5 84 15.5 V82.5 Q84 86.5 80 86.5 H20 Q16 86.5 16 82.5 V15.5 Q16 11.5 20 11.5 Z'/%3E%3Cpath d='M14 9.6 L50 5.6 L86 9.6' fill='none' stroke='%23fff' stroke-opacity='.6' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+    filter: drop-shadow(0 4px 0 rgba(43, 28, 31, .9));
+  }
+  /* LE BOUCLIER (il absorbe le prochain coup) : un halo d'or autour de la carte. */
+  & .unit.bouclier::after {
+    display: block; content: ""; position: absolute; inset: -8px; border-radius: 24px; pointer-events: none;
+    border: 3px solid #fff3a0; box-shadow: 0 0 12px 4px rgba(255, 214, 70, .85), inset 0 0 12px 2px rgba(255, 226, 90, .6);
+  }
+  /* ELUSIF (on ne peut pas le cibler) : le personnage est a moitie transparent. */
+  & .unit.elusif > img { opacity: .55; }
   /* Le personnage : plus haut que le cadre, un contour noir epais fait de quatre ombres sans flou. */
   & :is(.unit, .hcard:not(.fx-carte)) > img {
     position: absolute; left: 50%; top: -14px; width: 84%; height: 74%; margin: 0; transform: translateX(-50%); object-fit: contain;
@@ -156,7 +172,11 @@ html[data-skin="juice"] {
   & .unit .s .h { color: #ff8da0; }
   & .unit .s .a.plus { color: #4dff2e; }
   & .unit .s .h.moins { color: #ff2a3a; }
-  & :is(.unit, .hcard:not(.fx-carte)) .pic { position: absolute; left: 7px; bottom: 7px; height: auto; max-width: 38%; overflow: hidden; flex-wrap: nowrap; }
+  /* Deux pictogrammes au plus sur la face (battle.js), a leur taille : rien n'est coupe ; le reste se lit a l'appui long. */
+  & :is(.unit, .hcard:not(.fx-carte)) .pic { position: absolute; left: 6px; bottom: 6px; height: 22px; max-width: none; overflow: visible; flex-wrap: nowrap; gap: 2px; }
+  & :is(.unit, .hcard:not(.fx-carte)) .pic .ico { width: 20px; height: 20px; }
+  & :is(.unit, .hcard:not(.fx-carte)) .pic b { font-size: 13px; color: #fff; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & .bt-eventail .bt-nb { color: #fff; -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill; }
   /* Le cout : une gemme bleue, le chiffre blanc cerne. */
   & :is(.hcard:not(.fx-carte) .cost, .zcard .cost, .gcard .cost) {
     width: 30px; height: 30px; font-size: 17px; color: #fff;
@@ -183,7 +203,7 @@ html[data-skin="juice"] {
   /* Ce qui peut agir se voit : cadre vert et halo pour une unite prete, halo blanc pour une carte jouable. Le reste est
      immobile, sans halo, et la carte injouable est grisee. */
   & .unit.ready { --cadre: #3fbf3a; box-shadow: inset 0 0 0 4px var(--cadre), 0 0 0 3px #fff, 0 0 16px 4px rgba(120, 255, 90, .75), 0 4px 0 var(--contour); }
-  & .unit.ready::after { display: none; }
+  & .unit.ready:not(.bouclier)::after { display: none; }
   & .hcard:not(.no, .fx-carte) { box-shadow: inset 0 0 0 4px var(--cadre), 0 0 0 3px #fff, 0 0 14px 3px rgba(255, 255, 255, .85), 0 4px 0 var(--contour); }
   & .hcard.no:not(.fx-carte) { opacity: .72; filter: saturate(.5); }
   & .hcard.no:not(.fx-carte) > img { filter: grayscale(.6) drop-shadow(2px 0 0 var(--contour)) drop-shadow(-2px 0 0 var(--contour)) drop-shadow(0 2px 0 var(--contour)) drop-shadow(0 -2px 0 var(--contour)); }
