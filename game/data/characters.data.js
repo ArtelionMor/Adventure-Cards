@@ -3,9 +3,7 @@
 export const CHARACTER_DATA = {
   "version": 1,
   "starters": [
-    "dog",
-    "cat",
-    "crow"
+    "lapin1"
   ],
   "customMechanics": [],
   "fatigue": [
@@ -3095,6 +3093,1700 @@ export const CHARACTER_DATA = {
     }
   ],
   "characters": [
+    {
+      "id": "lapin1",
+      "name": "Pompon",
+      "species": "Lapin",
+      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit.png",
+      "role": "Le premier compagnon — Aggro simple : poser, attaquer, grandir ensemble",
+      "stats": {
+        "hp": 20,
+        "mana": 5,
+        "hand": 3
+      },
+      "cards": [
+        {
+          "id": "lap1_lapereau",
+          "name": "Lapereau",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 3,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "buff",
+                "t": "randomAllyUnit",
+                "atk": 1,
+                "hp": 1
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : un de tes alliés au hasard gagne +1/+1."
+            },
+            {
+              "lvl": 14,
+              "key": "Charge",
+              "text": "Gagne Charge."
+            }
+          ],
+          "atk": 1,
+          "hp": 1,
+          "statics": []
+        },
+        {
+          "id": "lap1_pres",
+          "name": "Lapin des Prés",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 5,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "buff",
+                "t": "randomAllyUnit",
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "Cri de guerre : un de tes alliés au hasard gagne +1/+0."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "buff",
+                "t": "self",
+                "atk": 1,
+                "hp": 1
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : gagne +1/+1."
+            }
+          ],
+          "atk": 1,
+          "hp": 1,
+          "statics": []
+        },
+        {
+          "id": "lap1_garenne",
+          "name": "Lapin de Garenne",
+          "type": "ally",
+          "cost": 2,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 4,
+              "key": "Charge",
+              "text": "Gagne Charge."
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : invoque un Lapereau 1/1."
+            },
+            {
+              "lvl": 15,
+              "aura": {
+                "key": "",
+                "atk": 0,
+                "hp": 1,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres unités ont +0/+1."
+            }
+          ],
+          "atk": 2,
+          "hp": 2,
+          "statics": []
+        },
+        {
+          "id": "lap1_costaud",
+          "name": "Lapin Costaud",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 2,
+              "stats": {
+                "atk": 1,
+                "hp": 1
+              },
+              "text": "+1/+1"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "buff",
+                "t": "allAllies",
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "Cri de guerre : tes autres unités gagnent +1/+0."
+            },
+            {
+              "lvl": 12,
+              "key": "Taunt",
+              "text": "Gagne Provocation."
+            },
+            {
+              "lvl": 19,
+              "extra": {
+                "op": "buff",
+                "t": "allAllies",
+                "atk": 1,
+                "hp": 0
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : tes autres unités gagnent +1/+0."
+            }
+          ],
+          "atk": 3,
+          "hp": 3,
+          "statics": []
+        },
+        {
+          "id": "lap1_grandpere",
+          "name": "Grand-Père Lapin",
+          "type": "ally",
+          "cost": 5,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "Tes autres unités ont +1/+1.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 6,
+              "key": "Taunt",
+              "text": "Gagne Provocation."
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "summon",
+                "n": 2,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "text": "Cri de guerre : invoque deux Lapereaux 1/1."
+            },
+            {
+              "lvl": 16,
+              "aura": {
+                "key": "",
+                "atk": 0,
+                "hp": 1,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres unités ont +0/+1 de plus."
+            },
+            {
+              "lvl": 17,
+              "aura": {
+                "key": "",
+                "atk": 1,
+                "hp": 0,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres unités ont +1/+0 de plus."
+            }
+          ],
+          "atk": 5,
+          "hp": 5,
+          "statics": [],
+          "aura": {
+            "scope": "otherAllies",
+            "atk": 1,
+            "hp": 1,
+            "key": ""
+          }
+        }
+      ],
+      "switches": [
+        {
+          "id": "lap1_hardi",
+          "name": "Lapereau Hardi",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 2,
+              "key": "Charge",
+              "text": "Gagne Charge."
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "dmg",
+                "t": "randomEnemyAny",
+                "v": 1
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : inflige 1 dégât à un ennemi au hasard."
+            },
+            {
+              "lvl": 15,
+              "extra": {
+                "op": "buff",
+                "t": "self",
+                "atk": 1,
+                "hp": 0
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : gagne +1/+0."
+            }
+          ],
+          "atk": 2,
+          "hp": 1,
+          "statics": []
+        },
+        {
+          "id": "lap1_coureur",
+          "name": "Lapin Coureur",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "Charge",
+            "type:Lapin"
+          ],
+          "text": "Charge.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 3,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "dmg",
+                "t": "randomEnemyUnit",
+                "v": 1
+              },
+              "text": "Cri de guerre : inflige 1 dégât à une unité adverse au hasard."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : invoque un Lapereau 1/1."
+            }
+          ],
+          "atk": 1,
+          "hp": 1,
+          "statics": []
+        },
+        {
+          "id": "lap1_bagarreur",
+          "name": "Lapin Bagarreur",
+          "type": "ally",
+          "cost": 2,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 5,
+              "stats": {
+                "atk": 0,
+                "hp": 2
+              },
+              "text": "+0/+2"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "buff",
+                "t": "randomAllyUnit",
+                "atk": 1,
+                "hp": 0
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : un de tes alliés au hasard gagne +1/+0."
+            },
+            {
+              "lvl": 14,
+              "key": "Bouclier",
+              "text": "Gagne Bouclier."
+            }
+          ],
+          "atk": 3,
+          "hp": 1,
+          "statics": []
+        },
+        {
+          "id": "lap1_bondissant",
+          "name": "Lapin Bondissant",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "Charge",
+            "type:Lapin"
+          ],
+          "text": "Charge.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 6,
+              "stats": {
+                "atk": 1,
+                "hp": 1
+              },
+              "text": "+1/+1"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "buff",
+                "t": "randomAllyUnit",
+                "atk": 1,
+                "hp": 1
+              },
+              "text": "Cri de guerre : un de tes alliés au hasard gagne +1/+1."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "summon",
+                "n": 2,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : invoque deux Lapereaux 1/1."
+            },
+            {
+              "lvl": 20,
+              "aura": {
+                "key": "",
+                "atk": 1,
+                "hp": 0,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres unités ont +1/+0."
+            }
+          ],
+          "atk": 3,
+          "hp": 2,
+          "statics": []
+        },
+        {
+          "id": "lap1_chef",
+          "name": "Chef de Clapier",
+          "type": "ally",
+          "cost": 5,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "Cri de guerre : tes autres unités gagnent +1/+1.",
+          "play": [
+            {
+              "op": "buff",
+              "t": "allAllies",
+              "atk": 1,
+              "hp": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 4,
+              "key": "Taunt",
+              "text": "Gagne Provocation."
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "buff",
+                "t": "allAllies",
+                "atk": 1,
+                "hp": 1
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : tes unités gagnent +1/+1."
+            },
+            {
+              "lvl": 16,
+              "amp": 1,
+              "text": "Cri de guerre : +2/+2 au lieu de +1/+1."
+            },
+            {
+              "lvl": 18,
+              "aura": {
+                "key": "",
+                "atk": 1,
+                "hp": 1,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres unités ont +1/+1."
+            }
+          ],
+          "atk": 4,
+          "hp": 4,
+          "statics": []
+        }
+      ]
+    },
+    {
+      "id": "lapin2",
+      "name": "Caramel",
+      "species": "Lapin",
+      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit English Lop.png",
+      "role": "Le gardien — tenir : l’endurance et la Provocation",
+      "stats": {
+        "hp": 24,
+        "mana": 5,
+        "hand": 3
+      },
+      "cards": [
+        {
+          "id": "lap2_nain",
+          "name": "Lapin Nain",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 3,
+              "key": "Taunt",
+              "text": "Gagne Provocation."
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "heal",
+                "t": "ownHero",
+                "v": 2
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : ton héros gagne 2 PV."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "heal",
+                "t": "ownHero",
+                "v": 1
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : ton héros gagne 1 PV."
+            }
+          ],
+          "atk": 1,
+          "hp": 2,
+          "statics": []
+        },
+        {
+          "id": "lap2_gardien",
+          "name": "Gardien du Clapier",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "Taunt",
+            "type:Lapin"
+          ],
+          "text": "Provocation.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 2,
+              "stats": {
+                "atk": 0,
+                "hp": 2
+              },
+              "text": "+0/+2"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "buff",
+                "t": "self",
+                "atk": 0,
+                "hp": 1
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : gagne +0/+1."
+            },
+            {
+              "lvl": 14,
+              "key": "Bouclier",
+              "text": "Gagne Bouclier."
+            }
+          ],
+          "atk": 1,
+          "hp": 2,
+          "statics": []
+        },
+        {
+          "id": "lap2_oreilles",
+          "name": "Oreilles Tombantes",
+          "type": "ally",
+          "cost": 2,
+          "keys": [
+            "Taunt",
+            "type:Lapin"
+          ],
+          "text": "Provocation.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 4,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "buff",
+                "t": "randomAllyUnit",
+                "atk": 0,
+                "hp": 2
+              },
+              "text": "Cri de guerre : un de tes alliés au hasard gagne +0/+2."
+            },
+            {
+              "lvl": 12,
+              "aura": {
+                "key": "",
+                "atk": 0,
+                "hp": 1,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres unités ont +0/+1."
+            }
+          ],
+          "atk": 1,
+          "hp": 3,
+          "statics": []
+        },
+        {
+          "id": "lap2_grange",
+          "name": "Lapin de Grange",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 5,
+              "key": "Taunt",
+              "text": "Gagne Provocation."
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "heal",
+                "t": "ownHero",
+                "v": 2
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : ton héros gagne 2 PV."
+            },
+            {
+              "lvl": 15,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapin de Garde",
+                  "atk": 2,
+                  "hp": 2,
+                  "keys": [
+                    "Taunt",
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : invoque un Lapin de Garde 2/2 avec Provocation."
+            },
+            {
+              "lvl": 19,
+              "aura": {
+                "key": "",
+                "atk": 0,
+                "hp": 2,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres unités ont +0/+2."
+            }
+          ],
+          "atk": 2,
+          "hp": 4,
+          "statics": []
+        },
+        {
+          "id": "lap2_doyenne",
+          "name": "Doyenne du Clapier",
+          "type": "ally",
+          "cost": 5,
+          "keys": [
+            "Taunt",
+            "type:Lapin"
+          ],
+          "text": "Provocation. Tes autres unités ont +0/+2.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 6,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "heal",
+                "t": "ownHero",
+                "v": 2
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : ton héros gagne 2 PV."
+            },
+            {
+              "lvl": 16,
+              "aura": {
+                "key": "",
+                "atk": 1,
+                "hp": 0,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres unités ont aussi +1/+0."
+            },
+            {
+              "lvl": 17,
+              "extra": {
+                "op": "buff",
+                "t": "allAllies",
+                "atk": 0,
+                "hp": 1
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : tes autres unités gagnent +0/+1."
+            }
+          ],
+          "atk": 3,
+          "hp": 7,
+          "statics": [],
+          "aura": {
+            "scope": "otherAllies",
+            "atk": 0,
+            "hp": 2,
+            "key": ""
+          }
+        }
+      ],
+      "switches": [
+        {
+          "id": "lap2_angora",
+          "name": "Lapin Angora",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "Cri de guerre : ton héros gagne 2 PV.",
+          "play": [
+            {
+              "op": "heal",
+              "t": "ownHero",
+              "v": 2
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 2,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "heal",
+                "t": "ownHero",
+                "v": 2
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : ton héros gagne 2 PV."
+            },
+            {
+              "lvl": 14,
+              "key": "Taunt",
+              "text": "Gagne Provocation."
+            }
+          ],
+          "atk": 1,
+          "hp": 1,
+          "statics": []
+        },
+        {
+          "id": "lap2_sentinelle",
+          "name": "Lapin Sentinelle",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "Taunt",
+            "type:Lapin"
+          ],
+          "text": "Provocation.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 3,
+              "key": "Bouclier",
+              "text": "Gagne Bouclier."
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "buff",
+                "t": "randomAllyUnit",
+                "atk": 0,
+                "hp": 2
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : un de tes alliés au hasard gagne +0/+2."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "buff",
+                "t": "self",
+                "atk": 1,
+                "hp": 0
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : gagne +1/+0."
+            }
+          ],
+          "atk": 2,
+          "hp": 1,
+          "statics": []
+        },
+        {
+          "id": "lap2_tetu",
+          "name": "Lapin Têtu",
+          "type": "ally",
+          "cost": 2,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 4,
+              "key": "Taunt",
+              "text": "Gagne Provocation."
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "buff",
+                "t": "self",
+                "atk": 0,
+                "hp": 1
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : gagne +0/+1."
+            },
+            {
+              "lvl": 15,
+              "aura": {
+                "key": "",
+                "atk": 0,
+                "hp": 1,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres unités ont +0/+1."
+            }
+          ],
+          "atk": 2,
+          "hp": 3,
+          "statics": []
+        },
+        {
+          "id": "lap2_cuirasse",
+          "name": "Lapin Cuirassé",
+          "type": "ally",
+          "cost": 3,
+          "keys": [
+            "Bouclier",
+            "type:Lapin"
+          ],
+          "text": "Bouclier.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 5,
+              "stats": {
+                "atk": 1,
+                "hp": 1
+              },
+              "text": "+1/+1"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapin de Garde",
+                  "atk": 2,
+                  "hp": 2,
+                  "keys": [
+                    "Taunt",
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : invoque un Lapin de Garde 2/2 avec Provocation."
+            },
+            {
+              "lvl": 12,
+              "key": "Taunt",
+              "text": "Gagne Provocation."
+            },
+            {
+              "lvl": 20,
+              "extra": {
+                "op": "buff",
+                "t": "allAllies",
+                "atk": 0,
+                "hp": 1
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : tes autres unités gagnent +0/+1."
+            }
+          ],
+          "atk": 2,
+          "hp": 3,
+          "statics": []
+        },
+        {
+          "id": "lap2_belier",
+          "name": "Grand Bélier",
+          "type": "ally",
+          "cost": 5,
+          "keys": [
+            "Taunt",
+            "type:Lapin"
+          ],
+          "text": "Provocation. Cri de guerre : tes autres unités gagnent +0/+2.",
+          "play": [
+            {
+              "op": "buff",
+              "t": "allAllies",
+              "atk": 0,
+              "hp": 2
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 6,
+              "key": "Bouclier",
+              "text": "Gagne Bouclier."
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "buff",
+                "t": "allAllies",
+                "atk": 0,
+                "hp": 2
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : tes unités gagnent +0/+2."
+            },
+            {
+              "lvl": 16,
+              "aura": {
+                "key": "",
+                "atk": 0,
+                "hp": 1,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres unités ont +0/+1."
+            },
+            {
+              "lvl": 18,
+              "aura": {
+                "key": "Taunt",
+                "atk": 0,
+                "hp": 0,
+                "scope": "otherAllies"
+              },
+              "text": "Aura : tes autres unités ont Provocation."
+            }
+          ],
+          "atk": 4,
+          "hp": 6,
+          "statics": []
+        }
+      ]
+    },
+    {
+      "id": "lapin3",
+      "name": "Séléné",
+      "species": "Lapin",
+      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit Wherewolf.png",
+      "role": "La portée — Go Wide : les moments d’une carte et les sorts",
+      "stats": {
+        "hp": 22,
+        "mana": 5,
+        "hand": 3
+      },
+      "cards": [
+        {
+          "id": "lap3_prolifique",
+          "name": "Lapine Prolifique",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "Râle d’agonie : invoque un Lapereau 1/1.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 3,
+              "stats": {
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "+0/+1"
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "text": "Cri de guerre : invoque un Lapereau 1/1."
+            },
+            {
+              "lvl": 14,
+              "aura": {
+                "key": "",
+                "atk": 1,
+                "hp": 0,
+                "scope": "sameTypeAllies"
+              },
+              "text": "Aura : tes autres Lapins ont +1/+0."
+            }
+          ],
+          "atk": 1,
+          "hp": 1,
+          "statics": [],
+          "death": [
+            {
+              "op": "summon",
+              "n": 1,
+              "unit": {
+                "name": "Lapereau",
+                "atk": 1,
+                "hp": 1,
+                "keys": [
+                  "type:Lapin"
+                ],
+                "statics": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "lap3_trefle",
+          "name": "Festin de Trèfle",
+          "type": "spell",
+          "cost": 1,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "Un de tes alliés gagne +2/+1.",
+          "play": [
+            {
+              "op": "buff",
+              "t": "allyUnit",
+              "atk": 2,
+              "hp": 1
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 2,
+              "amp": 1,
+              "text": "Effet +1 : +3/+2."
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "text": "Invoque aussi un Lapereau 1/1."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "buff",
+                "t": "previous",
+                "atk": 0,
+                "hp": 0,
+                "key": "Charge"
+              },
+              "text": "L’allié renforcé gagne aussi Charge."
+            }
+          ]
+        },
+        {
+          "id": "lap3_portee",
+          "name": "Portée de Lapereaux",
+          "type": "spell",
+          "cost": 2,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "Invoque deux Lapereaux 1/1.",
+          "play": [
+            {
+              "op": "summon",
+              "n": 2,
+              "unit": {
+                "name": "Lapereau",
+                "atk": 1,
+                "hp": 1,
+                "keys": [
+                  "type:Lapin"
+                ],
+                "statics": []
+              }
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 4,
+              "cost": -1,
+              "text": "Coût −1"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapin de Garde",
+                  "atk": 2,
+                  "hp": 2,
+                  "keys": [
+                    "Taunt",
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "text": "Invoque aussi un Lapin de Garde 2/2 avec Provocation."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "buff",
+                "t": "allyType:Lapin",
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "Tes Lapins gagnent ensuite +1/+0."
+            }
+          ]
+        },
+        {
+          "id": "lap3_lune",
+          "name": "Lapin de Pleine Lune",
+          "type": "ally",
+          "cost": 4,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "Début de ton tour : gagne +1/+1.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 5,
+              "key": "Charge",
+              "text": "Gagne Charge."
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "summon",
+                "n": 2,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : invoque deux Lapereaux 1/1."
+            },
+            {
+              "lvl": 15,
+              "aura": {
+                "key": "",
+                "atk": 0,
+                "hp": 1,
+                "scope": "sameTypeAllies"
+              },
+              "text": "Aura : tes autres Lapins ont +0/+1."
+            },
+            {
+              "lvl": 19,
+              "extra": {
+                "op": "buff",
+                "t": "allyType:Lapin",
+                "atk": 1,
+                "hp": 1
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : tes Lapins gagnent +1/+1."
+            }
+          ],
+          "atk": 3,
+          "hp": 3,
+          "statics": [],
+          "turnStart": [
+            {
+              "op": "buff",
+              "t": "self",
+              "atk": 1,
+              "hp": 1
+            }
+          ]
+        },
+        {
+          "id": "lap3_reine",
+          "name": "Reine du Terrier",
+          "type": "ally",
+          "cost": 5,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "Fin de ton tour : invoque un Lapereau 1/1.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 6,
+              "stats": {
+                "atk": 0,
+                "hp": 2
+              },
+              "text": "+0/+2"
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "text": "Cri de guerre : invoque un Lapereau 1/1."
+            },
+            {
+              "lvl": 16,
+              "extra": {
+                "op": "buff",
+                "t": "allyType:Lapin",
+                "atk": 1,
+                "hp": 0
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : tes Lapins gagnent +1/+0."
+            },
+            {
+              "lvl": 17,
+              "aura": {
+                "key": "",
+                "atk": 1,
+                "hp": 1,
+                "scope": "sameTypeAllies"
+              },
+              "text": "Aura : tes autres Lapins ont +1/+1."
+            }
+          ],
+          "atk": 4,
+          "hp": 4,
+          "statics": [],
+          "turnEnd": [
+            {
+              "op": "summon",
+              "n": 1,
+              "unit": {
+                "name": "Lapereau",
+                "atk": 1,
+                "hp": 1,
+                "keys": [
+                  "type:Lapin"
+                ],
+                "statics": []
+              }
+            }
+          ]
+        }
+      ],
+      "switches": [
+        {
+          "id": "lap3_farceur",
+          "name": "Lapereau Farceur",
+          "type": "ally",
+          "cost": 1,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "Râle d’agonie : inflige 1 dégât à un ennemi au hasard.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 2,
+              "stats": {
+                "atk": 1,
+                "hp": 0
+              },
+              "text": "+1/+0"
+            },
+            {
+              "lvl": 8,
+              "extra": {
+                "op": "dmg",
+                "t": "randomEnemyUnit",
+                "v": 1
+              },
+              "text": "Cri de guerre : inflige 1 dégât à une unité adverse au hasard."
+            },
+            {
+              "lvl": 13,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : invoque aussi un Lapereau 1/1."
+            }
+          ],
+          "atk": 1,
+          "hp": 1,
+          "statics": [],
+          "death": [
+            {
+              "op": "dmg",
+              "t": "randomEnemyAny",
+              "v": 1
+            }
+          ]
+        },
+        {
+          "id": "lap3_quatre",
+          "name": "Trèfle à Quatre Feuilles",
+          "type": "spell",
+          "cost": 1,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "Tes unités gagnent +1/+0.",
+          "play": [
+            {
+              "op": "buff",
+              "t": "allAllies",
+              "atk": 1,
+              "hp": 0
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 3,
+              "amp": 1,
+              "text": "Effet +1 : +2/+0."
+            },
+            {
+              "lvl": 9,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "text": "Invoque ensuite un Lapereau 1/1."
+            },
+            {
+              "lvl": 14,
+              "extra": {
+                "op": "buff",
+                "t": "allAllies",
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "Tes unités gagnent aussi +0/+1."
+            }
+          ]
+        },
+        {
+          "id": "lap3_terrier",
+          "name": "Terrier Secret",
+          "type": "spell",
+          "cost": 2,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "Invoque un Lapin de Garde 2/2 avec Provocation.",
+          "play": [
+            {
+              "op": "summon",
+              "n": 1,
+              "unit": {
+                "name": "Lapin de Garde",
+                "atk": 2,
+                "hp": 2,
+                "keys": [
+                  "Taunt",
+                  "type:Lapin"
+                ],
+                "statics": []
+              }
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 4,
+              "cost": -1,
+              "text": "Coût −1"
+            },
+            {
+              "lvl": 7,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "text": "Invoque aussi un Lapereau 1/1."
+            },
+            {
+              "lvl": 12,
+              "extra": {
+                "op": "buff",
+                "t": "allyType:Lapin",
+                "atk": 0,
+                "hp": 1
+              },
+              "text": "Tes Lapins gagnent ensuite +0/+1."
+            }
+          ]
+        },
+        {
+          "id": "lap3_mars",
+          "name": "Lièvre de Mars",
+          "type": "ally",
+          "cost": 4,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "Cri de guerre : invoque deux Lapereaux 1/1.",
+          "play": [
+            {
+              "op": "summon",
+              "n": 2,
+              "unit": {
+                "name": "Lapereau",
+                "atk": 1,
+                "hp": 1,
+                "keys": [
+                  "type:Lapin"
+                ],
+                "statics": []
+              }
+            }
+          ],
+          "tiers": [
+            {
+              "lvl": 5,
+              "stats": {
+                "atk": 1,
+                "hp": 1
+              },
+              "text": "+1/+1"
+            },
+            {
+              "lvl": 10,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "slot": "death",
+              "text": "Râle d’agonie : invoque un Lapereau 1/1."
+            },
+            {
+              "lvl": 15,
+              "key": "Taunt",
+              "text": "Gagne Provocation."
+            },
+            {
+              "lvl": 20,
+              "aura": {
+                "key": "",
+                "atk": 1,
+                "hp": 0,
+                "scope": "sameTypeAllies"
+              },
+              "text": "Aura : tes autres Lapins ont +1/+0."
+            }
+          ],
+          "atk": 2,
+          "hp": 2,
+          "statics": []
+        },
+        {
+          "id": "lap3_eclipse",
+          "name": "Lapin d’Éclipse",
+          "type": "ally",
+          "cost": 5,
+          "keys": [
+            "type:Lapin"
+          ],
+          "text": "Râle d’agonie : invoque trois Lapereaux 1/1.",
+          "play": [],
+          "tiers": [
+            {
+              "lvl": 6,
+              "key": "Taunt",
+              "text": "Gagne Provocation."
+            },
+            {
+              "lvl": 11,
+              "extra": {
+                "op": "buff",
+                "t": "allyType:Lapin",
+                "atk": 1,
+                "hp": 0
+              },
+              "slot": "turnEnd",
+              "text": "Fin de ton tour : tes Lapins gagnent +1/+0."
+            },
+            {
+              "lvl": 16,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "text": "Cri de guerre : invoque un Lapereau 1/1."
+            },
+            {
+              "lvl": 18,
+              "extra": {
+                "op": "summon",
+                "n": 1,
+                "unit": {
+                  "name": "Lapereau",
+                  "atk": 1,
+                  "hp": 1,
+                  "keys": [
+                    "type:Lapin"
+                  ],
+                  "statics": []
+                }
+              },
+              "slot": "turnStart",
+              "text": "Début de ton tour : invoque un Lapereau 1/1."
+            }
+          ],
+          "atk": 4,
+          "hp": 4,
+          "statics": [],
+          "death": [
+            {
+              "op": "summon",
+              "n": 3,
+              "unit": {
+                "name": "Lapereau",
+                "atk": 1,
+                "hp": 1,
+                "keys": [
+                  "type:Lapin"
+                ],
+                "statics": []
+              }
+            }
+          ]
+        }
+      ]
+    },
     {
       "id": "dog",
       "name": "Médor",

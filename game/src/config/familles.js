@@ -6,7 +6,9 @@
 // carte d'un heros : `fond` (le ciel derriere le personnage) et `cadre` (le liseré interieur de la grande
 // carte de l'ecran d'amelioration). Un heros dont l'espece n'est dans aucune famille tombe dans la derniere.
 export const FAMILLES = [
-  { id: 'chiens',      nom: 'Chiens',      especes: ['Chien'],              fond: '#ffbfbf', cadre: '#ff5252' },
+  // Les Lapins du tutoriel (docs/TUTORIEL.md, 21 octobre 2026) : les premiers heros du joueur, donc en tete.
+  { id: 'lapins',      nom: 'Lapins',      especes: ['Lapin'],              fond: '#fff3c4', cadre: '#e0b52e' },
+  { id: 'chiens',     nom: 'Chiens',      especes: ['Chien'],              fond: '#ffbfbf', cadre: '#ff5252' },
   { id: 'chats',       nom: 'Chats',       especes: ['Chat'],               fond: '#bff9ff', cadre: '#29b6d6' },
   { id: 'corbeaux',    nom: 'Corbeaux',    especes: ['Corbeau', 'Faucon'],  fond: '#ddd0ff', cadre: '#8a5cf0' },
   { id: 'grenouilles', nom: 'Grenouilles', especes: ['Grenouille'],         fond: '#c2ffbf', cadre: '#3fbf3a' },
@@ -22,6 +24,7 @@ export const RARETES = {
   epique: '#da3fdd'
 };
 export const RARETE_DES_HEROS = {
+  lapin1: 'commun', lapin2: 'commun', lapin3: 'commun',
   dog: 'commun', cat: 'commun', crow: 'commun', frog: 'commun', owl: 'commun', cameleon: 'commun',
   dog2: 'rare', cat2: 'rare', crow2: 'rare', frog2: 'rare', owl2: 'rare', cameleon2: 'rare',
   dog3: 'epique', cat3: 'epique', crow3: 'epique', frog3: 'epique', owl3: 'epique', cameleon3: 'epique'

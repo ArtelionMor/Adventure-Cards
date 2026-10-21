@@ -238,6 +238,13 @@ Greffier (éclats vers l'intérieur) · Bibliothécaire (livre, facettes) · Chr
 Grand Registre (arc-en-ciel, voile, renfort) · Copiste (dédoublement, une carte) · Mimétisme (masque, renfort) ·
 Archiviste Impitoyable (œil, éclats vers le héros adverse) · Index du Registre (livre, cinq cartes en éventail) · Rétrospective (arc-en-ciel, six cartes mélangées).
 
+## Les trois Lapins du tutoriel (21 octobre 2026) — 30 signatures
+
+Des gestes simples, un par carte (`docs/TUTORIEL.md`) : le joueur les voit en premier, ils doivent se lire sans rien connaître.
+- **Pompon** (le premier compagnon) : jaune paille et crème — pattes qui sautillent, fleurs des prés, confettis pour le Chef de Clapier.
+- **Caramel** (le gardien) : caramel et brun doux — gros pas lourds, halo de vie (Doyenne), cœurs qui montent (Angora).
+- **Séléné** (la portée) : argent et bleu de nuit — lune, étoiles, constellations ; chaque râle d'agonie fait surgir sa portée.
+
 ## Les effets sans carte (états)
 Sur le **plateau**, un mot-clé qui a son dessin n'a plus de picto (`DESSINES`, `pictos.js`) ; **en main**, aucun de ces dessins : les
 pictos (21 oct. 2026). ⚠ **Un effet visuel par mot-clé** est à concevoir avec le game designer (propositions envoyées le 21 oct. :

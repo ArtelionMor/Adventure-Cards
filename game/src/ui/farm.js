@@ -9,7 +9,7 @@ import { BALANCE } from '../config/balance.js';
 import { CROPS, CROP_BY_ID, estConnue } from '../config/farm.js';
 import { relicMods } from '../config/relics.js';
 import { t } from '../config/textes.js';
-import { save, persist, gain, spend } from '../state.js';
+import { save, persist, gain, spend, signale } from '../state.js';
 import { $, el, asset, toast, modal, closeModal, fmtTime } from './shell.js';
 
 const growMs = crop => Math.round(crop.growMs * (1 - Math.min(0.6, relicMods(save).farmSpeed)));
@@ -28,7 +28,7 @@ export function processFarm(now = Date.now()) {
       sale += CROP_BY_ID[id].price;
       f.stall[i] = null;
     }
-    if (sale > 0) { gain('C', sale); earned += sale; sales++; f.totalEarned += sale; }
+    if (sale > 0) { gain('C', sale); earned += sale; sales++; f.totalEarned += sale; signale('vend'); }
     f.nextSaleAt += BALANCE.farm.saleIntervalMs;
   }
   if (earned) persist();
@@ -191,6 +191,7 @@ function choosePlant(i) {
       </div>`);
     if (ok) row.onclick = () => {
       save.farm.cases[i] = { cropId: c.id, at: Date.now() };
+      signale('plante');
       persist(); closeModal(); renderFarm();
     };
     list.appendChild(row);

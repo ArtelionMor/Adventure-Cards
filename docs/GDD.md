@@ -19,7 +19,8 @@ Le prototype est jouable de bout en bout : `AdventureCard.exe` à la racine ouvr
 | Ferme : parcelles, étale, vente 15 min, gains hors-ligne | ✅ jouable |
 | Monnaies A/B/C, relics, sauvegarde locale, Wake Lock | ✅ jouable |
 | **Card Builder** (outil de game design) | ✅ utilisable — voir plus bas |
-| Tutoriel réel, son, DA, monétisation | pas commencé |
+| Tutoriel des Lapins + fil de quêtes (`docs/TUTORIEL.md`) | 🟡 en cours (21 oct. 2026) |
+| Son, monétisation | pas commencé |
 
 **Ce qui se tune** vit dans `game/src/config/` (coûts, timers, cadence de déblocage, monde, ferme, relics) et **les cartes** dans `game/data/characters.data.js`, écrit par le Card Builder. Trois bancs d'essai : `scripts/simulate.mjs` (courbe de difficulté), `scripts/test-triggers.mjs` (moteur), `scripts/test-ai.mjs` (bot).
 
@@ -48,8 +49,8 @@ Vue du dessus, 2D, façon **Don't Starve**. Rencontres d'ennemis, PNJ, marchands
 ## Deckbuilding & personnages ✅ implémenté
 
 - Un deck = **3 personnages**, chacun avec **5 cartes** fixes en nombre → **15 cartes** mélangées dans un **paquet unique** en combat (façon **Slay the Spire**, pas de paquets séparés par personnage).
-- Le nombre de personnages **équipables en même temps** est lui-même une progression : **1 → 2 → 3**, débloquée via un progression path alimenté par la monnaie C (voir Monnaies). *Depuis le 12 octobre 2026 : les 3 places sont ouvertes d'office (on ne joue jamais seul hors tutoriel) ; le tutoriel les refermera.*
-- Les **3 premiers personnages** sont distribués pendant le **tutoriel** ; le joueur ne peut au tout début en équiper qu'un seul à la fois.
+- Le nombre de personnages **équipables en même temps** est lui-même une progression : **1 → 2 → 3**, débloquée via un progression path alimenté par la monnaie C (voir Monnaies). *Depuis le 21 octobre 2026 : une partie commence avec **une place**, le tutoriel en ouvre une à chaque nouveau Lapin (`docs/TUTORIEL.md`) ; hors tutoriel, on ne joue jamais seul.*
+- Les **3 premiers personnages** sont distribués pendant le **tutoriel** ; le joueur ne peut au tout début en équiper qu'un seul à la fois. *Ce sont trois **Lapins** (Pompon, Caramel, Séléné), puis des quêtes donnent Médor, Felix et Corax : voir `docs/TUTORIEL.md` (21 octobre 2026).*
 - Chaque slot de carte peut être remplacé par une **carte switch** (1 alternative par slot → 5 switch possibles par personnage). Objectif de design : chaque switch montre une autre facette de la mécanique de jeu de cartes propre à ce personnage. Une fois la switch achetée (monnaie B), le joueur bascule librement entre les deux faces.
 - Un personnage peut être **amélioré** (monnaie C, **les pièces**) : l'upgrade modifie la puissance de ses cartes via des **paliers de niveau cumulatifs** (voir Anatomie de carte). Le niveau d'un personnage vient **uniquement** de la monnaie C dépensée — il n'y a pas d'XP de combat.
   **Une amélioration = un palier d'une carte** (décision du 12 octobre 2026) : on améliore son héros, et chaque amélioration améliore ses cartes une par une, cartes switch comprises (5 + 5 cartes, ~3 paliers chacune : ~30 améliorations par héros). Chaque amélioration donne de la **puissance** (`BALANCE.progression.puissance`) ; c'est elle qui verrouille la progression : les seuils se posent dans la Google Sheet (onglet `encounters`, colonne `power_needed`, branchée le 16 octobre 2026) ; un combat sans seuil et les passages lisent encore le niveau de palier de l'équipe. Écrans : `mockups/Deck Screen.png` et `Upgrade Deck Screen.png`.
@@ -179,7 +180,7 @@ Reportée volontairement — pas nécessaire pour la phase de prototype actuelle
 
 Aucun n'est engagé — c'est une liste d'options, pas un plan.
 
-- Un vrai tutoriel (les 3 persos distribués, le premier combat guidé) — aujourd'hui c'est une simple modale.
+- Le tutoriel : le Potager en Souris et le combat guidé (le reste est fait, `docs/TUTORIEL.md`).
 - Durcir le level design de l'overworld pour que les barrières de niveau ne se contournent plus.
 - Écrire les cartes des 6 personnages pour de bon dans le Card Builder, maintenant que les moments et les cibles existent.
 - Équilibrage : les valeurs actuelles rendent la boucle jouable, elles ne sont pas justes.

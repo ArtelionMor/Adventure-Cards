@@ -47,7 +47,7 @@ const particule = nom => `url("${encodeURI(`/Graphical Assets/VFX/${nom}.png`)}"
 const FLAMMES = ['muzzle_02', 'muzzle_03', 'muzzle_05', 'flame_05', 'flame_06'];
 const FEU = 'linear-gradient(to top, #fff7c2 0 12%, #ffd23a 32%, #ff7a1a 62%, #e5341c 100%)';
 
-// ============================================================ LES 120 SIGNATURES
+// ============================================================ LES SIGNATURES (120 V1/V2, 60 V3, 30 Lapins)
 export const SIGNATURES = {
   // ---- Médor (Chien, Gardien) : or et beige, pattes, os, sifflet, aboiements
   dog_pup: { entree: ['pattes', { couleur: C.beige, n: 4 }], mort: ['ame', { couleur: C.beige }],
@@ -300,6 +300,46 @@ export const SIGNATURES = {
     declenche: surRegle('on_registre_foe', { lancer: ['eclats', { couleur: '#dff6ff' }], vers: 'ennemi', arrivee: ['souffle', { couleur: '#b8ffb0' }] }) },
   cam3_index: { lancer: [['livre', { couleur: '#dff6ff' }], ['cartes', { couleur: '#b8ffb0', n: 5, eventail: true }]], vers: 'main' },
   cam3_retro: { lancer: [['arcenciel', { grand: true }], ['cartes', { couleur: C.cyan, n: 6, melange: true }]], vers: 'allies' },
+
+  // ===== LES TROIS LAPINS DU TUTORIEL (docs/TUTORIEL.md, 21 oct. 2026) : des gestes simples, un par carte
+  // ---- Pompon (Lapin, le premier compagnon) : jaune paille et crème — pattes qui sautillent, fleurs des prés, confettis
+  lap1_lapereau: { entree: ['pattes', { couleur: '#f6e7a0', n: 2, petit: true }] },
+  lap1_pres: { entree: ['fleur', { couleur: '#f6e7a0' }] },
+  lap1_garenne: { entree: [['pattes', { couleur: '#f6e7a0', n: 4 }], ['fumee', { couleur: '#e8d9b0', petit: true }]] },
+  lap1_costaud: { entree: ['convocation', { couleur: '#f6e7a0', lourd: true }] },
+  lap1_grandpere: { entree: [['couronne', { couleur: '#f6e7a0' }], ['convocation', { couleur: C.creme, lourd: true }]], aura: ['halo', { couleur: '#f6e7a0', symbole: 'Buff' }] },
+  lap1_hardi: { entree: ['aboiement', { couleur: '#f6e7a0', petit: true }] },
+  lap1_coureur: { entree: ['pattes', { couleur: '#f6e7a0', n: 6, chemin: true }], attaque: [['trainee', { couleur: '#f6e7a0' }]] },
+  lap1_bagarreur: { entree: ['souffle', { couleur: '#f6e7a0' }] },
+  lap1_bondissant: { entree: [['pattes', { couleur: C.orange, n: 3 }], ['convocation', { couleur: '#f6e7a0' }]], attaque: [['trainee', { couleur: C.orange }]] },
+  lap1_chef: { entree: ['convocation', { couleur: C.or, lourd: true }], lancer: ['confettis', {}], vers: 'allies', renfort: ['montee', { symbole: 'Buff', couleur: '#f6e7a0', n: 2 }] },
+  // ---- Caramel (Lapin, le gardien) : caramel et brun doux — gros pas lourds, halos de vie, cœurs
+  lap2_nain: { entree: ['pattes', { couleur: '#d9a066', n: 2, petit: true }] },
+  lap2_gardien: { entree: ['convocation', { couleur: '#d9a066' }] },
+  lap2_oreilles: { entree: [['convocation', { couleur: '#d9a066', lourd: true }], ['pattes', { couleur: '#d9a066', n: 3 }]] },
+  lap2_grange: { entree: [['fumee', { couleur: '#c8a878' }], ['convocation', { couleur: '#b98a52' }]] },
+  lap2_doyenne: { entree: [['couronne', { couleur: '#d9a066', grand: true }], ['convocation', { couleur: '#b98a52', lourd: true }]], aura: ['halo', { couleur: '#d9a066', symbole: 'Health' }] },
+  lap2_angora: { entree: ['fleur', { couleur: '#fff0f5' }], lancer: ['montee', { symbole: 'Heal', couleur: C.vert, n: 2 }], vers: 'soi' },
+  lap2_sentinelle: { entree: ['yeux', { couleur: '#d9a066' }] },
+  lap2_tetu: { entree: ['souffle', { couleur: '#b98a52' }] },
+  lap2_cuirasse: { entree: [['convocation', { couleur: C.gris, lourd: true }], ['etoiles', { couleur: '#d9a066', n: 4 }]] },
+  lap2_belier: { entree: ['tambour', { couleur: '#d9a066' }], lancer: ['halo', { couleur: '#d9a066', symbole: 'Buff' }], vers: 'allies', renfort: ['montee', { symbole: 'Buff', couleur: '#d9a066', n: 2 }] },
+  // ---- Séléné (Lapin, la portée) : argent et bleu de nuit — lune, étoiles, portées qui surgissent
+  lap3_prolifique: { entree: ['etoiles', { couleur: '#d8dcf0', n: 3 }], mort: ['ame', { couleur: '#d8dcf0' }],
+    declenche: { death: { entree: ['convocation', { couleur: '#d8dcf0' }] } } },
+  lap3_trefle: { lancer: ['fleur', { couleur: C.vert }], vers: 'allies', renfort: ['montee', { symbole: 'Buff', couleur: C.vert, n: 2 }] },
+  lap3_portee: { lancer: ['constellation', { couleur: '#d8dcf0' }], vers: 'allies', entree: ['pattes', { couleur: '#d8dcf0', n: 3, petit: true }] },
+  lap3_lune: { entree: ['lune', { couleur: C.lune, petite: true }],
+    declenche: { turnStart: { renfort: ['montee', { symbole: 'Buff', couleur: C.lune, n: 1 }] } } },
+  lap3_reine: { entree: [['nuit', { couleur: '#101a3a' }], ['couronne', { couleur: '#d8dcf0' }]],
+    declenche: { turnEnd: { entree: ['etoiles', { couleur: '#d8dcf0', n: 5 }] } } },
+  lap3_farceur: { entree: ['etoiles', { couleur: C.rose, n: 3 }], mort: ['fumee', { couleur: '#8a90b8', petit: true }],
+    declenche: { death: { lancer: ['etoiles', { couleur: C.rose, n: 2 }], vers: 'ennemi', arrivee: ['souffle', { couleur: C.rose }] } } },
+  lap3_quatre: { lancer: ['halo', { couleur: C.vert, symbole: 'Attack' }], vers: 'allies', renfort: ['montee', { symbole: 'Attack', couleur: C.vert, n: 1 }] },
+  lap3_terrier: { lancer: ['fumee', { couleur: '#8a7a60', grand: true }], vers: 'allies', entree: ['convocation', { couleur: '#8a7a60', lourd: true }] },
+  lap3_mars: { entree: [['horloge', { couleur: '#d8dcf0' }], ['pattes', { couleur: '#d8dcf0', n: 5 }]] },
+  lap3_eclipse: { entree: [['lune', { couleur: '#3a3f6a', grand: true, nuit: true }], ['convocation', { couleur: '#3a3f6a', lourd: true }]], mort: ['ame', { couleur: '#3a3f6a' }],
+    declenche: { death: { entree: [['etoiles', { couleur: '#d8dcf0', n: 8 }], ['convocation', { couleur: '#d8dcf0' }]] } } },
 
   // ---- Les adversaires
   // L'Eclaireur Fou (le Corbeau Volcanique) : une gerbe de flammes autour de lui a son arrivee, une seule fois (demande du

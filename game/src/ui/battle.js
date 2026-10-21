@@ -3,7 +3,7 @@
 import { BALANCE } from '../config/balance.js';
 import { CHAR_BY_ID, CHARACTERS, characterDeck } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
-import { save, team, gain, persist, gagneXp, noteCombatArene, etatArene } from '../state.js';
+import { save, team, gain, persist, gagneXp, noteCombatArene, etatArene, signale } from '../state.js';
 import { coteEnnemi } from '../config/ennemis.js';
 import { relicMods } from '../config/relics.js';
 import { TRIGGERS, EVENT_TRIGGERS, COUNTERS, keyLabel, hasKey, typesOf, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel, branchesDe, listeEffets } from '../config/mechanics.js';
@@ -1769,6 +1769,8 @@ function finish() {
     const a = noteCombatArene(ctx.arene, win, ctx.niveau);
     if (a.niveau > avant) notes.push(`L'arène passe au niveau ${a.niveau}.`);
   }
+  // Le FIL DE QUETES (state.js) : une victoire compte pour « gagne un combat », et une arene battue se relit toute seule.
+  if (win) signale('victoire', { equipe: team().length });
 
   // `onDone` est lu ici et non au moment du toucher : « Revoir le combat » ouvre un rejeu qui le remplace.
   const fini = onDone;

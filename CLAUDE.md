@@ -223,7 +223,8 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | mesurer l'équilibre | `scripts/matchups.mjs`, `simulate.mjs`, `check-decks.mjs`, `analyse-cartes.mjs` (ou `builder/balance.html`) |
 | lancer un calcul depuis le téléphone, les renforts, l'IA locale | `builder/lancer.html` + `scripts/devserver.js` + `scripts/lib/` |
 | ajouter une icône | déposer `Graphical Assets/Icons/<Nom>.png` (noms : `game/src/ui/icones.js`) ; une grande image : `python scripts/gen-vignettes.py` |
-| comprendre une décision de design | `docs/GDD.md`, `docs/V3-HEROS.md`, et la mémoire du projet |
+| changer le tutoriel, une quête, le départ d'une partie | `docs/TUTORIEL.md`, puis `game/src/config/quetes.js` (le fil), `state.js` (ses règles), `ui/quetes.js` (le bandeau) ; les Lapins : `scripts/gen-lapins.mjs` |
+| comprendre une décision de design | `docs/GDD.md`, `docs/V3-HEROS.md`, `docs/TUTORIEL.md`, et la mémoire du projet |
 
 ## Taille d'équipe : jamais de solo, on ne mesure que les trios et plus
 **Le joueur n'est jamais seul.** Une équipe fait au moins **3 héros** en partie ; un héros
@@ -304,6 +305,9 @@ LF). Un script qui réécrit un fichier du repo doit **garder les siennes** — 
 et `game/index.html` sont en LF dans git mais en CRLF dans un dossier de travail (git ne le voit
 pas tant qu'on n'y touche pas, grâce à son cache de dates). La première édition y réécrit alors
 **tout le fichier** dans `git diff` : les remettre en LF avant de commiter.
+
+Après toute modification du fil de quêtes (`game/src/config/quetes.js`, ou des quêtes de `state.js`), faire tourner
+`node scripts/test-quetes.mjs` — il déroule le tutoriel sur une partie neuve et vérifie qu'une ancienne sauvegarde le saute.
 
 Après toute modification de `game/src/config/courbes.js` (le modèle des courbes de
 progression), faire tourner `node scripts/test-courbes.mjs` — il vérifie les six

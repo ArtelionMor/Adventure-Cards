@@ -13,6 +13,7 @@ import { renderArene } from './ui/arene.js';
 import { ouvreProfil } from './ui/profil.js';
 import { chargeLeJeu } from './ui/chargement.js';
 import { openBattle } from './ui/battle.js';
+import { installeQuetes } from './ui/quetes.js';
 
 let current = 'world';
 
@@ -92,20 +93,9 @@ function boot() {
   offlineReport();
   wakeLock();
 
-  if (!save.flags.tutorial) {
-    save.flags.tutorial = true;
-    persist();
-    const box = el(`<div>
-      <h2>Adventure Card</h2>
-      <p>Tes trois compagnons t'ont ete confies.</p>
-      <p class="muted">Explore : chaque bâtiment est une arène, toutes sont ouvertes. Combats (le mode auto joue pour toi),
-      fais pousser des légumes à la Ferme, puis dépense tes pièces pour améliorer tes héros.</p>
-    </div>`);
-    const b = el('<button class="btn">C’est parti</button>');
-    b.onclick = closeModal;
-    box.appendChild(b);
-    modal(box);
-  }
+  // Le TUTORIEL n'est plus une fenetre : c'est le debut du fil de quetes (config/quetes.js), dans le bandeau sous la
+  // barre du haut. Son toucher emmene ou il faut ; « rafraichit » redessine l'ecran courant (une place, un heros recus).
+  installeQuetes({ go, rafraichit: () => go(current) });
 
   setInterval(() => { persist(); refreshTop(); }, BALANCE.save.autosaveMs);
   addEventListener('beforeunload', persist);

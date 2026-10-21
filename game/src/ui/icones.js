@@ -37,6 +37,8 @@ export const ICONES = {
   Arena: '⚔', Farm: '🌱', Map: '🗺', 'Icon Deck': '▤', Shop: '🛒',
   // les recompenses d'une arene (monnaies A et B), la coche d'un niveau battu
   Fanion: '⚑', Sceau: '✪', Validate: '✔',
+  // le bandeau de quete (ui/quetes.js, 21 oct. 2026) : la quete en cours (dessin du game designer a venir)
+  Quest: '❖',
   // « QUAND X » (une regle qui reagit a ce qui se passe : un sort lance, un allie qui arrive...) : l'oeil, ferme sur la
   // carte, qui s'ouvre quand sa regle se declenche (ui/effets.js, `oeil`). Dessins du game designer, 20 oct. 2026.
   Watch: '◉'

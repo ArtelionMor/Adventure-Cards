@@ -34,7 +34,7 @@ img { image-rendering: auto; }
   max-width: 520px;
   margin: 0 auto;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto 1fr auto;   /* barre du haut, bandeau de quete, ecrans, navigation */
   position: relative;
   background: var(--bg);
 }
@@ -71,6 +71,25 @@ img { image-rendering: auto; }
 }
 #nav button span { font-size: 19px; line-height: 1; }
 #nav button.active { color: var(--accent); }
+
+/* ---------- le bandeau de quete (ui/quetes.js, docs/TUTORIEL.md) : sous la barre du haut, son propre habillage
+   (creme et contour brun, comme l'ecran Deck) — il ne depend pas du skin. Remplie, la quete pulse en vert. */
+#quete { position: relative; z-index: 1; padding: 8px 10px 4px; font-family: var(--police, inherit); font-synthesis: none; }
+.qt-carte {
+  width: 100%; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; text-align: left;
+  background: #fff3d8; color: #2b1c1f; border: 3px solid #2b1c1f; border-radius: 12px; padding: 6px 10px 6px 7px;
+  box-shadow: inset 0 4px 0 #fff, 0 3px 0 #2b1c1f; font: inherit; cursor: pointer;
+}
+.qt-carte:active { transform: translateY(2px); box-shadow: inset 0 4px 0 #fff, 0 1px 0 #2b1c1f; }
+.qt-ico { display: grid; place-items: center; width: 34px; height: 34px; }
+.qt-txt { display: grid; gap: 1px; min-width: 0; }
+.qt-txt b { font-size: 15px; font-weight: 400; color: #fff; -webkit-text-stroke: 3px #2b1c1f; paint-order: stroke fill; }
+.qt-txt span { font-family: system-ui, sans-serif; font-size: 12px; line-height: 1.25; color: #4a3a3d;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.qt-prog { font-size: 15px; color: #fff; background: #6b5a5e; border: 2px solid #2b1c1f; border-radius: 99px; padding: 2px 9px; white-space: nowrap; }
+#quete.fait .qt-carte { background: #d9ffe9; animation: qt-pulse 1.1s ease-in-out infinite; }
+#quete.fait .qt-prog { background: #16bb77; }
+@keyframes qt-pulse { 50% { transform: scale(1.025); } }
 
 /* ---------- screens ---------- */
 #screens { position: relative; overflow: hidden; }

@@ -17,7 +17,7 @@ import { coteEnnemi } from '../config/ennemis.js';
 import { CHAR_BY_ID } from '../config/characters.js';
 import { t } from '../config/textes.js';
 import {
-  save, persist, team, etatArene, areneDe, puissanceEquipe, tailleDuDeck, retireCarte, rendCarte,
+  save, persist, team, etatArene, areneDe, puissanceEquipe, tailleDuDeck, tailleMinDuDeck, retireCarte, rendCarte,
   enregistreDeck, chargeDeck, supprimeDeck
 } from '../state.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
@@ -111,7 +111,7 @@ function choixEquipe(n, a, cb) {
 
   // La taille du deck et les jokers de retrait : un toucher retire une carte (un joker), un autre la remet.
   const taille = tailleDuDeck();
-  const min = BALANCE.decks.tailleMin;
+  const min = tailleMinDuDeck();   // jamais plus que ce que les places ouvertes portent (le tutoriel)
   const retraits = el(`<div class="ar-bloc"><h3>${t('arene.retraits', { n: save.profil.jokersRetrait || 0 })}</h3><div class="ar-cartes"></div></div>`);
   const cartes = retraits.querySelector('.ar-cartes');
   for (const id of team()) {

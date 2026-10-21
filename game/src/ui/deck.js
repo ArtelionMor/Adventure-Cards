@@ -10,7 +10,7 @@ import { BALANCE } from '../config/balance.js';
 import { CHARACTERS, CHAR_BY_ID, resolveCard, etapesDe, niveauMax } from '../config/characters.js';
 import { FAMILLES, familleDe, rareteDe } from '../config/familles.js';
 import { t } from '../config/textes.js';
-import { save, persist, upgradeCost, upgradeChar, toggleSwitch, unlockChar, setTeamSlot, puissance } from '../state.js';
+import { save, persist, upgradeCost, upgradeChar, toggleSwitch, unlockChar, setTeamSlot, puissance, signale } from '../state.js';
 import { $, el, asset, toast, modal, closeModal, court } from './shell.js';
 import { icone } from './icones.js';
 import { ligneDePictos, iconeDeCle, iconeDeOp } from './pictos.js';
@@ -305,6 +305,7 @@ function achatSwitch(id, slot, done) {
     if (!st.bought) st.bought = [false, false, false, false, false];
     st.bought[slot] = true;
     st.switches[slot] = true;
+    signale('switch');
     persist();
     closeModal();
     renderDeck();

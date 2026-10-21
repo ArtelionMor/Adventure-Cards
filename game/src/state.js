@@ -4,6 +4,7 @@ import { CHARACTERS, CHAR_BY_ID, STARTERS, etapesDe, niveauMax, niveauDePalier, 
 import { WORLD } from './config/world.js';
 import { ARENES, ARENE_PAR_ID, FONDS } from './config/arenes.js';
 import { NIVEAU_MAX_PROFIL, recompensesDuNiveau } from './config/profil.js';
+import { QUETES, QUETE_PAR_ID } from './config/quetes.js';
 
 const KEY = BALANCE.save.key;
 
@@ -32,8 +33,8 @@ export function freshSave() {
     cur: { A: 0, B: 0, C: 40, G: 0 },
     chars: freshChars(),
     team: STARTERS.slice(0, 3),
-    // Toutes les places sont ouvertes (decision du 12 octobre 2026) : le tutoriel les refermera.
-    rosterSlots: 3,
+    // Une place au depart : le tutoriel (docs/TUTORIEL.md) ouvre les deux autres par ses quetes.
+    rosterSlots: 1,
     world: {
       px: WORLD.spawn.x + 0.5,
       py: WORLD.spawn.y + 0.5,
@@ -62,6 +63,9 @@ export function freshSave() {
       totalEarned: 0
     },
     relics: [],
+    // Le FIL DE QUETES (config/quetes.js) : la quete en cours (`null` = fil fini), ce qu'elle a compte depuis son
+    // debut (ses evenements), et les quetes faites.
+    quetes: { courante: QUETES[0].id, compte: 0, faites: [] },
     flags: { tutorial: false },
     log: []
   };
@@ -84,15 +88,25 @@ function load() {
     // v1 -> v2 : l'ancien niveau L devient « toutes les etapes de palier <= L faites ». Le heros garde exactement
     // ses cartes ; il affiche seulement un plus grand nombre.
     if ((s.v || 1) < 2) for (const id of Object.keys(chars)) chars[id].level = niveauDepuisAncien(CHAR_BY_ID[id], chars[id].level || 1);
-    // Les places vides se remplissent avec les heros possedes : on ne part plus jamais seul.
-    const equipe = [...(s.team || neuve.team)];
-    for (let i = 0; i < 3; i++) if (!equipe[i]) equipe[i] = Object.keys(chars).find(id => chars[id].owned && !equipe.includes(id)) || null;
+    // Une sauvegarde d'avant les QUETES (21 octobre 2026) saute le tutoriel (docs/TUTORIEL.md, decision 14) : elle
+    // recoit les Lapins et commence au fil d'apres. Les quetes qui offrent un heros qu'elle a deja seront sautees.
+    let quetes = s.quetes;
+    if (!quetes) {
+      for (const id of ['lapin1', 'lapin2', 'lapin3']) if (chars[id]) chars[id].owned = true;
+      const fin = QUETES.findIndex(q => q.finTutoriel);
+      quetes = { courante: (QUETES[fin + 1] || {}).id || null, compte: 0, faites: QUETES.slice(0, fin + 1).map(q => q.id) };
+    }
+    const rosterSlots = Math.max(s.rosterSlots || 1, neuve.rosterSlots);
+    // Les places vides se remplissent avec les heros possedes : on ne part plus jamais seul (dans les places ouvertes).
+    const equipe = [...(s.team || neuve.team)].slice(0, Math.max(rosterSlots, 1));
+    for (let i = 0; i < Math.min(3, rosterSlots); i++) if (!equipe[i]) equipe[i] = Object.keys(chars).find(id => chars[id].owned && !equipe.includes(id)) || null;
     return {
       ...neuve, ...s, v: neuve.v, chars, team: equipe, farm: migreFerme(neuve.farm, s.farm || {}),
       world: migreMonde(neuve.world, s.world || {}),
       cur: { ...neuve.cur, ...s.cur },
       profil: { ...neuve.profil, ...s.profil },
-      rosterSlots: Math.max(s.rosterSlots || 1, neuve.rosterSlots)
+      quetes: { ...neuve.quetes, ...quetes, faites: [...(quetes.faites || [])] },
+      rosterSlots
     };
   } catch {
     return freshSave();
@@ -225,6 +239,7 @@ export function upgradeChar(charId) {
   const cost = upgradeCost(charId);
   if (!spend('C', cost)) return 'poor';
   st.level++;
+  signale('ameliore');
   persist();
   return 'ok';
 }
@@ -234,6 +249,7 @@ export function buySwitch(charId, slot) {
   if (st.switches[slot]) return 'owned';
   if (!spend('B', BALANCE.costs.switchCard)) return 'poor';
   st.switches[slot] = true;
+  signale('switch');
   persist();
   return 'ok';
 }
@@ -272,6 +288,7 @@ export function setTeamSlot(slot, charId) {
   save.team[slot] = charId;
   if (!save.team.some(Boolean)) save.team[0] = charId;
   persist();
+  previensQuetes();   // « mets-le dans ton equipe » se relit sur l'equipe
   return true;
 }
 
@@ -358,6 +375,13 @@ export function tailleDuDeck(ids = team()) {
   return ids.reduce((n, id) => n + CHAR_BY_ID[id].cards.length - ((save.retraits && save.retraits[id]) || []).length, 0);
 }
 
+/**
+ * La taille minimale d'un deck pour combattre (`BALANCE.decks.tailleMin`), jamais plus que ce que les places ouvertes
+ * peuvent porter : Pompon seul (une place, 5 cartes) combat pendant le tutoriel.
+ */
+export const tailleMinDuDeck = () =>
+  Math.min(BALANCE.decks.tailleMin, save.rosterSlots * Math.max(...CHARACTERS.map(c => c.cards.length)));
+
 /** Retire l'emplacement `slot` du deck d'un heros contre un joker. Rend 'ok', 'joker' (plus de joker) ou 'deja'. */
 export function retireCarte(id, slot) {
   if (!save.retraits) save.retraits = {};
@@ -434,3 +458,83 @@ export function decouvreCultures(ids) {
 
 /** L'arene d'un point du monde (ou null). */
 export const areneDe = n => (n && n.arene ? ARENE_PAR_ID[n.arene] || null : null);
+
+// ------------------------------------------------------------------- le fil de quetes (config/quetes.js, docs/TUTORIEL.md)
+// Une quete a la fois. Remplie, elle attend que le joueur recupere sa recompense ; la suivante commence alors. Un ETAT
+// (arene battue, heros dans l'equipe) se relit dans la sauvegarde ; un EVENEMENT (`signale`) se compte depuis le debut
+// de la quete. L'interface ecoute (`ecouteQuetes`) : le bandeau se redessine quand quelque chose change.
+const ecouteurs = new Set();
+export const ecouteQuetes = fn => { ecouteurs.add(fn); return () => ecouteurs.delete(fn); };
+function previensQuetes() { for (const fn of ecouteurs) fn(); }
+
+/** Le tutoriel est fini quand la quete `finTutoriel` est faite. */
+export const tutorielFini = () => {
+  const fin = QUETES.find(q => q.finTutoriel);
+  return !fin || save.quetes.faites.includes(fin.id);
+};
+
+/** Une quete qui offre un heros deja possede ne se fait pas (un joueur qui a deja Medor ne refait pas sa quete). */
+const sautee = q => !!(q.recompense && q.recompense.heros && save.chars[q.recompense.heros] && save.chars[q.recompense.heros].owned);
+
+/** Passe a la quete qui suit `q` dans le fil (`null` au bout). */
+function suivante(q) {
+  const i = QUETES.indexOf(q);
+  save.quetes.courante = (QUETES[i + 1] || {}).id || null;
+  save.quetes.compte = 0;
+}
+
+/** La quete en cours (`null` quand le fil est fini). Les quetes a sauter sont passees ici. */
+export function queteCourante() {
+  let q = QUETE_PAR_ID[save.quetes.courante] || null;
+  while (q && sautee(q)) {
+    save.quetes.faites.push(q.id);
+    suivante(q);
+    persist();
+    q = QUETE_PAR_ID[save.quetes.courante] || null;
+  }
+  return q;
+}
+
+/** Ou en est une quete : `{ n, sur, fait }` (n sur `sur`). */
+export function progresQuete(q = queteCourante()) {
+  if (!q) return { n: 0, sur: 1, fait: false };
+  const o = q.objectif;
+  let n, sur = o.n || 1;
+  if (o.quoi === 'arene') { n = ((save.arenes || {})[o.arene] || {}).meilleur >= o.niveau ? 1 : 0; sur = 1; }
+  else if (o.quoi === 'equipe') { n = team().includes(o.heros) ? 1 : 0; sur = 1; }
+  else n = save.quetes.compte;
+  return { n: Math.min(n, sur), sur, fait: n >= sur };
+}
+
+/**
+ * Le jeu dit ce qui vient d'arriver : 'victoire' (`{ equipe }` : le nombre de heros alignes), 'ameliore', 'switch',
+ * 'plante', 'vend'. Ca ne compte que pour la quete en cours, et seulement si c'est ce qu'elle demande.
+ */
+export function signale(quoi, detail = {}) {
+  const q = queteCourante();
+  if (q && q.objectif.quoi === quoi && !progresQuete(q).fait) {
+    if (!(q.objectif.equipe && (detail.equipe || 0) < q.objectif.equipe)) {
+      save.quetes.compte++;
+      persist();
+    }
+  }
+  previensQuetes();
+}
+
+/**
+ * Recupere la recompense de la quete en cours, si elle est remplie ; rend `{ quete, gains, notes }` ou null — `gains` :
+ * les monnaies (`[{ k, n }]`, l'interface les nomme), `notes` : les phrases a montrer (heros, place).
+ */
+export function recupereQuete() {
+  const q = queteCourante();
+  if (!q || !progresQuete(q).fait) return null;
+  const r = q.recompense || {}, gains = [], notes = [];
+  for (const k of ['C', 'B', 'A', 'G']) if (r[k]) { gain(k, r[k]); gains.push({ k, n: r[k] }); }
+  if (r.heros && save.chars[r.heros]) { save.chars[r.heros].owned = true; notes.push(`${CHAR_BY_ID[r.heros].name} te rejoint !`); }
+  if (r.place) { save.rosterSlots += r.place; notes.push(`Une place d'équipe de plus (${save.rosterSlots}).`); }
+  save.quetes.faites.push(q.id);
+  suivante(q);
+  persist();
+  previensQuetes();
+  return { quete: q, gains, notes };
+}

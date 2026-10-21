@@ -44,6 +44,10 @@ export const TEXTES = {
   'arene.manque': 'Il te manque {n} carte(s) : un deck en compte au moins {min}.',
   'arene.retraits': 'Retirer une carte (jokers : {n})',
   'arene.pasDeJoker': "Plus de joker de retrait : le profil du joueur en donne.",
+  // Le bandeau de quete (ui/quetes.js, docs/TUTORIEL.md).
+  'quete.recuperer': 'Récupérer',
+  'quete.accomplie': 'Quête accomplie !',
+  'quete.tutorielFini': 'Tutoriel terminé : toutes les arènes t’attendent !',
   // Le PROFIL DU JOUEUR (le nom de cette progression n'est pas tranche : pas « plan »).
   'profil.titre': 'Profil',
   'profil.niveau': 'Niveau du joueur {n}',
