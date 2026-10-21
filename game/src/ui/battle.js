@@ -1524,7 +1524,7 @@ function renderZone() {
   // portent la patte. Rien d'autre ne passe a la fenetre : ni nom, ni cout, ni mot-cle.
   if (B.e.hand.some(c => c.pistee)) {
     groupes.push({ titre: 'Main adverse (de dos)', camp: 'e',
-      cartes: B.e.hand.map((c, i) => ({ carte: { name: '?', type: 'ally' }, i, etat: 'vue', dos: true, pistee: !!c.pistee })) });
+      cartes: B.e.hand.map((c, i) => ({ carte: { name: '?', type: 'ally' }, i, etat: 'vue', dos: asset(DOS_DE_CARTE), pistee: !!c.pistee })) });
   }
   // LE REGISTRE (V3) : les cartes jouees par les deux camps, la plus recente d'abord. Les types nommes se lisent dans
   // l'aide ; une carte « Type : tous » porte sa pastille.

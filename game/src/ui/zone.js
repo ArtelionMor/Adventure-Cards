@@ -18,9 +18,10 @@ import { ligneDePictos } from './pictos.js';
 function carteNode(x, gi) {
   const c = x.carte;
   // UNE CARTE DE DOS (la main adverse) : ni nom, ni cout, ni geste — la lire reviendrait a la montrer. Seule sa
-  // patte (le pistage) dit quelque chose.
+  // patte (le pistage) dit quelque chose. `dos` est l'image du dos (ui/battle.js) ; `true` sans image dessine un signe.
   if (x.dos) {
-    return el(`<div class="zcard dos vue"><div class="nm">▤</div>${x.pistee ? `<div class="patte" title="Pistée">${icone('Track', 16)}</div>` : ''}</div>`);
+    const dessin = typeof x.dos === 'string' ? `<img src="${x.dos}" alt="">` : '<div class="nm">▤</div>';
+    return el(`<div class="zcard dos vue">${dessin}${x.pistee ? `<div class="patte" title="Pistée">${icone('Track', 16)}</div>` : ''}</div>`);
   }
   // `data-geste` : la carte se touche par les gestes de l'ecran de combat (ui/gestes.js) —
   // un tap la joue si elle est eclairee, un appui long la lit. `g` et `i` disent laquelle.

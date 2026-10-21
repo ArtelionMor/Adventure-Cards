@@ -705,7 +705,7 @@ export function creeFx(acces) {
       Object.assign(d.style, { width: n.offsetWidth + 'px', height: n.offsetHeight + 'px' });
     } else {
       // L'adversaire : un dos de carte, de la taille d'une de ses cartes en main. `bt-dos` : le MEME dos que son eventail,
-      // que le skin dessine (le motif de cozy, le contour de juice) — sa propre classe le laissait en image brute.
+      // que le skin habille (le cadre de cozy, le contour de juice) — sa propre classe le laissait en image brute.
       d.className = 'bt-dos fx-dos-vole';
       d.innerHTML = `<img src="${asset(acces.dos ? acces.dos() : '')}" alt="">`;
     }
