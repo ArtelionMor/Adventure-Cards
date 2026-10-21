@@ -12,6 +12,7 @@
 | `ai.js` | **Le bot** (niveaux `naif` … `dur`, `montecarlo`) : choisit un coup par valeur ; sait dire pourquoi (`ecouteLesChoix`). | `botAction`, `coupsPossibles`, `evalue`, `meilleureBranche`, `ecouteLesChoix` |
 | `journal.js` | **Journal de décisions** (JSONL, un fichier par combat) + **`joue()`, l'unique point d'entrée d'une action** (jeu, arène, scripts). | `joue`, `ouvreJournal`, `fermeJournal`, `nomDeFichier`, `texteJournal`, `VERSION` |
 | `evenements.js` | **Le récit en données** (`B.evts`) : qui a fait quoi, avant/après, et la cause. Éteint par défaut. | `ouvreEvenements`, `evt`, `avec`, `refCarte`, `refUnite`, `refHeros`, `refSource`, `refCible`, `noteCoup`, `coupDe` |
+| `rejeu.js` | **Revoir un combat en le rejouant** (21 oct. 2026) : un combat se rejoue à l'identique avec son départ (les deux camps), une **graine** (`hasard`, mulberry32) et la liste de ses actions. La graine ne remplace `Math.random` que pendant `createBattle` (`sousGraine`) et pendant l'action elle-même (`joue(…, rng)`) : le bot qui réfléchit, l'aperçu et les animations gardent le vrai hasard. Les unités s'enregistrent par leur **place** sur le plateau (`versPositions`/`depuisPositions`) : leur identifiant vient d'un compteur global que l'aperçu fait avancer. Banc : `node scripts/test-rejeu.mjs`. | `hasard`, `sousGraine`, `enregistre`, `joueEtNote`, `rejoue`, `pas`, `debutDuTour`, `toursJoues`, `versPositions`, `depuisPositions` |
 
 Dans `engine.js`, les fonctions qui comptent (dans l'ordre du fichier) : `makeSide`, `draw`, `preleve`/`depose` (déplacer des
 cartes), `reflete` (Miroir), `devientCopie`, `refresh` (dérivés + auras), `damageHero`/`damageUnit`, `resolveDeaths`,
@@ -26,7 +27,7 @@ cartes), `reflete` (Miroir), `devientCopie`, `refresh` (dérivés + auras), `dam
 
 ## Tests à lancer après une modification ici
 `node scripts/test-triggers.mjs` (769), `test-ai.mjs` (53), `simulate.mjs` (courbe), **`test-evenements.mjs`** (≈ 3 900, dont « le récit ne change
-pas la partie »), `test-partage.mjs` (60) ; `test-journal.mjs` après un changement de `journal.js` (⚠ instable, voir `scripts/CLAUDE.md`).
+pas la partie »), `test-partage.mjs` (60), **`test-rejeu.mjs`** (un combat rejoué finit comme l'original) ; `test-journal.mjs` après un changement de `journal.js` (⚠ instable, voir `scripts/CLAUDE.md`).
 Un nouvel effet qui change l'état d'une unité ou d'un héros **émet son événement** (`if (B.evts) evt(B, …)`).
 
 ## Règles de ce dossier (le détail est dans les sections ci-dessous)
@@ -779,7 +780,7 @@ carte ET par cible**, là où le bot n'en garde qu'une), `coup` (ce qui est part
 `vue` dit à côté ce que celui qui décidait pouvait **savoir** : l'analyse ne doit reprocher
 à un joueur que ce qu'il pouvait voir.
 
-⚠ **`joue(B, k, action, controle, niveau)` est l'unique point d'entrée des actions** — le
+⚠ **`joue(B, k, action, controle, niveau, rng)` est l'unique point d'entrée des actions** (`rng` : le hasard à graine d'un combat enregistré pour le rejeu, posé seulement autour de l'action — pas pendant que le journal fait réfléchir le bot sur la décision) — le
 jeu, l'arène et les scripts y passent tous, et `node scripts/test-partage.mjs` le vérifie
 (un fichier qui demande son coup au bot et l'applique lui-même est refusé). Journal éteint,
 `joue()` ne fait qu'appeler l'action : **zéro allocation, zéro copie**. C'est la condition

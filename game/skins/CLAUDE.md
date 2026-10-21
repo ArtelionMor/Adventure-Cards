@@ -17,8 +17,8 @@ Deux skins faits avec les packs Kenney (`parchemin`, `bonbon`, des images en 9-s
   défaut `juice`). Le panneau de triche (5 touchers sur « Tour N ») a un bouton « Skin : … » qui les fait tourner. Le skin règle
   aussi la couleur de la barre d'état du téléphone (`theme-color`).
 - **Les couleurs se posent sur une LISTE d'éléments** (`:is(#topbar, #nav, #screen-farm, #screen-deck, #screen-bag, #battle, #modal,
-  #toasts, .lecture, .triche)`), **jamais sur `<html>`** : les éléments de la carte portent du texte clair sur fond sombre et
-  deviendraient illisibles. **Un écran de plus = une ligne de plus dans cette liste.**
+  #toasts, .lecture, .triche, .revue)`), **jamais sur `<html>`** : les éléments de la carte portent du texte clair sur fond sombre et
+  deviendraient illisibles. **Un écran de plus = une ligne de plus dans cette liste.** Et une fenêtre posée hors de ces éléments (comme `.revue`, dans `#app`) doit aussi poser sa propre `color: var(--ink)` : sinon elle hérite la couleur de texte du thème d'origine, calculée plus haut (le journal de « Revoir le combat » était blanc sur crème, 21 oct. 2026).
 - Les règles sont imbriquées sous `html[data-skin="juice"]` (CSS nesting, Chrome 112+ / Safari 16.5+ / Firefox 117+).
 - ⚠ **`:is()` prend la spécificité de son membre le plus fort** : une liste qui contient `.jr-onglets button` écrase
   les variantes plus simples (`.btn` vert, `.autochip` violet…). Pour une base commune, utiliser `:where()`.

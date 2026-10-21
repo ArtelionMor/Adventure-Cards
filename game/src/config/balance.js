@@ -144,7 +144,10 @@ export const BALANCE = {
       piocheDecalageMs: 80,     // entre deux cartes piochees ensemble
       metaOutMs: 260,           // METAMORPHOSE : les unites copiees se replient...
       metaTenueMs: 500,         // ...restent cachees...
-      lancerMs: 380,            // le temps laisse au VFX qui PART d'une carte (ui/vfx.js) avant ses consequences
+      lancerMs: 380,            // le temps laisse AU MOINS au VFX qui PART d'une carte (ui/vfx.js) avant ses consequences
+      lancerArriveePart: 0.75,  // ... et sinon la part de SA duree (mesuree) ecoulee quand il touche sa cible : les degats et
+                                // les morts attendent l'arrivee du projectile (« les ennemis meurent avant que les animations
+                                // ne se jouent », game designer, 21 oct. 2026)
       volMs: 340,               // la carte jouee vole de la main au centre
       tenueMs: 420,             // elle reste lisible au centre avant de se resoudre
       sortieMs: 240,            // puis elle rejoint sa destination (plateau ou defausse)
@@ -156,6 +159,13 @@ export const BALANCE = {
       oeilPasMs: 140,           // « quand X » : chaque etape de l'oeil qui s'ouvre (5 etapes), avant la carte-effet
       popMs: 420,               // l'arrivee d'une unite (rebond)
       anneauMs: 620,            // l'anneau d'un changement d'etat (bouclier, aura, armure, mana)
+      // L'AURA (maquette du game designer, 21 oct. 2026) : quand son porteur arrive, une onde jaune part de lui et couvre
+      // la bande du plateau ; les unites qu'elle touche VRAIMENT s'eclairent a son passage, puis la bande s'eteint.
+      auraOndeMs: 700,          // l'onde s'etend du porteur jusqu'aux bords du plateau
+      auraTenueMs: 300,         // la bande reste teintee
+      auraSortieMs: 600,        // puis s'eteint
+      auraPeriodeMs: 5000,
+      vitesseRejeu: 8,          // « Revoir le combat » : un cran de vitesse de plus, qui n'existe que dans le rejeu      // et chaque porteur en jeu la rejoue a ce rythme (« une fois toutes les 5 s, on va essayer »)
       banniereMs: 1000,         // la banniere « Ton tour » traverse l'ecran
       banniereAvanceMs: 900,    // ce que la banniere retarde le coup suivant (elle finit de sortir pendant)
       // L'ecran de fin (ui/fin.js) : pas affecte par x1/x2, toucher l'ecran le termine d'un coup.

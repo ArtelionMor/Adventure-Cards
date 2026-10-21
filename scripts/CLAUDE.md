@@ -27,6 +27,7 @@
 | `test-evenements.mjs` | ≈ 3 900 : le récit en données ne change pas la partie et est complet | tout changement d'`engine.js` |
 | `test-partage.mjs` | 60 : les outils passent par la file commune ; une action passe par `joue()` | tout nouvel outil ou nouvelle boucle de partie |
 | `test-journal.mjs` | ≈ 3 700 : le journal de décisions est relisible ⚠ **instable** (≈ 1 passage sur 3 échoue sur 2 vérifications aléatoires : un coup sur une carte *fabriquée*, un combat de plus de 400 lignes) | après `journal.js` |
+| `test-rejeu.mjs` | ≈ 120 (20 parties) / ≈ 240 (40) : un combat enregistré (`combat/rejeu.js`) et rejoué après un passage par JSON finit **exactement** comme l'original (vainqueur, tours, PV, plateaux, mains, défausses, récit), aussi coupé au début d'un tour puis repris ; dans les conditions du jeu (bot au vrai hasard, aperçus joués à blanc, journal de décisions allumé une partie sur deux) | après `combat/` ou `ui/battle.js` (enregistrement) |
 | `test-situations.mjs` | 321 : chaque fiche de situation se monte | après un changement de **cartes** |
 | `test-courbes.mjs` | 40 : les six promesses du modèle de courbes | après `config/courbes.js` |
 | `test-vfx.mjs` | 2 936 : chaque carte des héros a **sa** signature de VFX (`ui/vfx.js`), toutes différentes, cohérentes avec ses moments (entrée, râle, tour, règle, attaque, aura), briques existantes et décrites, et **aucune qui ment** (traînée ⇔ Charge, fantôme ⇔ Passe-Murailles, venin ⇔ Venin, pièces ⇒ mana…). Aucune partie jouée. | après `ui/vfx.js`, et après avoir **ajouté ou renommé une carte** |

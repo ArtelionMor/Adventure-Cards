@@ -16,7 +16,7 @@
 html[data-skin="juice"] {
 
   /* ================================================================ couleurs, police */
-  & :is(#topbar, #nav, #screen-farm, #screen-deck, #screen-bag, #screen-arene, #battle, #modal, #toasts, .lecture, .triche) {
+  & :is(#topbar, #nav, #screen-farm, #screen-deck, #screen-bag, #screen-arene, #battle, #modal, #toasts, .lecture, .triche, .revue) {
     --bg: #98d35a;
     --bg2: #ffe9b8;
     --panel: #fff3d8;
@@ -34,7 +34,7 @@ html[data-skin="juice"] {
     --police: "Lilita One", "Arial Rounded MT Bold", "Baloo 2", "Segoe UI", system-ui, sans-serif;
   }
   /* Une seule graisse : pas de gras synthetique, qui deformerait la police. */
-  & :is(#battle, #modal, .lecture, .toast, .triche, #topbar, #nav, .screen:not(#screen-world)) { font-family: var(--police); font-synthesis: none; }
+  & :is(#battle, #modal, .lecture, .toast, .triche, .revue, #topbar, #nav, .screen:not(#screen-world)) { font-family: var(--police); font-synthesis: none; }
   & :is(#battle, #modal, .lecture, .toast, .triche) { letter-spacing: .2px; }
 
   /* ================================================================ fonds : un damier vert discret */
@@ -53,7 +53,8 @@ html[data-skin="juice"] {
   & #topbar { background: #fff3d8; box-shadow: inset 0 6px 0 #fff, 0 4px 0 var(--contour); border-bottom: 0; min-height: 67px; padding: 7px 9px 10px 15px; position: relative; z-index: 2; }
   & .hero-chip { align-self: flex-start; gap: 9px; }
   & .hero-chip img { width: 40px; height: 40px; padding: 0; margin-top: 4px; background: #bfe6ff; border: 3px solid var(--contour); border-radius: 10px; box-shadow: 0 4px 0 var(--contour); object-fit: contain; overflow: visible; }
-  & #topName { color: #fff; font-size: 20px; font-weight: 400; text-shadow: 0 2px 0 #000; }
+  /* Le nom du joueur : blanc CERNE du contour (une ombre seule le laissait illisible sur le creme, 21 oct. 2026). */
+  & #topName { color: #fff; font-size: 20px; font-weight: 400; -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill; text-shadow: 0 2px 0 var(--contour); }
   & .xpbar { width: 207px; max-width: 42vw; height: 10px; margin-top: 5px; background: #6b5a5e; border: 1px solid var(--contour); border-radius: 5px; box-shadow: inset 0 2px 0 #342523; box-sizing: border-box; }
   & .xpbar i { background: #ffb92a; box-shadow: inset 0 1px 0 #ffe27a; border-radius: 5px; }
   & .lvl {
@@ -102,6 +103,14 @@ html[data-skin="juice"] {
   & .bt-onglet.fintour:disabled { filter: grayscale(.8); }
   & .bt-onglet .bdg { background: #ff3d4f; color: #fff; border: 2px solid #fff; -webkit-text-stroke: 0; box-shadow: 0 0 0 2px var(--contour); }
   & .bt-onglets .vitesse { width: 46px; height: 46px; font-size: 18px; }
+  /* Les fleches du rejeu : de gros boutons jaunes en relief, la fleche blanche cernee. */
+  & .bt-rejeu { background: linear-gradient(180deg, #ffe27a 0 50%, #ffb92a 50% 100%); border: 4px solid var(--contour);
+    box-shadow: inset 0 3px 0 rgba(255,255,255,.7), 0 4px 0 var(--contour); }
+  & .bt-rejeu:active { translate: 0 3px; box-shadow: inset 0 3px 0 rgba(255,255,255,.7), 0 1px 0 var(--contour); }
+  & .bt-rejeu .ico { color: #fff; font-size: 26px; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
+  & .bt-rejeu-tour { background: #fff3d8; border: 3px solid var(--contour); box-shadow: 0 3px 0 var(--contour); color: var(--ink); font-size: 13px; }
+  & .bt-dos.face { border: 3px solid var(--contour); }
+  & .bt-dos.face .cout { border: 2px solid var(--contour); -webkit-text-stroke: 2px var(--contour); paint-order: stroke fill; }
   & .autochip { display: inline-flex; align-items: center; gap: 4px; font-size: 18px; padding: 6px 12px; }
   & .autochip .ico { color: #fff; }
   & .bt-hero .hnm { color: #fff; font-size: 13px; white-space: nowrap; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
@@ -142,7 +151,10 @@ html[data-skin="juice"] {
   & .hcard.spell { --cadre: var(--spell); --ciel: #e6d4ff; }
   /* LA PROVOCATION SE VOIT : un bouclier de pierre derriere la carte (maquette du game designer, 19 oct. 2026), qui
      deborde sur les cotes et en pointe dessous. Le cadre garde la couleur du camp. Le dessin est un SVG en ligne (pas de
-     fichier) ; `z-index: -1` le pose derriere toutes les unites du plateau (`.bwrap` porte le contexte). */
+     fichier) ; `z-index: -1` le pose derriere toutes les unites du plateau (`.bwrap` porte le contexte). Le picto de la
+     Provocation n'est plus sur la face (pictos.js, `DESSINES`). Le bouclier ELARGIT la carte : ses voisines s'ecartent
+     d'autant (la marge, aussi en haut et en bas pour une ligne voisine), sinon il passe sous elles (demande du game designer, 21 oct. 2026). */
+  & .unit.taunt { margin: calc(var(--carte) * .08) calc(var(--carte) * .2) calc(var(--carte) * .24); }
   & .unit.taunt::before {
     content: ""; position: absolute; left: -24%; right: -24%; top: -16%; bottom: -32%; z-index: -1; pointer-events: none;
     /* Le trou de la carte est decoupe dans le dessin (`evenodd`) : devant ou derriere, le bouclier ne la cache jamais
@@ -185,8 +197,25 @@ html[data-skin="juice"] {
   & :is(.unit, .hcard:not(.fx-carte)) .pic { position: absolute; left: 5px; bottom: 5px; height: 28px; max-width: none; overflow: visible; flex-wrap: nowrap; gap: 2px; }
   & :is(.unit, .hcard:not(.fx-carte)) .pic .ico { width: 26px; height: 26px; }
   & :is(.unit, .hcard:not(.fx-carte)) .pic img.ico[data-ico="Watch"] { width: 38px; }
+  /* Plus il y a de pictos, plus ils sont petits (`data-n`, pictos.js ; demande du game designer, 21 oct. 2026) : un seul
+     garde 26 px, deux passent a 20, trois ou quatre a 17 — sinon ils mangent la carte. `--s` en !important : chaque
+     icone porte sa taille en style en ligne (icones.js). */
+  & :is(.unit, .hcard:not(.fx-carte)) .pic[data-n="2"] .ico { --s: 20px !important; width: 20px; height: 20px; }
+  & :is(.unit, .hcard:not(.fx-carte)) .pic:is([data-n="3"], [data-n="4"]) .ico { --s: 17px !important; width: 17px; height: 17px; }
+  & :is(.unit, .hcard:not(.fx-carte)) .pic:not([data-n="1"]) b { font-size: 11px; }
+  /* Les petites cartes de la fenetre de zone (defausse, Registre) : 20 px seul, 16 a deux — sinon ils touchent les chiffres. */
+  & .zcard.carre .pic:not([data-n="1"]) .ico { --s: 16px !important; width: 16px; height: 16px; }
+  /* Les pictos sont CERNES du contour des cartes, sinon ils se perdent sur le ciel et la colline (demande du game designer,
+     21 oct. 2026). Le filtre est sur `.pc`, pas sur l'icone : un picto Kenney est dessine par un `mask`, qui couperait
+     son propre contour (le filtre passe avant le masque). */
+  & :is(.unit, .hcard:not(.fx-carte), .zcard.carre) .pic .pc {
+    filter: drop-shadow(1.5px 0 0 var(--contour)) drop-shadow(-1.5px 0 0 var(--contour)) drop-shadow(0 1.5px 0 var(--contour)) drop-shadow(0 -1.5px 0 var(--contour));
+  }
   /* Sur le plateau, les deux pictos s'empilent en COLONNE a gauche : en rangee, le second passait sous les chiffres. */
   & .unit .pic { flex-direction: column-reverse; align-items: flex-start; height: auto; gap: 1px; }
+  /* En main, tous les pictos (4 au plus, mots-cles compris) : en GRILLE de deux colonnes quand ils debordent d'une rangee,
+     elle monte depuis le bas (demande du game designer, 21 oct. 2026). */
+  & .hcard:not(.fx-carte) .pic { display: grid; grid-template-columns: repeat(2, auto); justify-content: start; align-items: end; height: auto; gap: 2px; }
   & :is(.unit, .hcard:not(.fx-carte)) .pic b { font-size: 13px; color: #fff; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
   & .bt-eventail .bt-nb { color: #fff; -webkit-text-stroke: 4px var(--contour); paint-order: stroke fill; }
   /* Le cout : une gemme bleue, le chiffre blanc cerne. */
@@ -251,7 +280,9 @@ html[data-skin="juice"] {
   & .autochip { background: linear-gradient(180deg, #c995ff 0 50%, #8a45e6 50% 100%); }
   & .autochip.on { background: linear-gradient(180deg, #8bf05c 0 50%, #35b52f 50% 100%); }
   & .jr-onglets button.on { background: linear-gradient(180deg, #ffe27a 0 50%, #ffb92a 50% 100%); }
-  & .jr-x { background: linear-gradient(180deg, #ff8fa8 0 50%, #ee3d63 50% 100%); }
+  & .jr-x { background: linear-gradient(180deg, #ff8fa8 0 50%, #ee3d63 50% 100%); color: #fff; }
+  /* La croix (le signe « ✕ » tant que `Close` n'a pas de dessin) : blanche et cernee, sinon illisible sur le rose (21 oct. 2026). */
+  & .jr-x .ico { color: #fff; font-size: 22px; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
   & .btn.rouge { background: linear-gradient(180deg, #ff8f8f 0 50%, #e8433f 50% 100%); }
   & .btn.rouge.sur { background: linear-gradient(180deg, #ff5c5c 0 50%, #b81f1f 50% 100%); }
   & .ib .bdg { background: #ff3d4f; color: #fff; border: 2px solid #fff; -webkit-text-stroke: 0; box-shadow: 0 0 0 2px var(--contour); }
@@ -331,7 +362,9 @@ html[data-skin="juice"] {
   & :is(.jr-u .h b, .jr-u .h em) { -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
   & .jr-u .h b { color: #ff7d8d; }
   & .jr-u .h em { color: #fff; }
-  & .revue { background: #98d35a; }
+  /* « Revoir le combat » : une fenetre a part (#app) — sans sa propre couleur de texte, elle heritait le clair du theme
+     d'origine, illisible sur les panneaux creme (21 oct. 2026). */
+  & .revue { background: #98d35a; color: var(--ink); }
 
   /* ================================================================ l'ecran de fin : un grand ruban */
   & .fin { background: rgba(43, 28, 31, .72); }

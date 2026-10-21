@@ -10,7 +10,8 @@ import { TRIGGERS, EVENT_TRIGGERS, COUNTERS, keyLabel, hasKey, typesOf, cardCost
 import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur, reprisesPossibles, draw, refresh, nbFatigue, pileDeFatigue } from '../combat/engine.js';
 import { evt, refUnite, refHeros, refCarte } from '../combat/evenements.js';
 import { botAction } from '../combat/ai.js';
-import { joue as joueLeCoup, ouvreJournal, fermeJournal, nomDeFichier } from '../combat/journal.js';
+import { joue as joueMoteur, ouvreJournal, fermeJournal, nomDeFichier, texteJournal } from '../combat/journal.js';
+import { enregistre, joueEtNote, sousGraine, rejoue, pas, debutDuTour, toursJoues } from '../combat/rejeu.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
 import { ouvreZone } from './zone.js';
 import { installeGestes } from './gestes.js';
@@ -23,7 +24,14 @@ import { icone, urlIcone, BRUME, OEIL } from './icones.js';
 // etape, en notant l'etape sur le noeud (`data-oeil`) : un redessin de la carte pendant l'animation garde l'oeil ou il en est.
 const veille = x => EVENT_TRIGGERS.some(s => (x[s] || []).length);
 const oeilDeCarte = n => `<div class="oeil-carte"><img src="${urlIcone(OEIL[Number(n.dataset.oeil) || 0])}" alt=""></div>`;
-import { gardeCombat } from './combats.js';
+// LES MOTS-CLES DESSINES (pictos.js, `DESSINES`) : sur le PLATEAU, ils se voient sur l'unite au lieu d'un picto. Venin =
+// la fiole sur le bord haut (a cote de l'oeil s'il y en a un), Elusif = la brume, Bouclier = le badge (et le halo d'or,
+// classe `bouclier`) ; la Provocation est le bouclier de pierre de la classe `taunt` (skins/juice.css). En MAIN, rien de
+// tout ca (« on ne voit plus rien sur la carte », 21 oct. 2026) : les pictos, en grille quand ils debordent.
+const fiole = oeil => `<div class="fiole${oeil ? ' oeil-aussi' : ''}">${icone('Venom', 30)}</div>`;
+const brume = () => `<div class="brume">${BRUME.map((f, i) => `<img class="b${i}" src="${urlIcone(f)}" alt="">`).join('')}</div>`;
+const ecu = () => `<div class="ecu">${icone('Shield', 34)}</div>`;
+import { gardeCombat, chargeCombat } from './combats.js';
 import { ouvreRevue } from './revue.js';
 import { creeFx } from './effets.js';
 import { montreFin } from './fin.js';
@@ -67,6 +75,19 @@ let rangArrivee = 0;   // le rang des cartes arrivees en main pendant ce rendu (
 // Le fichier JSONL du dernier combat enregistre, garde jusqu'a l'ecran de resultat :
 // c'est la qu'on le telecharge (le journal est ferme des que le combat l'est).
 let dernierJournal = null;
+// REVOIR LE COMBAT (combat/rejeu.js, demande du game designer, 21 oct. 2026). `enreg` : le combat EN COURS s'enregistre
+// (depart, graine, actions) pour qu'on puisse le rejouer ; `rejeu` : on est en train d'en REJOUER un — personne ne joue,
+// le combat avance tout seul, et les fleches des bords sautent d'un tour a l'autre.
+let enreg = null;
+let rejeu = null;     // { donnees, etat: { B, rng, i, derive }, pause, apres }
+
+/**
+ * TOUTE ACTION passe par ici (puis par `joue()` de combat/journal.js) : sous la graine du combat, et inscrite pour
+ * « Revoir le combat ». Le nom est celui qu'avaient les appels avant le rejeu : ils n'ont pas change.
+ */
+function joueLeCoup(B, k, action, controle = 'bot', niveau = null) {
+  return enreg ? joueEtNote(enreg, B, k, action, controle, niveau) : joueMoteur(B, k, action, controle, niveau);
+}
 
 // ------------------------------------------------ enregistrement des combats
 // ETEINT PAR DEFAUT, et il doit le rester : enregistrer coute une copie d'etat par
@@ -115,7 +136,7 @@ function buildEnemySide(encId, niveau = 1) {
   };
 }
 
-export function openBattle(node, done) {
+export function openBattle(node, done, { rejeu: donnees = null, apres = null } = {}) {
   ctx = node;
   onDone = done;
   selCard = selUnit = null;
@@ -136,7 +157,14 @@ export function openBattle(node, done) {
     defausse: camp => (camp === 'p' ? coque.def : coque.defE.n),
     heros: camp => (camp === 'p' ? coque.heroP : coque.heroE).n,
     unite: (camp, uid) => (camp === 'p' ? coque.boardP : coque.boardE).firstElementChild._n.get(uid) || null,
-    unites: camp => [...(camp === 'p' ? coque.boardP : coque.boardE).firstElementChild.children]
+    unites: camp => [...(camp === 'p' ? coque.boardP : coque.boardE).firstElementChild.children],
+    // Les unites qu'une aura touche VRAIMENT, par la regle du moteur (`aurasSur`) : l'onde d'aura (ui/effets.js) n'eclaire
+    // qu'elles — un corbeau a cote d'une aura « alliés du même type » de lapins reste eteint.
+    sousAura: (camp, uid) => {
+      const src = B && B[camp].board.find(u => u.uid === uid);
+      if (!src) return [];
+      return ['p', 'e'].flatMap(k => B[k].board.filter(u => aurasSur(B, k, u).some(a => a.src === src)).map(u => ({ camp: k, uid: u.uid })));
+    }
   });
   fx.vide();
   fermeLecture();
@@ -145,10 +173,24 @@ export function openBattle(node, done) {
   auto = true;
   enPause = false;
   dernierJournal = null;
+  fx.remetVitesse();
   // `evenements` : le combat se raconte en donnees (combat/evenements.js), c'est ce que lit le
   // journal graphique. Seul le jeu l'allume — ni le bot, ni les simulations n'en paient le prix.
-  B = createBattle(buildPlayerSide(), buildEnemySide(node.enemy, node.niveau || 1), { node, evenements: true });
-  if (enregistreLesCombats()) {
+  if (donnees) {
+    // UN REJEU : le combat recree depuis son depart, avec son hasard ; rien ne se paie, rien ne s'enregistre.
+    enreg = null;
+    rejeu = { donnees, etat: rejoue(donnees, 0), pause: false, apres };
+    B = rejeu.etat.B;
+  } else {
+    // UN VRAI COMBAT : les camps vont au moteur tels quels, l'enregistrement en garde une copie prise AVANT (createBattle
+    // les touche), et le combat nait sous la graine — sa main de depart se rejouera a l'identique.
+    rejeu = null;
+    const depart = { p: buildPlayerSide(), e: buildEnemySide(node.enemy, node.niveau || 1) };
+    const opts = { node, evenements: true };
+    enreg = enregistre(depart, opts);
+    B = sousGraine(enreg.rng, () => createBattle(depart.p, depart.e, opts));
+  }
+  if (!rejeu && enregistreLesCombats()) {
     const enc = ENCOUNTERS[node.enemy] || {};
     ouvreJournal(B, {
       source: 'jeu',
@@ -263,17 +305,30 @@ function installeTriche() {
     aura(k = 'p') {
       const u = B && B[camp(k)].board[0];
       if (!u) return 'aucune unite sur ce plateau';
+      if (enreg) enreg.triche = true;
       u.baseAtk += 1; u.baseHp += 1; refresh(B); render();
       return 'ok';
     },
     gagne: () => fin('p'),
     perd: () => fin('e'),
-    mana: n => { B.p.mana += n; render(); return B.p.mana; },
-    pv: (k, n) => { B[camp(k)].hp = n; render(); return n; },
-    pioche: (n = 1) => { draw(B, 'p', n); render(); return B.p.hand.length; }
+    mana: n => { triche(); B.p.mana += n; render(); return B.p.mana; },
+    pv: (k, n) => { triche(); B[camp(k)].hp = n; render(); return n; },
+    pioche: (n = 1) => { triche(); draw(B, 'p', n); render(); return B.p.hand.length; },
+    // Les journaux a telecharger : outils du game designer, pas du joueur (ils ne sont plus ni dans le Menu, ni a l'ecran de
+    // fin). `decisions()` marche aussi apres la fin du combat : c'est le dernier journal de decisions (`?journal=1`).
+    texte: () => (B ? (telechargeTexte(), 'ok') : 'pas de combat en cours'),
+    decisions: () => {
+      const texte = (B && B.journal && texteJournal(B)) || (dernierJournal && dernierJournal.texte);
+      if (!texte) return 'aucun journal de decisions (?journal=1 dans l\'adresse pour en enregistrer)';
+      telecharge(texte, dernierJournal ? dernierJournal.nom : 'combat.jsonl', 'application/x-ndjson');
+      return 'ok';
+    }
   };
+  // Une triche qui change la partie la rend impossible a rejouer : elle n'est plus le fruit de ses actions.
+  function triche() { if (enreg) enreg.triche = true; }
   function fin(w) {
     if (!B || B.over) return 'pas de combat en cours';
+    triche();
     B.over = true; B.winner = w;
     render();
     finirApresLesEffets();
@@ -326,6 +381,7 @@ function panneauTriche() {
 }
 
 function loop() {
+  if (rejeu) { boucleRejeu(); return; }
   clearTimeout(timer);
   if (!B || B.over || enPause) return;
   const isBot = B.turn === 'e' || auto;
@@ -394,24 +450,26 @@ function majUnite(n, u, side) {
   n.dataset.atk = u.atk;
   n.dataset.hp = u.hp;
   const ap = pilule(apercus.get(`${side}:${u.uid}`));
-  const pics = ligneDePictos(u, { effets: false, taille: 26, max: 2, plus: false });
+  const pics = ligneDePictos(u, { effets: false, taille: 26, max: 2, plus: false, sansDessines: true });
   // Les chiffres se colorent comme dans un jeu de cartes : l'attaque en vert quand elle depasse celle de la carte, la vie
   // en rouge quand l'unite est blessee (un jeton n'a pas de carte : pas de reference, donc pas de vert).
   const plus = u.card && u.card.atk != null && u.atk > u.card.atk, moins = u.hp < u.maxHp;
-  const elusif = hasKey(u.keys, 'elusif');
+  const elusif = hasKey(u.keys, 'elusif'), venin = hasKey(u.keys, 'Venin');
   const oeil = veille(u);
-  const sig = [u.name, u.sprite || '', u.atk, u.hp, plus, moins, pics, ap, u.tox || 0, elusif, !!u.shield, oeil].join('|');
+  const sig = [u.name, u.sprite || '', u.atk, u.hp, plus, moins, pics, ap, u.tox || 0, elusif, venin, !!u.shield, oeil, !!u.aura].join('|');
   if (n._sig !== sig) {
     n._sig = sig;
     n.innerHTML = `
+      ${u.aura ? '<div class="halo-aura"></div>' : ''}
       ${u.sprite ? `<img src="${asset(u.sprite)}" alt="">` : '<img alt="">'}
       ${u.tox > 0 ? `<div class="tox" title="${u.tox} marqueur${u.tox > 1 ? 's' : ''} Toxine">${icone('Venom', 12)}${u.tox}</div>` : ''}
       <div class="un">${u.name}</div>
       <div class="s"><span class="a${plus ? ' plus' : ''}">${u.atk}</span> / <span class="h${moins ? ' moins' : ''}">${u.hp}</span></div>
       ${pics}
-      ${elusif ? `<div class="brume">${BRUME.map((f, i) => `<img class="b${i}" src="${urlIcone(f)}" alt="">`).join('')}</div>` : ''}
-      ${u.shield ? `<div class="ecu">${icone('Shield', 34)}</div>` : ''}
+      ${elusif ? brume() : ''}
+      ${u.shield ? ecu() : ''}
       ${oeil ? oeilDeCarte(n) : ''}
+      ${venin ? fiole(oeil) : ''}
       ${ap ? `<div class="pv">${ap}</div>` : ''}`;
   }
   n.classList.toggle('taunt', hasKey(u.keys, 'Taunt'));
@@ -419,7 +477,9 @@ function majUnite(n, u, side) {
   // (demande du game designer, 19 oct. 2026) : Provocation = bouclier de pierre, Bouclier = halo d'or, Elusif = palot.
   n.classList.toggle('bouclier', !!u.shield);
   n.classList.toggle('elusif', elusif);
-  n.classList.toggle('porte-aura', !!u.aura);   // un halo qui reste tant que le porteur d'une aura est en jeu
+  // Le porteur d'une aura a un halo qui bat tant qu'il est en jeu (`.halo-aura`, un noeud a lui : sur `::before`, il
+  // prenait la place du bouclier de pierre de la Provocation et le faisait clignoter — 21 oct. 2026).
+  n.classList.toggle('porte-aura', !!u.aura);
   n.classList.toggle('ready', side === 'p' && u.canAttack && u.atk > 0);
   n.classList.toggle('sel', selUnit === u.uid);
 }
@@ -488,7 +548,7 @@ function majCarte(n, c, i) {
   // Le cout affiche est celui qu'on va vraiment payer : le mot-cle « Cout X de
   // moins/de plus » peut le faire bouger d'un tour a l'autre, on le signale.
   const cout = cardCost(c, B, 'p');
-  const pics = ligneDePictos(c, { taille: 26, max: 2, plus: false });
+  const pics = ligneDePictos(c, { taille: 26, max: 4, plus: false });
   const oeil = veille(c);
   const sig = [c.name, cout, c.cost, c.sprite || '', c.type, c.atk, c.hp, pics, c.pistee ? 1 : 0, oeil].join('|');
   if (n._sig !== sig) {
@@ -547,7 +607,9 @@ function majPile(p, quoi, s, k) {
 /** La main de l'adversaire, de dos, en eventail. Une carte pistee (V3) porte sa patte. */
 function majEventail(c) {
   const main = B.e.hand;
-  const sig = main.map(x => (x.pistee ? 1 : 0)).join('');
+  // Dans un REJEU, la main de l'adversaire se voit : on comprend pourquoi il a joue ce qu'il a joue.
+  const face = !!rejeu;
+  const sig = main.map(x => (x.pistee ? 1 : 0) + (face ? x.name : '')).join('|');
   if (c.sigEventail === sig) return;
   c.sigEventail = sig;
   const n = main.length;
@@ -557,7 +619,8 @@ function majEventail(c) {
   const vus = main.slice(0, 7), k = vus.length;
   c.eventail.innerHTML = vus.map((x, i) => {
     const t = k > 1 ? i / (k - 1) - 0.5 : 0;
-    return `<span class="bt-dos" style="--i:${i};--n:${k};--t:${t.toFixed(3)}"><img src="${dos}" alt="">${x.pistee ? icone('Track', 16) : ''}</span>`;
+    const dessin = face ? `<img src="${asset(x.sprite || '')}" alt=""><b class="cout">${x.cost}</b>` : `<img src="${dos}" alt="">`;
+    return `<span class="bt-dos${face ? ' face' : ''}" style="--i:${i};--n:${k};--t:${t.toFixed(3)}">${dessin}${x.pistee ? icone('Track', 16) : ''}</span>`;
   }).join('') + (n > 7 ? `<b class="bt-nb">${n}</b>` : '');
 }
 
@@ -610,18 +673,18 @@ function ouvreMenu() {
     <button class="btn ghost" data-k="vitesse"></button>
     <button class="btn ghost" data-k="zone">Défausse et Registre</button>
     <button class="btn ghost" data-k="journal">Journal du combat</button>
-    <button class="btn ghost petit" data-k="texte">Télécharger le journal (texte)</button>
-    <button class="btn rouge" data-k="abandon">Abandonner</button>
+    <button class="btn rouge" data-k="abandon">${rejeu ? 'Quitter le rejeu' : 'Abandonner'}</button>
   </div>`);
   const tour = box.querySelector('.bt-tour');
   tour.textContent = `Tour ${Math.ceil(B.turnNo / 2)}`;
   const vit = box.querySelector('[data-k="vitesse"]');
   const ditVitesse = () => { vit.textContent = `Vitesse x${fx.vitesse}`; };
   ditVitesse();
-  vit.onclick = () => { fx.cycleVitesse(); ditVitesse(); majBarre(); };
+  vit.onclick = () => { fx.cycleVitesse(!!rejeu); ditVitesse(); majBarre(); };
   box.querySelector('[data-k="journal"]').onclick = () => { closeModal(); coque.journal.bascule(); render(); };
   const ab = box.querySelector('[data-k="abandon"]');
   ab.onclick = () => {
+    if (rejeu) { closeModal(); quitteRejeu(); return; }
     if (!ab.classList.contains('sur')) { ab.classList.add('sur'); ab.textContent = 'Toucher encore pour abandonner'; return; }
     abandonne();
   };
@@ -635,7 +698,6 @@ function ouvreMenu() {
     if (touches.length >= 5) { touches = []; closeModal(); coque.triche.classList.toggle('ouvert'); }
   });
   box.querySelector('[data-k="zone"]').onclick = () => { closeModal(); ouvreDefausse(); };
-  box.querySelector('[data-k="texte"]').onclick = telechargeTexte;
   box.querySelector('[data-k="fermer"]').onclick = closeModal;
   // Fermer le menu (Reprendre, ou toucher a cote) relance le combat la ou il s'etait arrete.
   modal(box, () => { enPause = false; if (B && !B.over) loop(); });
@@ -659,10 +721,15 @@ function abandonne() {
 function telechargeTexte() {
   const texte = [`${B.p.name} contre ${B.e.name} — tour ${B.turnNo}`,
     `PV ${B.p.hp}/${B.p.maxHp} contre ${B.e.hp}/${B.e.maxHp}`, ''].concat(B.log).join('\n');
-  const url = URL.createObjectURL(new Blob(['﻿' + texte], { type: 'text/plain;charset=utf-8' }));
+  telecharge('﻿' + texte, `combat-${B.e.name.replace(/\s+/g, '-')}.txt`, 'text/plain;charset=utf-8');
+}
+
+/** Donne un fichier a enregistrer (console de triche). */
+function telecharge(texte, nom, type) {
+  const url = URL.createObjectURL(new Blob([texte], { type }));
   const a = document.createElement('a');
   a.href = url;
-  a.download = `combat-${B.e.name.replace(/\s+/g, '-')}.txt`;
+  a.download = nom;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
@@ -695,15 +762,12 @@ function monteLaCoque(root) {
   c.journal = creeJournal({
     evts: () => B.evts,
     heros: { p: { sprite: B.p.sprite }, e: { sprite: B.e.sprite } },
-    revele: false,   // en direct, on ne voit pas ce que l'adversaire a en main
+    revele: !!rejeu,   // en direct, on ne voit pas ce que l'adversaire a en main ; dans un rejeu, si
     onFerme: () => { if (coque) majBarre(); }
   });
   // Enregistrement en cours : le joueur doit le SAVOIR, une partie ne s'enregistre pas
   // dans son dos. Le point rouge reste dans l'en-tete du journal.
   if (B.journal) c.journal.extra(el('<span class="rec" title="Ce combat est enregistré (journal de décisions)">⏺</span>'));
-  const dl = el('<button class="jr-dl" title="Télécharger le journal en texte">⬇ texte</button>');
-  dl.onclick = telechargeTexte;
-  c.journal.extra(dl);
   root.appendChild(c.journal.n);
 
   c.boardP = plateauNode('boardP');
@@ -744,7 +808,18 @@ function monteLaCoque(root) {
     </div>`);
   root.append(gauche, droite);
   c.vit = droite.querySelector('#vitesse');
-  c.vit.onclick = () => { fx.cycleVitesse(); majBarre(); };
+  c.vit.onclick = () => { fx.cycleVitesse(!!rejeu); majBarre(); };
+  // LE REJEU : « Fin de tour » devient « Quitter », et deux fleches sur les cotes sautent au tour precedent / suivant.
+  if (rejeu) {
+    droite.querySelector('#endTurn').innerHTML = `<span>Quitter</span>${icone('Close', 22)}`;
+    const prec = el(`<button class="bt-rejeu prec bt-ctrl" aria-label="Tour précédent">${icone('Previous', 30)}</button>`);
+    const suiv = el(`<button class="bt-rejeu suiv bt-ctrl" aria-label="Tour suivant">${icone('Next', 30)}</button>`);
+    prec.onclick = () => { const d = rejeu.donnees; allerAuTour(toursJoues(d, rejeu.etat.i) - 1); };
+    suiv.onclick = () => { const d = rejeu.donnees; allerAuTour(toursJoues(d, rejeu.etat.i) + 1); };
+    root.append(prec, suiv);
+    c.tourRejeu = el('<div class="bt-rejeu-tour"></div>');
+    root.appendChild(c.tourRejeu);
+  }
   c.fin = droite.querySelector('#endTurn');
   c.logBtn = gauche.querySelector('#logBtn');
   c.badge = c.logBtn.querySelector('.bdg');
@@ -759,12 +834,14 @@ function monteLaCoque(root) {
   };
   for (const p of [c.def, c.defE.n, c.piocheP.n, c.piocheE.n, c.eventail]) p.onclick = ouvreDefausse;
   c.chip.onclick = () => {
+    if (rejeu) { rejeu.pause = !rejeu.pause; render(); boucleRejeu(); return; }
     auto = !auto;
     reinitSelection();
     render();
     loop();
   };
   c.fin.onclick = () => {
+    if (rejeu) { quitteRejeu(); return; }
     reinitSelection();
     joueLeCoup(B, 'p', { type: 'end' }, 'humain');
     render();
@@ -783,7 +860,8 @@ function majBarre() {
   // Des sorts a REPRISE a relancer maintenant : la defausse le dit, sinon on ne penserait pas a l'ouvrir. A ton tour
   // et en mode manuel seulement — sinon rien ne se joue d'un toucher.
   const nbReprises = !auto && B.turn === 'p' && !B.over ? reprisesPossibles(B, 'p').length : 0;
-  const chip = auto ? `Auto ${icone('Auto', 18)}` : `Manuel ${icone('Manual', 18)}`;
+  const chip = rejeu ? (rejeu.pause ? `Lecture ${icone('Auto', 18)}` : `Pause ${icone('Pause', 18)}`)
+    : auto ? `Auto ${icone('Auto', 18)}` : `Manuel ${icone('Manual', 18)}`;
   if (c.sigChip !== chip) { c.sigChip = chip; c.chip.innerHTML = chip; }
   c.chip.classList.toggle('on', auto);
   c.vit.textContent = `x${fx.vitesse}`;
@@ -795,7 +873,11 @@ function majBarre() {
   c.defP.rep.classList.toggle('hidden', !nbReprises);
   if (nbReprises) c.defP.rep.innerHTML = `${icone('Flashback', 14)}${nbReprises}`;
   c.def.classList.toggle('pret', !!nbReprises);
-  c.fin.disabled = !(B.turn === 'p' && !auto);
+  c.fin.disabled = !rejeu && !(B.turn === 'p' && !auto);
+  if (c.tourRejeu) {
+    const d = rejeu.donnees, t = toursJoues(d, rejeu.etat.i), n = toursJoues(d, d.actions.length);
+    c.tourRejeu.textContent = `Rejeu · tour ${Math.min(n, t) + 1} / ${n + 1}`;
+  }
   // Le badge de l'onglet du journal : combien de scenes depuis la derniere fois qu'on l'a ouvert.
   // Le journal ouvert prend toute la largeur : les onglets des bords se retirent (ils cachaient « Tous »). Il se ferme
   // par sa croix.
@@ -874,18 +956,21 @@ function ajustePlateau(board) {
   // offsetWidth/offsetHeight ignorent la transformation : c'est bien la taille a
   // l'echelle 1 qu'on lit. La hauteur varie d'une vignette a l'autre (mots-cles,
   // losange des moments), on prend la plus haute.
-  const uw = wrap.children[0].offsetWidth;
+  // La largeur de CHAQUE vignette, marges comprises : une Provocation est plus large (son bouclier de pierre ecarte ses
+  // voisines, skins/juice.css) — compter toutes les vignettes a la largeur de la premiere faisait deborder le plateau.
+  const larges = [], marge = c => { const cs = getComputedStyle(c); return [parseFloat(cs.marginLeft) + parseFloat(cs.marginRight), parseFloat(cs.marginTop) + parseFloat(cs.marginBottom)]; };
   let uh = 0;
-  for (const c of wrap.children) uh = Math.max(uh, c.offsetHeight);
-  if (W <= 0 || H <= 0 || !uw || !uh) return;
+  for (const c of wrap.children) { const [mx, my] = marge(c); larges.push(c.offsetWidth + mx); uh = Math.max(uh, c.offsetHeight + my); }
+  if (W <= 0 || H <= 0 || !larges[0] || !uh) return;
   // Ca tient deja ? On le MESURE au lieu de le calculer : les lignes n'ont pas toutes
   // la meme hauteur, et un calcul par la plus haute ferait retrecir un plateau qui
   // tenait. En dessous du plafond, la hauteur du plateau EST celle de son contenu, donc
   // ce test est exact.
   if (wrap.offsetHeight <= H) return;
   for (let s = 0.98; s > ECHELLE_MIN; s -= 0.02) {
-    const parLigne = Math.max(1, Math.floor((W / s + gap) / (uw + gap)));
-    const lignes = Math.ceil(n / parLigne);
+    // Les lignes, comme le flex les remplit : une vignette passe a la ligne quand elle ne tient plus dans W / s.
+    let lignes = 1, x = 0;
+    for (const w of larges) { if (x && x + gap + w > W / s) { lignes++; x = w; } else x += (x ? gap : 0) + w; }
     if ((lignes * (uh + gap) - gap) * s <= H) return echelle(board, wrap, W, s);
   }
   echelle(board, wrap, W, ECHELLE_MIN);
@@ -914,7 +999,7 @@ function echelle(board, wrap, W, s) {
 // quoi d'autre, l'annule. Lire une carte ou une unite, c'est la maintenir (ui/gestes.js).
 
 /** Peut-on engager une action ? Seulement a son tour, en manuel, tant que le combat dure. */
-const peutEngager = () => !!B && !B.over && !auto && B.turn === 'p';
+const peutEngager = () => !rejeu && !!B && !B.over && !auto && B.turn === 'p';
 /** Une action est-elle engagee (une carte attend sa cible, ou une unite sa victime) ? */
 const engage = () => peutEngager() && (selCard !== null || !!selUnit);
 
@@ -1101,6 +1186,7 @@ function designe(side, uid) {
  * et on lit ce qu'on ne comprend pas.
  */
 function reprendLaMain() {
+  if (rejeu) return true;   // un rejeu se regarde : un toucher n'y fait rien (l'appui long lit toujours)
   if (!B || B.over || !auto) return false;
   auto = false;
   reinitSelection();
@@ -1544,6 +1630,7 @@ function renderLecture() {
 
 // --------------------------------------------------------------- fin de combat
 function finish() {
+  if (rejeu) { finRejeu(); return; }
   clearTimeout(timer);
   fx.vide();
   zoneOuverte = false;
@@ -1557,10 +1644,13 @@ function finish() {
   const win = B.winner === 'p';
   const r = enc.rewards;
   // Le combat est GARDE (les derniers) : c'est lui qu'on rouvre en AFK pour comprendre.
+  // Avec de quoi le REJOUER (combat/rejeu.js) — sauf si une triche a change la partie : elle ne se rejouerait pas.
   const idRecit = gardeCombat({
     nom: enc.name, gagnant: B.winner, tours: Math.ceil(B.turnNo / 2), equipe: B.p.name,
-    heros: { p: B.p.sprite, e: B.e.sprite }, evts: B.evts
+    heros: { p: B.p.sprite, e: B.e.sprite }, evts: B.evts,
+    rejeu: enreg && !enreg.triche ? enreg.donnees : null
   });
+  enreg = null;
 
   const recompenses = [];
   const notes = [];
@@ -1593,31 +1683,23 @@ function finish() {
     if (a.niveau > avant) notes.push(`L'arène passe au niveau ${a.niveau}.`);
   }
 
+  // `onDone` est lu ici et non au moment du toucher : « Revoir le combat » ouvre un rejeu qui le remplace.
+  const fini = onDone;
   const ferme = () => {
     $('#battle').classList.add('hidden');
     $('#battle').classList.remove('spot');
     $('#battle').innerHTML = '';
     B = null;
-    if (onDone) onDone(win);
+    if (fini) fini(win);
   };
   const boutons = [];
   // Perdre ne coute rien : on relance tout de suite la meme rencontre (la victoire, elle, paie
   // des recompenses — la rejouer en boucle est une question d'economie, pas d'interface).
   if (!win) boutons.push({ texte: 'Réessayer', primaire: true, onClick: () => { const n = ctx, d = onDone; B = null; openBattle(n, d); } });
   boutons.push({ texte: win ? 'Continuer' : 'Retour', primaire: win, onClick: ferme });
-  if (idRecit) boutons.push({ texte: 'Revoir le combat', onClick: () => ouvreRevue(idRecit) });
-  // Le journal de DECISIONS, en JSONL : ce que le joueur avait, ce qu'il pouvait jouer, ce que le
-  // bot aurait joue a sa place (outil du game designer : on le telecharge a la main).
-  if (dernierJournal && dernierJournal.texte) {
-    boutons.push({ texte: '⬇ Journal de décisions', onClick: () => {
-      const url = URL.createObjectURL(new Blob([dernierJournal.texte], { type: 'application/x-ndjson' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = dernierJournal.nom;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    } });
-  }
+  // « Revoir le combat » le REJOUE devant le joueur ; « Continuer » au bout du rejeu reprend ou celui-ci s'arretait.
+  // Le journal de DECISIONS (outil du game designer) n'est plus ici : `AC.triche.decisions()`, 5 touchers sur « Tour N ».
+  if (idRecit) boutons.push({ texte: 'Revoir le combat', onClick: () => lanceRejeu(idRecit, ferme) });
 
   // L'ecran de fin se pose par-dessus le plateau, qui reste visible derriere.
   const root = $('#battle');
@@ -1627,4 +1709,95 @@ function finish() {
     sousTitre: win ? `${enc.name} est vaincu.` : B.abandon ? 'Tu as abandonné.' : `${enc.name} tient bon. Reviens plus fort.`,
     recompenses, notes, boutons
   });
+}
+
+// ------------------------------------------------------------------ revoir le combat
+/**
+ * REVOIR UN COMBAT GARDE (ui/combats.js) : on le REJOUE sur l'ecran de combat, avec ses vraies animations. Un combat
+ * garde avant le rejeu (sans graine ni actions) ouvre le journal graphique (`ouvreRevue`). `apres` : ce qu'on fait en
+ * quittant le rejeu (fermer l'ecran de fin du vrai combat, revenir au Sac).
+ */
+export function lanceRejeu(id, apres = null) {
+  const c = chargeCombat(id);
+  if (!c) return false;
+  if (!c.rejeu) return ouvreRevue(id);
+  openBattle(c.rejeu.opts.node, null, { rejeu: c.rejeu, apres });
+  return true;
+}
+
+/** Le rejeu avance tout seul, une action a la fois, au rythme du mode auto (et de la vitesse choisie, x8 compris). */
+function boucleRejeu() {
+  clearTimeout(timer);
+  if (!rejeu || rejeu.pause || enPause || !B) return;
+  const d = rejeu.donnees, e = rejeu.etat;
+  if (B.over || e.i >= d.actions.length) { finirApresLesEffets(); return; }
+  timer = setTimeout(() => {
+    if (!rejeu || rejeu.pause || enPause) return;
+    pas(e, d);
+    render();
+    boucleRejeu();
+  }, delaiAuto());
+}
+
+/**
+ * SAUTER AU DEBUT DU TOUR `t` (0 = le debut du combat) : le combat est recree et rejoue jusque-la SANS RIEN MONTRER
+ * (le moteur va vite : moins d'une seconde), puis l'ecran est remonte et la lecture reprend. Les evenements deja passes
+ * ne se rejouent pas (`fx.saute`).
+ */
+function allerAuTour(t) {
+  if (!rejeu) return;
+  const d = rejeu.donnees;
+  const dernier = toursJoues(d, d.actions.length);
+  clearTimeout(timer);
+  rejeu.etat = rejoue(d, debutDuTour(d, Math.max(0, Math.min(t, dernier))));
+  B = rejeu.etat.B;
+  fx.vide();
+  fx.saute(B.evts.length);
+  fermeLecture();
+  closeModal();
+  zoneOuverte = false;
+  enPause = false;
+  reinitSelection();
+  coque = null;
+  render();
+  boucleRejeu();
+}
+
+/** Le rejeu est arrive au bout : l'ecran de fin, sans recompense — continuer, ou revoir encore. */
+function finRejeu() {
+  clearTimeout(timer);
+  fx.vide();
+  fermeLecture();
+  closeModal();
+  const root = $('#battle');
+  root.classList.remove('spot');
+  const w = B.over ? B.winner : null;
+  montreFin({
+    racine: root, issue: w === 'p' ? 'victoire' : w === 'e' || !w ? 'defaite' : 'nul',
+    sousTitre: rejeu.etat.derive ? 'Les cartes ont changé depuis : ce rejeu n’est plus fidèle.' : !w ? 'Tu avais abandonné.' : 'Fin du combat rejoué.',
+    recompenses: [], notes: [],
+    boutons: [
+      { texte: 'Continuer', primaire: true, onClick: quitteRejeu },
+      { texte: 'Revoir encore', onClick: () => allerAuTour(0) }
+    ]
+  });
+}
+
+/** Quitter le rejeu : l'ecran de combat se ferme, la vitesse x8 (propre au rejeu) s'en va, puis `apres`. */
+function quitteRejeu() {
+  if (!rejeu) return;
+  const apres = rejeu.apres;
+  clearTimeout(timer);
+  fx.vide();
+  fx.remetVitesse();
+  fermeLecture();
+  closeModal();
+  rejeu = null;
+  coque = null;
+  B = null;
+  const root = $('#battle');
+  root.classList.add('hidden');
+  root.classList.remove('spot');
+  root.innerHTML = '';
+  if (apres) apres();
 }

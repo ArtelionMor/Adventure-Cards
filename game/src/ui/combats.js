@@ -46,13 +46,14 @@ function lit() {
 }
 
 /**
- * Garde un combat fini. `info` : { nom, gagnant, tours, equipe, heros: { p, e } (sprites), evts }.
+ * Garde un combat fini. `info` : { nom, gagnant, tours, equipe, heros: { p, e } (sprites), evts, rejeu }.
+ * `rejeu` (facultatif) : de quoi le REJOUER (combat/rejeu.js : depart, graine, actions), compacte comme le recit.
  * Rend l'identifiant du combat garde, ou null si rien n'a pu etre ecrit.
  */
 export function gardeCombat(info) {
   if (!info.evts || !info.evts.length) return null;
-  const { evts, ...meta } = info;
-  const entree = { id: Date.now().toString(36), t: Date.now(), ...meta, recit: compacte(evts) };
+  const { evts, rejeu, ...meta } = info;
+  const entree = { id: Date.now().toString(36), t: Date.now(), ...meta, recit: compacte(evts), ...(rejeu ? { rejeu: compacte(rejeu) } : {}) };
   const liste = [entree, ...lit()].slice(0, MAX);
   while (liste.length) {
     try { localStorage.setItem(CLE, JSON.stringify(liste)); return entree.id; }
@@ -61,15 +62,15 @@ export function gardeCombat(info) {
   return null;
 }
 
-/** Les combats gardes, du plus recent au plus ancien, sans leur recit (c'est lourd). */
+/** Les combats gardes, du plus recent au plus ancien, sans leur recit ni leur rejeu (c'est lourd). */
 export function listeCombats() {
-  return lit().map(({ recit, ...meta }) => meta);
+  return lit().map(({ recit, rejeu, ...meta }) => ({ ...meta, rejouable: !!rejeu }));
 }
 
 /** Un combat garde, evenements compris, ou null. */
 export function chargeCombat(id) {
   const c = lit().find(x => x.id === id);
   if (!c) return null;
-  const { recit, ...meta } = c;
-  return { ...meta, evts: developpe(recit) };
+  const { recit, rejeu, ...meta } = c;
+  return { ...meta, evts: developpe(recit), rejeu: rejeu ? developpe(rejeu) : null };
 }

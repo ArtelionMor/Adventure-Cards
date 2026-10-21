@@ -17,6 +17,7 @@
 //      (armure, mana, soin) => la carte fait cela ; un lancer qui part de chez l'adversaire => elle lui prend quelque chose.
 // Il ne joue aucune partie et n'ouvre aucun navigateur : il lit les donnees.
 import { CHARACTERS } from '../game/src/config/characters.js';
+import { catalogCards } from '../game/src/config/npcs.js';
 import { SIGNATURES, BRIQUES_DOC, creeBriques, signatureDe } from '../game/src/ui/vfx.js';
 
 const rouge = t => `\x1b[31m${t}\x1b[0m`;
@@ -28,6 +29,9 @@ const verifie = (nom, ok, detail) => { if (ok) passes++; else echecs.push(`${nom
 const cartes = [];
 for (const h of CHARACTERS) for (const c of [...h.cards, ...(h.switches || [])]) cartes.push({ c, h });
 const ids = new Set(cartes.map(x => x.c.id));
+// Une signature peut aussi parler d'une carte d'adversaire ou d'une carte libre (l'Eclaireur Fou, `rush1`) : elle n'est pas
+// exigee, mais son identifiant doit exister dans le catalogue.
+const connues = new Set([...ids, ...catalogCards().map(c => c.id)]);
 
 // Les briques qui existent : `creeBriques` ne touche pas au DOM tant qu'on ne joue rien.
 const briques = Object.keys(creeBriques({ anime() {}, T: x => x, ephemere() {}, couche() {}, F: () => ({}) }));
@@ -49,7 +53,7 @@ console.log('\n=== Les VFX des cartes ===\n');
 
 // --- 1. Une signature ecrite par carte, et rien d'autre.
 for (const { c, h } of cartes) verifie(`${h.name} · ${c.name} a sa signature`, !!SIGNATURES[c.id], `ajouter « ${c.id} » dans SIGNATURES (game/src/ui/vfx.js)`);
-for (const id of Object.keys(SIGNATURES)) verifie(`la signature « ${id} » parle d'une carte`, ids.has(id), 'aucune carte des heros n\'a cet identifiant (faute de frappe, ou carte renommee ?)');
+for (const id of Object.keys(SIGNATURES)) verifie(`la signature « ${id} » parle d'une carte`, connues.has(id), 'aucune carte du catalogue n\'a cet identifiant (faute de frappe, ou carte renommee ?)');
 
 // --- 2. Toutes differentes.
 const vues = new Map();

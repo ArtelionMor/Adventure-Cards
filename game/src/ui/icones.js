@@ -13,6 +13,8 @@ import { asset } from './shell.js';
 export const ICONES = {
   // interface
   Log: '☰', Close: '✕', Auto: '▶', Manual: '✋', Deck: '▤', Discard: '▥',
+  // « Revoir le combat » (21 oct. 2026) : les fleches des bords et la pause
+  Previous: '◀', Next: '▶', Pause: '❚❚',
   // valeurs
   Mana: '◆', Attack: '⚔', Health: '♥', Armor: '⛨',
   // monnaies (dessins tires de la maquette Figma du game designer, 12 octobre 2026)
@@ -64,6 +66,8 @@ export const urlIcone = nom => asset(`${DOSSIER_ICONES}/${FICHIERS[nom] || nom}.
 //   2. le pictogramme Kenney ci-dessous ;
 //   3. le signe de `ICONES`.
 // Remplacer un picto de travail = deposer `Graphical Assets/Icons/<Nom>.png`, sans toucher a ce fichier.
+// Tous remplissent leur carre : `tag_shield` et `tag_infinite` (un petit dessin dans le coin d'un carre vide) ont ete
+// recadres le 21 oct. 2026, et l'Aura prend l'hexagone PLEIN (le contour seul se lisait trop petit sur une carte).
 const KENNEY = {
   Mana: 'suit_diamonds', Attack: 'sword', Health: 'suit_hearts', Armor: 'shield',
   Swords: 'sword', Counter: 'arrow_counterclockwise', Dead: 'skull', Damage: 'fire', Heal: 'suit_hearts',
@@ -71,7 +75,7 @@ const KENNEY = {
   Draw: 'cards_take', Destroy: 'skull', Mill: 'card_remove', Exile: 'lock_closed', Create: 'card_add',
   Return: 'cards_return', Shuffle: 'cards_shuffle', Copy: 'cards_flip', Switch: 'card_flip', Control: 'flag_triangle',
   Fatigue: 'cards_skull', Cancel: 'dice_close', Choice: 'cards_fan', Registry: 'cards_fan',
-  Deathrattle: 'dice_skull', Aura: 'hexagon_outline', Static: 'tag_infinite', TurnStart: 'hourglass_top', TurnEnd: 'hourglass_bottom', Trigger: 'exploding',
+  Deathrattle: 'dice_skull', Aura: 'hexagon', Static: 'tag_infinite', TurnStart: 'hourglass_top', TurnEnd: 'hourglass_bottom', Trigger: 'exploding',
   Taunt: 'tag_shield', Charge: 'arrow_right', Venom: 'flask_full', Shield: 'shield', Elusive: 'hexagon_question',
   WallWalker: 'structure_wall', Mirror: 'hexagon_switch', Flashback: 'arrow_rotate',
   Victory: 'crown_a', Defeat: 'skull', Fanion: 'flag_triangle', Sceau: 'award'

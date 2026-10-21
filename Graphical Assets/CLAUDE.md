@@ -13,7 +13,8 @@ Binaires : **inutile de les lire** pour travailler sur le code. Les originaux fo
 | `Icons/` | **Les icônes d'interface** dessinées par le game designer, et `Icons/Kenney/` (pictogrammes de travail). | `game/src/ui/icones.js` — voir `Icons/CLAUDE.md`. |
 | `CardBack/` | Les dos de carte (`CardBack Belladone`, `Cozy`, `Lotus`). | `ui/battle.js` (`DOS_DE_CARTE` : Cozy). |
 | `Socials/` | Logos de messageries (`ON`/`OFF`), d'un autre projet. | rien. |
-| `Kenney_Cursor/`, `Kenney_UI/`, `Kenney_board-game-icons/` | Packs **Kenney** (CC0) complets, déposés tels quels. | rien encore (`Icons/Kenney/` en est un extrait). |
+| `VFX/` | **Les particules des effets** : un extrait du « Particle Pack » Kenney (CC0, `License.txt`), réduit à 128 px, l'alpha renforcé (les originaux sont très pâles). Des textures **blanches** : la couleur est donnée par le CSS (`mask` sur un dégradé). | les briques de `game/src/ui/vfx.js` (`particule()` ; la gerbe de flammes `brasier` de l'Éclaireur Fou). |
+| `Kenney_Cursor/`, `Kenney_UI/`, `Kenney_board-game-icons/`, `Kenney Particle/` | Packs **Kenney** (CC0) complets, déposés tels quels. | rien directement (`Icons/Kenney/` et `VFX/` en sont des extraits). |
 | `Icon thumbnail.png` | Une vignette du logo. | rien. |
 
 ## La liste des images (`game/data/sprites.js`)

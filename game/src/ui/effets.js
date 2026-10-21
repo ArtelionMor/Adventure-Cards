@@ -264,6 +264,68 @@ export function creeFx(acces) {
     anneau(r, couleur);
   }
 
+  /**
+   * L'ONDE D'UNE AURA (maquette du game designer, 21 oct. 2026) : une onde part du porteur et couvre la bande du plateau,
+   * DERRIERE les cartes ; chaque unite que l'aura touche vraiment (`touches`, la regle du moteur) s'eclaire quand l'onde
+   * l'atteint, les autres non ; puis la bande s'eteint. Elle se pose sur le plateau des unites touchees (celui d'en face
+   * pour une aura qui vise les ennemis) ; la couleur est celle de la signature (`aura`, ui/vfx.js), jaune sinon.
+   */
+  function ondeAura(n, touches, couleur = '#ffd23a', { bloque = true } = {}) {
+    const f = F();
+    const camp = touches.length ? touches[0].dataset.side : n.dataset.side;
+    const plateau = acces.plateau(camp);
+    const rp = rectDe(plateau), r = rectDe(n);
+    const c = { x: r.x + r.w / 2 - rp.x, y: r.y + r.h / 2 - rp.y };
+    const R = Math.max(...[[0, 0], [rp.w, 0], [0, rp.h], [rp.w, rp.h]].map(([x, y]) => Math.hypot(x - c.x, y - c.y)));
+    const total = f.auraOndeMs + f.auraTenueMs + f.auraSortieMs;
+    // La bande : un calque DANS le plateau, apres son bloc d'unites, et derriere lui (`.fx-aura`, styles.css).
+    const bande = document.createElement('div');
+    bande.className = 'fx-aura';
+    bande.style.setProperty('--c', couleur);
+    bande.innerHTML = `<i style="left:${c.x - R}px;top:${c.y - R}px;width:${2 * R}px;height:${2 * R}px"></i>`;
+    plateau.appendChild(bande);
+    anime(bande.firstChild, [{ transform: 'scale(0)', opacity: 1 }, { transform: 'scale(1)', opacity: .8 }], { duration: T(f.auraOndeMs), easing: 'cubic-bezier(.2,.7,.4,1)' });
+    anime(bande, [{ opacity: 1 }, { opacity: 1, offset: (f.auraOndeMs + f.auraTenueMs) / total }, { opacity: 0 }], { duration: T(total) });
+    ephemere(bande, total);
+    // Les unites touchees s'eclairent quand l'onde les atteint.
+    for (const t of touches) {
+      const rt = rectDe(t);
+      const d = Math.hypot(rt.x + rt.w / 2 - rp.x - c.x, rt.y + rt.h / 2 - rp.y - c.y);
+      apres(f.auraOndeMs * Math.min(1, d / R), () => {
+        const v = pose('fx-aura-voile', '', rectDe(t), { width: rt.w + 'px', height: rt.h + 'px' });
+        v.style.setProperty('--c', couleur);
+        anime(v, [{ opacity: 0 }, { opacity: .85, offset: .3 }, { opacity: 0 }], { duration: T(f.auraTenueMs + f.auraSortieMs), easing: 'ease-out' });
+        ephemere(v, f.auraTenueMs + f.auraSortieMs);
+      });
+    }
+    // Le pouls ne retient pas le combat : l'action suivante n'attend pas une onde qui revient toutes les 5 s.
+    if (bloque) marque(total);
+  }
+
+  /** Les unites qu'une aura touche vraiment (ou, sans combat — le wiki —, toutes les autres de son camp). */
+  const touchesDe = n => (acces.sousAura
+    ? acces.sousAura(n.dataset.side, n.dataset.uid).map(x => acces.unite(x.camp, x.uid)).filter(Boolean)
+    : acces.unites(n.dataset.side).filter(x => x !== n));
+  /** La couleur de l'aura d'une unite : celle de sa signature (`aura`, ui/vfx.js), jaune sinon. */
+  const couleurAura = id => { const s = signatureDe(id); return (liste(s && s.aura).map(([, o]) => o || {}).find(o => o.couleur) || {}).couleur; };
+
+  // LE POULS DES AURAS (game designer, 21 oct. 2026 : « une fois toutes les 5 secondes, on va essayer ») : chaque porteur
+  // en jeu (`.porte-aura`) rejoue son onde a ce rythme (`auraPeriodeMs`, en VRAIES secondes : x2 et x4 n'y changent rien,
+  // c'est un fond, pas un evenement du combat ; le ralenti de la console, si). Son
+  // propre minuteur, hors de la file des films : `vide()` ne l'arrete pas, et l'onde ne retient pas le combat.
+  function pouls() {
+    setTimeout(pouls, Math.max(1000, F().auraPeriodeMs * reglage.ralenti));
+    if (document.hidden) return;
+    try {
+      for (const camp of ['p', 'e']) {
+        for (const n of acces.unites(camp)) {
+          if (n.classList.contains('porte-aura') && n.style.visibility !== 'hidden') ondeAura(n, touchesDe(n), couleurAura(n.dataset.carte), { bloque: false });
+        }
+      }
+    } catch { /* l'ecran n'est pas monte (pas de combat) : rien a faire */ }
+  }
+  setTimeout(pouls, F().auraPeriodeMs);
+
   /** Une unite dont les chiffres ont bouge sans cause visible : une aura vient de se poser ou de tomber. */
   function auras(couverts) {
     const f = F();
@@ -375,6 +437,30 @@ export function creeFx(acces) {
   // ------------------------------------------------------------ ce qu'on montre
   // LES VFX PAR CARTE (ui/vfx.js) : la signature d'une carte (`SIGNATURES[id]`) assemble des briques. `lance` en joue une.
   const briques = creeBriques({ anime, T, ephemere, couche: () => acces.couche(), F, eclair, anneau, etincelles, secoueEcran, apres, cloneUnite, rectMain: () => rectDe(acces.main()) });
+  // LES MEMES BRIQUES « A BLANC » : elles ne dessinent rien (une couche hors de la page, aucune animation, aucun minuteur)
+  // et rendent seulement leur duree. Le film s'en sert pour savoir, AVANT de jouer un lancer, quand il arrivera sur sa
+  // cible : ses consequences (degats, morts) tombent a ce moment-la, pas pendant qu'il vole encore.
+  const aBlanc = document.createElement('div');
+  const rien = () => {};
+  const mesure = creeBriques({ anime: () => ({}), T, ephemere: rien, couche: () => aBlanc, F, eclair: rien, anneau: rien, etincelles: rien,
+    secoueEcran: rien, apres: rien, cloneUnite: () => document.createElement('div'), rectMain: () => rectDe(acces.main()) });
+  // Une mesure par moment de signature et par nombre de cibles : une brique « a blanc » cree quand meme ses images (et un
+  // 404 pour une icone pas encore dessinee) — on ne la remesure pas a chaque carte jouee.
+  const durees = new Map();
+  /** La duree (ms a x1) d'un moment de signature, sans le jouer ; 0 si on ne sait pas. */
+  function dureeDe(e, vers, de) {
+    const k = JSON.stringify(e) + '|' + (vers ? vers.length : 0);
+    if (durees.has(k)) return durees.get(k);
+    let ms = 0;
+    for (const [nom, o] of liste(e)) {
+      try { ms = Math.max(ms, (mesure[nom] && mesure[nom]({ de: de || centreDe(rectDe(acces.milieu())), vers, ...(o || {}) })) || 0); } catch { /* une brique qui veut un vrai noeud : on garde le minimum */ }
+    }
+    aBlanc.textContent = '';
+    durees.set(k, ms);
+    return ms;
+  }
+  /** Quand les consequences d'un lancer tombent : au moins `lancerMs`, sinon a l'arrivee mesuree du projectile. */
+  const arriveeDe = (e, vers, de) => Math.max(F().lancerMs, dureeDe(e, vers, de) * F().lancerArriveePart);
   function lance(brique, options, vers, de) {
     const b = briques[brique];
     if (!b) return 0;
@@ -416,6 +502,15 @@ export function creeFx(acces) {
   // Console : `AC.fx.montre('eclair')` joue une brique du centre vers le heros adverse (ou `'plumes', { n: 9 }`), pour la regarder seule.
   // Elle vise la premiere unite adverse (le heros s'il n'y en a pas) ; les briques qui animent une unite (gonfle,
   // clignote, dedouble, fantome) prennent ta premiere unite.
+  // Console : `AC.fx.aura()` rejoue l'onde d'aura de ta premiere unite (`AC.fx.aura('e', 2)` : la troisieme d'en face), qu'elle
+  // ait une aura ou non — pour regarder qui elle eclaire et regler `auraOndeMs` / `auraTenueMs` / `auraSortieMs`.
+  reglage.aura = (camp = 'p', i = 0) => {
+    const n = acces.unites(camp)[i];
+    if (!n) return 'aucune unite a cette place';
+    const touches = touchesDe(n);
+    ondeAura(n, touches, couleurAura(n.dataset.carte));
+    return `${touches.length} unite(s) touchee(s)`;
+  };
   reglage.montre = (nom, options) => {
     const cible = acces.unites('e')[0] || acces.heros('e');
     return lance(nom, { noeud: acces.unites('p')[0] || null, ...(options || {}) }, [rectDe(cible)], centreDe(rectDe(acces.milieu())));
@@ -652,13 +747,16 @@ export function creeFx(acces) {
     if (!n) return;
     n.style.visibility = '';
     caches.delete(n);
+    // Le rectangle AVANT le rebond : mesure apres, il etait celui d'une carte a 15 % de sa taille, et toute animation
+    // d'arrivee (la gerbe de flammes de l'Eclaireur Fou…) restait dans la carte au lieu d'en sortir (21 oct. 2026).
+    const r = rectDe(n);
     anime(n, [
       { transform: 'scale(.15)', opacity: 0 },
       { transform: 'scale(1.3)', opacity: 1, offset: .55 },
       { transform: 'scale(.92)', offset: .78 },
       { transform: 'scale(1)', opacity: 1 }
     ], { duration: T(f.popMs), easing: 'ease-out', fill: 'none' });
-    if (sig && sig.entree) lanceTout(sig.entree, [rectDe(n)], undefined, { noeud: n }); else etincelles(rectDe(n), '#ffe8a8', 8);
+    if (sig && sig.entree) lanceTout(sig.entree, [r], undefined, { noeud: n }); else etincelles(r, '#ffe8a8', 8);
   }
 
   // ------------------------------------------------------------ le film
@@ -748,7 +846,7 @@ export function creeFx(acces) {
           const sig = signatureDe(ev.carte.id);
           if (sig) {
             sigs.set(ev.i, sig);
-            if (sig.lancer) { apres(t, () => lanceTout(sig.lancer, visees(sig, ev), pointDe(sig, ev))); t += f.lancerMs; }
+            if (sig.lancer) { apres(t, () => lanceTout(sig.lancer, visees(sig, ev), pointDe(sig, ev))); t += arriveeDe(sig.lancer, visees(sig, ev), pointDe(sig, ev)); }
           }
           if (auraAt === retard) auraAt = t;
           groupe = null;
@@ -776,8 +874,8 @@ export function creeFx(acces) {
               lanceTout(sub.lancer, touches.length ? touches : visees(sub, ev), n ? centreDe(rectDe(n)) : undefined);
             });
           }
-          // La suite attend que la carte-effet ait ete LUE (toute sa tenue), puis son lancer.
-          t += f.effetVolMs + f.effetTenueMs + (sub && sub.lancer ? f.lancerMs * .6 : 0);
+          // La suite attend que la carte-effet ait ete LUE (toute sa tenue), puis l'arrivee de son lancer (parti a `effetVolMs`).
+          t += f.effetVolMs + Math.max(f.effetTenueMs + (sub && sub.lancer ? f.lancerMs * .6 : 0), sub && sub.lancer ? arriveeDe(sub.lancer, visees(sub, ev)) : 0);
           if (veille) marque(t + f.effetSortieMs + OEIL.length * f.oeilPasMs);
           groupe = null;
           break;
@@ -785,18 +883,20 @@ export function creeFx(acces) {
         case 'invoque': {
           const at = heure(ev);
           apres(at, () => pop(ev.unite.camp, ev.unite.uid, sigs.get(ev.cause)));
-          // Une unite a AURA : l'onde part d'elle vers chacun de ceux qu'elle protege (le halo qui reste est du CSS).
+          // L'action suivante (une attaque — Charge —, une carte, le tour) attend la fin de son animation d'arrivee : sinon
+          // l'Eclaireur Fou attaquait en pleine gerbe de flammes (« laisse un peu le temps aux choses », 21 oct. 2026).
+          const sigE = sigs.get(ev.cause), nE = acces.unite(ev.unite.camp, ev.unite.uid);
+          if (sigE && sigE.entree && nE) libre = Math.max(libre, at + dureeDe(sigE.entree, [rectDe(nE)]));
+          // Une unite a AURA : son onde couvre le plateau et n'eclaire que ceux qu'elle touche vraiment (`ondeAura`) ; le
+          // halo qui reste est du CSS (`.halo-aura`). La signature (`aura`) n'en donne que la couleur.
           const own = signatureDe(idDe(ev.unite));
           if (own && own.aura) {
             apres(at + f.popMs * .7, () => {
               const n = acces.unite(ev.unite.camp, ev.unite.uid);
               if (!n) return;
-              // Une aura touche ses allies, ou les unites d'en face (`cible: 'ennemis'` : la Chimere).
-              const enFace = liste(own.aura).some(([, o]) => o && o.cible === 'ennemis');
-              const camp = enFace ? (ev.unite.camp === 'p' ? 'e' : 'p') : ev.unite.camp;
-              const autres = acces.unites(camp).filter(x => x !== n).map(rectDe);
-              lanceTout(own.aura, autres, centreDe(rectDe(n)));
+              ondeAura(n, touchesDe(n), couleurAura(idDe(ev.unite)));
             });
+            marque(at + f.popMs * .7 + f.auraOndeMs + f.auraTenueMs + f.auraSortieMs);
           }
           marque(at + f.popMs);
           break;
@@ -866,13 +966,21 @@ export function creeFx(acces) {
     /** Combien de temps (ms reelles) avant la fin du film en cours. */
     reste: () => Math.max(0, fin - Date.now()),
     get vitesse() { return reglage.vitesse; },
-    /** Passe au cran de vitesse suivant (x1 -> x2 -> x4 -> x1) et le retient. */
-    cycleVitesse() {
-      const v = F().vitesses;
+    /**
+     * Passe au cran de vitesse suivant (x1 -> x2 -> x4 -> x1) et le retient. `rejeu` : « Revoir le combat » a un cran de
+     * plus (`vitesseRejeu`, x8), qui n'existe que la et ne se retient pas.
+     */
+    cycleVitesse(rejeu = false) {
+      const v = rejeu && F().vitesseRejeu ? [...F().vitesses, F().vitesseRejeu] : F().vitesses;
       reglage.vitesse = v[(v.indexOf(reglage.vitesse) + 1) % v.length];
+      if (!F().vitesses.includes(reglage.vitesse)) return reglage.vitesse;
       try { localStorage.setItem(CLE_VITESSE, String(reglage.vitesse)); } catch { /* stockage refuse : tant pis */ }
       return reglage.vitesse;
     },
+    /** En sortant d'un rejeu : un cran qui lui est propre (x8) redevient la vitesse retenue. */
+    remetVitesse() { if (!F().vitesses.includes(reglage.vitesse)) reglage.vitesse = lisVitesse(); },
+    /** Les `n` premiers evenements sont deja passes (un rejeu qui saute a un tour) : on ne les joue pas. */
+    saute(n) { vu = n; },
     /** Interrompt tout (nouveau combat, fin de combat). */
     vide() {
       for (const id of minuteurs) clearTimeout(id);

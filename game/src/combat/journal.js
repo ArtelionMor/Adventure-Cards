@@ -428,10 +428,13 @@ export function nomDeFichier(rencontre) {
  * `{type:'attack', uid, target}` ou `{type:'end'}`.
  * `controle` vaut "humain" ou "bot", `niveau` est le niveau de bot quand c'en est un.
  * Rend ce que `playCard` / `attack` ont renvoye (toujours `true` pour un tour passe).
+ * `rng` (facultatif) : le hasard a graine du combat (combat/rejeu.js) — il remplace `Math.random` le temps de l'action
+ * SEULEMENT, pas pendant que le journal fait reflechir le bot sur la decision (`evaluationBot`) : sinon un combat
+ * enregistre avec le journal allume ne se rejouerait plus pareil.
  */
-export function joue(B, k, action, controle = 'bot', niveau = null) {
+export function joue(B, k, action, controle = 'bot', niveau = null, rng = null) {
   const j = B && B.journal;
-  if (!j) return applique(B, k, action);
+  if (!j) return applique(B, k, action, rng);
 
   const ms = Date.now() - j.t0;
   // Le temps de reflexion : depuis l'action precedente du meme camp, ou depuis le
@@ -467,13 +470,18 @@ export function joue(B, k, action, controle = 'bot', niveau = null) {
   j.dernier[k] = ms;
   j.dernierQuelconque = ms;
 
-  const ok = applique(B, k, action);
+  const ok = applique(B, k, action, rng);
   j.lignes.push(texte.slice(0, -1) + ',"ok":' + JSON.stringify(ok !== false) + '}');
   return ok;
 }
 
-/** Le dispatch, et le seul du projet : un coup du bot vers l'appel du moteur. */
-function applique(B, k, action) {
+/** Le dispatch, et le seul du projet : un coup du bot vers l'appel du moteur (sous la graine `rng` s'il y en a une). */
+function applique(B, k, action, rng = null) {
+  if (rng) {
+    const avant = Math.random;
+    Math.random = rng;
+    try { return applique(B, k, action); } finally { Math.random = avant; }
+  }
   if (!action || action.type === 'end') { endTurn(B); return true; }
   if (action.type === 'play') return playCard(B, k, action.index, action.target, action.choix, action.zone);
   if (action.type === 'attack') return attack(B, k, action.uid, action.target);

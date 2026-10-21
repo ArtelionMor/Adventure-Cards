@@ -41,6 +41,12 @@ const ARC = ['#ff4d5e', '#ffb347', '#ffe45e', '#5fe08f', '#6ec1ff', '#b57cff'];
  */
 const surRegle = (slot, sub) => ({ regle: sub, [slot]: sub });
 
+// Les PARTICULES : des textures blanches (extraites du « Particle Pack » de Kenney, CC0, `Graphical Assets/VFX/`) qui
+// servent de `mask` a un degrade : la couleur est donnee ici, pas dans l'image. Premier usage : la brique `brasier`.
+const particule = nom => `url("${encodeURI(`/Graphical Assets/VFX/${nom}.png`)}")`;
+const FLAMMES = ['muzzle_02', 'muzzle_03', 'muzzle_05', 'flame_05', 'flame_06'];
+const FEU = 'linear-gradient(to top, #fff7c2 0 12%, #ffd23a 32%, #ff7a1a 62%, #e5341c 100%)';
+
 // ============================================================ LES 120 SIGNATURES
 export const SIGNATURES = {
   // ---- Médor (Chien, Gardien) : or et beige, pattes, os, sifflet, aboiements
@@ -293,7 +299,12 @@ export const SIGNATURES = {
   cam3_ruthless: { entree: ['yeux', { couleur: '#b8ffb0' }],
     declenche: surRegle('on_registre_foe', { lancer: ['eclats', { couleur: '#dff6ff' }], vers: 'ennemi', arrivee: ['souffle', { couleur: '#b8ffb0' }] }) },
   cam3_index: { lancer: [['livre', { couleur: '#dff6ff' }], ['cartes', { couleur: '#b8ffb0', n: 5, eventail: true }]], vers: 'main' },
-  cam3_retro: { lancer: [['arcenciel', { grand: true }], ['cartes', { couleur: C.cyan, n: 6, melange: true }]], vers: 'allies' }
+  cam3_retro: { lancer: [['arcenciel', { grand: true }], ['cartes', { couleur: C.cyan, n: 6, melange: true }]], vers: 'allies' },
+
+  // ---- Les adversaires
+  // L'Eclaireur Fou (le Corbeau Volcanique) : une gerbe de flammes autour de lui a son arrivee, une seule fois (demande du
+  // game designer, 21 oct. 2026 — premier essai des particules Kenney).
+  rush1: { entree: [['brasier', {}], ['convocation', { couleur: C.orange }]] }
 };
 
 /** Ce que fait chaque brique, en une phrase (le wiki de l'Atelier l'affiche). */
@@ -317,6 +328,7 @@ export const BRIQUES_DOC = {
   vent: 'Des colonnes de vent qui montent de la cible.',
   boue: "Une boule de boue qui grossit et s'étale sur la cible.",
   confettis: 'Des confettis dorés qui retombent.',
+  brasier: "Une gerbe de flammes (particules) qui jaillit tout autour de la cible, des braises qui s'envolent, puis plus rien.",
   trainee: 'Des traits de vitesse derrière une unité qui charge.',
   fantome: "Des images translucides laissées en arrière : l'unité passe à travers.",
   ame: "Une âme qui s'élève là où l'unité est morte.",
@@ -582,6 +594,55 @@ export function creeBriques(a) {
         a.etincelles(r, couleur, 6);
       }
       return 780;
+    },
+    brasier({ vers, n = 18 }) {
+      // « Pas assez massif », puis « il faut que ca sorte de la carte, et laisse un peu le temps aux choses » (game
+      // designer, 21 oct. 2026) : deux couronnes de grandes flammes qui debordent loin de la carte, qui jaillissent, BRULENT
+      // un moment en vacillant, puis retombent ; une lueur large, l'ecran qui tremble, des braises qui volent loin.
+      a.secoueEcran(F().ecranSecoussePx, F().ecranSecousseMs);
+      for (const r of vers) {
+        const c = centre(r), cote = Math.max(r.w, r.h);
+        // La lueur : un eclat orange qui gonfle et s'efface.
+        // Une lueur legere : elle ne doit pas noyer les flammes (au premier essai, elle couvrait tout le plateau).
+        const lw = cote * 3;
+        const g = noeud('fx-v', { width: lw + 'px', height: lw + 'px', borderRadius: '50%',
+          background: 'radial-gradient(closest-side, rgba(255,214,110,.5), rgba(255,130,30,.28) 55%, rgba(255,60,20,0))' });
+        anime(g, [
+          { transform: tr(c, lw, lw, 'scale(.3)'), opacity: 0 },
+          { transform: tr(c, lw, lw, 'scale(1)'), opacity: 1, offset: .15 },
+          { transform: tr(c, lw, lw, 'scale(.92)'), opacity: .85, offset: .45 },
+          { transform: tr(c, lw, lw, 'scale(1.05)'), opacity: .9, offset: .7 },
+          { transform: tr(c, lw, lw, 'scale(1.2)'), opacity: 0 }
+        ], { duration: T(2000), easing: 'ease-out' });
+        vie(g, 2000);
+        // Les flammes : posees en couronne, la base pres de la carte, la pointe vers l'exterieur ; elles jaillissent et
+        // s'eteignent en s'eloignant un peu.
+        for (let i = 0; i < n; i++) {
+          // Une flamme sur deux dans la couronne exterieure, plus grande et un peu plus tard.
+          const loin = i % 2, ang = (i * 360 / n + alea(-10, 10)) * Math.PI / 180;
+          const w = cote * alea(.75, .95) * (loin ? 1.5 : 1), h = cote * alea(1.1, 1.4) * (loin ? 1.5 : 1);
+          const m = particule(FLAMMES[i % FLAMMES.length]) + ' center bottom / contain no-repeat';
+          const d = noeud('fx-v', { width: w + 'px', height: h + 'px', background: FEU, WebkitMask: m, mask: m, transformOrigin: '50% 100%' });
+          const pose = (rad, s) => `translate(${c.x + Math.cos(ang) * rad - w / 2}px, ${c.y + Math.sin(ang) * rad - h}px) rotate(${ang * 180 / Math.PI + 90}deg) scale(${s})`;
+          // La base sur le bord de la carte : la flamme part du cadre et s'en va au-dehors.
+          const r0 = loin ? cote * .55 : cote * .42, v = alea(.9, 1.1);
+          anime(d, [
+            { transform: pose(r0, .2), opacity: 0 },
+            { transform: pose(r0 + cote * .12, 1.15 * v), opacity: 1, offset: .14 },
+            { transform: pose(r0 + cote * .16, .92 * v), opacity: .95, offset: .32 },
+            { transform: pose(r0 + cote * .2, 1.1 * v), opacity: 1, offset: .5 },
+            { transform: pose(r0 + cote * .24, .95 * v), opacity: .9, offset: .68 },
+            { transform: pose(r0 + cote * .4, .5), opacity: 0 }
+          ], { duration: T(alea(1700, 2000)), delay: T(i * 12 + (loin ? 80 : 0)), easing: 'ease-in-out' });
+          vie(d, 2100 + i * 12);
+        }
+        // Les braises : des points qui partent loin dans tous les sens.
+        for (let i = 0; i < 26; i++) {
+          const ang = Math.random() * Math.PI * 2, loin = cote * alea(1.3, 2.3);
+          voyageur(c, { x: c.x + Math.cos(ang) * loin, y: c.y + Math.sin(ang) * loin }, { couleur: i % 3 ? '#ffd23a' : '#ff7a1a', taille: alea(5, 10), ms: 1300, delai: 60 + i * 40, courbe: 30 });
+        }
+      }
+      return 2200;
     },
     convocation({ vers, couleur = C.blanc, lourd = false }) {
       for (const r of vers) {

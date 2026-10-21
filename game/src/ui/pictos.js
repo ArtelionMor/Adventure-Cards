@@ -14,6 +14,12 @@ export const CLES = {
   characteristique_variable: 'Static', cout_x_de_moins_de_plus: 'Mana'
 };
 
+// Les mots-cles qui ont leur PROPRE dessin sur la face d'une carte (ui/battle.js, skins/juice.css) : Provocation = le
+// bouclier de pierre derriere, Venin = la fiole sur le bord haut, Bouclier = le badge et le halo d'or, Elusif = la brume.
+// Le but d'un dessin unique est de RETIRER le picto (demande du game designer, 21 oct. 2026) : `{ sansDessines: true }`
+// les saute ; la fiche (appui long) les nomme toujours.
+export const DESSINES = new Set(['Taunt', 'Venin', 'Bouclier', 'elusif']);
+
 // Effet (`op`) -> icone. Un effet que cette table ne connait pas s'affiche « Trigger » (l'eclair) : il se voit.
 export const OPS = {
   dmg: 'Damage', heal: 'Heal', draw: 'Draw', armor: 'Armor', mana: 'Mana', mana_au_prochain_tour: 'Mana',
@@ -42,10 +48,11 @@ const montant = v => (typeof v === 'number' ? (v > 1 || v < 0 ? v : null) : v &&
  * La liste des pictogrammes de `x` (une carte ou une unite) : mots-cles, moments, puis — pour une carte
  * qu'on n'a pas encore jouee — ses effets. `{ nom, n, titre }`, au plus `max` (le reste est a l'appui long).
  */
-export function pictosDe(x, { effets = true, max = 4 } = {}) {
+export function pictosDe(x, { effets = true, max = 4, sansDessines = false } = {}) {
   const out = [];
   const ajoute = (nom, n, titre) => { if (!out.some(o => o.nom === nom && o.n === n)) out.push({ nom, n: n ?? null, titre }); };
   for (const k of x.keys || x.baseKeys || []) {
+    if (sansDessines && DESSINES.has(keyId(k))) continue;
     const nom = CLES[keyId(k)];
     if (nom) ajoute(nom, null, keyId(k));
   }
@@ -68,5 +75,6 @@ export function pictosDe(x, { effets = true, max = 4 } = {}) {
 export function ligneDePictos(x, { taille = 16, plus = true, ...opt } = {}) {
   const { liste, reste } = pictosDe(x, opt);
   const html = liste.map(p => `<span class="pc" title="${p.titre || p.nom}">${icone(p.nom, taille)}${p.n !== null ? `<b>${p.n}</b>` : ''}</span>`).join('');
-  return `<div class="pic">${html}${reste && plus ? `<span class="pc plus">+${reste}</span>` : ''}</div>`;
+  // `data-n` : le nombre de pictos, pour que la face les retrecisse quand ils sont plusieurs (skins/juice.css).
+  return `<div class="pic" data-n="${liste.length}">${html}${reste && plus ? `<span class="pc plus">+${reste}</span>` : ''}</div>`;
 }
