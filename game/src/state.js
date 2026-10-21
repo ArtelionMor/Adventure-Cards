@@ -7,12 +7,14 @@ import { NIVEAU_MAX_PROFIL, recompensesDuNiveau } from './config/profil.js';
 import { QUETES, QUETE_PAR_ID } from './config/quetes.js';
 
 const KEY = BALANCE.save.key;
+// Les heros donnes au depart : l'onglet « start » de la feuille s'il en nomme (`BALANCE.depart.heros`), le builder sinon.
+const herosDeDepart = () => (BALANCE.depart.heros || STARTERS).filter(id => CHAR_BY_ID[id]);
 
 function freshChars() {
   const o = {};
   for (const c of CHARACTERS) {
     o[c.id] = {
-      owned: STARTERS.includes(c.id),   // les 3 persos du tutoriel
+      owned: herosDeDepart().includes(c.id),   // le heros du depart (Pompon), le tutoriel donne les autres
       level: 1,                         // 1 + le nombre d'ameliorations faites (une par palier : etapesDe)
       switches: [false, false, false, false, false], // 1 alternative par slot de carte
       bossBeaten: false                 // le boss ouvre l'ELIGIBILITE a l'achat
@@ -30,11 +32,11 @@ export function freshSave() {
     lastSeen: now,
     // Monnaies. C = les pieces (ameliorations), G = les gemmes : les deux s'affichent dans la barre du haut
     // (maquette « Deck Screen », 12 octobre 2026).
-    cur: { A: 0, B: 0, C: 40, G: 0 },
+    cur: { ...BALANCE.depart.monnaies },
     chars: freshChars(),
-    team: STARTERS.slice(0, 3),
-    // Une place au depart : le tutoriel (docs/TUTORIEL.md) ouvre les deux autres par ses quetes.
-    rosterSlots: 1,
+    team: herosDeDepart().slice(0, 3),
+    // Une place au depart (`BALANCE.depart`) : le tutoriel (docs/TUTORIEL.md) ouvre les autres par ses quetes.
+    rosterSlots: BALANCE.depart.places,
     world: {
       px: WORLD.spawn.x + 0.5,
       py: WORLD.spawn.y + 0.5,

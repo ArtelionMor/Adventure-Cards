@@ -3,12 +3,18 @@
 //   2. une partie NEUVE : Pompon seul, une place, et le tutoriel se deroule jusqu'au bout (etats et evenements simules) ;
 //   3. une sauvegarde d'AVANT les quetes saute le tutoriel, recoit les Lapins, et les quetes de heros deja possedes
 //      sont sautees ;
-//   4. la taille minimale du deck suit les places ouvertes.
+//   4. la taille minimale du deck suit les places ouvertes ;
+//   5. le combat guide (config/guide.js) : les guides cites existent, leurs etapes et leurs cibles sont connues ;
+//   6. la Google Sheet (onglets « quests », « tutorial_guide », « start ») : aucune ligne ecartee, une ligne fautive
+//      l'est, et l'onglet « start » se pose sur BALANCE.
 //   node scripts/test-quetes.mjs
 import { QUETES, QUETE_PAR_ID } from '../game/src/config/quetes.js';
 import { CHAR_BY_ID } from '../game/src/config/characters.js';
 import { ARENE_PAR_ID } from '../game/src/config/arenes.js';
 import { BALANCE } from '../game/src/config/balance.js';
+import { GUIDES } from '../game/src/config/guide.js';
+import { FEUILLE } from '../game/data/feuille.data.js';
+import { verifieQuetes, quetesDepuisFeuille, verifieGuide, guidesDepuisFeuille, verifieDepart, appliqueDepart } from '../game/src/config/feuille.js';
 
 const vert = s => `\x1b[32m${s}\x1b[0m`, rouge = s => `\x1b[31m${s}\x1b[0m`;
 let passes = 0;
@@ -34,10 +40,46 @@ for (const q of QUETES) {
   if (o.quoi === 'equipe') verifie(`${q.id} : le heros existe`, !!CHAR_BY_ID[o.heros], o.heros);
   if (q.recompense && q.recompense.heros) verifie(`${q.id} : le heros offert existe`, !!CHAR_BY_ID[q.recompense.heros], q.recompense.heros);
 }
+// Le combat guide : une quete ne cite qu'un guide qui existe, et ses etapes ne pointent que des cibles connues.
+const CIBLES = ['carte', 'unite', 'heros', 'fin', 'pioche', 'auto'];
+const ETAPES = ['poser', 'attaque', 'heros', 'fin', 'fatigue', 'auto'];   // celles dont ui/guide.js connait le moment
+for (const q of QUETES.filter(x => x.guide)) {
+  verifie(`${q.id} : le guide « ${q.guide} » existe`, !!GUIDES[q.guide]);
+  verifie(`${q.id} : un guide sur un combat d'arene`, q.objectif.quoi === 'arene');
+}
+for (const [nom, etapes] of Object.entries(GUIDES)) for (const e of etapes) {
+  verifie(`guide ${nom} · ${e.id} : etape connue`, ETAPES.includes(e.id));
+  verifie(`guide ${nom} · ${e.id} : cible connue`, CIBLES.includes(e.cible), e.cible);
+  verifie(`guide ${nom} · ${e.id} : un texte`, !!e.texte);
+}
 // Une quete « mets X dans l'equipe » vient apres celle qui donne X.
 for (const q of QUETES.filter(x => x.objectif.quoi === 'equipe')) {
   const donne = QUETES.findIndex(x => x.recompense && x.recompense.heros === q.objectif.heros);
   verifie(`${q.id} : le heros est donne avant`, donne >= 0 && donne < QUETES.indexOf(q));
+}
+
+// ------------------------------------------------------------------ 1 bis. la feuille
+{
+  const connus = { heros: new Set(Object.keys(CHAR_BY_ID)), arenes: new Set(Object.keys(ARENE_PAR_ID)) };
+  for (const x of verifieQuetes(FEUILLE.quests || [], connus)) verifie(`feuille « quests » : ${x.id}`, false, x.raison);
+  for (const x of verifieGuide(FEUILLE.tutorial_guide || [])) verifie(`feuille « tutorial_guide » : ${x.id}`, false, x.raison);
+  for (const x of verifieDepart(FEUILLE.start || [])) verifie(`feuille « start » : ${x.id}`, false, x.raison);
+  // Une ligne fautive est ecartee, les autres restent, dans l'ordre.
+  const lignes = [
+    { id: 'a', titre: 'A', objectif: 'arene', arene: 'rabbit1', niveau: 1, pieces: 5, guide: 'premierCombat' },
+    { id: 'b', titre: 'B', objectif: 'danse' },
+    { id: 'c', titre: 'C', objectif: 'equipe', heros: 'lapin2', heros_offert: 'lapin3', places: 1, fin_tutoriel: true }
+  ];
+  const q = quetesDepuisFeuille(lignes, connus);
+  verifie('feuille : la ligne fautive est ecartee', q.map(x => x.id).join() === 'a,c', q.map(x => x.id).join());
+  verifie('feuille : une quete lue', JSON.stringify(q[0]) === JSON.stringify({ id: 'a', chapitre: 1, titre: 'A', texte: '', objectif: { quoi: 'arene', arene: 'rabbit1', niveau: 1 }, recompense: { C: 5 }, guide: 'premierCombat' }), JSON.stringify(q[0]));
+  verifie('feuille : recompense heros + place, fin du tutoriel', q[1].recompense.heros === 'lapin3' && q[1].recompense.place === 1 && q[1].finTutoriel === true, JSON.stringify(q[1]));
+  verifie('feuille : un onglet vide garde le code', quetesDepuisFeuille([], connus) === null && guidesDepuisFeuille([]) === null);
+  const g = guidesDepuisFeuille([{ id: 'poser', cible: 'carte', texte: 'x' }, { id: 'auto', cible: 'nulle-part', texte: 'y' }, { id: 'fatigue', cible: 'pioche', texte: 'z', duree_s: 2.5 }]);
+  verifie('feuille : guide lu (cible inconnue ecartee, duree en secondes)', JSON.stringify(g) === JSON.stringify({ premierCombat: [{ id: 'poser', cible: 'carte', texte: 'x' }, { id: 'fatigue', cible: 'pioche', texte: 'z', dureeMs: 2500 }] }), JSON.stringify(g));
+  const b = appliqueDepart({ depart: { places: 1, monnaies: { A: 0, B: 0, C: 40, G: 0 }, heros: null }, decks: { tailleMin: 15 } },
+    [{ id: 'places', value: 2 }, { id: 'pieces', value: '75' }, { id: 'heros_depart', value: 'lapin1, lapin2' }, { id: 'deck_minimum', value: 10 }, { id: 'sceaux', value: 'beaucoup' }]);
+  verifie('feuille : « start » se pose (et une valeur fausse est ignoree)', b.depart.places === 2 && b.depart.monnaies.C === 75 && b.depart.monnaies.B === 0 && b.depart.heros.join() === 'lapin1,lapin2' && b.decks.tailleMin === 10, JSON.stringify(b));
 }
 
 // ------------------------------------------------------------------ 2. une partie neuve

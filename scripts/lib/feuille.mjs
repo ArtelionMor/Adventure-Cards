@@ -109,20 +109,27 @@ function etatDuJeu() {
 
 /** Les onglets que le jeu lit, et comment chacun se compare. */
 // `enemy_progress_profile` est lu tel quel par config/ennemis.js (un profil par adversaire) : pas de plan, juste les ids.
-export const BRANCHES = ['animations', 'heroes', 'encounters', 'enemy_progress_profile'];
+// Le tutoriel (21 oct. 2026, docs/TUTORIEL.md) : `quests` (config/quetes.js), `tutorial_guide` (config/guide.js) et `start`
+// (BALANCE.depart) remplacent la valeur du code quand ils ont des lignes ; l'apercu dit les lignes invalides (ecartees).
+export const BRANCHES = ['animations', 'heroes', 'encounters', 'enemy_progress_profile', 'quests', 'tutorial_guide', 'start'];
 
 /**
  * Compare la feuille a ce que le jeu a. `plan` : une entree par ligne (voir `planifie`), `retires` : les
  * identifiants que la derniere synchro avait et que la feuille n'a plus (leur valeur retombe a celle de balance.js).
  */
 export async function apercu() {
-  const { planifie, planifieHeros, planifieRencontres, COLONNES_HEROS } = await import(pathToFileURL(path.join(RACINE, 'game/src/config/feuille.js')).href);
+  const { planifie, planifieHeros, planifieRencontres, COLONNES_HEROS, verifieQuetes, verifieGuide, verifieDepart } = await import(pathToFileURL(path.join(RACINE, 'game/src/config/feuille.js')).href);
   const lue = await lisLaFeuille();
   const jeu = etatDuJeu();
   const plan = [
     ...planifie(jeu.racine, lue.onglets.animations || []).map(({ objet, ...p }) => ({ onglet: 'animations', ...p })),
     ...planifieHeros(jeu.donnees, lue.onglets.heroes || [], jeu.sprites).map(({ cible, chemin, ...p }) => ({ onglet: 'heroes', ...p })),
-    ...planifieRencontres(jeu.noeuds, lue.onglets.encounters || []).map(({ points, ...p }) => ({ onglet: 'encounters', ...p }))
+    ...planifieRencontres(jeu.noeuds, lue.onglets.encounters || []).map(({ points, ...p }) => ({ onglet: 'encounters', ...p })),
+    // Le tutoriel : seules les lignes invalides sont dites (elles sont ecartees, le reste remplace la valeur du code).
+    ...verifieQuetes(lue.onglets.quests || [], { heros: new Set(jeu.donnees.characters.map(c => c.id)) })
+      .map(x => ({ onglet: 'quests', id: x.id, etat: 'invalide', raison: x.raison, apres: null })),
+    ...verifieGuide(lue.onglets.tutorial_guide || []).map(x => ({ onglet: 'tutorial_guide', id: x.id, etat: 'invalide', raison: x.raison, apres: null })),
+    ...verifieDepart(lue.onglets.start || []).map(x => ({ onglet: 'start', id: x.id, etat: 'invalide', raison: x.raison, apres: null }))
   ];
   // Ce que la derniere synchro posait et que la feuille ne pose plus : la valeur retombe sur balance.js / le builder
   // (pour un combat : son niveau requis).

@@ -562,6 +562,26 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .bt-bandeau { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 6; max-width: 92%; text-align: center; background: rgba(10,8,15,.94); border: 1px solid var(--accent); border-radius: 14px; padding: 6px 14px; font-size: 13px; font-weight: 600; pointer-events: none; }
 .bt-bandeau small { display: block; font-size: 11px; font-weight: 400; color: var(--ink-dim); }
 #battle.spot .bt-bandeau { display: block; }
+/* Le COMBAT GUIDE (ui/guide.js, docs/TUTORIEL.md) : une bulle creme pointee sur ce qu'il faut toucher (sa fleche suit la
+   cible : `--fleche`), qui ne prend aucun toucher ; la cible pulse d'un anneau dore. Habillage propre, comme le bandeau
+   de quete : il ne depend pas du skin. */
+#battle .bt-guide {
+  position: absolute; left: 12px; right: 12px; z-index: 9; pointer-events: none;   /* au-dessus des onglets des bords (8) */
+  background: #fff3d8; color: #2b1c1f; border: 3px solid #2b1c1f; border-radius: 14px; padding: 8px 12px;
+  box-shadow: inset 0 4px 0 #fff, 0 4px 0 #2b1c1f; font-family: system-ui, sans-serif; font-size: 14px; line-height: 1.3;
+  animation: guide-arrive .25s ease-out;
+}
+#battle .bt-guide p { margin: 0; }
+#battle .bt-guide::after {
+  content: ''; position: absolute; left: calc(var(--fleche, 50%) - 12px - 9px); width: 18px; height: 18px;
+  background: #fff3d8; border: 3px solid #2b1c1f; transform: rotate(45deg);
+}
+#battle .bt-guide.dessus::after { bottom: -12px; border-top: 0; border-left: 0; }
+#battle .bt-guide.dessous::after { top: -12px; border-bottom: 0; border-right: 0; }
+#battle.spot .bt-guide { display: none; }
+#battle .guide-cible { outline: 4px solid #ffd23a; outline-offset: 3px; border-radius: 12px; animation: guide-pulse 1s ease-in-out infinite; }
+@keyframes guide-pulse { 50% { outline-color: rgba(255, 210, 58, .25); outline-offset: 7px; } }
+@keyframes guide-arrive { from { opacity: 0; transform: translateY(6px); } }
 #battle [data-geste], #battle :is(.bt-ctrl, .bt-hpe, .bt-mana) { transition: filter .15s; }
 #battle.spot [data-geste]:not(.lit), #battle.spot :is(.bt-ctrl, .bt-hpe, .bt-mana) { filter: brightness(.22) saturate(.2); }
 #battle.spot .lit { filter: none; outline: 2px solid var(--accent); outline-offset: 1px; position: relative; z-index: 2; box-shadow: 0 0 14px rgba(255,196,107,.6); }

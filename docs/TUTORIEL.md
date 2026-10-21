@@ -132,6 +132,45 @@ Les niveaux 1 à 4 de l'arène (le chef au 4) viennent du profil de `rabbit1` da
 (niv. 2 : +3 PV ; 3 : cartes +1 palier ; 4 : +1 d'attaque à ses unités). Les anciennes cartes `adv_lapin_*` et
 `card_bjidas` restent dans la bibliothèque, sans deck.
 
+## Le combat guidé
+
+Le premier combat du Potager (quête `potager1`, champ `guide: 'premierCombat'`) se joue **en manuel**, avec des
+**bulles** : une à la fois, crème, pointée par une flèche sur ce qu'il faut toucher, la cible cerclée d'un anneau doré
+qui pulse. Aucune ne bloque ni ne demande un toucher pour partir : une bulle d'action s'en va quand le geste est fait
+(même fait avant d'être dit), une information au bout de 6 s ; elle se cache pendant une action engagée (le masque
+noir). Le joueur peut passer en Auto quand il veut : les bulles d'action se taisent. Rejouer le combat (Réessayer)
+relance le guide, tant que la quête n'est pas récupérée.
+
+| Étape | Quand elle se montre | Ce qu'elle pointe | Ce qui la termine |
+|---|---|---|---|
+| Poser | à ton tour, une carte jouable | une carte jouable de la main | une carte posée |
+| Attaque | une unité prête, des unités en face | ton unité prête | une attaque |
+| Héros | une unité prête, plus personne en face | le héros adverse | ses PV qui baissent |
+| Fin de tour | plus rien à poser ni à attaquer | « Fin de tour » | le tour suivant |
+| Fatigue | ta pioche est vide | ta pioche | 6 s |
+| Auto | après le héros frappé (ou au 4ᵉ tour) | le bouton Auto | 6 s, ou passer en Auto |
+
+Textes et ordre : `game/src/config/guide.js` (`GUIDES`) ; moments et fins : `game/src/ui/guide.js` ; branché dans
+`ui/battle.js` (`guideDuCombat`, `noeudDuGuide`, `guide.maj()` après chaque rendu). Console : `AC.guide.etat()`.
+
+## Régler le tutoriel dans la feuille
+
+Demande du game designer (21 oct. 2026) : tout le déroulé se modifie dans la Google Sheet « Config Adventure-Cards »,
+puis une synchro (page « Feuille » de l'Atelier, ou `scripts/sync-feuille.mjs` sur le Pi). Un onglet qui a des lignes
+**remplace** la valeur du code ; vide, le code garde la sienne. Une ligne invalide est **écartée** (le jeu ne s'y bloque
+pas) et l'aperçu de la synchro dit pourquoi. Les colonnes « objectif », « id » et « cible » ont des listes déroulantes.
+
+| Onglet | Une ligne = | Colonnes | Remplace |
+|---|---|---|---|
+| `quests` | une quête, **dans l'ordre du fil** (ajouter, retirer, réordonner des lignes change le fil) | `id`, `chapitre`, `titre`, `texte`, `objectif` (arene, equipe, victoire, ameliore, switch, plante, vend), `arene` + `niveau` (objectif arene), `heros` (objectif equipe), `n` (combien de fois), `equipe_min` (victoire avec au moins N héros), récompenses `pieces`, `sceaux`, `fanions`, `gemmes`, `heros_offert`, `places`, `guide` (le combat guidé), `fin_tutoriel` | `QUETES_DU_CODE` (`config/quetes.js`) |
+| `tutorial_guide` | une bulle du combat guidé, dans l'ordre de priorité | `id` (poser, attaque, heros, fin, fatigue, auto), `guide`, `cible` (carte, unite, heros, fin, pioche, auto), `texte`, `duree_s` (une information : sa durée) | `GUIDES_DU_CODE` (`config/guide.js`) |
+| `start` | une valeur de départ (`id`, `value`) | `places`, `pieces`, `sceaux`, `fanions`, `gemmes`, `heros_depart` (« lapin1 » ou une liste), `deck_minimum` | `BALANCE.depart`, `BALANCE.decks.tailleMin` |
+| `heroes` | un héros ou un adversaire | (déjà là) PV, mana max, nom, image des trois Lapins et des Souris (`rabbit1`) | le builder |
+
+Le moment d'une bulle et ce qui la termine restent dans le code (`ui/guide.js`) : on peut changer ses textes, son ordre,
+sa cible et sa durée, ou en retirer, pas inventer une étape nouvelle. Une partie déjà commencée garde ses places et
+ses monnaies : les valeurs de départ ne valent que pour une partie neuve.
+
 ## Les quêtes
 
 ### Le modèle (`game/src/config/quetes.js`)
@@ -186,9 +225,10 @@ d'une switch (`ui/deck.js`), la victoire (`ui/battle.js`), la Ferme (`ui/farm.js
   98/97/94/63 en solo, 78 % au chef à deux. Les premiers combats se gagnent presque à coup sûr, le chef demande le duo.
 - ⏳ **Les Lapins dans la META** : `matchups --taille 3` avec les 21 héros, pour vérifier qu'aucun Lapin ne surclasse
   (décision 9 : ils restent dans le roster).
-- ⏳ **Le combat guidé** (bulles : poser, attaquer, le héros, le mana, la pile de fatigue).
+- ✅ **Le combat guidé** (voir « Le combat guidé » plus haut) : éprouvé dans le navigateur intégré, les bulles
+  s'enchaînent — poser, Fin de tour, attaque, héros, Auto.
 - ⏳ **Les écrans qui s'ouvrent** au fil des quêtes (Ferme, Sac, autres arènes cachés pendant le tutoriel).
-- ⏳ Les lignes des Lapins dans l'onglet `heroes` de la Google Sheet (sans ligne, le jeu prend les
-  valeurs du builder : 20/24/22 PV, 5 de mana).
+- ✅ **Tout le déroulé se règle dans la Google Sheet** (voir « Régler le tutoriel dans la feuille »), et les Lapins
+  ont leur ligne dans l'onglet `heroes`.
 - ⏳ Les images des cartes des Lapins (`scripts/art-sujets.json`, `gen-art.py`) : elles prennent le
   portrait de leur héros en attendant.

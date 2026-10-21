@@ -34,6 +34,7 @@ const ecu = () => `<div class="ecu">${icone('Shield', 34)}</div>`;
 import { gardeCombat, chargeCombat } from './combats.js';
 import { ouvreRevue } from './revue.js';
 import { creeFx } from './effets.js';
+import { guideDuCombat, creeGuide } from './guide.js';
 import { montreFin } from './fin.js';
 import { ligneDePictos } from './pictos.js';
 import { fabrique } from './vfx-scenes.js';
@@ -44,6 +45,7 @@ import { skinCourant, skinSuivant, ecouteSkin, fondDuCombat } from './skin.js'; 
 
 let B = null;
 let auto = true;
+let guide = null;   // le COMBAT GUIDE (ui/guide.js) : ses bulles, quand la quete en cours le demande
 let timer = null;
 let selCard = null;   // index dans la main — ou dans la defausse, voir `selZone`
 let selZone = 'main'; // d'ou part la carte choisie : 'main', ou 'defausse' (une Reprise)
@@ -255,8 +257,28 @@ export function openBattle(node, done, { rejeu: donnees = null, apres = null } =
   // Le decor : celui de l'arene, ou celui que le joueur a choisi dans son Profil (ui/skin.js, skins/cozy.css).
   root.dataset.fond = fondDuCombat(node);
   root.classList.remove('hidden');
+  // LE COMBAT GUIDE (docs/TUTORIEL.md) : la quete en cours le demande pour son arene. Il se joue en MANUEL ; le joueur
+  // peut passer en Auto quand il veut, les bulles d'action se taisent alors.
+  if (guide) guide.ferme();
+  const etapes = !rejeu && guideDuCombat(node);
+  guide = etapes ? creeGuide(etapes, { racine: () => $('#battle'), B: () => B, auto: () => auto, engage: () => engage(), noeud: noeudDuGuide }) : null;
+  if (guide) auto = false;
+  if (window.AC) window.AC.guide = guide;
   render();
   loop();
+}
+
+/** Ce que pointe une bulle du guide : une carte jouable de la main, ton unite prete, le heros adverse, un bouton. */
+function noeudDuGuide(cible) {
+  const c = coque;
+  if (!c) return null;
+  if (cible === 'carte') return [...c.main.children].find(n => !n.classList.contains('no') && !n.classList.contains('nouvelle') && !n.classList.contains('main-cachee')) || null;
+  if (cible === 'unite') return c.boardP.querySelector('.unit.ready');
+  if (cible === 'heros') return c.heroE.n;
+  if (cible === 'fin') return c.fin;
+  if (cible === 'pioche') return c.npioche;
+  if (cible === 'auto') return c.chip;
+  return null;
 }
 
 /** Le calme entre deux coups du mode auto : le pas habituel, ou la fin des effets si elle vient apres. */
@@ -1013,6 +1035,7 @@ function render() {
   renderLecture();
   renderZone();
   fx.joue(B.evts);
+  if (guide) guide.maj();
 }
 
 // L'ECHELLE DES VIGNETTES. Le plateau n'a plus de plafond d'unites (boardSize = 0), et
@@ -1719,6 +1742,7 @@ function renderLecture() {
 function finish() {
   if (rejeu) { finRejeu(); return; }
   clearTimeout(timer);
+  if (guide) { guide.ferme(); guide = null; }
   fx.vide();
   zoneOuverte = false;
   fermeLecture();

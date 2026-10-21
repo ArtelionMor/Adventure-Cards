@@ -1,7 +1,7 @@
 // GAME CONFIG — c'est ici que le game designer tune le jeu.
 // Aucune valeur d'equilibrage ne doit vivre ailleurs que dans ce fichier.
 import { FEUILLE } from '../../data/feuille.data.js';
-import { applique } from './feuille.js';
+import { applique, appliqueDepart } from './feuille.js';
 
 export const BALANCE = {
   version: '0.1.0',
@@ -272,6 +272,14 @@ export const BALANCE = {
 
   // LES DECKS ENREGISTRES : une equipe (heros, faces switch, cartes retirees) qu'on recharge d'un toucher avant un
   // combat, pour ne pas tout refaire a chaque adversaire. PROVISOIRE.
+  // LE DEPART D'UNE PARTIE (docs/TUTORIEL.md) : les places d'equipe ouvertes, les monnaies, et les heros donnes (`null` =
+  // les `starters` du builder : Pompon seul). Le tutoriel ouvre les autres places par ses quetes. Onglet « start » de la feuille.
+  depart: {
+    places: 1,
+    monnaies: { A: 0, B: 0, C: 40, G: 0 },
+    heros: null
+  },
+
   decks: {
     max: 6,
     // Taille minimale d'un deck (GDD « EN REFLEXION », 16 octobre 2026) : en dessous, on ne peut pas combattre.
@@ -293,6 +301,8 @@ export const BALANCE = {
 // `scripts/sync-feuille.mjs` (ou le bouton « Feuille » de l'Atelier) l'ecrit dans game/data/feuille.data.js.
 // Ce qui est dans la feuille gagne ; une ligne absente laisse la valeur de ce fichier (voir config/feuille.js).
 applique(BALANCE, FEUILLE.animations);
+// L'onglet « start » (le depart d'une partie, la taille minimale d'un deck) : config/feuille.js, `appliqueDepart`.
+appliqueDepart(BALANCE, FEUILLE.start);
 
 export const TUNING_NOTE =
   "Toutes ces valeurs sont provisoires : elles servent a rendre la boucle jouable, pas a etre justes.";

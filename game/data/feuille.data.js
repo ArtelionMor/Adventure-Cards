@@ -3,7 +3,7 @@
 // Les valeurs de l'onglet « animations » remplacent celles de BALANCE.ui.fx, celles de « heroes » les statistiques
 // des heros et des adversaires (game/src/config/feuille.js).
 export const FEUILLE = {
-  "synchro": "2026-10-19T23:42:29.469Z",
+  "synchro": "2026-10-21T19:42:52.185Z",
   "feuille": "1B01tuggXdbvqO3_7wh2YserIoDVnarMXCPXPaYbSGCY",
   "heroes_kin": [
     {
@@ -46,6 +46,10 @@ export const FEUILLE = {
     {
       "id": "robot",
       "color": "FFFFFF, 888888"
+    },
+    {
+      "id": "mouse",
+      "color": "D6CFC4"
     }
   ],
   "heroes": [
@@ -228,6 +232,36 @@ export const FEUILLE = {
       "deck_category": "combo",
       "PV_Max": 20,
       "Mana_Max": 10
+    },
+    {
+      "id": "lapin1",
+      "heroes_kin": "rabbit",
+      "name": "Pompon",
+      "sprite": "Rabbit",
+      "is_hero": true,
+      "deck_category": "aggro",
+      "PV_Max": 20,
+      "Mana_Max": 5
+    },
+    {
+      "id": "lapin2",
+      "heroes_kin": "rabbit",
+      "name": "Caramel",
+      "sprite": "Rabbit English Lop",
+      "is_hero": true,
+      "deck_category": "control",
+      "PV_Max": 24,
+      "Mana_Max": 5
+    },
+    {
+      "id": "lapin3",
+      "heroes_kin": "rabbit",
+      "name": "Séléné",
+      "sprite": "Rabbit Wherewolf",
+      "is_hero": true,
+      "deck_category": "aggro",
+      "PV_Max": 22,
+      "Mana_Max": 5
     },
     {
       "id": "rabbit1",
@@ -5674,6 +5708,229 @@ export const FEUILLE = {
       "level": 40,
       "upgrade": "health_up",
       "value": 5
+    }
+  ],
+  "quests": [
+    {
+      "id": "potager1",
+      "chapitre": 1,
+      "titre": "Les souris du potager",
+      "texte": "Des souris pillent le potager ! Entre dans le Potager et chasse-les avec Pompon.",
+      "objectif": "arene",
+      "arene": "rabbit1",
+      "niveau": 1,
+      "pieces": 10,
+      "guide": "premierCombat",
+      "fin_tutoriel": false
+    },
+    {
+      "id": "potager2",
+      "chapitre": 1,
+      "titre": "Elles reviennent",
+      "texte": "Les souris reviennent, plus nombreuses. Gagne encore au Potager : essaie le mode Auto, il joue pour toi.",
+      "objectif": "arene",
+      "arene": "rabbit1",
+      "niveau": 2,
+      "heros_offert": "lapin2",
+      "places": 1,
+      "fin_tutoriel": false
+    },
+    {
+      "id": "caramel",
+      "chapitre": 2,
+      "titre": "Un nouveau compagnon",
+      "texte": "Caramel te rejoint ! Dans l’écran Deck, mets-le dans ton équipe.",
+      "objectif": "equipe",
+      "heros": "lapin2",
+      "pieces": 10,
+      "fin_tutoriel": false
+    },
+    {
+      "id": "duo",
+      "chapitre": 2,
+      "titre": "À deux",
+      "texte": "Pompon et Caramel mélangent leurs cartes en un seul paquet. Gagne au Potager avec les deux.",
+      "objectif": "arene",
+      "arene": "rabbit1",
+      "niveau": 3,
+      "pieces": 60,
+      "fin_tutoriel": false
+    },
+    {
+      "id": "ameliore",
+      "chapitre": 3,
+      "titre": "Plus fort",
+      "texte": "Tu as des pièces : dans l’écran Deck, touche un Lapin et améliore-le. Une de ses cartes change.",
+      "objectif": "ameliore",
+      "n": 1,
+      "sceaux": 25,
+      "fin_tutoriel": false
+    },
+    {
+      "id": "switch",
+      "chapitre": 3,
+      "titre": "L’autre face",
+      "texte": "Chaque carte a une autre face : sa switch. Achète-en une avec tes Sceaux, puis passe de l’une à l’autre quand tu veux.",
+      "objectif": "switch",
+      "n": 1,
+      "pieces": 20,
+      "fin_tutoriel": false
+    },
+    {
+      "id": "chef",
+      "chapitre": 4,
+      "titre": "Le chef des souris",
+      "texte": "Le chef des souris garde le Potager. Bats-le !",
+      "objectif": "arene",
+      "arene": "rabbit1",
+      "niveau": 4,
+      "heros_offert": "lapin3",
+      "places": 1,
+      "fin_tutoriel": false
+    },
+    {
+      "id": "selene",
+      "chapitre": 4,
+      "titre": "Le trio",
+      "texte": "Séléné te rejoint : mets-la dans ton équipe.",
+      "objectif": "equipe",
+      "heros": "lapin3",
+      "pieces": 20,
+      "fin_tutoriel": false
+    },
+    {
+      "id": "trio",
+      "chapitre": 4,
+      "titre": "Trois Lapins",
+      "texte": "Gagne un combat avec tes trois Lapins. Ensuite, toutes les arènes t’attendent.",
+      "objectif": "victoire",
+      "n": 1,
+      "equipe_min": 3,
+      "pieces": 50,
+      "fin_tutoriel": true
+    },
+    {
+      "id": "medor",
+      "chapitre": 5,
+      "titre": "Médor",
+      "texte": "Un chien de garde attend à l’Usine de balles. Gagne là-bas et il te suivra.",
+      "objectif": "arene",
+      "arene": "cat1",
+      "niveau": 1,
+      "heros_offert": "dog",
+      "fin_tutoriel": false
+    },
+    {
+      "id": "felix",
+      "chapitre": 5,
+      "titre": "Felix",
+      "texte": "Un chat traîne près du Nid. Gagne là-bas et il te suivra.",
+      "objectif": "arene",
+      "arene": "crow1",
+      "niveau": 1,
+      "heros_offert": "cat",
+      "fin_tutoriel": false
+    },
+    {
+      "id": "plante",
+      "chapitre": 6,
+      "titre": "La Ferme",
+      "texte": "Les pièces poussent à la Ferme : plantes-y un légume.",
+      "objectif": "plante",
+      "n": 1,
+      "pieces": 20,
+      "fin_tutoriel": false
+    },
+    {
+      "id": "vend",
+      "chapitre": 6,
+      "titre": "Au marché",
+      "texte": "Pose tes récoltes sur l’étal : une vente passe toutes les quinze minutes.",
+      "objectif": "vend",
+      "n": 1,
+      "pieces": 30,
+      "fin_tutoriel": false
+    },
+    {
+      "id": "corax",
+      "chapitre": 7,
+      "titre": "Corax",
+      "texte": "Un corbeau guette la cabane du Grand Méchant Loup. Bats le Loup et il te suivra.",
+      "objectif": "arene",
+      "arene": "wolf",
+      "niveau": 1,
+      "heros_offert": "crow",
+      "fin_tutoriel": false
+    }
+  ],
+  "tutorial_guide": [
+    {
+      "id": "poser",
+      "guide": "premierCombat",
+      "cible": "carte",
+      "texte": "C’est ton tour ! Ton mana se remplit à chaque tour, et grandit de 1. Touche une carte pour la poser."
+    },
+    {
+      "id": "attaque",
+      "guide": "premierCombat",
+      "cible": "unite",
+      "texte": "Ton Lapin est prêt : touche-le, puis touche ce qu’il doit frapper."
+    },
+    {
+      "id": "heros",
+      "guide": "premierCombat",
+      "cible": "heros",
+      "texte": "La voie est libre : frappe le héros adverse ! À 0 PV, tu as gagné."
+    },
+    {
+      "id": "fin",
+      "guide": "premierCombat",
+      "cible": "fin",
+      "texte": "Plus rien à faire ? Touche « Fin de tour » : l’adversaire joue, puis c’est encore à toi."
+    },
+    {
+      "id": "fatigue",
+      "guide": "premierCombat",
+      "cible": "pioche",
+      "texte": "Ta pioche est vide : tu tires maintenant dans la pile de fatigue, des cartes qui ne s’épuisent jamais.",
+      "duree_s": 6
+    },
+    {
+      "id": "auto",
+      "guide": "premierCombat",
+      "cible": "auto",
+      "texte": "Le bouton Auto joue à ta place. Un toucher sur l’écran te rend la main.",
+      "duree_s": 6
+    }
+  ],
+  "start": [
+    {
+      "id": "places",
+      "value": 1
+    },
+    {
+      "id": "pieces",
+      "value": 40
+    },
+    {
+      "id": "sceaux",
+      "value": 0
+    },
+    {
+      "id": "fanions",
+      "value": 0
+    },
+    {
+      "id": "gemmes",
+      "value": 0
+    },
+    {
+      "id": "heros_depart",
+      "value": "lapin1"
+    },
+    {
+      "id": "deck_minimum",
+      "value": 15
     }
   ]
 };

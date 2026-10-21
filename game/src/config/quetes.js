@@ -4,7 +4,8 @@
 // recompense (un toucher sur le bandeau), puis la suivante commence. Le tutoriel en est le debut (chapitres 1 a 4,
 // jusqu'a la quete `finTutoriel`), le reste guide la suite du jeu.
 //
-// Une quete : { id, chapitre, titre, texte, objectif, recompense, finTutoriel? }
+// Une quete : { id, chapitre, titre, texte, objectif, recompense, finTutoriel?, guide? }
+//   guide — le combat de son arene est GUIDE : un identifiant de config/guide.js (des bulles, en manuel).
 //   objectif — deux sortes (state.js, `progresQuete`) :
 //     un ETAT, relu dans la sauvegarde a chaque instant (une quete deja remplie se termine toute seule) :
 //       { quoi: 'arene', arene, niveau }   le meilleur niveau battu de cette arene atteint `niveau`
@@ -17,13 +18,20 @@
 //       { quoi: 'vend', n }                n ventes de l'etal
 //   recompense — { C, B, A, G } (monnaies), `heros` (il est POSSEDE tout de suite : ni Fanions ni boss), `place`
 //     (une place d'equipe de plus). Une quete qui offre un heros deja possede est SAUTEE, sans recompense.
-// PROVISOIRE : les textes et les montants (a regler par le game designer ; un onglet de la feuille plus tard).
+// LA FEUILLE GAGNE : l'onglet « quests » de la Google Sheet (une ligne par quete, dans l'ordre du fil) remplace TOUT ce
+// fil des qu'il a des lignes (config/feuille.js, `quetesDepuisFeuille` ; une ligne invalide est ecartee). Ce qui suit est
+// la valeur du code, celle qui a servi a remplir l'onglet le 21 octobre 2026. PROVISOIRE : textes et montants.
+import { FEUILLE } from '../../data/feuille.data.js';
+import { quetesDepuisFeuille } from './feuille.js';
+import { CHAR_BY_ID } from './characters.js';
+import { ARENE_PAR_ID } from './arenes.js';
 
-export const QUETES = [
+export const QUETES_DU_CODE = [
   // ---------------------------------------------------------------- Chapitre 1 : comprendre le jeu (Pompon seul)
   { id: 'potager1', chapitre: 1, titre: 'Les souris du potager',
     texte: 'Des souris pillent le potager ! Entre dans le Potager et chasse-les avec Pompon.',
-    objectif: { quoi: 'arene', arene: 'rabbit1', niveau: 1 }, recompense: { C: 10 } },
+    // Le premier combat est GUIDE (config/guide.js) : en manuel, avec des bulles.
+    objectif: { quoi: 'arene', arene: 'rabbit1', niveau: 1 }, recompense: { C: 10 }, guide: 'premierCombat' },
   { id: 'potager2', chapitre: 1, titre: 'Elles reviennent',
     texte: 'Les souris reviennent, plus nombreuses. Gagne encore au Potager : essaie le mode Auto, il joue pour toi.',
     objectif: { quoi: 'arene', arene: 'rabbit1', niveau: 2 }, recompense: { heros: 'lapin2', place: 1 } },
@@ -74,4 +82,6 @@ export const QUETES = [
     objectif: { quoi: 'arene', arene: 'wolf', niveau: 1 }, recompense: { heros: 'crow' } }
 ];
 
+const connus = { heros: new Set(Object.keys(CHAR_BY_ID)), arenes: new Set(Object.keys(ARENE_PAR_ID)) };
+export const QUETES = quetesDepuisFeuille(FEUILLE.quests, connus) || QUETES_DU_CODE;
 export const QUETE_PAR_ID = Object.fromEntries(QUETES.map(q => [q.id, q]));

@@ -180,7 +180,7 @@ Reportée volontairement — pas nécessaire pour la phase de prototype actuelle
 
 Aucun n'est engagé — c'est une liste d'options, pas un plan.
 
-- Le tutoriel : le Potager en Souris et le combat guidé (le reste est fait, `docs/TUTORIEL.md`).
+- Le tutoriel : cacher les écrans pas encore présentés (le reste est fait, `docs/TUTORIEL.md`).
 - Durcir le level design de l'overworld pour que les barrières de niveau ne se contournent plus.
 - Écrire les cartes des 6 personnages pour de bon dans le Card Builder, maintenant que les moments et les cibles existent.
 - Équilibrage : les valeurs actuelles rendent la boucle jouable, elles ne sont pas justes.

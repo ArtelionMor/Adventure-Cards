@@ -244,3 +244,120 @@ export function appliqueArenes(arenes, lignes, characters = []) {
 
 /** La feuille regle-t-elle ce champ ? (`colonne` : une cle de COLONNES_HEROS) — le builder grise la case. */
 export const reglePar = (lignes, id, colonne) => (lignes || []).some(l => String(l.id) === id && l[colonne] !== undefined && l[colonne] !== '');
+
+// ------------------------------------------------------------------ le TUTORIEL : onglets « quests », « tutorial_guide », « start »
+// Demande du game designer (21 octobre 2026) : tout le deroule du tutoriel se regle dans la feuille (docs/TUTORIEL.md).
+// Quand un onglet a des lignes, il REMPLACE la valeur du code (le fil de quetes entier, les etapes d'un guide) ; sans
+// lignes, le code garde la sienne (config/quetes.js, config/guide.js, `BALANCE.depart`). Une ligne invalide est ecartee
+// (le jeu ne s'y bloque pas) et l'apercu de l'Atelier dit pourquoi (`verifieQuetes`, `verifieGuide`, `verifieDepart`).
+
+const vrai = v => v === true || v === 1 || /^(true|vrai|oui|x|1)$/i.test(String(v || '').trim());
+const plein = v => v !== undefined && v !== null && String(v).trim() !== '';
+const texte = v => (plein(v) ? String(v).trim() : undefined);
+/** Les objectifs d'une quete (state.js, `progresQuete`) : un ETAT relu dans la sauvegarde, ou un EVENEMENT compte. */
+export const OBJECTIFS_DE_QUETE = ['arene', 'equipe', 'victoire', 'ameliore', 'switch', 'plante', 'vend'];
+/** Ce que peut pointer une bulle du guide (ui/guide.js) et les etapes dont il connait le moment. */
+export const CIBLES_DU_GUIDE = ['carte', 'unite', 'heros', 'fin', 'pioche', 'auto'];
+export const ETAPES_DU_GUIDE = ['poser', 'attaque', 'heros', 'fin', 'fatigue', 'auto'];
+
+/**
+ * Onglet « quests » : une ligne = une quete, dans l'ordre du fil. Colonnes : id, chapitre, titre, texte, objectif
+ * (arene | equipe | victoire | ameliore | switch | plante | vend), arene, niveau, heros, n, equipe_min, pieces, sceaux,
+ * fanions, gemmes, heros_offert, places, guide, fin_tutoriel. Rend la ligne au format de config/quetes.js.
+ */
+export function queteDepuisLigne(l) {
+  const n = k => (plein(l[k]) ? nombre(l[k]) : undefined);
+  const ote = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null && v !== 0));
+  const q = {
+    id: String(l.id).trim(), chapitre: n('chapitre') || 1, titre: texte(l.titre) || '', texte: texte(l.texte) || '',
+    objectif: ote({ quoi: texte(l.objectif), arene: texte(l.arene), niveau: n('niveau'), heros: texte(l.heros), n: n('n'), equipe: n('equipe_min') }),
+    recompense: ote({ C: n('pieces'), B: n('sceaux'), A: n('fanions'), G: n('gemmes'), heros: texte(l.heros_offert), place: n('places') })
+  };
+  if (plein(l.guide)) q.guide = texte(l.guide);
+  if (vrai(l.fin_tutoriel)) q.finTutoriel = true;
+  return q;
+}
+
+/** Les lignes de « quests » qui ne peuvent pas marcher : `[{ id, raison }]`. `connus` : { heros: Set, arenes: Set }. */
+export function verifieQuetes(lignes, connus = {}) {
+  const out = [], vus = new Set();
+  for (const l of lignes || []) {
+    const q = queteDepuisLigne(l), o = q.objectif, faute = r => out.push({ id: q.id, raison: r });
+    if (vus.has(q.id)) faute('identifiant en double');
+    vus.add(q.id);
+    if (!OBJECTIFS_DE_QUETE.includes(o.quoi)) { faute(`objectif « ${o.quoi || ''} » inconnu (${OBJECTIFS_DE_QUETE.join(', ')})`); continue; }
+    if (o.quoi === 'arene' && !(o.arene && o.niveau)) faute('un objectif « arene » demande une arene et un niveau');
+    if (o.quoi === 'arene' && connus.arenes && !connus.arenes.has(o.arene)) faute(`arene « ${o.arene} » inconnue`);
+    if (o.quoi === 'equipe' && !(o.heros && (!connus.heros || connus.heros.has(o.heros)))) faute(`heros « ${o.heros || ''} » inconnu`);
+    if (q.recompense.heros && connus.heros && !connus.heros.has(q.recompense.heros)) faute(`heros offert « ${q.recompense.heros} » inconnu`);
+    if (!q.titre) faute('pas de titre');
+  }
+  return out;
+}
+
+/** Le fil de quetes de la feuille (les lignes valides, dans l'ordre), ou `null` si l'onglet est vide. */
+export function quetesDepuisFeuille(lignes, connus = {}) {
+  if (!lignes || !lignes.length) return null;
+  const mauvaises = new Set(verifieQuetes(lignes, connus).map(x => x.id));
+  return lignes.map(queteDepuisLigne).filter(q => !mauvaises.has(q.id));
+}
+
+/**
+ * Onglet « tutorial_guide » : une ligne = une bulle, dans l'ordre de priorite. Colonnes : id (l'etape : poser, attaque,
+ * heros, fin, fatigue, auto), guide (« premierCombat »), cible, texte, duree_s (une information : sa duree en secondes).
+ */
+export function verifieGuide(lignes) {
+  const out = [];
+  for (const l of lignes || []) {
+    const id = String(l.id).trim(), faute = r => out.push({ id, raison: r });
+    if (!ETAPES_DU_GUIDE.includes(id)) faute(`etape inconnue (${ETAPES_DU_GUIDE.join(', ')})`);
+    if (!CIBLES_DU_GUIDE.includes(texte(l.cible))) faute(`cible « ${texte(l.cible) || ''} » inconnue (${CIBLES_DU_GUIDE.join(', ')})`);
+    if (!texte(l.texte)) faute('pas de texte');
+  }
+  return out;
+}
+
+/** Les guides de la feuille `{ guide: [etapes] }`, ou `null` si l'onglet est vide. */
+export function guidesDepuisFeuille(lignes) {
+  if (!lignes || !lignes.length) return null;
+  const mauvaises = new Set(verifieGuide(lignes).map(x => x.id));
+  const out = {};
+  for (const l of lignes) {
+    const id = String(l.id).trim();
+    if (mauvaises.has(id)) continue;
+    const g = texte(l.guide) || 'premierCombat';
+    const d = plein(l.duree_s) ? nombre(l.duree_s) : null;
+    (out[g] = out[g] || []).push({ id, cible: texte(l.cible), texte: texte(l.texte), ...(d ? { dureeMs: Math.round(d * 1000) } : {}) });
+  }
+  return out;
+}
+
+/**
+ * Onglet « start » : les valeurs de DEPART d'une partie, une ligne = une valeur (`id`, `value`). Ids : places, pieces,
+ * sceaux, fanions, gemmes, heros_depart (« lapin1 » ou « lapin1, lapin2 »), deck_minimum.
+ */
+const DEPART = {
+  places: (b, v) => { b.depart.places = v; }, pieces: (b, v) => { b.depart.monnaies.C = v; }, sceaux: (b, v) => { b.depart.monnaies.B = v; },
+  fanions: (b, v) => { b.depart.monnaies.A = v; }, gemmes: (b, v) => { b.depart.monnaies.G = v; }, deck_minimum: (b, v) => { b.decks.tailleMin = v; }
+};
+export function verifieDepart(lignes) {
+  const out = [];
+  for (const l of lignes || []) {
+    const id = String(l.id).trim();
+    if (id === 'heros_depart') { if (!texte(l.value)) out.push({ id, raison: 'pas de heros' }); continue; }
+    if (!DEPART[id]) out.push({ id, raison: `inconnu (${[...Object.keys(DEPART), 'heros_depart'].join(', ')})` });
+    else if (nombre(l.value) === null || nombre(l.value) < 0) out.push({ id, raison: 'un nombre positif est attendu' });
+  }
+  return out;
+}
+/** Pose l'onglet « start » sur BALANCE (`depart`, `decks.tailleMin`) ; une ligne invalide est ecartee. */
+export function appliqueDepart(balance, lignes) {
+  const mauvaises = new Set(verifieDepart(lignes).map(x => x.id));
+  for (const l of lignes || []) {
+    const id = String(l.id).trim();
+    if (mauvaises.has(id)) continue;
+    if (id === 'heros_depart') balance.depart.heros = String(l.value).split(/[,;\s]+/).filter(Boolean);
+    else DEPART[id](balance, nombre(l.value));
+  }
+  return balance;
+}
