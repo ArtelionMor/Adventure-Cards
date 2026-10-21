@@ -208,12 +208,17 @@ le compte en **défaite** (« Tu as abandonné. », pas de récompense, l'arène
   carte le quitte, et l'action suivante (`libre`) attend qu'elle soit dans la main. Ta carte reste cachée (`.main-cachee`, sa
   place gardée) jusqu'à son arrivée — `effets.js` la retrouve parmi les `nouvelle` par `data-inst`, sinon `data-nom` ; son double
   vole sans le sautillement du skin. Chez l'adversaire, un **dos** fait le même trajet, et son éventail ne le montre qu'arrivé
-  (`dosEnVol` dans `battle.js`, remis à zéro par `fx.vide()`).
-- **Un allié joué** n'apparaît qu'une fois sa carte arrivée sur le plateau (`sortieMs`) — mesuré le 21 oct. 2026 sur 6 alliés
-  (MutationObserver sur `.arrivante` et `.fx-carte.lancer`) : l'unité apparaît à vol + tenue + sortie pile, adverse comme alliée ;
-  le moteur émet `joue` avant `invoque`. ⚠ Ce qui ressemble à « la carte encore au centre, l'unité déjà posée » est la
-  **carte-effet** d'un moment de l'unité (le Paresseux – Hamac : « Fin de ton tour : soigne 2 PV »), au même dessin et au même
-  nom, qui part ~3 s plus tard à la fin du tour adverse (une par Hamac en jeu).
+  (`dosEnVol` dans `battle.js`, remis à zéro par `fx.vide()`). Ce dos est un **`.bt-dos`** (`.bt-dos.fx-dos-vole`, sans sa place
+  dans l'éventail) : le skin le dessine comme ceux des piles et de l'éventail (le motif de cozy, le contour de juice) — avec sa
+  propre classe, il volait en image brute.
+- **Un allié joué** n'apparaît qu'une fois sa carte arrivée sur le plateau (`sortieMs`) ; le moteur émet `joue` avant
+  `invoque`. ⚠ **Le piège qui l'a caché longtemps** (21 oct. 2026) : la classe `.arrivante` était posée et retirée à la bonne
+  heure, mais l'unité restait **visible** pendant tout le vol de sa carte — le skin pose `display: block` sur toute unité
+  (`html[data-skin="juice"] :is(.unit, …)`, plus spécifique que `.bwrap > .unit.arrivante`). La règle est maintenant
+  `#battle .bwrap > .unit.arrivante`. **Mesurer l'affichage (`getComputedStyle(n).display`), pas la classe** : un
+  MutationObserver sur la classe disait « juste » alors que l'écran montrait l'unité 5 s trop tôt. Vérifié dans `juice` et
+  `cozy` (avec `.partante` et `.main-cachee`, qui jouent sur `visibility` et tiennent). Ne pas confondre avec la **carte-effet**
+  d'un moment de l'unité (le Paresseux – Hamac : « Fin de ton tour : soigne 2 PV »), au même dessin, qui part à la fin du tour.
 - **Les PV descendent à l'impact** (21 oct. 2026, « on voit les PV de l'ennemi descendre avant que l'animation ne soit finie ») :
   `render()` montre l'état du moteur, **déjà frappé** — les PV du héros tombaient dès que la carte partait (5 s avant l'éclair du
   Faucon Tempête), ceux d'une unité dès le début de l'élan. Un film tient donc à l'écran les PV d'**avant** de chaque héros ou

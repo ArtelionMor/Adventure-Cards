@@ -432,9 +432,13 @@ button.btn:disabled { opacity: .4; cursor: default; }
 /* Une carte qui arrive en main garde sa place (l'eventail ne bouge pas) mais ne se montre qu'au bout de son vol. */
 .bt-hand .hcard.main-cachee { visibility: hidden; }
 .fx-vers-main { z-index: 6; }
-.fx-dos-vole { width: 40px; height: 52px; }
-.fx-dos-vole img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
-.bwrap > .unit.arrivante { display: none; }
+/* Un dos qui vole vers l'eventail adverse est un `.bt-dos` (le skin le dessine comme les autres), sans sa place dans
+   l'eventail : ni decalage, ni rotation, ni carte tenue a l'envers. */
+.bt-dos.fx-dos-vole { left: 0; top: 0; margin: 0; rotate: none; transform-origin: 50% 50%; }
+.bt-dos.fx-dos-vole img { rotate: none; }
+/* `#battle` devant : le skin pose `display: block` sur toute unite avec une specificite plus forte
+   (`html[data-skin] :is(.unit, …)`), et l'unite « cachee » restait visible pendant le vol de sa carte. */
+#battle .bwrap > .unit.arrivante { display: none; }
 .bwrap {
   display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center;
   /* Ancre en haut a gauche, et c'est la transformation qui replace le bloc : une fois

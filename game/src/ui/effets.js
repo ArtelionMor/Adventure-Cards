@@ -704,8 +704,9 @@ export function creeFx(acces) {
       d.innerHTML = n.innerHTML;
       Object.assign(d.style, { width: n.offsetWidth + 'px', height: n.offsetHeight + 'px' });
     } else {
-      // L'adversaire : un dos de carte, de la taille d'une de ses cartes en main.
-      d.className = 'fx-dos-vole';
+      // L'adversaire : un dos de carte, de la taille d'une de ses cartes en main. `bt-dos` : le MEME dos que son eventail,
+      // que le skin dessine (le motif de cozy, le contour de juice) — sa propre classe le laissait en image brute.
+      d.className = 'bt-dos fx-dos-vole';
       d.innerHTML = `<img src="${asset(acces.dos ? acces.dos() : '')}" alt="">`;
     }
     // `animation: none` : le double d'une carte jouable garderait le sautillement du skin (`juice-hop`) pendant son vol.
