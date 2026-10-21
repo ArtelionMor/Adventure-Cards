@@ -2,7 +2,7 @@
 import { BALANCE } from './config/balance.js';
 import { CHARACTERS, CHAR_BY_ID, STARTERS, etapesDe, niveauMax, niveauDePalier, niveauDepuisAncien } from './config/characters.js';
 import { WORLD } from './config/world.js';
-import { ARENE_PAR_ID } from './config/arenes.js';
+import { ARENES, ARENE_PAR_ID, FONDS } from './config/arenes.js';
 import { NIVEAU_MAX_PROFIL, recompensesDuNiveau } from './config/profil.js';
 
 const KEY = BALANCE.save.key;
@@ -47,8 +47,9 @@ export function freshSave() {
     decks: [],
     // Les cartes RETIREES avec un joker : { heros: [emplacements] } (config/characters.js, `characterDeck`).
     retraits: {},
-    // Le PROFIL DU JOUEUR (config/profil.js) : son niveau, son XP vers le suivant, ses jokers de retrait.
-    profil: { niveau: 1, xp: 0, jokersRetrait: 0 },
+    // Le PROFIL DU JOUEUR (config/profil.js) : son niveau, son XP vers le suivant, ses jokers de retrait, et le FOND de
+    // ses combats (`null` = celui de l'arene ; un fond debloque sinon : `fondsDebloques`).
+    profil: { niveau: 1, xp: 0, jokersRetrait: 0, fond: null },
     farm: {
       // Le CHAMP EN GRILLE : une case = null ou { cropId, at } ; seules les `caseCount` premieres sont ouvertes.
       caseCount: BALANCE.farm.casesDeDepart,
@@ -296,6 +297,23 @@ export function noteCombatArene(id, gagne, joue) {
   } else a.defaites++;
   persist();
   return a;
+}
+
+/** Les FONDS DEBLOQUES : celui de chaque arene gagnee au moins une fois (config/arenes.js, `fond`). Rien a garder : ca
+ *  se relit sur les arenes, donc une sauvegarde d'avant les fonds a deja les siens. */
+export function fondsDebloques() {
+  const ok = new Set();
+  for (const a of ARENES) if (save.arenes && save.arenes[a.id] && save.arenes[a.id].victoires > 0) ok.add(a.fond);
+  return ok;
+}
+
+/** Le fond que le joueur garde pour tous ses combats (Profil) : `null` rend celui de chaque arene. Un fond pas encore
+ *  debloque est refuse. */
+export function choisitFond(fond) {
+  if (fond !== null && (!FONDS[fond] || !fondsDebloques().has(fond))) return false;
+  save.profil.fond = fond;
+  persist();
+  return true;
 }
 
 // ------------------------------------------------------------------- le profil du joueur

@@ -1,0 +1,294 @@
+/* VARIANTE « COZY » DU SKIN JUICE — LE SKIN PAR DEFAUT depuis le 21 octobre 2026 (ui/skin.js, `DEFAUT`).
+
+   Le constat (regard de directeur artistique) : les personnages sont des autocollants kawaii, doux, et le dos de carte
+   « Cozy » (un salon lilas a la lumiere d'une bougie) dit ce que le jeu veut etre ; mais le combat se jouait sur un
+   damier vert pomme (le « vide » de Photoshop), tout etait cerne du meme contour noir, et rien ne ressortait.
+
+   Ce que la variante change, et RIEN d'autre (la mise en page, les gestes et les animations sont ceux de juice) :
+   - un LIEU : une table de bois, eclairee d'en haut par une lumiere chaude, les bords dans l'ombre ;
+   - les plateaux sont deux TAPIS de feutre cousus (rose chez l'adversaire, sauge chez toi) ;
+   - un contour brun prune, moins noir ; les panneaux perdent leur contour (une ombre douce suffit) ;
+   - les personnages sont des AUTOCOLLANTS : un liseré blanc, puis une ombre (le Corbeau noir ne se fond plus dans le cadre) ;
+   - une carte injouable reste en couleur, a peine eteinte : seul son cout passe au gris ;
+   - le mana : un seul compteur (une gemme et « 3/10 »), plus deux rangees de pastilles ;
+   - le dos de carte : un motif simple qui se lit a 30 px, au lieu de l'illustration reduite ;
+   - les onglets des bords sont creme et discrets ; seul « Fin de tour » reste une action forte ;
+   - deux polices : Lilita One pour les titres et les chiffres, Nunito pour le texte.
+
+   Chargee APRES juice.css par ui/skin.js (`data-variante="cozy"`) ; meme imbrication, un attribut de plus, donc elle
+   l'emporte sans `!important`. */
+
+html[data-skin="juice"][data-variante="cozy"] {
+
+  /* ================================================================ couleurs, police */
+  & :is(#topbar, #nav, #screen-farm, #screen-deck, #screen-bag, #screen-arene, #battle, #modal, #toasts, .lecture, .triche, .revue) {
+    --panel: #fbf1e1;
+    --panel2: #fff8ec;
+    --line: #47293a;
+    --ink: #4a2f3a;
+    --ink-dim: #8d6f72;
+    --ally: #5a8fd8;
+    --spell: #9a6fd6;
+    --danger: #e0574f;
+    --accent2: #5cb85a;
+    --contour: #47293a;
+    --texte: "Nunito", "Segoe UI", system-ui, sans-serif;
+  }
+  /* Le TEXTE (ce qui se lit en phrase) passe en Nunito ; les titres, les chiffres et les boutons gardent Lilita One. */
+  & :is(.bt-bandeau, .toast, .fi-texte, .fs-tx, .fl, .jr-s, .bt-menu .bt-tour, .card-panel p, .gcard .tx) {
+    font-family: var(--texte); font-weight: 800; letter-spacing: 0;
+  }
+
+  /* ================================================================ le lieu : une table de bois, une lumiere chaude */
+  & #battle.overlay {
+    background-color: #a86f4a;
+    background-image:
+      /* la lumiere de la bougie, en haut, et l'ombre des bords */
+      radial-gradient(ellipse 90% 55% at 50% 4%, rgba(255, 214, 140, .55), transparent 70%),
+      radial-gradient(ellipse 130% 95% at 50% 45%, transparent 55%, rgba(45, 22, 28, .55) 100%),
+      /* les lames de la table, et le fil du bois */
+      repeating-linear-gradient(180deg, transparent 0 94px, rgba(60, 28, 20, .45) 94px 96px, rgba(255, 220, 180, .12) 96px 97px),
+      repeating-linear-gradient(178deg, rgba(255, 235, 200, .05) 0 3px, rgba(60, 28, 20, .05) 3px 8px, transparent 8px 13px),
+      linear-gradient(90deg, rgba(60, 28, 20, .12), transparent 30% 70%, rgba(60, 28, 20, .12));
+  }
+  & .revue { background: #a86f4a; }
+
+  /* ================================================================ les plateaux : deux tapis de feutre cousus */
+  & :is(#boardE, #boardP) {
+    border-radius: 22px;
+    box-shadow: inset 0 3px 12px rgba(40, 20, 25, .35), 0 2px 0 rgba(255, 230, 200, .25), 0 6px 14px rgba(40, 20, 25, .3);
+    outline: 2px dashed rgba(255, 246, 228, .55); outline-offset: -8px;
+  }
+  /* Le feutre : une lumiere au centre, et un grain tres fin (deux trames de points decalees). */
+  & :is(#boardE, #boardP) {
+    --feutre: radial-gradient(circle, rgba(255, 255, 255, .07) 0 1px, transparent 1.5px) 0 0 / 7px 7px,
+              radial-gradient(circle, rgba(40, 20, 25, .06) 0 1px, transparent 1.5px) 3px 4px / 7px 7px,
+              radial-gradient(ellipse 80% 70% at 50% 35%, rgba(255, 255, 255, .16), transparent 70%);
+  }
+  & #boardE { background: var(--feutre), #bf929a; }
+  & #boardP { background: var(--feutre), #94ab86; }
+
+  /* ================================================================ l'adversaire : un portrait encadre d'or, qui rayonne */
+  & .bt-hero.e {
+    background: radial-gradient(circle at 50% 38%, #fff8ee 0 42%, #f3cdd5 78%);
+    border: 3px solid var(--contour);
+    box-shadow: 0 0 0 4px #f2c66d, 0 0 0 7px var(--contour), 0 0 30px 10px rgba(255, 205, 120, .5), 0 9px 0 rgba(40, 20, 25, .35);
+  }
+  & .bt-hero.e .hn { background: #fff8ec; border-width: 2.5px; box-shadow: 0 3px 0 rgba(40, 20, 25, .35); }
+  & .bt-hero.p img { background: #dbe9fb; border-width: 2.5px; box-shadow: 0 3px 0 rgba(40, 20, 25, .35); }
+  & .bt-hero.e img { filter: drop-shadow(0 3px 2px rgba(40, 20, 25, .35)); }
+  & .hpbar { background: #5a3d45; border-width: 2.5px; box-shadow: inset 0 3px 0 rgba(0, 0, 0, .3), 0 3px 0 rgba(40, 20, 25, .4); }
+
+  /* ================================================================ le mana : une gemme et un compteur, plus de pastilles */
+  & .bt-mana .manapips { display: none; }
+  & .bt-mana b {
+    display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px 2px 3px;
+    font-size: 16px; color: #2f6fc4; -webkit-text-stroke: 0;
+    background: #fff8ec; border: 2.5px solid var(--contour); border-radius: 999px; box-shadow: 0 3px 0 rgba(40, 20, 25, .35);
+  }
+  & .bt-basmain .bt-mana b { color: #2f6fc4; }
+  & .bt-mana b::before {
+    content: ""; width: 18px; height: 18px; border-radius: 50%; flex: none;
+    background: radial-gradient(circle at 35% 30%, #d6f0ff 0 22%, #3d93e8 23% 100%); border: 2px solid var(--contour);
+  }
+  & .bt-haut .bt-mana { justify-content: flex-end; }
+
+  /* ================================================================ le dos des cartes : un motif qui se lit en petit
+     L'image du dos est poussee hors de sa boite (`object-position`) : son fond, le motif, se voit a sa place. La main
+     adverse d'un REJEU (`.face`) garde ses vraies cartes. */
+  & :is(.bt-dos:not(.face), .bt-pile.pioche .bt-face) img[src*="CardBack"] {
+    object-fit: none; object-position: -9999px 0;
+    background:
+      radial-gradient(circle at 50% 50%, #ffd77a 0 15%, var(--contour) 16% 20%, transparent 21%),
+      repeating-linear-gradient(45deg, rgba(255, 236, 190, .22) 0 2px, transparent 2px 8px),
+      repeating-linear-gradient(-45deg, rgba(255, 236, 190, .22) 0 2px, transparent 2px 8px),
+      #7a4f86;
+    box-shadow: inset 0 0 0 3px #b98ac4;
+  }
+  & .bt-pile.pioche .bt-face { background: #7a4f86; }
+  & .bt-pile.pioche:not(.vide) .bt-face { box-shadow: 3px 3px 0 #b98ac4, 5px 5px 0 var(--contour), 7px 7px 0 #b98ac4, 9px 9px 0 var(--contour); }
+
+  /* ================================================================ les onglets des bords : creme et discrets */
+  & .bt-onglet {
+    color: var(--ink); -webkit-text-stroke: 0; font-size: 14px; border-width: 2.5px;
+    background: #fbf1e1; box-shadow: inset -3px 0 0 #fff, -3px 3px 0 rgba(40, 20, 25, .35);
+  }
+  /* « Fin de tour » reste l'action forte : verte, blanche cernee. */
+  & .bt-onglet.fintour { color: #fff; -webkit-text-stroke: 4px var(--contour); background: linear-gradient(90deg, #8fdc66 0 50%, #4fae45 50% 100%); }
+  & .vitesse { background: #fbf1e1; color: var(--ink); -webkit-text-stroke: 0; box-shadow: inset 0 3px 0 #fff, 0 3px 0 rgba(40, 20, 25, .4); }
+  & .autochip { background: linear-gradient(180deg, #c9a6ec 0 50%, #9467c9 50% 100%); }
+  & .autochip.on { background: linear-gradient(180deg, #8fdc66 0 50%, #4fae45 50% 100%); }
+
+  /* ================================================================ les cartes : un contour plus fin, une ombre posee sur la table */
+  & :is(.unit, .hcard:not(.fx-carte), .zcard) { --ciel: #e1edfc; }
+  & .unit[data-side="e"] { --cadre: #d9645c; --ciel: #fde4dd; }
+  & :is(.hcard.spell, .zcard.spell) { --ciel: #efe4fb; }
+  & :is(.unit, .hcard:not(.fx-carte)) {
+    border-width: 3px;
+    background: radial-gradient(ellipse 130% 62% at 50% 112%, #fff8ea 0 64%, transparent 65%), linear-gradient(180deg, #fff 0%, var(--ciel) 55%);
+    box-shadow: inset 0 0 0 4px var(--cadre), 0 4px 0 var(--contour), 0 9px 14px rgba(40, 20, 25, .35);
+  }
+  /* Le personnage est un AUTOCOLLANT : un liseré blanc, puis son ombre sur la carte. */
+  & :is(.unit, .hcard:not(.fx-carte), .zcard.carre) > img, & .fi-carte img {
+    filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 3px 2px rgba(40, 20, 25, .45));
+  }
+
+  /* Ce qui peut agir : une unite prete a un cadre vert et un halo ; une carte jouable, un halo de bougie. */
+  & .unit.ready { --cadre: #5cb85a; box-shadow: inset 0 0 0 4px var(--cadre), 0 0 0 3px #eaffd9, 0 0 18px 5px rgba(140, 230, 100, .7), 0 4px 0 var(--contour); }
+  & .hcard:not(.no, .fx-carte) { box-shadow: inset 0 0 0 4px var(--cadre), 0 0 0 3px #fff4c9, 0 0 20px 6px rgba(255, 196, 90, .8), 0 4px 0 var(--contour); }
+  /* Une carte injouable reste lisible : a peine eteinte, seul son cout passe au gris. */
+  & .hcard.no:not(.fx-carte) { opacity: 1; filter: saturate(.7) brightness(.94); }
+  & .hcard.no:not(.fx-carte) > img {
+    filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 3px 2px rgba(40, 20, 25, .45));
+  }
+  & .hcard.no:not(.fx-carte) .cost { background: radial-gradient(circle at 35% 30%, #f1edf2 0 22%, #9c8f9f 23% 100%); }
+  /* L'oeil des cartes « quand X » : plus petit, et autocollant lui aussi — a 104 % de la carte, noir sur le contour
+     noir, il se lisait comme une frange en zigzag. */
+  & .oeil-carte { width: 74%; }
+  & .oeil-carte img { filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 2px 1px rgba(40, 20, 25, .4)); }
+
+  /* ================================================================ la main : un plateau creme sans contour, pose sur la table */
+  & .bt-basmain {
+    background: linear-gradient(180deg, #fbf1e1, #f2e0c6); border-top: 0; border-radius: 26px 26px 0 0;
+    box-shadow: inset 0 3px 0 rgba(255, 255, 255, .85), 0 -8px 22px rgba(40, 20, 25, .4);
+  }
+
+  /* ================================================================ fenetres et bandeaux : une ombre douce plutot qu'un contour */
+  & :is(.bt-bandeau, .toast) { border-width: 2px; box-shadow: 0 6px 16px rgba(40, 20, 25, .35); }
+  & .sheet { border-width: 3px; box-shadow: inset 0 3px 0 #fff, 0 10px 28px rgba(40, 20, 25, .45); }
+}
+
+/* ================================================================ LES FONDS DU COMBAT (`<div id="battle" data-fond="…">`)
+   CHAQUE ARENE A SON FOND (`fond` dans config/arenes.js), et une arene battue le DEBLOQUE : le joueur peut alors le
+   choisir dans son Profil pour tous ses combats (game designer, 21 oct. 2026). Le combat pose l'attribut (ui/battle.js,
+   `fondDuCombat` de ui/skin.js). « bois » n'a pas de bloc : c'est la table de cozy, plus haut. Chaque fond redessine le
+   fond ET les deux plateaux ; tout le reste (cartes, main, onglets) est celui de cozy. Le decor dessine (arbres,
+   nenuphars, tuiles) est dans `skins/cozy/`, ecrit par scripts/gen-clairiere.mjs. */
+
+/* CLAIRIERE (« genre une clairiere », game designer, 21 oct. 2026) : vue d'en haut, de l'herbe au centre sous une tache
+   de soleil, la canopee qui ferme les bords, des touffes et des fleurs semees ; les plateaux sont deux carres d'herbe a
+   peine plus claire. Les arbres sont DESSINES dans le style des personnages (aplats, un reflet, leur ombre portee), mais
+   moins cernes que les cartes : des SVG de `skins/cozy/` — chene, chene2, pommier, sapin, buisson, et `sol.svg`.
+   Le premier calque passe devant : les arbres d'abord, du bas de l'ecran vers le haut, puis la lumiere, puis le sol. */
+html[data-skin="juice"][data-variante="cozy"] #battle[data-fond="clairiere"] {
+  &.overlay {
+    background:
+      /* le flanc droit */
+      url("cozy/pommier.svg") right -64px top 68% / 140px no-repeat,
+      url("cozy/buisson.svg") right -14px top 60% / 62px no-repeat,
+      url("cozy/chene2.svg") right -72px top 46% / 145px no-repeat,
+      url("cozy/sapin.svg") right -62px top 29% / 130px no-repeat,
+      url("cozy/chene.svg") right -66px top 11% / 150px no-repeat,
+      /* le flanc gauche */
+      url("cozy/chene.svg") left -74px top 66% / 150px no-repeat,
+      url("cozy/pommier.svg") left -66px top 50% / 140px no-repeat,
+      url("cozy/buisson.svg") left -16px top 46% / 60px no-repeat,
+      url("cozy/chene2.svg") left -72px top 32% / 140px no-repeat,
+      url("cozy/sapin.svg") left -60px top 16% / 130px no-repeat,
+      /* la lisiere du haut, derriere l'adversaire */
+      url("cozy/chene2.svg") right -50px top -66px / 155px no-repeat,
+      url("cozy/chene.svg") left -52px top -70px / 155px no-repeat,
+      url("cozy/sapin.svg") left 24% top -80px / 128px no-repeat,
+      url("cozy/pommier.svg") left 62% top -86px / 140px no-repeat,
+      /* le soleil qui tombe dans la clairiere */
+      radial-gradient(ellipse 70% 40% at 50% 40%, rgba(255, 236, 150, .22), transparent 70%),
+      /* l'ombre des sous-bois, vers les bords */
+      radial-gradient(ellipse 100% 85% at 50% 45%, transparent 50%, rgba(15, 40, 18, .4) 100%),
+      /* les touffes et les fleurs, puis le grain de l'herbe */
+      url("cozy/sol.svg") 0 0 / 300px 260px,
+      radial-gradient(circle 1.5px at 10px 12px, rgba(40, 90, 30, .22) 98%, transparent) 0 0 / 23px 19px,
+      radial-gradient(circle 1.5px at 4px 6px, rgba(255, 255, 220, .14) 98%, transparent) 0 0 / 17px 29px,
+      /* l'herbe, plus sombre vers les arbres */
+      radial-gradient(ellipse 85% 70% at 50% 45%, #86c45c 0%, #63a34b 60%, #437f3a 100%);
+  }
+  /* Les plateaux : deux carres d'herbe a peine plus claire, un liseré de lumiere. */
+  & :is(#boardE, #boardP) {
+    outline: 0; border-radius: 26px;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 220, .28), inset 0 0 22px rgba(255, 255, 210, .12);
+  }
+  & #boardE { background: rgba(255, 210, 190, .12); }
+  & #boardP { background: rgba(255, 255, 215, .13); }
+}
+
+/* NUIT : un ciel de crepuscule etoile, les plateaux en verre teinte. */
+html[data-skin="juice"][data-variante="cozy"] #battle[data-fond="nuit"] {
+  &.overlay {
+    background:
+      radial-gradient(circle 1.2px at 18px 22px, rgba(255, 255, 255, .9) 98%, transparent) 0 0 / 97px 113px,
+      radial-gradient(circle 1px at 61px 75px, rgba(255, 240, 210, .75) 98%, transparent) 0 0 / 131px 89px,
+      radial-gradient(circle 1.6px at 40px 50px, rgba(200, 220, 255, .6) 98%, transparent) 0 0 / 173px 151px,
+      radial-gradient(ellipse 90% 40% at 50% 0%, rgba(255, 150, 200, .38), transparent 70%),
+      radial-gradient(ellipse 90% 35% at 50% 100%, rgba(110, 140, 255, .3), transparent 70%),
+      linear-gradient(180deg, #43307a 0%, #2a2158 45%, #1c1a44 100%);
+  }
+  & :is(#boardE, #boardP) {
+    outline: 0;
+    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .2), inset 0 0 28px rgba(255, 255, 255, .05), 0 8px 22px rgba(0, 0, 0, .3);
+  }
+  & #boardE { background: linear-gradient(180deg, rgba(255, 130, 170, .2), rgba(255, 130, 170, .06)); }
+  & #boardP { background: linear-gradient(180deg, rgba(120, 200, 255, .06), rgba(120, 200, 255, .2)); }
+}
+
+/* PRAIRIE : un ciel de jour, des nuages, des collines ; les plateaux, des nappes blanches a peine posees (plus
+   opaques, elles cachaient le paysage). */
+html[data-skin="juice"][data-variante="cozy"] #battle[data-fond="prairie"] {
+  &.overlay {
+    background:
+      radial-gradient(ellipse 20% 6% at 17% 8%, rgba(255, 255, 255, .95) 60%, transparent 63%),
+      radial-gradient(ellipse 13% 5% at 27% 6%, rgba(255, 255, 255, .95) 60%, transparent 63%),
+      radial-gradient(ellipse 18% 5% at 84% 15%, rgba(255, 255, 255, .9) 60%, transparent 63%),
+      radial-gradient(ellipse 110% 36% at 15% 64%, #a6de78 49.5%, transparent 50%),
+      radial-gradient(ellipse 110% 36% at 90% 70%, #8fd263 49.5%, transparent 50%),
+      linear-gradient(180deg, #86d0ff 0%, #c9eeff 42%, #78c450 62%, #66b544 100%);
+  }
+  & :is(#boardE, #boardP) {
+    outline: 0;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .75), 0 6px 16px rgba(40, 70, 30, .25);
+  }
+  & #boardE { background: rgba(255, 235, 240, .16); }
+  & #boardP { background: rgba(255, 255, 255, .14); }
+}
+
+/* ETANG (Nenuphar Farm, Bottle Maker) : une eau turquoise, plus profonde vers les bords, des rides claires, des
+   nenuphars qui bordent l'ecran (dessins de `skins/cozy/`) ; les plateaux sont deux zones d'eau calme, plus claire. */
+html[data-skin="juice"][data-variante="cozy"] #battle[data-fond="etang"] {
+  &.overlay {
+    background:
+      url("cozy/nenuphar-fleur.svg") right -20px top 64% / 92px no-repeat,
+      url("cozy/nenuphar.svg") right -34px top 44% / 104px no-repeat,
+      url("cozy/nenuphar.svg") right -26px top 22% / 86px no-repeat,
+      url("cozy/nenuphar.svg") left -30px top 70% / 100px no-repeat,
+      url("cozy/nenuphar-fleur.svg") left -22px top 46% / 90px no-repeat,
+      url("cozy/nenuphar.svg") left -34px top 26% / 104px no-repeat,
+      url("cozy/nenuphar-fleur.svg") left 30% top -30px / 88px no-repeat,
+      url("cozy/nenuphar.svg") right 6% top -36px / 100px no-repeat,
+      url("cozy/nenuphar.svg") left -30px top -28px / 96px no-repeat,
+      radial-gradient(ellipse 70% 40% at 50% 38%, rgba(255, 250, 210, .18), transparent 70%),
+      url("cozy/eau.svg") 0 0 / 260px 220px,
+      radial-gradient(ellipse 85% 70% at 50% 45%, #74c8c8 0%, #4aa2ad 60%, #2f7787 100%);
+  }
+  & :is(#boardE, #boardP) {
+    outline: 0; border-radius: 26px;
+    box-shadow: inset 0 0 0 2px rgba(225, 255, 250, .3), inset 0 0 26px rgba(225, 255, 250, .14);
+  }
+  & #boardE { background: rgba(255, 220, 230, .12); }
+  & #boardP { background: rgba(225, 255, 250, .14); }
+}
+
+/* PASTEL : de grandes taches de couleur douces (peche, lilas, menthe, miel) ; les plateaux en blanc depoli. */
+html[data-skin="juice"][data-variante="cozy"] #battle[data-fond="pastel"] {
+  &.overlay {
+    background:
+      radial-gradient(circle at 12% 18%, #ffcdb9 0, transparent 42%),
+      radial-gradient(circle at 88% 30%, #d6c8ff 0, transparent 46%),
+      radial-gradient(circle at 25% 78%, #bfeedb 0, transparent 46%),
+      radial-gradient(circle at 92% 92%, #ffe2a0 0, transparent 40%),
+      #f7efff;
+  }
+  & :is(#boardE, #boardP) {
+    outline: 0;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .95), 0 8px 20px rgba(90, 60, 120, .15);
+  }
+  & #boardE { background: rgba(255, 228, 236, .6); }
+  & #boardP { background: rgba(232, 250, 242, .6); }
+}

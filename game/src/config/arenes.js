@@ -42,6 +42,31 @@ const SIGNATURES = {
   octo2: { icone: 'Dead', texte: 'Charognards' }
 };
 
+// LES FONDS DU COMBAT (game designer, 21 oct. 2026) : chaque arene se joue devant SON decor — le lieu de son batiment —,
+// et la battre une fois DEBLOQUE ce decor : le joueur peut alors le choisir dans son Profil pour tous ses combats.
+// Le dessin de chaque fond est dans game/skins/cozy.css (variante « cozy » du skin juice). `nom` : la vignette du Profil.
+export const FONDS = {
+  clairiere: { nom: 'La clairière' },
+  prairie: { nom: 'La prairie' },
+  nuit: { nom: 'La nuit' },
+  etang: { nom: "L'étang" },
+  bois: { nom: 'La table de jeu' },
+  pastel: { nom: 'Le salon' }
+};
+// Le fond d'un combat hors arene (rencontre de la carte, essai en console).
+export const FOND_PAR_DEFAUT = 'clairiere';
+// Le fond de chaque arene, par batiment : la ferme et l'usine de balles au grand air, les nids dans les bois, la cabane
+// de la sorciere la nuit (deux boss), les nenuphars et les bouteilles au bord de l'eau, le magasin de jeux sur une table,
+// la fabrique d'oreillers dans un salon.
+const FONDS_DES_ARENES = {
+  rabbit1: 'prairie', cat1: 'prairie', octo2: 'prairie',
+  crow1: 'clairiere', robin1: 'clairiere',
+  wolf: 'nuit', owlboss: 'nuit',
+  frog1: 'etang', frogboss: 'etang', octo1: 'etang', goat1: 'etang',
+  fox1: 'bois', panda1: 'bois',
+  sloth1: 'pastel'
+};
+
 /** Les arenes, dans l'ordre de l'onglet « Arene ». `ennemi` = l'identifiant de config/ennemis.js. PROVISOIRE. */
 export const ARENES = [
   { id: 'rabbit1', ennemi: 'rabbit1', batiment: B('Carrot Farm'), role: 'tutoriel', archetype: 'Aggro', sousArchetype: 'Tempo',
@@ -87,7 +112,7 @@ export const ARENES = [
   { id: 'octo2', ennemi: 'octo2', batiment: B('Tennis ball Factory'), role: 'examen', archetype: 'Aggro', sousArchetype: 'MidRange',
     question: 'Tu sais jouer contre quelqu\'un qui s\'adapte ?', reponse: 'Varier les menaces ; garder un retrait pour sa Pieuvre Mécanique', punit: 'Tout investir dans une seule grosse unite',
     herosConseilles: ['cat3', 'owl3', 'crow3'], typeDeck: 'Pieuvre Mécanique, Brutes, Vautours et Équarrisseurs de Morrigane, Souffle' }
-].map(a => ({ textesValides: false, signature: SIGNATURES[a.id] || null, ...a }));
+].map(a => ({ textesValides: false, signature: SIGNATURES[a.id] || null, fond: FONDS_DES_ARENES[a.id] || FOND_PAR_DEFAUT, ...a }));
 
 export const ARENE_PAR_ID = Object.fromEntries(ARENES.map(a => [a.id, a]));
 

@@ -56,6 +56,9 @@ export const TEXTES = {
   'profil.recPlace': "Une place d'équipe de plus",
   'profil.recJoker': '{n} joker(s) de retrait',
   'profil.depart': 'Départ',
+  'profil.fonds': 'Fond des combats',
+  'profil.fondArene': "Celui de l'arène",
+  'profil.fondVerrou': 'Gagne son arène',
   // LA FERME en grille.
   'ferme.titre': 'Ferme',
   'ferme.champ': 'Champ',

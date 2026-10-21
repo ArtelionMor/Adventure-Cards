@@ -7,14 +7,16 @@
 
 | Fichier | Rôle |
 |---|---|
-| `juice.css` | **Le skin par défaut** (10 octobre 2026). Style « jeu mobile vivant » (référence : Chainsaw Juice King) : **aucune texture ni image, tout en CSS** — contour brun presque noir de 3 px partout, aplats saturés, relief des boutons (liseré clair en haut, ombre pleine en bas, ils s'enfoncent), chiffres blancs cernés, damier vert discret ; cartes **carrées** à cadre de couleur (bleu = allié, rouge = adversaire, or = Provocation, violet = sort), personnage qui déborde du cadre, nom absent de la face. Police « Lilita One » (OFL) chargée par `skin.js`. |
+| `juice.css` | **La base** de `cozy` (défaut du 10 au 21 octobre 2026 ; se choisit encore seul, `AC.skin('juice')`). Style « jeu mobile vivant » (référence : Chainsaw Juice King) : **aucune texture ni image, tout en CSS** — contour brun presque noir de 3 px partout, aplats saturés, relief des boutons (liseré clair en haut, ombre pleine en bas, ils s'enfoncent), chiffres blancs cernés, damier vert discret ; cartes **carrées** à cadre de couleur (bleu = allié, rouge = adversaire, or = Provocation, violet = sort), personnage qui déborde du cadre, nom absent de la face. Police « Lilita One » (OFL) chargée par `skin.js`. |
+| `cozy.css` | **Le skin par défaut** (21 oct. 2026, après un regard de directeur artistique) : une **variante** de juice, chargée par-dessus (`<html data-skin="juice" data-variante="cozy">`), qui ne touche que le **combat** et ne change ni la mise en page ni les animations. Une table de bois éclairée d'en haut au lieu du damier, deux tapis de feutre cousus (rose adverse, sauge à toi), un contour prune, les personnages en **autocollants** (liseré blanc + ombre), la carte injouable en couleur (seul son coût grisé), le mana en un seul compteur (pastilles masquées), le dos de carte en **motif CSS** (l'image poussée hors de sa boîte par `object-position`), des onglets crème, Nunito pour le texte. `AC.skin('cozy')` / `AC.skin('juice')` pour comparer. **Les fonds du combat** (`#battle[data-fond]`, posé par `ui/battle.js` à l'ouverture : `fondDuCombat` de `ui/skin.js`) : `clairiere`, `prairie`, `nuit`, `etang`, `pastel` (un bloc chacun, qui redessine le fond et les deux plateaux) et `bois` (sans bloc : la table de cozy). **Chaque arène a le sien** (`fond`, `config/arenes.js`) et **une arène gagnée le débloque** : le joueur peut le garder pour tous ses combats (Profil). `AC.fond('nuit')` le force pour essayer (retenu, `localStorage` `adventureCard.fond`), `AC.fond(null)` l'oublie. Les fonds n'existent que dans **cozy** : sous juice, l'attribut ne fait rien. |
+| `cozy/` | Le **décor des fonds** (clairière : `chene`, `chene2`, `pommier`, `sapin`, `buisson`, `sol` ; étang : `nenuphar`, `nenuphar-fleur`, `eau`), en SVG dans le style des personnages mais **moins cerné que les cartes** (le décor reste calme, seul ce qui se joue a le gros contour) : `chene`, `chene2`, `pommier`, `sapin`, `buisson`, `sol` (la tuile du sol, 300 × 260). Écrits par `scripts/gen-clairiere.mjs` (le régénérer écrase une retouche à la main). Cités par `cozy.css` en `url("cozy/…")` (relatifs à la feuille). |
 
 Deux skins faits avec les packs Kenney (`parchemin`, `bonbon`, des images en 9-slice) ont existé : le game designer les a
 écartés (« des textures partout »), ils sont dans l'historique git (commit `886d781`).
 
 ## Comment ça marche
 - `ui/skin.js` : `AC.skin()` (liste + courant), `AC.skin('actuel')` ; le choix est retenu (`localStorage` `adventureCard.skin`,
-  défaut `juice`). Le panneau de triche (5 touchers sur « Tour N ») a un bouton « Skin : … » qui les fait tourner. Le skin règle
+  défaut `cozy` ; un skin choisi une fois reste retenu). Le panneau de triche (5 touchers sur « Tour N ») a un bouton « Skin : … » qui les fait tourner. Le skin règle
   aussi la couleur de la barre d'état du téléphone (`theme-color`).
 - **Les couleurs se posent sur une LISTE d'éléments** (`:is(#topbar, #nav, #screen-farm, #screen-deck, #screen-bag, #battle, #modal,
   #toasts, .lecture, .triche, .revue)`), **jamais sur `<html>`** : les éléments de la carte portent du texte clair sur fond sombre et
@@ -33,4 +35,7 @@ Deux skins faits avec les packs Kenney (`parchemin`, `bonbon`, des images en 9-s
 - **Cartes carrées** : `--carte` (unités) et `--carte-main` (main) donnent la taille ; `.plus` / `.moins` sur les chiffres sont
   posés par `ui/battle.js` (attaque au-dessus de la carte, vie blessée). Seul ce qui peut agir bouge et brille.
 - Pour ajouter un skin : une feuille `skins/<nom>.css` et une ligne dans `SKINS_DEF` (`ui/skin.js`).
+- Une **variante** (`base: 'juice'` dans `SKINS_DEF`) garde la feuille de sa base et pose la sienne **après** : ses règles sont
+  imbriquées sous `html[data-skin="juice"][data-variante="<nom>"]` (un attribut de plus, donc elles gagnent sans `!important`).
+  `juice.css` ne sait rien d'elle ; une règle de juice que la variante ne réécrit pas s'applique telle quelle.
 - `Kenney_UI/` (à la racine, non versionné) garde les packs Kenney téléchargés ; rien ne les utilise plus.

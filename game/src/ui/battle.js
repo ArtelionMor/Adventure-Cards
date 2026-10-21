@@ -40,7 +40,7 @@ import { fabrique } from './vfx-scenes.js';
 import { cardById } from '../config/npcs.js';
 import { couleurDuType } from '../config/familles.js';
 import { ligneSource, lignesDeFait, lignesDeRenforts } from './fiche.js';
-import { skinCourant, skinSuivant, ecouteSkin } from './skin.js';   // l'habillage du combat (skins/*.css), AC.skin()
+import { skinCourant, skinSuivant, ecouteSkin, fondDuCombat } from './skin.js';   // l'habillage du combat (skins/*.css), AC.skin(), son fond
 
 let B = null;
 let auto = true;
@@ -252,6 +252,8 @@ export function openBattle(node, done, { rejeu: donnees = null, apres = null } =
   const root = $('#battle');
   root.style.alignItems = '';
   root.style.justifyContent = '';
+  // Le decor : celui de l'arene, ou celui que le joueur a choisi dans son Profil (ui/skin.js, skins/cozy.css).
+  root.dataset.fond = fondDuCombat(node);
   root.classList.remove('hidden');
   render();
   loop();

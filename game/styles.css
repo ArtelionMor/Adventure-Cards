@@ -1001,6 +1001,21 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 .pf-rond { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 12px; background: #ffb92a; border: 1.5px solid #2b1c1f; flex: none; }
 .pf-rec { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
 .pf-rec img { width: 26px; height: 26px; object-fit: contain; }
+/* Le fond des combats (21 oct. 2026) : une vignette par fond, une pastille de sa couleur ; grisee tant qu'il est verrouille. */
+.pf-fonds h3 { margin: 0 0 6px; font-size: 14px; }
+.pf-fonds-l { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+.pf-fond { display: grid; justify-items: center; gap: 3px; padding: 6px 4px; font: inherit; font-size: 12px; color: inherit; cursor: pointer;
+  background: #fff8e6; border: 1.5px solid rgba(43,28,31,.25); border-radius: 10px; }
+.pf-fond.on { border: 3px solid #3fbf3a; background: #dff7e6; padding: 4px 2px; }
+.pf-fond.verrou { opacity: .5; cursor: default; filter: grayscale(.7); }
+.pf-fond small { font-size: 10px; opacity: .8; }
+.pf-fond i { width: 100%; height: 34px; border-radius: 7px; border: 1.5px solid #2b1c1f; background: linear-gradient(135deg, #f0e3c4, #c9b48a); }
+.pf-fond[data-fond="clairiere"] i { background: radial-gradient(circle at 12% 20%, #2f7234 0 28%, transparent 30%), radial-gradient(circle at 92% 80%, #3f8f3c 0 30%, transparent 32%), #74b155; }
+.pf-fond[data-fond="prairie"] i { background: linear-gradient(180deg, #86d0ff 0 45%, #8fd263 46% 100%); }
+.pf-fond[data-fond="nuit"] i { background: radial-gradient(circle 1.5px at 30% 30%, #fff 98%, transparent), radial-gradient(circle 1.5px at 70% 55%, #fff 98%, transparent), linear-gradient(180deg, #43307a, #1c1a44); }
+.pf-fond[data-fond="etang"] i { background: radial-gradient(circle at 15% 70%, #56a64a 0 22%, transparent 24%), radial-gradient(circle at 85% 30%, #56a64a 0 20%, transparent 22%), #4aa2ad; }
+.pf-fond[data-fond="bois"] i { background: repeating-linear-gradient(180deg, #a86f4a 0 10px, #7d4f33 10px 11px); }
+.pf-fond[data-fond="pastel"] i { background: radial-gradient(circle at 20% 30%, #ffcdb9 0, transparent 55%), radial-gradient(circle at 80% 70%, #d6c8ff 0, transparent 55%), #f7efff; }
 .hero-chip { cursor: pointer; }
 
 /* ---------- l'ECRAN DE CHARGEMENT (ui/chargement.js) : au-dessus de tout, il s'efface quand les images sont pretes ---------- */
