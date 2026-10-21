@@ -21,6 +21,8 @@
  * pouvoir changer par erreur un plafond ou une regle du combat.
  */
 const COMBAT_OUVERT = ['autoStepMs'];
+/** Une duree (`…Ms`) plus petite que ca est ecrite en SECONDES dans la feuille : aucune animation ne dure moins de 20 ms. */
+const SECONDES_SOUS = 20;
 function portes(racine) {
   const fx = racine && racine.ui && racine.ui.fx;
   const out = [];
@@ -65,8 +67,16 @@ export function planifie(racine, lignes) {
       out.push({ id, nom: l.name || '', avant, apres: l.value, etat: 'invalide', raison: 'la valeur attendue est ' + (Array.isArray(avant) ? 'une liste de nombres' : typeof avant) });
       continue;
     }
+    // UNE DUREE EN SECONDES : un identifiant en « Ms » attend des millisecondes, mais la feuille peut dire « 1.5 » pour une
+    // seconde et demie — lu tel quel, c'etait un vol de carte de 1,5 ms, invisible (21 oct. 2026). Sous `SECONDES_SOUS`, la
+    // valeur est donc lue en secondes, et l'apercu le dit.
+    let raison;
+    if (typeof apres === 'number' && /Ms$/.test(id) && apres > 0 && apres < SECONDES_SOUS) {
+      raison = `lu en secondes : ${apres} s = ${Math.round(apres * 1000)} ms`;
+      apres = Math.round(apres * 1000);
+    }
     const meme = JSON.stringify(apres) === JSON.stringify(avant);
-    out.push({ id, nom: l.name || '', avant, apres, etat: meme ? 'identique' : 'change', objet: porte.objet });
+    out.push({ id, nom: l.name || '', avant, apres, etat: meme ? 'identique' : 'change', objet: porte.objet, ...(raison ? { raison } : {}) });
   }
   return out;
 }

@@ -65,6 +65,11 @@ let zoneSig = null;
 let zoneGroupes = [];
 // Les noeuds de l'ecran qui ne bougent pas pendant un combat (voir `monteLaCoque`).
 let coque = null;
+// Les cartes de l'adversaire qui volent encore vers sa main (ui/effets.js) : son eventail ne les montre qu'arrivees.
+let dosEnVol = 0;
+// LES PV MONTRES (« camp:hero » ou « camp:uid » -> PV) : tant que le coup n'a pas touche, l'ecran garde les PV d'avant —
+// ui/effets.js les pose ici et les fait descendre a l'impact. Sans entree, on montre ceux du moteur.
+const pvMontres = new Map();
 // L'apercu de chaque cible possible du coup engage : « camp:uid » -> { cible, acteur }.
 // Vide tant qu'aucune action n'est engagee (voir ui/apercu.js).
 let apercus = new Map();
@@ -157,6 +162,23 @@ export function openBattle(node, done, { rejeu: donnees = null, apres = null } =
     milieu: () => coque.mid,
     plateau: camp => (camp === 'p' ? coque.boardP : coque.boardE),
     pioche: () => coque.npioche,
+    // La pioche et la main d'un camp (l'adversaire : sa pile en haut a gauche, son eventail de dos en haut a droite).
+    piocheDe: camp => (camp === 'p' ? coque.npioche : coque.piocheE.n),
+    mainDe: camp => (camp === 'p' ? coque.main : coque.eventail),
+    dos: () => DOS_DE_CARTE,
+    dosEnVol: d => { dosEnVol = Math.max(0, dosEnVol + d); if (coque && B) majEventail(coque); },
+    // Les PV a montrer pour un heros (`uid` 'hero') ou une unite ; `null` rend ceux du moteur. Seul ce noeud est redessine.
+    pv: (camp, uid, v) => {
+      const k = `${camp}:${uid}`;
+      if (v === null) pvMontres.delete(k); else pvMontres.set(k, v);
+      if (!coque || !B) return;
+      if (uid === 'hero') { majHero(camp === 'p' ? coque.heroP : coque.heroE, B[camp], camp); return; }
+      const u = B[camp].board.find(x => x.uid === uid);
+      const n = (camp === 'p' ? coque.boardP : coque.boardE).firstElementChild._n.get(uid);
+      if (u && n) majUnite(n, u, camp);
+    },
+    // Les cartes de ta main qui viennent d'arriver (pas encore animees) : `nouvelle`, posee par `render()`.
+    nouvellesEnMain: () => [...coque.main.children].filter(n => n.classList.contains('nouvelle')),
     main: () => coque.main,
     defausse: camp => (camp === 'p' ? coque.def : coque.defE.n),
     heros: camp => (camp === 'p' ? coque.heroP : coque.heroE).n,
@@ -503,10 +525,12 @@ function majUnite(n, u, side) {
   const pics = ligneDePictos(u, { effets: false, taille: 26, max: 2, plus: false, sansDessines: true });
   // Les chiffres se colorent comme dans un jeu de cartes : l'attaque en vert quand elle depasse celle de la carte, la vie
   // en rouge quand l'unite est blessee (un jeton n'a pas de carte : pas de reference, donc pas de vert).
-  const plus = u.card && u.card.atk != null && u.atk > u.card.atk, moins = u.hp < u.maxHp;
+  // Les PV montres : ceux d'avant le coup tant que son animation ne l'a pas fait tomber (`pvMontres`, ui/effets.js).
+  const hp = pvMontres.has(`${side}:${u.uid}`) ? pvMontres.get(`${side}:${u.uid}`) : u.hp;
+  const plus = u.card && u.card.atk != null && u.atk > u.card.atk, moins = hp < u.maxHp;
   const elusif = hasKey(u.keys, 'elusif'), venin = hasKey(u.keys, 'Venin');
   const oeil = veille(u);
-  const sig = [u.name, u.sprite || '', u.atk, u.hp, plus, moins, pics, ap, u.tox || 0, elusif, venin, !!u.shield, oeil, !!u.aura].join('|');
+  const sig = [u.name, u.sprite || '', u.atk, hp, plus, moins, pics, ap, u.tox || 0, elusif, venin, !!u.shield, oeil, !!u.aura].join('|');
   if (n._sig !== sig) {
     n._sig = sig;
     n.innerHTML = `
@@ -514,7 +538,7 @@ function majUnite(n, u, side) {
       ${u.sprite ? `<img src="${asset(u.sprite)}" alt="">` : '<img alt="">'}
       ${u.tox > 0 ? `<div class="tox" title="${u.tox} marqueur${u.tox > 1 ? 's' : ''} Toxine">${icone('Venom', 12)}${u.tox}</div>` : ''}
       <div class="un">${u.name}</div>
-      <div class="s"><span class="a${plus ? ' plus' : ''}">${u.atk}</span> / <span class="h${moins ? ' moins' : ''}">${u.hp}</span></div>
+      <div class="s"><span class="a${plus ? ' plus' : ''}">${u.atk}</span> / <span class="h${moins ? ' moins' : ''}">${hp}</span></div>
       ${pics}
       ${elusif ? brume() : ''}
       ${u.shield ? ecu() : ''}
@@ -567,7 +591,9 @@ function heroNode(k) {
 }
 
 function majHero(h, s, k) {
-  const pct = Math.max(0, s.hp / s.maxHp * 100);
+  // Les PV montres : ceux d'avant le coup tant que son animation ne l'a pas fait tomber (`pvMontres`, ui/effets.js).
+  const hp = pvMontres.has(`${k}:hero`) ? pvMontres.get(`${k}:hero`) : s.hp;
+  const pct = Math.max(0, hp / s.maxHp * 100);
   const src = asset(s.sprite);
   if (h.img.getAttribute('src') !== src) h.img.setAttribute('src', src);
   // L'armure et le mana promis se disent par leur icone, pas par un signe ecrit a la main.
@@ -578,7 +604,7 @@ function majHero(h, s, k) {
   // Le niveau de l'adversaire : celui de l'arene (le profil de progression de l'ennemi, config/ennemis.js).
   if (h.lvl) h.lvl.textContent = (ctx && ctx.niveau) || 1;
   h.fill.style.width = `${pct}%`;
-  h.txt.textContent = `${Math.max(0, s.hp)} / ${s.maxHp}`;
+  h.txt.textContent = `${Math.max(0, hp)} / ${s.maxHp}`;
   // Le mana peut depasser le plafond (mana promis au tour precedent) : on affiche
   // alors les cristaux en trop plutot que de les faire disparaitre.
   const n = Math.max(s.manaCap, s.mana);
@@ -594,6 +620,9 @@ function majHero(h, s, k) {
 
 function majCarte(n, c, i) {
   n.dataset.i = i;
+  // Ce qui permet aux animations de retrouver la carte d'un evenement (une pioche) : son exemplaire, sinon son nom.
+  n.dataset.inst = c.inst || '';
+  n.dataset.nom = c.name;
   const ok = canPlay(B, 'p', c) && B.turn === 'p' && !auto;
   // Le cout affiche est celui qu'on va vraiment payer : le mot-cle « Cout X de
   // moins/de plus » peut le faire bouger d'un tour a l'autre, on le signale.
@@ -659,14 +688,15 @@ function majEventail(c) {
   const main = B.e.hand;
   // Dans un REJEU, la main de l'adversaire se voit : on comprend pourquoi il a joue ce qu'il a joue.
   const face = !!rejeu;
-  const sig = main.map(x => (x.pistee ? 1 : 0) + (face ? x.name : '')).join('|');
+  // Les dernieres cartes arrivees ne s'y montrent qu'a la fin de leur vol (`dosEnVol`).
+  const n = Math.max(0, main.length - dosEnVol);
+  const sig = n + ':' + main.slice(0, n).map(x => (x.pistee ? 1 : 0) + (face ? x.name : '')).join('|');
   if (c.sigEventail === sig) return;
   c.sigEventail = sig;
-  const n = main.length;
   const dos = asset(DOS_DE_CARTE);
   c.eventail.title = `Main ${n}`;
   // Sept dos au plus : au-dela, l'eventail tiendrait tout l'ecran (Neuf Vies remplit la main) ; le nombre le dit.
-  const vus = main.slice(0, 7), k = vus.length;
+  const vus = main.slice(0, Math.min(7, n)), k = vus.length;
   c.eventail.innerHTML = vus.map((x, i) => {
     const t = k > 1 ? i / (k - 1) - 0.5 : 0;
     const dessin = face ? `<img src="${asset(x.sprite || '')}" alt=""><b class="cout">${x.cost}</b>` : `<img src="${dos}" alt="">`;

@@ -79,8 +79,14 @@ html[data-skin="juice"] {
   & .bt-hero > div { min-width: 0; }
   /* L'adversaire : un medaillon rose, son nom ecrit dedans, son niveau en pastille. */
   & .bt-hero.e { background: #ffd6de; border: 4px solid var(--contour); box-shadow: inset 0 4px 0 rgba(255,255,255,.6), 0 4px 0 var(--contour); }
-  & .bt-hero.e img { width: 100%; height: 100%; padding: 6px 6px 16px; background: none; border: 0; box-shadow: none; }
-  & .bt-hero.e .hn { color: #3a2517; font-size: 10px; }
+  & .bt-hero.e img { width: 100%; height: 100%; padding: 4px 8px 20px; background: none; border: 0; box-shadow: none; }
+  /* Le nom de l'adversaire : un RUBAN a cheval sur le bord bas du medaillon, sur une ligne, aussi large qu'il le faut (il
+     peut deborder du cercle) — dans le cercle, un nom long etait coupe ou passait sur deux lignes (21 oct. 2026). */
+  & .bt-hero.e .hn {
+    left: 50%; right: auto; bottom: -7px; translate: -50% 0; z-index: 3; max-width: none; overflow: visible; white-space: nowrap;
+    padding: 2px 9px; border-radius: 999px; background: #fff3d8; border: 3px solid var(--contour); box-shadow: 0 2px 0 var(--contour);
+    color: var(--ink); font-size: 11px; line-height: 1.1;
+  }
   & .bt-hero.e .lvl { min-width: 26px; height: 26px; font-size: 15px; border-width: 2px; }
   & .bt-hpe .hpbar { height: 24px; }
   & .bt-hpe .hx { color: #fff; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }
@@ -88,6 +94,8 @@ html[data-skin="juice"] {
   & .bt-basmain .bt-mana b { color: #2e8be8; -webkit-text-stroke: 0; }
   /* Les piles : des dos de carte empiles (la pioche), la derniere carte assombrie (la defausse), le nombre dessus. */
   & .bt-pile .bt-face { border: 3px solid var(--contour); border-radius: 12px; background: #bfe6ff; }
+  /* Les piles de l'adversaire : la pioche empilee deborde de 9 px a droite, l'ecart l'empeche de toucher la defausse. */
+  & .bt-piles.e { gap: 18px; }
   & .bt-pile.pioche:not(.vide) .bt-face { box-shadow: 3px 3px 0 #fff3d8, 5px 5px 0 var(--contour), 7px 7px 0 #fff3d8, 9px 9px 0 var(--contour); }
   & .bt-pile.defausse:not(.vide) .bt-face { background: #4a5a78; box-shadow: 0 3px 0 var(--contour); }
   & .bt-pile.defausse .bt-face img { filter: brightness(.5); }

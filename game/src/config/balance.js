@@ -140,7 +140,12 @@ export const BALANCE = {
       grosCoup: 5,              // a partir de ce montant perdu, l'ecran entier tremble
       ecranSecousseMs: 320,
       ecranSecoussePx: 6,
-      piocheMs: 380,            // une carte piochee glisse jusqu'a sa place
+      // UNE CARTE QUI ARRIVE EN MAIN passe par le MILIEU, comme dans Hearthstone (game designer, 21 oct. 2026) : elle vole
+      // de sa pioche (ou de son origine) au centre, s'y montre en grand, puis rejoint sa place dans la main. Chez
+      // l'adversaire, un dos de carte. Plusieurs cartes d'un coup se montrent cote a cote.
+      piocheMs: 380,            // le vol de la pioche jusqu'au centre
+      piocheTenueMs: 700,       // la carte reste montree en grand au centre
+      piocheVersMainMs: 380,    // puis elle rejoint sa place dans la main
       piocheDecalageMs: 80,     // entre deux cartes piochees ensemble
       metaOutMs: 260,           // METAMORPHOSE : les unites copiees se replient...
       metaTenueMs: 500,         // ...restent cachees...

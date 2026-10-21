@@ -77,7 +77,7 @@ function dessine(a, ecrit) {
   h += `<h2>${ecrit ? 'Ce qui a changé' : 'Ce qui changerait'} (${change.length})</h2>`;
   if (change.length) {
     h += '<table><tr><th>Valeur</th><th>Avant</th><th>Après</th></tr>' + change.map(p =>
-      `<tr><td class="id">${esc(p.id)}<br><small>${esc(p.nom)}</small></td><td class="av">${fmt(p.avant)}</td><td class="ap">${fmt(p.apres)}</td></tr>`).join('') + '</table>';
+      `<tr><td class="id">${esc(p.id)}<br><small>${esc(p.nom)}</small></td><td class="av">${fmt(p.avant)}</td><td class="ap">${fmt(p.apres)}${p.raison ? `<br><small>${esc(p.raison)}</small>` : ''}</td></tr>`).join('') + '</table>';
   } else h += `<p class="muted">Rien ne change : ${identiques} ligne(s) déjà identiques au jeu.</p>`;
   if (invalides.length) h += `<h2>Ignorées : mauvaise forme (${invalides.length})</h2><table>` + invalides.map(p => `<tr><td class="id ko">${esc(p.id)}</td><td>${esc(p.raison)} — lu : ${fmt(p.apres)}</td></tr>`).join('') + '</table>';
   if (inconnus.length) h += `<h2>Ignorées : inconnues du jeu (${inconnus.length})</h2><table>` + inconnus.map(p => `<tr><td class="id inc">${esc(p.id)}</td><td>${esc(p.raison)}</td></tr>`).join('') + '</table>';

@@ -199,6 +199,29 @@ le compte en **défaite** (« Tu as abandonné. », pas de récompense, l'arène
   la prend en apparaissant (`acces.change`), et la carte jouée vole vers la place qu'elle va prendre. Un **râle d'agonie**
   attend la fin de la mort de son unité (`finMorts`), donc son jeton apparaît après. ⚠ La fin d'un film ne nettoie que
   **ses** unités (`mesCaches`, `mesMorts`) : nettoyer tout faisait apparaître le jeton du film suivant trop tôt.
+- **Les cartes qui arrivent en main** (21 oct. 2026) : chaque `pioche` et chaque `deplace` vers la main **passe par le
+  centre**, comme dans Hearthstone (`versLaMain`) : de son origine (`origineEnMain` : la pioche du camp, la défausse, l'unité
+  renvoyée, la source d'une carte créée) au milieu (`piocheMs`), montrée en grand (`piocheTenueMs`), puis à sa place
+  (`piocheVersMainMs`) ; les cartes arrivées ensemble (même cause, même camp : la main de départ, « pioche 3 ») partent à
+  `piocheDecalageMs` d'écart et se montrent **côte à côte**, rétrécies s'il le faut pour tenir. Les trois temps viennent de
+  `BALANCE.ui.fx` (donc de la feuille), et le film les suit quelles qu'elles soient : le centre est pris jusqu'à ce que la
+  carte le quitte, et l'action suivante (`libre`) attend qu'elle soit dans la main. Ta carte reste cachée (`.main-cachee`, sa
+  place gardée) jusqu'à son arrivée — `effets.js` la retrouve parmi les `nouvelle` par `data-inst`, sinon `data-nom` ; son double
+  vole sans le sautillement du skin. Chez l'adversaire, un **dos** fait le même trajet, et son éventail ne le montre qu'arrivé
+  (`dosEnVol` dans `battle.js`, remis à zéro par `fx.vide()`).
+- **Un allié joué** n'apparaît qu'une fois sa carte arrivée sur le plateau (`sortieMs`) — mesuré le 21 oct. 2026 sur 6 alliés
+  (MutationObserver sur `.arrivante` et `.fx-carte.lancer`) : l'unité apparaît à vol + tenue + sortie pile, adverse comme alliée ;
+  le moteur émet `joue` avant `invoque`. ⚠ Ce qui ressemble à « la carte encore au centre, l'unité déjà posée » est la
+  **carte-effet** d'un moment de l'unité (le Paresseux – Hamac : « Fin de ton tour : soigne 2 PV »), au même dessin et au même
+  nom, qui part ~3 s plus tard à la fin du tour adverse (une par Hamac en jeu).
+- **Les PV descendent à l'impact** (21 oct. 2026, « on voit les PV de l'ennemi descendre avant que l'animation ne soit finie ») :
+  `render()` montre l'état du moteur, **déjà frappé** — les PV du héros tombaient dès que la carte partait (5 s avant l'éclair du
+  Faucon Tempête), ceux d'une unité dès le début de l'élan. Un film tient donc à l'écran les PV d'**avant** de chaque héros ou
+  unité que ses `degats` / `soin` touchent (`acces.pv` → `pvMontres` dans `battle.js`, lu par `majHero` et `majUnite`), et chaque
+  coup ou soin pose ses PV d'**après** en tombant (`montrePv`), avec son chiffre. À la fin du film, les PV redeviennent ceux du
+  moteur — sauf ceux qu'un film suivant a repris (`pvTenus`, par numéro de film) ; `fx.vide()` les rend tous. Mesuré : PV et
+  chiffre à la même milliseconde, héros (sort, attaque) comme unités (coup, riposte). ⚠ `data-hp` reste celui du moteur : la
+  détection des auras (`photo`) le compare d'un rendu à l'autre.
 - ⚠ La classe `fin` est celle de l'écran de fin de combat (`position: absolute`) : l'onglet « Fin de tour » s'appelle
   `.fintour` (avec `fin`, il recouvrait le bouton de vitesse).
 

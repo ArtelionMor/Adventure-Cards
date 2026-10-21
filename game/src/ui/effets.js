@@ -43,6 +43,8 @@ export function creeFx(acces) {
   let caches = new Set();    // les unites cachees le temps que leur carte arrive (reveles par `pop`)
   let auraAt = 0;            // quand les changements de chiffres sans cause se montrent (apres la carte qui les cause)
   let vu = 0;                // combien d'evenements ont deja ete joues
+  let film = 0;              // le numero du film en cours (chaque `joue` en ouvre un)
+  let pvTenus = new Map();   // « camp:uid » -> { camp, uid, film } : les PV que l'ecran garde jusqu'a l'impact (`montrePv`)
 
   const T = ms => ms * reglage.ralenti / reglage.vitesse;
 
@@ -123,6 +125,16 @@ export function creeFx(acces) {
   function montre(n) {
     const fait = () => { n.style.visibility = ''; n.classList.remove('arrivante'); caches.delete(n); };
     if (acces.change && n.classList.contains('arrivante')) acces.change(n.dataset.side, fait); else fait();
+  }
+  /**
+   * LES PV DESCENDENT A L'IMPACT (game designer, 21 oct. 2026 : « on voit les PV de l'ennemi descendre avant que
+   * l'animation ne soit finie ») : le rendu montre l'etat du moteur, deja frappe. Un film garde donc a l'ecran les PV
+   * d'AVANT de chaque heros ou unite qu'il touche (`acces.pv`), et chaque coup ou soin pose ses PV d'APRES quand il tombe.
+   */
+  const clePv = c => (!c ? null : c.k === 'heros' || c.uid === 'hero' ? { camp: c.camp, uid: 'hero' } : c.uid ? { camp: c.camp, uid: c.uid } : null);
+  function montrePv(ev) {
+    const c = clePv(ev.cible);
+    if (c && typeof ev.apres === 'number' && pvTenus.has(cle(c.camp, c.uid)) && acces.pv) acces.pv(c.camp, c.uid, ev.apres);
   }
   /** Une unite morte a fini de mourir : sa place se libere sur le plateau (ui/battle.js). */
   const libere = u => { if (acces.libere) acces.libere(u.camp, u.uid); };
@@ -653,6 +665,70 @@ export function creeFx(acces) {
     try { return cardById(c.id) || c; } catch { return c; }
   }
 
+  /**
+   * UNE CARTE ARRIVE EN MAIN (demande du game designer, 21 oct. 2026) : elle VOLE depuis l'endroit d'ou elle vient — la
+   * pioche pour une pioche, la defausse, le plateau, la source de l'effet pour une carte creee — jusqu'a sa place dans la
+   * main, et n'y apparait qu'en arrivant (`main-cachee`). Chez l'adversaire, un dos de carte vole vers son eventail.
+   */
+  function origineEnMain(ev) {
+    const centreDu = n => (n ? rectDe(n) : rectDe(acces.milieu()));
+    if (ev.t === 'pioche' || ev.de === 'pioche') return centreDu(acces.piocheDe ? acces.piocheDe(ev.camp) : acces.pioche());
+    if (ev.de === 'defausse') return centreDu(acces.defausse(ev.camp));
+    if (ev.de === 'plateau' && (ev.unites || [])[0]) {
+      const u = ev.unites[0], p = photos.get(cle(u.camp, u.uid));
+      if (p) return p.rect;
+    }
+    const src = ev.src && noeudDe(ev.src);
+    return centreDu(src || null);
+  }
+  /**
+   * Le vol d'une carte vers la main, en TROIS TEMPS (« comme Hearthstone », 21 oct. 2026) : de son origine au CENTRE
+   * (`piocheMs`), montree en grand (`piocheTenueMs`), puis jusqu'a sa place (`piocheVersMainMs`). `rang` / `nb` : sa place
+   * parmi les cartes arrivees ensemble, qui se montrent cote a cote. Un dos adverse ne rejoint l'eventail qu'en arrivant.
+   */
+  const dureeVersLaMain = f => f.piocheMs + f.piocheTenueMs + f.piocheVersMainMs;
+  function versLaMain(ev, n, rang = 0, nb = 1) {
+    const f = F();
+    const finVol = () => {
+      if (n) n.classList.remove('main-cachee');
+      else if (acces.dosEnVol) acces.dosEnVol(-1);
+    };
+    const o = centreDe(origineEnMain(ev));
+    const cible = n || (acces.mainDe ? acces.mainDe(ev.camp) : null);
+    if (!cible) { finVol(); return; }
+    const r = rectDe(cible);
+    const d = document.createElement('div');
+    if (n) {
+      // Ta carte : son double, a sa taille, sans sa rotation d'eventail.
+      d.className = n.className.replace(/\b(nouvelle|main-cachee|sel|no|visante|tiree)\b/g, '') + ' fx-vers-main';
+      d.innerHTML = n.innerHTML;
+      Object.assign(d.style, { width: n.offsetWidth + 'px', height: n.offsetHeight + 'px' });
+    } else {
+      // L'adversaire : un dos de carte, de la taille d'une de ses cartes en main.
+      d.className = 'fx-dos-vole';
+      d.innerHTML = `<img src="${asset(acces.dos ? acces.dos() : '')}" alt="">`;
+    }
+    // `animation: none` : le double d'une carte jouable garderait le sautillement du skin (`juice-hop`) pendant son vol.
+    Object.assign(d.style, { position: 'absolute', left: '0px', top: '0px', pointerEvents: 'none', animation: 'none' });
+    acces.couche().appendChild(d);
+    const w = d.offsetWidth || 40, h = d.offsetHeight || 52;
+    const fin = { x: r.x + r.w / 2, y: n ? r.y + r.h / 2 : r.y + r.h * .35 };
+    // Au centre : la largeur d'une carte jouee montree en grand, ou moins si les cartes arrivees ensemble ne tiennent pas.
+    const m = centreDe(rectDe(acces.milieu()));
+    const largeur = acces.racine().getBoundingClientRect().width * .94, ecart = 8;
+    const s = Math.min(170 / w, (largeur - (nb - 1) * ecart) / (nb * w));
+    const c = { x: m.x + (rang - (nb - 1) / 2) * (w * s + ecart), y: m.y };
+    const pos = (p, sc, rot = 0) => `translate(${p.x - w / 2}px, ${p.y - h / 2}px) scale(${sc}) rotate(${rot}deg)`;
+    const total = Math.max(1, dureeVersLaMain(f));
+    anime(d, [
+      { transform: pos(o, .35, -12), opacity: .4, easing: 'cubic-bezier(.2,.8,.3,1)' },
+      { transform: pos(c, s, 0), opacity: 1, offset: f.piocheMs / total },
+      { transform: pos(c, s * 1.04, 0), opacity: 1, offset: (f.piocheMs + f.piocheTenueMs) / total, easing: 'cubic-bezier(.5,0,.6,1)' },
+      { transform: pos(fin, 1, 0), opacity: 1 }
+    ], { duration: T(total) });
+    apres(total, () => { d.remove(); finVol(); });
+  }
+
   /** Une carte jouee : elle part de la main (ou du heros adverse), se montre au centre, puis va a sa destination. */
   function carteJouee(ev) {
     const f = F();
@@ -795,12 +871,44 @@ export function creeFx(acces) {
     const mesMorts = lot.filter(ev => ev.t === 'meurt').map(ev => ev.unite);
     for (const u of mesMorts) faitFantome(u.camp, u.uid);
     acces.racine().style.setProperty('--fx-k', reglage.ralenti / reglage.vitesse);
+    // Les cartes qui arrivent en MAIN (ta main) : chaque evenement retrouve SA carte parmi les nouvelles (par exemplaire,
+    // sinon par nom), qui reste cachee jusqu'a ce que son vol l'y depose (`versLaMain`).
+    const enMain = new Map();   // indice d'evenement -> [noeuds] (une carte par carte deplacee)
+    const mesMains = [];
+    {
+      const libres = acces.nouvellesEnMain ? acces.nouvellesEnMain() : [];
+      const prend = c => {
+        let i = c.inst ? libres.findIndex(x => x.dataset.inst === c.inst) : -1;
+        if (i < 0) i = libres.findIndex(x => x.dataset.nom === c.nom);
+        return i < 0 ? null : libres.splice(i, 1)[0];
+      };
+      for (const ev of lot) {
+        const cartes = ev.t === 'pioche' && !ev.perdue ? [ev.carte] : ev.t === 'deplace' && ev.vers === 'main' ? (ev.cartes || []) : null;
+        if (!cartes) continue;
+        const noeuds = ev.camp === 'p' ? cartes.map(prend) : cartes.map(() => null);
+        for (const n of noeuds) if (n) { n.classList.remove('nouvelle'); n.classList.add('main-cachee'); mesMains.push(n); }
+        // Chez l'adversaire, l'eventail ne montre pas encore les dos qui volent (`versLaMain` les y rend un a un).
+        if (ev.camp !== 'p' && acces.dosEnVol) acces.dosEnVol(noeuds.length);
+        enMain.set(ev.i, noeuds);
+      }
+    }
     // Une unite qui arrive reste cachee jusqu'a ce que sa carte la depose (`pop`).
     const mesCaches = [];
     for (const ev of lot) {
       if (ev.t !== 'invoque') continue;
       const n = acces.unite(ev.unite.camp, ev.unite.uid);
       if (n) { cache(n); mesCaches.push(n); }
+    }
+    // Les PV de ceux que ce film frappe ou soigne restent ceux d'AVANT jusqu'a l'impact (`montrePv`). Deja tenus par un
+    // film precedent, ils gardent ce qu'il montre : ses coups a lui les feront descendre d'abord.
+    const monFilm = ++film;
+    for (const ev of lot) {
+      if (ev.t !== 'degats' && ev.t !== 'soin') continue;
+      const c = clePv(ev.cible);
+      if (!c || typeof ev.avant !== 'number' || !acces.pv) continue;
+      const k = cle(c.camp, c.uid);
+      if (!pvTenus.has(k)) acces.pv(c.camp, c.uid, ev.avant);
+      pvTenus.set(k, { ...c, film: monFilm });
     }
     // Sans elles, le plateau se remet a l'echelle (ui/battle.js l'avait mesure avec).
     if (acces.ajuste) for (const camp of ['p', 'e']) acces.ajuste(camp);
@@ -858,7 +966,7 @@ export function creeFx(acces) {
           else if (ev.cause !== null && impact.has(ev.cause)) { at = impact.get(ev.cause); t = at + f.ripostePauseMs; }
           else at = heure(ev);
           impact.set(ev.i, at);
-          apres(at, () => coup(ev, sigs.get(ev.cause)));
+          apres(at, () => { montrePv(ev); coup(ev, sigs.get(ev.cause)); });
           marque(at + f.secousseMs);
           break;
         }
@@ -866,6 +974,9 @@ export function creeFx(acces) {
           t = Math.max(t, libre);
           apres(t, () => carteJouee(ev));
           t += f.volMs + f.tenueMs;
+          // Un ALLIE : son unite n'apparait qu'une fois la carte arrivee sur le plateau (sinon on la voyait avant la fin
+          // du vol, 21 oct. 2026) — son lancer et ses effets viennent apres.
+          if (ev.carte.type === 'ally') t += f.sortieMs;
           // Sa signature : ce qui PART de la carte, des qu'elle s'est montree au centre.
           const sig = signatureDe(ev.carte.id);
           if (sig) {
@@ -963,7 +1074,29 @@ export function creeFx(acces) {
           marque(at + f.chiffreMs * .5);
           break;
         }
-        case 'soin': { const at = heure(ev); apres(at, () => soin(ev, sigs.get(ev.cause))); marque(at + f.chiffreMs * .5); break; }
+        case 'pioche':
+        case 'deplace': {
+          const noeuds = enMain.get(ev.i);
+          if (!noeuds) break;
+          // Plusieurs cartes d'un coup (la main de depart, « pioche 3 ») partent l'une apres l'autre et se montrent cote a
+          // cote au centre : le groupe (meme cause, meme camp) les compte, et chacune lit le total en partant.
+          if (!(groupe && groupe.cause === ev.cause && groupe.type === 'main' && groupe.camp === ev.camp)) {
+            t = Math.max(t, libre);
+            groupe = { cause: ev.cause, type: 'main', camp: ev.camp, t, n: 0 };
+          }
+          const g = groupe;
+          for (const n of noeuds) {
+            const rang = g.n++;
+            const at = g.t + rang * f.piocheDecalageMs;
+            apres(at, () => versLaMain(ev, n, rang, g.n));
+            // Le centre est pris jusqu'a ce que la carte le quitte ; l'action suivante attend qu'elle soit dans la main.
+            t = Math.max(t, at + f.piocheMs + f.piocheTenueMs);
+            libre = Math.max(libre, at + dureeVersLaMain(f));
+            marque(at + dureeVersLaMain(f));
+          }
+          break;
+        }
+        case 'soin': { const at = heure(ev); apres(at, () => { montrePv(ev); soin(ev, sigs.get(ev.cause)); }); marque(at + f.chiffreMs * .5); break; }
         case 'renfort': { const at = heure(ev); apres(at, () => renfort(ev, 0, sigs.get(ev.cause))); marque(at + f.chiffreMs * .5); break; }
         case 'meurt': {
           const base = impact.has(ev.cause) ? impact.get(ev.cause) : t;
@@ -988,7 +1121,10 @@ export function creeFx(acces) {
     // film suivant (un rale d'agonie) avant que son unite ait fini de mourir.
     apres(t + f.mortMs, () => {
       for (const n of mesCaches) if (caches.has(n)) montre(n);
+      for (const n of mesMains) n.classList.remove('main-cachee');
       for (const u of mesMorts) { retireFantome(u.camp, u.uid); libere(u); }
+      // Les PV que CE film tenait reviennent a ceux du moteur (un film suivant qui les a repris les rendra lui-meme).
+      for (const [k, p] of pvTenus) if (p.film === monFilm) { pvTenus.delete(k); acces.pv(p.camp, p.uid, null); }
     });
     return t;
   }
@@ -1023,6 +1159,9 @@ export function creeFx(acces) {
       caches.clear();
       for (const n of enElan) n.style.visibility = '';
       enElan.clear();
+      if (acces.dosEnVol) acces.dosEnVol(-Infinity);   // plus aucun dos en vol : l'eventail montre toute la main
+      for (const p of pvTenus.values()) acces.pv(p.camp, p.uid, null);   // et les PV, ceux du moteur
+      pvTenus = new Map();
       photos = new Map();
       fin = 0;
       vu = 0;
