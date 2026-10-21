@@ -426,6 +426,10 @@ button.btn:disabled { opacity: .4; cursor: default; }
 /* Ce qui porte les vignettes, et ce qu'on met a l'echelle d'un bloc : le JS l'elargit de
    1/echelle avant de le reduire, pour que les retours a la ligne se calculent sur la
    largeur reellement disponible. `--u` est l'echelle, 1 quand tout tient deja. */
+/* Les places du plateau (ui/battle.js, ui/effets.js) : une unite morte garde la sienne, invisible, le temps de son
+   animation ; une unite qui arrive ne prend la sienne qu'en apparaissant. */
+.bwrap > .unit.partante { visibility: hidden; pointer-events: none; }
+.bwrap > .unit.arrivante { display: none; }
 .bwrap {
   display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center;
   /* Ancre en haut a gauche, et c'est la transformation qui replace le bloc : une fois

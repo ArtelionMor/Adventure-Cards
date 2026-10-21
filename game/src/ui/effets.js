@@ -115,6 +115,18 @@ export function creeFx(acces) {
     return env;
   }
 
+  /**
+   * UNE UNITE QUI ARRIVE ne prend pas de place avant d'apparaitre (`.arrivante`, `display: none`) : cachee mais en place,
+   * elle poussait deja ses voisines (21 oct. 2026). `montre` la rend, et ses voisines glissent (`acces.change`).
+   */
+  function cache(n) { n.classList.add('arrivante'); caches.add(n); }
+  function montre(n) {
+    const fait = () => { n.style.visibility = ''; n.classList.remove('arrivante'); caches.delete(n); };
+    if (acces.change && n.classList.contains('arrivante')) acces.change(n.dataset.side, fait); else fait();
+  }
+  /** Une unite morte a fini de mourir : sa place se libere sur le plateau (ui/battle.js). */
+  const libere = u => { if (acces.libere) acces.libere(u.camp, u.uid); };
+
   /** Un fantome : le noeud d'une unite morte, remis ou elle etait. */
   function faitFantome(camp, uid) {
     const k = cle(camp, uid);
@@ -319,7 +331,7 @@ export function creeFx(acces) {
     try {
       for (const camp of ['p', 'e']) {
         for (const n of acces.unites(camp)) {
-          if (n.classList.contains('porte-aura') && n.style.visibility !== 'hidden') ondeAura(n, touchesDe(n), couleurAura(n.dataset.carte), { bloque: false });
+          if (n.classList.contains('porte-aura') && n.style.visibility !== 'hidden' && !caches.has(n)) ondeAura(n, touchesDe(n), couleurAura(n.dataset.carte), { bloque: false });
         }
       }
     } catch { /* l'ecran n'est pas monte (pas de combat) : rien a faire */ }
@@ -597,7 +609,7 @@ export function creeFx(acces) {
     const f = F();
     const u = ev.unite;
     const env = fantomes.get(cle(u.camp, u.uid));
-    if (!env) return;
+    if (!env) { libere(u); return; }
     const r = rectDe(env);
     eclair(r);
     const sg = signatureDe(idDe(u));
@@ -617,7 +629,7 @@ export function creeFx(acces) {
       const dest = u.jeton ? null : acces.defausse(u.camp);
       if (!dest) {
         anime(env, [{ opacity: 1 }, { opacity: 0, transform: 'scale(.8)' }], { duration: T(f.mortVolMs), easing: 'ease-in' });
-        apres(f.mortVolMs, () => retireFantome(u.camp, u.uid));
+        apres(f.mortVolMs, () => { retireFantome(u.camp, u.uid); libere(u); });
         return;
       }
       const b = rectDe(dest);
@@ -630,6 +642,7 @@ export function creeFx(acces) {
       ], { duration: T(f.mortVolMs), easing: 'cubic-bezier(.45,0,.7,1)' });
       apres(f.mortVolMs, () => {
         retireFantome(u.camp, u.uid);
+        libere(u);
         anime(dest, [{ transform: 'scale(1)' }, { transform: 'scale(1.18)', offset: .4 }, { transform: 'scale(1)' }], { duration: T(260), fill: 'none' });
       });
     });
@@ -653,8 +666,16 @@ export function creeFx(acces) {
     const o = centre(rectDe(ev.camp === 'p' ? acces.main() : acces.heros('e')));
     const m = centre(rectDe(acces.milieu()));
     const un = ev.carte.type === 'ally' ? [...acces.unites(ev.camp)].pop() : null;
-    // Un allie va vers son plateau ; un sort, vers la defausse.
-    const dest = centre(rectDe(un || acces.defausse(ev.camp)));
+    // Un allie va vers son plateau ; un sort, vers la defausse. Une unite qui n'est pas encore apparue ne prend pas de
+    // place (`arrivante`) : on mesure celle qu'elle va prendre, sans la montrer (la mesure ne peint rien).
+    const ou = n => {
+      if (!n.classList.contains('arrivante')) return rectDe(n);
+      n.classList.remove('arrivante');
+      const r = rectDe(n);
+      n.classList.add('arrivante');
+      return r;
+    };
+    const dest = centre(un ? ou(un) : rectDe(acces.defausse(ev.camp)));
     acces.couche().appendChild(d);
     const tr = (p, s) => `translate(${p.x}px, ${p.y}px) translate(-50%, -50%) scale(${s})`;
     const total = f.volMs + f.tenueMs + f.sortieMs;
@@ -745,8 +766,7 @@ export function creeFx(acces) {
     const f = F();
     const n = acces.unite(camp, uid);
     if (!n) return;
-    n.style.visibility = '';
-    caches.delete(n);
+    montre(n);
     // Le rectangle AVANT le rebond : mesure apres, il etait celui d'une carte a 15 % de sa taille, et toute animation
     // d'arrivee (la gerbe de flammes de l'Eclaireur Fou…) restait dans la carte au lieu d'en sortir (21 oct. 2026).
     const r = rectDe(n);
@@ -776,11 +796,14 @@ export function creeFx(acces) {
     for (const u of mesMorts) faitFantome(u.camp, u.uid);
     acces.racine().style.setProperty('--fx-k', reglage.ralenti / reglage.vitesse);
     // Une unite qui arrive reste cachee jusqu'a ce que sa carte la depose (`pop`).
+    const mesCaches = [];
     for (const ev of lot) {
       if (ev.t !== 'invoque') continue;
       const n = acces.unite(ev.unite.camp, ev.unite.uid);
-      if (n) { n.style.visibility = 'hidden'; caches.add(n); }
+      if (n) { cache(n); mesCaches.push(n); }
     }
+    // Sans elles, le plateau se remet a l'echelle (ui/battle.js l'avait mesure avec).
+    if (acces.ajuste) for (const camp of ['p', 'e']) acces.ajuste(camp);
 
     // La file : un film qui arrive pendant qu'un autre joue attend la fin du precedent (les chiffres ne
     // se melangent pas), mais jamais plus de `fileMaxMs` : l'ecran ne traine pas derriere le joueur.
@@ -796,6 +819,7 @@ export function creeFx(acces) {
     const sigs = new Map();         // indice d'une carte jouee -> sa signature (ui/vfx.js), pour ce qu'elle cause
     let t = retard;                 // l'horloge du film
     const impact = new Map();       // indice d'evenement -> heure du coup
+    const finMorts = new Map();     // « camp:uid » -> quand sa mort est finie (la carte a rejoint sa defausse)
     let groupe = null;              // le dernier groupe (meme cause, meme type) : { cause, t, type }
     let libre = t;                  // quand l'ecran est libre pour l'action suivante (attaquant revenu, morts rangees)
     const heure = ev => {           // quand un evenement « simple » joue : ensemble avec ses voisins de meme cause
@@ -853,6 +877,12 @@ export function creeFx(acces) {
           break;
         }
         case 'declenche': {
+          // Un RALE D'AGONIE attend que son unite ait fini de mourir (sa carte a rejoint la defausse et sa place est
+          // liberee) : sinon le jeton qu'il invoque apparaissait pendant qu'elle mourait encore (21 oct. 2026).
+          if (ev.moment === 'death' && ev.src) {
+            const fm = finMorts.get(cle(ev.src.camp, ev.src.uid));
+            if (fm) t = Math.max(t, fm);
+          }
           // Les pictogrammes viennent de ce que ce declenchement a provoque (ses enfants dans le recit).
           const enfants = lot.filter(e => e.cause === ev.i);
           // Une regle « quand X » : l'oeil de sa carte s'ouvre D'ABORD (lentement : « il faut etre beaucoup plus lent sur
@@ -939,6 +969,7 @@ export function creeFx(acces) {
           const base = impact.has(ev.cause) ? impact.get(ev.cause) : t;
           const at = base + f.mortDelaiMs;
           apres(at, () => mort(ev));
+          finMorts.set(cle(ev.unite.camp, ev.unite.uid), at + f.mortMs + f.mortVolMs);
           // La suite attend que la carte morte ait rejoint sa defausse : on la voit partir.
           libre = Math.max(libre, at + f.mortMs + f.mortVolMs);
           t = Math.max(t, at + f.mortMs * .5);
@@ -953,10 +984,11 @@ export function creeFx(acces) {
     marque(t);
     // Un fantome oublie (sa mort n'a pas ete jouee) ne reste pas : on le retire a la fin du film. Seulement CEUX DE CE
     // FILM : le film suivant a souvent deja commence, et balayer tous les fantomes effacait ses morts avant leur crane.
+    // Pareil pour les unites cachees : seulement CELLES DE CE FILM — montrer tout `caches` faisait apparaitre le jeton du
+    // film suivant (un rale d'agonie) avant que son unite ait fini de mourir.
     apres(t + f.mortMs, () => {
-      for (const n of caches) n.style.visibility = '';
-      caches.clear();
-      for (const u of mesMorts) retireFantome(u.camp, u.uid);
+      for (const n of mesCaches) if (caches.has(n)) montre(n);
+      for (const u of mesMorts) { retireFantome(u.camp, u.uid); libere(u); }
     });
     return t;
   }
@@ -987,7 +1019,7 @@ export function creeFx(acces) {
       minuteurs.clear();
       for (const env of fantomes.values()) env.remove();
       fantomes.clear();
-      for (const n of caches) n.style.visibility = '';
+      for (const n of caches) { n.style.visibility = ''; n.classList.remove('arrivante'); }
       caches.clear();
       for (const n of enElan) n.style.visibility = '';
       enElan.clear();

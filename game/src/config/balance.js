@@ -158,6 +158,7 @@ export const BALANCE = {
       effetSortieMs: 350,       // puis disparait
       oeilPasMs: 140,           // « quand X » : chaque etape de l'oeil qui s'ouvre (5 etapes), avant la carte-effet
       popMs: 420,               // l'arrivee d'une unite (rebond)
+      glisseMs: 240,            // les voisines d'une unite qui part (sa mort finie) ou qui arrive glissent a leur place
       anneauMs: 620,            // l'anneau d'un changement d'etat (bouclier, aura, armure, mana)
       // L'AURA (maquette du game designer, 21 oct. 2026) : quand son porteur arrive, une onde jaune part de lui et couvre
       // la bande du plateau ; les unites qu'elle touche VRAIMENT s'eclairent a son passage, puis la bande s'eteint.

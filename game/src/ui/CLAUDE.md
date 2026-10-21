@@ -192,6 +192,13 @@ le compte en **défaite** (« Tu as abandonné. », pas de récompense, l'arène
   trouvait rien) ; et la fin de chaque film effaçait **tous** les fantômes, y compris ceux du film suivant. La taille d'un
   fantôme se lit sur la mise en page (taille × échelle du plateau), pas sur le rectangle affiché (une unité en plein
   « pop » d'arrivée laissait un fantôme de 14 px).
+- **Les places du plateau** (21 oct. 2026, « les cartes s'arrangent avant la fin de l'animation ») : une unité qui **meurt**
+  garde sa place (`syncListe(…, garde)` la marque `partante`, invisible et intouchable, **avant** de ranger la liste) jusqu'à
+  la fin de sa mort ; `effets.js` la libère (`acces.libere`) et ses voisines **glissent** (`glisse` : un FLIP en `translate`,
+  `glisseMs`). Une unité qui **arrive** ne prend pas de place avant d'apparaître (`.arrivante`, `display: none`) ; elle
+  la prend en apparaissant (`acces.change`), et la carte jouée vole vers la place qu'elle va prendre. Un **râle d'agonie**
+  attend la fin de la mort de son unité (`finMorts`), donc son jeton apparaît après. ⚠ La fin d'un film ne nettoie que
+  **ses** unités (`mesCaches`, `mesMorts`) : nettoyer tout faisait apparaître le jeton du film suivant trop tôt.
 - ⚠ La classe `fin` est celle de l'écran de fin de combat (`position: absolute`) : l'onglet « Fin de tour » s'appelle
   `.fintour` (avec `fin`, il recouvrait le bouton de vitesse).
 

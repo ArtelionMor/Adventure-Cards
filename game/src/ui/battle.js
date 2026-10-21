@@ -79,7 +79,11 @@ let dernierJournal = null;
 // (depart, graine, actions) pour qu'on puisse le rejouer ; `rejeu` : on est en train d'en REJOUER un — personne ne joue,
 // le combat avance tout seul, et les fleches des bords sautent d'un tour a l'autre.
 let enreg = null;
-let rejeu = null;     // { donnees, etat: { B, rng, i, derive }, pause, apres }
+let rejeu = null;
+// LES PLACES DU PLATEAU (21 oct. 2026) : une unite qui MEURT garde sa place (un noeud invisible, `partante`) jusqu'a la
+// fin de son animation de mort ; c'est ui/effets.js qui la libere (`acces.libere`), et ses voisines glissent alors.
+let evtsRendus = 0;            // les evenements deja vus par `render()` : les morts neuves sont dans la suite
+let mortsAVenir = new Set();   // « camp:uid » des unites dont la mort va se jouer     // { donnees, etat: { B, rng, i, derive }, pause, apres }
 
 /**
  * TOUTE ACTION passe par ici (puis par `joue()` de combat/journal.js) : sous la graine du combat, et inscrite pour
@@ -157,7 +161,17 @@ export function openBattle(node, done, { rejeu: donnees = null, apres = null } =
     defausse: camp => (camp === 'p' ? coque.def : coque.defE.n),
     heros: camp => (camp === 'p' ? coque.heroP : coque.heroE).n,
     unite: (camp, uid) => (camp === 'p' ? coque.boardP : coque.boardE).firstElementChild._n.get(uid) || null,
-    unites: camp => [...(camp === 'p' ? coque.boardP : coque.boardE).firstElementChild.children],
+    // Les unites vivantes : pas les places gardees pour une mort en cours (`partante`).
+    unites: camp => [...(camp === 'p' ? coque.boardP : coque.boardE).firstElementChild.children].filter(n => !n._partante),
+    // Une unite morte a fini son animation : sa place se libere, ses voisines glissent.
+    libere: (camp, uid) => {
+      const board = coque && (camp === 'p' ? coque.boardP : coque.boardE);
+      const n = board && [...board.firstElementChild.children].find(x => x._partante && x.dataset.uid === uid);
+      if (n) glisse(board, () => n.remove());
+    },
+    // Un changement de plateau qui deplace des unites (une arrivee) : ses voisines glissent a leur nouvelle place.
+    change: (camp, fn) => { const board = coque && (camp === 'p' ? coque.boardP : coque.boardE); if (board) glisse(board, fn); else fn(); },
+    ajuste: camp => { if (coque) ajustePlateau(camp === 'p' ? coque.boardP : coque.boardE); },
     // Les unites qu'une aura touche VRAIMENT, par la regle du moteur (`aurasSur`) : l'onde d'aura (ui/effets.js) n'eclaire
     // qu'elles — un corbeau a cote d'une aura « alliés du même type » de lapins reste eteint.
     sousAura: (camp, uid) => {
@@ -211,6 +225,7 @@ export function openBattle(node, done, { rejeu: donnees = null, apres = null } =
     // Le nom du fichier porte l'heure de DEBUT du combat : on le prend maintenant.
     dernierJournal = { nom: nomDeFichier(node), texte: null };
   }
+  evtsRendus = 0;
   installeTriche();
   const root = $('#battle');
   root.style.alignItems = '';
@@ -424,10 +439,19 @@ function moments(x) {
  * element (retrouve par `cle`), cree s'il manque, retire s'il n'y a plus d'element.
  * `maj(noeud, element, rang)` redit l'etat du noeud.
  */
-function syncListe(wrap, liste, cle, cree, maj) {
+function syncListe(wrap, liste, cle, cree, maj, garde = null) {
   const noeuds = wrap._n || (wrap._n = new Map());
   const vus = new Set();
   let prec = null;
+  // Une place gardee (`partante`, voir `garde`) n'est pas dans la liste : on la saute sans la deplacer, elle reste ou
+  // etait son unite.
+  const suivant = n => { while (n && n._partante) n = n.nextSibling; return n; };
+  // Les places a garder sont marquees AVANT de ranger la liste : sinon les unites suivantes passaient devant la place de
+  // l'unite morte, et le plateau se reorganisait quand meme.
+  if (garde) {
+    const restent = new Set(liste.map(cle));
+    for (const [k, n] of noeuds) if (!restent.has(k) && garde(n)) { n._partante = true; n.classList.add('partante'); n.removeAttribute('data-geste'); noeuds.delete(k); }
+  }
   liste.forEach((x, rang) => {
     const k = cle(x);
     let n = noeuds.get(k);
@@ -435,12 +459,38 @@ function syncListe(wrap, liste, cle, cree, maj) {
     maj(n, x, rang);
     // On ne deplace un noeud que s'il n'est pas deja a sa place : le deplacer coupe parfois
     // le geste d'un doigt pose dessus.
-    const attendu = prec ? prec.nextSibling : wrap.firstChild;
+    const attendu = suivant(prec ? prec.nextSibling : wrap.firstChild);
     if (attendu !== n) wrap.insertBefore(n, attendu);
     prec = n;
     vus.add(k);
   });
-  for (const [k, n] of noeuds) if (!vus.has(k)) { n.remove(); noeuds.delete(k); }
+  for (const [k, n] of noeuds) {
+    if (vus.has(k)) continue;
+    noeuds.delete(k);
+    n.remove();
+  }
+}
+
+/**
+ * LES VOISINES GLISSENT (FLIP) : `fn` change le plateau (retire une place, montre une unite qui arrive) ; on note ou
+ * etait chaque unite avant, on remet le plateau a l'echelle, puis chacune part de son ancienne place vers la nouvelle
+ * (`translate` : `transform` est aux animations d'ui/effets.js).
+ */
+function glisse(board, fn) {
+  const wrap = board.firstElementChild;
+  const avant = new Map([...wrap.children].map(n => [n, n.getBoundingClientRect()]));
+  fn();
+  ajustePlateau(board);
+  const u = parseFloat(wrap.style.getPropertyValue('--u')) || 1;
+  const ms = BALANCE.ui.fx.glisseMs * fx.reglage.ralenti / fx.vitesse;
+  for (const n of wrap.children) {
+    const a = avant.get(n);
+    if (!a || !a.width || n._partante) continue;
+    const b = n.getBoundingClientRect();
+    const dx = (a.left - b.left) / u, dy = (a.top - b.top) / u;
+    if (Math.abs(dx) + Math.abs(dy) < 1) continue;
+    n.animate([{ translate: `${dx}px ${dy}px` }, { translate: '0 0' }], { duration: ms, easing: 'ease-out' });
+  }
 }
 
 function majUnite(n, u, side) {
@@ -899,8 +949,13 @@ function render() {
 
   majHero(c.heroE, B.e, 'e');
   majHero(c.heroP, B.p, 'p');
-  syncListe(c.boardE.firstElementChild, B.e.board, u => u.uid, () => el('<div class="unit" data-geste="unit"></div>'), (n, u) => majUnite(n, u, 'e'));
-  syncListe(c.boardP.firstElementChild, B.p.board, u => u.uid, () => el('<div class="unit" data-geste="unit"></div>'), (n, u) => majUnite(n, u, 'p'));
+  // Les unites qui meurent dans ce qui vient d'arriver gardent leur place jusqu'a la fin de leur animation de mort.
+  const neufs = (B.evts || []).slice(evtsRendus);
+  evtsRendus = (B.evts || []).length;
+  mortsAVenir = new Set(neufs.filter(e => e.t === 'meurt' && e.unite).map(e => `${e.unite.camp}:${e.unite.uid}`));
+  const garde = n => mortsAVenir.has(`${n.dataset.side}:${n.dataset.uid}`);
+  syncListe(c.boardE.firstElementChild, B.e.board, u => u.uid, () => el('<div class="unit" data-geste="unit"></div>'), (n, u) => majUnite(n, u, 'e'), garde);
+  syncListe(c.boardP.firstElementChild, B.p.board, u => u.uid, () => el('<div class="unit" data-geste="unit"></div>'), (n, u) => majUnite(n, u, 'p'), garde);
 
   // Le journal ne redessine que les scenes qui ont recu un evenement (et rien s'il est ferme).
   c.journal.maj();
@@ -1753,6 +1808,7 @@ function allerAuTour(t) {
   B = rejeu.etat.B;
   fx.vide();
   fx.saute(B.evts.length);
+  evtsRendus = B.evts.length;
   fermeLecture();
   closeModal();
   zoneOuverte = false;
