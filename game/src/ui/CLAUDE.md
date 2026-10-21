@@ -1,7 +1,7 @@
 # game/src/ui/ — les écrans du jeu (JS vanilla, sans dépendance, format téléphone)
 
 > Un module par écran ou par brique. **Pas de framework** : `el(html)` crée un nœud, `$('#id')` le retrouve (`shell.js`).
-> Les gros fichiers : `battle.js` (≈ 1 220 lignes, l'écran de combat), `vfx.js` (≈ 1 600, les 72 briques et les 180 signatures), `effets.js` (≈ 780) et `overworld.js` (≈ 480). **Grep**, ne lis pas en entier.
+> Les gros fichiers : `battle.js` (≈ 1 800 lignes, l'écran de combat et le rejeu), `vfx.js` (≈ 1 750, les 72 briques et les 181 signatures), `effets.js` (≈ 1 000) et `overworld.js` (≈ 480). **Grep**, ne lis pas en entier.
 > Le style de base est dans `../../styles.css` (sections commentées : combat, gestes, masque `.spot`, journal `.jr-*`, zone `.zcard`, fiche `.insp`) ; **l'habillage** (couleurs, cadres, polices) est un *skin* dans `../../skins/` (voir `skin.js` et `game/skins/CLAUDE.md`).
 
 ## Les fichiers
@@ -125,8 +125,10 @@ Auto, ou si la carte (l'unité) ne peut pas agir (bulle qui dit pourquoi).
   Provocation (trait, cible resserrée, attaque jouée).
 
 ## Ce qui se voit sur une carte (19 octobre 2026)
-- **Deux pictogrammes au plus** sur la face d'une unité ou d'une carte de la main (`ligneDePictos(…, { max: 2 })`), à 20 px,
-  jamais coupés (le reste se lit à l'appui long). La main garde des cartes **carrées** quel que soit leur nombre (`flex: 0 0
+- **Deux pictogrammes au plus** sur une unité du plateau (`ligneDePictos(…, { max: 2, sansDessines: true })`), **quatre** sur une carte
+  de la main (en grille de deux colonnes quand ils débordent), jamais coupés (le reste se lit à l'appui long). Leur taille suit leur
+  nombre (`data-n` : 26 px seul, 20 à deux, 17 à trois ou quatre ; 20/16 dans la fenêtre de zone) et ils sont **cernés** du contour des
+  cartes (le filtre est sur `.pc` : un picto Kenney est un `mask`, qui couperait son propre contour). La main garde des cartes **carrées** quel que soit leur nombre (`flex: 0 0
   auto` : c'est le chevauchement de l'éventail qui plie) ; l'éventail adverse montre **7 dos au plus**, et le nombre au-delà.
 - **Les capacités se voient sans icône** (demande du game designer ; **le picto est retiré de la face**, 21 oct. 2026 :
   `DESSINES` de `pictos.js` — sinon la Provocation laissait un minuscule bouclier Kenney au bas de la carte, « on dirait
@@ -140,8 +142,8 @@ Auto, ou si la carte (l'unité) ne peut pas agir (bulle qui dit pourquoi).
   (`.unit.bouclier::after`) ; **Élusif** = le personnage à moitié transparent (`.unit.elusif`). Le **porteur d'une aura** a un halo doré qui bat (`.halo-aura`, un nœud à lui) : ⚠ jamais sur `::before` ni `::after` d'une unité, qui portent le bouclier de la Provocation et le halo du Bouclier (21 oct. 2026 : le halo d'aura sur `::before` encadrait le bouclier de pierre d'un rectangle doré et le faisait clignoter).
 - **La fiche dit le moins possible** : le texte de la carte (écrit dans le builder) précédé des icônes de ses moments et
   effets, sinon une ligne générée par effet ; puis le **nom** de chaque mot-clé, sans sa définition. Plus de ligne d'état.
-- **Les dessins du game designer (20 oct. 2026)** : les pictos de la face font **26 px** (en colonne à gauche sur le plateau,
-  en rangée dans la main) ; une carte à règle « **quand X** » (les 48 moments `on_*`, `EVENT_TRIGGERS`) porte l'**œil
+- **Les dessins du game designer (20 oct. 2026)** : les pictos de la face sont en colonne à gauche sur le plateau, en rangée (grille)
+  dans la main ; une carte à règle « **quand X** » (les 48 moments `on_*`, `EVENT_TRIGGERS`) porte l'**œil
   fermé en grand, à cheval sur son bord haut** (`.oeil-carte`, main et plateau ; plus de picto dans la rangée), qui
   **s'ouvre en place** quand sa règle se déclenche (`oeil` dans `effets.js` : fermé → 25 → 50 → 75 % → ouvert,
   `oeilPasMs` par étape) ; la carte-effet ne se montre qu'une fois l'œil ouvert, et il se referme après elle. L'étape est

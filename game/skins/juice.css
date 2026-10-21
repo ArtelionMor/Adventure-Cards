@@ -394,7 +394,14 @@ html[data-skin="juice"] {
   & .card-panel b { color: #e8751a; }
 
   /* Le deck (equipe, collection, amelioration) porte son propre habillage : styles.css, section « deck ». */
-  & .gcard { background: #fffaec; border: 3px solid var(--contour); border-left: 10px solid var(--tone); border-radius: 14px; color: var(--ink); box-shadow: 0 3px 0 var(--contour); }
+  /* La bande de couleur est DANS le contour (une ombre interieure, qui suit les coins arrondis) : en `border-left`, elle
+     remplacait le contour de ce cote et en sortait (21 oct. 2026). */
+  & .gcard { background: #fffaec; border: 3px solid var(--contour); border-radius: 14px; padding-left: 16px; color: var(--ink);
+    box-shadow: inset 8px 0 0 var(--tone), 0 3px 0 var(--contour); }
+  /* Les derniers combats (le Sac) : vert une victoire, rouge une defaite, gris un nul. */
+  & .gcard.victoire { --tone: var(--accent2); }
+  & .gcard.defaite { --tone: var(--danger); }
+  & .gcard.nul { --tone: #a59a8c; }
   & .gcard .nm { font-size: 15px; }
   & .gcard .tx { font-size: 12px; }
   & .gcard .st { color: #ffd23a; font-size: 16px; -webkit-text-stroke: 3px var(--contour); paint-order: stroke fill; }

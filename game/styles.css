@@ -311,6 +311,9 @@ button.btn:disabled { opacity: .4; cursor: default; }
   grid-template-columns: 44px 1fr auto; gap: 8px; align-items: center;
 }
 .gcard.spell { --tone: var(--spell); }
+.gcard.victoire { --tone: var(--accent2); }
+.gcard.defaite { --tone: var(--danger); }
+.gcard.nul { --tone: var(--ink-dim); }
 .gcard img.port { width: 44px; height: 44px; object-fit: contain; }
 .gcard .nm { font-weight: 700; font-size: 13px; }
 .gcard .tx { font-size: 11px; color: var(--ink-dim); }

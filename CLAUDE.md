@@ -177,7 +177,7 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 **Chaque dossier a son `CLAUDE.md`** : il dit à quoi sert le dossier, ce que fait **chaque fichier** (rôle, points d'entrée), qui l'utilise, quels tests lancer et quels pièges
 éviter. **Lis-le avant d'ouvrir un fichier du dossier** — il est chargé tout seul dès que tu lis un fichier de ce dossier, mais mieux vaut le lire en premier.
 - Les gros fichiers ne se lisent **jamais en entier** : `game/src/combat/engine.js` (≈ 2 000 l.), `game/src/combat/ai.js` (≈ 1 200), `game/src/config/mechanics.js` (≈ 1 560),
-  `game/src/ui/battle.js` (≈ 1 030), `builder/index.html` (≈ 2 400), `builder/lancer.html` (≈ 1 300), `scripts/devserver.js` (≈ 900), `scripts/test-triggers.mjs` (≈ 3 600),
+  `game/src/ui/battle.js` (≈ 1 800), `builder/index.html` (≈ 2 400), `builder/lancer.html` (≈ 1 300), `scripts/devserver.js` (≈ 900), `scripts/test-triggers.mjs` (≈ 3 600),
   `game/data/characters.data.js` (≈ 7 900) → **Grep** le nom d'une fonction (chaque `CLAUDE.md` donne les bons) puis Read avec `offset`/`limit`.
 - Les images (`Graphical Assets/`, `mockups/`) sont des binaires : ne les ouvre que si la tâche porte sur ce qu'elles montrent.
 - **Tiens ces `CLAUDE.md` à jour** : un fichier ajouté = une ligne dans la table de son dossier ; un invariant qui change = la section concernée. Un `CLAUDE.md` qui ment coûte plus de tokens que pas de `CLAUDE.md`.
@@ -199,7 +199,7 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | `launcher/` | Le lanceur Windows (`Launcher.cs` → `AdventureCard.exe`). | `launcher/CLAUDE.md` |
 | `android/` | Le widget Android (Java, sans bibliothèque). | `android/CLAUDE.md` |
 | `docs/` | La conception : GDD, héros V3, grammaire des paliers, mécaniques à coder, situations. | `docs/CLAUDE.md` |
-| `Graphical Assets/` | **Toutes les images du game designer** (rangées le 19 oct. 2026) : `Characters/<Espèce>/` (portraits), `Buildings/` (bâtiments, arènes), `Ressources/` (Ferme, Sac), `Old UI/` (petits objets : coffre, arbre, reliques), `Icons/` (le logo et les **icônes d'interface**, + `Icons/Kenney/`), `CardBack/` (dos de carte) ; et, pas câblés, `Socials/` et trois packs `Kenney_*`. Les données citent le chemin complet (`Graphical Assets/Characters/Dog/Dog Cocker.png`) ; le jeu affiche leurs vignettes (`game/vignettes/`). | `Graphical Assets/CLAUDE.md`, `Graphical Assets/Icons/CLAUDE.md` |
+| `Graphical Assets/` | **Toutes les images du game designer** (rangées le 19 oct. 2026) : `Characters/<Espèce>/` (portraits), `Buildings/` (bâtiments, arènes), `Ressources/` (Ferme, Sac), `Old UI/` (petits objets : coffre, arbre, reliques), `Icons/` (le logo et les **icônes d'interface**, + `Icons/Kenney/`), `CardBack/` (dos de carte), `VFX/` (les **particules** des effets, extraites du pack Kenney Particle) ; et, pas câblés, `Socials/` et les packs Kenney complets (`Kenney_*`, `Kenney Particle`). Les données citent le chemin complet (`Graphical Assets/Characters/Dog/Dog Cocker.png`) ; le jeu affiche leurs vignettes (`game/vignettes/`). | `Graphical Assets/CLAUDE.md`, `Graphical Assets/Icons/CLAUDE.md` |
 | `Decor/` | Packs d'assets **tiers** (Kenney, CC0) du sol et du décor de la carte : **Medieval RTS + Foliage Pack**, dessinés par `game/src/ui/sol-carte.js` ; Tiny Town (essayé, écarté) ne sert qu'au prototype (`docs/PACKS-CARTE.md`). | `Decor/CLAUDE.md` |
 | `mockups/` | Maquettes (cartes, widget). | `mockups/CLAUDE.md` |
 | `combatLogs/` | Anciens exports de mesures (archives). | `combatLogs/CLAUDE.md` |

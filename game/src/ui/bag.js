@@ -42,7 +42,7 @@ export function renderBag() {
   }
   wrap.appendChild(rel);
 
-  // Les derniers combats : on peut les REVOIR (le journal graphique), surtout quand le jeu a
+  // Les derniers combats : on peut les REVOIR (le combat rejoue), surtout quand le jeu a
   // tourne tout seul et qu'on se demande pourquoi on n'avance pas.
   const combats = listeCombats();
   const cb = el('<div class="card-panel"><h3>Derniers combats</h3></div>');
@@ -52,7 +52,8 @@ export function renderBag() {
     for (const c of combats) {
       const issue = c.gagnant === 'p' ? 'Victoire' : c.gagnant === 'draw' ? 'Match nul' : 'Défaite';
       const quand = new Date(c.t).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-      const row = el(`<div class="gcard ${c.gagnant === 'p' ? '' : 'spell'}">
+      // Le code couleur dit l'issue : vert une victoire, rouge une defaite, gris un nul.
+      const row = el(`<div class="gcard ${c.gagnant === 'p' ? 'victoire' : c.gagnant === 'draw' ? 'nul' : 'defaite'}">
         ${c.heros && c.heros.e ? `<img class="port" src="${asset(c.heros.e)}" alt="">` : '<span></span>'}
         <div><div class="nm">${c.nom} · ${issue}</div><div class="tx">${c.equipe} · ${c.tours} tours · ${quand}</div></div>
         <button class="btn ghost" style="display:flex;gap:6px;align-items:center">${icone('Log', 18)} Revoir</button></div>`);

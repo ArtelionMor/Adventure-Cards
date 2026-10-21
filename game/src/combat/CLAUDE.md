@@ -824,8 +824,8 @@ combat de plus de 400 lignes perdrait ses premières phrases **sans le dire**.
 **Activation.** Éteint par défaut. Dans le jeu : `?journal=1` dans l'adresse — et il se
 **retient** (`localStorage`), sinon il faudrait le retaper à chaque ouverture de l'app
 installée ; `?journal=0` l'éteint. Un **⏺ rouge** reste visible pendant le combat (une
-partie ne s'enregistre pas dans le dos du joueur) et l'écran de résultat porte
-« ⬇ Télécharger le journal de décisions ». Dans l'arène : `duel(a, b, { journal: true })`,
+partie ne s'enregistre pas dans le dos du joueur) ; le fichier se télécharge par la console de triche,
+`AC.triche.decisions()` (5 touchers sur « Tour N » ; plus de bouton à l'écran de résultat depuis le 21 oct. 2026 : pas en prod). Dans l'arène : `duel(a, b, { journal: true })`,
 qui rend le fichier dans `journal`. Mesuré : **4 ko par décision**, soit 150 à 400 ko par
 combat — le JSONL se compresse très bien, on n'optimisera qu'après une mesure réelle.
 

@@ -1,6 +1,6 @@
 # VFX des cartes — liste de travail
 
-> Proposition (9 octobre 2026), à corriger carte par carte. **Codé le 9 octobre 2026** dans `game/src/ui/vfx.js` : **180 signatures écrites carte par carte** (120 le 9 octobre, **+60 le 10 octobre pour les six héros V3**) (base et switch), **toutes différentes**, assemblées à partir de **71 briques procédurales** (voir « Une animation unique par carte » plus bas). La liste carte par carte ci-dessous est l'intention de départ pour les cartes de base ; le code s'en écarte quand c'était mieux. Chaque carte
+> Proposition (9 octobre 2026), à corriger carte par carte. **Codé le 9 octobre 2026** dans `game/src/ui/vfx.js` : **180 signatures écrites carte par carte** (120 le 9 octobre, **+60 le 10 octobre pour les six héros V3**) (base et switch), **+1 carte d'adversaire** (l'Éclaireur Fou, 21 octobre), **toutes différentes**, assemblées à partir de **72 briques procédurales** (voir « Une animation unique par carte » plus bas). La liste carte par carte ci-dessous est l'intention de départ pour les cartes de base ; le code s'en écarte quand c'était mieux. Chaque carte
 > reçoit un effet de **lancer** (ce qui part de la carte) et un effet d'**arrivée** (ce que la
 > cible subit). Les doublons sont voulus quand l'effet est le même ; quand on peut varier, on varie.
 > Les noms de briques (en **gras**) sont définis en bas : une carte = un assemblage de briques.
@@ -66,6 +66,23 @@ Un déclenchement qui frappe **au hasard** (le Chat Griffu : « inflige une bles
 ⚠ **Une carte ajoutée dans le builder fait échouer le banc** tant qu'elle n'a pas sa signature : c'est voulu (elle s'anime quand même, avec la signature calculée).
 Console : `AC.fx.trace = console.log` écrit chaque brique jouée pendant un combat, `AC.fx.montre('crocs')` en joue une seule, `AC.triche.vfx('dog_pup', 'p', 'mort')` rejoue un moment d'une carte.
 
+## Particules, aura et temps des animations (21 octobre 2026, retours du game designer)
+- **Les particules** : un extrait du « Particle Pack » de Kenney (CC0) dans `Graphical Assets/VFX/` — des textures **blanches** posées en
+  `mask` sur un dégradé, donc teintées par le code (`particule()`, `FEU` dans `vfx.js`). Première brique : **`brasier`**, une gerbe de
+  flammes en deux couronnes qui sort largement de la carte, brûle environ 2 s puis retombe, avec braises et secousse — l'arrivée de
+  l'**Éclaireur Fou** (`rush1`, une carte d'adversaire : une signature peut en viser une, `test-vfx` la cherche dans le catalogue).
+  Refusé : un feu **permanent** sous la carte (« c'est un burst une fois, et après ça disparaît »).
+- **L'onde d'aura** (sa maquette) : quand le porteur arrive, une onde jaune part de lui et couvre sa bande du plateau **derrière** les
+  cartes ; seules les unités que l'aura touche **vraiment** s'éclairent quand elle les atteint (la règle du moteur, `aurasSur` : un corbeau
+  à côté d'une aura « alliés du même type » de lapins reste éteint), puis la bande s'éteint. **Chaque porteur la rejoue toutes les 5 s**
+  (`auraPeriodeMs`, en vraies secondes ; « on va essayer »). Au repos, une lueur douce sous le porteur. La signature (`aura`) n'en donne
+  plus que la couleur. Console : `AC.fx.aura()`.
+- **Laisser le temps aux choses** : les dégâts et les morts causés par une carte tombent quand son lancer **arrive** (sa durée est mesurée
+  « à blanc », `lancerArriveePart` de la durée — avant, 84 lancers sur 88 duraient plus que les 380 ms laissés, et les ennemis mouraient
+  pendant que le projectile volait) ; l'action suivante attend la fin de l'animation d'**arrivée** d'une unité (l'Éclaireur, qui a Charge,
+  attaquait en pleine gerbe) ; et cette animation se dimensionne sur la carte mesurée **avant** son rebond (mesurée pendant, elle valait
+  15 % de la carte).
+
 ## Principes
 1. **Un effet se lit sans texte.** Le symbole (pictogramme) apparaît au-dessus de la cible avec le chiffre,
    la couleur dit la nature (rouge dégâts, vert soin/croissance, bleu mana/armure, violet venin/ombre, or renfort).
@@ -74,7 +91,7 @@ Console : `AC.fx.trace = console.log` écrit chaque brique jouée pendant un com
 3. **Une carte qui a un effet « se montre » comme une carte** (demande du 9 octobre) : une carte-effet
    plus petite, au **contour différent** (comme Arena), pose son symbole puis disparaît. Ses contours :
    *lancer* = doré, *mort* = gris-rouge, *début de tour* = vert, *fin de tour* = bleu, *aura/statique* = violet.
-4. Les durées viennent de la game config (`BALANCE.ui.fx`) et de la vitesse x1/x2/x4.
+4. Les durées viennent de la game config (`BALANCE.ui.fx`) et de la vitesse x1/x2/x4 (x8 en plus dans « Revoir le combat »).
 
 ## Les briques (vocabulaire commun)
 | Brique | Description | Pictogramme |
@@ -85,7 +102,8 @@ Console : `AC.fx.trace = console.log` écrit chaque brique jouée pendant un com
 | **Langue** | traînée rose élastique de la source à la cible, claque | — |
 | **Spore / goutte** | gouttes vertes ou violettes qui coulent sur la cible | `flask_full` |
 | **Pluie** | gouttes qui tombent sur tout un camp | — |
-| **Aura** | anneau doux qui reste sous l'unité (couleur de l'effet) | — |
+| **Aura** | onde qui part du porteur et éclaire ceux qu'elle touche, rejouée toutes les 5 s ; lueur douce sous le porteur (`ondeAura`, `effets.js`) | — |
+| **Brasier** | gerbe de flammes en couronne autour de la cible, particules Kenney (`brasier`) | — |
 | **Pioche** | carte(s) qui glissent du deck vers la main | `card_add`, `cards_take` |
 | **Mélange** | cartes qui se brassent et s'engouffrent dans le deck | `cards_shuffle` |
 | **Mille-feuilles** | pile de cartes qui défile (recherche) | `cards_seek`, `cards_seek_top` |
@@ -221,11 +239,15 @@ Grand Registre (arc-en-ciel, voile, renfort) · Copiste (dédoublement, une cart
 Archiviste Impitoyable (œil, éclats vers le héros adverse) · Index du Registre (livre, cinq cartes en éventail) · Rétrospective (arc-en-ciel, six cartes mélangées).
 
 ## Les effets sans carte (états)
-- **Bouclier** (mot-clé) : bulle bleue qui se brise à l'impact, `tag_shield`.
-- **Provocation** : cadre bleu-gris qui pulse quand l'unité est ciblée à la place d'une autre.
+Sur le **plateau**, un mot-clé qui a son dessin n'a plus de picto (`DESSINES`, `pictos.js`) ; **en main**, aucun de ces dessins : les
+pictos (21 oct. 2026). ⚠ **Un effet visuel par mot-clé** est à concevoir avec le game designer (propositions envoyées le 21 oct. :
+Bouclier en bulle dorée qui éclate, Charge en traits de vitesse le tour d'arrivée, Passe-Murailles qui ondule, Miroir qui reflète…).
+- **Bouclier** (mot-clé) : halo d'or et badge `Shield.png` en haut à droite tant qu'il tient — ⚠ le badge est la même pierre grise que
+  la Provocation et les fait confondre : à remplacer.
+- **Provocation** : un **bouclier de pierre derrière la carte**, qui écarte ses voisines sur le plateau.
 - **Clairon de la Meute** : traînée de vitesse à l'arrivée.
-- **Élusif** : l'unité devient légèrement transparente, la cible « glisse » hors du coup.
-- **Venin** : goutte violette, `flask_full`, puis crâne.
+- **Élusif** : quatre bandes de **brume** qui dérivent sur la carte.
+- **Venin** : la **fiole** (`Poison.png`) à cheval sur le bord haut de la carte ; à l'impact, goutte violette puis crâne.
 - **Passe-murailles** : fantôme translucide.
 - **Fatigue** (pile vide) : carte de la pioche qui se fissure, `cards_skull`.
 

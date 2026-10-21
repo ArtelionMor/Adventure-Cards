@@ -146,6 +146,8 @@ Le bot va donc régulièrement mal jouer — **c'est voulu**, ça laisse une vra
 
 **Mode manuel** : le joueur engagé reprend la main sur les combats difficiles. Même aux commandes, le joueur doit pouvoir être **arrêté par la difficulté** — il y aura toujours un palier qu'il ne peut pas franchir sans revenir progresser (deck, niveaux) d'abord. Vérifié en simulation : le Grand Méchant Loup, le Capitaine Grenouille et le Grand-Duc sont infranchissables tant que l'équipe n'a pas grandi.
 
+**Revoir un combat** (21 octobre 2026) : les 5 derniers combats sont gardés et **se rejouent** à l'identique sur l'écran de combat (écran de fin, Sac) — pour comprendre une défaite, surtout en AFK. Pendant le rejeu personne ne joue ; on met en pause, on saute au tour précédent ou suivant (flèches des côtés), on accélère jusqu'à **x8** (cette vitesse n'existe que là), et la main de l'adversaire est visible. Les journaux à télécharger (décisions, texte) sont des outils de game design : ils ne sont plus dans l'interface du joueur.
+
 ## Architecture idle ✅ implémenté
 
 Deux régimes :
