@@ -109,6 +109,29 @@ Sprite `Rabbit/Rabbit Wherewolf.png`.
 | 4 | Lapin de Pleine Lune — 4 · 3/3, Début de ton tour : gagne +1/+1 | Lièvre de Mars — 4 · 2/2, Cri de guerre : invoque deux Lapereaux 1/1 |
 | 5 | Reine du Terrier — 5 · 4/4, Fin de ton tour : invoque un Lapereau 1/1 | Lapin d'Éclipse — 5 · 4/4, Râle d'agonie : invoque trois Lapereaux 1/1 |
 
+## Les Souris du Potager
+
+L'arène garde son identifiant `rabbit1` (la feuille, le monde, les quêtes et une situation du banc le citent) ;
+son adversaire devient **« Souris chapardeuses »** (sprite `Mouse/Mouse.png`, 10 PV, mana qui monte jusqu'à 5,
+3 cartes en main, bot naïf). Écrites par `scripts/gen-lapins.mjs` (type `Souris`, paliers par défaut des
+adversaires : c'est ce que lit `card_level` dans le profil de progression) ; le deck de `rabbit1` n'est plus dans
+`scripts/lib/cartes-adversaires.mjs` (`gen-heros-v3.mjs` ne le réécrit plus). Des cartes **lisibles** — des corps sans
+texte, une Provocation, un petit sort — et une seule « grosse » carte, le Chef de bande : une aura, comme le
+Grand-Père de Pompon, vue de l'autre côté.
+
+| Carte | Coût · stats | Effet | Exemplaires |
+|---|---|---|---|
+| Souriceau | 1 · 1/1 | — | 5 |
+| Souris grise | 2 · 2/2 | — | 5 |
+| Têtue | 2 · 1/3 | Provocation | 2 |
+| Grignotage | sort 1 | 1 dégât à une unité adverse | 3 |
+| Rat des greniers | 3 · 3/2 | — | 4 |
+| Chef de bande | 5 · 4/4 | Aura : tes autres Souris ont +1/+0 | 1 |
+
+Les niveaux 1 à 4 de l'arène (le chef au 4) viennent du profil de `rabbit1` dans l'onglet `enemy_progress_profile`
+(niv. 2 : +3 PV ; 3 : cartes +1 palier ; 4 : +1 d'attaque à ses unités). Les anciennes cartes `adv_lapin_*` et
+`card_bjidas` restent dans la bibliothèque, sans deck.
+
 ## Les quêtes
 
 ### Le modèle (`game/src/config/quetes.js`)
@@ -154,11 +177,13 @@ d'une switch (`ui/deck.js`), la victoire (`ui/battle.js`), la Ferme (`ui/farm.js
 - ✅ **Le bandeau éprouvé dans le jeu** (navigateur intégré, partie neuve) : Pompon seul combat (le minimum du deck
   suit les places : `tailleMinDuDeck`), la victoire remplit la quête, « Récupérer » donne la récompense, Caramel ouvre
   la 2ᵉ place de l'écran Deck, l'amélioration et l'achat d'une switch remplissent leurs quêtes ; le fil va jusqu'à Médor.
-- **Mesure** (21 oct. 2026, 300 parties, le bot joue le joueur, ennemi **actuel** du Potager : le Lapin chapardeur,
-  profil de progression standard) — Pompon seul : 98 % (niv. 1), 97 % (2), 94 % (3), 63 % (4) ; Pompon + Caramel :
-  96 % (3), 78 % (4, le chef) ; les trois Lapins : 78 % (4), 79 % (5). La marche se sent au chef, sans mur.
-- ⏳ **Le Potager** : son ennemi en Souris (decks des niveaux 1 à 4, le chef), sa fiche (les textes parlent encore
-  d'« un trio »), puis refaire la mesure ci-dessus.
+- ✅ **Le Potager en Souris** (voir « Les Souris du Potager » plus haut) : l'adversaire, ses 6 cartes, sa fiche, et
+  la Google Sheet alignée (onglet `heroes`, ligne `rabbit1` : nom, sprite `Mouse` ; onglet `encounters` : les textes de
+  la fiche) — `game/data/feuille.data.js` porte déjà ces valeurs, la synchro du Pi les redonnera telles quelles.
+- **Mesure** (21 oct. 2026, 300 parties, le bot joue le joueur, profil de progression de `rabbit1` dans la feuille) —
+  Pompon seul : 99,7 % (niv. 1), 99 % (2), 96 % (3), 59 % (4) ; Pompon + Caramel : 100 % (3), **86 % contre le chef**
+  (4, la quête l'y envoie à deux) ; les trois Lapins : 92 % (4), 91 % (5). Avant les Souris (Lapin chapardeur) :
+  98/97/94/63 en solo, 78 % au chef à deux. Les premiers combats se gagnent presque à coup sûr, le chef demande le duo.
 - ⏳ **Les Lapins dans la META** : `matchups --taille 3` avec les 21 héros, pour vérifier qu'aucun Lapin ne surclasse
   (décision 9 : ils restent dans le roster).
 - ⏳ **Le combat guidé** (bulles : poser, attaquer, le héros, le mana, la pile de fatigue).

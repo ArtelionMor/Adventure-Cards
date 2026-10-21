@@ -208,7 +208,7 @@ export const CARTES_ADVERSAIRES = [
 
 /** Les decks des 9 adversaires du builder (`CHARACTER_DATA.npcs`). Les 5 provisoires : config/ennemis.js. */
 export const DECKS_ADVERSAIRES = {
-  rabbit1: { grunt1: 4, grunt2: 3, bolt: 3, card_bjidas: 3, adv_lapin_terrier: 3, adv_lapin_sauteur: 2, adv_lapin_carotte: 2 },
+  // rabbit1 (le Potager) n'est plus ici : ses Souris sont ecrites par scripts/gen-lapins.mjs (docs/TUTORIEL.md, 21 oct. 2026).
   cat1: { grunt2: 2, rush1: 4, bolt: 4, card_i5eghg: 3, wall1: 3, card_ta7prz: 2, adv_chat_gouttiere: 4, adv_chat_caid: 2, adv_chat_course: 3 },
   crow1: { grunt3: 4, bolt: 4, wall1: 3, card_y5uc9s: 4, adv_corbeau_glaneur: 4, adv_corbeau_nuee: 3, adv_corbeau_rire: 3 },
   wolf: { grunt3: 2, wall2: 1, smash: 1, rally: 1, adv_loup_hurlement: 1, adv_loup_mere: 1, adv_loup_fourrure: 2, adv_loup_flair: 1 },

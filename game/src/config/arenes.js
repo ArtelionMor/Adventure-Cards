@@ -26,7 +26,7 @@ const B = n => `Graphical Assets/Buildings/${n}.png`;
 // quelques mots, sur la carte de l'onglet « Arene » (maquette « Arena Screen », 19 octobre 2026). Lue sur le deck de
 // chaque ennemi (mot-cle ou moment le plus frequent) : PROVISOIRE, a relire par le game designer.
 const SIGNATURES = {
-  rabbit1: { icone: 'WallWalker', texte: 'Passe-Murailles' },
+  rabbit1: { icone: 'Aura', texte: 'Le Chef de bande' },
   cat1: { icone: 'Charge', texte: 'Charges et dégâts directs' },
   crow1: { icone: 'TurnEnd', texte: 'Effets de fin de tour' },
   wolf: { icone: 'Taunt', texte: 'Provocations' },
@@ -69,9 +69,11 @@ const FONDS_DES_ARENES = {
 
 /** Les arenes, dans l'ordre de l'onglet « Arene ». `ennemi` = l'identifiant de config/ennemis.js. PROVISOIRE. */
 export const ARENES = [
+  // Le POTAGER, l'arene du tutoriel (docs/TUTORIEL.md) : les Souris chapardeuses, ecrites par scripts/gen-lapins.mjs.
   { id: 'rabbit1', ennemi: 'rabbit1', batiment: B('Carrot Farm'), role: 'tutoriel', archetype: 'Aggro', sousArchetype: 'Tempo',
-    question: 'Tu sais jouer tes cartes et frapper le héros ?', reponse: "N'importe quel trio", punit: 'Passer son tour sans rien poser',
-    herosConseilles: [], typeDeck: 'Petits lapins, Passe-Murailles, Éclair, Lapin Garou qui grandit' },
+    question: 'Tu sais poser tes cartes et frapper le héros ?', reponse: 'Pose une carte à chaque tour, puis frappe le héros quand la voie est libre',
+    punit: 'Passer son tour sans rien poser',
+    herosConseilles: ['lapin1', 'lapin2', 'lapin3'], typeDeck: 'Souriceaux, Souris grises, une Têtue en Provocation, Grignotage, Rats des greniers, le Chef de bande' },
   { id: 'cat1', ennemi: 'cat1', batiment: B('Tennis ball Factory'), role: 'apprentissage', archetype: 'Aggro', sousArchetype: 'Turbo',
     question: 'Tu tiens une course aux dégâts ?', reponse: 'Provocation, soin, bloquer tôt', punit: 'Ignorer son plateau pour taper le héros',
     herosConseilles: ['dog', 'dog3', 'frog'], typeDeck: 'Éclaireur Fou 5/1 Charge, Éclair, Griffes, Paresseux' },

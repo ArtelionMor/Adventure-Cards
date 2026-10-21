@@ -231,9 +231,9 @@ export const FEUILLE = {
     },
     {
       "id": "rabbit1",
-      "heroes_kin": "rabbit",
-      "name": "Lapin chapardeur",
-      "sprite": "Rabbit",
+      "heroes_kin": "mouse",
+      "name": "Souris chapardeuses",
+      "sprite": "Mouse",
       "is_hero": false,
       "deck_category": "aggro",
       "PV_Max": 10,
@@ -326,10 +326,10 @@ export const FEUILLE = {
       "power_needed": 0,
       "role": "tutoriel",
       "archetype": "Aggro Tempo",
-      "question": "Tu sais jouer tes cartes et frapper le héros ?",
-      "reponse": "N'importe quel trio",
+      "question": "Tu sais poser tes cartes et frapper le héros ?",
+      "reponse": "Pose une carte à chaque tour, puis frappe le héros quand la voie est libre",
       "punit": "Passer son tour sans rien poser",
-      "heros_conseilles": "tous"
+      "heros_conseilles": "lapin1, lapin2, lapin3 (Pompon, Caramel, Séléné)"
     },
     {
       "id": "cat1",

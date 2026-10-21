@@ -2693,48 +2693,292 @@ export const CHARACTER_DATA = {
       ],
       "statics": [],
       "sprite": "Graphical Assets/Characters/Octopus/Octopus Robot.png"
+    },
+    {
+      "id": "adv_souris_souriceau",
+      "name": "Souris - Souriceau",
+      "type": "ally",
+      "cost": 1,
+      "keys": [
+        "type:Souris"
+      ],
+      "text": "",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 1,
+      "hp": 1,
+      "statics": [],
+      "sprite": "Graphical Assets/Characters/Mouse/Mouse.png"
+    },
+    {
+      "id": "adv_souris_grise",
+      "name": "Souris - Souris grise",
+      "type": "ally",
+      "cost": 2,
+      "keys": [
+        "type:Souris"
+      ],
+      "text": "",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 2,
+      "hp": 2,
+      "statics": [],
+      "sprite": "Graphical Assets/Characters/Mouse/Mouse.png"
+    },
+    {
+      "id": "adv_souris_tetue",
+      "name": "Souris - Têtue",
+      "type": "ally",
+      "cost": 2,
+      "keys": [
+        "Taunt",
+        "type:Souris"
+      ],
+      "text": "Provocation.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 1,
+      "hp": 3,
+      "statics": [],
+      "sprite": "Graphical Assets/Characters/Mouse/Mouse.png"
+    },
+    {
+      "id": "adv_souris_rat",
+      "name": "Souris - Rat des greniers",
+      "type": "ally",
+      "cost": 3,
+      "keys": [
+        "type:Souris"
+      ],
+      "text": "",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 3,
+      "hp": 2,
+      "statics": [],
+      "sprite": "Graphical Assets/Characters/Mouse/Mouse.png"
+    },
+    {
+      "id": "adv_souris_chef",
+      "name": "Souris - Chef de bande",
+      "type": "ally",
+      "cost": 5,
+      "keys": [
+        "type:Souris"
+      ],
+      "text": "Tes autres Souris ont +1/+0.",
+      "play": [],
+      "tiers": [
+        {
+          "lvl": 2,
+          "stats": {
+            "atk": 0,
+            "hp": 1
+          },
+          "text": "+0/+1"
+        },
+        {
+          "lvl": 5,
+          "stats": {
+            "atk": 1,
+            "hp": 0
+          },
+          "text": "+1/+0"
+        },
+        {
+          "lvl": 10,
+          "stats": {
+            "atk": 1,
+            "hp": 2
+          },
+          "text": "+1/+2"
+        }
+      ],
+      "atk": 4,
+      "hp": 4,
+      "statics": [],
+      "aura": {
+        "scope": "sameTypeAllies",
+        "atk": 1,
+        "hp": 0,
+        "key": ""
+      },
+      "sprite": "Graphical Assets/Characters/Mouse/Mouse.png"
+    },
+    {
+      "id": "adv_souris_grignotage",
+      "name": "Souris - Grignotage",
+      "type": "spell",
+      "cost": 1,
+      "keys": [
+        "type:Souris"
+      ],
+      "text": "Inflige 1 dégât à une unité adverse.",
+      "play": [
+        {
+          "op": "dmg",
+          "t": "enemyUnit",
+          "v": 1
+        }
+      ],
+      "tiers": [
+        {
+          "lvl": 3,
+          "amp": 1,
+          "text": "Effet +1"
+        },
+        {
+          "lvl": 6,
+          "cost": -1,
+          "text": "Coût −1"
+        },
+        {
+          "lvl": 11,
+          "amp": 1,
+          "text": "Effet +1"
+        }
+      ],
+      "statics": [],
+      "sprite": "Graphical Assets/Characters/Mouse/Mouse.png"
     }
   ],
   "npcs": [
     {
       "id": "rabbit1",
-      "name": "Lapin Chapardeur",
-      "sprite": "Graphical Assets/Characters/Rabbit/Rabbit.png",
-      "hp": 20,
+      "name": "Souris chapardeuses",
+      "sprite": "Graphical Assets/Characters/Mouse/Mouse.png",
+      "hp": 10,
       "mana": 5,
       "hand": 3,
       "level": 1,
+      "ia": "naif",
       "deck": [
         {
-          "card": "grunt1",
+          "card": "adv_souris_souriceau",
+          "n": 5
+        },
+        {
+          "card": "adv_souris_grise",
+          "n": 5
+        },
+        {
+          "card": "adv_souris_tetue",
+          "n": 2
+        },
+        {
+          "card": "adv_souris_grignotage",
+          "n": 3
+        },
+        {
+          "card": "adv_souris_rat",
           "n": 4
         },
         {
-          "card": "grunt2",
-          "n": 3
-        },
-        {
-          "card": "bolt",
-          "n": 3
-        },
-        {
-          "card": "card_bjidas",
-          "n": 3
-        },
-        {
-          "card": "adv_lapin_terrier",
-          "n": 3
-        },
-        {
-          "card": "adv_lapin_sauteur",
-          "n": 2
-        },
-        {
-          "card": "adv_lapin_carotte",
-          "n": 2
+          "card": "adv_souris_chef",
+          "n": 1
         }
-      ],
-      "ia": "naif"
+      ]
     },
     {
       "id": "cat1",

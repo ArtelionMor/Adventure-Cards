@@ -37,7 +37,7 @@ export const RARETE_DES_HEROS = {
 export const COULEURS_DES_TYPES = {
   Chien: '#ffbfbf', Chat: '#bff9ff', Corbeau: '#ddd0ff', Oiseau: '#cfe3ff', Faucon: '#ffd9a8',
   Grenouille: '#c2ffbf', 'Têtard': '#e2ffc9', Hibou: '#ffe6b3', Chouette: '#ffe6b3', Cameleon: '#ffd3f1',
-  Loup: '#c9c9d6', Lapin: '#f6e7a0', Robot: '#b7b7b7'
+  Loup: '#c9c9d6', Lapin: '#f6e7a0', Robot: '#b7b7b7', Souris: '#d6cfc4'
 };
 export const TYPE_PAR_DEFAUT = '#e0d6c4';
 

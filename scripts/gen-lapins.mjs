@@ -1,7 +1,8 @@
 // Ajoute (ou remplace) les trois LAPINS du tutoriel dans characters.data.js — leur SOURCE est docs/TUTORIEL.md.
 // Pompon (lapin1) le premier compagnon, Caramel (lapin2) le gardien, Seléné (lapin3) la portée : 5 + 5 cartes chacun,
 // paliers compris (docs/GRAMMAIRE-DES-PALIERS.md : Eveil 2-6, Verbe 7-11, Pivot 12-16, quatre sommets 17-20).
-// Pose aussi le DEPART d'une partie : `starters` = Pompon seul (le tutoriel ouvre les autres par les quetes).
+// Pose aussi le DEPART d'une partie : `starters` = Pompon seul (le tutoriel ouvre les autres par les quetes), et
+// l'adversaire du Potager (arene `rabbit1`) : les Souris, leurs 6 cartes et leur deck.
 // ⚠ Relancer ECRASE les trois Lapins par leur definition d'ici : toute retouche faite depuis dans l'Atelier serait perdue.
 // A utiliser pour (re)generer le point de depart ; apres, on edite dans le builder. Idempotent.
 // ⚠ Les cartes vivent sur le Pi : verifier `git status` la-bas avant de lancer (CLAUDE.md racine).
@@ -166,6 +167,32 @@ const TIERS = {
   lap3_eclipse: [cle(6, 'Taunt', 'Gagne Provocation.'), ex(11, buffLapins(1, 0), 'Fin de ton tour : tes Lapins gagnent +1/+0.', 'turnEnd'), ex(16, summon(1), 'Cri de guerre : invoque un Lapereau 1/1.'), ex(18, summon(1), 'Début de ton tour : invoque un Lapereau 1/1.', 'turnStart')]
 };
 
+// ================================================================== LES SOURIS DU POTAGER (l'adversaire du tutoriel)
+// L'arene `rabbit1` (Carrot Farm) garde son identifiant — la feuille, le monde et les quetes le citent — mais son
+// adversaire devient une bande de Souris (docs/TUTORIEL.md, decision 8). Des cartes LISIBLES : des corps sans texte,
+// une Provocation, un petit sort, et le Chef de bande (une aura, comme le Grand-Pere de Pompon, vue de l'autre cote).
+// Les niveaux de l'arene (1 a 4, le chef au 4) sont le profil de progression de `rabbit1` (onglet enemy_progress_profile).
+// Paliers par defaut des adversaires (2/5/10, 3/6/11) : c'est ce que lit `card_level` dans le profil.
+const SOURIS = 'type:Souris';
+const MOUSE = 'Graphical Assets/Characters/Mouse/Mouse.png';
+const advTiers = () => [st(2, 0, 1), st(5, 1, 0), st(10, 1, 2)];
+// Le meme constructeur que les Lapins, mais le type Souris a la place du type Lapin.
+const souris = o => ({ ...ally(o), keys: [...(o.keys || []), SOURIS], tiers: advTiers(), sprite: MOUSE });
+const CARTES_SOURIS = [
+  souris({ id: 'adv_souris_souriceau', name: 'Souris - Souriceau', cost: 1, atk: 1, hp: 1 }),
+  souris({ id: 'adv_souris_grise', name: 'Souris - Souris grise', cost: 2, atk: 2, hp: 2 }),
+  souris({ id: 'adv_souris_tetue', name: 'Souris - Têtue', cost: 2, atk: 1, hp: 3, keys: ['Taunt'], text: 'Provocation.' }),
+  souris({ id: 'adv_souris_rat', name: 'Souris - Rat des greniers', cost: 3, atk: 3, hp: 2 }),
+  souris({ id: 'adv_souris_chef', name: 'Souris - Chef de bande', cost: 5, atk: 4, hp: 4, text: 'Tes autres Souris ont +1/+0.', aura: { scope: 'sameTypeAllies', atk: 1, hp: 0, key: '' } }),
+  { id: 'adv_souris_grignotage', name: 'Souris - Grignotage', type: 'spell', cost: 1, keys: [SOURIS], text: 'Inflige 1 dégât à une unité adverse.',
+    play: [{ op: 'dmg', t: 'enemyUnit', v: 1 }], tiers: [amp(3, 'Effet +1'), cout(6), amp(11, 'Effet +1')], statics: [], sprite: MOUSE }
+];
+const POTAGER = {
+  id: 'rabbit1', name: 'Souris chapardeuses', sprite: MOUSE, hp: 10, mana: 5, hand: 3, level: 1, ia: 'naif',
+  deck: [['adv_souris_souriceau', 5], ['adv_souris_grise', 5], ['adv_souris_tetue', 2], ['adv_souris_grignotage', 3], ['adv_souris_rat', 4], ['adv_souris_chef', 1]]
+    .map(([card, n]) => ({ card, n }))
+};
+
 // ------------------------------------------------------------------ ecriture
 const LAPINS = [lapin1, lapin2, lapin3];
 for (const h of LAPINS) for (const c of [...h.cards, ...h.switches]) {
@@ -179,6 +206,12 @@ const ids = new Set(LAPINS.map(h => h.id));
 D.characters = [...LAPINS, ...D.characters.filter(h => !ids.has(h.id))];
 // Le depart d'une partie : Pompon seul (docs/TUTORIEL.md) ; Medor, Felix et Corax viennent des quetes.
 D.starters = ['lapin1'];
+// Les Souris du Potager : leurs cartes (cartes libres, remplacees par identifiant) et l'adversaire `rabbit1`.
+const idsSouris = new Set(CARTES_SOURIS.map(c => c.id));
+D.library = D.library.filter(c => !idsSouris.has(c.id)).concat(CARTES_SOURIS);
+const i1 = D.npcs.findIndex(n => n.id === POTAGER.id);
+if (i1 < 0) throw new Error('adversaire inconnu : ' + POTAGER.id);
+D.npcs[i1] = POTAGER;
 
 // garde-fous : aucun identifiant de carte en double dans tout le catalogue, 5 + 5 cartes par heros
 const seen = new Map();
