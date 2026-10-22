@@ -293,7 +293,7 @@ Règle suivie : on **remplace** un palier faible plutôt que d'en ajouter, pour 
 | Felix | Tempête de Patounes | 13 | Gagne Reprise. | — (niveau libre) |
 | Mistigri | Griffes Sournoises | 8 | Gagne Reprise. | « Pioche aussi une carte. » |
 | Mistigri | Concert Nocturne | 13 | Gagne Reprise. | « Gagne 1 mana au prochain tour. » |
-| Médor | Toute la Bande | 14 | Gagne Reprise. | — |
+| Médor | Bataillon | 14 | Gagne Reprise. | — |
 | Corax | Malédiction | 14 | Gagne Reprise. | — |
 | Athéna | Regard Perçant | 14 | Gagne Reprise. | — |
 | Morphée | Songe | 11 | Gagne Reprise. | « Gagne aussi 3 armures. » |

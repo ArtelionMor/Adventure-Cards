@@ -77,10 +77,10 @@ Sprite `Rabbit/Rabbit.png`.
 
 | Emplacement | Base | Switch |
 |---|---|---|
-| 1 | Lapereau — 1 · 1/1 | Lapereau Hardi — 1 · 2/1 |
+| 1 | Lapereau — 1 · 1/1 | Lapin Hardi — 1 · 2/1 |
 | 2 | Lapin des Prés — 1 · 1/1 | Lapin Coureur — 1 · 1/1 Charge |
-| 3 | Lapin de Garenne — 2 · 2/2 | Lapin Bagarreur — 2 · 3/1 |
-| 4 | Lapin Costaud — 3 · 3/3 | Lapin Bondissant — 3 · 3/2 Charge |
+| 3 | Lapin Voleur — 2 · 2/2 | Lapin Bagarreur — 2 · 3/1 |
+| 4 | Lapin Costaud — 3 · 3/3 | Lapin Nomade — 3 · 3/2 Charge |
 | 5 | Grand-Père Lapin — 5 · 5/5, Aura : tes autres unités ont +1/+1 | Chef de Clapier — 5 · 4/4, Cri de guerre : tes autres unités gagnent +1/+1 |
 
 La switch apprend la différence entre l'attaque et la vie, la Charge, et une aura contre un cri de guerre.
@@ -91,9 +91,9 @@ Sprite `Rabbit/Rabbit English Lop.png`.
 
 | Emplacement | Base | Switch |
 |---|---|---|
-| 1 | Lapin Nain — 1 · 1/2 | Lapin Angora — 1 · 1/1, Cri de guerre : ton héros gagne 2 PV |
-| 2 | Gardien du Clapier — 1 · 1/2 Provocation | Lapin Sentinelle — 1 · 2/1 Provocation |
-| 3 | Oreilles Tombantes — 2 · 1/3 Provocation | Lapin Têtu — 2 · 2/3 |
+| 1 | Lapin Nain — 1 · 1/2 | Lapin Infirmier — 1 · 1/1, Cri de guerre : ton héros gagne 2 PV |
+| 2 | Gardien du Clapier — 1 · 1/2 Provocation | Lapin Soldat — 1 · 2/1 Provocation |
+| 3 | Lapin Boulanger — 2 · 1/3 Provocation | Lapin Têtu — 2 · 2/3 |
 | 4 | Lapin de Grange — 3 · 2/4 | Lapin Cuirassé — 3 · 2/3 Bouclier |
 | 5 | Doyenne du Clapier — 5 · 3/7 Provocation, Aura : tes autres unités ont +0/+2 | Grand Bélier — 5 · 4/6 Provocation, Cri de guerre : tes autres unités gagnent +0/+2 |
 
@@ -103,11 +103,11 @@ Sprite `Rabbit/Rabbit Wherewolf.png`.
 
 | Emplacement | Base | Switch |
 |---|---|---|
-| 1 | Lapine Prolifique — 1 · 1/1, Râle d'agonie : invoque un Lapereau 1/1 | Lapereau Farceur — 1 · 1/1, Râle d'agonie : 1 dégât à un ennemi au hasard |
+| 1 | Lapine Mère — 1 · 1/1, Râle d'agonie : invoque un Lapereau 1/1 | Lapereau Farceur — 1 · 1/1, Râle d'agonie : 1 dégât à un ennemi au hasard |
 | 2 | Festin de Trèfle — sort 1 : un de tes alliés gagne +2/+1 | Trèfle à Quatre Feuilles — sort 1 : tes unités gagnent +1/+0 |
 | 3 | Portée de Lapereaux — sort 2 : invoque deux Lapereaux 1/1 | Terrier Secret — sort 2 : invoque un Lapin de Garde 2/2 Provocation |
-| 4 | Lapin de Pleine Lune — 4 · 3/3, Début de ton tour : gagne +1/+1 | Lièvre de Mars — 4 · 2/2, Cri de guerre : invoque deux Lapereaux 1/1 |
-| 5 | Reine du Terrier — 5 · 4/4, Fin de ton tour : invoque un Lapereau 1/1 | Lapin d'Éclipse — 5 · 4/4, Râle d'agonie : invoque trois Lapereaux 1/1 |
+| 4 | Lapin de Pleine Lune — 4 · 3/3, Début de ton tour : gagne +1/+1 | Lapin Duelliste — 4 · 2/2, Cri de guerre : invoque deux Lapereaux 1/1 |
+| 5 | Reine de Pleine Lune — 5 · 4/4, Fin de ton tour : invoque un Lapereau 1/1 | Lapin d'Éclipse — 5 · 4/4, Râle d'agonie : invoque trois Lapereaux 1/1 |
 
 ## Les Souris du Potager
 

@@ -142,7 +142,7 @@ Console : `AC.fx.trace = console.log` écrit chaque brique jouée pendant un com
 ## Bulle — Grenouille, Venin
 - **Têtard Glouton** — arrivée : petite **Convocation** dans une flaque (éclaboussure).
 - **Langue Collante** (choisir) — lancer : **Choix** (deux cartes-branches) ; arrivée : **Langue** qui claque sur la cible choisie.
-- **Grenouille Venimeuse** (venin, renfort) — arrivée : **Convocation** avec bulles ; renfort : **spore** verte ; venin : crâne violet à l'attaque (déjà « Venin »).
+- **Grenouille Cuisinière** (venin, renfort) — arrivée : **Convocation** avec bulles ; renfort : **spore** verte ; venin : crâne violet à l'attaque (déjà « Venin »).
 - **Coulée de Boue** (2 dégâts) — lancer : boule de boue verte ; arrivée : éclaboussure qui **colle** (la cible grisonne un instant).
 - **Crapaud-Rocher** (provocation) — arrivée : **Convocation** lourde, onde dans l'eau, croassement (trois ondes).
 

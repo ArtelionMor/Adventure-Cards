@@ -199,7 +199,7 @@ export const CHARACTER_DATA = {
         }
       ],
       "tiers": [],
-      "sprite": "Graphical Assets/Characters/Cat/Cat Bug.png"
+      "sprite": "Graphical Assets/Cards/Eclair.png"
     },
     {
       "id": "smash",
@@ -912,7 +912,7 @@ export const CHARACTER_DATA = {
           "v": 1
         }
       ],
-      "sprite": "Graphical Assets/Characters/Cat/Cat Chat de Gouttière.png"
+      "sprite": "Graphical Assets/Characters/Cat/Cat Chat de Gouttière V2.png"
     },
     {
       "id": "adv_chat_caid",
@@ -3387,7 +3387,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 1,
           "hp": 1,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapereau.png"
         },
         {
           "id": "lap1_pres",
@@ -3432,11 +3433,12 @@ export const CHARACTER_DATA = {
           ],
           "atk": 1,
           "hp": 1,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin des Près.png"
         },
         {
           "id": "lap1_garenne",
-          "name": "Lapin de Garenne",
+          "name": "Lapin Voleur",
           "type": "ally",
           "cost": 2,
           "keys": [
@@ -3481,7 +3483,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 2,
           "hp": 2,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin Voleur.png"
         },
         {
           "id": "lap1_costaud",
@@ -3531,7 +3534,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 3,
           "hp": 3,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin Costaud.png"
         },
         {
           "id": "lap1_grandpere",
@@ -3595,13 +3599,14 @@ export const CHARACTER_DATA = {
             "atk": 1,
             "hp": 1,
             "key": ""
-          }
+          },
+          "sprite": "Graphical Assets/Cards/Grand-Père Lapin.png"
         }
       ],
       "switches": [
         {
           "id": "lap1_hardi",
-          "name": "Lapereau Hardi",
+          "name": "Lapin Hardi",
           "type": "ally",
           "cost": 1,
           "keys": [
@@ -3639,7 +3644,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 2,
           "hp": 1,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin Hardi.png"
         },
         {
           "id": "lap1_coureur",
@@ -3691,7 +3697,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 1,
           "hp": 1,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin Coureur.png"
         },
         {
           "id": "lap1_bagarreur",
@@ -3731,11 +3738,12 @@ export const CHARACTER_DATA = {
           ],
           "atk": 3,
           "hp": 1,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin Bagarreur.png"
         },
         {
           "id": "lap1_bondissant",
-          "name": "Lapin Bondissant",
+          "name": "Lapin Nomade",
           "type": "ally",
           "cost": 3,
           "keys": [
@@ -3794,7 +3802,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 3,
           "hp": 2,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin Nomade.png"
         },
         {
           "id": "lap1_chef",
@@ -3848,7 +3857,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 4,
           "hp": 4,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Chef de Clapier.png"
         }
       ]
     },
@@ -3903,7 +3913,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 1,
           "hp": 2,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin Nain.png"
         },
         {
           "id": "lap2_gardien",
@@ -3944,11 +3955,12 @@ export const CHARACTER_DATA = {
           ],
           "atk": 1,
           "hp": 2,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Gardien du Clapier.png"
         },
         {
           "id": "lap2_oreilles",
-          "name": "Oreilles Tombantes",
+          "name": "Lapin Boulanger",
           "type": "ally",
           "cost": 2,
           "keys": [
@@ -3989,7 +4001,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 1,
           "hp": 3,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin Boulanger.png"
         },
         {
           "id": "lap2_grange",
@@ -4049,7 +4062,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 2,
           "hp": 4,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin de Grange.png"
         },
         {
           "id": "lap2_doyenne",
@@ -4111,13 +4125,14 @@ export const CHARACTER_DATA = {
             "atk": 0,
             "hp": 2,
             "key": ""
-          }
+          },
+          "sprite": "Graphical Assets/Cards/Doyenne du Clapier.png"
         }
       ],
       "switches": [
         {
           "id": "lap2_angora",
-          "name": "Lapin Angora",
+          "name": "Lapin Infirmier",
           "type": "ally",
           "cost": 1,
           "keys": [
@@ -4158,11 +4173,12 @@ export const CHARACTER_DATA = {
           ],
           "atk": 1,
           "hp": 1,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin Infirmier.png"
         },
         {
           "id": "lap2_sentinelle",
-          "name": "Lapin Sentinelle",
+          "name": "Lapin Soldat",
           "type": "ally",
           "cost": 1,
           "keys": [
@@ -4202,7 +4218,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 2,
           "hp": 1,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin Soldat.png"
         },
         {
           "id": "lap2_tetu",
@@ -4244,7 +4261,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 2,
           "hp": 3,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin Têtu.png"
         },
         {
           "id": "lap2_cuirasse",
@@ -4304,7 +4322,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 2,
           "hp": 3,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin Cuirassé.png"
         },
         {
           "id": "lap2_belier",
@@ -4364,7 +4383,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 4,
           "hp": 6,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Grand Bélier.png"
         }
       ]
     },
@@ -4382,7 +4402,7 @@ export const CHARACTER_DATA = {
       "cards": [
         {
           "id": "lap3_prolifique",
-          "name": "Lapine Prolifique",
+          "name": "Lapine Mère",
           "type": "ally",
           "cost": 1,
           "keys": [
@@ -4444,7 +4464,8 @@ export const CHARACTER_DATA = {
                 "statics": []
               }
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Lapine Mère.png"
         },
         {
           "id": "lap3_trefle",
@@ -4497,7 +4518,8 @@ export const CHARACTER_DATA = {
               },
               "text": "L’allié renforcé gagne aussi Charge."
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Festin de Trèfle.png"
         },
         {
           "id": "lap3_portee",
@@ -4557,7 +4579,8 @@ export const CHARACTER_DATA = {
               },
               "text": "Tes Lapins gagnent ensuite +1/+0."
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Portée de Lapereaux.png"
         },
         {
           "id": "lap3_lune",
@@ -4625,11 +4648,12 @@ export const CHARACTER_DATA = {
               "atk": 1,
               "hp": 1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Lapin de Pleine Lune.png"
         },
         {
           "id": "lap3_reine",
-          "name": "Reine du Terrier",
+          "name": "Reine de Pleine Lune",
           "type": "ally",
           "cost": 5,
           "keys": [
@@ -4702,7 +4726,8 @@ export const CHARACTER_DATA = {
                 "statics": []
               }
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Reine de Pleine Lune.png"
         }
       ],
       "switches": [
@@ -4762,7 +4787,8 @@ export const CHARACTER_DATA = {
               "t": "randomEnemyAny",
               "v": 1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Lapereau Farceur.png"
         },
         {
           "id": "lap3_quatre",
@@ -4814,7 +4840,8 @@ export const CHARACTER_DATA = {
               },
               "text": "Tes unités gagnent aussi +0/+1."
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Trèfle à Quatre Feuilles.png"
         },
         {
           "id": "lap3_terrier",
@@ -4874,11 +4901,12 @@ export const CHARACTER_DATA = {
               },
               "text": "Tes Lapins gagnent ensuite +0/+1."
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Terrier Secret.png"
         },
         {
           "id": "lap3_mars",
-          "name": "Lièvre de Mars",
+          "name": "Lapin Duelliste",
           "type": "ally",
           "cost": 4,
           "keys": [
@@ -4945,7 +4973,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 2,
           "hp": 2,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Lapin Duelliste.png"
         },
         {
           "id": "lap3_eclipse",
@@ -5027,7 +5056,8 @@ export const CHARACTER_DATA = {
                 "statics": []
               }
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Lapin d'Eclipse.png"
         }
       ]
     },
@@ -5094,7 +5124,8 @@ export const CHARACTER_DATA = {
                 "statics": []
               }
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Chiot de Garde.png"
         },
         {
           "id": "dog_guard",
@@ -5151,7 +5182,8 @@ export const CHARACTER_DATA = {
             "hp": 1,
             "key": ""
           },
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Chien de Berger.png"
         },
         {
           "id": "dog_growl",
@@ -5236,7 +5268,8 @@ export const CHARACTER_DATA = {
               "text": "Coût -1.",
               "cost": -1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Coup de sifflet.png"
         },
         {
           "id": "dog_lick",
@@ -5284,7 +5317,8 @@ export const CHARACTER_DATA = {
               "text": "coût -1",
               "cost": -1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Retrouvaille.png"
         },
         {
           "id": "dog_pack",
@@ -5369,7 +5403,8 @@ export const CHARACTER_DATA = {
               "slot": "play"
             }
           ],
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Meute.png"
         }
       ],
       "switches": [
@@ -5412,11 +5447,12 @@ export const CHARACTER_DATA = {
               "text": "+1/+2"
             }
           ],
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Toutou Enragé.png"
         },
         {
           "id": "dog_alpha",
-          "name": "Chef de Meute",
+          "name": "Chef de Bataillon",
           "type": "ally",
           "cost": 5,
           "atk": 3,
@@ -5473,7 +5509,8 @@ export const CHARACTER_DATA = {
               "slot": "play"
             }
           ],
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Chef de Bataillon.png"
         },
         {
           "id": "dog_bone",
@@ -5576,7 +5613,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 0,
           "hp": 0,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Prince des cabots.png"
         },
         {
           "id": "dog_shield",
@@ -5631,17 +5669,18 @@ export const CHARACTER_DATA = {
           ],
           "atk": 1,
           "hp": 1,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Clairon de la meute.png"
         },
         {
           "id": "dog_bark",
-          "name": "Toute la Bande",
+          "name": "Bataillon",
           "type": "spell",
           "cost": 5,
           "keys": [
             "type:Chien"
           ],
-          "text": "Invoque un Chef de Meute, un Toutou enragé et un Chiot de Garde.",
+          "text": "Invoque un Chef de Bataillon, un Toutou enragé et un Chiot de Garde.",
           "play": [
             {
               "op": "pose_sur_le_plateau",
@@ -5723,7 +5762,8 @@ export const CHARACTER_DATA = {
               },
               "slot": "play"
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Bataillon.png"
         }
       ]
     },
@@ -5776,7 +5816,8 @@ export const CHARACTER_DATA = {
               "v": 1
             }
           ],
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Mage de l'étincelle.png"
         },
         {
           "id": "cat_alley",
@@ -5830,7 +5871,8 @@ export const CHARACTER_DATA = {
           "statics": [],
           "gardes": {
             "on_attack_self": "moi"
-          }
+          },
+          "sprite": "Graphical Assets/Cards/Chat de Gouttière.png"
         },
         {
           "id": "cat_pounce",
@@ -5866,7 +5908,8 @@ export const CHARACTER_DATA = {
               },
               "text": "Crée un sort au hasard"
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Griffure.png"
         },
         {
           "id": "cat_nine",
@@ -5921,7 +5964,8 @@ export const CHARACTER_DATA = {
               },
               "text": "Invoque un chaton qui se renforce quand vous lancez un sort"
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Neuf Vies.png"
         },
         {
           "id": "cat_shadow",
@@ -5976,7 +6020,8 @@ export const CHARACTER_DATA = {
               "sens": "moins",
               "v": 1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Ombre Feutrée.png"
         }
       ],
       "switches": [
@@ -6011,7 +6056,8 @@ export const CHARACTER_DATA = {
               "text": "coût -1",
               "cost": -1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Tempêtes de Patounes.png"
         },
         {
           "id": "cat_hunt",
@@ -6051,7 +6097,8 @@ export const CHARACTER_DATA = {
               "text": "coût -1",
               "cost": -1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Coup de patte.png"
         },
         {
           "id": "cat_curio",
@@ -6104,7 +6151,8 @@ export const CHARACTER_DATA = {
               "v": 1
             }
           ],
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Chat Prudent.png"
         },
         {
           "id": "cat_trap",
@@ -6155,7 +6203,8 @@ export const CHARACTER_DATA = {
           "statics": [],
           "gardes": {
             "on_attack_self": "moi"
-          }
+          },
+          "sprite": "Graphical Assets/Cards/Chat Souricier.png"
         },
         {
           "id": "cat_king",
@@ -6237,7 +6286,8 @@ export const CHARACTER_DATA = {
               }
             }
           ],
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Matou Invocateur.png"
         }
       ]
     },
@@ -6292,7 +6342,8 @@ export const CHARACTER_DATA = {
               "amp": 2,
               "text": "Effet +2"
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Coup de Bec.png"
         },
         {
           "id": "crow_scout",
@@ -6341,7 +6392,8 @@ export const CHARACTER_DATA = {
           "statics": [],
           "gardes": {
             "on_attack_self": "moi"
-          }
+          },
+          "sprite": "Graphical Assets/Cards/Corbeau Espion.png"
         },
         {
           "id": "crow_murder",
@@ -6380,7 +6432,8 @@ export const CHARACTER_DATA = {
               },
               "slot": "play"
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Volée de Corbeaux.png"
         },
         {
           "id": "crow_omen",
@@ -6435,7 +6488,8 @@ export const CHARACTER_DATA = {
               },
               "text": "+2 manas ce tour-ci."
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Présage.png"
         },
         {
           "id": "crow_raven",
@@ -6481,7 +6535,8 @@ export const CHARACTER_DATA = {
               "v": 1
             }
           ],
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Grand Corbeau.png"
         }
       ],
       "switches": [
@@ -6526,7 +6581,8 @@ export const CHARACTER_DATA = {
               "cost": -1
             }
           ],
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Pie Glanneuse.png"
         },
         {
           "id": "crow_curse",
@@ -6570,7 +6626,8 @@ export const CHARACTER_DATA = {
               },
               "slot": "play"
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Mauvais Oeil.png"
         },
         {
           "id": "crow_feather",
@@ -6614,11 +6671,12 @@ export const CHARACTER_DATA = {
               "hp": 1
             }
           ],
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Corneille Gourmande.png"
         },
         {
           "id": "crow_swarm",
-          "name": "Nid de Corbeaux",
+          "name": "Armée aux ailes noires",
           "type": "ally",
           "cost": 4,
           "atk": 1,
@@ -6717,7 +6775,8 @@ export const CHARACTER_DATA = {
               "atk": 0,
               "hp": 0
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Armée aux ailes noires.png"
         },
         {
           "id": "crow_night",
@@ -6765,7 +6824,8 @@ export const CHARACTER_DATA = {
               "text": "coût -1",
               "cost": -1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Nuit sans Lune.png"
         }
       ]
     },
@@ -6818,7 +6878,8 @@ export const CHARACTER_DATA = {
               "atk": 1,
               "hp": 1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Têtard Glouton.png"
         },
         {
           "id": "frog_tongue",
@@ -6863,11 +6924,12 @@ export const CHARACTER_DATA = {
               "amp": 2,
               "text": "Effet +2"
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Langue Collante.png"
         },
         {
           "id": "frog_venom",
-          "name": "Grenouille Venimeuse",
+          "name": "Grenouille Cuisinière",
           "type": "ally",
           "cost": 3,
           "atk": 2,
@@ -6914,7 +6976,8 @@ export const CHARACTER_DATA = {
               "cost": -1
             }
           ],
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Grenouille Cuisinière.png"
         },
         {
           "id": "frog_swamp",
@@ -6954,7 +7017,8 @@ export const CHARACTER_DATA = {
               "amp": 2,
               "text": "Effet +2"
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Coulée de Boue.png"
         },
         {
           "id": "frog_toad",
@@ -6994,7 +7058,8 @@ export const CHARACTER_DATA = {
               "text": "+1/+2"
             }
           ],
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Crapaud-Rocher.png"
         }
       ],
       "switches": [
@@ -7062,7 +7127,8 @@ export const CHARACTER_DATA = {
               "atk": 1,
               "hp": 1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Prince Grenouille.png"
         },
         {
           "id": "frog_spit",
@@ -7116,7 +7182,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 3,
           "hp": 3,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Guérisseuse Gluante.png"
         },
         {
           "id": "frog_lily",
@@ -7183,7 +7250,8 @@ export const CHARACTER_DATA = {
                 ]
               }
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Grenouille Nourrice.png"
         },
         {
           "id": "frog_brew",
@@ -7217,7 +7285,8 @@ export const CHARACTER_DATA = {
               "text": "coût -1",
               "cost": -1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Elixir Venimeux.png"
         },
         {
           "id": "frog_leap",
@@ -7269,7 +7338,8 @@ export const CHARACTER_DATA = {
               },
               "slot": "play"
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Saut.png"
         }
       ]
     },
@@ -7326,7 +7396,8 @@ export const CHARACTER_DATA = {
               "cost": -1,
               "text": "Coût −1"
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Etude.png"
         },
         {
           "id": "owl_scholar",
@@ -7377,7 +7448,8 @@ export const CHARACTER_DATA = {
               "sens": "moins",
               "v": 1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Chouette Erudite.png"
         },
         {
           "id": "owl_gaze",
@@ -7417,7 +7489,8 @@ export const CHARACTER_DATA = {
               },
               "slot": "play"
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Regard Perçant.png"
         },
         {
           "id": "owl_wisdom",
@@ -7453,7 +7526,8 @@ export const CHARACTER_DATA = {
               "text": "Coût -1.",
               "cost": -1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Chasse Nocturne.png"
         },
         {
           "id": "owl_night",
@@ -7512,7 +7586,8 @@ export const CHARACTER_DATA = {
               "sens": "plus",
               "v": 1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Imperatrice Nocturne.png"
         }
       ],
       "switches": [
@@ -7564,7 +7639,8 @@ export const CHARACTER_DATA = {
               },
               "slot": "play"
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Bourrasque.png"
         },
         {
           "id": "owl_lecture",
@@ -7626,7 +7702,8 @@ export const CHARACTER_DATA = {
           ],
           "atk": 2,
           "hp": 2,
-          "statics": []
+          "statics": [],
+          "sprite": "Graphical Assets/Cards/Chouette Tourbillon.png"
         },
         {
           "id": "owl_watch",
@@ -7675,7 +7752,8 @@ export const CHARACTER_DATA = {
               "op": "draw",
               "v": 1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Chouette Stoïque.png"
         },
         {
           "id": "owl_storm",
@@ -7721,7 +7799,8 @@ export const CHARACTER_DATA = {
               "text": "Coût -2",
               "cost": -2
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Colère d'Athéna.png"
         },
         {
           "id": "owl_arch",
@@ -7772,7 +7851,8 @@ export const CHARACTER_DATA = {
               "t": "enemyHero",
               "v": 3
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Archichouette.png"
         }
       ]
     },
@@ -7848,7 +7928,7 @@ export const CHARACTER_DATA = {
             }
           ],
           "statics": [],
-          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
+          "sprite": "Graphical Assets/Cards/Cameleon.png"
         },
         {
           "id": "fox_dash",
@@ -7873,7 +7953,7 @@ export const CHARACTER_DATA = {
           ],
           "tiers": [],
           "statics": [],
-          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
+          "sprite": "Graphical Assets/Cards/Tour de Passe-Passe.png"
         },
         {
           "id": "fox_snare",
@@ -7935,7 +8015,7 @@ export const CHARACTER_DATA = {
           "atk": 2,
           "hp": 2,
           "statics": [],
-          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
+          "sprite": "Graphical Assets/Cards/Gobeur de Mouches.png"
         },
         {
           "id": "fox_raid",
@@ -8008,7 +8088,7 @@ export const CHARACTER_DATA = {
               "lesDeux": true
             }
           ],
-          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
+          "sprite": "Graphical Assets/Cards/Découverte.png"
         },
         {
           "id": "fox_wild",
@@ -8039,7 +8119,7 @@ export const CHARACTER_DATA = {
             }
           ],
           "statics": [],
-          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
+          "sprite": "Graphical Assets/Cards/Volte-Face.png"
         }
       ],
       "switches": [
@@ -8088,7 +8168,7 @@ export const CHARACTER_DATA = {
             "hp": 0,
             "key": "type_tous"
           },
-          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
+          "sprite": "Graphical Assets/Cards/Maître du Camouflage.png"
         },
         {
           "id": "fox_ambush",
@@ -8125,7 +8205,7 @@ export const CHARACTER_DATA = {
               "text": "Crée aussi un Miroir."
             }
           ],
-          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
+          "sprite": "Graphical Assets/Cards/Hypnose.png"
         },
         {
           "id": "fox_bandit",
@@ -8166,7 +8246,7 @@ export const CHARACTER_DATA = {
             }
           ],
           "statics": [],
-          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
+          "sprite": "Graphical Assets/Cards/Coup de Langue.png"
         },
         {
           "id": "fox_frenzy",
@@ -8206,7 +8286,8 @@ export const CHARACTER_DATA = {
               "atk": 1,
               "hp": 1
             }
-          ]
+          ],
+          "sprite": "Graphical Assets/Cards/Porte-Couleur.png"
         },
         {
           "id": "fox_king",
@@ -8249,7 +8330,7 @@ export const CHARACTER_DATA = {
             }
           ],
           "statics": [],
-          "sprite": "Graphical Assets/Characters/Cameleon/Cameleon.png"
+          "sprite": "Graphical Assets/Cards/Métamorphose Ultime.png"
         }
       ]
     },

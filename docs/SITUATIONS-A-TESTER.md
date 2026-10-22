@@ -40,10 +40,10 @@ décision où tu joues autrement que lui, et où tu as une raison de le faire.
 ```
 SETUP   Médor&Athena (8) contre Grand-Duc · tour 11 (le tien)
         toi     : 24 PV / 2 mana · main : Chien de Berger [2]
-                  plateau : Chiot de Garde 5/6, Toutou enragé 3/2, Chef de Meute 3/4 (11 d'attaque)
+                  plateau : Chiot de Garde 5/6, Toutou enragé 3/2, Chef de Bataillon 3/4 (11 d'attaque)
         en face : 12 PV · plateau : Chien-Rempart 3/6 Provocation
 QUESTION  Le Rempart a 6 PV, riposte 3, et il faut passer par lui.
-          Sans le Chien de Berger : Chiot (5) + Chef de Meute (3) le tuent, le Toutou enragé (3) passe.
+          Sans le Chien de Berger : Chiot (5) + Chef de Bataillon (3) le tuent, le Toutou enragé (3) passe.
           Avec le Chien de Berger d'abord (+1/+1 aux autres) : le Chiot passe à 6 et le tue
           TOUT SEUL, et 8 d'attaque partent au visage.
 REGARDE   Mesuré : la première ligne laisse l'adversaire à 9 PV et abîme tout le
@@ -65,8 +65,8 @@ contourner** (A5).
 
 ```
 SETUP   Athena&Bulle (8) contre Capitaine Grenouille · tour 6
-        toi     : 20 PV / 4 mana · main : Chasse Nocturne (détruit une unité), Grenouille Venimeuse
-                  plateau : Têtard 1/1 Élusif — sans lui, Grenouille Venimeuse (« renforce un
+        toi     : 20 PV / 4 mana · main : Chasse Nocturne (détruit une unité), Grenouille Cuisinière
+                  plateau : Têtard 1/1 Élusif — sans lui, Grenouille Cuisinière (« renforce un
                   allié ») n'aurait aucune cible et le choix n'existerait pas
         en face : 60 PV · plateau : Lapin-Brute 3/4 Provocation
 QUESTION  Chasse Nocturne maintenant sur une Brute 3/4, ou la garder ? Son deck contient
@@ -97,13 +97,13 @@ REGARDE   Le bot lit une cible mixte comme « ce qu'on gagne en face moins ce qu
 
 ```
 SETUP   Médor seul (8) contre Crapaud Baveux · tour 5
-        toi     : 28 PV / 5 mana · main : Chef de Meute [5], Chien de Berger [2], Coup de Sifflet [3]
+        toi     : 28 PV / 5 mana · main : Chef de Bataillon [5], Chien de Berger [2], Coup de Sifflet [3]
         en face : 32 PV · plateau : Paresseux-Garde 1/4 Provocation
-QUESTION  Chef de Meute 3/4 (+1/+1 aux autres, mais il n'y a personne), ou Chien de Berger 4/5 + Coup de Sifflet
+QUESTION  Chef de Bataillon 3/4 (+1/+1 aux autres, mais il n'y a personne), ou Chien de Berger 4/5 + Coup de Sifflet
           (qui pose un Chiot 5/6 ET donne +1/+1) ?
 REGARDE   `malin` fait un sac à dos sur la main pour ça. Sur cette position la réponse
-          est franche (Chien de Berger + Coup de Sifflet écrase Chef de Meute) : si le bot prend le Chef de Meute, le sac à dos
-          ne marche pas, ou `cardValue()` surévalue le cri de guerre du Chef de Meute dans le vide.
+          est franche (Chien de Berger + Coup de Sifflet écrase Chef de Bataillon) : si le bot prend le Chef de Bataillon, le sac à dos
+          ne marche pas, ou `cardValue()` surévalue le cri de guerre du Chef de Bataillon dans le vide.
 ```
 
 ## A5 — Passe-Murailles contre une Provocation
@@ -177,7 +177,7 @@ REGARDE   Le Colosse volé n'attaque pas ce tour-ci (pas de Charge). Et à sa mo
 ```
 SETUP   Miracle&Médor (8) contre Renard des Neiges · tour 8
         toi     : 22 PV / 1 mana · main : Métamorphose Ultime [1]
-                  plateau : Chiot de Garde 5/6, Toutou enragé 3/2, Prince des cabots, Chef de Meute 3/4
+                  plateau : Chiot de Garde 5/6, Toutou enragé 3/2, Prince des cabots, Chef de Bataillon 3/4
         en face : plateau : Lapin-Colosse 8/8
 QUESTION  1 mana : tous tes alliés deviennent une copie du Colosse adverse. Quatre 8/8.
 QUESTION  (bis) Ou tu copies ton propre Toutou Fidèle, pour quatre râles d'agonie.
@@ -382,7 +382,7 @@ manuel, avec des commentaires au fil de l'eau.
 
 ## D1 — Médor turbo (Aggro Turbo)
 
-Tout base sauf le slot 4 en switch (Toute la Bande). Ne se préoccupe pas de
+Tout base sauf le slot 4 en switch (Bataillon). Ne se préoccupe pas de
 l'adversaire : pose, renforce, frappe. **À tester contre Grand-Duc** : est-ce que Turbo
 bat un Pillow Fort avant qu'il se blinde, ou est-ce que les trois Kamaji suffisent à le
 tuer ? C'est le matchup qui dit si l'archétype existe.

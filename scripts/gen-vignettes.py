@@ -24,7 +24,7 @@ from PIL import Image
 RACINE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 # Les dossiers allegés : ceux des gros sprites (les tuiles de Decor/ et les icones sont deja petites). Ce sont des cles
 # de sprites.js ; un nom peut y contenir un sous-dossier (les personnages sont ranges par espece : « Dog/Dog Cocker.png »).
-DOSSIERS = ['Graphical Assets/Characters', 'Graphical Assets/Buildings', 'Graphical Assets/Ressources', 'Graphical Assets/Old UI']
+DOSSIERS = ['Graphical Assets/Characters', 'Graphical Assets/Cards', 'Graphical Assets/Buildings', 'Graphical Assets/Ressources', 'Graphical Assets/Old UI']
 TAILLE_MAX = 512        # pixels, plus grand cote : assez pour un batiment de 7 personnages sur un ecran x2
 # Les images d'INTERFACE dessinees en 2000 px (icones de la navigation, dos de carte : ~1 a 3 Mo chacune) : on
 # balaye ces dossiers directement (sprites.js ne les liste pas) et on les reduit plus fort — elles ne s'affichent

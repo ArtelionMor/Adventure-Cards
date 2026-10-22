@@ -360,7 +360,7 @@ static class Launcher
     // avec ses sous-dossiers (les personnages sont ranges par espece :
     // « Graphical Assets/Characters/Dog/Dog Cocker.png » -> « Dog/Dog Cocker.png »).
     static readonly string[] SpriteFolders = {
-        "Graphical Assets/Characters", "Graphical Assets/Buildings", "Graphical Assets/Ressources", "Graphical Assets/Old UI",
+        "Graphical Assets/Characters", "Graphical Assets/Cards", "Graphical Assets/Buildings", "Graphical Assets/Ressources", "Graphical Assets/Old UI",
         "Decor/Kenney Tiny Town", "Decor/Kenney Medieval RTS", "Decor/Kenney Foliage Pack" };
     static readonly string[] SpriteExt = { ".png", ".jpg", ".jpeg", ".webp", ".gif" };
 

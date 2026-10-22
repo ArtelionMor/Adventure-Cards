@@ -14,12 +14,13 @@ import { fileURLToPath } from 'url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Les images du game designer sont rangees dans `Graphical Assets/` (19 octobre 2026), les personnages par espece
-// (`Graphical Assets/Characters/Dog/Dog Cocker.png`) : chaque dossier est balaye AVEC ses sous-dossiers, et un nom
+// (`Graphical Assets/Characters/Dog/Dog Cocker.png`), les illustrations des cartes a plat dans `Graphical Assets/Cards/`
+// (22 octobre 2026, un fichier au nom de la carte) : chaque dossier est balaye AVEC ses sous-dossiers, et un nom
 // de la liste peut donc contenir un `/` (« Dog/Dog Cocker.png »). `Decor/...` : les packs d'assets tiers essayes pour
 // la carte (docs/PACKS-CARTE.md), un dossier par pack. `Graphical Assets/Icons` et `CardBack` n'y sont pas : ce
 // sont des images d'interface, pas des portraits (scripts/gen-vignettes.py les allege a part).
 export const FOLDERS = [
-  'Graphical Assets/Characters', 'Graphical Assets/Buildings', 'Graphical Assets/Ressources', 'Graphical Assets/Old UI',
+  'Graphical Assets/Characters', 'Graphical Assets/Cards', 'Graphical Assets/Buildings', 'Graphical Assets/Ressources', 'Graphical Assets/Old UI',
   'Decor/Kenney Tiny Town', 'Decor/Kenney Medieval RTS', 'Decor/Kenney Foliage Pack'
 ];
 

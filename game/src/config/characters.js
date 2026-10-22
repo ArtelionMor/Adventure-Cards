@@ -197,9 +197,9 @@ export function characterDeck(charId, save) {
     if (retirees.includes(i)) return null;
     const sw = st.switches[i] && def.switches[i];
     const c = resolveCard(sw ? def.switches[i] : base, sw ? niv.switch[i] : niv.base[i]);
-    // La carte garde SON image si elle en a une (cas d'une carte libre reprise par un
-    // heros) ; sinon elle prend celle du personnage.
-    c.sprite = def.sprite || c.sprite;
+    // La carte garde SON image si elle en a une (son illustration, `Graphical Assets/Cards/`,
+    // ou une carte libre reprise par un heros) ; sinon elle prend celle du personnage.
+    c.sprite = c.sprite || def.sprite;
     c.owner = charId;
     return c;
   }).filter(Boolean);

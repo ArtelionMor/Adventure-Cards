@@ -7,7 +7,7 @@
 // A utiliser pour (re)generer le point de depart ; apres, on edite dans le builder. Idempotent.
 // ⚠ Les cartes vivent sur le Pi : verifier `git status` la-bas avant de lancer (CLAUDE.md racine).
 //   node scripts/gen-lapins.mjs [game/data/characters.data.js]
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 
 const F = process.argv[2] || 'game/data/characters.data.js';
 const src = readFileSync(F, 'utf8');
@@ -66,15 +66,15 @@ const lapin1 = {
   cards: [
     ally({ id: 'lap1_lapereau', name: 'Lapereau', cost: 1, atk: 1, hp: 1 }),
     ally({ id: 'lap1_pres', name: 'Lapin des Prés', cost: 1, atk: 1, hp: 1 }),
-    ally({ id: 'lap1_garenne', name: 'Lapin de Garenne', cost: 2, atk: 2, hp: 2 }),
+    ally({ id: 'lap1_garenne', name: 'Lapin Voleur', cost: 2, atk: 2, hp: 2 }),
     ally({ id: 'lap1_costaud', name: 'Lapin Costaud', cost: 3, atk: 3, hp: 3 }),
     ally({ id: 'lap1_grandpere', name: 'Grand-Père Lapin', cost: 5, atk: 5, hp: 5, text: 'Tes autres unités ont +1/+1.', aura: autres(1, 1) })
   ],
   switches: [
-    ally({ id: 'lap1_hardi', name: 'Lapereau Hardi', cost: 1, atk: 2, hp: 1 }),
+    ally({ id: 'lap1_hardi', name: 'Lapin Hardi', cost: 1, atk: 2, hp: 1 }),
     ally({ id: 'lap1_coureur', name: 'Lapin Coureur', cost: 1, atk: 1, hp: 1, keys: ['Charge'], text: 'Charge.' }),
     ally({ id: 'lap1_bagarreur', name: 'Lapin Bagarreur', cost: 2, atk: 3, hp: 1 }),
-    ally({ id: 'lap1_bondissant', name: 'Lapin Bondissant', cost: 3, atk: 3, hp: 2, keys: ['Charge'], text: 'Charge.' }),
+    ally({ id: 'lap1_bondissant', name: 'Lapin Nomade', cost: 3, atk: 3, hp: 2, keys: ['Charge'], text: 'Charge.' }),
     ally({ id: 'lap1_chef', name: 'Chef de Clapier', cost: 5, atk: 4, hp: 4, text: 'Cri de guerre : tes autres unités gagnent +1/+1.', play: [buffAll(1, 1)] })
   ]
 };
@@ -88,13 +88,13 @@ const lapin2 = {
   cards: [
     ally({ id: 'lap2_nain', name: 'Lapin Nain', cost: 1, atk: 1, hp: 2 }),
     ally({ id: 'lap2_gardien', name: 'Gardien du Clapier', cost: 1, atk: 1, hp: 2, keys: ['Taunt'], text: 'Provocation.' }),
-    ally({ id: 'lap2_oreilles', name: 'Oreilles Tombantes', cost: 2, atk: 1, hp: 3, keys: ['Taunt'], text: 'Provocation.' }),
+    ally({ id: 'lap2_oreilles', name: 'Lapin Boulanger', cost: 2, atk: 1, hp: 3, keys: ['Taunt'], text: 'Provocation.' }),
     ally({ id: 'lap2_grange', name: 'Lapin de Grange', cost: 3, atk: 2, hp: 4 }),
     ally({ id: 'lap2_doyenne', name: 'Doyenne du Clapier', cost: 5, atk: 3, hp: 7, keys: ['Taunt'], text: 'Provocation. Tes autres unités ont +0/+2.', aura: autres(0, 2) })
   ],
   switches: [
-    ally({ id: 'lap2_angora', name: 'Lapin Angora', cost: 1, atk: 1, hp: 1, text: 'Cri de guerre : ton héros gagne 2 PV.', play: [heal(2)] }),
-    ally({ id: 'lap2_sentinelle', name: 'Lapin Sentinelle', cost: 1, atk: 2, hp: 1, keys: ['Taunt'], text: 'Provocation.' }),
+    ally({ id: 'lap2_angora', name: 'Lapin Infirmier', cost: 1, atk: 1, hp: 1, text: 'Cri de guerre : ton héros gagne 2 PV.', play: [heal(2)] }),
+    ally({ id: 'lap2_sentinelle', name: 'Lapin Soldat', cost: 1, atk: 2, hp: 1, keys: ['Taunt'], text: 'Provocation.' }),
     ally({ id: 'lap2_tetu', name: 'Lapin Têtu', cost: 2, atk: 2, hp: 3 }),
     ally({ id: 'lap2_cuirasse', name: 'Lapin Cuirassé', cost: 3, atk: 2, hp: 3, keys: ['Bouclier'], text: 'Bouclier.' }),
     ally({ id: 'lap2_belier', name: 'Grand Bélier', cost: 5, atk: 4, hp: 6, keys: ['Taunt'], text: 'Provocation. Cri de guerre : tes autres unités gagnent +0/+2.', play: [buffAll(0, 2)] })
@@ -108,17 +108,17 @@ const lapin3 = {
   role: 'La portée — Go Wide : les moments d’une carte et les sorts',
   stats: { hp: 22, mana: 5, hand: 3 },
   cards: [
-    ally({ id: 'lap3_prolifique', name: 'Lapine Prolifique', cost: 1, atk: 1, hp: 1, text: 'Râle d’agonie : invoque un Lapereau 1/1.', death: [summon(1)] }),
+    ally({ id: 'lap3_prolifique', name: 'Lapine Mère', cost: 1, atk: 1, hp: 1, text: 'Râle d’agonie : invoque un Lapereau 1/1.', death: [summon(1)] }),
     spell({ id: 'lap3_trefle', name: 'Festin de Trèfle', cost: 1, text: 'Un de tes alliés gagne +2/+1.', play: [buffAlly(2, 1)] }),
     spell({ id: 'lap3_portee', name: 'Portée de Lapereaux', cost: 2, text: 'Invoque deux Lapereaux 1/1.', play: [summon(2)] }),
     ally({ id: 'lap3_lune', name: 'Lapin de Pleine Lune', cost: 4, atk: 3, hp: 3, text: 'Début de ton tour : gagne +1/+1.', turnStart: [buffSelf(1, 1)] }),
-    ally({ id: 'lap3_reine', name: 'Reine du Terrier', cost: 5, atk: 4, hp: 4, text: 'Fin de ton tour : invoque un Lapereau 1/1.', turnEnd: [summon(1)] })
+    ally({ id: 'lap3_reine', name: 'Reine de Pleine Lune', cost: 5, atk: 4, hp: 4, text: 'Fin de ton tour : invoque un Lapereau 1/1.', turnEnd: [summon(1)] })
   ],
   switches: [
     ally({ id: 'lap3_farceur', name: 'Lapereau Farceur', cost: 1, atk: 1, hp: 1, text: 'Râle d’agonie : inflige 1 dégât à un ennemi au hasard.', death: [dmgRA(1)] }),
     spell({ id: 'lap3_quatre', name: 'Trèfle à Quatre Feuilles', cost: 1, text: 'Tes unités gagnent +1/+0.', play: [buffAll(1, 0)] }),
     spell({ id: 'lap3_terrier', name: 'Terrier Secret', cost: 2, text: 'Invoque un Lapin de Garde 2/2 avec Provocation.', play: [summon(1, garde)] }),
-    ally({ id: 'lap3_mars', name: 'Lièvre de Mars', cost: 4, atk: 2, hp: 2, text: 'Cri de guerre : invoque deux Lapereaux 1/1.', play: [summon(2)] }),
+    ally({ id: 'lap3_mars', name: 'Lapin Duelliste', cost: 4, atk: 2, hp: 2, text: 'Cri de guerre : invoque deux Lapereaux 1/1.', play: [summon(2)] }),
     ally({ id: 'lap3_eclipse', name: 'Lapin d’Éclipse', cost: 5, atk: 4, hp: 4, text: 'Râle d’agonie : invoque trois Lapereaux 1/1.', death: [summon(3)] })
   ]
 };
@@ -195,6 +195,16 @@ const POTAGER = {
 
 // ------------------------------------------------------------------ ecriture
 const LAPINS = [lapin1, lapin2, lapin3];
+// L'illustration de chaque carte : `Graphical Assets/Cards/<nom de la carte>.png` (22 octobre 2026). Une carte dont
+// l'image manque garde le portrait de son heros.
+const ILLUSTRATIONS = 'Graphical Assets/Cards/';
+const sansAccent = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const images = new Map(readdirSync(new URL('../' + ILLUSTRATIONS, import.meta.url)).map(f => [sansAccent(f.replace(/\.png$/i, '')), f]));
+for (const h of LAPINS) for (const c of [...h.cards, ...h.switches]) {
+  const f = images.get(sansAccent(c.name));
+  if (f) c.sprite = ILLUSTRATIONS + f;
+  else console.warn("pas d'illustration pour", c.id, c.name);
+}
 for (const h of LAPINS) for (const c of [...h.cards, ...h.switches]) {
   if (!TIERS[c.id]) throw new Error('pas de paliers pour ' + c.id);
   c.tiers = TIERS[c.id];

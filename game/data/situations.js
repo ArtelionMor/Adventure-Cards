@@ -32,7 +32,7 @@ export const SITUATIONS = [
   // le journal de decisions cherche — un coup ou tu fais autrement, et tu sais pourquoi.
   {
     id: 'A1', famille: 'A', titre: 'Le létal qui demande de poser une aura d’abord',
-    question: 'Il y a létal, et un seul chemin. Le Rempart 3/6 est en Provocation : il faut passer par lui. Sans rien poser, Chiot (5) + Chef de Meute (3) le tuent et le Toutou enragé (3) passe : 8 PV deviennent 5. Avec le Chien de Berger à 2 mana d’abord (+1/+1 aux autres), le Chiot passe à 6 et le tue TOUT SEUL — Toutou enragé 4 + Chef de Meute 4 partent au visage, et ça fait exactement 8.',
+    question: 'Il y a létal, et un seul chemin. Le Rempart 3/6 est en Provocation : il faut passer par lui. Sans rien poser, Chiot (5) + Chef de Bataillon (3) le tuent et le Toutou enragé (3) passe : 8 PV deviennent 5. Avec le Chien de Berger à 2 mana d’abord (+1/+1 aux autres), le Chiot passe à 6 et le tue TOUT SEUL — Toutou enragé 4 + Chef de Bataillon 4 partent au visage, et ça fait exactement 8.',
     regarde: 'Le seul test sans ambiguïté de la famille : il gagne, ou il ne gagne pas. Il faut voir trois choses à la fois — que l’aura doit partir AVANT les attaques, que c’est le Chiot qui doit tuer le Rempart (pas les deux petits), et que le reste suffit pile. Compare avec `montecarlo` : lui finit la partie, donc il voit le létal. ⚠ Une position déjà perdue rend 0 % partout et le Monte-Carlo n’y distingue plus rien — c’est pour ça que celle-ci est réglée au point exact.',
     niveau: 8, tour: 11, qui: 'p',
     p: { heros: ['dog', 'owl'], pv: 24, mana: 2, tours: 6, main: ['dog_guard'], plateau: ['dog_pup', 'dog_bite', 'dog_alpha'] },
@@ -56,8 +56,8 @@ export const SITUATIONS = [
   },
   {
     id: 'A4', famille: 'A', titre: 'Deux petites cartes ou une grosse',
-    question: 'Chef de Meute 3/4 (+1/+1 aux autres, mais il n’y a personne), ou Chien de Berger 4/5 + Coup de Sifflet (qui pose un Chiot 5/6ET donne +1/+1) ?',
-    regarde: '`malin` fait un sac à dos sur la main pour ça. La réponse est franche ici : si le bot prend le Chef de Meute, le sac à dos ne marche pas, ou `cardValue()` surévalue un cri de guerre dans le vide.',
+    question: 'Chef de Bataillon 3/4 (+1/+1 aux autres, mais il n’y a personne), ou Chien de Berger 4/5 + Coup de Sifflet (qui pose un Chiot 5/6ET donne +1/+1) ?',
+    regarde: '`malin` fait un sac à dos sur la main pour ça. La réponse est franche ici : si le bot prend le Chef de Bataillon, le sac à dos ne marche pas, ou `cardValue()` surévalue un cri de guerre dans le vide.',
     niveau: 8, tour: 9, qui: 'p',
     p: { heros: ['dog'], pv: 28, mana: 5, tours: 5, main: ['dog_alpha', 'dog_guard', 'dog_growl'] },
     e: { pnj: 'frog1', pv: 32, mana: 5, tours: 4, plateau: ['wall1'] }
