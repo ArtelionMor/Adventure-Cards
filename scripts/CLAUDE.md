@@ -6,7 +6,7 @@
 ## Le serveur
 | Fichier | Rôle |
 |---|---|
-| `devserver.js` | **Le serveur** (le même sur le PC et sur le Pi, port 7330) : sert la racine du projet ; `POST /api/write` (le builder écrit `characters.data.js` et `docs/MECANIQUES-A-CODER.md`, avec photo automatique avant écrasement), `POST /api/sprites`, `/api/run*` (la file de calculs : pause/reprise/arrêt, analyse IA, dialogue), `/api/archives*` (calculs rangés), `/api/versions*` (versions du jeu), les routes push. Liste blanche des outils lançables : `OUTILS`. ⚠ écoute sur toutes les interfaces, sans mot de passe : ne jamais l'exposer à internet. |
+| `devserver.js` | **Le serveur** (le même sur le PC et sur le Pi, port 7330) : sert la racine du projet ; `POST /api/write` (le builder écrit `characters.data.js` et `docs/MECANIQUES-A-CODER.md`, avec photo automatique avant écrasement), `POST /api/sprites`, `/api/run*` (la file de calculs : pause/reprise/arrêt, analyse IA, dialogue), `/api/archives*` (calculs rangés), `/api/versions*` (versions du jeu), `GET/POST /api/rig` (les personnages animés de `game/data/rigs/`, PNG compris ; liste blanche `RIG_FICHIERS`, pas doublée en C#), les routes push. Liste blanche des outils lançables : `OUTILS`. ⚠ écoute sur toutes les interfaces, sans mot de passe : ne jamais l'exposer à internet. |
 | `sync-feuille.mjs` | **Le « patch » de la config** : lit la Google Sheet « Config Adventure-Cards » et écrit `game/data/feuille.data.js` (`--apercu` : dit ce qui changerait, n'écrit rien). **À lancer sur le Pi** (la clé du compte de service y est : `~/.adventure-card/google-sa.json`, hors dépôt). Onglets/colonnes/lignes en `~` ignorés. Même logique que `GET/POST /api/feuille`. |
 | `renfort.mjs` | **Le renfort** (port 7331) : une machine qui joue une partie des cases d'un calcul du Pi. Voir `lib/CLAUDE.md`. |
 
@@ -34,6 +34,7 @@
 | `test-vfx.mjs` | 2 938 : chaque carte des héros a **sa** signature de VFX (`ui/vfx.js` ; une carte d'adversaire peut en avoir une, son identifiant est cherché dans le catalogue), toutes différentes, cohérentes avec ses moments (entrée, râle, tour, règle, attaque, aura), briques existantes et décrites, et **aucune qui ment** (traînée ⇔ Charge, fantôme ⇔ Passe-Murailles, venin ⇔ Venin, pièces ⇒ mana…). Aucune partie jouée. | après `ui/vfx.js`, et après avoir **ajouté ou renommé une carte** |
 | `test-versions.mjs` | 44 : diff, restauration par entité, lecture des chiffres | après `lib/versions.mjs`, `diff-donnees.mjs`, `kpi.mjs` |
 | `test-push.mjs` | l'exemple de la RFC 8291, au bit près | après `lib/push.mjs` |
+| `test-rig.mjs` | 53 + 1 par personnage : squelette, IK à 2 os (atteint la cible, côté du pli, hors de portée, mal formée), (repos, rotation transmise, échelle non transmise, x/y dans les axes de l'image), clips (clés, boucle, courbes, périodicité de tout un clip, ressort, événements, fondu), maillage et poids (géodésiques : un bras ne tire pas l'autre à travers le vide ; la portée ; les os d'un calque maillé), étirement, le découpage (masque d'un polygone, lissage, accroche, inclure le trait, extraire sans rien perdre, extraire en calque, fusionner vers le bas, renommer, combler provisoirement, enregistrer puis relire), les zones à combler (la lignée), chaque code du validateur, JSON, PNG, GIF ; puis **chaque personnage de `game/data/rigs/` passe le validateur sans erreur**. | après `game/src/rig/`, `builder/rig/`, et après avoir écrit un clip |
 
 ## Les générateurs et outils ponctuels
 | Fichier | Rôle |
@@ -49,6 +50,10 @@
 | `dump-data.mjs` | One-shot historique : extraire les cartes codées en dur vers `characters.data.js`. |
 | `build-exe.ps1` | Compile `launcher/Launcher.cs` en `AdventureCard.exe` (csc.exe de Windows). |
 | `build-widget.ps1` | Construit l'APK du widget Android et le dépose dans `builder/telechargements/`. |
+| `rig-valide.mjs` | **Le validateur d'animation** : `node scripts/rig-valide.mjs <id> [clip…] [--json]` — erreurs, alertes et **mesures** (amplitude par os, déplacement, étirement du contour, couture). Sortie 1 s'il y a une erreur. |
+| `rig-rendu.mjs` | **Le rendu d'un clip sans écran** (Chrome installé, `lib/chrome.mjs` + `lib/statique.mjs`, page `builder/rig/rendu.html`) : `node scripts/rig-rendu.mjs <id> <clip> [--images 12] [--ecart] [--gif] [--webm] [--cadre x,y,cote]` → `art-sortie/rigs/<id>/` (ignoré par git). `--ecart` peint en magenta ce qui a bougé depuis le repos. `<id> --essai [--angle 15]` (sans clip) **vérifie le rig** : chaque os tourne seul, la planche peint ce qu'il entraîne (`essai-os.png`). ≈ 5 s. |
+| `rig-maille.mjs` | Maille les calques d'un personnage et refait leurs poids (`--pas 40`, `--poids-seuls`, `--calque <id>`, `--forcer` pour refaire aussi des poids peints à la main) : les mêmes fonctions que les boutons de l'Atelier. |
+| `rig-decoupe.mjs` | **Le découpage en ligne de commande** (`builder/rig/calques.js`) : `extrait --depuis <calque> --nom <nouveau> --poly "x,y …" [--contour R] [--lissage N] [--trait L] [--os <os>]`, `comble --calque <c> [--zone z1] [--distance 32]` (provisoire), `etat`. Lit et écrit les PNG du dossier du personnage. ⚠ Deux tracés voisins presque confondus laissent un **ruban** sur le calque d'origine, que le comblement épaissit en tache (le Chiot de Garde) : faire chevaucher le second tracé sur le premier (ce qui est déjà extrait ne se reprend pas). |
 
 ## Règles
 - **Tout outil qui joue des parties se partage** (jamais de `new Worker` dans son coin) — voir « Règle de travail » du `CLAUDE.md` racine.

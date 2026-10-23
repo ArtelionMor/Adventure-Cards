@@ -1,0 +1,43 @@
+{
+  "format": "adventure-rig-clips",
+  "version": 1,
+  "clips": {
+    "idle": {
+      "description": "Le crapaud au repos : trois respirations de durees inegales (inspiration lente, expiration plus courte), le ventre suit d'un souffle, la tete traine derriere le corps et regarde parfois a cote ; une deglutition de temps en temps.",
+      "duree": 8,
+      "boucle": true,
+      "pistes": {
+        "corps": {
+          "sx": [
+            { "t": 0, "v": 1 }, { "t": 1.65, "v": 1.011 }, { "t": 2.8, "v": 1 },
+            { "t": 4.25, "v": 1.008 }, { "t": 5.4, "v": 1 }, { "t": 6.95, "v": 1.012 }
+          ],
+          "sy": [
+            { "t": 0.1, "v": 1 }, { "t": 1.75, "v": 1.013 }, { "t": 2.9, "v": 1 },
+            { "t": 4.35, "v": 1.01 }, { "t": 5.5, "v": 1 }, { "t": 7.05, "v": 1.014 }
+          ]
+        },
+        "ventre": {
+          "sy": [
+            { "t": 0.3, "v": 1 }, { "t": 1.95, "v": 1.012 }, { "t": 3.1, "v": 1 },
+            { "t": 4.55, "v": 1.01 }, { "t": 5.7, "v": 1 }, { "t": 7.25, "v": 1.014 }
+          ]
+        }
+      },
+      "procedural": [
+        { "type": "sinus", "os": "corps", "canal": "rot", "amplitude": 0.5, "periode": 8, "phase": 0.1 },
+        { "type": "bruit", "os": "tete", "canal": "rot", "amplitude": 0.7, "periode": 2.6666667, "graine": 11 },
+        { "type": "ressort", "os": "tete", "source": "corps", "frequence": 1.4, "amortissement": 0.45 },
+        { "type": "evenement", "intervalle": [4, 7], "graine": 2, "pistes": {
+          "tete": { "rot": [
+            { "t": 0, "v": 0 }, { "t": 0.15, "v": -0.3 }, { "t": 0.55, "v": 1.7, "courbe": "sortie" },
+            { "t": 1.5, "v": 1.55 }, { "t": 2.2, "v": 0 }
+          ] }
+        } },
+        { "type": "evenement", "intervalle": [3, 6], "graine": 5, "pistes": {
+          "ventre": { "sy": [ { "t": 0, "v": 0, "courbe": "sortie" }, { "t": 0.18, "v": 0.02 }, { "t": 0.5, "v": 0 } ] }
+        } }
+      ]
+    }
+  }
+}

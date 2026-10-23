@@ -9,6 +9,7 @@
 | `situations.js` | Les positions du banc de situations (`SITUATIONS`, `FAMILLES`) ; les mêmes `id` que `docs/SITUATIONS-A-TESTER.md`. | À la main |
 | `vignettes.js` | La liste des images qui ont une **version allégée** dans `game/vignettes/` (WebP, 512 px au plus ; même chemin, extension `.webp`) — `asset()` (`ui/shell.js`) les prend à la place des originaux. **Généré** : `python scripts/gen-vignettes.py` (lancé aussi par `gen-sprites.mjs`). | `scripts/gen-vignettes.py` |
 | `sprites.js` | La liste des images de `Graphical Assets/{Characters,Buildings,Ressources,Old UI}/` (sous-dossiers compris : un nom peut porter le sien, `Dog/Dog Cocker.png`) et des packs `Decor/<pack>/` (`SPRITES`). **Généré** : `node scripts/gen-sprites.mjs` ou le bouton « 🔄 Actualiser les images » du builder. | `scripts/gen-sprites.mjs` |
+| `rigs/` | **Les personnages animés** : `<id>/source.png`, `rig.json` (Atelier « Rig & Anim »), `clips.json` (Claude). Voir `rigs/CLAUDE.md`. | `builder/rig.html`, `scripts/rig-*.mjs` |
 | `adventure-card-data.json` | Un export local, **ignoré par git** (`.gitignore`). Ne pas s'en servir. | — |
 
 ## Règles

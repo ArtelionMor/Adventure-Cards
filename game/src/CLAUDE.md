@@ -8,6 +8,7 @@
 | `combat/` | Le **moteur**, le bot, les journaux (décisions + événements) — `combat/CLAUDE.md`. |
 | `tools/` | L'**arène** de mesure et le montage de situations — `tools/CLAUDE.md`. |
 | `ui/` | Les **écrans** — `ui/CLAUDE.md`. |
+| `rig/` | **L'animation squelettique 2D** (23 oct. 2026) : squelette, clips, maillage, runtime, rendu WebGL, validateur — sans aucun import hors du dossier (il se copie dans un autre jeu) — `rig/CLAUDE.md`. Pas encore branché sur les écrans. |
 
 ## Sens des dépendances (ne pas les inverser)
 `ui/` → `combat/` → `config/` ; `tools/` → `combat/` + `config/` ; `config/` n'importe ni `combat/` ni `ui/`.

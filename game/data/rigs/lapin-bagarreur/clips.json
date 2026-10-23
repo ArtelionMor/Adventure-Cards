@@ -1,0 +1,27 @@
+{
+  "format": "adventure-rig-clips",
+  "version": 1,
+  "clips": {
+    "idle": {
+      "description": "En garde : un petit rebond sur les appuis, le buste qui tisse lentement, les poings qui alternent, la tete qui suit le buste, les oreilles qui trainent derriere la tete ; la queue fretille de temps en temps.",
+      "duree": 4.8,
+      "boucle": true,
+      "pistes": {},
+      "procedural": [
+        { "type": "sinus", "os": "bassin", "canal": "y", "amplitude": 2, "periode": 0.8, "phase": 0 },
+        { "type": "sinus", "os": "torse", "canal": "rot", "amplitude": 0.6, "periode": 2.4, "phase": 0.1 },
+        { "type": "bruit", "os": "torse", "canal": "rot", "amplitude": 0.3, "periode": 1.2, "graine": 21 },
+        { "type": "bruit", "os": "tete", "canal": "rot", "amplitude": 0.4, "periode": 1.6, "graine": 7 },
+        { "type": "ressort", "os": "tete", "source": "torse", "frequence": 2, "amortissement": 0.4 },
+        { "type": "sinus", "os": "bras_g", "canal": "rot", "amplitude": 0.7, "periode": 1.6, "phase": 0 },
+        { "type": "sinus", "os": "bras_d", "canal": "rot", "amplitude": 0.7, "periode": 1.6, "phase": 0.5 },
+        { "type": "ressort", "os": ["oreille_g", "oreille_g_b"], "source": "tete", "frequence": 2.2, "amortissement": 0.3, "gainY": -0.8 },
+        { "type": "ressort", "os": ["oreille_d", "oreille_d_b"], "source": "tete", "frequence": 2.0, "amortissement": 0.3, "gainY": 0.8 },
+        { "type": "sinus", "os": "queue", "canal": "rot", "amplitude": 0.8, "periode": 1.2, "phase": 0.2 },
+        { "type": "evenement", "intervalle": [1.5, 3], "graine": 4, "pistes": {
+          "queue": { "rot": [ { "t": 0, "v": 0 }, { "t": 0.08, "v": -0.4 }, { "t": 0.2, "v": 1.4, "courbe": "sortie" }, { "t": 0.45, "v": 0 } ] }
+        } }
+      ]
+    }
+  }
+}

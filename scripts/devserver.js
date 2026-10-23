@@ -4,7 +4,8 @@
 // Expose aussi POST /api/write?path=<chemin relatif>, utilise par le Card Builder pour
 // ecrire ses fichiers, POST /api/sprites, qui rebalaye les dossiers d'images et
 // reecrit game/data/sprites.js (le bouton « Actualiser les images » du builder), et
-// /api/run, qui lance un outil de mesure (page builder/lancer.html). Seuls les chemins
+// /api/run, qui lance un outil de mesure (page builder/lancer.html), et /api/rig, qui
+// liste et ecrit les personnages animes (page builder/rig.html, binaires compris). Seuls les chemins
 // et les scripts des listes blanches sont acceptes.
 //
 // ⚠ Le serveur ecoute sur TOUTES les interfaces : c'est ce qui permet au Pi de servir
@@ -40,6 +41,9 @@ const MIME = {
 // Le builder n'a le droit d'ecrire que la, et rien d'autre.
 const WRITABLE = [/^game\/data\/[\w.-]+\.(js|json)$/, /^docs\/[\w.-]+\.md$/];
 const canWrite = rel => WRITABLE.some(re => re.test(rel));
+// Les fichiers d'un personnage anime (relatifs a game/data/rigs/), cf. /api/rig.
+const RIG_FICHIERS = /^[a-z0-9][a-z0-9_-]*\/(rig\.json|clips\.json|source\.png|(calques|masques|combles)\/[\w-]+\.png)$/;
+const RIG_MAX = 40 * 1024 * 1024;
 
 // Le balayage des dossiers d'images vit dans scripts/gen-sprites.mjs — une seule
 // implementation, la meme liste en ligne de commande et depuis le builder. C'est un
@@ -563,6 +567,41 @@ http.createServer((req, res) => {
       console.log('sprites relus : ' + Object.entries(sprites).map(([k, v]) => k + ' ' + v.length).join(' · '));
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }).end(JSON.stringify(sprites));
     }).catch(e => res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }).end(String(e && e.message || e)));
+    return;
+  }
+
+  // LES PERSONNAGES ANIMES (Atelier « Rig & Anim », builder/rig.html) : la liste, et
+  // l'ecriture de leurs fichiers, BINAIRES compris (les calques sont des PNG). Rien hors de
+  // game/data/rigs/<id>/, et seulement les noms de RIG_FICHIERS. Pas doublee en C# : l'exe
+  // sans Node n'a pas l'Atelier de rig.
+  if (urlPath === '/api/rig' && (req.method === 'GET' || req.method === 'POST')) {
+    const dossier = path.join(ROOT, 'game', 'data', 'rigs');
+    if (req.method === 'GET') {
+      const liste = [];
+      for (const id of fs.existsSync(dossier) ? fs.readdirSync(dossier) : []) {
+        try {
+          const rig = JSON.parse(fs.readFileSync(path.join(dossier, id, 'rig.json'), 'utf8'));
+          let clips = [];
+          try { clips = Object.keys(JSON.parse(fs.readFileSync(path.join(dossier, id, 'clips.json'), 'utf8')).clips || {}); } catch { /* pas de clip */ }
+          liste.push({ id, nom: rig.nom || id, clips });
+        } catch { /* pas un personnage */ }
+      }
+      json(res, 200, liste);
+      return;
+    }
+    const rel = decodeURIComponent(new URLSearchParams(query || '').get('path') || '').replace(/\\/g, '/');
+    if (!RIG_FICHIERS.test(rel)) { res.writeHead(403).end('Chemin non autorise : ' + rel); return; }
+    const morceaux = [];
+    let taille = 0;
+    req.on('data', c => { taille += c.length; if (taille <= RIG_MAX) morceaux.push(c); });
+    req.on('end', () => {
+      if (taille > RIG_MAX) { res.writeHead(413).end('Trop gros : ' + taille + ' octets'); return; }
+      const file = path.join(dossier, rel);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, Buffer.concat(morceaux));
+      console.log('rig ecrit : ' + rel + ' (' + taille + ' octets)');
+      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }).end('ok');
+    });
     return;
   }
 

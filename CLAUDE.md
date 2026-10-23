@@ -192,8 +192,9 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | `game/src/combat/` | **Moteur**, bot, journal de décisions, événements du combat. Pas de DOM. | `game/src/combat/CLAUDE.md` |
 | `game/src/tools/` | L'**arène** de mesure (deck contre deck) et le montage des **situations**. | `game/src/tools/CLAUDE.md` |
 | `game/src/ui/` | Les **écrans** : combat, overworld, arènes, profil, deck, ferme, sac, journal graphique, gestes, icônes. | `game/src/ui/CLAUDE.md` |
+| `game/src/rig/` | L'**animation squelettique 2D** : squelette, clips, maillage, runtime, rendu WebGL, validateur (sans import extérieur). | `game/src/rig/CLAUDE.md` |
 | `game/data/` | Les données : **cartes** (écrites par le builder), situations, liste des sprites. | `game/data/CLAUDE.md` |
-| `builder/` | **L'Atelier** : Card Builder, équilibrage, courbes, situations, lancer un calcul, versions (pages autonomes, PWA). | `builder/CLAUDE.md` |
+| `builder/` | **L'Atelier** : Card Builder, équilibrage, courbes, situations, lancer un calcul, versions, Rig & Anim (pages autonomes, PWA). | `builder/CLAUDE.md` |
 | `scripts/` | Serveur de dev, outils de mesure, **bancs de test**, générateurs. | `scripts/CLAUDE.md` |
 | `scripts/lib/` | Briques partagées : file de calcul, renforts, IA locale, versions, archives, push. | `scripts/lib/CLAUDE.md` |
 | `launcher/` | Le lanceur Windows (`Launcher.cs` → `AdventureCard.exe`). | `launcher/CLAUDE.md` |
@@ -222,6 +223,7 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | changer l'arbre du profil du joueur, les jokers, les decks enregistrés | `game/src/config/profil.js`, `BALANCE.profil` / `BALANCE.decks` ; écrans `game/src/ui/profil.js`, `arene.js` |
 | mesurer l'équilibre | `scripts/matchups.mjs`, `simulate.mjs`, `check-decks.mjs`, `analyse-cartes.mjs` (ou `builder/balance.html`) |
 | lancer un calcul depuis le téléphone, les renforts, l'IA locale | `builder/lancer.html` + `scripts/devserver.js` + `scripts/lib/` |
+| animer un personnage (« fais l'idle du crapaud ») | lire `docs/ANIMATION_FORMAT.md` (le format **et** la boucle : écrire `clips.json` → `scripts/rig-valide.mjs` → `scripts/rig-rendu.mjs --ecart` → regarder → corriger → `--gif`) ; poser les os : l'Atelier `builder/rig.html` ; le plan : `docs/RIG-ANIM.md` |
 | ajouter une icône | déposer `Graphical Assets/Icons/<Nom>.png` (noms : `game/src/ui/icones.js`) ; une grande image : `python scripts/gen-vignettes.py` |
 | changer le tutoriel, une quête, le départ d'une partie | `docs/TUTORIEL.md`, puis `game/src/config/quetes.js` (le fil), `state.js` (ses règles), `ui/quetes.js` (le bandeau) ; les Lapins : `scripts/gen-lapins.mjs` |
 | comprendre une décision de design | `docs/GDD.md`, `docs/V3-HEROS.md`, `docs/TUTORIEL.md`, et la mémoire du projet |
@@ -308,6 +310,9 @@ pas tant qu'on n'y touche pas, grâce à son cache de dates). La première édit
 
 Après toute modification du fil de quêtes (`game/src/config/quetes.js`, ou des quêtes de `state.js`), faire tourner
 `node scripts/test-quetes.mjs` — il déroule le tutoriel sur une partie neuve et vérifie qu'une ancienne sauvegarde le saute.
+
+Après toute modification de `game/src/rig/` ou de `builder/rig/`, et après avoir écrit un clip, faire tourner
+`node scripts/test-rig.mjs` — il vérifie aussi que chaque personnage de `game/data/rigs/` passe le validateur.
 
 Après toute modification de `game/src/config/courbes.js` (le modèle des courbes de
 progression), faire tourner `node scripts/test-courbes.mjs` — il vérifie les six

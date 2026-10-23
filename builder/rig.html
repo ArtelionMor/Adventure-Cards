@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#0f1115" />
+<link rel="icon" href="icons/atelier-192.png" />
+<title>Rig & Anim — Atelier</title>
+<!-- RIG & ANIM : le game designer y pose les os d'un personnage et maille son image ; les
+     clips (clips.json) sont ecrits par Claude, et cette page les JOUE (elle relit le fichier
+     toute seule quand il change). Format : docs/ANIMATION_FORMAT.md. Coeur : game/src/rig/.
+     Ecrit par POST /api/rig (scripts/devserver.js). Modes : os, calques (decoupe : module
+     rig/editeur-calques.js, operations rig/calques.js), poids (pinceau), pose, lecture. -->
+<style>
+  :root {
+    --bg: #0f1115; --bg-2: #161922; --bg-3: #1d2230; --line: #2a3142;
+    --text: #e7eaf0; --muted: #9aa3b2; --accent: #7aa2ff; --accent-2: #79e3c5;
+    --warn: #f5a623; --danger: #ff6b81; --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); }
+  body { font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif; display: grid; grid-template-rows: auto 1fr; }
+  a { color: var(--accent); }
+  button, select, input { font: inherit; color: var(--text); background: var(--bg-3); border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px; }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.on { background: #24325a; border-color: var(--accent); }
+  button.principal { background: linear-gradient(135deg, var(--accent), #5b86ff); color: #0b1020; font-weight: 700; border: 0; }
+  button:disabled { opacity: .45; cursor: default; }
+  input[type=number] { width: 72px; }
+  input[type=range] { padding: 0; }
+
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-2); border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 17px; margin: 0 8px 0 0; }
+  header .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+  #etat { margin-left: auto; color: var(--muted); font-size: 13px; }
+  #etat.sale { color: var(--warn); }
+
+  main { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
+  #vue { position: relative; overflow: hidden; background:
+    repeating-conic-gradient(#1a1e28 0 25%, #151821 0 50%) 0 0 / 24px 24px; touch-action: none; }
+  #vue canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #outils { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  #aide { position: absolute; left: 10px; bottom: 10px; right: 10px; color: var(--muted); font-size: 12px; pointer-events: none; text-shadow: 0 1px 2px #000; }
+
+  aside { background: var(--bg-2); border-left: 1px solid var(--line); overflow: auto; padding: 10px 12px 40px; }
+  section { border-bottom: 1px solid var(--line); padding: 10px 0; }
+  section h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 8px; }
+  .ligne { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 5px 0; }
+  .ligne label { color: var(--muted); font-size: 12px; }
+  .muet { color: var(--muted); font-size: 12px; }
+  #arbre { list-style: none; padding: 0; margin: 0; }
+  #arbre li { padding: 3px 6px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  #arbre li:hover { background: var(--bg-3); }
+  #arbre li.sel { background: #24325a; }
+  #arbre .pastille { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .constat { font-size: 12px; padding: 4px 6px; border-radius: 6px; margin: 3px 0; background: var(--bg-3); }
+  .constat.erreur { border-left: 3px solid var(--danger); }
+  .constat.alerte { border-left: 3px solid var(--warn); }
+  .constat.ok { border-left: 3px solid var(--accent-2); }
+  pre.mesures { font-size: 11px; color: var(--muted); white-space: pre-wrap; margin: 6px 0 0; }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #24325a; padding: 8px 14px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.4); display: none; z-index: 10; }
+  dialog { background: var(--bg-2); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius); width: min(560px, 92vw); }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  #choixImages { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; max-height: 46vh; overflow: auto; margin: 8px 0; }
+  #choixImages button { padding: 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; }
+  #choixImages button img { width: 70px; height: 70px; object-fit: contain; }
+  #choixImages button.sel { border-color: var(--accent-2); background: #1e3a33; }
+  #conflit { display: none; background: #4a2a10; color: #ffd9a8; padding: 6px 12px; font-size: 13px; }
+  #conflit button { margin-left: 8px; }
+  @media (max-width: 820px) { main { grid-template-columns: 1fr; grid-template-rows: 60vh auto; } aside { border-left: 0; } }
+</style>
+</head>
+<body>
+<header>
+  <a href="accueil.html" title="L'Atelier">⟵</a>
+  <h1>Rig & Anim</h1>
+  <select id="perso"></select>
+  <button id="nouveau">+ Nouveau personnage</button>
+  <span class="sep"></span>
+  <button id="annuler" title="Ctrl+Z">↶</button>
+  <button id="retablir" title="Ctrl+Y">↷</button>
+  <button id="enregistrer" class="principal" title="Ctrl+S">Enregistrer</button>
+  <span id="etat">—</span>
+</header>
+<div id="conflit">rig.json a changé sur le disque (un script, ou une autre fenêtre). <button id="conflitRelire">Relire le disque</button><button id="conflitGarder">Garder ma version</button></div>
+<main>
+  <div id="vue">
+    <canvas id="gl"></canvas>
+    <canvas id="dessus"></canvas>
+    <div id="outils">
+      <button data-mode="os" class="on" title="Poser et régler les os (pose de repos)">🦴 Os</button>
+      <button data-mode="calques" title="Découper l'image en calques (lasso), gomme, restauration, zones à combler">✂ Calques</button>
+      <button data-mode="poids" title="Peindre les poids de l'os sélectionné sur le calque sélectionné (Maj : retirer)">🎨 Poids</button>
+      <button data-mode="pose" title="Bouger les os pour tester le rig, sans rien enregistrer">✋ Pose</button>
+      <button data-mode="lecture" title="Jouer les clips de clips.json">▶ Lecture</button>
+      <span class="sep"></span>
+      <button id="voirMesh" title="Afficher le maillage">Maillage</button>
+      <button id="voirPoids" title="Afficher les poids de l'os sélectionné">Poids</button>
+      <button id="voirOs" class="on" title="Afficher les os">Os</button>
+      <button id="cadrer" title="Recadrer la vue (F)">⤢</button>
+    </div>
+    <div id="aide"></div>
+  </div>
+  <aside>
+    <section id="secOs">
+      <h2>Os</h2>
+      <ul id="arbre"></ul>
+      <div id="ficheOs"></div>
+    </section>
+    <section>
+      <h2>Maillage et poids</h2>
+      <div class="ligne"><label>Pas de la grille</label><input type="number" id="pas" min="8" max="200" step="2" /><span class="muet">px</span>
+        <button id="mailler" title="Image seule : une grille sur toute l'image">Générer le mesh</button></div>
+      <div class="ligne"><label><input type="checkbox" id="poidsAuto" checked /> Poids automatiques</label>
+        <button id="calculPoids" title="Recalcule les poids de tous les calques maillés (Maj + clic : aussi ceux peints à la main)">Calculer les poids</button></div>
+      <div class="ligne"><label>pinceau de poids</label><label>rayon</label><input type="number" id="pRayon" value="40" min="2" max="400" /><label>force</label><input type="number" id="pForce" value="25" min="1" max="100" /><span class="muet">%</span></div>
+      <div id="infoMesh" class="muet"></div>
+    </section>
+    <section>
+      <h2>Clips</h2>
+      <div class="ligne"><select id="clip"></select><button id="jouer">⏸</button>
+        <select id="vitesse"><option value="0.25">×¼</option><option value="0.5">×½</option><option value="1" selected>×1</option><option value="2">×2</option></select></div>
+      <div class="ligne"><input type="range" id="temps" min="0" max="1000" value="0" style="flex:1" /><span id="tempsTxt" class="muet">0,00 s</span></div>
+      <div class="ligne"><label>Fondu vers</label><select id="clipFondu"></select><input type="number" id="dureeFondu" value="0.3" step="0.05" min="0" /><span class="muet">s</span><button id="fondu">Fondre</button></div>
+      <div class="muet">Les clips sont écrits dans <code>clips.json</code> (par Claude) ; la page le relit quand il change.</div>
+    </section>
+    <section>
+      <h2>À vérifier</h2>
+      <div class="ligne"><button id="verifier">Vérifier le clip</button><label><input type="checkbox" id="verifAuto" checked /> à chaque changement</label></div>
+      <div id="constats"></div>
+    </section>
+  </aside>
+</main>
+
+<dialog id="dlgNouveau">
+  <h3 style="margin-top:0">Nouveau personnage</h3>
+  <div class="ligne"><label>Identifiant</label><input id="nvId" placeholder="crapaud-roi" pattern="[a-z0-9][a-z0-9_-]*" /><label>Nom</label><input id="nvNom" placeholder="Crapaud roi" /></div>
+  <div class="ligne"><label>Image (PNG transparent)</label><input type="file" id="nvFichier" accept="image/png" /></div>
+  <div class="muet">… ou une image du jeu :</div>
+  <input id="nvFiltre" placeholder="filtrer (Frog, Owl…)" style="width:100%;margin-top:6px" />
+  <div id="choixImages"></div>
+  <div class="ligne" style="justify-content:flex-end"><button id="nvAnnuler">Annuler</button><button id="nvCreer" class="principal">Créer</button></div>
+</dialog>
+<div id="toast"></div>
+
+<script type="module">
+import { prepareRig, creeAnimateur, FORMAT_RIG } from '../game/src/rig/joueur.js';
+import { creeRendu } from '../game/src/rig/rendu-webgl.js';
+import { poseNeutre, boutDe } from '../game/src/rig/squelette.js';
+import { verifieClips } from '../game/src/rig/verifie.js';
+import { formateJson } from './rig/json.js';
+import { depuisFichiers, pourEnregistrer, mailleCalque, recalculePoids, copieImage } from './rig/calques.js';
+import { installeCalques } from './rig/editeur-calques.js';
+import { SPRITES } from '../game/data/sprites.js';
+
+const $ = s => document.querySelector(s);
+const BASE = id => `../game/data/rigs/${id}/`;
+const toast = m => { const t = $('#toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', 2600); };
+const RAD = Math.PI / 180;
+
+// ------------------------------------------------------------------ l'etat
+const E = {
+  id: null, rig: null, clipsJson: null,
+  // les images des calques, A LA TAILLE DE LA SOURCE (recadrees seulement a l'enregistrement) :
+  // px = pixels { largeur, hauteur, data } par calque, toiles = leurs canvas (ce que dessine
+  // WebGL), masques = les zones a combler ('calque/zone'), source = l'image d'origine (restaurer)
+  px: {}, toiles: {}, masques: {}, source: null, salesImages: new Set(), calque: null, opacites: {},
+  texteRig: '', texteClips: '',        // ce qui est sur le disque (pour voir un changement)
+  sale: false, histo: [], futur: [],
+  prep: null, anim: null,
+  mode: 'os', sel: null,
+  vue: { z: 0.3, x: 0, y: 0 },
+  pose: null,                            // la pose de test (mode Pose)
+  lecture: true, voirMesh: false, voirPoids: false, voirOs: true,
+};
+
+const glc = $('#gl'), dessus = $('#dessus'), g2 = dessus.getContext('2d');
+let C = null; // le mode calques (rig/editeur-calques.js), installe plus bas
+const rendu = creeRendu(glc);
+if (!rendu) document.body.insertAdjacentHTML('afterbegin', '<div style="background:#600;padding:8px">WebGL indisponible : la vue ne peut rien dessiner.</div>');
+
+// ------------------------------------------------------------------ fichiers
+async function liste() { const r = await fetch('/api/rig'); if (!r.ok) throw new Error('GET /api/rig : ' + r.status + ' (lancer scripts/devserver.js)'); return r.json(); }
+async function lisTexte(f) { const r = await fetch(BASE(E.id) + f + '?t=' + Date.now()); return r.ok ? r.text() : null; }
+async function ecris(rel, corps) {
+  const r = await fetch('/api/rig?path=' + encodeURIComponent(rel), { method: 'POST', body: corps });
+  if (!r.ok) throw new Error(await r.text());
+}
+
+async function remplisListe(choisi) {
+  const l = await liste();
+  $('#perso').innerHTML = l.length ? l.map(p => `<option value="${p.id}">${p.nom} (${p.id})</option>`).join('') : '<option value="">— aucun —</option>';
+  if (choisi) $('#perso').value = choisi;
+  return l;
+}
+
+const chargeImage = src => new Promise((ok, ko) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ko(new Error('image introuvable : ' + src)); im.src = src; });
+// Lit rig.json et TOUTES ses images (calques recadres, masques des zones), et les remet a la
+// taille de la source (depuisFichiers, rig/calques.js).
+async function chargeTout(texte) {
+  const json = JSON.parse(texte);
+  const chemins = new Set([json.source?.image || 'source.png']);
+  for (const c of json.calques || []) { chemins.add(c.image || json.source?.image || 'source.png'); for (const z of c.zones || []) if (z.masque) chemins.add(z.masque); }
+  const lus = {};
+  await Promise.all([...chemins].map(async f => { try { lus[f] = pixels(await chargeImage(BASE(E.id) + f + '?t=' + Date.now())); } catch { /* un masque manquant n'empeche rien */ } }));
+  if (!lus[json.source?.image || 'source.png']) throw new Error('source.png introuvable');
+  const { rig, images, masques } = depuisFichiers(json, f => lus[f] || null);
+  E.rig = rig; E.px = images; E.masques = masques; E.source = lus[json.source?.image || 'source.png'];
+  E.toiles = {}; E.salesImages = new Set(); E.opacites = {};
+  rendu?.oublie();
+}
+
+async function ouvre(id) {
+  E.id = id;
+  try { localStorage.setItem('adventureCardRig.perso', id); } catch { /* sans stockage */ }
+  E.texteRig = await lisTexte('rig.json');
+  E.texteClips = (await lisTexte('clips.json')) || '';
+  E.clipsJson = E.texteClips ? JSON.parse(E.texteClips) : { format: 'adventure-rig-clips', version: 1, clips: {} };
+  await chargeTout(E.texteRig);
+  E.histo = []; E.futur = []; E.sel = null; E.sale = false; E.calque = null;
+  $('#pas').value = E.rig.calques?.find(c => c.mesh)?.mesh?.pas || Math.round(Math.max(E.rig.source.largeur, E.rig.source.hauteur) / 50);
+  reprepare();
+  remplisClips();
+  cadre();
+  marque();
+  if ($('#verifAuto').checked) verifie();
+}
+
+// Les calques dont l'image a change partent en PNG (recadres), puis rig.json.
+async function enregistre() {
+  if (!E.id) return;
+  const { json, fichiers } = pourEnregistrer(E.rig, E.px, E.masques, [...E.salesImages]);
+  for (const f of fichiers) await ecris(E.id + '/' + f.chemin, await enPng(f.image));
+  const texte = formateJson(json) + '\n';
+  await ecris(E.id + '/rig.json', texte);
+  E.texteRig = texte; E.sale = false; E.salesImages = new Set(); marque();
+  toast(`enregistré : rig.json${fichiers.length ? ' + ' + fichiers.length + ' image(s)' : ''}`);
+}
+function enPng(im) {
+  const t = document.createElement('canvas'); t.width = im.largeur; t.height = im.hauteur;
+  t.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(im.data), im.largeur, im.hauteur), 0, 0);
+  return new Promise(ok => t.toBlob(ok, 'image/png'));
+}
+
+// Ce qui change sur le disque : clips.json (Claude anime) et rig.json (un script).
+setInterval(async () => {
+  if (!E.id || document.hidden) return;
+  const c = (await lisTexte('clips.json')) || '';
+  if (c !== E.texteClips) {
+    E.texteClips = c;
+    try { E.clipsJson = JSON.parse(c); reprepare(); remplisClips(true); toast('clips.json relu'); if ($('#verifAuto').checked) verifie(); }
+    catch (e) { toast('clips.json illisible : ' + e.message); }
+  }
+  const r = await lisTexte('rig.json');
+  if (r && r !== E.texteRig) {
+    if (!E.sale) { E.texteRig = r; await chargeTout(r); reprepare(); marque(); toast('rig.json relu'); }
+    else $('#conflit').style.display = 'block';
+  }
+}, 1500);
+$('#conflitRelire').onclick = async () => { $('#conflit').style.display = 'none'; E.texteRig = await lisTexte('rig.json'); await chargeTout(E.texteRig); E.sale = false; E.histo = []; E.futur = []; reprepare(); marque(); };
+$('#conflitGarder').onclick = async () => { $('#conflit').style.display = 'none'; E.texteRig = await lisTexte('rig.json'); };
+
+// ------------------------------------------------------------------ annuler / retablir
+// Toute modification passe par `modifie` : une photo AVANT (le JSON, et les REFERENCES des
+// images : une operation de calques rend des images neuves, elle ne touche jamais celles d'une
+// photo), puis le changement. `f` peut rendre la liste des calques dont l'image est a reecrire.
+// Un coup de pinceau, lui, modifie une image en place : debutTrait en fait d'abord une copie.
+const HISTO_MAX = 40;
+const photo = () => ({ rig: JSON.stringify(E.rig), px: { ...E.px }, masques: { ...E.masques } });
+function empile(p) { E.histo.push(p); if (E.histo.length > HISTO_MAX) E.histo.shift(); E.futur = []; }
+function notePx(avant) { for (const id of Object.keys(E.px)) if (avant[id] !== E.px[id]) E.salesImages.add(id); }
+function modifie(f, { recalculePoids: refaire = false } = {}) {
+  const p = photo(); empile(p);
+  const ids = f(E.rig);
+  if (Array.isArray(ids)) for (const id of ids) E.salesImages.add(id);
+  notePx(p.px);
+  if (refaire && $('#poidsAuto').checked) recalculePoids(E.rig);
+  E.sale = true; reprepare(); marque();
+}
+function restaurePhoto(p) {
+  const avant = E.px;
+  E.rig = JSON.parse(p.rig); E.px = p.px; E.masques = p.masques;
+  notePx(avant);
+  for (const id of Object.keys(avant)) if (!(id in E.px)) delete E.toiles[id];
+}
+function annule() { if (!E.histo.length) return; E.futur.push(photo()); restaurePhoto(E.histo.pop()); E.sale = true; reprepare(); marque(); }
+function retablit() { if (!E.futur.length) return; E.histo.push(photo()); restaurePhoto(E.futur.pop()); E.sale = true; reprepare(); marque(); }
+function debutTrait(id) { empile(photo()); E.px[id] = copieImage(E.px[id]); E.salesImages.add(id); E.sale = true; reprepare(); }
+function finTrait(id) {
+  // un calque maille gomme ou restaure : son maillage suit (sauf des poids peints a la main)
+  const c = E.rig.calques.find(k => k.id === id);
+  if (c?.mesh && !c.mesh.poidsManuels) { mailleCalque(E.rig, E.px, id); recalculePoids(E.rig); }
+  reprepare(); marque();
+}
+
+function marque() {
+  const e = $('#etat');
+  e.textContent = E.id ? (E.sale ? '● modifié, pas enregistré' : 'enregistré') : '—';
+  e.classList.toggle('sale', E.sale);
+  $('#annuler').disabled = !E.histo.length; $('#retablir').disabled = !E.futur.length;
+  dessineArbre(); dessineFiche(); infoMesh();
+  C?.dessineListe(); C?.dessineZones();
+}
+
+// Le rig prepare se refait a chaque changement (c'est rapide) ; l'animateur garde son clip.
+// Une toile (canvas) par calque, refaite quand son image a change de reference.
+function synchroniseToiles() {
+  for (const [id, px] of Object.entries(E.px)) {
+    let t = E.toiles[id];
+    if (t && t.px === px) continue;
+    if (!t) { const c = document.createElement('canvas'); c.width = px.largeur; c.height = px.hauteur; t = E.toiles[id] = { canvas: c, g: c.getContext('2d') }; }
+    t.g.putImageData(new ImageData(px.data, px.largeur, px.hauteur), 0, 0);
+    t.px = px;
+    rendu?.rafraichit(t.canvas);
+  }
+}
+// Un coup de pinceau : seul le rectangle touche repart vers la toile.
+function rafraichitRect(id, [x, y, w, h]) {
+  const t = E.toiles[id], px = E.px[id];
+  if (!t || w <= 0 || h <= 0) return;
+  const sous = new Uint8ClampedArray(w * h * 4);
+  for (let j = 0; j < h; j++) sous.set(px.data.subarray(((y + j) * px.largeur + x) * 4, ((y + j) * px.largeur + x + w) * 4), j * w * 4);
+  t.g.putImageData(new ImageData(sous, w, h), x, y);
+  rendu?.rafraichit(t.canvas);
+}
+function reprepare() {
+  try {
+    synchroniseToiles();
+    const p = prepareRig(E.rig, E.clipsJson);
+    p.images = {};
+    for (const c of E.rig.calques) if (E.toiles[c.id]) p.images[c.image || E.rig.source?.image || 'source.png'] = E.toiles[c.id].canvas;
+    const avant = E.anim;
+    E.prep = p;
+    E.anim = creeAnimateur(p);
+    if (avant?.clip && p.clips[avant.clip.nom]) { E.anim.joue(avant.clip.nom, { fondu: 0 }); E.anim.t = avant.t; }
+    else if (Object.keys(p.clips).length && !avant?.clip) E.anim.joue(Object.keys(p.clips)[0], { fondu: 0 });
+    const n = p.sq.os.length;
+    if (!E.pose || E.pose.rot.length !== n) E.pose = poseNeutre(n);
+  } catch (e) { toast('rig invalide : ' + e.message); }
+}
+
+// ------------------------------------------------------------------ la vue
+function taille() {
+  const r = $('#vue').getBoundingClientRect(), d = devicePixelRatio || 1;
+  for (const c of [glc, dessus]) { c.width = Math.round(r.width * d); c.height = Math.round(r.height * d); }
+}
+new ResizeObserver(taille).observe($('#vue'));
+const D = () => devicePixelRatio || 1;
+const versEcran = (x, y) => [(x * E.vue.z + E.vue.x), (y * E.vue.z + E.vue.y)];   // en pixels CSS
+const versMonde = (x, y) => [(x - E.vue.x) / E.vue.z, (y - E.vue.y) / E.vue.z];
+function cadre() {
+  if (!E.rig) return;
+  const r = $('#vue').getBoundingClientRect();
+  const W = E.rig.source.largeur, H = E.rig.source.hauteur;
+  E.vue.z = Math.min(r.width / W, r.height / H) * 0.95;
+  E.vue.x = (r.width - W * E.vue.z) / 2; E.vue.y = (r.height - H * E.vue.z) / 2;
+}
+$('#cadrer').onclick = cadre;
+
+const couleurOs = i => `hsl(${(i * 67) % 360} 80% 62%)`;
+
+let dernier = performance.now();
+function image(t) {
+  const dt = Math.min(0.1, (t - dernier) / 1000); dernier = t;
+  requestAnimationFrame(image);
+  if (!E.prep || !rendu) return;
+  const a = E.anim;
+  if (E.mode === 'lecture') {
+    if (E.lecture && a.clip) a.avance(dt);
+    a.calcule();
+    if (a.clip) {
+      const tc = a.clip.boucle ? ((a.t % a.clip.duree) + a.clip.duree) % a.clip.duree : Math.min(a.t, a.clip.duree);
+      if (!glisseTemps) $('#temps').value = Math.round(tc / a.clip.duree * 1000);
+      $('#tempsTxt').textContent = tc.toFixed(2).replace('.', ',') + ' s';
+    }
+  } else if (E.mode === 'pose') a.calcule(E.pose);
+  else {
+    // os, calques et poids : la pose de repos
+    if (!image.repos || image.repos.rot.length !== E.prep.sq.os.length) image.repos = poseNeutre(E.prep.sq.os.length);
+    a.calcule(image.repos);
+  }
+  const d = D();
+  rendu.efface();
+  rendu.dessine(a, { place: [E.vue.x * d, E.vue.y * d], origine: [0, 0], echelle: E.vue.z * d, opacites: E.opacites });
+  dessineDessus();
+}
+requestAnimationFrame(image);
+
+function dessineDessus() {
+  const d = D();
+  g2.setTransform(d, 0, 0, d, 0, 0);
+  g2.clearRect(0, 0, dessus.width, dessus.height);
+  const a = E.anim, sq = E.prep.sq;
+  // le cadre de l'image source
+  const [x0, y0] = versEcran(0, 0), [x1, y1] = versEcran(E.rig.source.largeur, E.rig.source.hauteur);
+  g2.strokeStyle = 'rgba(255,255,255,.12)'; g2.strokeRect(x0, y0, x1 - x0, y1 - y0);
+
+  if (E.mode === 'calques') C.dessine(g2);
+  if (E.mode === 'poids' && curseurPoids) {
+    const [x, y] = versEcran(...curseurPoids);
+    g2.beginPath(); g2.arc(x, y, (+$('#pRayon').value || 40) * E.vue.z, 0, Math.PI * 2); g2.strokeStyle = '#f5a623'; g2.lineWidth = 1.5; g2.stroke();
+  }
+  if (E.voirMesh || E.voirPoids || E.mode === 'poids') {
+    const iSel = E.sel != null ? sq.index.get(E.sel) : -1;
+    E.prep.calques.forEach((c, k) => {
+      if (E.mode === 'poids' && c.id !== E.calque) return;
+      const P = a.sommets[k], T = c.indices;
+      for (let j = 0; j < T.length; j += 3) {
+        const [pa, pb, pc] = [T[j], T[j + 1], T[j + 2]].map(v => versEcran(P[v * 2], P[v * 2 + 1]));
+        g2.beginPath(); g2.moveTo(...pa); g2.lineTo(...pb); g2.lineTo(...pc); g2.closePath();
+        if ((E.voirPoids || E.mode === 'poids') && iSel >= 0) {
+          let w = 0;
+          for (const v of [T[j], T[j + 1], T[j + 2]]) for (let q = 0; q < 4; q++) if (c.osIdx[v * 4 + q] === iSel) w += c.osW[v * 4 + q] / 3;
+          if (w > 0.01) { g2.fillStyle = `hsla(${(iSel * 67) % 360} 90% 55% / ${Math.min(0.85, w * 0.9)})`; g2.fill(); }
+        }
+        if (E.voirMesh) { g2.strokeStyle = c.trait[j / 3] ? 'rgba(255,120,120,.35)' : 'rgba(120,200,255,.3)'; g2.lineWidth = 0.6; g2.stroke(); }
+      }
+    });
+  }
+  if (!E.voirOs) return;
+  sq.os.forEach((b, i) => {
+    const o = versEcran(a.monde.x[i], a.monde.y[i]), t = versEcran(...boutDe(sq, a.monde, i));
+    const dx = t[0] - o[0], dy = t[1] - o[1], L = Math.hypot(dx, dy) || 1;
+    const ux = dx / L, uy = dy / L, w = Math.max(3, Math.min(12, L * 0.12));
+    const sel = b.id === E.sel;
+    g2.beginPath();
+    g2.moveTo(o[0], o[1]);
+    g2.lineTo(o[0] + ux * w * 1.4 - uy * w, o[1] + uy * w * 1.4 + ux * w);
+    g2.lineTo(t[0], t[1]);
+    g2.lineTo(o[0] + ux * w * 1.4 + uy * w, o[1] + uy * w * 1.4 - ux * w);
+    g2.closePath();
+    g2.fillStyle = sel ? 'rgba(255,255,255,.55)' : couleurOs(i).replace('62%)', '62% / .45)');
+    g2.fill(); g2.strokeStyle = sel ? '#fff' : couleurOs(i); g2.lineWidth = sel ? 2 : 1.2; g2.stroke();
+    g2.beginPath(); g2.arc(o[0], o[1], sel ? 6 : 4.5, 0, Math.PI * 2); g2.fillStyle = sel ? '#fff' : couleurOs(i); g2.fill();
+    if (sel && E.mode === 'os') { g2.beginPath(); g2.arc(t[0], t[1], 5, 0, Math.PI * 2); g2.strokeStyle = '#fff'; g2.stroke(); }
+    // le lien au parent (pointilles) quand l'os ne part pas du bout de son parent
+    if (b.parent >= 0) {
+      const p = versEcran(...boutDe(sq, a.monde, b.parent));
+      if (Math.hypot(p[0] - o[0], p[1] - o[1]) > 3) { g2.setLineDash([3, 4]); g2.beginPath(); g2.moveTo(...p); g2.lineTo(...o); g2.strokeStyle = 'rgba(255,255,255,.3)'; g2.lineWidth = 1; g2.stroke(); g2.setLineDash([]); }
+    }
+  });
+}
+
+// ------------------------------------------------------------------ souris
+const AIDE = {
+  os: 'Glisser dans le vide : nouvel os (enfant de l\'os sélectionné). Cliquer un os : le sélectionner. Glisser son rond : déplacer le pivot · son bout : angle et longueur · son corps : l\'os et ses enfants. Suppr : effacer. Molette : zoom · clic milieu ou Espace + glisser : déplacer la vue.',
+  pose: 'Glisser un os : le tourner (Maj : le déplacer ; une cible d\'IK se déplace, le membre suit). Rien n\'est enregistré. « Remettre au repos » dans la fiche de l\'os.',
+  poids: 'Pinceau de poids : glisser sur le calque sélectionné (liste des calques) pour donner du poids à l\'os sélectionné (arbre des os) ; Maj : en retirer. Les poids peints ne se recalculent plus tout seuls.',
+  lecture: 'Lecture des clips. Le curseur de temps met en pause.',
+};
+function majAide() { $('#aide').textContent = E.mode === 'calques' ? C.aide() : AIDE[E.mode]; }
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
+  E.mode = b.dataset.mode;
+  document.querySelectorAll('[data-mode]').forEach(x => x.classList.toggle('on', x === b));
+  majAide(); dessineFiche();
+});
+majAide();
+for (const [id, k] of [['#voirMesh', 'voirMesh'], ['#voirPoids', 'voirPoids'], ['#voirOs', 'voirOs']]) {
+  $(id).onclick = () => { E[k] = !E[k]; $(id).classList.toggle('on', E[k]); };
+}
+
+let espace = false, glisse = null;
+addEventListener('keydown', e => {
+  if (e.target.matches('input, select, textarea')) return;
+  if (E.mode === 'calques' && C.souris.touche(e)) { e.preventDefault(); return; }
+  if (e.code === 'Space') { espace = true; e.preventDefault(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? retablit() : annule(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); retablit(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); enregistre().catch(x => toast(x.message)); }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && E.sel && E.mode === 'os') supprimeOs(E.sel);
+  if (e.key === 'f' || e.key === 'F') cadre();
+});
+addEventListener('keyup', e => { if (e.code === 'Space') espace = false; });
+
+// Ce que la souris touche, en pixels ecran : le rond, le bout, ou le corps d'un os.
+function touche(px, py) {
+  const a = E.anim, sq = E.prep.sq;
+  let mieux = null;
+  sq.os.forEach((b, i) => {
+    const o = versEcran(a.monde.x[i], a.monde.y[i]), t = versEcran(...boutDe(sq, a.monde, i));
+    const d0 = Math.hypot(px - o[0], py - o[1]), d1 = Math.hypot(px - t[0], py - t[1]);
+    const dx = t[0] - o[0], dy = t[1] - o[1], L2 = dx * dx + dy * dy || 1;
+    const u = Math.max(0, Math.min(1, ((px - o[0]) * dx + (py - o[1]) * dy) / L2));
+    const dc = Math.hypot(px - o[0] - u * dx, py - o[1] - u * dy);
+    const cands = [[d0, 'pivot', 8], [d1, 'bout', 7], [dc, 'corps', 7]];
+    for (const [d, ou, r] of cands) if (d <= r && (!mieux || d < mieux.d)) mieux = { d, ou, id: b.id, i };
+  });
+  return mieux;
+}
+
+const vue = $('#vue');
+vue.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = vue.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  const [wx, wy] = versMonde(px, py);
+  E.vue.z = Math.max(0.03, Math.min(8, E.vue.z * Math.exp(-e.deltaY * 0.0015)));
+  E.vue.x = px - wx * E.vue.z; E.vue.y = py - wy * E.vue.z;
+}, { passive: false });
+
+vue.addEventListener('pointerdown', e => {
+  if (!E.prep || e.target.closest('#outils')) return;
+  const r = vue.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  try { vue.setPointerCapture(e.pointerId); } catch { /* un pointeur synthetique (tests) */ }
+  if (e.button === 1 || e.button === 2 || espace) { glisse = { type: 'vue', px, py, x: E.vue.x, y: E.vue.y }; return; }
+  const [wx, wy] = versMonde(px, py);
+  if (E.mode === 'calques') { if (C.souris.bas(e, wx, wy, px, py)) glisse = { type: 'calques' }; majAide(); return; }
+  if (E.mode === 'poids') { debutPoids(wx, wy, e.shiftKey); glisse = { type: 'poids', soustrait: e.shiftKey }; return; }
+  const t = touche(px, py);
+  if (E.mode === 'os') {
+    if (t) {
+      E.sel = t.id; marque();
+      const o = E.rig.os.find(b => b.id === t.id);
+      empile(photo());
+      glisse = { type: t.ou, id: t.id, wx, wy, depart: JSON.parse(JSON.stringify(E.rig.os)), o };
+    } else {
+      glisse = { type: 'nouvel', wx, wy, px, py, parent: E.sel };
+    }
+  } else if (E.mode === 'pose' && t) {
+    E.sel = t.id; marque();
+    const i = t.i, a = E.anim;
+    glisse = { type: e.shiftKey ? 'poseDeplace' : 'poseTourne', i, wx, wy,
+      angle0: Math.atan2(wy - a.monde.y[i], wx - a.monde.x[i]) / RAD, rot0: E.pose.rot[i], x0: E.pose.x[i], y0: E.pose.y[i] };
+  }
+});
+vue.addEventListener('contextmenu', e => e.preventDefault());
+vue.addEventListener('pointermove', e => {
+  const r = vue.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  const [wx, wy] = versMonde(px, py);
+  if (E.mode === 'calques' && (!glisse || glisse.type === 'calques')) { C.souris.bouge(e, wx, wy, px, py); return; }
+  if (E.mode === 'poids') { curseurPoids = [wx, wy]; if (glisse?.type === 'poids') peintPoids(wx, wy, glisse.soustrait); if (glisse?.type !== 'vue') return; }
+  if (!glisse) return;
+  const G = glisse;
+  if (G.type === 'vue') { E.vue.x = G.x + px - G.px; E.vue.y = G.y + py - G.py; return; }
+  if (G.type === 'nouvel') { G.fx = wx; G.fy = wy; G.loin = Math.hypot(px - G.px, py - G.py) > 6; dessineFantome(G); return; }
+  if (G.type === 'poseTourne') {
+    const a = E.anim, i = G.i;
+    E.pose.rot[i] = G.rot0 + (Math.atan2(wy - a.monde.y[i], wx - a.monde.x[i]) / RAD - G.angle0);
+    return;
+  }
+  if (G.type === 'poseDeplace') { E.pose.x[G.i] = G.x0 + wx - G.wx; E.pose.y[G.i] = G.y0 + wy - G.wy; return; }
+  // edition de la pose de repos : on repart toujours de la photo du debut du geste
+  E.rig.os = JSON.parse(JSON.stringify(G.depart));
+  const b = E.rig.os.find(o => o.id === G.id);
+  const dx = wx - G.wx, dy = wy - G.wy;
+  if (G.type === 'pivot') {
+    // le bout reste en place : on deplace l'origine, angle et longueur suivent
+    const tx = b.x + Math.cos(b.angle * RAD) * b.longueur, ty = b.y + Math.sin(b.angle * RAD) * b.longueur;
+    b.x = Math.round(b.x + dx); b.y = Math.round(b.y + dy);
+    b.angle = +(Math.atan2(ty - b.y, tx - b.x) / RAD).toFixed(1); b.longueur = Math.round(Math.hypot(tx - b.x, ty - b.y));
+  } else if (G.type === 'bout') {
+    b.angle = +(Math.atan2(wy - b.y, wx - b.x) / RAD).toFixed(1); b.longueur = Math.max(4, Math.round(Math.hypot(wx - b.x, wy - b.y)));
+  } else if (G.type === 'corps') {
+    const desc = descendants(G.id);
+    for (const o of E.rig.os) if (o.id === G.id || desc.has(o.id)) { o.x = Math.round(o.x + dx); o.y = Math.round(o.y + dy); }
+  }
+  G.bouge = true;
+  reprepare();
+});
+vue.addEventListener('pointerup', () => {
+  const G = glisse; glisse = null;
+  if (!G) return;
+  if (G.type === 'calques') { C.souris.haut(); return; }
+  if (G.type === 'poids') { reprepare(); marque(); return; }
+  if (G.type === 'nouvel') {
+    g2.clearRect(0, 0, dessus.width, dessus.height);
+    if (!G.loin) { E.sel = null; marque(); return; }
+    const id = nomLibre(G.parent ? G.parent + '_' : 'os');
+    modifie(r => r.os.push({ id, parent: G.parent || null, x: Math.round(G.wx), y: Math.round(G.wy),
+      angle: +(Math.atan2(G.fy - G.wy, G.fx - G.wx) / RAD).toFixed(1), longueur: Math.round(Math.hypot(G.fx - G.wx, G.fy - G.wy)) }), { recalculePoids: true });
+    E.sel = id; marque();
+  } else if (['pivot', 'bout', 'corps'].includes(G.type)) {
+    if (!G.bouge) { E.histo.pop(); return; }
+    if ($('#poidsAuto').checked) recalculePoids(E.rig);
+    E.sale = true; reprepare(); marque();
+  }
+});
+function dessineFantome(G) {
+  if (!G.loin) return;
+  const [ax, ay] = versEcran(G.wx, G.wy), [bx, by] = versEcran(G.fx, G.fy);
+  requestAnimationFrame(() => { g2.beginPath(); g2.moveTo(ax, ay); g2.lineTo(bx, by); g2.strokeStyle = '#fff'; g2.setLineDash([5, 4]); g2.lineWidth = 2; g2.stroke(); g2.setLineDash([]); });
+}
+
+// ------------------------------------------------------------------ os : arbre et fiche
+function descendants(id) {
+  const s = new Set(), pile = [id];
+  while (pile.length) { const p = pile.pop(); for (const o of E.rig.os) if (o.parent === p && !s.has(o.id)) { s.add(o.id); pile.push(o.id); } }
+  return s;
+}
+function nomLibre(base) { const ids = new Set(E.rig.os.map(o => o.id)); let k = 1; while (ids.has(base + k)) k++; return base + k; }
+function supprimeOs(id) {
+  modifie(r => {
+    const o = r.os.find(b => b.id === id);
+    // les enfants passent au grand-parent (leur pose de repos est en coordonnees de l'image : rien ne bouge)
+    for (const b of r.os) if (b.parent === id) b.parent = o.parent;
+    r.os = r.os.filter(b => b.id !== id);
+    for (const c of r.calques || []) if (c.os === id) delete c.os;
+    r.ik = (r.ik || []).filter(k => !k.os?.includes(id) && k.cible !== id);
+  }, { recalculePoids: true });
+  E.sel = null; marque();
+}
+function dessineArbre() {
+  const ul = $('#arbre');
+  if (!E.rig) { ul.innerHTML = ''; return; }
+  const rangs = [];
+  const visite = (parent, prof) => { for (const o of E.rig.os.filter(b => (b.parent || null) === parent)) { rangs.push([o, prof]); visite(o.id, prof + 1); } };
+  visite(null, 0);
+  ul.innerHTML = rangs.length ? '' : '<li class="muet">Aucun os : glisser dans la vue (mode 🦴 Os) pour en poser un.</li>';
+  for (const [o, prof] of rangs) {
+    const li = document.createElement('li');
+    const i = E.rig.os.indexOf(o);
+    li.innerHTML = `<span style="width:${prof * 14}px"></span><span class="pastille" style="background:${couleurOs(E.prep?.sq.index.get(o.id) ?? i)}"></span>${o.id}${o.deforme === false ? ' <span class="muet">(ne déforme pas)</span>' : ''}`;
+    li.classList.toggle('sel', o.id === E.sel);
+    li.onclick = () => { E.sel = o.id; marque(); };
+    ul.appendChild(li);
+  }
+}
+function dessineFiche() {
+  const f = $('#ficheOs');
+  const o = E.rig?.os.find(b => b.id === E.sel);
+  if (!o) { f.innerHTML = E.mode === 'pose' ? '<div class="ligne"><button id="reposTout">Remettre tout au repos</button></div>' : ''; lie(); return; }
+  const parents = E.rig.os.filter(b => b.id !== o.id && !descendants(o.id).has(b.id));
+  f.innerHTML = `
+    <div class="ligne"><label>Nom</label><input id="fNom" value="${o.id}" style="flex:1" /></div>
+    <div class="ligne"><label>Parent</label><select id="fParent"><option value="">— aucun (racine) —</option>${parents.map(p => `<option ${p.id === o.parent ? 'selected' : ''}>${p.id}</option>`).join('')}</select></div>
+    <div class="ligne"><label>x</label><input type="number" id="fX" value="${o.x}" /><label>y</label><input type="number" id="fY" value="${o.y}" /></div>
+    <div class="ligne"><label>angle</label><input type="number" id="fA" value="${o.angle}" step="0.5" /><label>longueur</label><input type="number" id="fL" value="${o.longueur}" /></div>
+    <div class="ligne"><label title="Poids automatiques : à 1,5, l'os attire de 1,5 fois plus loin (pour reprendre une zone qu'un os voisin lui vole)">portée</label><input type="number" id="fP" value="${o.portee ?? 1}" step="0.1" min="0.2" /></div>
+    <div class="ligne"><label><input type="checkbox" id="fDef" ${o.deforme === false ? '' : 'checked'} /> déforme le maillage</label><button id="fSuppr">Supprimer</button></div>
+    ${o.parent ? ficheIK(o) : ''}
+    ${E.mode === 'pose' ? '<div class="ligne"><button id="reposOs">Remettre cet os au repos</button><button id="reposTout">Tout au repos</button></div>' : ''}`;
+  const champ = (sel, f) => { const el = $(sel); el.onchange = () => modifie(r => f(r.os.find(b => b.id === o.id), el), { recalculePoids: true }); };
+  champ('#fX', (b, el) => b.x = +el.value); champ('#fY', (b, el) => b.y = +el.value);
+  champ('#fA', (b, el) => b.angle = +el.value); champ('#fL', (b, el) => b.longueur = Math.max(1, +el.value));
+  champ('#fDef', (b, el) => { if (el.checked) delete b.deforme; else b.deforme = false; });
+  champ('#fP', (b, el) => { const v = +el.value; if (!(v > 0) || v === 1) delete b.portee; else b.portee = v; });
+  champ('#fParent', (b, el) => b.parent = el.value || null);
+  $('#fNom').onchange = e => {
+    const nv = e.target.value.trim().replace(/\s+/g, '_');
+    if (!nv || E.rig.os.some(b => b.id === nv)) { toast('nom vide ou déjà pris'); e.target.value = o.id; return; }
+    const ancien = o.id;
+    modifie(r => {
+      for (const b of r.os) { if (b.id === ancien) b.id = nv; if (b.parent === ancien) b.parent = nv; }
+      for (const c of r.calques || []) { if (c.os === ancien) c.os = nv; for (const w of c.mesh?.poids || []) for (let j = 0; j < w.length; j += 2) if (w[j] === ancien) w[j] = nv; }
+    });
+    E.sel = nv; marque();
+    toast('⚠ les clips qui nomment « ' + ancien + ' » sont à renommer aussi');
+  };
+  $('#fSuppr').onclick = () => supprimeOs(o.id);
+  if ($('#fIK')) {
+    const majIK = () => modifie(r => {
+      r.ik = (r.ik || []).filter(k => !(k.os?.[1] === o.id));
+      const cible = $('#fIK').value;
+      if (cible) r.ik.push({ id: `${o.parent}-${o.id}`, os: [o.parent, o.id], cible, flexion: $('#fFlex').checked ? -1 : 1 });
+    });
+    $('#fIK').onchange = majIK; $('#fFlex').onchange = majIK;
+  }
+  lie();
+}
+// L'IK a 2 os : cet os et son parent plient pour que la pointe de cet os rejoigne l'ORIGINE de
+// l'os cible (on anime la cible, souvent un os enfant de « sol »). Pli inverse = l'autre cote.
+function ficheIK(o) {
+  const ik = (E.rig.ik || []).find(k => k.os?.[1] === o.id);
+  const interdits = new Set([o.parent, o.id, ...descendants(o.parent)]);
+  const cibles = E.rig.os.filter(b => !interdits.has(b.id));
+  return `<div class="ligne"><label title="${o.parent} + ${o.id} plient pour atteindre l'origine de la cible">IK (${o.parent} → ${o.id}) vise</label>
+    <select id="fIK"><option value="">— pas d'IK —</option>${cibles.map(b => `<option ${ik?.cible === b.id ? 'selected' : ''}>${b.id}</option>`).join('')}</select>
+    <label><input type="checkbox" id="fFlex" ${ik?.flexion < 0 ? 'checked' : ''} /> pli inverse</label></div>`;
+}
+function lie() {
+  const i = E.sel != null ? E.prep?.sq.index.get(E.sel) : -1;
+  if ($('#reposOs')) $('#reposOs').onclick = () => { E.pose.rot[i] = 0; E.pose.x[i] = 0; E.pose.y[i] = 0; E.pose.sx[i] = 1; E.pose.sy[i] = 1; };
+  if ($('#reposTout')) $('#reposTout').onclick = () => { E.pose = poseNeutre(E.prep.sq.os.length); };
+}
+
+// ------------------------------------------------------------------ maillage et poids
+function pixels(image) {
+  const c = document.createElement('canvas'); c.width = image.width; c.height = image.height;
+  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(image, 0, 0);
+  return { largeur: c.width, hauteur: c.height, data: g.getImageData(0, 0, c.width, c.height).data };
+}
+// « Générer le mesh » : maille le calque selectionne (le premier s'il n'y en a qu'un).
+$('#mailler').onclick = () => {
+  const pas = Math.max(8, +$('#pas').value || 40);
+  const id = E.calque || E.rig.calques[0]?.id;
+  if (!id) return;
+  modifie(r => { const c = r.calques.find(k => k.id === id); delete c.os; c.mesh = { pas }; mailleCalque(r, E.px, id); recalculePoids(r); });
+  toast('« ' + id + ' » maillé');
+};
+$('#calculPoids').onclick = e => {
+  const forcer = e.shiftKey;
+  modifie(r => { if (forcer) for (const c of r.calques) if (c.mesh) delete c.mesh.poidsManuels; recalculePoids(r); });
+  toast(forcer ? 'poids recalculés, peints à la main compris' : 'poids recalculés (ceux peints à la main sont gardés : Maj + clic pour les refaire)');
+};
+function infoMesh() {
+  const c = E.rig?.calques?.find(k => k.id === E.calque) || E.rig?.calques?.[0], m = c?.mesh;
+  $('#infoMesh').textContent = !E.rig ? '' : !c ? '' : c.os ? `« ${c.id} » est rigide sur l'os « ${c.os} » (pas de maillage).`
+    : m ? `« ${c.id} » : ${m.sommets.length / 2} sommets · ${m.triangles.length / 3} triangles (${m.trait.length} sur du contour, en rouge dans « Maillage ») · pas ${m.pas}${m.poidsManuels ? ' · poids peints à la main' : ''}` : `« ${c.id} » : pas encore de maillage, « Générer le mesh ».`;
+}
+
+// Le pinceau de poids : sur le calque selectionne, l'os selectionne gagne (ou perd, Maj) du
+// poids sous le pinceau ; les autres os du sommet se partagent le reste, au prorata.
+let curseurPoids = null;
+function debutPoids(wx, wy, soustrait) {
+  const c = E.rig.calques.find(k => k.id === E.calque);
+  if (!c?.mesh) { toast('choisir un calque maillé (liste des calques)'); return; }
+  if (!E.sel) { toast('choisir un os (arbre des os)'); return; }
+  empile(photo()); E.sale = true;
+  c.mesh.poidsManuels = true;
+  peintPoids(wx, wy, soustrait);
+}
+function peintPoids(wx, wy, soustrait) {
+  const c = E.rig.calques.find(k => k.id === E.calque);
+  if (!c?.mesh?.poids || !E.sel) return;
+  const R = +$('#pRayon').value || 40, F = (+$('#pForce').value || 25) / 100 * (soustrait ? -1 : 1);
+  const S = c.mesh.sommets;
+  for (let v = 0; v < S.length / 2; v++) {
+    const d = Math.hypot(S[v * 2] - wx, S[v * 2 + 1] - wy);
+    if (d > R) continue;
+    const k = F * (1 - d / R);
+    const w = new Map();
+    const p = c.mesh.poids[v] || [];
+    for (let j = 0; j + 1 < p.length; j += 2) w.set(p[j], p[j + 1]);
+    const ancien = w.get(E.sel) || 0, neuf = Math.max(0, Math.min(1, ancien + k));
+    const autres = [...w.entries()].filter(([o]) => o !== E.sel), somme = autres.reduce((s, [, x]) => s + x, 0);
+    const out = new Map();
+    if (neuf > 0) out.set(E.sel, neuf);
+    if (somme > 0) for (const [o, x] of autres) out.set(o, x / somme * (1 - neuf));
+    else if (neuf < 1 && autres.length === 0) out.set(E.sel, 1); // un sommet ne reste jamais sans poids
+    const tri = [...out.entries()].filter(([, x]) => x > 0.002).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    const tot = tri.reduce((s, [, x]) => s + x, 0) || 1;
+    c.mesh.poids[v] = tri.flatMap(([o, x]) => [o, Math.round(x / tot * 1000) / 1000]);
+  }
+  reprepare();
+}
+
+// ------------------------------------------------------------------ clips
+function remplisClips(garder) {
+  const noms = Object.keys(E.clipsJson?.clips || {});
+  const avant = $('#clip').value;
+  const opts = noms.length ? noms.map(n => `<option>${n}</option>`).join('') : '<option value="">— aucun clip —</option>';
+  $('#clip').innerHTML = opts; $('#clipFondu').innerHTML = opts;
+  if (garder && noms.includes(avant)) $('#clip').value = avant;
+  if (noms.length > 1) $('#clipFondu').value = noms.find(n => n !== $('#clip').value);
+}
+$('#clip').onchange = () => { const n = $('#clip').value; if (n) { E.anim.joue(n, { fondu: 0 }); if (E.mode !== 'lecture') document.querySelector('[data-mode=lecture]').click(); if ($('#verifAuto').checked) verifie(); } };
+$('#jouer').onclick = () => { E.lecture = !E.lecture; $('#jouer').textContent = E.lecture ? '⏸' : '▶'; };
+$('#vitesse').onchange = () => { E.anim.vitesse = +$('#vitesse').value; };
+let glisseTemps = false;
+$('#temps').oninput = () => {
+  glisseTemps = true; E.lecture = false; $('#jouer').textContent = '▶';
+  if (E.anim.clip) E.anim.t = +$('#temps').value / 1000 * E.anim.clip.duree;
+};
+$('#temps').onchange = () => { glisseTemps = false; };
+$('#fondu').onclick = () => {
+  const n = $('#clipFondu').value;
+  if (!n) return;
+  E.anim.joue(n, { fondu: +$('#dureeFondu').value || 0 });
+  $('#clip').value = n; E.lecture = true; $('#jouer').textContent = '⏸';
+  if (E.mode !== 'lecture') document.querySelector('[data-mode=lecture]').click();
+};
+
+// ------------------------------------------------------------------ verification
+function verifie() {
+  if (!E.rig) return;
+  const nom = $('#clip').value;
+  // ⚠ On verifie le rig TEL QU'IL S'ENREGISTRE (calques recadres) : en memoire, un calque rigide
+  // couvre toute la source, et son quadrilatere aurait les coins de l'image (un oeil qui cligne
+  // « bougeait de 496 px »).
+  const { json } = pourEnregistrer(E.rig, E.px, E.masques, []);
+  const { constats, mesures } = verifieClips(json, E.clipsJson, { clips: nom ? [nom] : [] });
+  const div = $('#constats');
+  const vus = constats.filter(c => !c.clip || c.clip === nom);
+  div.innerHTML = vus.length ? vus.map(c => `<div class="constat ${c.niveau}">${c.niveau === 'erreur' ? '✗' : '⚠'} ${c.message}</div>`).join('')
+    : '<div class="constat ok">✓ rien à signaler</div>';
+  const m = mesures[nom];
+  if (m) div.insertAdjacentHTML('beforeend', `<pre class="mesures">${[
+    ...m.os.map(o => `${o.os} : rot ±${o.rot}°${o.x || o.y ? ` · x ±${o.x} y ±${o.y} px` : ''}${o.sx || o.sy ? ` · sx ±${(o.sx * 100).toFixed(1)} % sy ±${(o.sy * 100).toFixed(1)} %` : ''}`),
+    ...m.calques.map(c => `calque ${c.calque} : bouge de ${c.deplacementMax} px au plus${c.etirementLibre ? ' · étirement libre' : ` · contour étiré ${c.etirementTrait} % · intérieur ${c.etirementInterieur} %`}`),
+    ...(m.zones || []).map(z => `zone ${z.dessous}/${z.zone} (${z.etat}) : « ${z.dessus} » glisse de ${z.glisse} px`),
+  ].join('\n')}</pre>`);
+}
+$('#verifier').onclick = verifie;
+
+// ------------------------------------------------------------------ nouveau personnage
+let choixImage = null;
+function vignette(chemin) { return '../game/vignettes/' + chemin.replace(/\.png$/i, '.webp'); }
+function dessineChoix() {
+  const f = $('#nvFiltre').value.toLowerCase();
+  const l = (SPRITES['Graphical Assets/Characters'] || []).map(n => 'Graphical Assets/Characters/' + n).filter(c => c.toLowerCase().includes(f));
+  $('#choixImages').innerHTML = l.map(c => `<button data-c="${c}" class="${c === choixImage ? 'sel' : ''}"><img loading="lazy" src="${encodeURI(vignette(c))}" onerror="this.src='${encodeURI('../' + c)}'" />${c.split('/').pop().replace('.png', '')}</button>`).join('');
+  $('#choixImages').querySelectorAll('button').forEach(b => b.onclick = () => {
+    choixImage = b.dataset.c; $('#nvFichier').value = '';
+    const nom = choixImage.split('/').pop().replace('.png', '');
+    if (!$('#nvNom').value) $('#nvNom').value = nom;
+    if (!$('#nvId').value) $('#nvId').value = nom.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    dessineChoix();
+  });
+}
+$('#nvFiltre').oninput = dessineChoix;
+$('#nouveau').onclick = () => { choixImage = null; $('#nvId').value = ''; $('#nvNom').value = ''; $('#nvFiltre').value = ''; dessineChoix(); $('#dlgNouveau').showModal(); };
+$('#nvAnnuler').onclick = () => $('#dlgNouveau').close();
+$('#nvCreer').onclick = async () => {
+  const id = $('#nvId').value.trim();
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(id)) { toast('identifiant : minuscules, chiffres, - et _'); return; }
+  const existants = await liste();
+  if (existants.some(p => p.id === id)) { toast('« ' + id + ' » existe déjà'); return; }
+  let blob = $('#nvFichier').files[0];
+  if (!blob && choixImage) blob = await (await fetch('../' + encodeURI(choixImage))).blob();
+  if (!blob) { toast('choisir une image'); return; }
+  const im = await createImageBitmap(blob);
+  const rig = { format: FORMAT_RIG, version: 1, id, nom: $('#nvNom').value.trim() || id,
+    source: { image: 'source.png', largeur: im.width, hauteur: im.height, ...(choixImage ? { origine: choixImage } : {}) },
+    os: [], calques: [{ id: 'corps', image: 'source.png', ordre: 0, x: 0, y: 0, largeur: im.width, hauteur: im.height }], ik: [] };
+  try {
+    await ecris(id + '/source.png', blob);
+    await ecris(id + '/rig.json', formateJson(rig) + '\n');
+    $('#dlgNouveau').close();
+    await remplisListe(id);
+    await ouvre(id);
+    toast('créé : ' + id + ' — maintenant les os, puis « Générer le mesh » (ou ✂ Calques pour découper)');
+  } catch (e) { toast(e.message); }
+};
+
+// ------------------------------------------------------------------ le mode calques
+C = installeCalques({ E, toast, modifie, debutTrait, finTrait, rafraichitRect, versEcran, versMonde, reprepare, marque });
+document.querySelectorAll('#cOutils [data-outil]').forEach(b => b.addEventListener('click', majAide));
+
+// ------------------------------------------------------------------ boutons et depart
+$('#enregistrer').onclick = () => enregistre().catch(e => toast(e.message));
+$('#annuler').onclick = annule; $('#retablir').onclick = retablit;
+$('#perso').onchange = () => {
+  if (E.sale && !confirm('Des changements ne sont pas enregistrés. Changer de personnage quand même ?')) { $('#perso').value = E.id; return; }
+  ouvre($('#perso').value);
+};
+addEventListener('beforeunload', e => { if (E.sale) { e.preventDefault(); e.returnValue = ''; } });
+
+(async () => {
+  try {
+    const l = await remplisListe();
+    let dernier = null;
+    try { dernier = localStorage.getItem('adventureCardRig.perso'); } catch { /* sans stockage */ }
+    const id = new URLSearchParams(location.search).get('id') || (l.some(p => p.id === dernier) ? dernier : l[0]?.id);
+    if (id) { $('#perso').value = id; await ouvre(id); }
+  } catch (e) { toast(e.message); }
+})();
+// pour la console (et pour Claude, dans le navigateur integre)
+window.RIG = E;
+window.RIG_CALQUES = () => C;
+</script>
+</body>
+</html>

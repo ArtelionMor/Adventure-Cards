@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Rendu d'un rig</title>
+<!-- La page que scripts/rig-rendu.mjs ouvre dans un Chrome sans ecran : elle charge un
+     personnage (?id=) et dessine ses clips image par image, au temps exact demande (jamais en
+     temps reel, sauf pour le WebM). Elle ne sert pas a la main : c'est l'Atelier
+     (builder/rig.html) qui sert a la main. -->
+</head>
+<body style="margin:0;background:#fff">
+<script type="module">
+import { chargeRig, creeAnimateur } from '../../game/src/rig/joueur.js';
+import { creeRendu } from '../../game/src/rig/rendu-webgl.js';
+import { poseNeutre, boutDe } from '../../game/src/rig/squelette.js';
+import { encodeGif } from './gif.js';
+
+const id = new URLSearchParams(location.search).get('id');
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+
+// Le cadre : la boite du personnage au repos (sommets de tous ses calques), carree, avec une
+// marge. `cadre` = [x, y, cote] en pixels de la source pour zoomer sur un detail.
+function cadreDe(rig, cadre, marge = 0.06) {
+  if (cadre) return { cx: cadre[0] + cadre[2] / 2, cy: cadre[1] + cadre[2] / 2, cote: cadre[2] };
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const c of rig.calques) for (let v = 0; v < c.n; v++) {
+    const x = c.repos[v * 2], y = c.repos[v * 2 + 1];
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  const cote = Math.max(x1 - x0, y1 - y0) * (1 + 2 * marge);
+  return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, cote };
+}
+
+// Peint en magenta ce qui differe de `ref` (l'image de repos), le reste pali en gris.
+// Rend la part de l'image qui a bouge.
+function peintEcart(gt, ref, taille) {
+  const im = gt.getImageData(0, 0, taille, taille), d = im.data;
+  let n = 0;
+  for (let k = 0; k < d.length; k += 4) {
+    const e = Math.max(Math.abs(d[k] - ref[k]), Math.abs(d[k + 1] - ref[k + 1]), Math.abs(d[k + 2] - ref[k + 2]));
+    const gris = 0.299 * d[k] + 0.587 * d[k + 1] + 0.114 * d[k + 2], pale = 170 + gris / 3.2;
+    if (e > 40) { d[k] = 235; d[k + 1] = 0; d[k + 2] = 140; n++; }
+    else { d[k] = d[k + 1] = d[k + 2] = pale; }
+  }
+  gt.putImageData(im, 0, 0);
+  return n / (taille * taille);
+}
+
+window.rig = {
+  pret: (async () => {
+    const rig = await chargeRig(`../../game/data/rigs/${id}/`);
+    const canvas = document.createElement('canvas');
+    document.body.appendChild(canvas);
+    const rendu = creeRendu(canvas, { conserve: true });
+    if (!rendu) throw new Error('WebGL indisponible dans ce Chrome');
+    const anim = creeAnimateur(rig);
+    // dessine le clip au temps t dans le canvas WebGL (taille x taille)
+    const repos = poseNeutre(rig.sq.os.length);
+    // clip = null : la pose de repos (la reference du mode ecart) ; clip = une pose : cette pose
+    const dessine = (clip, t, taille, fond, cadre) => {
+      canvas.width = canvas.height = taille;
+      if (typeof clip === 'string') { if (anim.clip !== rig.clips[clip]) anim.joue(clip, { fondu: 0 }); anim.t = t; anim.calcule(); }
+      else anim.calcule(clip || repos);
+      const k = cadreDe(rig, cadre);
+      rendu.efface(fond ? hex(fond) : null);
+      rendu.dessine(anim, { place: [taille / 2, taille / 2], origine: [k.cx, k.cy], echelle: taille / k.cote });
+      return canvas;
+    };
+    Object.assign(window.rig, { rig, dessine, anim });
+    return { clips: Object.fromEntries(Object.entries(rig.clips).map(([n, c]) => [n, { duree: c.duree, boucle: c.boucle }])) };
+  })(),
+
+  // La planche-contact : `images` instants regulierement espaces sur le clip (le dernier
+  // juste avant la fin en boucle, puisque la fin est le debut), en grille, le temps ecrit
+  // sous chacun. Rend un PNG en data URL.
+  // `ecart` : chaque image montre en MAGENTA les pixels qui different de la pose de repos,
+  // sur l'image pâlie — c'est ainsi qu'on voit un mouvement de 1 % (et ou il porte).
+  async planche({ clip, images = 12, taille = 320, colonnes = 4, fond = '#f3ead8', cadre = null, ecart = false }) {
+    await window.rig.pret;
+    const c = window.rig.rig.clips[clip];
+    if (!c) throw new Error('clip inconnu : ' + clip);
+    const lignes = Math.ceil(images / colonnes), bas = 22;
+    const p = document.createElement('canvas');
+    p.width = colonnes * taille; p.height = lignes * (taille + bas);
+    const g = p.getContext('2d');
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, p.width, p.height);
+    let ref = null;
+    const tampon = document.createElement('canvas');
+    tampon.width = tampon.height = taille;
+    const gt = tampon.getContext('2d', { willReadFrequently: true });
+    if (ecart) { gt.drawImage(window.rig.dessine(null, 0, taille, fond, cadre), 0, 0); ref = gt.getImageData(0, 0, taille, taille).data; }
+    for (let i = 0; i < images; i++) {
+      const t = c.boucle ? c.duree * i / images : c.duree * i / Math.max(1, images - 1);
+      const x = (i % colonnes) * taille, y = Math.floor(i / colonnes) * (taille + bas);
+      gt.clearRect(0, 0, taille, taille);
+      gt.drawImage(window.rig.dessine(clip, t, taille, fond, cadre), 0, 0);
+      let note = '';
+      if (ref) note = `  ${(peintEcart(gt, ref, taille) * 100).toFixed(1)} % bouge`;
+      g.drawImage(tampon, x, y);
+      g.fillStyle = '#333'; g.font = '14px sans-serif'; g.textAlign = 'center';
+      g.fillText(`${clip}  t = ${t.toFixed(2)} s${note}`, x + taille / 2, y + taille + 16);
+      g.strokeStyle = '#ccc'; g.strokeRect(x + 0.5, y + 0.5, taille - 1, taille + bas - 1);
+    }
+    return p.toDataURL('image/png');
+  },
+
+  // L'ESSAI DES OS (sans clip) : chaque os qui deforme tourne seul de `angle` degres ; en
+  // magenta ce qu'il entraine, l'os en bleu. C'est la verification du RIG : un os qui
+  // emporte ce qu'il ne devrait pas (la joue avec le poing, l'autre oreille) se voit ici.
+  async essai({ angle = 15, taille = 260, colonnes = 4, fond = '#f3ead8', cadre = null }) {
+    await window.rig.pret;
+    const { rig, dessine, anim } = window.rig;
+    const os = rig.sq.os.filter(b => b.deforme);
+    const lignes = Math.ceil((os.length + 1) / colonnes), bas = 22;
+    const p = document.createElement('canvas');
+    p.width = colonnes * taille; p.height = lignes * (taille + bas);
+    const g = p.getContext('2d');
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, p.width, p.height);
+    const tampon = document.createElement('canvas');
+    tampon.width = tampon.height = taille;
+    const gt = tampon.getContext('2d', { willReadFrequently: true });
+    gt.drawImage(dessine(null, 0, taille, fond, cadre), 0, 0);
+    const ref = gt.getImageData(0, 0, taille, taille).data;
+    const k = cadreDe(rig, cadre), e = taille / k.cote;
+    const ecran = (x, y) => [(x - k.cx) * e + taille / 2, (y - k.cy) * e + taille / 2];
+    [null, ...os].forEach((b, i) => {
+      const x = (i % colonnes) * taille, y = Math.floor(i / colonnes) * (taille + bas);
+      const pose = poseNeutre(rig.sq.os.length);
+      if (b) pose.rot[b.i] = angle;
+      gt.clearRect(0, 0, taille, taille);
+      gt.drawImage(dessine(pose, 0, taille, fond, cadre), 0, 0);
+      const part = b ? peintEcart(gt, ref, taille) : 0;
+      // les os en bleu ; celui qu'on essaie, epais
+      rig.sq.os.forEach(o => {
+        const [ax, ay] = ecran(anim.monde.x[o.i], anim.monde.y[o.i]), [bx, by] = ecran(...boutDe(rig.sq, anim.monde, o.i));
+        gt.beginPath(); gt.moveTo(ax, ay); gt.lineTo(bx, by);
+        gt.strokeStyle = !b ? '#2a5bd7' : o === b ? '#1238b0' : 'rgba(42,91,215,.25)';
+        gt.lineWidth = o === b ? 3 : 1.5; gt.stroke();
+        gt.beginPath(); gt.arc(ax, ay, o === b ? 4 : 2.5, 0, Math.PI * 2); gt.fillStyle = gt.strokeStyle; gt.fill();
+        if (!b) { gt.fillStyle = '#1238b0'; gt.font = '10px sans-serif'; gt.fillText(o.id, (ax + bx) / 2 + 3, (ay + by) / 2); }
+      });
+      g.drawImage(tampon, x, y);
+      g.fillStyle = '#333'; g.font = '14px sans-serif'; g.textAlign = 'center';
+      g.fillText(b ? `${b.id} +${angle}°  (${(part * 100).toFixed(1)} %)` : 'repos : les os', x + taille / 2, y + taille + 16);
+      g.textAlign = 'start';
+      g.strokeStyle = '#ccc'; g.strokeRect(x + 0.5, y + 0.5, taille - 1, taille + bas - 1);
+    });
+    return p.toDataURL('image/png');
+  },
+
+  // Le GIF : tout le clip a `fps` images par seconde. Rend le GIF en base64.
+  async gif({ clip, fps = 20, taille = 360, fond = '#f3ead8', cadre = null, duree = null }) {
+    await window.rig.pret;
+    const c = window.rig.rig.clips[clip];
+    if (!c) throw new Error('clip inconnu : ' + clip);
+    const total = duree || c.duree;
+    const n = Math.max(2, Math.round(total * fps));
+    const lecteur = document.createElement('canvas');
+    lecteur.width = lecteur.height = taille;
+    const g = lecteur.getContext('2d', { willReadFrequently: true });
+    const images = [];
+    for (let i = 0; i < n; i++) {
+      g.clearRect(0, 0, taille, taille);
+      g.drawImage(window.rig.dessine(clip, total * i / n, taille, fond, cadre), 0, 0);
+      images.push(g.getImageData(0, 0, taille, taille).data);
+    }
+    const octets = encodeGif(images, taille, taille, { delaiMs: 1000 / fps });
+    let s = '';
+    for (let i = 0; i < octets.length; i += 0x8000) s += String.fromCharCode(...octets.subarray(i, i + 0x8000));
+    return btoa(s);
+  },
+
+  // Le WebM : enregistre en TEMPS REEL (MediaRecorder), donc `duree` secondes d'horloge.
+  async webm({ clip, taille = 360, fond = '#f3ead8', cadre = null, duree = null }) {
+    await window.rig.pret;
+    const c = window.rig.rig.clips[clip];
+    if (!c) throw new Error('clip inconnu : ' + clip);
+    const total = (duree || c.duree) * 1000;
+    const ecran = document.createElement('canvas');
+    ecran.width = ecran.height = taille;
+    const g = ecran.getContext('2d');
+    const flux = ecran.captureStream(30);
+    const rec = new MediaRecorder(flux, { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 4e6 });
+    const morceaux = [];
+    rec.ondataavailable = e => morceaux.push(e.data);
+    const fini = new Promise(ok => { rec.onstop = ok; });
+    rec.start();
+    const debut = performance.now();
+    await new Promise(ok => {
+      const tic = () => {
+        const e = performance.now() - debut;
+        g.drawImage(window.rig.dessine(clip, Math.min(e, total) / 1000, taille, fond, cadre), 0, 0);
+        if (e < total) requestAnimationFrame(tic); else ok();
+      };
+      tic();
+    });
+    rec.stop();
+    await fini;
+    const buf = new Uint8Array(await new Blob(morceaux, { type: 'video/webm' }).arrayBuffer());
+    let s = '';
+    for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+    return btoa(s);
+  },
+};
+window.rig.pret.catch(e => console.error(e.message));
+</script>
+</body>
+</html>

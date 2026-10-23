@@ -23,6 +23,10 @@
 | `ia.mjs` | L'**analyse par une IA locale** (Ollama) : machines, consigne, dialogue. |
 | `feuille.mjs` | **La Google Sheet « Config Adventure-Cards »** : jeton d'un compte de service signé avec `node:crypto` (clé `~/.adventure-card/google-sa.json`, projet Google Cloud `adventure-c`, feuille partagée en lecteur), lecture des onglets (valeurs brutes), règle du `~`, aperçu et écriture de `game/data/feuille.data.js`. Utilisé par `scripts/sync-feuille.mjs` et `/api/feuille`. |
 | `push.mjs` | Web Push sans dépendance (RFC 8291/8292, `node:crypto`). Clés et abonnements dans `~/.adventure-card/push.json`, **jamais dans le repo**. |
+| `chrome.mjs` | Piloter le Chrome/Edge/Chromium installé **sans écran et sans dépendance** (protocole DevTools, WebSocket natif de Node ≥ 22, profil jetable, WebGL par SwiftShader) : `lanceChrome()`, `page(url)`, `evalue(expr)`. `ADVENTURE_CHROME` pour un autre exécutable. |
+| `statique.mjs` | Un serveur de fichiers en lecture seule sur un port libre de la boucle locale, le temps d'un rendu (sans cache). |
+| `png.mjs` | Lire un PNG sous Node (8 bits, RGBA/RGB/gris/palette) et en écrire (RGBA : `encodePng`, `ecrisPng`) : les outils du rig touchent des pixels. |
+| `rig-fichiers.mjs` | Écrire un JSON du rig avec la mise en forme de l'Atelier (`builder/rig/json.js`), en gardant ses fins de ligne. |
 
 ## Données de génération
 | Fichier | Rôle |
