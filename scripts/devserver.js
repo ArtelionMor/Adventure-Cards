@@ -48,7 +48,19 @@ const RIG_MAX = 40 * 1024 * 1024;
 // Le balayage des dossiers d'images vit dans scripts/gen-sprites.mjs — une seule
 // implementation, la meme liste en ligne de commande et depuis le builder. C'est un
 // module ES, d'ou l'import dynamique (ce fichier-ci est en CommonJS).
-const genereSprites = () => import('./gen-sprites.mjs').then(m => m.genereSprites());
+// L'ACTUALISATION TOURNE EN FOND (genereSpritesEnFond) : la version synchrone figeait tout le serveur pendant
+// les vignettes, et rien ne pouvait dire ou elle en etait. `majSprites` garde l'etat que lit la barre de
+// chargement du Card Builder (GET /api/sprites/etat) ; deux clics en meme temps partagent la meme actualisation.
+let majSprites = { phase: 'repos', fait: 0, total: 0 }, majEnCours = null;
+const genereSprites = () => {
+  if (majEnCours) return majEnCours;
+  majSprites = { phase: 'dossiers', fait: 0, total: 0, debut: Date.now() };
+  majEnCours = import('./gen-sprites.mjs')
+    .then(m => m.genereSpritesEnFond(p => { majSprites = { ...majSprites, ...p }; }))
+    .catch(e => { majSprites = { ...majSprites, phase: 'erreur', message: String(e && e.message || e) }; throw e; })
+    .finally(() => { majEnCours = null; });
+  return majEnCours;
+};
 
 // ------------------------------------------------------------------ /api/run
 // Lancer des outils de mesure SUR LA MACHINE QUI SERT LA PAGE (le Pi) et lire leur
@@ -562,6 +574,7 @@ http.createServer((req, res) => {
 
   // « J'ai ajoute une image dans Characters/ » : on rebalaye et on rend la liste, que
   // le builder affiche sans rechargement. Rien a lire dans la requete.
+  if (req.method === 'GET' && urlPath === '/api/sprites/etat') { json(res, 200, majSprites); return; }
   if (req.method === 'POST' && urlPath === '/api/sprites') {
     genereSprites().then(sprites => {
       console.log('sprites relus : ' + Object.entries(sprites).map(([k, v]) => k + ' ' + v.length).join(' · '));

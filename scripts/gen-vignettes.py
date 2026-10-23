@@ -11,9 +11,11 @@ les precharge toutes au demarrage.
 
     python scripts/gen-vignettes.py          (seules les images nouvelles ou modifiees sont refaites)
     python scripts/gen-vignettes.py --tout   (tout refaire)
+    python scripts/gen-vignettes.py --progression   (dit ou il en est : « @@progression 12/120 »)
 
 Le bouton « Actualiser les images » de l'Atelier le lance aussi (scripts/gen-sprites.mjs), quand Python et Pillow
-sont la. Sans eux, rien ne casse : le jeu prend les originaux.
+sont la, avec --progression : la barre de chargement du Card Builder lit ces lignes. Sans eux, rien ne casse : le
+jeu prend les originaux.
 """
 import json
 import os
@@ -46,11 +48,13 @@ def suivies():
 
 def main():
     tout = '--tout' in sys.argv
+    progression = '--progression' in sys.argv
     sprites = suivies()
-    faites, refaites = [], 0
+    faites, refaites, a_faire = [], 0, []
 
+    # Deux temps : on dresse d'abord la liste de ce qui est a refaire (pour pouvoir dire « 12 sur 120 »), puis
+    # on le fait.
     def allege(dossier, nom, taille):
-        nonlocal refaites
         src = os.path.join(RACINE, dossier, nom)
         rel = f'{dossier}/{nom}'
         dst = os.path.join(SORTIE, dossier, os.path.splitext(nom)[0] + '.webp')
@@ -61,13 +65,19 @@ def main():
                 faites.append(rel)
             return
         if tout or not os.path.exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src):
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            with Image.open(src) as im:
-                im = im.convert('RGBA')
-                im.thumbnail((taille, taille), Image.LANCZOS)
-                im.save(dst, 'WEBP', quality=QUALITE, method=6)
-            refaites += 1
+            a_faire.append((src, dst, taille))
         faites.append(rel)
+
+    def fabrique(src, dst, taille):
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        with Image.open(src) as im:
+            im = im.convert('RGBA')
+            im.thumbnail((taille, taille), Image.LANCZOS)
+            # ⚠ method=4 (le defaut de libwebp), pas 6 : mesure le 23 oct. 2026 sur une carte
+            # de 1024 px, 3,3 s par image en 6 contre 0,05 s en 4, pour 39 Ko contre 40.
+            # 121 cartes deposees d'un coup faisaient attendre 7 minutes le bouton
+            # « Actualiser les images » du Card Builder, qui semblait ne rien faire.
+            im.save(dst, 'WEBP', quality=QUALITE, method=4)
 
     for dossier in DOSSIERS:
         for nom in sprites.get(dossier, []):
@@ -79,6 +89,13 @@ def main():
         for nom in sorted(os.listdir(racine)):
             if nom.lower().endswith('.png') and os.path.getsize(os.path.join(racine, nom)) >= SEUIL_INTERFACE:
                 allege(dossier, nom, TAILLE_INTERFACE)
+    if progression:
+        print(f'@@progression 0/{len(a_faire)}', flush=True)
+    for k, (src, dst, taille) in enumerate(a_faire, 1):
+        fabrique(src, dst, taille)
+        refaites += 1
+        if progression:
+            print(f'@@progression {k}/{len(a_faire)}', flush=True)
     faites.sort()
     with open(LISTE, 'w', encoding='utf-8', newline='\n') as f:
         f.write('// Genere par scripts/gen-vignettes.py — ne pas editer a la main.\n')

@@ -138,6 +138,13 @@
   .params .input, .params .select { max-width: 100%; }
   .params label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  /* La barre de chargement de « Actualiser les images » (fenêtre « Choisir un sprite ») : elle lit
+     GET /api/sprites/etat pendant que le serveur rebalaye les dossiers et refait les vignettes. */
+  .maj-barre { position: relative; height: 22px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; margin: -4px 0 12px; }
+  .maj-barre__plein { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .25s; }
+  .maj-barre--attente .maj-barre__plein { width: 35% !important; animation: maj-va-vient 1.1s ease-in-out infinite alternate; }
+  @keyframes maj-va-vient { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
+  .maj-barre__texte { position: relative; display: block; text-align: center; font-size: 12px; line-height: 20px; color: var(--text); text-shadow: 0 1px 2px rgba(0,0,0,.6); }
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); font-size: 13px; cursor: pointer; color: var(--muted); }
   .chip--on { background: var(--bg-3); border-color: var(--accent); color: var(--text); }
   .chip--todo { border-color: #4a3a1a; color: var(--warn); }
@@ -198,6 +205,7 @@
     <a class="tb-nav__link" href="situations.html">Situations</a>
     <a class="tb-nav__link" href="courbes.html">Courbes</a>
     <a class="tb-nav__link" href="lancer.html">Lancer un calcul</a>
+    <a class="tb-nav__link" href="rig.html">Rig &amp; Anim</a>
     <a class="tb-nav__link" href="../docs/MECANIQUES-A-CODER.md" target="_blank">Mécaniques à coder</a>
   </div>
   <span class="tb-nav__spacer"></span>
@@ -887,6 +895,7 @@ function pickSprite(done) {
         ${folders.map(f => `<span class="chip ${f === cur ? 'chip--on' : ''}" data-f="${f}">${f.replace(/^Graphical Assets\//, '')}</span>`).join('')}
         <span class="chip" id="majSprites" title="Relit les dossiers d'images : à faire après en avoir ajouté une">🔄 Actualiser les images</span>
       </div>
+      <div class="maj-barre" id="majBarre" hidden><div class="maj-barre__plein"></div><span class="maj-barre__texte"></span></div>
       <div class="sprites">
         ${(SPRITES[cur] || []).map(n => `<div class="sprite" data-p="${esc(cur + '/' + n)}">
           <img src="${asset(cur + '/' + n)}" alt=""><span>${esc(n.split('/').pop().replace(/\.\w+$/, ''))}</span></div>`).join('')}
@@ -895,14 +904,33 @@ function pickSprite(done) {
     $('#modalBox').querySelectorAll('[data-p]').forEach(n => n.onclick = () => { done(n.dataset.p); closeModal(); });
     const maj = $('#majSprites');
     maj.onclick = async () => {
-      maj.textContent = '⏳ Lecture des dossiers…';
+      if (maj.dataset.enCours) return;
+      maj.dataset.enCours = '1';
+      maj.textContent = '⏳ Actualisation…';
+      const barre = $('#majBarre'), plein = barre.querySelector('.maj-barre__plein'), texte = barre.querySelector('.maj-barre__texte');
+      barre.hidden = false;
+      // pendant que le POST tourne, on demande au serveur ou il en est (le serveur de repli de
+      // l'exe, sans Node, ne sait pas le dire : la barre reste alors en va-et-vient)
+      const montre = e => {
+        const vignettes = e && e.phase === 'vignettes' && e.total > 0;
+        barre.classList.toggle('maj-barre--attente', !vignettes);
+        plein.style.width = vignettes ? Math.round(e.fait / e.total * 100) + '%' : '';
+        texte.textContent = vignettes ? `Vignettes : ${e.fait} / ${e.total}` : 'Lecture des dossiers…';
+      };
+      montre(null);
+      const suivi = setInterval(async () => {
+        try { const r = await fetch('/api/sprites/etat', { cache: 'no-store' }); if (r.ok) montre(await r.json()); } catch { /* le serveur est occupe : au prochain tour */ }
+      }, 300);
       try {
         const neuves = await relitLesSprites();
+        clearInterval(suivi);
         draw();   // redessine avec la liste fraiche, sans fermer la fenetre
         toast(neuves > 0 ? neuves + ' nouvelle(s) image(s) — game/data/sprites.js est à jour.'
           : neuves < 0 ? (-neuves) + ' image(s) en moins — game/data/sprites.js est à jour.'
             : 'Liste déjà à jour : aucune image ajoutée.');
       } catch (e) {
+        clearInterval(suivi);
+        barre.hidden = true; delete maj.dataset.enCours;
         maj.textContent = '🔄 Actualiser les images';
         toast('Échec : lance le jeu via AdventureCard.exe ou node scripts/devserver.js');
       }

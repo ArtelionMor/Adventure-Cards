@@ -8,7 +8,7 @@
 // lui, est en C# et refait ce balayage dans `launcher/Launcher.cs` — les deux serveurs
 // exposent `POST /api/sprites`, comme ils exposent deja `POST /api/write`.)
 import { readdirSync, writeFileSync, existsSync } from 'fs';
-import { spawnSync } from 'child_process';
+import { spawnSync, spawn } from 'child_process';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -45,15 +45,57 @@ export function scanSprites() {
   return out;
 }
 
-/** Balaye les dossiers, reecrit game/data/sprites.js, et rend la liste obtenue. */
+/** Balaye les dossiers, reecrit game/data/sprites.js, refait les vignettes, et rend la liste obtenue. */
 export function genereSprites() {
+  const out = ecritLaListe();
+  vignettes();
+  return out;
+}
+
+/**
+ * La meme chose SANS BLOQUER, pour le serveur : `progres({ phase, fait, total })` est appele au fil de l'eau
+ * (« dossiers », puis « vignettes » de 0 a total, puis « fini »). ⚠ L'ancienne version synchrone figeait tout le
+ * serveur pendant les vignettes (7 minutes pour 121 cartes, avant le reglage method=4 de gen-vignettes.py) :
+ * aucune autre page ne repondait, et le bouton n'avait aucun moyen de dire ou il en etait.
+ */
+export async function genereSpritesEnFond(progres = () => {}) {
+  progres({ phase: 'dossiers', fait: 0, total: 0 });
+  const out = ecritLaListe();
+  await vignettesEnFond(progres);
+  progres({ phase: 'fini', fait: 1, total: 1 });
+  return out;
+}
+
+function vignettesEnFond(progres) {
+  const py = ['python3', 'python'].find(p => spawnSync(p, ['-c', 'import PIL'], { encoding: 'utf8' }).status === 0);
+  if (!py) { console.warn('gen-vignettes.py : Python ou Pillow introuvable, les images restent en taille originale.'); return Promise.resolve(false); }
+  return new Promise(ok => {
+    const p = spawn(py, [join(root, 'scripts', 'gen-vignettes.py'), '--progression'], { cwd: root });
+    let reste = '', erreur = '';
+    p.stdout.setEncoding('utf8');
+    p.stdout.on('data', d => {
+      reste += d;
+      const lignes = reste.split(/\r?\n/); reste = lignes.pop();
+      for (const l of lignes) {
+        const m = /^@@progression (\d+)\/(\d+)/.exec(l);
+        if (m) progres({ phase: 'vignettes', fait: +m[1], total: +m[2] });
+        else if (l.trim()) console.log(l.trim());
+      }
+    });
+    p.stderr.on('data', d => { erreur += d; });
+    p.on('error', () => ok(false));
+    p.on('close', code => { if (code !== 0) console.warn('gen-vignettes.py :', erreur.trim().split(/\r?\n/).pop()); ok(code === 0); });
+  });
+}
+
+/** Balaye les dossiers et reecrit game/data/sprites.js ; rend la liste obtenue. */
+function ecritLaListe() {
   const out = scanSprites();
   writeFileSync(
     join(root, 'game/data/sprites.js'),
     `// Genere par scripts/gen-sprites.mjs — ne pas editer a la main.\nexport const SPRITES = ${JSON.stringify(out, null, 2)};\n`,
     'utf8'
   );
-  vignettes();
   return out;
 }
 

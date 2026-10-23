@@ -51,7 +51,9 @@ Node : elle doit rester correcte, mais ce n'est plus elle qu'on exerce tous les 
 `game/data/sprites.js`, la liste des fichiers de `Graphical Assets/{Characters,Buildings,Ressources,Old UI}/`
 (sous-dossiers compris ; la fenêtre en fait un onglet par dossier). Un navigateur ne sait pas lire un dossier : c'est le serveur qui les rebalaye,
 sur `POST /api/sprites` — le bouton **🔄 Actualiser les images** de la fenêtre « Choisir un
-sprite ». À faire après avoir déposé une image ; en ligne de commande, c'est le même
+sprite », avec sa **barre de chargement** (lecture des dossiers, puis « Vignettes : 12 / 120 », lue
+sur `GET /api/sprites/etat`). Le serveur actualise **en fond** : la version synchrone le figeait
+pendant les vignettes (7 min pour 121 cartes avant le réglage `method=4` de `gen-vignettes.py`). À faire après avoir déposé une image ; en ligne de commande, c'est le même
 balayage avec `node scripts/gen-sprites.mjs`. La liste revient dans la réponse et remplace
 celle qu'a la page : l'import de module, lui, est figé au chargement, comme
 `CHARACTER_DATA`. Le balayage est écrit **deux fois** (`scripts/gen-sprites.mjs` pour le
