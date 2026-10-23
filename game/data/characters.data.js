@@ -9051,7 +9051,7 @@ export const CHARACTER_DATA = {
         {
           "id": "cat2_sneak",
           "name": "Griffes Sournoises",
-          "type": "spell",
+          "type": "ally",
           "cost": 2,
           "keys": [
             "type:Chat"
@@ -9090,7 +9090,10 @@ export const CHARACTER_DATA = {
               },
               "text": "Tes Chats gagnent aussi +1/+0."
             }
-          ]
+          ],
+          "atk": 1,
+          "hp": 1,
+          "statics": []
         },
         {
           "id": "cat2_burglar",
