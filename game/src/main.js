@@ -14,6 +14,7 @@ import { ouvreProfil } from './ui/profil.js';
 import { chargeLeJeu } from './ui/chargement.js';
 import { openBattle } from './ui/battle.js';
 import { installeQuetes } from './ui/quetes.js';
+import { installeTriche } from './ui/triche.js';
 
 let current = 'world';
 
@@ -96,12 +97,15 @@ function boot() {
   // Le TUTORIEL n'est plus une fenetre : c'est le debut du fil de quetes (config/quetes.js), dans le bandeau sous la
   // barre du haut. Son toucher emmene ou il faut ; « rafraichit » redessine l'ecran courant (une place, un heros recus).
   installeQuetes({ go, rafraichit: () => go(current) });
+  // La CONSOLE DE TRICHE hors combat (ui/triche.js) : son bouton dans la barre du haut (`BALANCE.triche.bouton`).
+  window.AC.console = installeTriche({ go, rafraichit: () => go(current) });
 
   setInterval(() => { persist(); refreshTop(); }, BALANCE.save.autosaveMs);
   addEventListener('beforeunload', persist);
 }
 
-// Console de debug (F12) : window.AC.fight('wolf'), AC.give('C', 500), AC.go('farm')
+// Console de debug (F12) : window.AC.fight('wolf'), AC.give('C', 500), AC.go('farm') ; `AC.console()` ouvre la
+// console de triche en boutons (ui/triche.js), une fois le jeu charge.
 window.AC = {
   save, persist, go,
   fight: enc => { stopWorld(); openBattle({ id: 'debug', name: 'Test', enemy: enc }, () => { startWorld(); refreshTop(); }); },

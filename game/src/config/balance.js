@@ -267,10 +267,24 @@ export const BALANCE = {
     niveauParVictoire: 1,
     niveauMax: 40,            // le profil d'un ennemi s'arrete la (au-dela, l'arene garde son dernier niveau)
     decouverteTuiles: 6,      // a cette distance du batiment, l'arene apparait dans l'onglet « Arene »
-    // PROVISOIRE (24 oct. 2026, en attendant la nouvelle carte) : toutes les arenes dans l'onglet « Arene », sans
-    // avoir a les decouvrir en marchant. Remettre a false quand la carte est la.
-    toutesDecouvertes: true,
     interactionTuiles: 1.6    // la porte : a cette distance, le bouton « Entrer » apparait
+  },
+
+  // PROVISOIRE (24 oct. 2026) — TOUT DEBLOQUE, EN ATTENDANT LA NOUVELLE CARTE DU MONDE. Tant que c'est vrai :
+  //   - l'onglet « Arene » montre toutes les arenes, sans avoir a les decouvrir en marchant ;
+  //   - tous les heros sont a toi (alignables, ameliorables) sans les recruter, dans une partie neuve comme dans une
+  //     ancienne. Rien n'est ECRIT dans la sauvegarde (`possede`, state.js) : remis a false, chaque partie retrouve
+  //     exactement les heros qu'elle a gagnes. Le tutoriel et les quetes lisent la sauvegarde, pas ce reglage : une
+  //     quete qui offre un heros se fait toujours, et les places d'equipe restent celles du tutoriel (la console de
+  //     triche sait le passer).
+  // La console de triche peut le couper le temps d'une session. Remettre a false quand la carte est la.
+  toutDebloque: true,
+
+  // LA CONSOLE DE TRICHE hors combat (ui/triche.js) : monnaies, niveaux, combats, deblocages. `bouton` : son bouton dans
+  // la barre du haut ; a false, elle ne s'ouvre plus que par la console du navigateur (`AC.console()`). PROVISOIRE : outil
+  // du game designer, a couper avant une sortie.
+  triche: {
+    bouton: true
   },
 
   // LES DECKS ENREGISTRES : une equipe (heros, faces switch, cartes retirees) qu'on recharge d'un toucher avant un

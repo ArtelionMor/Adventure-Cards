@@ -920,6 +920,14 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 .tr-grille { grid-template-columns: repeat(4, 1fr); gap: 5px; }
 .tr-grille button.large { grid-column: span 4; }
 .tr-grille button, .tr-tete button { min-height: 32px; font-size: 11px; }
+/* La console de triche HORS combat (ui/triche.js) : sous la barre du haut, au-dessus de la navigation ; sous les modales
+   (z-index 20) — elle se ferme avant d'en ouvrir une. Son bouton : #topTriche, a gauche des monnaies. */
+.triche.globale { top: 74px; bottom: 76px; max-height: none; z-index: 19; }
+.triche.globale .tr-grille { grid-template-columns: repeat(3, 1fr); }
+.triche.globale .tr-grille .large { grid-column: span 3; }
+.triche.globale select { font: inherit; font-size: 12px; min-height: 34px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); padding: 0 6px; min-width: 0; }
+.tr-titre { grid-column: 1 / -1; margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--accent); }
+#topTriche { margin-left: auto; align-self: flex-start; width: 30px; height: 30px; padding: 0; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; opacity: .8; }
 
 /* ---------- la fiche (appui long) : une icone par chose ---------- */
 .insp .ln.li { display: flex; align-items: flex-start; gap: 8px; padding: 3px 0; }

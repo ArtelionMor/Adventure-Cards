@@ -148,6 +148,28 @@ for (const q of QUETES.filter(x => x.objectif.quoi === 'equipe')) {
     S.queteCourante() && S.queteCourante().id === 'plante', S.queteCourante() && S.queteCourante().id);
 }
 
+// ------------------------------------------------------------------ 7. « tout debloque » (provisoire) et la triche
+// `BALANCE.toutDebloque` rend tous les heros alignables SANS l'ecrire dans la sauvegarde : le tutoriel n'en voit rien.
+{
+  const avant = BALANCE.toutDebloque;
+  stockage = {};
+  const S = await etat();
+  BALANCE.toutDebloque = true;
+  verifie('tout débloqué : Médor alignable', S.possede('dog'));
+  verifie('tout débloqué : rien d\'écrit dans la sauvegarde', !S.save.chars.dog.owned && !JSON.parse(stockage[BALANCE.save.key] || '{"chars":{}}').chars.dog?.owned);
+  verifie('tout débloqué : le tutoriel commence quand même', S.queteCourante().id === QUETES[0].id && S.save.rosterSlots === 1);
+  BALANCE.toutDebloque = false;
+  verifie('réglage coupé : Médor plus alignable', !S.possede('dog'));
+  // « Passer le tutoriel » (la console de triche) : comme une sauvegarde d'avant les quetes.
+  const n = S.passeLeTutoriel();
+  verifie('passer le tutoriel : fini', S.tutorielFini() && n > 0, String(n));
+  verifie('passer le tutoriel : trois Lapins, trois places', ['lapin1', 'lapin2', 'lapin3'].every(id => S.save.chars[id].owned) && S.save.rosterSlots === 3, String(S.save.rosterSlots));
+  verifie('passer le tutoriel : équipe remplie', S.save.team.filter(Boolean).length === 3, S.save.team.join());
+  verifie('passer le tutoriel : la suite est Médor', S.queteCourante() && S.queteCourante().id === 'medor', S.queteCourante() && S.queteCourante().id);
+  verifie('passer le tutoriel deux fois ne donne rien', S.passeLeTutoriel() === 0 && S.save.rosterSlots === 3);
+  BALANCE.toutDebloque = avant;
+}
+
 for (const e of echecs) console.log(rouge('  ECHEC     ') + e);
 if (!echecs.length) console.log(vert(`  ${QUETES.length} quetes, tutoriel deroule, migration verifiee.`));
 console.log(`\n${passes} test(s) passe(s), ${echecs.length} echec(s).\n`);

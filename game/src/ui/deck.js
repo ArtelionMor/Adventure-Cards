@@ -10,7 +10,7 @@ import { BALANCE } from '../config/balance.js';
 import { CHARACTERS, CHAR_BY_ID, resolveCard, etapesDe, niveauMax } from '../config/characters.js';
 import { FAMILLES, familleDe, rareteDe } from '../config/familles.js';
 import { t } from '../config/textes.js';
-import { save, persist, upgradeCost, upgradeChar, toggleSwitch, unlockChar, setTeamSlot, puissance, signale } from '../state.js';
+import { save, persist, upgradeCost, upgradeChar, toggleSwitch, unlockChar, setTeamSlot, puissance, signale, possede } from '../state.js';
 import { $, el, asset, toast, modal, closeModal, court } from './shell.js';
 import { icone } from './icones.js';
 import { ligneDePictos, iconeDeCle, iconeDeOp } from './pictos.js';
@@ -48,7 +48,7 @@ export function renderDeck() {
     const grille = sec.querySelector('.dk-grille');
     for (const c of CHARACTERS.filter(c => familleDe(c) === f)) {
       const n = vignette(c);
-      n.onclick = () => (save.chars[c.id].owned ? ficheHeros(c.id) : unlockSheet(c.id));
+      n.onclick = () => (possede(c.id) ? ficheHeros(c.id) : unlockSheet(c.id));
       grille.appendChild(n);
     }
     coll.appendChild(sec);
@@ -79,11 +79,12 @@ function vignette(c, conseilles = []) {
   const st = save.chars[c.id];
   const f = familleDe(c);
   const dans = save.team.includes(c.id);
-  return el(`<div class="dk-vig ${st.owned ? '' : 'verrou'} ${conseilles.includes(c.id) ? 'conseille' : ''}" style="--fond:${f.fond};--rar:${rareteDe(c)}">
+  const a = possede(c.id);
+  return el(`<div class="dk-vig ${a ? '' : 'verrou'} ${conseilles.includes(c.id) ? 'conseille' : ''}" style="--fond:${f.fond};--rar:${rareteDe(c)}">
     <img src="${asset(c.sprite)}" alt="">
-    <div class="nm">${st.owned ? c.name : t('deck.verrouille')}</div>
-    <span class="dk-pastille">${st.owned ? st.level : '-'}</span>
-    ${st.owned && dans ? `<span class="dk-coche">${icone('Check', 16)}</span>` : ''}
+    <div class="nm">${a ? c.name : t('deck.verrouille')}</div>
+    <span class="dk-pastille">${a ? st.level : '-'}</span>
+    ${a && dans ? `<span class="dk-coche">${icone('Check', 16)}</span>` : ''}
   </div>`);
 }
 
@@ -93,7 +94,7 @@ function choisirPourLaPlace(place, { conseilles = [], apres = () => {} } = {}) {
   const box = el('<div class="dk-grille dk-choix"></div>');
   const ordre = [...CHARACTERS].sort((a, b) => conseilles.includes(b.id) - conseilles.includes(a.id));
   for (const c of ordre) {
-    if (!save.chars[c.id].owned) continue;
+    if (!possede(c.id)) continue;
     const n = vignette(c, conseilles);
     n.onclick = () => {
       const avant = save.team[place];

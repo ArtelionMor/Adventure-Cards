@@ -18,7 +18,7 @@ import { CHAR_BY_ID } from '../config/characters.js';
 import { t } from '../config/textes.js';
 import {
   save, persist, team, etatArene, areneDe, puissanceEquipe, tailleDuDeck, tailleMinDuDeck, retireCarte, rendCarte,
-  enregistreDeck, chargeDeck, supprimeDeck
+  enregistreDeck, chargeDeck, supprimeDeck, possede
 } from '../state.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
 import { panneauEquipe } from './deck.js';
@@ -65,7 +65,7 @@ function presentation(n, a, cb) {
     ${bloc(t('arene.punit'), a.punit)}
     ${bloc(t('arene.deck'), a.typeDeck)}
     <div class="ar-bloc"><h3>${t('arene.conseilles')}</h3>
-      ${heros.length ? `<div class="ar-heros">${heros.map(h => `<div class="ar-h ${save.chars[h.id].owned ? '' : 'absent'}"><img src="${asset(h.sprite)}" alt=""><span>${echappe(h.name)}</span></div>`).join('')}</div>`
+      ${heros.length ? `<div class="ar-heros">${heros.map(h => `<div class="ar-h ${possede(h.id) ? '' : 'absent'}"><img src="${asset(h.sprite)}" alt=""><span>${echappe(h.name)}</span></div>`).join('')}</div>`
         : `<p class="muted">${t('arene.tousConseilles')}</p>`}
     </div>
     ${n.reqPower != null ? `<p class="ar-puissance">${t('arene.puissance', { r: n.reqPower, p: puissanceEquipe() })}</p>` : ''}
@@ -158,7 +158,7 @@ const choisis = new Map();
 /** Ou en est un heros conseille : recrute (« Upgrade »), recrutable (« Unlock »), ou pas encore decouvert. */
 function statutHeros(h) {
   const st = save.chars[h.id] || {};
-  if (st.owned) return { cl: 'ameliorer', mot: t('deck.ameliorer') };
+  if (possede(h.id)) return { cl: 'ameliorer', mot: t('deck.ameliorer') };
   if (st.bossBeaten) return { cl: 'debloquer', mot: t('arene.debloquer') };
   return { cl: 'inconnu', mot: t('arene.inconnu') };
 }
@@ -221,7 +221,7 @@ export function renderArene() {
   root.innerHTML = '';
   const wrap = el(`<div class="pad ar-onglet"><h2>${t('arene.onglet')}</h2><div class="arn-liste"></div></div>`);
   const liste = wrap.querySelector('.arn-liste');
-  const vues = ARENES.map(a => ({ a, n: noeudDeLArene(a.id) })).filter(x => x.n && (BALANCE.arenes.toutesDecouvertes || save.world.seen[x.n.id]));
+  const vues = ARENES.map(a => ({ a, n: noeudDeLArene(a.id) })).filter(x => x.n && (BALANCE.toutDebloque || save.world.seen[x.n.id]));
   if (!vues.length) liste.appendChild(el(`<p class="muted">${t('arene.vide')}</p>`));
   for (const { a, n } of vues) liste.appendChild(carteArene(a, n));
   root.appendChild(wrap);

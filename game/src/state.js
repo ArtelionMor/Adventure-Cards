@@ -263,6 +263,13 @@ export function toggleSwitch(charId, slot) {
   persist();
 }
 
+/**
+ * Le heros est-il a toi ? Sa sauvegarde le dit (`owned`), ou le reglage provisoire `BALANCE.toutDebloque` (en attendant
+ * la nouvelle carte : tous les heros), qui ne l'ECRIT PAS : remis a false, chaque partie retrouve les heros qu'elle a
+ * gagnes. Le fil de quetes lit `owned`, pas ceci : une quete qui offre un heros se fait toujours. L'interface demande ici.
+ */
+export const possede = id => !!(save.chars[id] && (save.chars[id].owned || BALANCE.toutDebloque));
+
 export function unlockChar(charId) {
   const st = save.chars[charId];
   if (st.owned) return 'owned';
@@ -430,7 +437,7 @@ export function enregistreDeck(nom) {
 export function chargeDeck(i) {
   const d = (save.decks || [])[i];
   if (!d) return false;
-  const ids = d.team.filter(id => save.chars[id] && save.chars[id].owned).slice(0, save.rosterSlots);
+  const ids = d.team.filter(possede).slice(0, save.rosterSlots);
   if (!ids.length) return false;
   save.team = Array.from({ length: save.rosterSlots }, (_, k) => ids[k] || null);
   for (const id of ids) {
@@ -539,4 +546,30 @@ export function recupereQuete() {
   persist();
   previensQuetes();
   return { quete: q, gains, notes };
+}
+
+/**
+ * TRICHE (ui/triche.js) : finit le tutoriel d'un coup, comme une sauvegarde d'avant les quetes — les heros et les places
+ * qu'il offre sont donnes (pas ses monnaies), et le fil reprend apres la quete `finTutoriel`. Rend le nombre de quetes passees.
+ */
+export function passeLeTutoriel() {
+  const fin = QUETES.findIndex(q => q.finTutoriel);
+  if (fin < 0 || tutorielFini()) return 0;
+  let n = 0;
+  for (const q of QUETES.slice(0, fin + 1)) {
+    if (save.quetes.faites.includes(q.id)) continue;
+    const r = q.recompense || {};
+    if (r.heros && save.chars[r.heros]) save.chars[r.heros].owned = true;
+    if (r.place) save.rosterSlots += r.place;
+    save.quetes.faites.push(q.id);
+    n++;
+  }
+  save.quetes.courante = (QUETES[fin + 1] || {}).id || null;
+  save.quetes.compte = 0;
+  for (let i = 0; i < Math.min(3, save.rosterSlots); i++) {
+    if (!save.team[i]) save.team[i] = Object.keys(save.chars).find(id => save.chars[id].owned && !save.team.includes(id)) || null;
+  }
+  persist();
+  previensQuetes();
+  return n;
 }
