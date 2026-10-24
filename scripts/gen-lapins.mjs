@@ -7,7 +7,9 @@
 // A utiliser pour (re)generer le point de depart ; apres, on edite dans le builder. Idempotent.
 // ⚠ Les cartes vivent sur le Pi : verifier `git status` la-bas avant de lancer (CLAUDE.md racine).
 //   node scripts/gen-lapins.mjs [game/data/characters.data.js]
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { scanSprites } from './gen-sprites.mjs';
+import { normaliseNom } from '../game/src/config/images.js';
 
 const F = process.argv[2] || 'game/data/characters.data.js';
 const src = readFileSync(F, 'utf8');
@@ -195,14 +197,18 @@ const POTAGER = {
 
 // ------------------------------------------------------------------ ecriture
 const LAPINS = [lapin1, lapin2, lapin3];
-// L'illustration de chaque carte : `Graphical Assets/Cards/<nom de la carte>.png` (22 octobre 2026). Une carte dont
-// l'image manque garde le portrait de son heros.
-const ILLUSTRATIONS = 'Graphical Assets/Cards/';
-const sansAccent = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-const images = new Map(readdirSync(new URL('../' + ILLUSTRATIONS, import.meta.url)).map(f => [sansAccent(f.replace(/\.png$/i, '')), f]));
+// L'illustration de chaque carte : une image au nom de la carte sous `Graphical Assets/Cards/`, SOUS-DOSSIERS
+// compris (les decks y sont ranges depuis le 24 oct. 2026 : `Rabbit Decks/Rabbit Deck 1/\u2026`), de preference dans les
+// decks des Lapins. Une carte dont l'image manque garde le portrait de son heros.
+// Sans image a son nom, la carte garde celle qu'elle avait dans le fichier si elle existe encore (un fichier
+// renomme : le dessin de « Lapin Têtu » s'appelle « Lapin Avocat.png » depuis le 24 oct. 2026).
+const illustrations = (scanSprites()['Graphical Assets/Cards'] || []).map(f => 'Graphical Assets/Cards/' + f);
+const avant = new Map();
+for (const h of D.characters) for (const c of [...(h.cards || []), ...(h.switches || [])]) if (c && c.sprite) avant.set(c.id, c.sprite);
 for (const h of LAPINS) for (const c of [...h.cards, ...h.switches]) {
-  const f = images.get(sansAccent(c.name));
-  if (f) c.sprite = ILLUSTRATIONS + f;
+  const memes = illustrations.filter(p => normaliseNom(p.split('/').pop()) === normaliseNom(c.name));
+  const f = memes.find(p => p.includes('/Rabbit Decks/')) || memes[0] || (illustrations.includes(avant.get(c.id)) ? avant.get(c.id) : null);
+  if (f) c.sprite = f;
   else console.warn("pas d'illustration pour", c.id, c.name);
 }
 for (const h of LAPINS) for (const c of [...h.cards, ...h.switches]) {

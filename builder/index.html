@@ -165,6 +165,16 @@
   .sprite:hover { border-color: var(--accent); }
   .sprite img { width: 100%; aspect-ratio: 1; object-fit: contain; }
   .sprite span { font-size: 9px; color: var(--muted); text-align: center; word-break: break-word; }
+  .sprite small { font-size: 8px; color: var(--muted); opacity: .7; text-align: center; }
+  .sprite--actuel { border-color: var(--accent-2); box-shadow: 0 0 0 1px var(--accent-2) inset; }
+  .sprites-nav { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .sprites-fil { font-size: 13px; color: var(--muted); }
+  .sprites-fil a { color: var(--accent); cursor: pointer; }
+  .sprites-fil a:last-child { color: var(--text); font-weight: 600; }
+  .sprites-nav input { flex: 1; min-width: 160px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 6px 10px; font: inherit; font-size: 13px; }
+  .sprites-dossiers { margin-bottom: 10px; }
+  .sprites-dossiers .chip small { opacity: .6; }
+  .sprites-vide { grid-column: 1 / -1; color: var(--muted); font-size: 13px; padding: 18px; text-align: center; }
 
   /* glisser-deposer d'une carte : la cible se signale, sinon on lache dans le vide */
   .minicard { position: relative; }
@@ -338,6 +348,7 @@ import { effectParams, listeEffets, EVENT_GARDES, momentLabel, EFFECTS, KEYWORDS
 import { DEFAULT_TIERS } from '../game/src/config/characters.js';
 import { BALANCE } from '../game/src/config/balance.js';
 import { validateData, bloque, eachEffect, eachUnit, tierIssue } from '../game/src/config/validate.js';
+import { repareImages } from '../game/src/config/images.js';
 
 // ---------- ETAT ----------
 const LS_KEY = 'adventureCardBuilder.v1';
@@ -378,7 +389,17 @@ function vu(x, col, valeur, pnj = false) {
 }
 
 const FILE_DATA = structuredClone(CHARACTER_DATA);
-let DB = nettoieCustoms(structuredClone(CHARACTER_DATA));
+// Les images rangees ailleurs (un deck en sous-dossier, un dossier renomme) sont recollees par leur
+// nom a chaque chargement des donnees : un brouillon ecrit avant le rangement ne recrit pas les
+// vieux chemins a « Appliquer au jeu » (game/src/config/images.js). `imagesRecollees` : pour le dire.
+let imagesRecollees = [];
+function recolleImages(db) {
+  // seuls les deplacements sans doute ; un nom dans plusieurs dossiers, ou introuvable, reste
+  // tel quel et « À vérifier » le signale (avec les dossiers candidats) : on ne devine pas
+  imagesRecollees = repareImages(db, SPRITES, { devine: false }).filter(r => r.etat === 'deplace');
+  return db;
+}
+let DB = recolleImages(nettoieCustoms(structuredClone(CHARACTER_DATA)));
 let selChar = DB.characters[0] ? DB.characters[0].id : null;
 let selCard = { slot: 0, side: 'cards' };   // 'cards' = base, 'switches' = switch
 let selNpc = null;   // un adversaire selectionne remplace l'edition de personnage
@@ -520,11 +541,11 @@ function renderDraftBar() {
       <button class="btn btn--sm" id="dropDraft">Jeter</button>
     </div>`;
   bar.querySelector('#useDraft').onclick = () => {
-    DB = nettoieCustoms(draft.db);
+    DB = recolleImages(nettoieCustoms(draft.db));
     selChar = DB.characters[0] ? DB.characters[0].id : null;
     selCard = { slot: 0, side: 'cards' };
     draft = null;
-    setStatus('Brouillon repris.');
+    setStatus('Brouillon repris.' + (imagesRecollees.length ? ` ${imagesRecollees.length} image(s) rangée(s) ailleurs recollée(s).` : ''));
     renderAll();
   };
   bar.querySelector('#dropDraft').onclick = () => {
@@ -657,7 +678,7 @@ function validate() {
     ({ bad: false, msg: `« ${m.label} » est codée : ${m.comment}. Retirée de la liste « à coder ».` }));
   // Les regles, elles, vivent dans game/src/config/validate.js : le builder et
   // `node scripts/check-decks.mjs` appliquent ainsi exactement les memes.
-  return [...out, ...validateData(DB, allEffects(), allKeywords())];
+  return [...out, ...validateData(DB, allEffects(), allKeywords(), { sprites: SPRITES })];
 }
 
 // ---------- MODELES ----------
@@ -815,7 +836,7 @@ function renderCharForm() {
     if (i >= 0) DB.starters.splice(i, 1); else DB.starters.push(c.id);
     save(); renderAll();
   };
-  box.querySelector('#pickSprite').onclick = () => pickSprite(p => { c.sprite = p; save(); renderAll(); });
+  box.querySelector('#pickSprite').onclick = () => pickSprite(p => { c.sprite = p; save(); renderAll(); }, c.sprite);
 }
 
 /**
@@ -880,28 +901,83 @@ async function relitLesSprites() {
   const res = await fetch('/api/sprites', { method: 'POST' });
   if (!res.ok) throw new Error(await res.text());
   SPRITES = await res.json();
+  // des images ont pu changer de dossier : on recolle le brouillon tout de suite
+  const r = repareImages(DB, SPRITES, { devine: false });
+  const recollees = r.filter(x => x.etat === 'deplace').length, aVoir = r.length - recollees;
+  if (recollees) save();
+  if (r.length) setTimeout(() => toast(`${recollees ? recollees + ' image(s) déplacée(s), recollée(s)' : ''}${recollees && aVoir ? ' · ' : ''}${aVoir ? aVoir + ' à vérifier (nom dans plusieurs dossiers, ou introuvable) : voir « À vérifier »' : ''}`), 2600);
   return compte() - avant;
 }
 
-function pickSprite(done) {
-  let cur = 'Graphical Assets/Characters';
+// LA FENETRE « CHOISIR UN SPRITE ». Les images se rangent en SOUS-DOSSIERS (un deck par
+// heros, un dossier par adversaire : Cards › Cat Decks › Cat Deck 1, 24 oct. 2026) : on y
+// navigue par un fil d'Ariane et des puces de dossiers, sans faire defiler toute la liste.
+// La fenetre s'ouvre sur le dossier de l'image actuelle (`actuel`), sinon sur le dernier
+// visite (retenu dans ce navigateur), et la recherche cherche dans tout l'onglet.
+const LS_SPRITES = 'adventureCardBuilder.sprites';
+const sansAccents = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+function pickSprite(done, actuel = null) {
+  let souvenir = null;
+  try { souvenir = JSON.parse(localStorage.getItem(LS_SPRITES) || 'null'); } catch { /* sans stockage */ }
+  let cur = 'Graphical Assets/Characters', sous = '', cherche = '';
+  const racineDe = c => Object.keys(SPRITES).find(f => c && c.startsWith(f + '/'));
+  if (actuel && racineDe(actuel)) { cur = racineDe(actuel); sous = actuel.slice(cur.length + 1).split('/').slice(0, -1).join('/'); }
+  else if (souvenir && SPRITES[souvenir.cur]) { cur = souvenir.cur; sous = souvenir.sous || ''; }
+  const retiens = () => { try { localStorage.setItem(LS_SPRITES, JSON.stringify({ cur, sous })); } catch { /* sans stockage */ } };
+
+  // ce que montre la grille : les images du dossier `sous`, ou celles de tout l'onglet qui
+  // correspondent a la recherche (avec leur dossier ecrit dessous)
+  const grille = () => {
+    const liste = SPRITES[cur] || [], pre = sous ? sous + '/' : '';
+    const q = sansAccents(cherche.trim());
+    const vues = q ? liste.filter(n => sansAccents(n.split('/').pop()).includes(q))
+      : liste.filter(n => n.startsWith(pre) && !n.slice(pre.length).includes('/'));
+    if (!vues.length) return `<div class="sprites-vide">${q ? 'Aucune image ne s\'appelle comme ça dans cet onglet.' : 'Pas d\'image directement ici : choisis un dossier au-dessus.'}</div>`;
+    return vues.map(n => {
+      const chemin = cur + '/' + n, dossier = n.split('/').slice(0, -1).join(' › ');
+      return `<div class="sprite ${chemin === actuel ? 'sprite--actuel' : ''}" data-p="${esc(chemin)}" title="${esc(n)}">
+        <img src="${asset(chemin)}" alt="" loading="lazy"><span>${esc(n.split('/').pop().replace(/\.\w+$/, ''))}</span>${q && dossier ? `<small>${esc(dossier)}</small>` : ''}</div>`;
+    }).join('');
+  };
+  const brancheGrille = () => $('#modalBox').querySelectorAll('[data-p]').forEach(n => n.onclick = () => { retiens(); done(n.dataset.p); closeModal(); });
+
   const draw = () => {
     // Recalcule apres chaque actualisation : un dossier peut apparaitre, et celui
     // qu'on regardait peut avoir disparu.
     const folders = Object.keys(SPRITES);
-    if (!SPRITES[cur]) cur = folders[0];
+    if (!SPRITES[cur]) { cur = folders[0]; sous = ''; }
+    const liste = SPRITES[cur] || [];
+    if (sous && !liste.some(n => n.startsWith(sous + '/'))) sous = '';
+    const pre = sous ? sous + '/' : '';
+    // les sous-dossiers directs de `sous`, et combien d'images chacun contient (sous-dossiers compris)
+    const compte = new Map();
+    for (const n of liste) if (n.startsWith(pre)) { const r = n.slice(pre.length); if (r.includes('/')) { const d = r.split('/')[0]; compte.set(d, (compte.get(d) || 0) + 1); } }
+    const sousDossiers = [...compte.keys()].sort((a, b) => a.localeCompare(b, 'fr', { numeric: true }));
+    const fil = sous ? sous.split('/') : [];
     openModal('Choisir un sprite', `
-      <div class="chips" style="margin-bottom:12px">
+      <div class="chips" style="margin-bottom:10px">
         ${folders.map(f => `<span class="chip ${f === cur ? 'chip--on' : ''}" data-f="${f}">${f.replace(/^Graphical Assets\//, '')}</span>`).join('')}
-        <span class="chip" id="majSprites" title="Relit les dossiers d'images : à faire après en avoir ajouté une">🔄 Actualiser les images</span>
+        <span class="chip" id="majSprites" title="Relit les dossiers d'images : à faire après en avoir ajouté, déplacé ou renommé une">🔄 Actualiser les images</span>
       </div>
       <div class="maj-barre" id="majBarre" hidden><div class="maj-barre__plein"></div><span class="maj-barre__texte"></span></div>
-      <div class="sprites">
-        ${(SPRITES[cur] || []).map(n => `<div class="sprite" data-p="${esc(cur + '/' + n)}">
-          <img src="${asset(cur + '/' + n)}" alt=""><span>${esc(n.split('/').pop().replace(/\.\w+$/, ''))}</span></div>`).join('')}
-      </div>`);
-    $('#modalBox').querySelectorAll('[data-f]').forEach(n => n.onclick = () => { cur = n.dataset.f; draw(); });
-    $('#modalBox').querySelectorAll('[data-p]').forEach(n => n.onclick = () => { done(n.dataset.p); closeModal(); });
+      <div class="sprites-nav">
+        <span class="sprites-fil"><a data-niv="-1">${esc(cur.replace(/^Graphical Assets\//, ''))}</a>${fil.map((d, i) => ` › <a data-niv="${i}">${esc(d)}</a>`).join('')}</span>
+        <input type="search" id="spriteCherche" placeholder="Chercher dans ${esc(cur.replace(/^Graphical Assets\//, ''))}…" value="${esc(cherche)}">
+      </div>
+      ${sousDossiers.length && !cherche.trim() ? `<div class="chips sprites-dossiers">${sousDossiers.map(d => `<span class="chip" data-d="${esc(d)}">📁 ${esc(d)} <small>${compte.get(d)}</small></span>`).join('')}</div>` : ''}
+      <div class="sprites" id="spritesGrille">${grille()}</div>`);
+    $('#modalBox').querySelectorAll('[data-f]').forEach(n => n.onclick = () => { cur = n.dataset.f; sous = ''; cherche = ''; retiens(); draw(); });
+    $('#modalBox').querySelectorAll('[data-d]').forEach(n => n.onclick = () => { sous = pre + n.dataset.d; retiens(); draw(); });
+    $('#modalBox').querySelectorAll('[data-niv]').forEach(n => n.onclick = () => { const k = +n.dataset.niv; sous = fil.slice(0, k + 1).join('/'); cherche = ''; retiens(); draw(); });
+    const champ = $('#spriteCherche');
+    // la recherche ne redessine que la grille : le champ garde le curseur
+    champ.oninput = () => {
+      const avant = !!cherche.trim(); cherche = champ.value;
+      if (avant !== !!cherche.trim()) { draw(); const c = $('#spriteCherche'); c.focus(); c.setSelectionRange(c.value.length, c.value.length); return; }
+      $('#spritesGrille').innerHTML = grille(); brancheGrille();
+    };
+    brancheGrille();
+    $('#modalBox').querySelector('.sprite--actuel')?.scrollIntoView({ block: 'nearest' });
     const maj = $('#majSprites');
     maj.onclick = async () => {
       if (maj.dataset.enCours) return;
@@ -1248,7 +1324,7 @@ function renderNpcForm() {
   bind('#nLevel', v => { n.level = Math.max(1, +v || 1); });
   box.querySelector('#nIa').onchange = e => { if (e.target.value) n.ia = e.target.value; else delete n.ia; save(); };
   box.querySelector('#nBoss').onclick = () => { if (n.boss) delete n.boss; else n.boss = true; save(); renderAll(); };
-  box.querySelector('#nSprite').onclick = () => pickSprite(pth => { n.sprite = pth; save(); renderAll(); });
+  box.querySelector('#nSprite').onclick = () => pickSprite(pth => { n.sprite = pth; save(); renderAll(); }, n.sprite);
   box.querySelector('#nId').onchange = e => {
     const old = n.id, nid = slug(e.target.value) || old;
     if (npcs().some(x => x !== n && x.id === nid)) { toast('Identifiant déjà pris.'); e.target.value = old; return; }
@@ -1332,7 +1408,7 @@ function renderCardForm() {
   bind('#cText', v => { cd.text = v; renderSlots(); renderPreview(); });
   // Une carte peut porter sa propre image : indispensable aux cartes libres, qui n'ont
   // pas de personnage dont heriter, et bien pratique ailleurs.
-  main.querySelector('#pickCardSprite').onclick = () => pickSprite(chemin => { cd.sprite = chemin; save(); renderAll(); });
+  main.querySelector('#pickCardSprite').onclick = () => pickSprite(chemin => { cd.sprite = chemin; save(); renderAll(); }, cd.sprite);
   const efface = main.querySelector('#clearCardSprite');
   if (efface) efface.onclick = () => { delete cd.sprite; save(); renderAll(); };
   main.querySelector('#cType').onchange = e => {
@@ -2400,7 +2476,7 @@ $('#importFile').onchange = e => {
     try {
       const d = JSON.parse(r.result);
       if (!d.characters) throw new Error('fichier invalide');
-      DB = nettoieCustoms(d);
+      DB = recolleImages(nettoieCustoms(d));
       selChar = DB.characters[0] ? DB.characters[0].id : null;
       save(); renderAll(); toast('Importé.');
     } catch (err) { toast('Import impossible : ' + err.message); }
@@ -2411,7 +2487,7 @@ $('#importFile').onchange = e => {
 $('#revertBtn').onclick = () => {
   if (!confirm('Jeter les modifications non appliquées et repartir du fichier du jeu ?')) return;
   draft = null;
-  DB = nettoieCustoms(structuredClone(FILE_DATA));
+  DB = recolleImages(nettoieCustoms(structuredClone(FILE_DATA)));
   selChar = DB.characters[0] ? DB.characters[0].id : null;
   localStorage.removeItem(LS_KEY);
   setStatus('Rechargé depuis le fichier du jeu.');

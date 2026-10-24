@@ -53,7 +53,7 @@ Node : elle doit rester correcte, mais ce n'est plus elle qu'on exerce tous les 
 sur `POST /api/sprites` — le bouton **🔄 Actualiser les images** de la fenêtre « Choisir un
 sprite », avec sa **barre de chargement** (lecture des dossiers, puis « Vignettes : 12 / 120 », lue
 sur `GET /api/sprites/etat`). Le serveur actualise **en fond** : la version synchrone le figeait
-pendant les vignettes (7 min pour 121 cartes avant le réglage `method=4` de `gen-vignettes.py`). À faire après avoir déposé une image ; en ligne de commande, c'est le même
+pendant les vignettes (7 min pour 121 cartes avant le réglage `method=4` de `gen-vignettes.py`). **La fenêtre navigue par dossiers** (24 oct. 2026 : les illustrations sont rangées en decks, `Cards › Cat Decks › Cat Deck 1`) : un fil d'Ariane, une puce par sous-dossier (avec son nombre d'images), une recherche dans tout l'onglet (le dossier de chaque résultat écrit dessous) ; elle s'ouvre sur le dossier de l'image actuelle (en surbrillance), sinon sur le dernier visité (`localStorage` `adventureCardBuilder.sprites`). **Une image rangée ailleurs** est recollée par son nom à chaque chargement des données (brouillon compris) et après « Actualiser » ; un nom présent dans plusieurs dossiers, ou une image introuvable, n'est **pas deviné** : « À vérifier » le signale avec les dossiers candidats (`game/src/config/images.js`). À faire après avoir déposé une image ; en ligne de commande, c'est le même
 balayage avec `node scripts/gen-sprites.mjs`. La liste revient dans la réponse et remplace
 celle qu'a la page : l'import de module, lui, est figé au chargement, comme
 `CHARACTER_DATA`. Le balayage est écrit **deux fois** (`scripts/gen-sprites.mjs` pour le

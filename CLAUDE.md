@@ -224,6 +224,7 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | mesurer l'équilibre | `scripts/matchups.mjs`, `simulate.mjs`, `check-decks.mjs`, `analyse-cartes.mjs` (ou `builder/balance.html`) |
 | lancer un calcul depuis le téléphone, les renforts, l'IA locale | `builder/lancer.html` + `scripts/devserver.js` + `scripts/lib/` |
 | animer un personnage (« fais l'idle du crapaud ») | lire `docs/ANIMATION_FORMAT.md` (le format **et** la boucle : écrire `clips.json` → `scripts/rig-valide.mjs` → `scripts/rig-rendu.mjs --ecart` → regarder → corriger → `--gif`) ; poser les os : l'Atelier `builder/rig.html` ; le plan : `docs/RIG-ANIM.md` |
+| ranger, déplacer ou renommer des images (des decks en sous-dossiers) | rien ne casse (`game/src/config/images.js`) : « 🔄 Actualiser les images » dans le Card Builder, puis `node scripts/repare-images.mjs --ecrire` pour recoller le fichier des cartes ; ce qui reste douteux s'affiche dans « À vérifier » |
 | ajouter une icône | déposer `Graphical Assets/Icons/<Nom>.png` (noms : `game/src/ui/icones.js`) ; une grande image : `python scripts/gen-vignettes.py` |
 | changer le tutoriel, une quête, le départ d'une partie | `docs/TUTORIEL.md`, puis `game/src/config/quetes.js` (le fil), `state.js` (ses règles), `ui/quetes.js` (le bandeau) ; les Lapins : `scripts/gen-lapins.mjs` |
 | comprendre une décision de design | `docs/GDD.md`, `docs/V3-HEROS.md`, `docs/TUTORIEL.md`, et la mémoire du projet |

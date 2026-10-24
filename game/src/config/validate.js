@@ -16,6 +16,7 @@
 import { TRIGGERS, EVENTS, EVENT_GARDES, ALL_KEYWORDS, AMPLIFIABLE, CARD_FILTERS, COUNTERS, STATICS, keyId, keyArg, keyFields, cardCost,
   isVariableAmount, targetDef, targetId, targetArg, targetLabel, describeAmount, effectParams, eachSubEffect, listeEffets, branchesDe, typeVariable } from './mechanics.js';
 import { resolveCard } from './characters.js';
+import { indexImages, retrouve } from './images.js';
 
 /**
  * Les cibles qu'un effet porte VRAIMENT. Un parametre de cible peut etre hors sujet
@@ -540,7 +541,7 @@ export const bloque = s => !!s.bad && s.ignore === undefined;
 /** L'entree de `DB.ignores` qui couvre ce constat, s'il y en a une. */
 export const ignoreDe = (DB, s) => (DB.ignores || []).find(g => g.ou === s.ou && g.regle === s.regle) || null;
 
-export function validateData(DB, eff, kw, { niveau = 5 } = {}) {
+export function validateData(DB, eff, kw, { niveau = 5, sprites = null } = {}) {
   const out = [];
   // Ce que `f` ajoute a la liste est rattache a `ou` (et recoit un code s'il n'en a pas) :
   // c'est ce qui le rend ignorable. Les regles n'ont pas a s'en soucier une par une.
@@ -648,6 +649,28 @@ export function validateData(DB, eff, kw, { niveau = 5 } = {}) {
     }
     out.length = 0;
     out.push(...uniques);
+  }
+
+  // Les IMAGES introuvables (`sprites` = la liste de game/data/sprites.js) : un chemin qui ne
+  // mene a rien laisse un portrait vide en jeu. Pas bloquant : le jeu les recolle par leur nom
+  // au chargement quand il le peut (config/images.js) ; sinon, a rattacher dans le builder.
+  if (sprites) {
+    const index = indexImages(sprites);
+    const court = c => c.replace(/^Graphical Assets\//, '');
+    const regarde = (x, ou, quoi) => {
+      if (!x || !x.sprite || index.chemins.has(x.sprite)) return;
+      // les dossiers ou se trouve une image de ce nom : c'est au game designer de choisir
+      const { candidats } = retrouve(x.sprite, index);
+      out.push({ bad: false, regle: 'image-introuvable', ou, msg: candidats.length > 1
+        ? `${quoi} — « ${x.sprite.split('/').pop()} » est dans ${candidats.length} dossiers (${candidats.map(c => court(c).split('/').slice(0, -1).join(' › ')).join(' · ')}) : choisis la bonne dans « Choisir un sprite ».`
+        : `${quoi} — image introuvable : « ${court(x.sprite)} » (renommée ou retirée ? « Choisir un sprite » pour la rattacher).` });
+    };
+    for (const ch of DB.characters || []) {
+      regarde(ch, ch.id && 'heros:' + ch.id, ch.name);
+      for (const cote of ['cards', 'switches']) for (const c of ch[cote] || []) if (c) regarde(c, c.id && 'carte:' + c.id, `${ch.name} · ${c.name}`);
+    }
+    for (const c of DB.library || []) regarde(c, c.id && 'carte:' + c.id, `Cartes libres · ${c.name}`);
+    for (const n of DB.npcs || []) regarde(n, n.id && 'pnj:' + n.id, `Adversaire ${n.name || n.id}`);
   }
 
   // Les constats ignores : marques (pas retires), et les ignores orphelins signales.

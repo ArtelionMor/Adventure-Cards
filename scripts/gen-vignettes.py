@@ -97,6 +97,23 @@ def main():
         if progression:
             print(f'@@progression {k}/{len(a_faire)}', flush=True)
     faites.sort()
+    # Le menage : une vignette qu'aucune image ne reclame plus (l'image a ete RANGEE ailleurs —
+    # les decks en sous-dossiers du 24 oct. 2026 laissaient 211 vignettes a l'ancien chemin) part.
+    # Seulement sous les dossiers que ce script fabrique, et jamais celle d'une image encore listee.
+    gardees = {os.path.normpath(os.path.join(SORTIE, os.path.splitext(r)[0] + '.webp')) for r in faites}
+    retirees = 0
+    for dossier in DOSSIERS + INTERFACE:
+        for dp, _, noms in os.walk(os.path.join(SORTIE, dossier)):
+            for n in noms:
+                chemin = os.path.normpath(os.path.join(dp, n))
+                if n.endswith('.webp') and chemin not in gardees:
+                    os.remove(chemin)
+                    retirees += 1
+        for dp, _, _ in sorted(os.walk(os.path.join(SORTIE, dossier)), key=lambda t: -len(t[0])):
+            if dp != os.path.join(SORTIE, dossier) and not os.listdir(dp):
+                os.rmdir(dp)
+    if retirees:
+        print(f'{retirees} vignette(s) sans image retiree(s)')
     with open(LISTE, 'w', encoding='utf-8', newline='\n') as f:
         f.write('// Genere par scripts/gen-vignettes.py — ne pas editer a la main.\n')
         f.write('// Les images qui ont une version allegee dans game/vignettes/ (meme chemin, extension .webp).\n')

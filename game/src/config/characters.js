@@ -10,12 +10,17 @@ import { FEUILLE } from '../../data/feuille.data.js';
 import { SPRITES } from '../../data/sprites.js';
 import { AMPLIFIABLE, TRIGGERS, amplify, effectParams, eachSubEffect, listeEffets, branchesDe } from './mechanics.js';
 import { appliqueHeros } from './feuille.js';
+import { repareImages } from './images.js';
 
 // La Google Sheet (onglet « heroes ») commande les statistiques des heros et des adversaires : nom, image, PV,
 // mana max, archetype (config/feuille.js). Posee une fois, ici, sur les donnees du builder — tout ce qui importe
 // la config (jeu, scripts, pages du builder) voit donc les memes chiffres. Un brouillon passe a l'arene la recoit
 // aussi (`tools/arene.js`).
 appliqueHeros(CHARACTER_DATA, FEUILLE.heroes, SPRITES);
+// Les images RANGEES AILLEURS depuis que les cartes ont ete ecrites (des decks en sous-dossiers,
+// 24 oct. 2026) sont retrouvees par leur nom : un rangement ne casse pas le jeu
+// (config/images.js ; le fichier se repare pour de bon avec scripts/repare-images.mjs).
+repareImages(CHARACTER_DATA, SPRITES);
 
 export const CHARACTERS = CHARACTER_DATA.characters;
 export const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));

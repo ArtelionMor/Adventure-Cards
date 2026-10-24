@@ -15,6 +15,7 @@ import { CHARACTER_DATA } from '../game/data/characters.data.js';
 import { CHARACTERS, resolveCard } from '../game/src/config/characters.js';
 import { ALL_EFFECTS, ALL_KEYWORDS, TRIGGERS, pendingMechanics } from '../game/src/config/mechanics.js';
 import { validateData, bloque } from '../game/src/config/validate.js';
+import { SPRITES } from '../game/data/sprites.js';
 import { campPerso, campPnj } from '../game/src/tools/arene.js';
 import { enParallele } from './lib/pool.mjs';
 
@@ -28,7 +29,7 @@ const gris = t => `\x1b[90m${t}\x1b[0m`;
 
 // ------------------------------------------------------------------ passe 1
 console.log('\n=== 1. Regles de construction (les memes que le builder) ===\n');
-const soucis = validateData(CHARACTER_DATA, ALL_EFFECTS, ALL_KEYWORDS, { niveau: NIVEAU });
+const soucis = validateData(CHARACTER_DATA, ALL_EFFECTS, ALL_KEYWORDS, { niveau: NIVEAU, sprites: SPRITES });
 // « Coûte plus que le mana de son héros » est une regle de validate.js depuis qu'on peut
 // l'ignorer (Neuf Vies, Minuit : injouables seuls, jouables en trio) — elle y est lue au
 // meme niveau que les parties ci-dessous.
