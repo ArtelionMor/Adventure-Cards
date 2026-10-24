@@ -7527,7 +7527,7 @@ export const CHARACTER_DATA = {
               "cost": -1
             }
           ],
-          "sprite": "Graphical Assets/Cards/Owl Decks/Owl Deck 1/Chasse Nocturne-1.png"
+          "sprite": "Graphical Assets/Cards/Owl Decks/Owl Deck 1/Chasse Nocturne.png"
         },
         {
           "id": "owl_night",
@@ -7587,7 +7587,7 @@ export const CHARACTER_DATA = {
               "v": 1
             }
           ],
-          "sprite": "Graphical Assets/Cards/Owl Decks/Owl Deck 1/Chasse Nocturne.png"
+          "sprite": "Graphical Assets/Cards/Owl Decks/Owl Deck 1/Impératrice Nocturne.png"
         }
       ],
       "switches": [
@@ -8444,7 +8444,7 @@ export const CHARACTER_DATA = {
               "text": "Tes Chiens gagnent aussi +1/+0."
             }
           ],
-          "sprite": "Graphical Assets/Cards/Dog Decks/Dog Deck 2/Traque.png"
+          "sprite": "Graphical Assets/Cards/Dog Decks/Dog Deck 2/Traque en meute.png"
         },
         {
           "id": "dog2_beater",
