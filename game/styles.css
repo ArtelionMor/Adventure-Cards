@@ -38,6 +38,13 @@ img { image-rendering: auto; }
   position: relative;
   background: var(--bg);
 }
+/* ⚠ Chaque bande a SA ligne (24 oct. 2026). Sans ca, le bandeau de quete masque (`.hidden`, le fil fini) ne prend plus de
+   ligne, tout remonte d'un cran : les ecrans tombaient dans une ligne `auto` (0 px de haut : carte et onglet Arene vides)
+   et la navigation prenait la ligne `1fr`. */
+#topbar { grid-row: 1; }
+#quete { grid-row: 2; }
+#screens { grid-row: 3; }
+#nav { grid-row: 4; }
 
 /* ---------- top bar ---------- */
 #topbar {
