@@ -200,6 +200,11 @@ function titleFor(n) {
 // ------------------------------------------------------------------- rendu
 function frame(t) {
   if (!running) return;
+  // ⚠ Le canvas se remesure DES QUE sa taille a l'ecran change, pas seulement au redimensionnement
+  // de la fenetre : mesure une fois au demarrage, pendant que l'ecran de chargement cachait encore
+  // la carte, il restait a 0 px de haut et la carte ne se dessinait plus du tout (24 oct. 2026).
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  if (cv.width !== Math.floor(cv.clientWidth * dpr) || cv.height !== Math.floor(cv.clientHeight * dpr)) resize();
   const dt = Math.min((t - last) / 1000, 0.05);
   last = t;
   step(dt);

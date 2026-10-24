@@ -267,6 +267,9 @@ export const BALANCE = {
     niveauParVictoire: 1,
     niveauMax: 40,            // le profil d'un ennemi s'arrete la (au-dela, l'arene garde son dernier niveau)
     decouverteTuiles: 6,      // a cette distance du batiment, l'arene apparait dans l'onglet « Arene »
+    // PROVISOIRE (24 oct. 2026, en attendant la nouvelle carte) : toutes les arenes dans l'onglet « Arene », sans
+    // avoir a les decouvrir en marchant. Remettre a false quand la carte est la.
+    toutesDecouvertes: true,
     interactionTuiles: 1.6    // la porte : a cette distance, le bouton « Entrer » apparait
   },
 

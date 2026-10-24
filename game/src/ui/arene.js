@@ -221,7 +221,7 @@ export function renderArene() {
   root.innerHTML = '';
   const wrap = el(`<div class="pad ar-onglet"><h2>${t('arene.onglet')}</h2><div class="arn-liste"></div></div>`);
   const liste = wrap.querySelector('.arn-liste');
-  const vues = ARENES.map(a => ({ a, n: noeudDeLArene(a.id) })).filter(x => x.n && save.world.seen[x.n.id]);
+  const vues = ARENES.map(a => ({ a, n: noeudDeLArene(a.id) })).filter(x => x.n && (BALANCE.arenes.toutesDecouvertes || save.world.seen[x.n.id]));
   if (!vues.length) liste.appendChild(el(`<p class="muted">${t('arene.vide')}</p>`));
   for (const { a, n } of vues) liste.appendChild(carteArene(a, n));
   root.appendChild(wrap);
