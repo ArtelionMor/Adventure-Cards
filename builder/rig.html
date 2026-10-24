@@ -68,6 +68,15 @@
   #choixImages button { padding: 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; }
   #choixImages button img { width: 70px; height: 70px; object-fit: contain; }
   #choixImages button.sel { border-color: var(--accent-2); background: #1e3a33; }
+  #choixImages button small { font-size: 9px; color: var(--muted); }
+  #choixImages .vide { grid-column: 1 / -1; color: var(--muted); font-size: 12px; padding: 12px; text-align: center; }
+  #choixNav .puces { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
+  #choixNav .puces button { padding: 3px 9px; font-size: 12px; border-radius: 999px; }
+  #choixNav .puces button.on { background: #24325a; border-color: var(--accent); }
+  #choixNav .puces button small { color: var(--muted); }
+  #choixNav .fil { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  #choixNav .fil a { color: var(--accent); cursor: pointer; }
+  #choixNav .fil a:last-child { color: var(--text); font-weight: 600; }
   #conflit { display: none; background: #4a2a10; color: #ffd9a8; padding: 6px 12px; font-size: 13px; }
   #conflit button { margin-left: 8px; }
   @media (max-width: 820px) { main { grid-template-columns: 1fr; grid-template-rows: 60vh auto; } aside { border-left: 0; } }
@@ -140,7 +149,8 @@
   <div class="ligne"><label>Identifiant</label><input id="nvId" placeholder="crapaud-roi" pattern="[a-z0-9][a-z0-9_-]*" /><label>Nom</label><input id="nvNom" placeholder="Crapaud roi" /></div>
   <div class="ligne"><label>Image (PNG transparent)</label><input type="file" id="nvFichier" accept="image/png" /></div>
   <div class="muet">… ou une image du jeu :</div>
-  <input id="nvFiltre" placeholder="filtrer (Frog, Owl…)" style="width:100%;margin-top:6px" />
+  <div id="choixNav"></div>
+  <input id="nvFiltre" type="search" placeholder="chercher dans cet onglet (Frog, Chiot…)" style="width:100%;margin-top:6px" />
   <div id="choixImages"></div>
   <div class="ligne" style="justify-content:flex-end"><button id="nvAnnuler">Annuler</button><button id="nvCreer" class="principal">Créer</button></div>
 </dialog>
@@ -785,15 +795,43 @@ function verifie() {
 $('#verifier').onclick = verifie;
 
 // ------------------------------------------------------------------ nouveau personnage
+// Le choix de l'image : TOUS les dossiers de game/data/sprites.js (Characters, Cards et ses decks,
+// Buildings\u2026), comme la fenetre \u00ab Choisir un sprite \u00bb du Card Builder : un onglet par dossier,
+// un fil d'Ariane et une puce par sous-dossier (les decks : Cards \u203a Cat Decks \u203a Cat Deck 1), une
+// recherche dans tout l'onglet. Le dernier dossier visite est retenu dans ce navigateur.
 let choixImage = null;
+const choix = { cur: 'Graphical Assets/Characters', sous: '' };
+try { Object.assign(choix, JSON.parse(localStorage.getItem('adventureCardRig.sprites') || '{}')); } catch { /* sans stockage */ }
+const retiensChoix = () => { try { localStorage.setItem('adventureCardRig.sprites', JSON.stringify(choix)); } catch { /* sans stockage */ } };
 function vignette(chemin) { return '../game/vignettes/' + chemin.replace(/\.png$/i, '.webp'); }
+const sansAccents = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const nomCourt = d => d.replace(/^Graphical Assets\//, '');
 function dessineChoix() {
-  const f = $('#nvFiltre').value.toLowerCase();
-  const l = (SPRITES['Graphical Assets/Characters'] || []).map(n => 'Graphical Assets/Characters/' + n).filter(c => c.toLowerCase().includes(f));
-  $('#choixImages').innerHTML = l.map(c => `<button data-c="${c}" class="${c === choixImage ? 'sel' : ''}"><img loading="lazy" src="${encodeURI(vignette(c))}" onerror="this.src='${encodeURI('../' + c)}'" />${c.split('/').pop().replace('.png', '')}</button>`).join('');
-  $('#choixImages').querySelectorAll('button').forEach(b => b.onclick = () => {
+  const dossiers = Object.keys(SPRITES);
+  if (!SPRITES[choix.cur]) { choix.cur = dossiers[0]; choix.sous = ''; }
+  const liste = SPRITES[choix.cur] || [];
+  if (choix.sous && !liste.some(n => n.startsWith(choix.sous + '/'))) choix.sous = '';
+  const pre = choix.sous ? choix.sous + '/' : '';
+  const q = sansAccents($('#nvFiltre').value.trim());
+  // les sous-dossiers directs, et combien d'images chacun contient
+  const compte = new Map();
+  for (const n of liste) if (n.startsWith(pre)) { const r = n.slice(pre.length); if (r.includes('/')) { const d = r.split('/')[0]; compte.set(d, (compte.get(d) || 0) + 1); } }
+  const fil = choix.sous ? choix.sous.split('/') : [];
+  $('#choixNav').innerHTML = `
+    <div class="puces">${dossiers.map(d => `<button data-dossier="${d}" class="${d === choix.cur ? 'on' : ''}">${nomCourt(d)}</button>`).join('')}</div>
+    <div class="fil"><a data-niv="-1">${nomCourt(choix.cur)}</a>${fil.map((d, i) => ` \u203a <a data-niv="${i}">${d}</a>`).join('')}</div>
+    ${compte.size && !q ? `<div class="puces">${[...compte.keys()].sort((a, b) => a.localeCompare(b, 'fr', { numeric: true })).map(d => `<button data-sous="${d}">\ud83d\udcc1 ${d} <small>${compte.get(d)}</small></button>`).join('')}</div>` : ''}`;
+  const vues = q ? liste.filter(n => sansAccents(n.split('/').pop()).includes(q)) : liste.filter(n => n.startsWith(pre) && !n.slice(pre.length).includes('/'));
+  $('#choixImages').innerHTML = vues.length ? vues.map(n => {
+    const c = `${choix.cur}/${n}`;
+    return `<button data-c="${c}" class="${c === choixImage ? 'sel' : ''}" title="${n}"><img loading="lazy" src="${encodeURI(vignette(c))}" onerror="this.src='${encodeURI('../' + c)}'" />${n.split('/').pop().replace(/\.\w+$/, '')}${q && n.includes('/') ? `<small>${n.split('/').slice(0, -1).join(' \u203a ')}</small>` : ''}</button>`;
+  }).join('') : `<div class="vide">${q ? 'Aucune image de ce nom dans cet onglet.' : 'Pas d\'image directement ici : choisis un dossier au-dessus.'}</div>`;
+  $('#choixNav').querySelectorAll('[data-dossier]').forEach(b => b.onclick = () => { choix.cur = b.dataset.dossier; choix.sous = ''; $('#nvFiltre').value = ''; retiensChoix(); dessineChoix(); });
+  $('#choixNav').querySelectorAll('[data-sous]').forEach(b => b.onclick = () => { choix.sous = pre + b.dataset.sous; retiensChoix(); dessineChoix(); });
+  $('#choixNav').querySelectorAll('[data-niv]').forEach(a => a.onclick = () => { choix.sous = fil.slice(0, +a.dataset.niv + 1).join('/'); $('#nvFiltre').value = ''; retiensChoix(); dessineChoix(); });
+  $('#choixImages').querySelectorAll('button[data-c]').forEach(b => b.onclick = () => {
     choixImage = b.dataset.c; $('#nvFichier').value = '';
-    const nom = choixImage.split('/').pop().replace('.png', '');
+    const nom = choixImage.split('/').pop().replace(/\.\w+$/, '');
     if (!$('#nvNom').value) $('#nvNom').value = nom;
     if (!$('#nvId').value) $('#nvId').value = nom.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     dessineChoix();
