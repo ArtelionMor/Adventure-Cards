@@ -256,6 +256,7 @@ export const VIGNETTES = [
   "Graphical Assets/Cards/Opponents/Opponent Cat/Souris gredin.png",
   "Graphical Assets/Cards/Opponents/Opponent Cat/Voleur de câbles.png",
   "Graphical Assets/Cards/Opponents/Opponent Goat/Chevre Avocate.png",
+  "Graphical Assets/Cards/Opponents/Opponent Goat/Chèvre Charognarde.png",
   "Graphical Assets/Cards/Opponents/Opponent Goat/Réanimation.png",
   "Graphical Assets/Cards/Opponents/Opponent Goat/Vielle Bique.png",
   "Graphical Assets/Cards/Opponents/Opponent Great Duke/Caisse de soin.png",

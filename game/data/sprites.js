@@ -343,6 +343,7 @@ export const SPRITES = {
     "Opponents/Opponent Cat/Souris gredin.png",
     "Opponents/Opponent Cat/Voleur de câbles.png",
     "Opponents/Opponent Goat/Chevre Avocate.png",
+    "Opponents/Opponent Goat/Chèvre Charognarde.png",
     "Opponents/Opponent Goat/Réanimation.png",
     "Opponents/Opponent Goat/Vielle Bique.png",
     "Opponents/Opponent Great Duke/Caisse de soin.png",
