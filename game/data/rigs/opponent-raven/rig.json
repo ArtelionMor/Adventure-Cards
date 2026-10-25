@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "opponent-raven",
+  "nom": "Opponent Raven",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Opponents/Opponent Raven.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 183, "y": 930, "angle": 0, "longueur": 696 },
+    { "id": "bassin", "parent": "sol", "x": 531, "y": 869, "angle": -90, "longueur": 61 },
+    { "id": "torse", "parent": "bassin", "x": 531, "y": 808, "angle": -90, "longueur": 152 },
+    { "id": "tete", "parent": "torse", "x": 531, "y": 581, "angle": -90, "longueur": 228 },
+    { "id": "oreille_g", "parent": "tete", "x": 401, "y": 353, "angle": -120, "longueur": 114 },
+    { "id": "oreille_d", "parent": "tete", "x": 662, "y": 353, "angle": -60, "longueur": 114 },
+    { "id": "bras_g", "parent": "torse", "x": 401, "y": 717, "angle": 160, "longueur": 106 },
+    { "id": "bras_d", "parent": "torse", "x": 662, "y": 717, "angle": 20, "longueur": 106 },
+    { "id": "jambe_g", "parent": "bassin", "x": 444, "y": 869, "angle": 100, "longueur": 68 },
+    { "id": "jambe_d", "parent": "bassin", "x": 618, "y": 869, "angle": 80, "longueur": 68 },
+    { "id": "queue", "parent": "bassin", "x": 705, "y": 823, "angle": -30, "longueur": 106 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

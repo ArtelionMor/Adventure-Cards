@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "opponent-captain-octopus",
+  "nom": "Opponent Captain Octopus",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Opponents/Opponent Captain Octopus.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 143, "y": 927, "angle": 0, "longueur": 724 },
+    { "id": "bassin", "parent": "sol", "x": 505, "y": 853, "angle": -90, "longueur": 74 },
+    { "id": "torse", "parent": "bassin", "x": 505, "y": 780, "angle": -90, "longueur": 184 },
+    { "id": "tete", "parent": "torse", "x": 505, "y": 504, "angle": -90, "longueur": 276 },
+    { "id": "oreille_g", "parent": "tete", "x": 369, "y": 227, "angle": -120, "longueur": 138 },
+    { "id": "oreille_d", "parent": "tete", "x": 640, "y": 227, "angle": -60, "longueur": 138 },
+    { "id": "bras_g", "parent": "torse", "x": 369, "y": 669, "angle": 160, "longueur": 129 },
+    { "id": "bras_d", "parent": "torse", "x": 640, "y": 669, "angle": 20, "longueur": 129 },
+    { "id": "jambe_g", "parent": "bassin", "x": 414, "y": 853, "angle": 100, "longueur": 83 },
+    { "id": "jambe_d", "parent": "bassin", "x": 595, "y": 853, "angle": 80, "longueur": 83 },
+    { "id": "queue", "parent": "bassin", "x": 686, "y": 798, "angle": -30, "longueur": 129 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

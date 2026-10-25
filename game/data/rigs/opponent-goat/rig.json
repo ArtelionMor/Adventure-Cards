@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "opponent-goat",
+  "nom": "Opponent Goat",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Opponents/Opponent Goat.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 161, "y": 948, "angle": 0, "longueur": 706 },
+    { "id": "bassin", "parent": "sol", "x": 515, "y": 873, "angle": -90, "longueur": 75 },
+    { "id": "torse", "parent": "bassin", "x": 515, "y": 798, "angle": -90, "longueur": 187 },
+    { "id": "tete", "parent": "torse", "x": 515, "y": 517, "angle": -90, "longueur": 281 },
+    { "id": "oreille_g", "parent": "tete", "x": 382, "y": 235, "angle": -120, "longueur": 141 },
+    { "id": "oreille_d", "parent": "tete", "x": 647, "y": 235, "angle": -60, "longueur": 141 },
+    { "id": "bras_g", "parent": "torse", "x": 382, "y": 685, "angle": 160, "longueur": 131 },
+    { "id": "bras_d", "parent": "torse", "x": 647, "y": 685, "angle": 20, "longueur": 131 },
+    { "id": "jambe_g", "parent": "bassin", "x": 426, "y": 873, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 603, "y": 873, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 691, "y": 816, "angle": -30, "longueur": 131 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

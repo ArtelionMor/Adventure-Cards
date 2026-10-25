@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "hero-owl-2",
+  "nom": "Hero Owl 2",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Owl/Hero Owl 2.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 137, "y": 960, "angle": 0, "longueur": 771 },
+    { "id": "bassin", "parent": "sol", "x": 523, "y": 882, "angle": -90, "longueur": 78 },
+    { "id": "torse", "parent": "bassin", "x": 523, "y": 804, "angle": -90, "longueur": 195 },
+    { "id": "tete", "parent": "torse", "x": 523, "y": 512, "angle": -90, "longueur": 293 },
+    { "id": "oreille_g", "parent": "tete", "x": 378, "y": 219, "angle": -120, "longueur": 146 },
+    { "id": "oreille_d", "parent": "tete", "x": 668, "y": 219, "angle": -60, "longueur": 146 },
+    { "id": "bras_g", "parent": "torse", "x": 378, "y": 687, "angle": 160, "longueur": 137 },
+    { "id": "bras_d", "parent": "torse", "x": 668, "y": 687, "angle": 20, "longueur": 137 },
+    { "id": "jambe_g", "parent": "bassin", "x": 427, "y": 882, "angle": 100, "longueur": 88 },
+    { "id": "jambe_d", "parent": "bassin", "x": 619, "y": 882, "angle": 80, "longueur": 88 },
+    { "id": "queue", "parent": "bassin", "x": 716, "y": 824, "angle": -30, "longueur": 137 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

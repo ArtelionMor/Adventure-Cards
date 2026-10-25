@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "opponent-great-duke",
+  "nom": "Opponent Great Duke",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Opponents/Opponent Great Duke.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 132, "y": 972, "angle": 0, "longueur": 725 },
+    { "id": "bassin", "parent": "sol", "x": 494, "y": 892, "angle": -90, "longueur": 80 },
+    { "id": "torse", "parent": "bassin", "x": 494, "y": 813, "angle": -90, "longueur": 199 },
+    { "id": "tete", "parent": "torse", "x": 494, "y": 514, "angle": -90, "longueur": 299 },
+    { "id": "oreille_g", "parent": "tete", "x": 358, "y": 215, "angle": -120, "longueur": 149 },
+    { "id": "oreille_d", "parent": "tete", "x": 630, "y": 215, "angle": -60, "longueur": 149 },
+    { "id": "bras_g", "parent": "torse", "x": 358, "y": 693, "angle": 160, "longueur": 139 },
+    { "id": "bras_d", "parent": "torse", "x": 630, "y": 693, "angle": 20, "longueur": 139 },
+    { "id": "jambe_g", "parent": "bassin", "x": 403, "y": 892, "angle": 100, "longueur": 90 },
+    { "id": "jambe_d", "parent": "bassin", "x": 585, "y": 892, "angle": 80, "longueur": 90 },
+    { "id": "queue", "parent": "bassin", "x": 675, "y": 833, "angle": -30, "longueur": 139 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

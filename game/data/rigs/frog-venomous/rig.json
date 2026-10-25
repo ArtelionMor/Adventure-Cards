@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "frog-venomous",
+  "nom": "Frog Venomous",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Frog/Frog Venomous.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 519, "y": 1682, "angle": 0, "longueur": 895 },
+    { "id": "bassin", "parent": "sol", "x": 967, "y": 1585, "angle": -90, "longueur": 98 },
+    { "id": "torse", "parent": "bassin", "x": 967, "y": 1487, "angle": -90, "longueur": 244 },
+    { "id": "tete", "parent": "torse", "x": 967, "y": 1121, "angle": -90, "longueur": 366 },
+    { "id": "oreille_g", "parent": "tete", "x": 799, "y": 755, "angle": -120, "longueur": 183 },
+    { "id": "oreille_d", "parent": "tete", "x": 1134, "y": 755, "angle": -60, "longueur": 183 },
+    { "id": "bras_g", "parent": "torse", "x": 799, "y": 1341, "angle": 160, "longueur": 171 },
+    { "id": "bras_d", "parent": "torse", "x": 1134, "y": 1341, "angle": 20, "longueur": 171 },
+    { "id": "jambe_g", "parent": "bassin", "x": 855, "y": 1585, "angle": 100, "longueur": 110 },
+    { "id": "jambe_d", "parent": "bassin", "x": 1078, "y": 1585, "angle": 80, "longueur": 110 },
+    { "id": "queue", "parent": "bassin", "x": 1190, "y": 1511, "angle": -30, "longueur": 171 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}

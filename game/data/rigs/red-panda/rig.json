@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "red-panda",
+  "nom": "Red Panda",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Red Panda/Red Panda.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 615, "y": 1701, "angle": 0, "longueur": 974 },
+    { "id": "bassin", "parent": "sol", "x": 1102, "y": 1594, "angle": -90, "longueur": 107 },
+    { "id": "torse", "parent": "bassin", "x": 1102, "y": 1487, "angle": -90, "longueur": 268 },
+    { "id": "tete", "parent": "torse", "x": 1102, "y": 1085, "angle": -90, "longueur": 402 },
+    { "id": "oreille_g", "parent": "tete", "x": 919, "y": 682, "angle": -120, "longueur": 201 },
+    { "id": "oreille_d", "parent": "tete", "x": 1284, "y": 682, "angle": -60, "longueur": 201 },
+    { "id": "bras_g", "parent": "torse", "x": 919, "y": 1326, "angle": 160, "longueur": 188 },
+    { "id": "bras_d", "parent": "torse", "x": 1284, "y": 1326, "angle": 20, "longueur": 188 },
+    { "id": "jambe_g", "parent": "bassin", "x": 980, "y": 1594, "angle": 100, "longueur": 121 },
+    { "id": "jambe_d", "parent": "bassin", "x": 1223, "y": 1594, "angle": 80, "longueur": 121 },
+    { "id": "queue", "parent": "bassin", "x": 1345, "y": 1514, "angle": -30, "longueur": 188 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}

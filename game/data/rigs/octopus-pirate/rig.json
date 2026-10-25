@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "octopus-pirate",
+  "nom": "Octopus Pirate",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Octopus/Octopus Pirate.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 394, "y": 1543, "angle": 0, "longueur": 1292 },
+    { "id": "bassin", "parent": "sol", "x": 1040, "y": 1425, "angle": -90, "longueur": 118 },
+    { "id": "torse", "parent": "bassin", "x": 1040, "y": 1308, "angle": -90, "longueur": 294 },
+    { "id": "tete", "parent": "torse", "x": 1040, "y": 866, "angle": -90, "longueur": 442 },
+    { "id": "oreille_g", "parent": "tete", "x": 797, "y": 424, "angle": -120, "longueur": 221 },
+    { "id": "oreille_d", "parent": "tete", "x": 1282, "y": 424, "angle": -60, "longueur": 221 },
+    { "id": "bras_g", "parent": "torse", "x": 797, "y": 1131, "angle": 160, "longueur": 206 },
+    { "id": "bras_d", "parent": "torse", "x": 1282, "y": 1131, "angle": 20, "longueur": 206 },
+    { "id": "jambe_g", "parent": "bassin", "x": 878, "y": 1425, "angle": 100, "longueur": 132 },
+    { "id": "jambe_d", "parent": "bassin", "x": 1201, "y": 1425, "angle": 80, "longueur": 132 },
+    { "id": "queue", "parent": "bassin", "x": 1363, "y": 1337, "angle": -30, "longueur": 206 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}

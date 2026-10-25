@@ -1,0 +1,38 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "dog-toutou-enrage",
+  "nom": "Dog Toutou Enragé",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Dog/Dog Toutou Enragé.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 450, "y": 1627, "angle": 0, "longueur": 1099 },
+    { "id": "bassin", "parent": "sol", "x": 1000, "y": 1518, "angle": -90, "longueur": 109 },
+    { "id": "dos", "parent": "bassin", "x": 1000, "y": 1409, "angle": -90, "longueur": 218 },
+    { "id": "cou", "parent": "dos", "x": 1000, "y": 1191, "angle": -90, "longueur": 164 },
+    { "id": "tete", "parent": "cou", "x": 1000, "y": 945, "angle": -90, "longueur": 410 },
+    { "id": "oreille_g", "parent": "tete", "x": 794, "y": 590, "angle": -120, "longueur": 205 },
+    { "id": "oreille_d", "parent": "tete", "x": 1206, "y": 590, "angle": -60, "longueur": 205 },
+    { "id": "patte_av_g", "parent": "dos", "x": 835, "y": 1273, "angle": 100, "longueur": 273 },
+    { "id": "patte_av_d", "parent": "dos", "x": 1165, "y": 1273, "angle": 80, "longueur": 273 },
+    { "id": "patte_ar_g", "parent": "bassin", "x": 725, "y": 1518, "angle": 100, "longueur": 109 },
+    { "id": "patte_ar_d", "parent": "bassin", "x": 1275, "y": 1518, "angle": 80, "longueur": 109 },
+    { "id": "queue", "parent": "bassin", "x": 1412, "y": 1436, "angle": -20, "longueur": 191 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}

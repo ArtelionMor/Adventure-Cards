@@ -1,0 +1,38 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "cat-bug",
+  "nom": "Cat Bug",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Cat/Cat Bug.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 465, "y": 1702, "angle": 0, "longueur": 982 },
+    { "id": "bassin", "parent": "sol", "x": 956, "y": 1597, "angle": -90, "longueur": 105 },
+    { "id": "dos", "parent": "bassin", "x": 956, "y": 1492, "angle": -90, "longueur": 210 },
+    { "id": "cou", "parent": "dos", "x": 956, "y": 1282, "angle": -90, "longueur": 157 },
+    { "id": "tete", "parent": "cou", "x": 956, "y": 1046, "angle": -90, "longueur": 394 },
+    { "id": "oreille_g", "parent": "tete", "x": 772, "y": 704, "angle": -120, "longueur": 197 },
+    { "id": "oreille_d", "parent": "tete", "x": 1140, "y": 704, "angle": -60, "longueur": 197 },
+    { "id": "patte_av_g", "parent": "dos", "x": 809, "y": 1360, "angle": 100, "longueur": 262 },
+    { "id": "patte_av_d", "parent": "dos", "x": 1103, "y": 1360, "angle": 80, "longueur": 262 },
+    { "id": "patte_ar_g", "parent": "bassin", "x": 710, "y": 1597, "angle": 100, "longueur": 105 },
+    { "id": "patte_ar_d", "parent": "bassin", "x": 1202, "y": 1597, "angle": 80, "longueur": 105 },
+    { "id": "queue", "parent": "bassin", "x": 1324, "y": 1518, "angle": -20, "longueur": 184 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}

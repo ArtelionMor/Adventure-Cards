@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "frog-captain",
+  "nom": "Frog Captain",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Frog/Frog Captain.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 550, "y": 1675, "angle": 0, "longueur": 1173 },
+    { "id": "bassin", "parent": "sol", "x": 1136, "y": 1564, "angle": -90, "longueur": 111 },
+    { "id": "torse", "parent": "bassin", "x": 1136, "y": 1453, "angle": -90, "longueur": 278 },
+    { "id": "tete", "parent": "torse", "x": 1136, "y": 1036, "angle": -90, "longueur": 417 },
+    { "id": "oreille_g", "parent": "tete", "x": 916, "y": 619, "angle": -120, "longueur": 209 },
+    { "id": "oreille_d", "parent": "tete", "x": 1356, "y": 619, "angle": -60, "longueur": 209 },
+    { "id": "bras_g", "parent": "torse", "x": 916, "y": 1286, "angle": 160, "longueur": 195 },
+    { "id": "bras_d", "parent": "torse", "x": 1356, "y": 1286, "angle": 20, "longueur": 195 },
+    { "id": "jambe_g", "parent": "bassin", "x": 989, "y": 1564, "angle": 100, "longueur": 125 },
+    { "id": "jambe_d", "parent": "bassin", "x": 1283, "y": 1564, "angle": 80, "longueur": 125 },
+    { "id": "queue", "parent": "bassin", "x": 1429, "y": 1481, "angle": -30, "longueur": 195 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}

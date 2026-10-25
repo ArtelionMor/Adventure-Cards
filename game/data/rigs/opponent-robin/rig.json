@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "opponent-robin",
+  "nom": "Opponent Robin",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Opponents/Opponent Robin.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 138, "y": 973, "angle": 0, "longueur": 745 },
+    { "id": "bassin", "parent": "sol", "x": 511, "y": 893, "angle": -90, "longueur": 80 },
+    { "id": "torse", "parent": "bassin", "x": 511, "y": 813, "angle": -90, "longueur": 200 },
+    { "id": "tete", "parent": "torse", "x": 511, "y": 514, "angle": -90, "longueur": 299 },
+    { "id": "oreille_g", "parent": "tete", "x": 371, "y": 215, "angle": -120, "longueur": 150 },
+    { "id": "oreille_d", "parent": "tete", "x": 650, "y": 215, "angle": -60, "longueur": 150 },
+    { "id": "bras_g", "parent": "torse", "x": 371, "y": 694, "angle": 160, "longueur": 140 },
+    { "id": "bras_d", "parent": "torse", "x": 650, "y": 694, "angle": 20, "longueur": 140 },
+    { "id": "jambe_g", "parent": "bassin", "x": 417, "y": 893, "angle": 100, "longueur": 90 },
+    { "id": "jambe_d", "parent": "bassin", "x": 604, "y": 893, "angle": 80, "longueur": 90 },
+    { "id": "queue", "parent": "bassin", "x": 697, "y": 833, "angle": -30, "longueur": 140 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "hero-frog-1",
+  "nom": "Hero Frog 1",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Frog/Hero Frog 1.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 158, "y": 947, "angle": 0, "longueur": 707 },
+    { "id": "bassin", "parent": "sol", "x": 512, "y": 881, "angle": -90, "longueur": 66 },
+    { "id": "torse", "parent": "bassin", "x": 512, "y": 815, "angle": -90, "longueur": 165 },
+    { "id": "tete", "parent": "torse", "x": 512, "y": 568, "angle": -90, "longueur": 248 },
+    { "id": "oreille_g", "parent": "tete", "x": 379, "y": 320, "angle": -120, "longueur": 124 },
+    { "id": "oreille_d", "parent": "tete", "x": 645, "y": 320, "angle": -60, "longueur": 124 },
+    { "id": "bras_g", "parent": "torse", "x": 379, "y": 716, "angle": 160, "longueur": 116 },
+    { "id": "bras_d", "parent": "torse", "x": 645, "y": 716, "angle": 20, "longueur": 116 },
+    { "id": "jambe_g", "parent": "bassin", "x": 424, "y": 881, "angle": 100, "longueur": 74 },
+    { "id": "jambe_d", "parent": "bassin", "x": 600, "y": 881, "angle": 80, "longueur": 74 },
+    { "id": "queue", "parent": "bassin", "x": 689, "y": 832, "angle": -30, "longueur": 116 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

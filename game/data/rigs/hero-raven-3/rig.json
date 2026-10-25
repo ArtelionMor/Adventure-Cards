@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "hero-raven-3",
+  "nom": "Hero Raven 3",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Crow/Hero Raven 3.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 130, "y": 967, "angle": 0, "longueur": 752 },
+    { "id": "bassin", "parent": "sol", "x": 506, "y": 888, "angle": -90, "longueur": 80 },
+    { "id": "torse", "parent": "bassin", "x": 506, "y": 808, "angle": -90, "longueur": 199 },
+    { "id": "tete", "parent": "torse", "x": 506, "y": 510, "angle": -90, "longueur": 298 },
+    { "id": "oreille_g", "parent": "tete", "x": 365, "y": 212, "angle": -120, "longueur": 149 },
+    { "id": "oreille_d", "parent": "tete", "x": 647, "y": 212, "angle": -60, "longueur": 149 },
+    { "id": "bras_g", "parent": "torse", "x": 365, "y": 689, "angle": 160, "longueur": 139 },
+    { "id": "bras_d", "parent": "torse", "x": 647, "y": 689, "angle": 20, "longueur": 139 },
+    { "id": "jambe_g", "parent": "bassin", "x": 412, "y": 888, "angle": 100, "longueur": 89 },
+    { "id": "jambe_d", "parent": "bassin", "x": 600, "y": 888, "angle": 80, "longueur": 89 },
+    { "id": "queue", "parent": "bassin", "x": 694, "y": 828, "angle": -30, "longueur": 139 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

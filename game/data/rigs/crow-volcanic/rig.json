@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "crow-volcanic",
+  "nom": "Crow Volcanic",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Crow/Crow Volcanic.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 292, "y": 1678, "angle": 0, "longueur": 1386 },
+    { "id": "bassin", "parent": "sol", "x": 986, "y": 1559, "angle": -90, "longueur": 119 },
+    { "id": "torse", "parent": "bassin", "x": 986, "y": 1440, "angle": -90, "longueur": 298 },
+    { "id": "tete", "parent": "torse", "x": 986, "y": 994, "angle": -90, "longueur": 446 },
+    { "id": "oreille_g", "parent": "tete", "x": 726, "y": 548, "angle": -120, "longueur": 223 },
+    { "id": "oreille_d", "parent": "tete", "x": 1245, "y": 548, "angle": -60, "longueur": 223 },
+    { "id": "bras_g", "parent": "torse", "x": 726, "y": 1262, "angle": 160, "longueur": 208 },
+    { "id": "bras_d", "parent": "torse", "x": 1245, "y": 1262, "angle": 20, "longueur": 208 },
+    { "id": "jambe_g", "parent": "bassin", "x": 812, "y": 1559, "angle": 100, "longueur": 134 },
+    { "id": "jambe_d", "parent": "bassin", "x": 1159, "y": 1559, "angle": 80, "longueur": 134 },
+    { "id": "queue", "parent": "bassin", "x": 1332, "y": 1470, "angle": -30, "longueur": 208 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}

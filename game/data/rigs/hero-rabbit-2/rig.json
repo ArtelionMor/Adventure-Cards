@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "hero-rabbit-2",
+  "nom": "Hero Rabbit 2",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Rabbit/Hero Rabbit 2.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 322, "y": 900, "angle": 0, "longueur": 458 },
+    { "id": "bassin", "parent": "sol", "x": 551, "y": 829, "angle": -90, "longueur": 71 },
+    { "id": "torse", "parent": "bassin", "x": 551, "y": 758, "angle": -90, "longueur": 177 },
+    { "id": "tete", "parent": "torse", "x": 551, "y": 492, "angle": -90, "longueur": 266 },
+    { "id": "oreille_g", "parent": "tete", "x": 465, "y": 225, "angle": -120, "longueur": 133 },
+    { "id": "oreille_d", "parent": "tete", "x": 637, "y": 225, "angle": -60, "longueur": 133 },
+    { "id": "bras_g", "parent": "torse", "x": 465, "y": 651, "angle": 160, "longueur": 124 },
+    { "id": "bras_d", "parent": "torse", "x": 637, "y": 651, "angle": 20, "longueur": 124 },
+    { "id": "jambe_g", "parent": "bassin", "x": 494, "y": 829, "angle": 100, "longueur": 80 },
+    { "id": "jambe_d", "parent": "bassin", "x": 608, "y": 829, "angle": 80, "longueur": 80 },
+    { "id": "queue", "parent": "bassin", "x": 665, "y": 775, "angle": -30, "longueur": 124 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,38 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "dog-coup-de-sifflet",
+  "nom": "Dog Coup de sifflet",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Dog/Dog Coup de sifflet.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 172, "y": 1853, "angle": 0, "longueur": 1377 },
+    { "id": "bassin", "parent": "sol", "x": 861, "y": 1698, "angle": -90, "longueur": 154 },
+    { "id": "dos", "parent": "bassin", "x": 861, "y": 1544, "angle": -90, "longueur": 309 },
+    { "id": "cou", "parent": "dos", "x": 861, "y": 1235, "angle": -90, "longueur": 232 },
+    { "id": "tete", "parent": "cou", "x": 861, "y": 888, "angle": -90, "longueur": 579 },
+    { "id": "oreille_g", "parent": "tete", "x": 602, "y": 386, "angle": -120, "longueur": 290 },
+    { "id": "oreille_d", "parent": "tete", "x": 1119, "y": 386, "angle": -60, "longueur": 290 },
+    { "id": "patte_av_g", "parent": "dos", "x": 654, "y": 1351, "angle": 100, "longueur": 386 },
+    { "id": "patte_av_d", "parent": "dos", "x": 1067, "y": 1351, "angle": 80, "longueur": 386 },
+    { "id": "patte_ar_g", "parent": "bassin", "x": 516, "y": 1698, "angle": 100, "longueur": 154 },
+    { "id": "patte_ar_d", "parent": "bassin", "x": 1205, "y": 1698, "angle": 80, "longueur": 154 },
+    { "id": "queue", "parent": "bassin", "x": 1377, "y": 1583, "angle": -20, "longueur": 270 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}

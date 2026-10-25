@@ -1,0 +1,38 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "cat-witch",
+  "nom": "Cat Witch",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Cat/Cat Witch.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 337, "y": 1692, "angle": 0, "longueur": 1119 },
+    { "id": "bassin", "parent": "sol", "x": 897, "y": 1568, "angle": -90, "longueur": 124 },
+    { "id": "dos", "parent": "bassin", "x": 897, "y": 1444, "angle": -90, "longueur": 248 },
+    { "id": "cou", "parent": "dos", "x": 897, "y": 1196, "angle": -90, "longueur": 186 },
+    { "id": "tete", "parent": "cou", "x": 897, "y": 917, "angle": -90, "longueur": 465 },
+    { "id": "oreille_g", "parent": "tete", "x": 687, "y": 514, "angle": -120, "longueur": 233 },
+    { "id": "oreille_d", "parent": "tete", "x": 1106, "y": 514, "angle": -60, "longueur": 233 },
+    { "id": "patte_av_g", "parent": "dos", "x": 729, "y": 1289, "angle": 100, "longueur": 310 },
+    { "id": "patte_av_d", "parent": "dos", "x": 1064, "y": 1289, "angle": 80, "longueur": 310 },
+    { "id": "patte_ar_g", "parent": "bassin", "x": 617, "y": 1568, "angle": 100, "longueur": 124 },
+    { "id": "patte_ar_d", "parent": "bassin", "x": 1176, "y": 1568, "angle": 80, "longueur": 124 },
+    { "id": "queue", "parent": "bassin", "x": 1316, "y": 1475, "angle": -20, "longueur": 217 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}

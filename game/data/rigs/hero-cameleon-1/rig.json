@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "hero-cameleon-1",
+  "nom": "Hero Cameleon 1",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Cameleon/Hero Cameleon 1.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 141, "y": 946, "angle": 0, "longueur": 734 },
+    { "id": "bassin", "parent": "sol", "x": 508, "y": 872, "angle": -90, "longueur": 74 },
+    { "id": "torse", "parent": "bassin", "x": 508, "y": 798, "angle": -90, "longueur": 185 },
+    { "id": "tete", "parent": "torse", "x": 508, "y": 521, "angle": -90, "longueur": 278 },
+    { "id": "oreille_g", "parent": "tete", "x": 370, "y": 243, "angle": -120, "longueur": 139 },
+    { "id": "oreille_d", "parent": "tete", "x": 646, "y": 243, "angle": -60, "longueur": 139 },
+    { "id": "bras_g", "parent": "torse", "x": 370, "y": 687, "angle": 160, "longueur": 130 },
+    { "id": "bras_d", "parent": "torse", "x": 646, "y": 687, "angle": 20, "longueur": 130 },
+    { "id": "jambe_g", "parent": "bassin", "x": 416, "y": 872, "angle": 100, "longueur": 83 },
+    { "id": "jambe_d", "parent": "bassin", "x": 600, "y": 872, "angle": 80, "longueur": 83 },
+    { "id": "queue", "parent": "bassin", "x": 692, "y": 817, "angle": -30, "longueur": 130 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

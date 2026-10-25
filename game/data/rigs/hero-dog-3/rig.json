@@ -1,0 +1,38 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "hero-dog-3",
+  "nom": "Hero Dog 3",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Dog/Hero Dog 3.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 195, "y": 940, "angle": 0, "longueur": 663 },
+    { "id": "bassin", "parent": "sol", "x": 527, "y": 866, "angle": -90, "longueur": 74 },
+    { "id": "dos", "parent": "bassin", "x": 527, "y": 791, "angle": -90, "longueur": 148 },
+    { "id": "cou", "parent": "dos", "x": 527, "y": 643, "angle": -90, "longueur": 111 },
+    { "id": "tete", "parent": "cou", "x": 527, "y": 476, "angle": -90, "longueur": 278 },
+    { "id": "oreille_g", "parent": "tete", "x": 402, "y": 235, "angle": -120, "longueur": 139 },
+    { "id": "oreille_d", "parent": "tete", "x": 651, "y": 235, "angle": -60, "longueur": 139 },
+    { "id": "patte_av_g", "parent": "dos", "x": 427, "y": 699, "angle": 100, "longueur": 186 },
+    { "id": "patte_av_d", "parent": "dos", "x": 626, "y": 699, "angle": 80, "longueur": 186 },
+    { "id": "patte_ar_g", "parent": "bassin", "x": 361, "y": 866, "angle": 100, "longueur": 74 },
+    { "id": "patte_ar_d", "parent": "bassin", "x": 692, "y": 866, "angle": 80, "longueur": 74 },
+    { "id": "queue", "parent": "bassin", "x": 775, "y": 810, "angle": -20, "longueur": 130 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

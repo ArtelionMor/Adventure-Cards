@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "opponent-veniomus-frog",
+  "nom": "Opponent Veniomus Frog",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Opponents/Opponent Veniomus Frog.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 147, "y": 906, "angle": 0, "longueur": 727 },
+    { "id": "bassin", "parent": "sol", "x": 511, "y": 836, "angle": -90, "longueur": 70 },
+    { "id": "torse", "parent": "bassin", "x": 511, "y": 767, "angle": -90, "longueur": 174 },
+    { "id": "tete", "parent": "torse", "x": 511, "y": 505, "angle": -90, "longueur": 262 },
+    { "id": "oreille_g", "parent": "tete", "x": 374, "y": 243, "angle": -120, "longueur": 131 },
+    { "id": "oreille_d", "parent": "tete", "x": 647, "y": 243, "angle": -60, "longueur": 131 },
+    { "id": "bras_g", "parent": "torse", "x": 374, "y": 662, "angle": 160, "longueur": 122 },
+    { "id": "bras_d", "parent": "torse", "x": 647, "y": 662, "angle": 20, "longueur": 122 },
+    { "id": "jambe_g", "parent": "bassin", "x": 420, "y": 836, "angle": 100, "longueur": 78 },
+    { "id": "jambe_d", "parent": "bassin", "x": 601, "y": 836, "angle": 80, "longueur": 78 },
+    { "id": "queue", "parent": "bassin", "x": 692, "y": 784, "angle": -30, "longueur": 122 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

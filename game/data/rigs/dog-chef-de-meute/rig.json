@@ -1,0 +1,38 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "dog-chef-de-meute",
+  "nom": "Dog Chef de Meute",
+  "source": {
+    "image": "source.png",
+    "largeur": 2048,
+    "hauteur": 2048,
+    "origine": "Graphical Assets/Characters/Dog/Dog Chef de Meute.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 447, "y": 1678, "angle": 0, "longueur": 1037 },
+    { "id": "bassin", "parent": "sol", "x": 965, "y": 1557, "angle": -90, "longueur": 120 },
+    { "id": "dos", "parent": "bassin", "x": 965, "y": 1437, "angle": -90, "longueur": 241 },
+    { "id": "cou", "parent": "dos", "x": 965, "y": 1196, "angle": -90, "longueur": 181 },
+    { "id": "tete", "parent": "cou", "x": 965, "y": 925, "angle": -90, "longueur": 452 },
+    { "id": "oreille_g", "parent": "tete", "x": 771, "y": 534, "angle": -120, "longueur": 226 },
+    { "id": "oreille_d", "parent": "tete", "x": 1159, "y": 534, "angle": -60, "longueur": 226 },
+    { "id": "patte_av_g", "parent": "dos", "x": 809, "y": 1287, "angle": 100, "longueur": 301 },
+    { "id": "patte_av_d", "parent": "dos", "x": 1121, "y": 1287, "angle": 80, "longueur": 301 },
+    { "id": "patte_ar_g", "parent": "bassin", "x": 706, "y": 1557, "angle": 100, "longueur": 120 },
+    { "id": "patte_ar_d", "parent": "bassin", "x": 1224, "y": 1557, "angle": 80, "longueur": 120 },
+    { "id": "queue", "parent": "bassin", "x": 1354, "y": 1467, "angle": -20, "longueur": 211 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2048,
+      "hauteur": 2048
+    }
+  ],
+  "ik": []
+}

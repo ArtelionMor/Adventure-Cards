@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "rabbit-myxomatose",
+  "nom": "Rabbit Myxomatose",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Rabbit/Rabbit Myxomatose.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 503, "y": 1737, "angle": 0, "longueur": 1003 },
+    { "id": "bassin", "parent": "sol", "x": 1005, "y": 1599, "angle": -90, "longueur": 138 },
+    { "id": "torse", "parent": "bassin", "x": 1005, "y": 1461, "angle": -90, "longueur": 345 },
+    { "id": "tete", "parent": "torse", "x": 1005, "y": 944, "angle": -90, "longueur": 517 },
+    { "id": "oreille_g", "parent": "tete", "x": 817, "y": 427, "angle": -120, "longueur": 259 },
+    { "id": "oreille_d", "parent": "tete", "x": 1193, "y": 427, "angle": -60, "longueur": 259 },
+    { "id": "bras_g", "parent": "torse", "x": 817, "y": 1254, "angle": 160, "longueur": 241 },
+    { "id": "bras_d", "parent": "torse", "x": 1193, "y": 1254, "angle": 20, "longueur": 241 },
+    { "id": "jambe_g", "parent": "bassin", "x": 880, "y": 1599, "angle": 100, "longueur": 155 },
+    { "id": "jambe_d", "parent": "bassin", "x": 1130, "y": 1599, "angle": 80, "longueur": 155 },
+    { "id": "queue", "parent": "bassin", "x": 1256, "y": 1496, "angle": -30, "longueur": 241 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}

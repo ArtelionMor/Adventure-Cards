@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "opponent-cat",
+  "nom": "Opponent Cat",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Opponents/Opponent Cat.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 215, "y": 937, "angle": 0, "longueur": 668 },
+    { "id": "bassin", "parent": "sol", "x": 549, "y": 861, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 549, "y": 785, "angle": -90, "longueur": 190 },
+    { "id": "tete", "parent": "torse", "x": 549, "y": 499, "angle": -90, "longueur": 286 },
+    { "id": "oreille_g", "parent": "tete", "x": 423, "y": 213, "angle": -120, "longueur": 143 },
+    { "id": "oreille_d", "parent": "tete", "x": 674, "y": 213, "angle": -60, "longueur": 143 },
+    { "id": "bras_g", "parent": "torse", "x": 423, "y": 670, "angle": 160, "longueur": 133 },
+    { "id": "bras_d", "parent": "torse", "x": 674, "y": 670, "angle": 20, "longueur": 133 },
+    { "id": "jambe_g", "parent": "bassin", "x": 465, "y": 861, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 632, "y": 861, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 716, "y": 804, "angle": -30, "longueur": 133 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

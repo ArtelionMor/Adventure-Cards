@@ -1,0 +1,38 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "cat-chat-de-gouttiere-v2",
+  "nom": "Cat Chat de Gouttière V2",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Cat/Cat Chat de Gouttière V2.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 238, "y": 872, "angle": 0, "longueur": 502 },
+    { "id": "bassin", "parent": "sol", "x": 489, "y": 818, "angle": -90, "longueur": 54 },
+    { "id": "dos", "parent": "bassin", "x": 489, "y": 764, "angle": -90, "longueur": 108 },
+    { "id": "cou", "parent": "dos", "x": 489, "y": 655, "angle": -90, "longueur": 81 },
+    { "id": "tete", "parent": "cou", "x": 489, "y": 533, "angle": -90, "longueur": 203 },
+    { "id": "oreille_g", "parent": "tete", "x": 395, "y": 357, "angle": -120, "longueur": 102 },
+    { "id": "oreille_d", "parent": "tete", "x": 583, "y": 357, "angle": -60, "longueur": 102 },
+    { "id": "patte_av_g", "parent": "dos", "x": 414, "y": 696, "angle": 100, "longueur": 135 },
+    { "id": "patte_av_d", "parent": "dos", "x": 564, "y": 696, "angle": 80, "longueur": 135 },
+    { "id": "patte_ar_g", "parent": "bassin", "x": 363, "y": 818, "angle": 100, "longueur": 54 },
+    { "id": "patte_ar_d", "parent": "bassin", "x": 615, "y": 818, "angle": 80, "longueur": 54 },
+    { "id": "queue", "parent": "bassin", "x": 677, "y": 777, "angle": -20, "longueur": 95 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

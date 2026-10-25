@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "opponent-snow-fox",
+  "nom": "Opponent Snow Fox",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Opponents/Opponent Snow Fox.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 120, "y": 970, "angle": 0, "longueur": 798 },
+    { "id": "bassin", "parent": "sol", "x": 519, "y": 891, "angle": -90, "longueur": 78 },
+    { "id": "torse", "parent": "bassin", "x": 519, "y": 813, "angle": -90, "longueur": 196 },
+    { "id": "tete", "parent": "torse", "x": 519, "y": 519, "angle": -90, "longueur": 294 },
+    { "id": "oreille_g", "parent": "tete", "x": 369, "y": 225, "angle": -120, "longueur": 147 },
+    { "id": "oreille_d", "parent": "tete", "x": 669, "y": 225, "angle": -60, "longueur": 147 },
+    { "id": "bras_g", "parent": "torse", "x": 369, "y": 695, "angle": 160, "longueur": 137 },
+    { "id": "bras_d", "parent": "torse", "x": 669, "y": 695, "angle": 20, "longueur": 137 },
+    { "id": "jambe_g", "parent": "bassin", "x": 419, "y": 891, "angle": 100, "longueur": 88 },
+    { "id": "jambe_d", "parent": "bassin", "x": 619, "y": 891, "angle": 80, "longueur": 88 },
+    { "id": "queue", "parent": "bassin", "x": 719, "y": 833, "angle": -30, "longueur": 137 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,38 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "cat-menkoun",
+  "nom": "Cat Menkoun",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Cat/Cat Menkoun.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 473, "y": 1693, "angle": 0, "longueur": 1015 },
+    { "id": "bassin", "parent": "sol", "x": 981, "y": 1572, "angle": -90, "longueur": 122 },
+    { "id": "dos", "parent": "bassin", "x": 981, "y": 1450, "angle": -90, "longueur": 243 },
+    { "id": "cou", "parent": "dos", "x": 981, "y": 1207, "angle": -90, "longueur": 182 },
+    { "id": "tete", "parent": "cou", "x": 981, "y": 933, "angle": -90, "longueur": 456 },
+    { "id": "oreille_g", "parent": "tete", "x": 790, "y": 538, "angle": -120, "longueur": 228 },
+    { "id": "oreille_d", "parent": "tete", "x": 1171, "y": 538, "angle": -60, "longueur": 228 },
+    { "id": "patte_av_g", "parent": "dos", "x": 828, "y": 1298, "angle": 100, "longueur": 304 },
+    { "id": "patte_av_d", "parent": "dos", "x": 1133, "y": 1298, "angle": 80, "longueur": 304 },
+    { "id": "patte_ar_g", "parent": "bassin", "x": 727, "y": 1572, "angle": 100, "longueur": 122 },
+    { "id": "patte_ar_d", "parent": "bassin", "x": 1234, "y": 1572, "angle": 80, "longueur": 122 },
+    { "id": "queue", "parent": "bassin", "x": 1361, "y": 1480, "angle": -20, "longueur": 213 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}

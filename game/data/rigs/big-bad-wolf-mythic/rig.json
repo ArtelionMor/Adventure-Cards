@@ -1,0 +1,38 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "big-bad-wolf-mythic",
+  "nom": "Big Bad Wolf Mythic",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Big Bad Wolf/Big Bad Wolf Mythic.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 410, "y": 1690, "angle": 0, "longueur": 1159 },
+    { "id": "bassin", "parent": "sol", "x": 990, "y": 1570, "angle": -90, "longueur": 120 },
+    { "id": "dos", "parent": "bassin", "x": 990, "y": 1450, "angle": -90, "longueur": 240 },
+    { "id": "cou", "parent": "dos", "x": 990, "y": 1209, "angle": -90, "longueur": 180 },
+    { "id": "tete", "parent": "cou", "x": 990, "y": 939, "angle": -90, "longueur": 451 },
+    { "id": "oreille_g", "parent": "tete", "x": 772, "y": 548, "angle": -120, "longueur": 225 },
+    { "id": "oreille_d", "parent": "tete", "x": 1207, "y": 548, "angle": -60, "longueur": 225 },
+    { "id": "patte_av_g", "parent": "dos", "x": 816, "y": 1299, "angle": 100, "longueur": 300 },
+    { "id": "patte_av_d", "parent": "dos", "x": 1163, "y": 1299, "angle": 80, "longueur": 300 },
+    { "id": "patte_ar_g", "parent": "bassin", "x": 700, "y": 1570, "angle": 100, "longueur": 120 },
+    { "id": "patte_ar_d", "parent": "bassin", "x": 1279, "y": 1570, "angle": 80, "longueur": 120 },
+    { "id": "queue", "parent": "bassin", "x": 1424, "y": 1480, "angle": -20, "longueur": 210 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}

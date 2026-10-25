@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "crow-three-eyes",
+  "nom": "Crow Three Eyes",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Crow/Crow Three Eyes.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 434, "y": 1687, "angle": 0, "longueur": 1130 },
+    { "id": "bassin", "parent": "sol", "x": 999, "y": 1584, "angle": -90, "longueur": 103 },
+    { "id": "torse", "parent": "bassin", "x": 999, "y": 1481, "angle": -90, "longueur": 257 },
+    { "id": "tete", "parent": "torse", "x": 999, "y": 1097, "angle": -90, "longueur": 385 },
+    { "id": "oreille_g", "parent": "tete", "x": 787, "y": 712, "angle": -120, "longueur": 192 },
+    { "id": "oreille_d", "parent": "tete", "x": 1211, "y": 712, "angle": -60, "longueur": 192 },
+    { "id": "bras_g", "parent": "torse", "x": 787, "y": 1327, "angle": 160, "longueur": 180 },
+    { "id": "bras_d", "parent": "torse", "x": 1211, "y": 1327, "angle": 20, "longueur": 180 },
+    { "id": "jambe_g", "parent": "bassin", "x": 858, "y": 1584, "angle": 100, "longueur": 115 },
+    { "id": "jambe_d", "parent": "bassin", "x": 1140, "y": 1584, "angle": 80, "longueur": 115 },
+    { "id": "queue", "parent": "bassin", "x": 1281, "y": 1507, "angle": -30, "longueur": 180 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}

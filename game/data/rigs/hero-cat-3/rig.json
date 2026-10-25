@@ -1,0 +1,38 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "hero-cat-3",
+  "nom": "Hero Cat 3",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Characters/Cat/Hero Cat 3.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 158, "y": 906, "angle": 0, "longueur": 714 },
+    { "id": "bassin", "parent": "sol", "x": 516, "y": 835, "angle": -90, "longueur": 72 },
+    { "id": "dos", "parent": "bassin", "x": 516, "y": 763, "angle": -90, "longueur": 143 },
+    { "id": "cou", "parent": "dos", "x": 516, "y": 620, "angle": -90, "longueur": 107 },
+    { "id": "tete", "parent": "cou", "x": 516, "y": 459, "angle": -90, "longueur": 268 },
+    { "id": "oreille_g", "parent": "tete", "x": 382, "y": 227, "angle": -120, "longueur": 134 },
+    { "id": "oreille_d", "parent": "tete", "x": 649, "y": 227, "angle": -60, "longueur": 134 },
+    { "id": "patte_av_g", "parent": "dos", "x": 408, "y": 674, "angle": 100, "longueur": 179 },
+    { "id": "patte_av_d", "parent": "dos", "x": 623, "y": 674, "angle": 80, "longueur": 179 },
+    { "id": "patte_ar_g", "parent": "bassin", "x": 337, "y": 835, "angle": 100, "longueur": 72 },
+    { "id": "patte_ar_d", "parent": "bassin", "x": 694, "y": 835, "angle": 80, "longueur": 72 },
+    { "id": "queue", "parent": "bassin", "x": 783, "y": 781, "angle": -20, "longueur": 125 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

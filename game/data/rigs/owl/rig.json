@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "owl",
+  "nom": "Owl",
+  "source": {
+    "image": "source.png",
+    "largeur": 2000,
+    "hauteur": 2000,
+    "origine": "Graphical Assets/Characters/Owl/Owl.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 529, "y": 1573, "angle": 0, "longueur": 894 },
+    { "id": "bassin", "parent": "sol", "x": 976, "y": 1476, "angle": -90, "longueur": 97 },
+    { "id": "torse", "parent": "bassin", "x": 976, "y": 1379, "angle": -90, "longueur": 242 },
+    { "id": "tete", "parent": "torse", "x": 976, "y": 1015, "angle": -90, "longueur": 364 },
+    { "id": "oreille_g", "parent": "tete", "x": 808, "y": 651, "angle": -120, "longueur": 182 },
+    { "id": "oreille_d", "parent": "tete", "x": 1144, "y": 651, "angle": -60, "longueur": 182 },
+    { "id": "bras_g", "parent": "torse", "x": 808, "y": 1233, "angle": 160, "longueur": 170 },
+    { "id": "bras_d", "parent": "torse", "x": 1144, "y": 1233, "angle": 20, "longueur": 170 },
+    { "id": "jambe_g", "parent": "bassin", "x": 864, "y": 1476, "angle": 100, "longueur": 109 },
+    { "id": "jambe_d", "parent": "bassin", "x": 1088, "y": 1476, "angle": 80, "longueur": 109 },
+    { "id": "queue", "parent": "bassin", "x": 1200, "y": 1403, "angle": -30, "longueur": 170 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 2000,
+      "hauteur": 2000
+    }
+  ],
+  "ik": []
+}
