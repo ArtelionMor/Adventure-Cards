@@ -3,7 +3,7 @@
 // Les valeurs de l'onglet « animations » remplacent celles de BALANCE.ui.fx, celles de « heroes » les statistiques
 // des heros et des adversaires (game/src/config/feuille.js).
 export const FEUILLE = {
-  "synchro": "2026-10-25T21:30:04.950Z",
+  "synchro": "2026-10-25T22:30:04.208Z",
   "feuille": "1B01tuggXdbvqO3_7wh2YserIoDVnarMXCPXPaYbSGCY",
   "heroes_kin": [
     {
@@ -357,7 +357,7 @@ export const FEUILLE = {
       "id": "sloth1",
       "heroes_kin": "sloth",
       "name": "Paresseux Bâtisseur",
-      "sprite": "Sloth",
+      "sprite": "Opponent Sloth",
       "is_hero": false,
       "deck_category": "control"
     },
@@ -365,7 +365,7 @@ export const FEUILLE = {
       "id": "robin1",
       "heroes_kin": "bird",
       "name": "Rouge-Gorge Fou",
-      "sprite": "Robin",
+      "sprite": "Opponent Robin",
       "is_hero": false,
       "deck_category": "aggro"
     },
@@ -381,7 +381,7 @@ export const FEUILLE = {
       "id": "goat1",
       "heroes_kin": "goat",
       "name": "Chèvre Têtue",
-      "sprite": "Goat",
+      "sprite": "Opponent Goat",
       "is_hero": false,
       "deck_category": "control"
     },
