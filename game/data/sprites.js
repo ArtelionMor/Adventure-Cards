@@ -71,11 +71,14 @@ export const SPRITES = {
     "Opponents/Opponent Captain Octopus.png",
     "Opponents/Opponent Cat.png",
     "Opponents/Opponent Demonic Frog.png",
+    "Opponents/Opponent Goat.png",
     "Opponents/Opponent Great Duke.png",
     "Opponents/Opponent Kitsune.png",
     "Opponents/Opponent Mouse.png",
     "Opponents/Opponent Octobot.png",
     "Opponents/Opponent Raven.png",
+    "Opponents/Opponent Robin.png",
+    "Opponents/Opponent Sloth.png",
     "Opponents/Opponent Snow Fox.png",
     "Opponents/Opponent Veniomus Frog.png",
     "Owl/Hero Owl 1.png",
@@ -101,6 +104,7 @@ export const SPRITES = {
     "Sloth/Sloth.png"
   ],
   "Graphical Assets/Cards": [
+    "Commander Rouge-Gorge.png",
     "Heroes Deck/Cameleon Decks/Cameleon Deck 1/Cameleon.png",
     "Heroes Deck/Cameleon Decks/Cameleon Deck 1/Coup de Langue.png",
     "Heroes Deck/Cameleon Decks/Cameleon Deck 1/Découverte.png",
@@ -398,7 +402,10 @@ export const SPRITES = {
     "Opponents/Opponent Venimous Frog/Grenouille Quartier-Maître.png",
     "Opponents/Opponent Venimous Frog/Lapin Colosse.png",
     "Opponents/Opponent Venimous Frog/Princesse Venimeuse.png",
-    "Opponents/Opponent Venimous Frog/Têtard Démoniaque.png"
+    "Opponents/Opponent Venimous Frog/Têtard Démoniaque.png",
+    "Pilote Rouge-Gorge.png",
+    "Rabbit Token 2.png",
+    "Reparateur Rouge-Gorge.png"
   ],
   "Graphical Assets/Buildings": [
     "Bottle Maker.png",
