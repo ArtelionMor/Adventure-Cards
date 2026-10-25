@@ -432,12 +432,12 @@ const option = (value, label, current) =>
 const asset = p => '../' + p.split('/').map(encodeURIComponent).join('/');
 const slug = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
-function toast(msg) {
+function toast(msg, ms = 2400) {
   const t = $('#toast');
   t.textContent = msg;
   t.classList.add('toast--on');
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => t.classList.remove('toast--on'), 2400);
+  toast._t = setTimeout(() => t.classList.remove('toast--on'), ms);
 }
 function setStatus(t) { $('#saveStatus').textContent = t; }
 
@@ -987,11 +987,17 @@ function pickSprite(done, actuel = null) {
       barre.hidden = false;
       // pendant que le POST tourne, on demande au serveur ou il en est (le serveur de repli de
       // l'exe, sans Node, ne sait pas le dire : la barre reste alors en va-et-vient)
+      // Sur le Pi, le serveur va d'abord chercher les images du PC (« pc-… », puis « tirer ») : cf. scripts/lib/publie-images.mjs
+      const ETAPES = {
+        'pc-maj': 'Le PC se met à jour…', 'pc-dossiers': 'Le PC relit ses dossiers…', 'pc-commit': 'Le PC range ses images dans un commit…',
+        'pc-envoi': 'Le PC envoie ses images sur GitHub…', tirer: 'Le Pi récupère les images…'
+      };
       const montre = e => {
-        const vignettes = e && e.phase === 'vignettes' && e.total > 0;
+        const vignettes = e && /^(pc-)?vignettes$/.test(e.phase) && e.total > 0;
         barre.classList.toggle('maj-barre--attente', !vignettes);
         plein.style.width = vignettes ? Math.round(e.fait / e.total * 100) + '%' : '';
-        texte.textContent = vignettes ? `Vignettes : ${e.fait} / ${e.total}` : 'Lecture des dossiers…';
+        texte.textContent = vignettes ? `Vignettes${e.phase === 'pc-vignettes' ? ' (PC)' : ''} : ${e.fait} / ${e.total}`
+          : (e && ETAPES[e.phase]) || 'Lecture des dossiers…';
       };
       montre(null);
       const suivi = setInterval(async () => {
@@ -1000,10 +1006,13 @@ function pickSprite(done, actuel = null) {
       try {
         const neuves = await relitLesSprites();
         clearInterval(suivi);
+        // ce qu'a donne le passage par le PC (rien sur le PC lui-meme ; « PC injoignable… » si le PC dort)
+        let duPC = '';
+        try { const r = await fetch('/api/sprites/etat', { cache: 'no-store' }); if (r.ok) duPC = (await r.json()).message || ''; } catch { /* sans importance */ }
         draw();   // redessine avec la liste fraiche, sans fermer la fenetre
-        toast(neuves > 0 ? neuves + ' nouvelle(s) image(s) — game/data/sprites.js est à jour.'
+        toast((neuves > 0 ? neuves + ' nouvelle(s) image(s) — game/data/sprites.js est à jour.'
           : neuves < 0 ? (-neuves) + ' image(s) en moins — game/data/sprites.js est à jour.'
-            : 'Liste déjà à jour : aucune image ajoutée.');
+            : 'Liste déjà à jour : aucune image ajoutée.') + (duPC ? ' · ' + duPC : ''), duPC ? 8000 : 2400);
       } catch (e) {
         clearInterval(suivi);
         barre.hidden = true; delete maj.dataset.enCours;

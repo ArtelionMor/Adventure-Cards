@@ -95,7 +95,7 @@ export function empreinte() {
  */
 export function empreinteDuRenfort() {
   return hache(['scripts/renfort.mjs', 'scripts/lib/renforts.mjs', 'scripts/lib/pool.mjs',
-    'scripts/lib/renfort-lot.mjs', 'scripts/lib/ouvrier.mjs']);
+    'scripts/lib/renfort-lot.mjs', 'scripts/lib/ouvrier.mjs', 'scripts/lib/publie-images.mjs', 'scripts/gen-sprites.mjs']);
 }
 
 /** Le condense d'une liste de fichiers, fins de ligne ramenees a \n (Windows et le Pi). */

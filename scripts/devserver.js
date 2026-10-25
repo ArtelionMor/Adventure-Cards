@@ -51,12 +51,22 @@ const RIG_MAX = 40 * 1024 * 1024;
 // L'ACTUALISATION TOURNE EN FOND (genereSpritesEnFond) : la version synchrone figeait tout le serveur pendant
 // les vignettes, et rien ne pouvait dire ou elle en etait. `majSprites` garde l'etat que lit la barre de
 // chargement du Card Builder (GET /api/sprites/etat) ; deux clics en meme temps partagent la meme actualisation.
+// AVANT de relire, les images du PC (scripts/lib/publie-images.mjs) : sur le Pi, ~/.adventure-card/images.json
+// designe le renfort du PC, qui publie ses images (commit + push) ; le Pi tire, puis relit. Sans ce reglage (le PC
+// lui-meme), rien ne change. Ce que ca a donne (« PC : 2 ajoutees… », « PC injoignable… ») reste dans
+// `majSprites.message`, que le Card Builder affiche apres coup.
 let majSprites = { phase: 'repos', fait: 0, total: 0 }, majEnCours = null;
 const genereSprites = () => {
   if (majEnCours) return majEnCours;
   majSprites = { phase: 'dossiers', fait: 0, total: 0, debut: Date.now() };
-  majEnCours = import('./gen-sprites.mjs')
-    .then(m => m.genereSpritesEnFond(p => { majSprites = { ...majSprites, ...p }; }))
+  const progres = p => { majSprites = { ...majSprites, ...p }; };
+  majEnCours = import('./lib/publie-images.mjs')
+    .then(pc => pc.recupereImages(progres))
+    .then(async ({ tire, message }) => {
+      majSprites.message = message;
+      const m = await import('./gen-sprites.mjs');
+      return m.genereSpritesEnFond(progres, { vignettes: !tire });
+    })
     .catch(e => { majSprites = { ...majSprites, phase: 'erreur', message: String(e && e.message || e) }; throw e; })
     .finally(() => { majEnCours = null; });
   return majEnCours;

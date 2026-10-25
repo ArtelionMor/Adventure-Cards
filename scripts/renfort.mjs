@@ -10,10 +10,13 @@
 // exactement comme un calcul lance par le serveur mesure un brouillon. Les resultats
 // repartent au fil de l'eau, une ligne JSON par tache, et un signe de vie toutes les 10 s.
 //
+// Il PUBLIE aussi les images de sa machine quand l'Atelier du Pi les actualise
+// (POST /images/publie, scripts/lib/publie-images.mjs) : commit des seules images, et push.
+//
 // ⚠ Il ecoute sur toutes les interfaces : une regle de pare-feu doit le limiter a
 // Tailscale (100.64.0.0/10), comme Ollama. Il n'execute jamais de code recu — modules en
 // liste blanche, donnees en JSON qu'il reecrit lui-meme — mais qui le joint peut occuper
-// ses coeurs.
+// ses coeurs, et faire pousser les images de ce PC.
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -23,6 +26,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PORT as PORT_DEFAUT, moduleConnu, empreinte, empreinteDuRenfort, moduleDeDonnees } from './lib/renforts.mjs';
 import { nombreDeJobs } from './lib/pool.mjs';
+import { publieImages } from './lib/publie-images.mjs';
 
 const PORT = Number(process.env.ADVENTURE_RENFORT_PORT) || PORT_DEFAUT;
 const JOBS = nombreDeJobs();
@@ -117,8 +121,25 @@ const serveur = http.createServer((req, res) => {
     lot(req, res).catch(e => { try { json(res, 500, { erreur: e.message }); } catch { /* reponse deja partie */ } });
     return;
   }
+  if (req.method === 'POST' && chemin === '/images/publie') { publie(req, res); return; }
   json(res, 404, { erreur: 'inconnu' });
 });
+
+// « ACTUALISER LES IMAGES » DANS L'ATELIER DU PI : le Pi demande a cette machine, celle ou le game designer
+// depose ses images, de les publier (liste, vignettes, commit des seules images, push), puis il tire.
+// Une ligne JSON par etape, puis { fin } ou { erreur }, comme /lot. Rien a lire dans la requete, sauf
+// `?essai=1` (tout sauf le commit et l'envoi). Une seule publication a la fois.
+let publication = null;
+function publie(req, res) {
+  if (publication) { json(res, 409, { erreur: 'une publication des images est déjà en cours sur le PC' }); return; }
+  const essai = /[?&]essai=1\b/.test(req.url);
+  res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store' });
+  const ligne = d => { if (!res.writableEnded) res.write(JSON.stringify(d) + '\n'); };
+  publication = publieImages(ligne, { essai })
+    .then(r => { ligne({ fin: true, ...r }); console.log(`${heure()} · images : ${r.message}`); })
+    .catch(e => { ligne({ erreur: e.message }); console.log(`${heure()} · images — ÉCHEC : ${e.message}`); })
+    .finally(() => { publication = null; res.end(); });
+}
 
 serveur.listen(PORT, () => {
   console.log(`Renfort de ${hostname()} : ${JOBS} coeurs, port ${PORT}, code ${empreinte()}.`);

@@ -26,6 +26,7 @@
 | `chrome.mjs` | Piloter le Chrome/Edge/Chromium installé **sans écran et sans dépendance** (protocole DevTools, WebSocket natif de Node ≥ 22, profil jetable, WebGL par SwiftShader) : `lanceChrome()`, `page(url)`, `evalue(expr)`. `ADVENTURE_CHROME` pour un autre exécutable. |
 | `statique.mjs` | Un serveur de fichiers en lecture seule sur un port libre de la boucle locale, le temps d'un rendu (sans cache). |
 | `png.mjs` | Lire un PNG sous Node (8 bits, RGBA/RGB/gris/palette) et en écrire (RGBA : `encodePng`, `ecrisPng`) : les outils du rig touchent des pixels. |
+| `publie-images.mjs` | **Les images du PC jusqu'au Pi** (« Actualiser les images » dans l'Atelier du Pi) : `publieImages()` côté PC (appelé par le renfort), `recupereImages()` côté Pi (appelé par `/api/sprites`). Voir « Les images du PC » plus bas. |
 | `rig-fichiers.mjs` | Écrire un JSON du rig avec la mise en forme de l'Atelier (`builder/rig/json.js`), en gardant ses fins de ligne. |
 
 ## Données de génération
@@ -171,6 +172,30 @@ fixe fait seul une matrice trois fois plus vite que le Pi (31 s contre 99 s).
   `analyse-cartes` et `check-decks`. Les bancs, eux, ne jouent pas de séries — ce sont des
   tests, ils restent sur place. `--jobs 1` rejoue sans worker ni renfort.
 
+
+## Les images du PC : « Actualiser les images » depuis l'Atelier du Pi
+Le game designer dépose ses images **sur le PC**, mais l'Atelier qu'il ouvre est **celui du Pi** : le bouton ne
+relisait que les dossiers du Pi, et une image neuve n'y apparaissait jamais (25 oct. 2026). Git sert de transport :
+
+1. le serveur du Pi (`/api/sprites`) appelle `POST /images/publie` du **renfort du PC** — l'adresse est dans
+   `~/.adventure-card/images.json` (`{ "pc": "http://monpc:7331" }`, hors du dépôt) ; sans ce fichier, rien ne
+   change (c'est le cas du PC lui-même) ;
+2. le PC (`publieImages`) : refuse s'il a des commits pas poussés (ils partiraient avec) ou une fusion en cours,
+   se met à jour (`fetch` + avance rapide), refait la liste et les vignettes (`gen-sprites.mjs`), puis commite
+   **seulement** les images de `Graphical Assets/{Characters,Cards,Buildings,Ressources,Old UI,Icons,CardBack}`,
+   les packs `Decor/`, `game/data/{sprites,vignettes}.js` et `game/vignettes/` (`git commit --pathspec-from-file` :
+   le reste de l'index n'est pas pris ; une archive `.rar` posée à côté non plus), et pousse ;
+3. le Pi tire (`git pull --ff-only` : ses cartes en attente ne gênent pas, le commit ne les touche pas), puis
+   relit ses dossiers **sans refaire les vignettes** (elles arrivent du PC ; refaites ici, un autre Pillow
+   donnerait d'autres octets, et le prochain tirage serait bloqué).
+
+Chaque étape s'affiche dans la barre du Card Builder (« Le PC range ses images… », « Vignettes (PC) : 12 / 283 »,
+« Le Pi récupère les images… »), et le bilan dans le message de fin (`majSprites.message`). **Rien ne bloque le
+bouton** : PC éteint (« PC injoignable »), commits pas poussés, tirage refusé — il le dit, puis relit les
+dossiers du Pi comme avant. ⚠ Le renfort doit tourner sur le PC **et être relancé** après un changement de
+`publie-images.mjs` ou `gen-sprites.mjs` (ils sont dans `empreinteDuRenfort()`) ; un vieux renfort répond 404,
+et le message le dit. ⚠ Qui joint le port 7331 peut donc faire pousser les images du PC : le pare-feu le limite
+au tailnet.
 
 ## Les notifications (un calcul avance, un calcul est fini)
 Le serveur du Pi prévient le téléphone, **Atelier ouvert ou non** : « lancé », puis un

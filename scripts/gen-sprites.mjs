@@ -58,10 +58,12 @@ export function genereSprites() {
  * serveur pendant les vignettes (7 minutes pour 121 cartes, avant le reglage method=4 de gen-vignettes.py) :
  * aucune autre page ne repondait, et le bouton n'avait aucun moyen de dire ou il en etait.
  */
-export async function genereSpritesEnFond(progres = () => {}) {
+export async function genereSpritesEnFond(progres = () => {}, { vignettes = true } = {}) {
   progres({ phase: 'dossiers', fait: 0, total: 0 });
   const out = ecritLaListe();
-  await vignettesEnFond(progres);
+  // `vignettes: false` : elles viennent d'arriver toutes faites du PC (scripts/lib/publie-images.mjs) ; les refaire
+  // ici donnerait d'autres octets (autre Pillow), donc des fichiers modifies sur le Pi qui bloqueraient le prochain tirage.
+  if (vignettes) await vignettesEnFond(progres);
   progres({ phase: 'fini', fait: 1, total: 1 });
   return out;
 }
