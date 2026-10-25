@@ -12,25 +12,73 @@
   "os": [
     { "id": "sol", "parent": null, "x": 126, "y": 959, "angle": 0, "longueur": 789 },
     { "id": "bassin", "parent": "sol", "x": 520, "y": 882, "angle": -90, "longueur": 77 },
-    { "id": "torse", "parent": "bassin", "x": 520, "y": 805, "angle": -90, "longueur": 192 },
-    { "id": "tete", "parent": "torse", "x": 520, "y": 516, "angle": -90, "longueur": 289 },
-    { "id": "oreille_g", "parent": "tete", "x": 372, "y": 227, "angle": -120, "longueur": 144 },
-    { "id": "oreille_d", "parent": "tete", "x": 668, "y": 227, "angle": -60, "longueur": 144 },
-    { "id": "bras_g", "parent": "torse", "x": 372, "y": 689, "angle": 160, "longueur": 135 },
-    { "id": "bras_d", "parent": "torse", "x": 668, "y": 689, "angle": 20, "longueur": 135 },
+    { "id": "torse", "parent": "bassin", "x": 521, "y": 805, "angle": -90, "longueur": 192 },
+    { "id": "tete", "parent": "torse", "x": 520, "y": 515, "angle": -90, "longueur": 289 },
+    { "id": "oreille_g", "parent": "tete", "x": 372, "y": 226, "angle": -120, "longueur": 144 },
+    { "id": "oreille_d", "parent": "tete", "x": 561, "y": 267, "angle": -56.4, "longueur": 193 },
+    { "id": "bras_g", "parent": "torse", "x": 504, "y": 489, "angle": 100.3, "longueur": 145 },
+    { "id": "bras_d", "parent": "torse", "x": 669, "y": 689, "angle": 20, "longueur": 135 },
     { "id": "jambe_g", "parent": "bassin", "x": 421, "y": 882, "angle": 100, "longueur": 87 },
     { "id": "jambe_d", "parent": "bassin", "x": 619, "y": 882, "angle": 80, "longueur": 87 },
-    { "id": "queue", "parent": "bassin", "x": 717, "y": 824, "angle": -30, "longueur": 135 }
+    { "id": "queue", "parent": "bassin", "x": 717, "y": 824, "angle": -30, "longueur": 135 },
+    { "id": "bras_g_1", "parent": "bras_g", "x": 463, "y": 633, "angle": -139.2, "longueur": 149 },
+    { "id": "bras_g_1_1", "parent": "bras_g_1", "x": 338, "y": 549, "angle": 149.5, "longueur": 154 },
+    {
+      "id": "bras_g_1_1_1",
+      "parent": "bras_g_1_1",
+      "x": 177,
+      "y": 629,
+      "angle": -126.7,
+      "longueur": 131
+    },
+    {
+      "id": "bras_g_1_1_1_1",
+      "parent": "bras_g_1_1_1",
+      "x": 115,
+      "y": 495,
+      "angle": -42.8,
+      "longueur": 103
+    },
+    {
+      "id": "torse_1_1_1_1_1",
+      "parent": "torse_1_1_1_1",
+      "x": 188,
+      "y": 860,
+      "angle": -153.4,
+      "longueur": 137
+    },
+    {
+      "id": "torse_1_1_1_1_2",
+      "parent": "torse_1_1_1_1",
+      "x": 194,
+      "y": 862,
+      "angle": -169,
+      "longueur": 68
+    },
+    { "id": "torse_1", "parent": "torse", "x": 188, "y": 858, "angle": -158.4, "longueur": 109 },
+    { "id": "torse_2", "parent": "torse", "x": 190, "y": 856, "angle": -152.9, "longueur": 75 },
+    { "id": "torse_3", "parent": "torse", "x": 199, "y": 860, "angle": -139.1, "longueur": 203 },
+    { "id": "torse_4", "parent": "torse", "x": 616, "y": 474, "angle": 70.2, "longueur": 190 },
+    { "id": "torse_5", "parent": "torse", "x": 684, "y": 614, "angle": -77.6, "longueur": 186 },
+    { "id": "torse_6", "parent": "torse", "x": 714, "y": 448, "angle": 127.8, "longueur": 194 },
+    { "id": "torse_7", "parent": "torse", "x": 591, "y": 606, "angle": -5.8, "longueur": 281 },
+    { "id": "bassin_1", "parent": "bassin", "x": 665, "y": 381, "angle": 84.7, "longueur": 219 },
+    { "id": "bassin_2", "parent": "bassin", "x": 685, "y": 612, "angle": -93.2, "longueur": 203 },
+    { "id": "bras_g_2", "parent": "bras_g", "x": 582, "y": 462, "angle": 31.3, "longueur": 66 },
+    { "id": "tete_1", "parent": "tete", "x": 540, "y": 223, "angle": -47.7, "longueur": 196 },
+    { "id": "tete_2", "parent": "tete", "x": 529, "y": 186, "angle": -117, "longueur": 97 },
+    { "id": "tete_3", "parent": "tete", "x": 479, "y": 219, "angle": -172.2, "longueur": 54 },
+    { "id": "tete_4", "parent": "tete", "x": 468, "y": 276, "angle": 100.9, "longueur": 185 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 27,
+      "y": 35,
+      "largeur": 986,
+      "hauteur": 962
     }
   ],
   "ik": []
