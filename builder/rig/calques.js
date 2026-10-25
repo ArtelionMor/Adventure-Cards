@@ -375,8 +375,11 @@ export function pourEnregistrer(rig, images, masques, seulement = null) {
     const b = boiteAlpha(im, 0) || [0, 0, 1, 1];
     [c.x, c.y, c.largeur, c.hauteur] = b;
     if (c.image === (rig.source.image || 'source.png') && b[0] === 0 && b[1] === 0 && b[2] === rig.source.largeur && b[3] === rig.source.hauteur) continue;
-    if (c.image === (rig.source.image || 'source.png')) c.image = `calques/${c.id}.png`;
-    if (!seulement || seulement.includes(c.id)) fichiers.push({ chemin: c.image, image: recadre(im, b) });
+    // un calque qui quitte la source reçoit son PNG recadré MAINTENANT, modifié ou non : sinon le JSON
+    // pointerait vers un fichier qui n'existe pas (le sprite disparaissait de l'Atelier)
+    const nouveau = c.image === (rig.source.image || 'source.png');
+    if (nouveau) c.image = `calques/${c.id}.png`;
+    if (nouveau || !seulement || seulement.includes(c.id)) fichiers.push({ chemin: c.image, image: recadre(im, b) });
     for (const z of c.zones || []) {
       const m = masques[`${c.id}/${z.id}`];
       if (m && (!seulement || seulement.includes(c.id))) fichiers.push({ chemin: z.masque, image: masqueEnImage(m, rig.source.largeur, rig.source.hauteur, [z.x, z.y, z.largeur, z.hauteur]) });
