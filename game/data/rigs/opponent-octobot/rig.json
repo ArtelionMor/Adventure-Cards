@@ -39,22 +39,6 @@
       "angle": -42.8,
       "longueur": 103
     },
-    {
-      "id": "torse_1_1_1_1_1",
-      "parent": "torse_1_1_1_1",
-      "x": 188,
-      "y": 860,
-      "angle": -153.4,
-      "longueur": 137
-    },
-    {
-      "id": "torse_1_1_1_1_2",
-      "parent": "torse_1_1_1_1",
-      "x": 194,
-      "y": 862,
-      "angle": -169,
-      "longueur": 68
-    },
     { "id": "torse_1", "parent": "torse", "x": 188, "y": 858, "angle": -158.4, "longueur": 109 },
     { "id": "torse_2", "parent": "torse", "x": 190, "y": 856, "angle": -152.9, "longueur": 75 },
     { "id": "torse_3", "parent": "torse", "x": 199, "y": 860, "angle": -139.1, "longueur": 203 },
