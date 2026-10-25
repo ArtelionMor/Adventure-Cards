@@ -3334,6 +3334,222 @@ export const CHARACTER_DATA = {
       ],
       "ia": "dur",
       "boss": true
+    },
+    {
+      "id": "sloth1",
+      "name": "Paresseux Bâtisseur",
+      "sprite": "Graphical Assets/Characters/Sloth/Sloth.png",
+      "hp": 34,
+      "mana": 7,
+      "hand": 4,
+      "level": 1,
+      "deck": [
+        {
+          "card": "wall1",
+          "n": 3
+        },
+        {
+          "card": "wall2",
+          "n": 2
+        },
+        {
+          "card": "potion",
+          "n": 2
+        },
+        {
+          "card": "card_njt2j1",
+          "n": 2
+        },
+        {
+          "card": "adv_paresseux_hamac",
+          "n": 2
+        },
+        {
+          "card": "adv_paresseux_sieste",
+          "n": 2
+        },
+        {
+          "card": "adv_paresseux_coussin",
+          "n": 2
+        }
+      ],
+      "ia": "normal"
+    },
+    {
+      "id": "robin1",
+      "name": "Rouge-Gorge Fou",
+      "sprite": "Graphical Assets/Characters/Birds/Robin.png",
+      "hp": 24,
+      "mana": 6,
+      "hand": 4,
+      "level": 1,
+      "deck": [
+        {
+          "card": "rush1",
+          "n": 3
+        },
+        {
+          "card": "card_9g5803",
+          "n": 2
+        },
+        {
+          "card": "bolt",
+          "n": 2
+        },
+        {
+          "card": "crow2_dive",
+          "n": 2
+        },
+        {
+          "card": "adv_rougegorge_pique",
+          "n": 2
+        },
+        {
+          "card": "adv_rougegorge_chant",
+          "n": 2
+        },
+        {
+          "card": "adv_rougegorge_kamikaze",
+          "n": 2
+        }
+      ],
+      "ia": "normal"
+    },
+    {
+      "id": "panda1",
+      "name": "Kitsune Farceur",
+      "sprite": "Graphical Assets/Characters/Red Panda/Red Panda Kitsune.png",
+      "hp": 30,
+      "mana": 7,
+      "hand": 4,
+      "level": 1,
+      "deck": [
+        {
+          "card": "cam2_prism",
+          "n": 2
+        },
+        {
+          "card": "cam2_mirror",
+          "n": 2
+        },
+        {
+          "card": "cam2_choir",
+          "n": 2
+        },
+        {
+          "card": "fox_raid",
+          "n": 2
+        },
+        {
+          "card": "bolt",
+          "n": 1
+        },
+        {
+          "card": "adv_kitsune_illusion",
+          "n": 2
+        },
+        {
+          "card": "adv_kitsune_metamorphe",
+          "n": 2
+        },
+        {
+          "card": "adv_kitsune_queues",
+          "n": 2
+        }
+      ],
+      "ia": "normal"
+    },
+    {
+      "id": "goat1",
+      "name": "Chèvre Têtue",
+      "sprite": "Graphical Assets/Characters/Goat/Goat.png",
+      "hp": 40,
+      "mana": 7,
+      "hand": 4,
+      "level": 1,
+      "deck": [
+        {
+          "card": "owl2_nest",
+          "n": 2
+        },
+        {
+          "card": "owl2_lull",
+          "n": 2
+        },
+        {
+          "card": "wall1",
+          "n": 1
+        },
+        {
+          "card": "potion",
+          "n": 1
+        },
+        {
+          "card": "adv_chevre_rumination",
+          "n": 2
+        },
+        {
+          "card": "adv_chevre_bouquetin",
+          "n": 2
+        },
+        {
+          "card": "adv_chevre_vieille",
+          "n": 1
+        },
+        {
+          "card": "adv_chevre_mangetout",
+          "n": 1
+        }
+      ],
+      "ia": "normal"
+    },
+    {
+      "id": "octo2",
+      "name": "Pieuvre Robot",
+      "sprite": "Graphical Assets/Characters/Octopus/Octopus Robot.png",
+      "hp": 30,
+      "mana": 7,
+      "hand": 4,
+      "level": 1,
+      "deck": [
+        {
+          "card": "card_winkd1",
+          "n": 1
+        },
+        {
+          "card": "grunt3",
+          "n": 2
+        },
+        {
+          "card": "crow3_vulture",
+          "n": 2
+        },
+        {
+          "card": "crow3_knacker",
+          "n": 2
+        },
+        {
+          "card": "smash",
+          "n": 1
+        },
+        {
+          "card": "bolt",
+          "n": 2
+        },
+        {
+          "card": "adv_robot_tentacule",
+          "n": 2
+        },
+        {
+          "card": "adv_robot_recycleuse",
+          "n": 1
+        },
+        {
+          "card": "adv_robot_usine",
+          "n": 1
+        }
+      ],
+      "ia": "normal"
     }
   ],
   "characters": [

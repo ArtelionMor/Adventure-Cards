@@ -115,7 +115,7 @@ appliqueRencontres(WORLD.nodes, FEUILLE.encounters);
 // ---------------------------------------------------------------------------
 // RENCONTRES. Le MONDE dit ou elles sont et ce qu'elles rapportent ; le DECK et les
 // statistiques de l'adversaire, eux, sont editables dans le Card Builder (onglet
-// « Adversaires ») — voir config/npcs.js — ou provisoires (config/ennemis.js).
+// « Adversaires ») — voir config/npcs.js et config/ennemis.js.
 // Une rencontre porte donc juste ses recompenses ; tout le reste vient de l'ennemi de
 // meme identifiant, AU NIVEAU 1 (le niveau d'une arene monte avec ses victoires :
 // `coteEnnemi(id, niveau)`). Un ennemi absent laisse une rencontre vide plutot que de
@@ -130,7 +130,7 @@ const RECOMPENSES = {
   frogboss: { A: 25, B: 40, xp: 90 },
   fox1: { A: 12, B: 20, xp: 34 },
   owlboss: { A: 35, B: 55, xp: 130 },
-  // Les ennemis provisoires (config/ennemis.js). PROVISOIRE.
+  // Les cinq ennemis ajoutes le 16 octobre. PROVISOIRE.
   sloth1: { A: 6, B: 12, xp: 22 },
   robin1: { A: 5, B: 10, xp: 20 },
   panda1: { A: 8, B: 15, xp: 26 },

@@ -2,8 +2,9 @@
 
 > 16 octobre 2026. **44 cartes libres** (`CHARACTER_DATA.library`, ids `adv_…`) pour les decks des 14 adversaires
 > des arènes. Source : `scripts/lib/cartes-adversaires.mjs`, posées par `scripts/gen-heros-v3.mjs` (qui réécrit
-> aussi les decks des 9 adversaires du builder) ; les decks des 5 adversaires provisoires sont dans
-> `game/src/config/ennemis.js`. **Proposées, pas validées** par le game designer.
+> aussi les decks des 9 premiers adversaires du builder) ; les decks des 5 autres (Paresseux, Rouge-Gorge, Kitsune,
+> Chèvre, Pieuvre Robot), d'abord écrits dans `game/src/config/ennemis.js`, sont dans le Card Builder depuis le
+> 25 octobre 2026. **Proposées, pas validées** par le game designer.
 
 ## Le principe
 - **Une identité mécanique par adversaire**, tirée de sa fiche d'arène (`config/arenes.js` : la question qu'il pose,

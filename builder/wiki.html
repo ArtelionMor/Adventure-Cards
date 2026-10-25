@@ -93,8 +93,7 @@
 <script type="module">
 import { CHARACTERS } from '../game/src/config/characters.js';
 import { ENCOUNTERS } from '../game/src/config/world.js';
-import { LIBRARY, NPCS, NPC_BY_ID, fatiguePile } from '../game/src/config/npcs.js';
-import { ENNEMIS_PROVISOIRES } from '../game/src/config/ennemis.js';
+import { LIBRARY, NPCS, fatiguePile } from '../game/src/config/npcs.js';
 import { KEYWORDS, EFFECTS, TRIGGERS, keyLabel } from '../game/src/config/mechanics.js';
 import { icone } from '../game/src/ui/icones.js';
 import { ligneDePictos, CLES, OPS, MOMENTS } from '../game/src/ui/pictos.js';
@@ -281,10 +280,7 @@ const pileDeFatigue = (() => {   // id -> { n, lvl } : les lignes de la pile, re
   for (const l of fatiguePile()) { const id = l.card.id; const e = m.get(id) || { n: 0, lvl: l.lvl }; e.n++; m.set(id, e); }
   return m;
 })();
-// Les adversaires : ceux du builder, puis les provisoires des arenes (config/ennemis.js) que le builder n'a pas encore
-// (un adversaire du builder de meme id gagne, comme en jeu).
-const ADVERSAIRES = [...NPCS, ...ENNEMIS_PROVISOIRES.filter(e => !NPC_BY_ID[e.id])];
-const dansUnDeck = new Set(ADVERSAIRES.flatMap(n => (n.deck || []).map(l => l.card)));
+const dansUnDeck = new Set(NPCS.flatMap(n => (n.deck || []).map(l => l.card)));
 const AUTRES = [
   { id: 'fatigue', nom: 'Pile de fatigue' },
   { id: 'pnj', nom: 'Adversaires' },
@@ -313,10 +309,9 @@ function ongletCartes() {
   }
   // Les adversaires : leur deck, chaque carte avec son nombre d'exemplaires.
   if (veut('pnj')) {
-    for (const n of ADVERSAIRES) {
+    for (const n of NPCS) {
       const lignes = (n.deck || []).map(l => ({ ...trouveCarte(l.card), n: l.n || 1 })).filter(x => x.c);
-      const provisoire = NPC_BY_ID[n.id] ? '' : ' · provisoire (config/ennemis.js, pas encore dans le Card Builder)';
-      out.push(titre(n.name, `${n.hp} PV · ${n.mana} mana · main ${n.hand} · ${lignes.reduce((a, x) => a + x.n, 0)} cartes${provisoire}`, n.sprite));
+      out.push(titre(n.name, `${n.hp} PV · ${n.mana} mana · main ${n.hand} · ${lignes.reduce((a, x) => a + x.n, 0)} cartes`, n.sprite));
       out.push(grille(lignes));
     }
   }
@@ -338,7 +333,7 @@ function trouveCarte(id) {
 /** Qui joue cette carte libre : les decks d'adversaires (avec le nombre d'exemplaires) et la pile de fatigue. */
 function usagesLibre(id) {
   const out = [];
-  for (const n of ADVERSAIRES) { const l = (n.deck || []).find(x => x.card === id); if (l) out.push(`${n.name} ×${l.n || 1}`); }
+  for (const n of NPCS) { const l = (n.deck || []).find(x => x.card === id); if (l) out.push(`${n.name} ×${l.n || 1}`); }
   const p = pileDeFatigue.get(id);
   if (p) out.push(`pile de fatigue ×${p.n} (niveau ${p.lvl})`);
   return out;

@@ -3,7 +3,8 @@
 // La conception (une identite mecanique par adversaire, tiree de sa fiche d'arene) : docs/CARTES-ADVERSAIRES.md.
 //
 // ⚠ Relancer le generateur REECRIT ces cartes et les decks des 9 adversaires du builder : une retouche faite
-// depuis dans le builder serait perdue. Les 5 adversaires provisoires ont leur deck dans game/src/config/ennemis.js.
+// depuis dans le builder serait perdue. Les 5 autres adversaires (Paresseux, Rouge-Gorge, Kitsune, Chevre, Pieuvre
+// Robot) n'ont leur deck que dans le builder (ecrits d'abord dans config/ennemis.js, rapatries le 25 octobre 2026).
 //
 // Paliers : 2/5/10 pour un allie, 3/6/11 pour un sort (GDD, « Anatomie de carte ») — c'est ce qui donne du sens a
 // `card_level` dans les profils de progression des adversaires (onglet enemy_progress_profile).
@@ -206,7 +207,7 @@ export const CARTES_ADVERSAIRES = [
     tiers: spellTiersCout(), play: [{ op: 'pose_sur_le_plateau', d_ou: 'pioche', choix: 'precise', carte: '', quoi: 'ally', typeDe: 'ecrit', typeQui: 'toi', argCard: '', t: 'enemyUnit', qui: 'toi', ordre: 'hasard', n: 2, fatigue: false, atk: 0, hp: 0 }] })
 ];
 
-/** Les decks des 9 adversaires du builder (`CHARACTER_DATA.npcs`). Les 5 provisoires : config/ennemis.js. */
+/** Les decks des 9 premiers adversaires du builder (`CHARACTER_DATA.npcs`). Les 5 autres ne sont que dans le builder. */
 export const DECKS_ADVERSAIRES = {
   // rabbit1 (le Potager) n'est plus ici : ses Souris sont ecrites par scripts/gen-lapins.mjs (docs/TUTORIEL.md, 21 oct. 2026).
   cat1: { grunt2: 2, rush1: 4, bolt: 4, card_i5eghg: 3, wall1: 3, card_ta7prz: 2, adv_chat_gouttiere: 4, adv_chat_caid: 2, adv_chat_course: 3 },

@@ -98,7 +98,7 @@ export const ARENES = [
   { id: 'owlboss', ennemi: 'owlboss', batiment: B('Candle Baba Yaga Hut'), role: 'examen final (boss 3)', archetype: 'Contrôle', sousArchetype: 'Hard',
     question: 'Tu sais forcer ses reponses ?', reponse: 'Menacer pour faire partir une Colère, puis jouer le vrai plan ; tenir la duree', punit: 'Tout miser sur un seul plateau',
     herosConseilles: ['owl', 'cat3', 'owl3'], typeDeck: '3 Colères de Kamaji, 4 Souffles, soins, Colosses, 105 PV' },
-  // Les cinq ennemis provisoires (config/ennemis.js) : textes ecrits par Claude, a relire.
+  // Les cinq ennemis ajoutes le 16 octobre (dans le Card Builder depuis le 25) : textes ecrits par Claude, a relire.
   { id: 'sloth1', ennemi: 'sloth1', batiment: B('Pillow Maker'), role: 'apprentissage', archetype: 'Contrôle', sousArchetype: 'Pillow Fort',
     question: 'Tu sais gagner contre quelqu\'un qui ne fait que se protéger ?', reponse: 'Passe-Murailles, Élusif, dégâts directs ; frapper son héros plutôt que ses murs', punit: 'Échanger une à une contre ses Provocations pendant que son chien grandit',
     herosConseilles: ['crow', 'cat2'], typeDeck: 'Paresseux et Remparts en Provocation, Fioles, un Chien de la fatigue qui grandit' },
