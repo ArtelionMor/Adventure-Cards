@@ -2268,5 +2268,6 @@
       }
     }
   ],
-  "ik": []
+  "ik": [],
+  "verification": { "etirementTrait": 1.5, "etirementMax": 3 }
 }
