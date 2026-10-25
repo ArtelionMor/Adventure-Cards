@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "lapin-des-pres",
+  "nom": "Lapin des Près",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Rabbit Decks/Rabbit Deck 1/Lapin des Près.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 222, "y": 948, "angle": 0, "longueur": 603 },
+    { "id": "bassin", "parent": "sol", "x": 524, "y": 872, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 524, "y": 796, "angle": -90, "longueur": 190 },
+    { "id": "tete", "parent": "torse", "x": 524, "y": 511, "angle": -90, "longueur": 285 },
+    { "id": "oreille_g", "parent": "tete", "x": 411, "y": 226, "angle": -120, "longueur": 143 },
+    { "id": "oreille_d", "parent": "tete", "x": 637, "y": 226, "angle": -60, "longueur": 143 },
+    { "id": "bras_g", "parent": "torse", "x": 411, "y": 682, "angle": 160, "longueur": 133 },
+    { "id": "bras_d", "parent": "torse", "x": 637, "y": 682, "angle": 20, "longueur": 133 },
+    { "id": "jambe_g", "parent": "bassin", "x": 449, "y": 872, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 599, "y": 872, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 675, "y": 815, "angle": -30, "longueur": 133 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

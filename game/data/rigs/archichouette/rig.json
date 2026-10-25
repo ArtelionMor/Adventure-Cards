@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "archichouette",
+  "nom": "Archichouette",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 1/Archichouette.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 107, "y": 966, "angle": 0, "longueur": 815 },
+    { "id": "bassin", "parent": "sol", "x": 515, "y": 887, "angle": -90, "longueur": 79 },
+    { "id": "torse", "parent": "bassin", "x": 515, "y": 808, "angle": -90, "longueur": 198 },
+    { "id": "tete", "parent": "torse", "x": 515, "y": 512, "angle": -90, "longueur": 296 },
+    { "id": "oreille_g", "parent": "tete", "x": 362, "y": 216, "angle": -120, "longueur": 148 },
+    { "id": "oreille_d", "parent": "tete", "x": 667, "y": 216, "angle": -60, "longueur": 148 },
+    { "id": "bras_g", "parent": "torse", "x": 362, "y": 690, "angle": 160, "longueur": 138 },
+    { "id": "bras_d", "parent": "torse", "x": 667, "y": 690, "angle": 20, "longueur": 138 },
+    { "id": "jambe_g", "parent": "bassin", "x": 413, "y": 887, "angle": 100, "longueur": 89 },
+    { "id": "jambe_d", "parent": "bassin", "x": 616, "y": 887, "angle": 80, "longueur": 89 },
+    { "id": "queue", "parent": "bassin", "x": 718, "y": 828, "angle": -30, "longueur": 138 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

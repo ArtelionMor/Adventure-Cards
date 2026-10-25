@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "chasse-nocturne",
+  "nom": "Chasse Nocturne",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 1/Chasse Nocturne.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 113, "y": 914, "angle": 0, "longueur": 798 },
+    { "id": "bassin", "parent": "sol", "x": 512, "y": 852, "angle": -90, "longueur": 62 },
+    { "id": "torse", "parent": "bassin", "x": 512, "y": 789, "angle": -90, "longueur": 156 },
+    { "id": "tete", "parent": "torse", "x": 512, "y": 556, "angle": -90, "longueur": 234 },
+    { "id": "oreille_g", "parent": "tete", "x": 362, "y": 322, "angle": -120, "longueur": 117 },
+    { "id": "oreille_d", "parent": "tete", "x": 662, "y": 322, "angle": -60, "longueur": 117 },
+    { "id": "bras_g", "parent": "torse", "x": 362, "y": 696, "angle": 160, "longueur": 109 },
+    { "id": "bras_d", "parent": "torse", "x": 662, "y": 696, "angle": 20, "longueur": 109 },
+    { "id": "jambe_g", "parent": "bassin", "x": 412, "y": 852, "angle": 100, "longueur": 70 },
+    { "id": "jambe_d", "parent": "bassin", "x": 612, "y": 852, "angle": 80, "longueur": 70 },
+    { "id": "queue", "parent": "bassin", "x": 712, "y": 805, "angle": -30, "longueur": 109 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

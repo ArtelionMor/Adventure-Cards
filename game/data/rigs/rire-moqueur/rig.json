@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "rire-moqueur",
+  "nom": "Rire Moqueur",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Raven/Rire Moqueur.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 166, "y": 872, "angle": 0, "longueur": 712 },
+    { "id": "bassin", "parent": "sol", "x": 522, "y": 801, "angle": -90, "longueur": 71 },
+    { "id": "torse", "parent": "bassin", "x": 522, "y": 729, "angle": -90, "longueur": 179 },
+    { "id": "tete", "parent": "torse", "x": 522, "y": 462, "angle": -90, "longueur": 268 },
+    { "id": "oreille_g", "parent": "tete", "x": 389, "y": 194, "angle": -120, "longueur": 134 },
+    { "id": "oreille_d", "parent": "tete", "x": 656, "y": 194, "angle": -60, "longueur": 134 },
+    { "id": "bras_g", "parent": "torse", "x": 389, "y": 622, "angle": 160, "longueur": 125 },
+    { "id": "bras_d", "parent": "torse", "x": 656, "y": 622, "angle": 20, "longueur": 125 },
+    { "id": "jambe_g", "parent": "bassin", "x": 433, "y": 801, "angle": 100, "longueur": 80 },
+    { "id": "jambe_d", "parent": "bassin", "x": 611, "y": 801, "angle": 80, "longueur": 80 },
+    { "id": "queue", "parent": "bassin", "x": 700, "y": 747, "angle": -30, "longueur": 125 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "bourgeon",
+  "nom": "Bourgeon",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 2/Bourgeon.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 149, "y": 956, "angle": 0, "longueur": 729 },
+    { "id": "bassin", "parent": "sol", "x": 514, "y": 879, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 514, "y": 802, "angle": -90, "longueur": 193 },
+    { "id": "tete", "parent": "torse", "x": 514, "y": 512, "angle": -90, "longueur": 290 },
+    { "id": "oreille_g", "parent": "tete", "x": 377, "y": 222, "angle": -120, "longueur": 145 },
+    { "id": "oreille_d", "parent": "tete", "x": 650, "y": 222, "angle": -60, "longueur": 145 },
+    { "id": "bras_g", "parent": "torse", "x": 377, "y": 686, "angle": 160, "longueur": 135 },
+    { "id": "bras_d", "parent": "torse", "x": 650, "y": 686, "angle": 20, "longueur": 135 },
+    { "id": "jambe_g", "parent": "bassin", "x": 422, "y": 879, "angle": 100, "longueur": 87 },
+    { "id": "jambe_d", "parent": "bassin", "x": 605, "y": 879, "angle": 80, "longueur": 87 },
+    { "id": "queue", "parent": "bassin", "x": 696, "y": 821, "angle": -30, "longueur": 135 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

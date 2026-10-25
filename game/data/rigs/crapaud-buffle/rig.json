@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "crapaud-buffle",
+  "nom": "Crapaud-Buffle",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 2/Crapaud-Buffle.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 180, "y": 969, "angle": 0, "longueur": 662 },
+    { "id": "bassin", "parent": "sol", "x": 511, "y": 892, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 511, "y": 815, "angle": -90, "longueur": 192 },
+    { "id": "tete", "parent": "torse", "x": 511, "y": 527, "angle": -90, "longueur": 288 },
+    { "id": "oreille_g", "parent": "tete", "x": 386, "y": 238, "angle": -120, "longueur": 144 },
+    { "id": "oreille_d", "parent": "tete", "x": 635, "y": 238, "angle": -60, "longueur": 144 },
+    { "id": "bras_g", "parent": "torse", "x": 386, "y": 699, "angle": 160, "longueur": 135 },
+    { "id": "bras_d", "parent": "torse", "x": 635, "y": 699, "angle": 20, "longueur": 135 },
+    { "id": "jambe_g", "parent": "bassin", "x": 428, "y": 892, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 593, "y": 892, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 676, "y": 834, "angle": -30, "longueur": 135 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

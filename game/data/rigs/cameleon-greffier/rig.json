@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "cameleon-greffier",
+  "nom": "Caméléon Greffier",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 3/Caméléon Greffier.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 137, "y": 949, "angle": 0, "longueur": 738 },
+    { "id": "bassin", "parent": "sol", "x": 506, "y": 873, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 506, "y": 797, "angle": -90, "longueur": 190 },
+    { "id": "tete", "parent": "torse", "x": 506, "y": 513, "angle": -90, "longueur": 284 },
+    { "id": "oreille_g", "parent": "tete", "x": 368, "y": 229, "angle": -120, "longueur": 142 },
+    { "id": "oreille_d", "parent": "tete", "x": 644, "y": 229, "angle": -60, "longueur": 142 },
+    { "id": "bras_g", "parent": "torse", "x": 368, "y": 684, "angle": 160, "longueur": 133 },
+    { "id": "bras_d", "parent": "torse", "x": 644, "y": 684, "angle": 20, "longueur": 133 },
+    { "id": "jambe_g", "parent": "bassin", "x": 414, "y": 873, "angle": 100, "longueur": 85 },
+    { "id": "jambe_d", "parent": "bassin", "x": 598, "y": 873, "angle": 80, "longueur": 85 },
+    { "id": "queue", "parent": "bassin", "x": 690, "y": 816, "angle": -30, "longueur": 133 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

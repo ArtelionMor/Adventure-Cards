@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "cambrioleur",
+  "nom": "Cambrioleur",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 2/Cambrioleur.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 202, "y": 953, "angle": 0, "longueur": 622 },
+    { "id": "bassin", "parent": "sol", "x": 513, "y": 877, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 513, "y": 802, "angle": -90, "longueur": 189 },
+    { "id": "tete", "parent": "torse", "x": 513, "y": 518, "angle": -90, "longueur": 284 },
+    { "id": "oreille_g", "parent": "tete", "x": 396, "y": 233, "angle": -120, "longueur": 142 },
+    { "id": "oreille_d", "parent": "tete", "x": 630, "y": 233, "angle": -60, "longueur": 142 },
+    { "id": "bras_g", "parent": "torse", "x": 396, "y": 688, "angle": 160, "longueur": 133 },
+    { "id": "bras_d", "parent": "torse", "x": 630, "y": 688, "angle": 20, "longueur": 133 },
+    { "id": "jambe_g", "parent": "bassin", "x": 435, "y": 877, "angle": 100, "longueur": 85 },
+    { "id": "jambe_d", "parent": "bassin", "x": 591, "y": 877, "angle": 80, "longueur": 85 },
+    { "id": "queue", "parent": "bassin", "x": 669, "y": 821, "angle": -30, "longueur": 133 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

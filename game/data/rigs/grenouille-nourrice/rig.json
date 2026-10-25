@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "grenouille-nourrice",
+  "nom": "Grenouille Nourrice",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 1/Grenouille Nourrice.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 150, "y": 857, "angle": 0, "longueur": 714 },
+    { "id": "bassin", "parent": "sol", "x": 508, "y": 789, "angle": -90, "longueur": 68 },
+    { "id": "torse", "parent": "bassin", "x": 508, "y": 721, "angle": -90, "longueur": 170 },
+    { "id": "tete", "parent": "torse", "x": 508, "y": 467, "angle": -90, "longueur": 254 },
+    { "id": "oreille_g", "parent": "tete", "x": 374, "y": 213, "angle": -120, "longueur": 127 },
+    { "id": "oreille_d", "parent": "tete", "x": 641, "y": 213, "angle": -60, "longueur": 127 },
+    { "id": "bras_g", "parent": "torse", "x": 374, "y": 620, "angle": 160, "longueur": 119 },
+    { "id": "bras_d", "parent": "torse", "x": 641, "y": 620, "angle": 20, "longueur": 119 },
+    { "id": "jambe_g", "parent": "bassin", "x": 418, "y": 789, "angle": 100, "longueur": 76 },
+    { "id": "jambe_d", "parent": "bassin", "x": 597, "y": 789, "angle": 80, "longueur": 76 },
+    { "id": "queue", "parent": "bassin", "x": 686, "y": 738, "angle": -30, "longueur": 119 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

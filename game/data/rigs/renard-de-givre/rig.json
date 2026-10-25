@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "renard-de-givre",
+  "nom": "Renard de givre",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Snow Fox/Renard de givre.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 118, "y": 903, "angle": 0, "longueur": 785 },
+    { "id": "bassin", "parent": "sol", "x": 511, "y": 831, "angle": -90, "longueur": 72 },
+    { "id": "torse", "parent": "bassin", "x": 511, "y": 759, "angle": -90, "longueur": 180 },
+    { "id": "tete", "parent": "torse", "x": 511, "y": 490, "angle": -90, "longueur": 269 },
+    { "id": "oreille_g", "parent": "tete", "x": 363, "y": 221, "angle": -120, "longueur": 135 },
+    { "id": "oreille_d", "parent": "tete", "x": 658, "y": 221, "angle": -60, "longueur": 135 },
+    { "id": "bras_g", "parent": "torse", "x": 363, "y": 652, "angle": 160, "longueur": 126 },
+    { "id": "bras_d", "parent": "torse", "x": 658, "y": 652, "angle": 20, "longueur": 126 },
+    { "id": "jambe_g", "parent": "bassin", "x": 412, "y": 831, "angle": 100, "longueur": 81 },
+    { "id": "jambe_d", "parent": "bassin", "x": 609, "y": 831, "angle": 80, "longueur": 81 },
+    { "id": "queue", "parent": "bassin", "x": 707, "y": 777, "angle": -30, "longueur": 126 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

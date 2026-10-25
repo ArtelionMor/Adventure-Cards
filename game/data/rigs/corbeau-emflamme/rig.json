@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "corbeau-emflamme",
+  "nom": "Corbeau emflammé",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Cat/Corbeau emflammé.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 120, "y": 945, "angle": 0, "longueur": 778 },
+    { "id": "bassin", "parent": "sol", "x": 509, "y": 870, "angle": -90, "longueur": 75 },
+    { "id": "torse", "parent": "bassin", "x": 509, "y": 795, "angle": -90, "longueur": 188 },
+    { "id": "tete", "parent": "torse", "x": 509, "y": 513, "angle": -90, "longueur": 282 },
+    { "id": "oreille_g", "parent": "tete", "x": 363, "y": 231, "angle": -120, "longueur": 141 },
+    { "id": "oreille_d", "parent": "tete", "x": 655, "y": 231, "angle": -60, "longueur": 141 },
+    { "id": "bras_g", "parent": "torse", "x": 363, "y": 682, "angle": 160, "longueur": 132 },
+    { "id": "bras_d", "parent": "torse", "x": 655, "y": 682, "angle": 20, "longueur": 132 },
+    { "id": "jambe_g", "parent": "bassin", "x": 412, "y": 870, "angle": 100, "longueur": 85 },
+    { "id": "jambe_d", "parent": "bassin", "x": 606, "y": 870, "angle": 80, "longueur": 85 },
+    { "id": "queue", "parent": "bassin", "x": 703, "y": 814, "angle": -30, "longueur": 132 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

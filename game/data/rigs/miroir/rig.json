@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "miroir",
+  "nom": "Miroir",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Miroir.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 263, "y": 955, "angle": 0, "longueur": 571 },
+    { "id": "bassin", "parent": "sol", "x": 549, "y": 876, "angle": -90, "longueur": 79 },
+    { "id": "torse", "parent": "bassin", "x": 549, "y": 797, "angle": -90, "longueur": 198 },
+    { "id": "tete", "parent": "torse", "x": 549, "y": 500, "angle": -90, "longueur": 297 },
+    { "id": "oreille_g", "parent": "tete", "x": 442, "y": 203, "angle": -120, "longueur": 149 },
+    { "id": "oreille_d", "parent": "tete", "x": 656, "y": 203, "angle": -60, "longueur": 149 },
+    { "id": "bras_g", "parent": "torse", "x": 442, "y": 678, "angle": 160, "longueur": 139 },
+    { "id": "bras_d", "parent": "torse", "x": 656, "y": 678, "angle": 20, "longueur": 139 },
+    { "id": "jambe_g", "parent": "bassin", "x": 478, "y": 876, "angle": 100, "longueur": 89 },
+    { "id": "jambe_d", "parent": "bassin", "x": 620, "y": 876, "angle": 80, "longueur": 89 },
+    { "id": "queue", "parent": "bassin", "x": 692, "y": 817, "angle": -30, "longueur": 139 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "artilleur-d-encre",
+  "nom": "Artilleur d'encre",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Octopus/Artilleur d'encre.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 124, "y": 945, "angle": 0, "longueur": 776 },
+    { "id": "bassin", "parent": "sol", "x": 512, "y": 885, "angle": -90, "longueur": 60 },
+    { "id": "torse", "parent": "bassin", "x": 512, "y": 824, "angle": -90, "longueur": 151 },
+    { "id": "tete", "parent": "torse", "x": 512, "y": 598, "angle": -90, "longueur": 226 },
+    { "id": "oreille_g", "parent": "tete", "x": 367, "y": 372, "angle": -120, "longueur": 113 },
+    { "id": "oreille_d", "parent": "tete", "x": 658, "y": 372, "angle": -60, "longueur": 113 },
+    { "id": "bras_g", "parent": "torse", "x": 367, "y": 734, "angle": 160, "longueur": 106 },
+    { "id": "bras_d", "parent": "torse", "x": 658, "y": 734, "angle": 20, "longueur": 106 },
+    { "id": "jambe_g", "parent": "bassin", "x": 415, "y": 885, "angle": 100, "longueur": 68 },
+    { "id": "jambe_d", "parent": "bassin", "x": 609, "y": 885, "angle": 80, "longueur": 68 },
+    { "id": "queue", "parent": "bassin", "x": 706, "y": 839, "angle": -30, "longueur": 106 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

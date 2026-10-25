@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "index",
+  "nom": "Index",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 3/Index.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 180, "y": 944, "angle": 0, "longueur": 730 },
+    { "id": "bassin", "parent": "sol", "x": 545, "y": 873, "angle": -90, "longueur": 70 },
+    { "id": "torse", "parent": "bassin", "x": 545, "y": 803, "angle": -90, "longueur": 176 },
+    { "id": "tete", "parent": "torse", "x": 545, "y": 539, "angle": -90, "longueur": 264 },
+    { "id": "oreille_g", "parent": "tete", "x": 408, "y": 275, "angle": -120, "longueur": 132 },
+    { "id": "oreille_d", "parent": "tete", "x": 682, "y": 275, "angle": -60, "longueur": 132 },
+    { "id": "bras_g", "parent": "torse", "x": 408, "y": 697, "angle": 160, "longueur": 123 },
+    { "id": "bras_d", "parent": "torse", "x": 682, "y": 697, "angle": 20, "longueur": 123 },
+    { "id": "jambe_g", "parent": "bassin", "x": 454, "y": 873, "angle": 100, "longueur": 79 },
+    { "id": "jambe_d", "parent": "bassin", "x": 636, "y": 873, "angle": 80, "longueur": 79 },
+    { "id": "queue", "parent": "bassin", "x": 727, "y": 821, "angle": -30, "longueur": 123 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

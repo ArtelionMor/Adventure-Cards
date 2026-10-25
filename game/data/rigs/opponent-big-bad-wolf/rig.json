@@ -7,7 +7,7 @@
     "image": "source.png",
     "largeur": 1024,
     "hauteur": 1024,
-    "origine": "Graphical Assets/Characters/Opponents/Opponent Big Bad Wolf.png"
+    "origine": "Graphical Assets/Characters/Opponent Big Bad Wolf.png"
   },
   "os": [
     { "id": "sol", "parent": null, "x": 115, "y": 946, "angle": 0, "longueur": 804 },

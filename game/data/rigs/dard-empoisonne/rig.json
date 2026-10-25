@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "dard-empoisonne",
+  "nom": "Dard Empoisonné",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 3/Dard Empoisonné.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 141, "y": 898, "angle": 0, "longueur": 738 },
+    { "id": "bassin", "parent": "sol", "x": 510, "y": 831, "angle": -90, "longueur": 67 },
+    { "id": "torse", "parent": "bassin", "x": 510, "y": 764, "angle": -90, "longueur": 168 },
+    { "id": "tete", "parent": "torse", "x": 510, "y": 512, "angle": -90, "longueur": 252 },
+    { "id": "oreille_g", "parent": "tete", "x": 372, "y": 259, "angle": -120, "longueur": 126 },
+    { "id": "oreille_d", "parent": "tete", "x": 648, "y": 259, "angle": -60, "longueur": 126 },
+    { "id": "bras_g", "parent": "torse", "x": 372, "y": 663, "angle": 160, "longueur": 118 },
+    { "id": "bras_d", "parent": "torse", "x": 648, "y": 663, "angle": 20, "longueur": 118 },
+    { "id": "jambe_g", "parent": "bassin", "x": 418, "y": 831, "angle": 100, "longueur": 76 },
+    { "id": "jambe_d", "parent": "bassin", "x": 602, "y": 831, "angle": 80, "longueur": 76 },
+    { "id": "queue", "parent": "bassin", "x": 694, "y": 781, "angle": -30, "longueur": 118 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

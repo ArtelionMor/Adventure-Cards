@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "poison-lent",
+  "nom": "Poison lent",
+  "source": {
+    "image": "source.png",
+    "largeur": 1136,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 3/Poison lent.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 209, "y": 967, "angle": 0, "longueur": 706 },
+    { "id": "bassin", "parent": "sol", "x": 563, "y": 888, "angle": -90, "longueur": 79 },
+    { "id": "torse", "parent": "bassin", "x": 563, "y": 809, "angle": -90, "longueur": 198 },
+    { "id": "tete", "parent": "torse", "x": 563, "y": 512, "angle": -90, "longueur": 297 },
+    { "id": "oreille_g", "parent": "tete", "x": 430, "y": 215, "angle": -120, "longueur": 149 },
+    { "id": "oreille_d", "parent": "tete", "x": 695, "y": 215, "angle": -60, "longueur": 149 },
+    { "id": "bras_g", "parent": "torse", "x": 430, "y": 690, "angle": 160, "longueur": 139 },
+    { "id": "bras_d", "parent": "torse", "x": 695, "y": 690, "angle": 20, "longueur": 139 },
+    { "id": "jambe_g", "parent": "bassin", "x": 474, "y": 888, "angle": 100, "longueur": 89 },
+    { "id": "jambe_d", "parent": "bassin", "x": 651, "y": 888, "angle": 80, "longueur": 89 },
+    { "id": "queue", "parent": "bassin", "x": 739, "y": 829, "angle": -30, "longueur": 139 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1136,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

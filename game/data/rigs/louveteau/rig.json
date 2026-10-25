@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "louveteau",
+  "nom": "Louveteau",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Dog Decks/Dog Deck 2/Louveteau.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 170, "y": 951, "angle": 0, "longueur": 652 },
+    { "id": "bassin", "parent": "sol", "x": 496, "y": 877, "angle": -90, "longueur": 74 },
+    { "id": "torse", "parent": "bassin", "x": 496, "y": 802, "angle": -90, "longueur": 186 },
+    { "id": "tete", "parent": "torse", "x": 496, "y": 524, "angle": -90, "longueur": 279 },
+    { "id": "oreille_g", "parent": "tete", "x": 373, "y": 245, "angle": -120, "longueur": 139 },
+    { "id": "oreille_d", "parent": "tete", "x": 618, "y": 245, "angle": -60, "longueur": 139 },
+    { "id": "bras_g", "parent": "torse", "x": 373, "y": 691, "angle": 160, "longueur": 130 },
+    { "id": "bras_d", "parent": "torse", "x": 618, "y": 691, "angle": 20, "longueur": 130 },
+    { "id": "jambe_g", "parent": "bassin", "x": 414, "y": 877, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 577, "y": 877, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 659, "y": 821, "angle": -30, "longueur": 130 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

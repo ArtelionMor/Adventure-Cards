@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "frai",
+  "nom": "Frai",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 2/Frai.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 125, "y": 866, "angle": 0, "longueur": 776 },
+    { "id": "bassin", "parent": "sol", "x": 513, "y": 811, "angle": -90, "longueur": 54 },
+    { "id": "torse", "parent": "bassin", "x": 513, "y": 757, "angle": -90, "longueur": 136 },
+    { "id": "tete", "parent": "torse", "x": 513, "y": 553, "angle": -90, "longueur": 204 },
+    { "id": "oreille_g", "parent": "tete", "x": 368, "y": 348, "angle": -120, "longueur": 102 },
+    { "id": "oreille_d", "parent": "tete", "x": 659, "y": 348, "angle": -60, "longueur": 102 },
+    { "id": "bras_g", "parent": "torse", "x": 368, "y": 675, "angle": 160, "longueur": 95 },
+    { "id": "bras_d", "parent": "torse", "x": 659, "y": 675, "angle": 20, "longueur": 95 },
+    { "id": "jambe_g", "parent": "bassin", "x": 416, "y": 811, "angle": 100, "longueur": 61 },
+    { "id": "jambe_d", "parent": "bassin", "x": 610, "y": 811, "angle": 80, "longueur": 61 },
+    { "id": "queue", "parent": "bassin", "x": 707, "y": 770, "angle": -30, "longueur": 95 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

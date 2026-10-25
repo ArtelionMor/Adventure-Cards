@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "chien-reporter",
+  "nom": "Chien reporter",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Dog Decks/Dog Deck 3/Chien reporter.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 240, "y": 955, "angle": 0, "longueur": 630 },
+    { "id": "bassin", "parent": "sol", "x": 555, "y": 884, "angle": -90, "longueur": 70 },
+    { "id": "torse", "parent": "bassin", "x": 555, "y": 814, "angle": -90, "longueur": 176 },
+    { "id": "tete", "parent": "torse", "x": 555, "y": 550, "angle": -90, "longueur": 264 },
+    { "id": "oreille_g", "parent": "tete", "x": 437, "y": 286, "angle": -120, "longueur": 132 },
+    { "id": "oreille_d", "parent": "tete", "x": 673, "y": 286, "angle": -60, "longueur": 132 },
+    { "id": "bras_g", "parent": "torse", "x": 437, "y": 708, "angle": 160, "longueur": 123 },
+    { "id": "bras_d", "parent": "torse", "x": 673, "y": 708, "angle": 20, "longueur": 123 },
+    { "id": "jambe_g", "parent": "bassin", "x": 476, "y": 884, "angle": 100, "longueur": 79 },
+    { "id": "jambe_d", "parent": "bassin", "x": 634, "y": 884, "angle": 80, "longueur": 79 },
+    { "id": "queue", "parent": "bassin", "x": 713, "y": 832, "angle": -30, "longueur": 123 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

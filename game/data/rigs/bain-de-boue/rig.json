@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "bain-de-boue",
+  "nom": "Bain de Boue",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 2/Bain de Boue.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 136, "y": 878, "angle": 0, "longueur": 754 },
+    { "id": "bassin", "parent": "sol", "x": 514, "y": 813, "angle": -90, "longueur": 65 },
+    { "id": "torse", "parent": "bassin", "x": 514, "y": 748, "angle": -90, "longueur": 163 },
+    { "id": "tete", "parent": "torse", "x": 514, "y": 504, "angle": -90, "longueur": 245 },
+    { "id": "oreille_g", "parent": "tete", "x": 372, "y": 259, "angle": -120, "longueur": 122 },
+    { "id": "oreille_d", "parent": "tete", "x": 655, "y": 259, "angle": -60, "longueur": 122 },
+    { "id": "bras_g", "parent": "torse", "x": 372, "y": 650, "angle": 160, "longueur": 114 },
+    { "id": "bras_d", "parent": "torse", "x": 655, "y": 650, "angle": 20, "longueur": 114 },
+    { "id": "jambe_g", "parent": "bassin", "x": 419, "y": 813, "angle": 100, "longueur": 73 },
+    { "id": "jambe_d", "parent": "bassin", "x": 608, "y": 813, "angle": 80, "longueur": 73 },
+    { "id": "queue", "parent": "bassin", "x": 702, "y": 764, "angle": -30, "longueur": 114 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

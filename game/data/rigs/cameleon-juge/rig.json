@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "cameleon-juge",
+  "nom": "Caméléon Juge",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 3/Caméléon Juge.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 141, "y": 948, "angle": 0, "longueur": 738 },
+    { "id": "bassin", "parent": "sol", "x": 510, "y": 874, "angle": -90, "longueur": 74 },
+    { "id": "torse", "parent": "bassin", "x": 510, "y": 800, "angle": -90, "longueur": 185 },
+    { "id": "tete", "parent": "torse", "x": 510, "y": 523, "angle": -90, "longueur": 277 },
+    { "id": "oreille_g", "parent": "tete", "x": 372, "y": 246, "angle": -120, "longueur": 139 },
+    { "id": "oreille_d", "parent": "tete", "x": 648, "y": 246, "angle": -60, "longueur": 139 },
+    { "id": "bras_g", "parent": "torse", "x": 372, "y": 689, "angle": 160, "longueur": 129 },
+    { "id": "bras_d", "parent": "torse", "x": 648, "y": 689, "angle": 20, "longueur": 129 },
+    { "id": "jambe_g", "parent": "bassin", "x": 418, "y": 874, "angle": 100, "longueur": 83 },
+    { "id": "jambe_d", "parent": "bassin", "x": 602, "y": 874, "angle": 80, "longueur": 83 },
+    { "id": "queue", "parent": "bassin", "x": 694, "y": 819, "angle": -30, "longueur": 129 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

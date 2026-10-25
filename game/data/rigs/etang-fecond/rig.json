@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "etang-fecond",
+  "nom": "Etang Fécond",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 2/Etang Fécond.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 117, "y": 901, "angle": 0, "longueur": 782 },
+    { "id": "bassin", "parent": "sol", "x": 508, "y": 837, "angle": -90, "longueur": 64 },
+    { "id": "torse", "parent": "bassin", "x": 508, "y": 772, "angle": -90, "longueur": 161 },
+    { "id": "tete", "parent": "torse", "x": 508, "y": 531, "angle": -90, "longueur": 241 },
+    { "id": "oreille_g", "parent": "tete", "x": 361, "y": 290, "angle": -120, "longueur": 121 },
+    { "id": "oreille_d", "parent": "tete", "x": 655, "y": 290, "angle": -60, "longueur": 121 },
+    { "id": "bras_g", "parent": "torse", "x": 361, "y": 676, "angle": 160, "longueur": 113 },
+    { "id": "bras_d", "parent": "torse", "x": 655, "y": 676, "angle": 20, "longueur": 113 },
+    { "id": "jambe_g", "parent": "bassin", "x": 410, "y": 837, "angle": 100, "longueur": 72 },
+    { "id": "jambe_d", "parent": "bassin", "x": 606, "y": 837, "angle": 80, "longueur": 72 },
+    { "id": "queue", "parent": "bassin", "x": 704, "y": 788, "angle": -30, "longueur": 113 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

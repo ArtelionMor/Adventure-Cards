@@ -3,10 +3,11 @@
 // la boite de ce qui est visible, a la louche. Le game designer n'a plus qu'a les deplacer
 // dans l'Atelier (Rig & Anim), puis « Generer le mesh » / « Calculer les poids ».
 //
-//   node scripts/rig-squelettes-types.mjs [--ecrire] [--espece "Cat"]
+//   node scripts/rig-squelettes-types.mjs [--ecrire] [--nettoie] [--dossier "Graphical Assets/Cards"]
 //
 // Sans --ecrire : liste ce qui serait cree. Ne touche JAMAIS un personnage qui a deja un dossier
-// dans game/data/rigs/ (ni ceux de EXISTANTS, qui vivent peut-etre ailleurs).
+// dans game/data/rigs/ (ni ceux de EXISTANTS, qui vivent peut-etre ailleurs). Parcourt les sous-dossiers.
+// --nettoie : retire d'abord les squelettes types (ni maillage ni clip) dont l'image d'origine a disparu.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,14 +16,15 @@ import { lisPng } from './lib/png.mjs';
 import { ecrisJson } from './lib/rig-fichiers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SRC = path.join(ROOT, 'Graphical Assets/Characters');
 const OUT = path.join(ROOT, 'game/data/rigs');
 const args = process.argv.slice(2);
 const ECRIRE = args.includes('--ecrire');
-const ESPECE = (i => i >= 0 ? args[i + 1] : null)(args.indexOf('--espece'));
+const NETTOIE = args.includes('--nettoie');
+const DOSSIERS = (i => i >= 0 ? [args[i + 1]] : ['Graphical Assets/Characters', 'Graphical Assets/Cards'])(args.indexOf('--dossier'));
 
 // Quel squelette pour quelle espece (une devinette : a corriger ici puis relancer sur un dossier vide).
-const QUADRUPEDE = new Set(['Dog', 'Fox', 'Goat', 'Big Bad Wolf', 'Cat']);
+// Reconnu au nom du fichier ou de son dossier.
+const QUADRUPEDE = /(dog|fox|goat|wolf|cat|chien|chiot|chat|renard|loup|chevre)/i;
 // Ids deja pris (rigges a la main, ou en cours dans l'Atelier) : on n'y touche pas.
 const EXISTANTS = new Set(['crapaud', 'lapin-bagarreur', 'chiot-de-garde', 'cameleon']);
 // Les sources deja riggees sous un autre nom.
@@ -76,19 +78,56 @@ function os(b, quad) {
   ];
 }
 
+
+// Tous les PNG d'un dossier, sous-dossiers compris
+function pngs(d) {
+  const out = [];
+  for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+    const p = path.join(d, e.name);
+    if (e.isDirectory()) out.push(...pngs(p));
+    else if (e.name.toLowerCase().endsWith('.png')) out.push(p);
+  }
+  return out;
+}
+
+const lis = f => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
+
+// 1. Le menage : un squelette type (un calque sans maillage, aucun clip) dont l'image n'existe plus
+if (NETTOIE) {
+  for (const id of fs.readdirSync(OUT)) {
+    const d = path.join(OUT, id), rig = lis(path.join(d, 'rig.json'));
+    if (!rig || EXISTANTS.has(id)) continue;
+    const clips = lis(path.join(d, 'clips.json'))?.clips || {};
+    const brut = (rig.calques || []).length === 1 && !rig.calques[0].mesh && !Object.keys(clips).length;
+    const origine = rig.source?.origine;
+    if (brut && origine && !fs.existsSync(path.join(ROOT, origine))) {
+      console.log(`${ECRIRE ? 'retire' : 'retirerait'} ${id} (${origine} n'existe plus)`);
+      if (ECRIRE) fs.rmSync(d, { recursive: true, force: true });
+    }
+  }
+}
+
+// 2. Les squelettes
+const pris = new Map(); // id -> origine, pour ceux de cette passe et ceux deja sur disque
+for (const id of fs.readdirSync(OUT)) { const r = lis(path.join(OUT, id, 'rig.json')); if (r) pris.set(id, r.source?.origine); }
 let faits = 0, saute = 0;
-for (const espece of fs.readdirSync(SRC)) {
-  const dossierE = path.join(SRC, espece);
-  if (!fs.statSync(dossierE).isDirectory() || (ESPECE && espece !== ESPECE)) continue;
-  for (const f of fs.readdirSync(dossierE).filter(n => n.toLowerCase().endsWith('.png'))) {
-    const origine = `Graphical Assets/Characters/${espece}/${f}`;
-    const nom = f.replace(/\.png$/i, '');
-    const id = slug(nom);
-    if (EXISTANTS.has(id) || SOURCES_PRISES.has(origine) || fs.existsSync(path.join(OUT, id))) { saute++; continue; }
-    const img = lisPng(path.join(dossierE, f));
+for (const dossier of DOSSIERS) {
+  const racine = path.join(ROOT, dossier);
+  if (!fs.existsSync(racine)) continue;
+  for (const fichier of pngs(racine).sort()) {
+    const origine = path.relative(ROOT, fichier).split(path.sep).join('/');
+    const nom = path.basename(fichier, path.extname(fichier));
+    let id = slug(nom);
+    if (SOURCES_PRISES.has(origine) || EXISTANTS.has(id)) { saute++; continue; }
+    if (pris.has(id) && pris.get(id) === origine) { saute++; continue; }
+    // meme nom ailleurs (deux decks ont une « Eclair ») : le dossier du deck le distingue
+    if (pris.has(id)) id = slug(path.basename(path.dirname(fichier)) + ' ' + nom);
+    if (pris.has(id) && pris.get(id) === origine) { saute++; continue; }
+    if (pris.has(id) || EXISTANTS.has(id)) { console.log('id deja pris, saute : ' + origine); saute++; continue; }
+    const img = lisPng(fichier);
     const b = boite(img);
     if (b.w <= 0) { console.log('image vide : ' + origine); continue; }
-    const quad = QUADRUPEDE.has(espece);
+    const quad = QUADRUPEDE.test(nom) || QUADRUPEDE.test(path.basename(path.dirname(fichier)));
     const rig = {
       format: 'adventure-rig', version: 1, id, nom,
       source: { image: 'source.png', largeur: img.largeur, hauteur: img.hauteur, origine },
@@ -96,12 +135,12 @@ for (const espece of fs.readdirSync(SRC)) {
       calques: [{ id: 'tout', image: 'source.png', ordre: 0, x: 0, y: 0, largeur: img.largeur, hauteur: img.hauteur }],
       ik: [],
     };
-    console.log(`${ECRIRE ? 'cree' : 'creerait'} ${id} (${quad ? 'quadrupede' : 'bipede'}, ${img.largeur}x${img.hauteur})`);
+    pris.set(id, origine);
     faits++;
-    if (!ECRIRE) continue;
+    if (!ECRIRE) { console.log(`creerait ${id}`); continue; }
     const d = path.join(OUT, id);
     fs.mkdirSync(d, { recursive: true });
-    fs.copyFileSync(path.join(dossierE, f), path.join(d, 'source.png'));
+    fs.copyFileSync(fichier, path.join(d, 'source.png'));
     ecrisJson(path.join(d, 'rig.json'), rig);
     ecrisJson(path.join(d, 'clips.json'), { format: 'adventure-rig-clips', version: 1, clips: {} });
   }

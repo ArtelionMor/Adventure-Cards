@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "grand-belier",
+  "nom": "Grand Bélier",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Rabbit Decks/Rabbit Deck 2/Grand Bélier.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 136, "y": 899, "angle": 0, "longueur": 763 },
+    { "id": "bassin", "parent": "sol", "x": 518, "y": 829, "angle": -90, "longueur": 70 },
+    { "id": "torse", "parent": "bassin", "x": 518, "y": 758, "angle": -90, "longueur": 176 },
+    { "id": "tete", "parent": "torse", "x": 518, "y": 495, "angle": -90, "longueur": 264 },
+    { "id": "oreille_g", "parent": "tete", "x": 375, "y": 231, "angle": -120, "longueur": 132 },
+    { "id": "oreille_d", "parent": "tete", "x": 661, "y": 231, "angle": -60, "longueur": 132 },
+    { "id": "bras_g", "parent": "torse", "x": 375, "y": 653, "angle": 160, "longueur": 123 },
+    { "id": "bras_d", "parent": "torse", "x": 661, "y": 653, "angle": 20, "longueur": 123 },
+    { "id": "jambe_g", "parent": "bassin", "x": 423, "y": 829, "angle": 100, "longueur": 79 },
+    { "id": "jambe_d", "parent": "bassin", "x": 613, "y": 829, "angle": 80, "longueur": 79 },
+    { "id": "queue", "parent": "bassin", "x": 709, "y": 776, "angle": -30, "longueur": 123 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

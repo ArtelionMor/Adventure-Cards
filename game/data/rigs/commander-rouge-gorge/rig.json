@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "commander-rouge-gorge",
+  "nom": "Commander Rouge-Gorge",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Commander Rouge-Gorge.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 275, "y": 983, "angle": 0, "longueur": 474 },
+    { "id": "bassin", "parent": "sol", "x": 512, "y": 902, "angle": -90, "longueur": 81 },
+    { "id": "torse", "parent": "bassin", "x": 512, "y": 821, "angle": -90, "longueur": 203 },
+    { "id": "tete", "parent": "torse", "x": 512, "y": 516, "angle": -90, "longueur": 305 },
+    { "id": "oreille_g", "parent": "tete", "x": 423, "y": 210, "angle": -120, "longueur": 153 },
+    { "id": "oreille_d", "parent": "tete", "x": 601, "y": 210, "angle": -60, "longueur": 153 },
+    { "id": "bras_g", "parent": "torse", "x": 423, "y": 699, "angle": 160, "longueur": 142 },
+    { "id": "bras_d", "parent": "torse", "x": 601, "y": 699, "angle": 20, "longueur": 142 },
+    { "id": "jambe_g", "parent": "bassin", "x": 453, "y": 902, "angle": 100, "longueur": 92 },
+    { "id": "jambe_d", "parent": "bassin", "x": 571, "y": 902, "angle": 80, "longueur": 92 },
+    { "id": "queue", "parent": "bassin", "x": 630, "y": 841, "angle": -30, "longueur": 142 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

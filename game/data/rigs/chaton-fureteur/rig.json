@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "chaton-fureteur",
+  "nom": "Chaton Fureteur",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 2/Chaton Fureteur.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 102, "y": 827, "angle": 0, "longueur": 819 },
+    { "id": "bassin", "parent": "sol", "x": 512, "y": 776, "angle": -90, "longueur": 51 },
+    { "id": "torse", "parent": "bassin", "x": 512, "y": 725, "angle": -90, "longueur": 128 },
+    { "id": "tete", "parent": "torse", "x": 512, "y": 534, "angle": -90, "longueur": 191 },
+    { "id": "oreille_g", "parent": "tete", "x": 358, "y": 343, "angle": -120, "longueur": 96 },
+    { "id": "oreille_d", "parent": "tete", "x": 666, "y": 343, "angle": -60, "longueur": 96 },
+    { "id": "bras_g", "parent": "torse", "x": 358, "y": 649, "angle": 160, "longueur": 89 },
+    { "id": "bras_d", "parent": "torse", "x": 666, "y": 649, "angle": 20, "longueur": 89 },
+    { "id": "jambe_g", "parent": "bassin", "x": 410, "y": 776, "angle": 100, "longueur": 57 },
+    { "id": "jambe_d", "parent": "bassin", "x": 614, "y": 776, "angle": 80, "longueur": 57 },
+    { "id": "queue", "parent": "bassin", "x": 717, "y": 738, "angle": -30, "longueur": 89 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

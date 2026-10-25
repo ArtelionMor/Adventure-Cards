@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "rainette-toxique",
+  "nom": "Rainette Toxique",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 3/Rainette Toxique.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 210, "y": 927, "angle": 0, "longueur": 635 },
+    { "id": "bassin", "parent": "sol", "x": 528, "y": 859, "angle": -90, "longueur": 68 },
+    { "id": "torse", "parent": "bassin", "x": 528, "y": 791, "angle": -90, "longueur": 170 },
+    { "id": "tete", "parent": "torse", "x": 528, "y": 535, "angle": -90, "longueur": 256 },
+    { "id": "oreille_g", "parent": "tete", "x": 409, "y": 279, "angle": -120, "longueur": 128 },
+    { "id": "oreille_d", "parent": "tete", "x": 647, "y": 279, "angle": -60, "longueur": 128 },
+    { "id": "bras_g", "parent": "torse", "x": 409, "y": 688, "angle": 160, "longueur": 119 },
+    { "id": "bras_d", "parent": "torse", "x": 647, "y": 688, "angle": 20, "longueur": 119 },
+    { "id": "jambe_g", "parent": "bassin", "x": 449, "y": 859, "angle": 100, "longueur": 77 },
+    { "id": "jambe_d", "parent": "bassin", "x": 607, "y": 859, "angle": 80, "longueur": 77 },
+    { "id": "queue", "parent": "bassin", "x": 687, "y": 808, "angle": -30, "longueur": 119 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

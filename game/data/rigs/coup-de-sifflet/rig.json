@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "coup-de-sifflet",
+  "nom": "Coup de sifflet",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Dog Decks/Dog Deck 1/Coup de sifflet.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 210, "y": 986, "angle": 0, "longueur": 713 },
+    { "id": "bassin", "parent": "sol", "x": 567, "y": 911, "angle": -90, "longueur": 75 },
+    { "id": "torse", "parent": "bassin", "x": 567, "y": 836, "angle": -90, "longueur": 188 },
+    { "id": "tete", "parent": "torse", "x": 567, "y": 553, "angle": -90, "longueur": 283 },
+    { "id": "oreille_g", "parent": "tete", "x": 433, "y": 270, "angle": -120, "longueur": 141 },
+    { "id": "oreille_d", "parent": "tete", "x": 700, "y": 270, "angle": -60, "longueur": 141 },
+    { "id": "bras_g", "parent": "torse", "x": 433, "y": 723, "angle": 160, "longueur": 132 },
+    { "id": "bras_d", "parent": "torse", "x": 700, "y": 723, "angle": 20, "longueur": 132 },
+    { "id": "jambe_g", "parent": "bassin", "x": 477, "y": 911, "angle": 100, "longueur": 85 },
+    { "id": "jambe_d", "parent": "bassin", "x": 656, "y": 911, "angle": 80, "longueur": 85 },
+    { "id": "queue", "parent": "bassin", "x": 745, "y": 854, "angle": -30, "longueur": 132 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

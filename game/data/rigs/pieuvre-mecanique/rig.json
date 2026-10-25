@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "pieuvre-mecanique",
+  "nom": "Pieuvre Mécanique",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Captain Frog/Pieuvre Mécanique.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 117, "y": 933, "angle": 0, "longueur": 800 },
+    { "id": "bassin", "parent": "sol", "x": 517, "y": 860, "angle": -90, "longueur": 73 },
+    { "id": "torse", "parent": "bassin", "x": 517, "y": 787, "angle": -90, "longueur": 182 },
+    { "id": "tete", "parent": "torse", "x": 517, "y": 514, "angle": -90, "longueur": 273 },
+    { "id": "oreille_g", "parent": "tete", "x": 367, "y": 241, "angle": -120, "longueur": 137 },
+    { "id": "oreille_d", "parent": "tete", "x": 667, "y": 241, "angle": -60, "longueur": 137 },
+    { "id": "bras_g", "parent": "torse", "x": 367, "y": 678, "angle": 160, "longueur": 127 },
+    { "id": "bras_d", "parent": "torse", "x": 667, "y": 678, "angle": 20, "longueur": 127 },
+    { "id": "jambe_g", "parent": "bassin", "x": 417, "y": 860, "angle": 100, "longueur": 82 },
+    { "id": "jambe_d", "parent": "bassin", "x": 617, "y": 860, "angle": 80, "longueur": 82 },
+    { "id": "queue", "parent": "bassin", "x": 717, "y": 805, "angle": -30, "longueur": 127 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

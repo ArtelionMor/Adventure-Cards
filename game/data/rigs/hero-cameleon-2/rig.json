@@ -7,7 +7,7 @@
     "image": "source.png",
     "largeur": 1024,
     "hauteur": 1024,
-    "origine": "Graphical Assets/Characters/Cameleon/Hero Cameleon 2.png"
+    "origine": "Graphical Assets/Characters/Hero Cameleon 2.png"
   },
   "os": [
     { "id": "sol", "parent": null, "x": 219, "y": 940, "angle": 0, "longueur": 623 },

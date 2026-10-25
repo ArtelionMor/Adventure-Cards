@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "grande-mechante-colere",
+  "nom": "Grande méchante colère",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Captain Frog/Grande méchante colère.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 115, "y": 924, "angle": 0, "longueur": 808 },
+    { "id": "bassin", "parent": "sol", "x": 519, "y": 849, "angle": -90, "longueur": 75 },
+    { "id": "torse", "parent": "bassin", "x": 519, "y": 774, "angle": -90, "longueur": 187 },
+    { "id": "tete", "parent": "torse", "x": 519, "y": 493, "angle": -90, "longueur": 281 },
+    { "id": "oreille_g", "parent": "tete", "x": 368, "y": 212, "angle": -120, "longueur": 140 },
+    { "id": "oreille_d", "parent": "tete", "x": 671, "y": 212, "angle": -60, "longueur": 140 },
+    { "id": "bras_g", "parent": "torse", "x": 368, "y": 661, "angle": 160, "longueur": 131 },
+    { "id": "bras_d", "parent": "torse", "x": 671, "y": 661, "angle": 20, "longueur": 131 },
+    { "id": "jambe_g", "parent": "bassin", "x": 418, "y": 849, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 620, "y": 849, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 721, "y": 793, "angle": -30, "longueur": 131 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

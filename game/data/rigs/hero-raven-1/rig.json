@@ -7,7 +7,7 @@
     "image": "source.png",
     "largeur": 1024,
     "hauteur": 1024,
-    "origine": "Graphical Assets/Characters/Crow/Hero Raven 1.png"
+    "origine": "Graphical Assets/Characters/Hero Raven 1.png"
   },
   "os": [
     { "id": "sol", "parent": null, "x": 209, "y": 959, "angle": 0, "longueur": 658 },

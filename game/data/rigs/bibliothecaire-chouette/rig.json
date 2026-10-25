@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "bibliothecaire-chouette",
+  "nom": "Bibliothécaire Chouette",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 3/Bibliothécaire Chouette.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 181, "y": 969, "angle": 0, "longueur": 675 },
+    { "id": "bassin", "parent": "sol", "x": 519, "y": 890, "angle": -90, "longueur": 79 },
+    { "id": "torse", "parent": "bassin", "x": 519, "y": 811, "angle": -90, "longueur": 198 },
+    { "id": "tete", "parent": "torse", "x": 519, "y": 515, "angle": -90, "longueur": 296 },
+    { "id": "oreille_g", "parent": "tete", "x": 392, "y": 219, "angle": -120, "longueur": 148 },
+    { "id": "oreille_d", "parent": "tete", "x": 646, "y": 219, "angle": -60, "longueur": 148 },
+    { "id": "bras_g", "parent": "torse", "x": 392, "y": 693, "angle": 160, "longueur": 138 },
+    { "id": "bras_d", "parent": "torse", "x": 646, "y": 693, "angle": 20, "longueur": 138 },
+    { "id": "jambe_g", "parent": "bassin", "x": 435, "y": 890, "angle": 100, "longueur": 89 },
+    { "id": "jambe_d", "parent": "bassin", "x": 603, "y": 890, "angle": 80, "longueur": 89 },
+    { "id": "queue", "parent": "bassin", "x": 688, "y": 831, "angle": -30, "longueur": 138 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

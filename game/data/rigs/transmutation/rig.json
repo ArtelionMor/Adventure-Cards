@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "transmutation",
+  "nom": "Transmutation",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Kitsune/Transmutation.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 106, "y": 787, "angle": 0, "longueur": 809 },
+    { "id": "bassin", "parent": "sol", "x": 511, "y": 730, "angle": -90, "longueur": 57 },
+    { "id": "torse", "parent": "bassin", "x": 511, "y": 673, "angle": -90, "longueur": 143 },
+    { "id": "tete", "parent": "torse", "x": 511, "y": 458, "angle": -90, "longueur": 215 },
+    { "id": "oreille_g", "parent": "tete", "x": 359, "y": 242, "angle": -120, "longueur": 108 },
+    { "id": "oreille_d", "parent": "tete", "x": 662, "y": 242, "angle": -60, "longueur": 108 },
+    { "id": "bras_g", "parent": "torse", "x": 359, "y": 587, "angle": 160, "longueur": 100 },
+    { "id": "bras_d", "parent": "torse", "x": 662, "y": 587, "angle": 20, "longueur": 100 },
+    { "id": "jambe_g", "parent": "bassin", "x": 409, "y": 730, "angle": 100, "longueur": 65 },
+    { "id": "jambe_d", "parent": "bassin", "x": 612, "y": 730, "angle": 80, "longueur": 65 },
+    { "id": "queue", "parent": "bassin", "x": 713, "y": 687, "angle": -30, "longueur": 100 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

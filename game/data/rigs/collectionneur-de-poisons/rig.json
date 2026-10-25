@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "collectionneur-de-poisons",
+  "nom": "Collectionneur de Poisons",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 3/Collectionneur de Poisons.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 118, "y": 921, "angle": 0, "longueur": 774 },
+    { "id": "bassin", "parent": "sol", "x": 505, "y": 854, "angle": -90, "longueur": 67 },
+    { "id": "torse", "parent": "bassin", "x": 505, "y": 787, "angle": -90, "longueur": 168 },
+    { "id": "tete", "parent": "torse", "x": 505, "y": 534, "angle": -90, "longueur": 253 },
+    { "id": "oreille_g", "parent": "tete", "x": 360, "y": 281, "angle": -120, "longueur": 126 },
+    { "id": "oreille_d", "parent": "tete", "x": 650, "y": 281, "angle": -60, "longueur": 126 },
+    { "id": "bras_g", "parent": "torse", "x": 360, "y": 686, "angle": 160, "longueur": 118 },
+    { "id": "bras_d", "parent": "torse", "x": 650, "y": 686, "angle": 20, "longueur": 118 },
+    { "id": "jambe_g", "parent": "bassin", "x": 408, "y": 854, "angle": 100, "longueur": 76 },
+    { "id": "jambe_d", "parent": "bassin", "x": 602, "y": 854, "angle": 80, "longueur": 76 },
+    { "id": "queue", "parent": "bassin", "x": 699, "y": 803, "angle": -30, "longueur": 118 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

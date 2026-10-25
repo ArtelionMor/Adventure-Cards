@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "parain-des-ruelles",
+  "nom": "Parain des Ruelles",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 2/Parain des Ruelles.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 119, "y": 981, "angle": 0, "longueur": 795 },
+    { "id": "bassin", "parent": "sol", "x": 517, "y": 900, "angle": -90, "longueur": 81 },
+    { "id": "torse", "parent": "bassin", "x": 517, "y": 819, "angle": -90, "longueur": 202 },
+    { "id": "tete", "parent": "torse", "x": 517, "y": 517, "angle": -90, "longueur": 302 },
+    { "id": "oreille_g", "parent": "tete", "x": 368, "y": 215, "angle": -120, "longueur": 151 },
+    { "id": "oreille_d", "parent": "tete", "x": 666, "y": 215, "angle": -60, "longueur": 151 },
+    { "id": "bras_g", "parent": "torse", "x": 368, "y": 698, "angle": 160, "longueur": 141 },
+    { "id": "bras_d", "parent": "torse", "x": 666, "y": 698, "angle": 20, "longueur": 141 },
+    { "id": "jambe_g", "parent": "bassin", "x": 418, "y": 900, "angle": 100, "longueur": 91 },
+    { "id": "jambe_d", "parent": "bassin", "x": 616, "y": 900, "angle": 80, "longueur": 91 },
+    { "id": "queue", "parent": "bassin", "x": 716, "y": 840, "angle": -30, "longueur": 141 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

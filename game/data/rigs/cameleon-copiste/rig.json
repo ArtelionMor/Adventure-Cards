@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "cameleon-copiste",
+  "nom": "Caméléon Copiste",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 3/Caméléon Copiste.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 119, "y": 957, "angle": 0, "longueur": 771 },
+    { "id": "bassin", "parent": "sol", "x": 505, "y": 881, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 505, "y": 805, "angle": -90, "longueur": 190 },
+    { "id": "tete", "parent": "torse", "x": 505, "y": 519, "angle": -90, "longueur": 286 },
+    { "id": "oreille_g", "parent": "tete", "x": 360, "y": 233, "angle": -120, "longueur": 143 },
+    { "id": "oreille_d", "parent": "tete", "x": 650, "y": 233, "angle": -60, "longueur": 143 },
+    { "id": "bras_g", "parent": "torse", "x": 360, "y": 690, "angle": 160, "longueur": 133 },
+    { "id": "bras_d", "parent": "torse", "x": 650, "y": 690, "angle": 20, "longueur": 133 },
+    { "id": "jambe_g", "parent": "bassin", "x": 409, "y": 881, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 601, "y": 881, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 698, "y": 824, "angle": -30, "longueur": 133 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

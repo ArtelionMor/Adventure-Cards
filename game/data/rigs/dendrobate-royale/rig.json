@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "dendrobate-royale",
+  "nom": "Dendrobate Royale",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 3/Dendrobate Royale.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 217, "y": 929, "angle": 0, "longueur": 610 },
+    { "id": "bassin", "parent": "sol", "x": 522, "y": 856, "angle": -90, "longueur": 73 },
+    { "id": "torse", "parent": "bassin", "x": 522, "y": 783, "angle": -90, "longueur": 182 },
+    { "id": "tete", "parent": "torse", "x": 522, "y": 510, "angle": -90, "longueur": 273 },
+    { "id": "oreille_g", "parent": "tete", "x": 408, "y": 237, "angle": -120, "longueur": 137 },
+    { "id": "oreille_d", "parent": "tete", "x": 636, "y": 237, "angle": -60, "longueur": 137 },
+    { "id": "bras_g", "parent": "torse", "x": 408, "y": 674, "angle": 160, "longueur": 127 },
+    { "id": "bras_d", "parent": "torse", "x": 636, "y": 674, "angle": 20, "longueur": 127 },
+    { "id": "jambe_g", "parent": "bassin", "x": 446, "y": 856, "angle": 100, "longueur": 82 },
+    { "id": "jambe_d", "parent": "bassin", "x": 598, "y": 856, "angle": 80, "longueur": 82 },
+    { "id": "queue", "parent": "bassin", "x": 674, "y": 801, "angle": -30, "longueur": 127 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "grenouille-quartier-maitre",
+  "nom": "Grenouille Quartier-Maître",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Venimous Frog/Grenouille Quartier-Maître.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 171, "y": 948, "angle": 0, "longueur": 702 },
+    { "id": "bassin", "parent": "sol", "x": 522, "y": 875, "angle": -90, "longueur": 73 },
+    { "id": "torse", "parent": "bassin", "x": 522, "y": 801, "angle": -90, "longueur": 184 },
+    { "id": "tete", "parent": "torse", "x": 522, "y": 526, "angle": -90, "longueur": 275 },
+    { "id": "oreille_g", "parent": "tete", "x": 390, "y": 251, "angle": -120, "longueur": 138 },
+    { "id": "oreille_d", "parent": "tete", "x": 653, "y": 251, "angle": -60, "longueur": 138 },
+    { "id": "bras_g", "parent": "torse", "x": 390, "y": 691, "angle": 160, "longueur": 129 },
+    { "id": "bras_d", "parent": "torse", "x": 653, "y": 691, "angle": 20, "longueur": 129 },
+    { "id": "jambe_g", "parent": "bassin", "x": 434, "y": 875, "angle": 100, "longueur": 83 },
+    { "id": "jambe_d", "parent": "bassin", "x": 609, "y": 875, "angle": 80, "longueur": 83 },
+    { "id": "queue", "parent": "bassin", "x": 697, "y": 820, "angle": -30, "longueur": 129 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "mue",
+  "nom": "Mue",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 2/Mue.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 153, "y": 943, "angle": 0, "longueur": 730 },
+    { "id": "bassin", "parent": "sol", "x": 519, "y": 866, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 519, "y": 789, "angle": -90, "longueur": 192 },
+    { "id": "tete", "parent": "torse", "x": 519, "y": 500, "angle": -90, "longueur": 289 },
+    { "id": "oreille_g", "parent": "tete", "x": 382, "y": 211, "angle": -120, "longueur": 144 },
+    { "id": "oreille_d", "parent": "tete", "x": 655, "y": 211, "angle": -60, "longueur": 144 },
+    { "id": "bras_g", "parent": "torse", "x": 382, "y": 673, "angle": 160, "longueur": 135 },
+    { "id": "bras_d", "parent": "torse", "x": 655, "y": 673, "angle": 20, "longueur": 135 },
+    { "id": "jambe_g", "parent": "bassin", "x": 427, "y": 866, "angle": 100, "longueur": 87 },
+    { "id": "jambe_d", "parent": "bassin", "x": 610, "y": 866, "angle": 80, "longueur": 87 },
+    { "id": "queue", "parent": "bassin", "x": 701, "y": 808, "angle": -30, "longueur": 135 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

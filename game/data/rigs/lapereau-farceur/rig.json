@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "lapereau-farceur",
+  "nom": "Lapereau Farceur",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Rabbit Decks/Rabbit Deck 3/Lapereau Farceur.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 129, "y": 917, "angle": 0, "longueur": 759 },
+    { "id": "bassin", "parent": "sol", "x": 509, "y": 848, "angle": -90, "longueur": 68 },
+    { "id": "torse", "parent": "bassin", "x": 509, "y": 780, "angle": -90, "longueur": 171 },
+    { "id": "tete", "parent": "torse", "x": 509, "y": 524, "angle": -90, "longueur": 257 },
+    { "id": "oreille_g", "parent": "tete", "x": 366, "y": 267, "angle": -120, "longueur": 128 },
+    { "id": "oreille_d", "parent": "tete", "x": 651, "y": 267, "angle": -60, "longueur": 128 },
+    { "id": "bras_g", "parent": "torse", "x": 366, "y": 677, "angle": 160, "longueur": 120 },
+    { "id": "bras_d", "parent": "torse", "x": 651, "y": 677, "angle": 20, "longueur": 120 },
+    { "id": "jambe_g", "parent": "bassin", "x": 414, "y": 848, "angle": 100, "longueur": 77 },
+    { "id": "jambe_d", "parent": "bassin", "x": 603, "y": 848, "angle": 80, "longueur": 77 },
+    { "id": "queue", "parent": "bassin", "x": 698, "y": 797, "angle": -30, "longueur": 120 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

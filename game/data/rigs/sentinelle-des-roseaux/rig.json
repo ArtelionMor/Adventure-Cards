@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "sentinelle-des-roseaux",
+  "nom": "Sentinelle des Roseaux",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 3/Sentinelle des Roseaux.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 139, "y": 957, "angle": 0, "longueur": 739 },
+    { "id": "bassin", "parent": "sol", "x": 509, "y": 885, "angle": -90, "longueur": 72 },
+    { "id": "torse", "parent": "bassin", "x": 509, "y": 814, "angle": -90, "longueur": 179 },
+    { "id": "tete", "parent": "torse", "x": 509, "y": 545, "angle": -90, "longueur": 269 },
+    { "id": "oreille_g", "parent": "tete", "x": 370, "y": 276, "angle": -120, "longueur": 134 },
+    { "id": "oreille_d", "parent": "tete", "x": 648, "y": 276, "angle": -60, "longueur": 134 },
+    { "id": "bras_g", "parent": "torse", "x": 370, "y": 706, "angle": 160, "longueur": 125 },
+    { "id": "bras_d", "parent": "torse", "x": 648, "y": 706, "angle": 20, "longueur": 125 },
+    { "id": "jambe_g", "parent": "bassin", "x": 417, "y": 885, "angle": 100, "longueur": 81 },
+    { "id": "jambe_d", "parent": "bassin", "x": 601, "y": 885, "angle": 80, "longueur": 81 },
+    { "id": "queue", "parent": "bassin", "x": 694, "y": 832, "angle": -30, "longueur": 125 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

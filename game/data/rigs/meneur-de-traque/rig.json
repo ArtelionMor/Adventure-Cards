@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "meneur-de-traque",
+  "nom": "Meneur de traque",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Snow Fox/Meneur de traque.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 111, "y": 826, "angle": 0, "longueur": 812 },
+    { "id": "bassin", "parent": "sol", "x": 517, "y": 765, "angle": -90, "longueur": 61 },
+    { "id": "torse", "parent": "bassin", "x": 517, "y": 704, "angle": -90, "longueur": 153 },
+    { "id": "tete", "parent": "torse", "x": 517, "y": 475, "angle": -90, "longueur": 229 },
+    { "id": "oreille_g", "parent": "tete", "x": 364, "y": 246, "angle": -120, "longueur": 115 },
+    { "id": "oreille_d", "parent": "tete", "x": 669, "y": 246, "angle": -60, "longueur": 115 },
+    { "id": "bras_g", "parent": "torse", "x": 364, "y": 613, "angle": 160, "longueur": 107 },
+    { "id": "bras_d", "parent": "torse", "x": 669, "y": 613, "angle": 20, "longueur": 107 },
+    { "id": "jambe_g", "parent": "bassin", "x": 415, "y": 765, "angle": 100, "longueur": 69 },
+    { "id": "jambe_d", "parent": "bassin", "x": 618, "y": 765, "angle": 80, "longueur": 69 },
+    { "id": "queue", "parent": "bassin", "x": 720, "y": 719, "angle": -30, "longueur": 107 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

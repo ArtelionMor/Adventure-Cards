@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "lapin-nomade",
+  "nom": "Lapin Nomade",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Rabbit Decks/Rabbit Deck 2/Lapin Nomade.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 162, "y": 956, "angle": 0, "longueur": 697 },
+    { "id": "bassin", "parent": "sol", "x": 511, "y": 879, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 511, "y": 801, "angle": -90, "longueur": 194 },
+    { "id": "tete", "parent": "torse", "x": 511, "y": 511, "angle": -90, "longueur": 290 },
+    { "id": "oreille_g", "parent": "tete", "x": 380, "y": 221, "angle": -120, "longueur": 145 },
+    { "id": "oreille_d", "parent": "tete", "x": 641, "y": 221, "angle": -60, "longueur": 145 },
+    { "id": "bras_g", "parent": "torse", "x": 380, "y": 685, "angle": 160, "longueur": 136 },
+    { "id": "bras_d", "parent": "torse", "x": 641, "y": 685, "angle": 20, "longueur": 136 },
+    { "id": "jambe_g", "parent": "bassin", "x": 423, "y": 879, "angle": 100, "longueur": 87 },
+    { "id": "jambe_d", "parent": "bassin", "x": 598, "y": 879, "angle": 80, "longueur": 87 },
+    { "id": "queue", "parent": "bassin", "x": 685, "y": 821, "angle": -30, "longueur": 136 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "meute",
+  "nom": "Meute",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Dog Decks/Dog Deck 1/Meute.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 117, "y": 966, "angle": 0, "longueur": 804 },
+    { "id": "bassin", "parent": "sol", "x": 519, "y": 887, "angle": -90, "longueur": 79 },
+    { "id": "torse", "parent": "bassin", "x": 519, "y": 807, "angle": -90, "longueur": 199 },
+    { "id": "tete", "parent": "torse", "x": 519, "y": 510, "angle": -90, "longueur": 298 },
+    { "id": "oreille_g", "parent": "tete", "x": 368, "y": 212, "angle": -120, "longueur": 149 },
+    { "id": "oreille_d", "parent": "tete", "x": 669, "y": 212, "angle": -60, "longueur": 149 },
+    { "id": "bras_g", "parent": "torse", "x": 368, "y": 688, "angle": 160, "longueur": 139 },
+    { "id": "bras_d", "parent": "torse", "x": 669, "y": 688, "angle": 20, "longueur": 139 },
+    { "id": "jambe_g", "parent": "bassin", "x": 418, "y": 887, "angle": 100, "longueur": 89 },
+    { "id": "jambe_d", "parent": "bassin", "x": 619, "y": 887, "angle": 80, "longueur": 89 },
+    { "id": "queue", "parent": "bassin", "x": 720, "y": 827, "angle": -30, "longueur": 139 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

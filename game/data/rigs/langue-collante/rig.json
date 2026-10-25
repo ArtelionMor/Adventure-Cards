@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "langue-collante",
+  "nom": "Langue Collante",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 1/Langue Collante.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 138, "y": 846, "angle": 0, "longueur": 726 },
+    { "id": "bassin", "parent": "sol", "x": 501, "y": 785, "angle": -90, "longueur": 61 },
+    { "id": "torse", "parent": "bassin", "x": 501, "y": 725, "angle": -90, "longueur": 151 },
+    { "id": "tete", "parent": "torse", "x": 501, "y": 498, "angle": -90, "longueur": 227 },
+    { "id": "oreille_g", "parent": "tete", "x": 364, "y": 270, "angle": -120, "longueur": 114 },
+    { "id": "oreille_d", "parent": "tete", "x": 637, "y": 270, "angle": -60, "longueur": 114 },
+    { "id": "bras_g", "parent": "torse", "x": 364, "y": 634, "angle": 160, "longueur": 106 },
+    { "id": "bras_d", "parent": "torse", "x": 637, "y": 634, "angle": 20, "longueur": 106 },
+    { "id": "jambe_g", "parent": "bassin", "x": 410, "y": 785, "angle": 100, "longueur": 68 },
+    { "id": "jambe_d", "parent": "bassin", "x": 591, "y": 785, "angle": 80, "longueur": 68 },
+    { "id": "queue", "parent": "bassin", "x": 682, "y": 740, "angle": -30, "longueur": 106 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "pilote-rouge-gorge",
+  "nom": "Pilote Rouge-Gorge",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Pilote Rouge-Gorge.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 194, "y": 959, "angle": 0, "longueur": 700 },
+    { "id": "bassin", "parent": "sol", "x": 544, "y": 881, "angle": -90, "longueur": 78 },
+    { "id": "torse", "parent": "bassin", "x": 544, "y": 802, "angle": -90, "longueur": 196 },
+    { "id": "tete", "parent": "torse", "x": 544, "y": 509, "angle": -90, "longueur": 293 },
+    { "id": "oreille_g", "parent": "tete", "x": 412, "y": 216, "angle": -120, "longueur": 147 },
+    { "id": "oreille_d", "parent": "tete", "x": 675, "y": 216, "angle": -60, "longueur": 147 },
+    { "id": "bras_g", "parent": "torse", "x": 412, "y": 685, "angle": 160, "longueur": 137 },
+    { "id": "bras_d", "parent": "torse", "x": 675, "y": 685, "angle": 20, "longueur": 137 },
+    { "id": "jambe_g", "parent": "bassin", "x": 456, "y": 881, "angle": 100, "longueur": 88 },
+    { "id": "jambe_d", "parent": "bassin", "x": 631, "y": 881, "angle": 80, "longueur": 88 },
+    { "id": "queue", "parent": "bassin", "x": 719, "y": 822, "angle": -30, "longueur": 137 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

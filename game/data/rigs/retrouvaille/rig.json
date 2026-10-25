@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "retrouvaille",
+  "nom": "Retrouvaille",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Dog Decks/Dog Deck 1/Retrouvaille.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 137, "y": 929, "angle": 0, "longueur": 755 },
+    { "id": "bassin", "parent": "sol", "x": 515, "y": 858, "angle": -90, "longueur": 71 },
+    { "id": "torse", "parent": "bassin", "x": 515, "y": 787, "angle": -90, "longueur": 178 },
+    { "id": "tete", "parent": "torse", "x": 515, "y": 520, "angle": -90, "longueur": 267 },
+    { "id": "oreille_g", "parent": "tete", "x": 373, "y": 252, "angle": -120, "longueur": 134 },
+    { "id": "oreille_d", "parent": "tete", "x": 657, "y": 252, "angle": -60, "longueur": 134 },
+    { "id": "bras_g", "parent": "torse", "x": 373, "y": 680, "angle": 160, "longueur": 125 },
+    { "id": "bras_d", "parent": "torse", "x": 657, "y": 680, "angle": 20, "longueur": 125 },
+    { "id": "jambe_g", "parent": "bassin", "x": 421, "y": 858, "angle": 100, "longueur": 80 },
+    { "id": "jambe_d", "parent": "bassin", "x": 609, "y": 858, "angle": 80, "longueur": 80 },
+    { "id": "queue", "parent": "bassin", "x": 704, "y": 805, "angle": -30, "longueur": 125 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

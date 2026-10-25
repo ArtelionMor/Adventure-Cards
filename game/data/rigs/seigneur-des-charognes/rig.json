@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "seigneur-des-charognes",
+  "nom": "Seigneur des Charognes",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 3/Seigneur des Charognes.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 109, "y": 974, "angle": 0, "longueur": 806 },
+    { "id": "bassin", "parent": "sol", "x": 512, "y": 893, "angle": -90, "longueur": 81 },
+    { "id": "torse", "parent": "bassin", "x": 512, "y": 812, "angle": -90, "longueur": 202 },
+    { "id": "tete", "parent": "torse", "x": 512, "y": 510, "angle": -90, "longueur": 303 },
+    { "id": "oreille_g", "parent": "tete", "x": 360, "y": 207, "angle": -120, "longueur": 151 },
+    { "id": "oreille_d", "parent": "tete", "x": 663, "y": 207, "angle": -60, "longueur": 151 },
+    { "id": "bras_g", "parent": "torse", "x": 360, "y": 691, "angle": 160, "longueur": 141 },
+    { "id": "bras_d", "parent": "torse", "x": 663, "y": 691, "angle": 20, "longueur": 141 },
+    { "id": "jambe_g", "parent": "bassin", "x": 411, "y": 893, "angle": 100, "longueur": 91 },
+    { "id": "jambe_d", "parent": "bassin", "x": 612, "y": 893, "angle": 80, "longueur": 91 },
+    { "id": "queue", "parent": "bassin", "x": 713, "y": 832, "angle": -30, "longueur": 141 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

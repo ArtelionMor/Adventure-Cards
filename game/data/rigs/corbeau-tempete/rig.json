@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "corbeau-tempete",
+  "nom": "Corbeau Tempête",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 2/Corbeau Tempête.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 114, "y": 930, "angle": 0, "longueur": 735 },
+    { "id": "bassin", "parent": "sol", "x": 482, "y": 853, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 482, "y": 776, "angle": -90, "longueur": 192 },
+    { "id": "tete", "parent": "torse", "x": 482, "y": 489, "angle": -90, "longueur": 288 },
+    { "id": "oreille_g", "parent": "tete", "x": 344, "y": 201, "angle": -120, "longueur": 144 },
+    { "id": "oreille_d", "parent": "tete", "x": 619, "y": 201, "angle": -60, "longueur": 144 },
+    { "id": "bras_g", "parent": "torse", "x": 344, "y": 661, "angle": 160, "longueur": 134 },
+    { "id": "bras_d", "parent": "torse", "x": 619, "y": 661, "angle": 20, "longueur": 134 },
+    { "id": "jambe_g", "parent": "bassin", "x": 390, "y": 853, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 573, "y": 853, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 665, "y": 795, "angle": -30, "longueur": 134 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

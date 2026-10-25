@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "cameleon-journaliste",
+  "nom": "Caméléon Journaliste",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 3/Caméléon Journaliste.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 185, "y": 931, "angle": 0, "longueur": 643 },
+    { "id": "bassin", "parent": "sol", "x": 507, "y": 860, "angle": -90, "longueur": 71 },
+    { "id": "torse", "parent": "bassin", "x": 507, "y": 789, "angle": -90, "longueur": 178 },
+    { "id": "tete", "parent": "torse", "x": 507, "y": 521, "angle": -90, "longueur": 268 },
+    { "id": "oreille_g", "parent": "tete", "x": 386, "y": 253, "angle": -120, "longueur": 134 },
+    { "id": "oreille_d", "parent": "tete", "x": 628, "y": 253, "angle": -60, "longueur": 134 },
+    { "id": "bras_g", "parent": "torse", "x": 386, "y": 682, "angle": 160, "longueur": 125 },
+    { "id": "bras_d", "parent": "torse", "x": 628, "y": 682, "angle": 20, "longueur": 125 },
+    { "id": "jambe_g", "parent": "bassin", "x": 427, "y": 860, "angle": 100, "longueur": 80 },
+    { "id": "jambe_d", "parent": "bassin", "x": 587, "y": 860, "angle": 80, "longueur": 80 },
+    { "id": "queue", "parent": "bassin", "x": 668, "y": 806, "angle": -30, "longueur": 125 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

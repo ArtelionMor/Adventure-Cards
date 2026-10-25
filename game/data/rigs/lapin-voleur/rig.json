@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "lapin-voleur",
+  "nom": "Lapin Voleur",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Rabbit Decks/Rabbit Deck 1/Lapin Voleur.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 163, "y": 935, "angle": 0, "longueur": 721 },
+    { "id": "bassin", "parent": "sol", "x": 524, "y": 862, "angle": -90, "longueur": 72 },
+    { "id": "torse", "parent": "bassin", "x": 524, "y": 790, "angle": -90, "longueur": 181 },
+    { "id": "tete", "parent": "torse", "x": 524, "y": 518, "angle": -90, "longueur": 272 },
+    { "id": "oreille_g", "parent": "tete", "x": 388, "y": 246, "angle": -120, "longueur": 136 },
+    { "id": "oreille_d", "parent": "tete", "x": 659, "y": 246, "angle": -60, "longueur": 136 },
+    { "id": "bras_g", "parent": "torse", "x": 388, "y": 681, "angle": 160, "longueur": 127 },
+    { "id": "bras_d", "parent": "torse", "x": 659, "y": 681, "angle": 20, "longueur": 127 },
+    { "id": "jambe_g", "parent": "bassin", "x": 433, "y": 862, "angle": 100, "longueur": 82 },
+    { "id": "jambe_d", "parent": "bassin", "x": 614, "y": 862, "angle": 80, "longueur": 82 },
+    { "id": "queue", "parent": "bassin", "x": 704, "y": 808, "angle": -30, "longueur": 127 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

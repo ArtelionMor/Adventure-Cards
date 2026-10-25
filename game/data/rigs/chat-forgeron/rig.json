@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "chat-forgeron",
+  "nom": "Chat Forgeron",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 2/Chat Forgeron.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 137, "y": 943, "angle": 0, "longueur": 753 },
+    { "id": "bassin", "parent": "sol", "x": 514, "y": 870, "angle": -90, "longueur": 73 },
+    { "id": "torse", "parent": "bassin", "x": 514, "y": 797, "angle": -90, "longueur": 183 },
+    { "id": "tete", "parent": "torse", "x": 514, "y": 523, "angle": -90, "longueur": 274 },
+    { "id": "oreille_g", "parent": "tete", "x": 372, "y": 249, "angle": -120, "longueur": 137 },
+    { "id": "oreille_d", "parent": "tete", "x": 655, "y": 249, "angle": -60, "longueur": 137 },
+    { "id": "bras_g", "parent": "torse", "x": 372, "y": 688, "angle": 160, "longueur": 128 },
+    { "id": "bras_d", "parent": "torse", "x": 655, "y": 688, "angle": 20, "longueur": 128 },
+    { "id": "jambe_g", "parent": "bassin", "x": 419, "y": 870, "angle": 100, "longueur": 82 },
+    { "id": "jambe_d", "parent": "bassin", "x": 608, "y": 870, "angle": 80, "longueur": 82 },
+    { "id": "queue", "parent": "bassin", "x": 702, "y": 815, "angle": -30, "longueur": 128 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

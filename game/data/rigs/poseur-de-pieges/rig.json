@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "poseur-de-pieges",
+  "nom": "Poseur de pièges",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 2/Poseur de pièges.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 144, "y": 925, "angle": 0, "longueur": 734 },
+    { "id": "bassin", "parent": "sol", "x": 511, "y": 853, "angle": -90, "longueur": 72 },
+    { "id": "torse", "parent": "bassin", "x": 511, "y": 781, "angle": -90, "longueur": 180 },
+    { "id": "tete", "parent": "torse", "x": 511, "y": 512, "angle": -90, "longueur": 270 },
+    { "id": "oreille_g", "parent": "tete", "x": 373, "y": 242, "angle": -120, "longueur": 135 },
+    { "id": "oreille_d", "parent": "tete", "x": 649, "y": 242, "angle": -60, "longueur": 135 },
+    { "id": "bras_g", "parent": "torse", "x": 373, "y": 673, "angle": 160, "longueur": 126 },
+    { "id": "bras_d", "parent": "torse", "x": 649, "y": 673, "angle": 20, "longueur": 126 },
+    { "id": "jambe_g", "parent": "bassin", "x": 419, "y": 853, "angle": 100, "longueur": 81 },
+    { "id": "jambe_d", "parent": "bassin", "x": 603, "y": 853, "angle": 80, "longueur": 81 },
+    { "id": "queue", "parent": "bassin", "x": 695, "y": 799, "angle": -30, "longueur": 126 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

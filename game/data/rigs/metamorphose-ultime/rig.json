@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "metamorphose-ultime",
+  "nom": "Métamorphose Ultime",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 1/Métamorphose Ultime.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 132, "y": 808, "angle": 0, "longueur": 750 },
+    { "id": "bassin", "parent": "sol", "x": 507, "y": 755, "angle": -90, "longueur": 54 },
+    { "id": "torse", "parent": "bassin", "x": 507, "y": 701, "angle": -90, "longueur": 134 },
+    { "id": "tete", "parent": "torse", "x": 507, "y": 501, "angle": -90, "longueur": 201 },
+    { "id": "oreille_g", "parent": "tete", "x": 366, "y": 300, "angle": -120, "longueur": 100 },
+    { "id": "oreille_d", "parent": "tete", "x": 647, "y": 300, "angle": -60, "longueur": 100 },
+    { "id": "bras_g", "parent": "torse", "x": 366, "y": 621, "angle": 160, "longueur": 94 },
+    { "id": "bras_d", "parent": "torse", "x": 647, "y": 621, "angle": 20, "longueur": 94 },
+    { "id": "jambe_g", "parent": "bassin", "x": 413, "y": 755, "angle": 100, "longueur": 60 },
+    { "id": "jambe_d", "parent": "bassin", "x": 600, "y": 755, "angle": 80, "longueur": 60 },
+    { "id": "queue", "parent": "bassin", "x": 694, "y": 715, "angle": -30, "longueur": 94 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

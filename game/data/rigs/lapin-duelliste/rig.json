@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "lapin-duelliste",
+  "nom": "Lapin Duelliste",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Rabbit Decks/Rabbit Deck 3/Lapin Duelliste.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 149, "y": 948, "angle": 0, "longueur": 726 },
+    { "id": "bassin", "parent": "sol", "x": 512, "y": 871, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 512, "y": 795, "angle": -90, "longueur": 191 },
+    { "id": "tete", "parent": "torse", "x": 512, "y": 509, "angle": -90, "longueur": 287 },
+    { "id": "oreille_g", "parent": "tete", "x": 375, "y": 222, "angle": -120, "longueur": 143 },
+    { "id": "oreille_d", "parent": "tete", "x": 648, "y": 222, "angle": -60, "longueur": 143 },
+    { "id": "bras_g", "parent": "torse", "x": 375, "y": 680, "angle": 160, "longueur": 134 },
+    { "id": "bras_d", "parent": "torse", "x": 648, "y": 680, "angle": 20, "longueur": 134 },
+    { "id": "jambe_g", "parent": "bassin", "x": 421, "y": 871, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 602, "y": 871, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 693, "y": 814, "angle": -30, "longueur": 134 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

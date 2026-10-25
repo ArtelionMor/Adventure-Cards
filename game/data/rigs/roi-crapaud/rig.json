@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "roi-crapaud",
+  "nom": "Roi Crapaud",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 2/Roi Crapaud.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 163, "y": 944, "angle": 0, "longueur": 728 },
+    { "id": "bassin", "parent": "sol", "x": 527, "y": 869, "angle": -90, "longueur": 74 },
+    { "id": "torse", "parent": "bassin", "x": 527, "y": 795, "angle": -90, "longueur": 186 },
+    { "id": "tete", "parent": "torse", "x": 527, "y": 516, "angle": -90, "longueur": 279 },
+    { "id": "oreille_g", "parent": "tete", "x": 391, "y": 237, "angle": -120, "longueur": 140 },
+    { "id": "oreille_d", "parent": "tete", "x": 664, "y": 237, "angle": -60, "longueur": 140 },
+    { "id": "bras_g", "parent": "torse", "x": 391, "y": 683, "angle": 160, "longueur": 130 },
+    { "id": "bras_d", "parent": "torse", "x": 664, "y": 683, "angle": 20, "longueur": 130 },
+    { "id": "jambe_g", "parent": "bassin", "x": 436, "y": 869, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 618, "y": 869, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 709, "y": 814, "angle": -30, "longueur": 130 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

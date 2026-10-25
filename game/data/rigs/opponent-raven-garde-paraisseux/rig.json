@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "opponent-raven-garde-paraisseux",
+  "nom": "Garde paraisseux",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Raven/Garde paraisseux.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 153, "y": 923, "angle": 0, "longueur": 743 },
+    { "id": "bassin", "parent": "sol", "x": 525, "y": 848, "angle": -90, "longueur": 75 },
+    { "id": "torse", "parent": "bassin", "x": 525, "y": 773, "angle": -90, "longueur": 188 },
+    { "id": "tete", "parent": "torse", "x": 525, "y": 492, "angle": -90, "longueur": 281 },
+    { "id": "oreille_g", "parent": "tete", "x": 385, "y": 211, "angle": -120, "longueur": 141 },
+    { "id": "oreille_d", "parent": "tete", "x": 664, "y": 211, "angle": -60, "longueur": 141 },
+    { "id": "bras_g", "parent": "torse", "x": 385, "y": 661, "angle": 160, "longueur": 131 },
+    { "id": "bras_d", "parent": "torse", "x": 664, "y": 661, "angle": 20, "longueur": 131 },
+    { "id": "jambe_g", "parent": "bassin", "x": 432, "y": 848, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 617, "y": 848, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 710, "y": 792, "angle": -30, "longueur": 131 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

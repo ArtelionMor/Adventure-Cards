@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "chien-de-berger",
+  "nom": "Chien de Berger",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Dog Decks/Dog Deck 1/Chien de Berger.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 197, "y": 957, "angle": 0, "longueur": 630 },
+    { "id": "bassin", "parent": "sol", "x": 512, "y": 886, "angle": -90, "longueur": 71 },
+    { "id": "torse", "parent": "bassin", "x": 512, "y": 815, "angle": -90, "longueur": 178 },
+    { "id": "tete", "parent": "torse", "x": 512, "y": 547, "angle": -90, "longueur": 268 },
+    { "id": "oreille_g", "parent": "tete", "x": 394, "y": 279, "angle": -120, "longueur": 134 },
+    { "id": "oreille_d", "parent": "tete", "x": 630, "y": 279, "angle": -60, "longueur": 134 },
+    { "id": "bras_g", "parent": "torse", "x": 394, "y": 708, "angle": 160, "longueur": 125 },
+    { "id": "bras_d", "parent": "torse", "x": 630, "y": 708, "angle": 20, "longueur": 125 },
+    { "id": "jambe_g", "parent": "bassin", "x": 433, "y": 886, "angle": 100, "longueur": 80 },
+    { "id": "jambe_d", "parent": "bassin", "x": 591, "y": 886, "angle": 80, "longueur": 80 },
+    { "id": "queue", "parent": "bassin", "x": 670, "y": 832, "angle": -30, "longueur": 125 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

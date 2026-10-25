@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "volte-face",
+  "nom": "Volte-Face",
+  "source": {
+    "image": "source.png",
+    "largeur": 1200,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 1/Volte-Face.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 147, "y": 922, "angle": 0, "longueur": 920 },
+    { "id": "bassin", "parent": "sol", "x": 607, "y": 846, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 607, "y": 769, "angle": -90, "longueur": 191 },
+    { "id": "tete", "parent": "torse", "x": 607, "y": 484, "angle": -90, "longueur": 286 },
+    { "id": "oreille_g", "parent": "tete", "x": 435, "y": 198, "angle": -120, "longueur": 143 },
+    { "id": "oreille_d", "parent": "tete", "x": 780, "y": 198, "angle": -60, "longueur": 143 },
+    { "id": "bras_g", "parent": "torse", "x": 435, "y": 655, "angle": 160, "longueur": 133 },
+    { "id": "bras_d", "parent": "torse", "x": 780, "y": 655, "angle": 20, "longueur": 133 },
+    { "id": "jambe_g", "parent": "bassin", "x": 492, "y": 846, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 722, "y": 846, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 837, "y": 788, "angle": -30, "longueur": 133 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1200,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

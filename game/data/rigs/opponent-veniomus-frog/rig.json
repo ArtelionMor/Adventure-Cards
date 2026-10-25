@@ -7,7 +7,7 @@
     "image": "source.png",
     "largeur": 1024,
     "hauteur": 1024,
-    "origine": "Graphical Assets/Characters/Opponents/Opponent Veniomus Frog.png"
+    "origine": "Graphical Assets/Characters/Opponent Veniomus Frog.png"
   },
   "os": [
     { "id": "sol", "parent": null, "x": 147, "y": 906, "angle": 0, "longueur": 727 },

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "lapin-de-grange",
+  "nom": "Lapin de Grange",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Rabbit Decks/Rabbit Deck 2/Lapin de Grange.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 185, "y": 941, "angle": 0, "longueur": 707 },
+    { "id": "bassin", "parent": "sol", "x": 539, "y": 864, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 539, "y": 787, "angle": -90, "longueur": 193 },
+    { "id": "tete", "parent": "torse", "x": 539, "y": 499, "angle": -90, "longueur": 289 },
+    { "id": "oreille_g", "parent": "tete", "x": 406, "y": 210, "angle": -120, "longueur": 144 },
+    { "id": "oreille_d", "parent": "tete", "x": 672, "y": 210, "angle": -60, "longueur": 144 },
+    { "id": "bras_g", "parent": "torse", "x": 406, "y": 672, "angle": 160, "longueur": 135 },
+    { "id": "bras_d", "parent": "torse", "x": 672, "y": 672, "angle": 20, "longueur": 135 },
+    { "id": "jambe_g", "parent": "bassin", "x": 451, "y": 864, "angle": 100, "longueur": 87 },
+    { "id": "jambe_d", "parent": "bassin", "x": 627, "y": 864, "angle": 80, "longueur": 87 },
+    { "id": "queue", "parent": "bassin", "x": 716, "y": 807, "angle": -30, "longueur": 135 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

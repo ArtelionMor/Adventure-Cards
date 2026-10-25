@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "danseur-de-gala",
+  "nom": "Danseur de Gala",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 2/Danseur de Gala.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 193, "y": 959, "angle": 0, "longueur": 671 },
+    { "id": "bassin", "parent": "sol", "x": 529, "y": 882, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 529, "y": 805, "angle": -90, "longueur": 192 },
+    { "id": "tete", "parent": "torse", "x": 529, "y": 517, "angle": -90, "longueur": 288 },
+    { "id": "oreille_g", "parent": "tete", "x": 403, "y": 229, "angle": -120, "longueur": 144 },
+    { "id": "oreille_d", "parent": "tete", "x": 654, "y": 229, "angle": -60, "longueur": 144 },
+    { "id": "bras_g", "parent": "torse", "x": 403, "y": 690, "angle": 160, "longueur": 134 },
+    { "id": "bras_d", "parent": "torse", "x": 654, "y": 690, "angle": 20, "longueur": 134 },
+    { "id": "jambe_g", "parent": "bassin", "x": 445, "y": 882, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 612, "y": 882, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 696, "y": 824, "angle": -30, "longueur": 134 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

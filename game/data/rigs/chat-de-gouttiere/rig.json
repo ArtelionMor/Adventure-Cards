@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "chat-de-gouttiere",
+  "nom": "Chat de Gouttière",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 1/Chat de Gouttière.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 149, "y": 937, "angle": 0, "longueur": 734 },
+    { "id": "bassin", "parent": "sol", "x": 516, "y": 866, "angle": -90, "longueur": 70 },
+    { "id": "torse", "parent": "bassin", "x": 516, "y": 796, "angle": -90, "longueur": 176 },
+    { "id": "tete", "parent": "torse", "x": 516, "y": 532, "angle": -90, "longueur": 264 },
+    { "id": "oreille_g", "parent": "tete", "x": 378, "y": 267, "angle": -120, "longueur": 132 },
+    { "id": "oreille_d", "parent": "tete", "x": 653, "y": 267, "angle": -60, "longueur": 132 },
+    { "id": "bras_g", "parent": "torse", "x": 378, "y": 690, "angle": 160, "longueur": 123 },
+    { "id": "bras_d", "parent": "torse", "x": 653, "y": 690, "angle": 20, "longueur": 123 },
+    { "id": "jambe_g", "parent": "bassin", "x": 424, "y": 866, "angle": 100, "longueur": 79 },
+    { "id": "jambe_d", "parent": "bassin", "x": 607, "y": 866, "angle": 80, "longueur": 79 },
+    { "id": "queue", "parent": "bassin", "x": 699, "y": 813, "angle": -30, "longueur": 123 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "chouette-erudite",
+  "nom": "Chouette Erudite",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 1/Chouette Erudite.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 153, "y": 968, "angle": 0, "longueur": 694 },
+    { "id": "bassin", "parent": "sol", "x": 500, "y": 891, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 500, "y": 814, "angle": -90, "longueur": 193 },
+    { "id": "tete", "parent": "torse", "x": 500, "y": 524, "angle": -90, "longueur": 290 },
+    { "id": "oreille_g", "parent": "tete", "x": 369, "y": 234, "angle": -120, "longueur": 145 },
+    { "id": "oreille_d", "parent": "tete", "x": 630, "y": 234, "angle": -60, "longueur": 145 },
+    { "id": "bras_g", "parent": "torse", "x": 369, "y": 698, "angle": 160, "longueur": 135 },
+    { "id": "bras_d", "parent": "torse", "x": 630, "y": 698, "angle": 20, "longueur": 135 },
+    { "id": "jambe_g", "parent": "bassin", "x": 413, "y": 891, "angle": 100, "longueur": 87 },
+    { "id": "jambe_d", "parent": "bassin", "x": 586, "y": 891, "angle": 80, "longueur": 87 },
+    { "id": "queue", "parent": "bassin", "x": 673, "y": 833, "angle": -30, "longueur": 135 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

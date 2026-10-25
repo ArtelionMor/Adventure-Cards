@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "colere-d-athena",
+  "nom": "Colère d'Athéna",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1096,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 1/Colère d'Athéna.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 102, "y": 1001, "angle": 0, "longueur": 818 },
+    { "id": "bassin", "parent": "sol", "x": 511, "y": 930, "angle": -90, "longueur": 71 },
+    { "id": "torse", "parent": "bassin", "x": 511, "y": 859, "angle": -90, "longueur": 177 },
+    { "id": "tete", "parent": "torse", "x": 511, "y": 593, "angle": -90, "longueur": 266 },
+    { "id": "oreille_g", "parent": "tete", "x": 358, "y": 326, "angle": -120, "longueur": 133 },
+    { "id": "oreille_d", "parent": "tete", "x": 664, "y": 326, "angle": -60, "longueur": 133 },
+    { "id": "bras_g", "parent": "torse", "x": 358, "y": 752, "angle": 160, "longueur": 124 },
+    { "id": "bras_d", "parent": "torse", "x": 664, "y": 752, "angle": 20, "longueur": 124 },
+    { "id": "jambe_g", "parent": "bassin", "x": 409, "y": 930, "angle": 100, "longueur": 80 },
+    { "id": "jambe_d", "parent": "bassin", "x": 613, "y": 930, "angle": 80, "longueur": 80 },
+    { "id": "queue", "parent": "bassin", "x": 715, "y": 876, "angle": -30, "longueur": 124 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1096
+    }
+  ],
+  "ik": []
+}

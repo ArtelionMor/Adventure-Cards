@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "chanceliere",
+  "nom": "Chancelière",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 3/Chancelière.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 264, "y": 942, "angle": 0, "longueur": 523 },
+    { "id": "bassin", "parent": "sol", "x": 526, "y": 869, "angle": -90, "longueur": 73 },
+    { "id": "torse", "parent": "bassin", "x": 526, "y": 796, "angle": -90, "longueur": 183 },
+    { "id": "tete", "parent": "torse", "x": 526, "y": 522, "angle": -90, "longueur": 274 },
+    { "id": "oreille_g", "parent": "tete", "x": 428, "y": 248, "angle": -120, "longueur": 137 },
+    { "id": "oreille_d", "parent": "tete", "x": 624, "y": 248, "angle": -60, "longueur": 137 },
+    { "id": "bras_g", "parent": "torse", "x": 428, "y": 687, "angle": 160, "longueur": 128 },
+    { "id": "bras_d", "parent": "torse", "x": 624, "y": 687, "angle": 20, "longueur": 128 },
+    { "id": "jambe_g", "parent": "bassin", "x": 461, "y": 869, "angle": 100, "longueur": 82 },
+    { "id": "jambe_d", "parent": "bassin", "x": 591, "y": 869, "angle": 80, "longueur": 82 },
+    { "id": "queue", "parent": "bassin", "x": 657, "y": 814, "angle": -30, "longueur": 128 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

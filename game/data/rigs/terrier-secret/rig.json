@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "terrier-secret",
+  "nom": "Terrier Secret",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Rabbit Decks/Rabbit Deck 3/Terrier Secret.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 118, "y": 969, "angle": 0, "longueur": 795 },
+    { "id": "bassin", "parent": "sol", "x": 516, "y": 890, "angle": -90, "longueur": 80 },
+    { "id": "torse", "parent": "bassin", "x": 516, "y": 810, "angle": -90, "longueur": 199 },
+    { "id": "tete", "parent": "torse", "x": 516, "y": 512, "angle": -90, "longueur": 298 },
+    { "id": "oreille_g", "parent": "tete", "x": 367, "y": 214, "angle": -120, "longueur": 149 },
+    { "id": "oreille_d", "parent": "tete", "x": 665, "y": 214, "angle": -60, "longueur": 149 },
+    { "id": "bras_g", "parent": "torse", "x": 367, "y": 691, "angle": 160, "longueur": 139 },
+    { "id": "bras_d", "parent": "torse", "x": 665, "y": 691, "angle": 20, "longueur": 139 },
+    { "id": "jambe_g", "parent": "bassin", "x": 417, "y": 890, "angle": 100, "longueur": 89 },
+    { "id": "jambe_d", "parent": "bassin", "x": 615, "y": 890, "angle": 80, "longueur": 89 },
+    { "id": "queue", "parent": "bassin", "x": 715, "y": 830, "angle": -30, "longueur": 139 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

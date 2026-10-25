@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "coeur-chromatique",
+  "nom": "Coeur Chromatique",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 2/Coeur Chromatique.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 106, "y": 937, "angle": 0, "longueur": 786 },
+    { "id": "bassin", "parent": "sol", "x": 499, "y": 862, "angle": -90, "longueur": 75 },
+    { "id": "torse", "parent": "bassin", "x": 499, "y": 787, "angle": -90, "longueur": 187 },
+    { "id": "tete", "parent": "torse", "x": 499, "y": 506, "angle": -90, "longueur": 281 },
+    { "id": "oreille_g", "parent": "tete", "x": 352, "y": 225, "angle": -120, "longueur": 140 },
+    { "id": "oreille_d", "parent": "tete", "x": 646, "y": 225, "angle": -60, "longueur": 140 },
+    { "id": "bras_g", "parent": "torse", "x": 352, "y": 674, "angle": 160, "longueur": 131 },
+    { "id": "bras_d", "parent": "torse", "x": 646, "y": 674, "angle": 20, "longueur": 131 },
+    { "id": "jambe_g", "parent": "bassin", "x": 401, "y": 862, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 597, "y": 862, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 695, "y": 806, "angle": -30, "longueur": 131 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

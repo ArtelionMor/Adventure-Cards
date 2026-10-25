@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "moine-du-sablier",
+  "nom": "Moine du sablier",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 2/Moine du sablier.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 126, "y": 960, "angle": 0, "longueur": 776 },
+    { "id": "bassin", "parent": "sol", "x": 514, "y": 882, "angle": -90, "longueur": 78 },
+    { "id": "torse", "parent": "bassin", "x": 514, "y": 804, "angle": -90, "longueur": 195 },
+    { "id": "tete", "parent": "torse", "x": 514, "y": 513, "angle": -90, "longueur": 292 },
+    { "id": "oreille_g", "parent": "tete", "x": 369, "y": 221, "angle": -120, "longueur": 146 },
+    { "id": "oreille_d", "parent": "tete", "x": 660, "y": 221, "angle": -60, "longueur": 146 },
+    { "id": "bras_g", "parent": "torse", "x": 369, "y": 688, "angle": 160, "longueur": 136 },
+    { "id": "bras_d", "parent": "torse", "x": 660, "y": 688, "angle": 20, "longueur": 136 },
+    { "id": "jambe_g", "parent": "bassin", "x": 417, "y": 882, "angle": 100, "longueur": 88 },
+    { "id": "jambe_d", "parent": "bassin", "x": 611, "y": 882, "angle": 80, "longueur": 88 },
+    { "id": "queue", "parent": "bassin", "x": 708, "y": 824, "angle": -30, "longueur": 136 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

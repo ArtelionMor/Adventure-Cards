@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "corbeau-espion",
+  "nom": "Corbeau Espion",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 1/Corbeau Espion.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 278, "y": 960, "angle": 0, "longueur": 552 },
+    { "id": "bassin", "parent": "sol", "x": 554, "y": 887, "angle": -90, "longueur": 74 },
+    { "id": "torse", "parent": "bassin", "x": 554, "y": 813, "angle": -90, "longueur": 184 },
+    { "id": "tete", "parent": "torse", "x": 554, "y": 538, "angle": -90, "longueur": 276 },
+    { "id": "oreille_g", "parent": "tete", "x": 451, "y": 262, "angle": -120, "longueur": 138 },
+    { "id": "oreille_d", "parent": "tete", "x": 658, "y": 262, "angle": -60, "longueur": 138 },
+    { "id": "bras_g", "parent": "torse", "x": 451, "y": 703, "angle": 160, "longueur": 129 },
+    { "id": "bras_d", "parent": "torse", "x": 658, "y": 703, "angle": 20, "longueur": 129 },
+    { "id": "jambe_g", "parent": "bassin", "x": 485, "y": 887, "angle": 100, "longueur": 83 },
+    { "id": "jambe_d", "parent": "bassin", "x": 623, "y": 887, "angle": 80, "longueur": 83 },
+    { "id": "queue", "parent": "bassin", "x": 692, "y": 832, "angle": -30, "longueur": 129 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

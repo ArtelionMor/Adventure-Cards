@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "voleur-de-cables",
+  "nom": "Voleur de câbles",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Cat/Voleur de câbles.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 181, "y": 931, "angle": 0, "longueur": 666 },
+    { "id": "bassin", "parent": "sol", "x": 514, "y": 857, "angle": -90, "longueur": 74 },
+    { "id": "torse", "parent": "bassin", "x": 514, "y": 782, "angle": -90, "longueur": 186 },
+    { "id": "tete", "parent": "torse", "x": 514, "y": 504, "angle": -90, "longueur": 278 },
+    { "id": "oreille_g", "parent": "tete", "x": 389, "y": 226, "angle": -120, "longueur": 139 },
+    { "id": "oreille_d", "parent": "tete", "x": 639, "y": 226, "angle": -60, "longueur": 139 },
+    { "id": "bras_g", "parent": "torse", "x": 389, "y": 671, "angle": 160, "longueur": 130 },
+    { "id": "bras_d", "parent": "torse", "x": 639, "y": 671, "angle": 20, "longueur": 130 },
+    { "id": "jambe_g", "parent": "bassin", "x": 431, "y": 857, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 597, "y": 857, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 680, "y": 801, "angle": -30, "longueur": 130 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "grand-filtre",
+  "nom": "Grand Filtre",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 3/Grand Filtre.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 252, "y": 941, "angle": 0, "longueur": 621 },
+    { "id": "bassin", "parent": "sol", "x": 562, "y": 866, "angle": -90, "longueur": 75 },
+    { "id": "torse", "parent": "bassin", "x": 562, "y": 790, "angle": -90, "longueur": 189 },
+    { "id": "tete", "parent": "torse", "x": 562, "y": 508, "angle": -90, "longueur": 283 },
+    { "id": "oreille_g", "parent": "tete", "x": 446, "y": 225, "angle": -120, "longueur": 141 },
+    { "id": "oreille_d", "parent": "tete", "x": 678, "y": 225, "angle": -60, "longueur": 141 },
+    { "id": "bras_g", "parent": "torse", "x": 446, "y": 677, "angle": 160, "longueur": 132 },
+    { "id": "bras_d", "parent": "torse", "x": 678, "y": 677, "angle": 20, "longueur": 132 },
+    { "id": "jambe_g", "parent": "bassin", "x": 484, "y": 866, "angle": 100, "longueur": 85 },
+    { "id": "jambe_d", "parent": "bassin", "x": 640, "y": 866, "angle": 80, "longueur": 85 },
+    { "id": "queue", "parent": "bassin", "x": 717, "y": 809, "angle": -30, "longueur": 132 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

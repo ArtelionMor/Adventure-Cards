@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "vielle-bique",
+  "nom": "Vielle Bique",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Goat/Vielle Bique.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 177, "y": 937, "angle": 0, "longueur": 679 },
+    { "id": "bassin", "parent": "sol", "x": 517, "y": 862, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 517, "y": 786, "angle": -90, "longueur": 189 },
+    { "id": "tete", "parent": "torse", "x": 517, "y": 503, "angle": -90, "longueur": 284 },
+    { "id": "oreille_g", "parent": "tete", "x": 389, "y": 219, "angle": -120, "longueur": 142 },
+    { "id": "oreille_d", "parent": "tete", "x": 644, "y": 219, "angle": -60, "longueur": 142 },
+    { "id": "bras_g", "parent": "torse", "x": 389, "y": 673, "angle": 160, "longueur": 132 },
+    { "id": "bras_d", "parent": "torse", "x": 644, "y": 673, "angle": 20, "longueur": 132 },
+    { "id": "jambe_g", "parent": "bassin", "x": 432, "y": 862, "angle": 100, "longueur": 85 },
+    { "id": "jambe_d", "parent": "bassin", "x": 601, "y": 862, "angle": 80, "longueur": 85 },
+    { "id": "queue", "parent": "bassin", "x": 686, "y": 805, "angle": -30, "longueur": 132 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

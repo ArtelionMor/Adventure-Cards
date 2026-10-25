@@ -7,7 +7,7 @@
     "image": "source.png",
     "largeur": 1024,
     "hauteur": 1024,
-    "origine": "Graphical Assets/Characters/Opponents/Opponent Raven.png"
+    "origine": "Graphical Assets/Characters/Opponent Raven.png"
   },
   "os": [
     { "id": "sol", "parent": null, "x": 183, "y": 930, "angle": 0, "longueur": 696 },

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "regard-percant",
+  "nom": "Regard Perçant",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 1/Regard Perçant.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 132, "y": 938, "angle": 0, "longueur": 775 },
+    { "id": "bassin", "parent": "sol", "x": 520, "y": 862, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 520, "y": 785, "angle": -90, "longueur": 191 },
+    { "id": "tete", "parent": "torse", "x": 520, "y": 500, "angle": -90, "longueur": 286 },
+    { "id": "oreille_g", "parent": "tete", "x": 374, "y": 214, "angle": -120, "longueur": 143 },
+    { "id": "oreille_d", "parent": "tete", "x": 665, "y": 214, "angle": -60, "longueur": 143 },
+    { "id": "bras_g", "parent": "torse", "x": 374, "y": 671, "angle": 160, "longueur": 133 },
+    { "id": "bras_d", "parent": "torse", "x": 665, "y": 671, "angle": 20, "longueur": 133 },
+    { "id": "jambe_g", "parent": "bassin", "x": 423, "y": 862, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 616, "y": 862, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 713, "y": 804, "angle": -30, "longueur": 133 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

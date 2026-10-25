@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "course-effrenee",
+  "nom": "Course effrenée",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Cat/Course effrenée.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 116, "y": 866, "angle": 0, "longueur": 786 },
+    { "id": "bassin", "parent": "sol", "x": 510, "y": 804, "angle": -90, "longueur": 62 },
+    { "id": "torse", "parent": "bassin", "x": 510, "y": 741, "angle": -90, "longueur": 156 },
+    { "id": "tete", "parent": "torse", "x": 510, "y": 508, "angle": -90, "longueur": 234 },
+    { "id": "oreille_g", "parent": "tete", "x": 362, "y": 274, "angle": -120, "longueur": 117 },
+    { "id": "oreille_d", "parent": "tete", "x": 657, "y": 274, "angle": -60, "longueur": 117 },
+    { "id": "bras_g", "parent": "torse", "x": 362, "y": 648, "angle": 160, "longueur": 109 },
+    { "id": "bras_d", "parent": "torse", "x": 657, "y": 648, "angle": 20, "longueur": 109 },
+    { "id": "jambe_g", "parent": "bassin", "x": 411, "y": 804, "angle": 100, "longueur": 70 },
+    { "id": "jambe_d", "parent": "bassin", "x": 608, "y": 804, "angle": 80, "longueur": 70 },
+    { "id": "queue", "parent": "bassin", "x": 706, "y": 757, "angle": -30, "longueur": 109 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

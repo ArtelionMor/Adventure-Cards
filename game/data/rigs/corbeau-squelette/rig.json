@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "corbeau-squelette",
+  "nom": "Corbeau Squelette",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 3/Corbeau Squelette.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 155, "y": 952, "angle": 0, "longueur": 729 },
+    { "id": "bassin", "parent": "sol", "x": 520, "y": 875, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 520, "y": 798, "angle": -90, "longueur": 193 },
+    { "id": "tete", "parent": "torse", "x": 520, "y": 508, "angle": -90, "longueur": 290 },
+    { "id": "oreille_g", "parent": "tete", "x": 383, "y": 218, "angle": -120, "longueur": 145 },
+    { "id": "oreille_d", "parent": "tete", "x": 656, "y": 218, "angle": -60, "longueur": 145 },
+    { "id": "bras_g", "parent": "torse", "x": 383, "y": 682, "angle": 160, "longueur": 135 },
+    { "id": "bras_d", "parent": "torse", "x": 656, "y": 682, "angle": 20, "longueur": 135 },
+    { "id": "jambe_g", "parent": "bassin", "x": 428, "y": 875, "angle": 100, "longueur": 87 },
+    { "id": "jambe_d", "parent": "bassin", "x": 611, "y": 875, "angle": 80, "longueur": 87 },
+    { "id": "queue", "parent": "bassin", "x": 702, "y": 817, "angle": -30, "longueur": 135 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

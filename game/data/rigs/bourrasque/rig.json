@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "bourrasque",
+  "nom": "Bourrasque",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 1/Bourrasque.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 112, "y": 786, "angle": 0, "longueur": 805 },
+    { "id": "bassin", "parent": "sol", "x": 514, "y": 738, "angle": -90, "longueur": 48 },
+    { "id": "torse", "parent": "bassin", "x": 514, "y": 690, "angle": -90, "longueur": 120 },
+    { "id": "tete", "parent": "torse", "x": 514, "y": 510, "angle": -90, "longueur": 180 },
+    { "id": "oreille_g", "parent": "tete", "x": 363, "y": 329, "angle": -120, "longueur": 90 },
+    { "id": "oreille_d", "parent": "tete", "x": 665, "y": 329, "angle": -60, "longueur": 90 },
+    { "id": "bras_g", "parent": "torse", "x": 363, "y": 618, "angle": 160, "longueur": 84 },
+    { "id": "bras_d", "parent": "torse", "x": 665, "y": 618, "angle": 20, "longueur": 84 },
+    { "id": "jambe_g", "parent": "bassin", "x": 413, "y": 738, "angle": 100, "longueur": 54 },
+    { "id": "jambe_d", "parent": "bassin", "x": 615, "y": 738, "angle": 80, "longueur": 54 },
+    { "id": "queue", "parent": "bassin", "x": 715, "y": 702, "angle": -30, "longueur": 84 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

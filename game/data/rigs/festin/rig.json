@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "festin",
+  "nom": "Festin",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Dog Decks/Dog Deck 2/Festin.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 117, "y": 874, "angle": 0, "longueur": 777 },
+    { "id": "bassin", "parent": "sol", "x": 506, "y": 807, "angle": -90, "longueur": 67 },
+    { "id": "torse", "parent": "bassin", "x": 506, "y": 740, "angle": -90, "longueur": 167 },
+    { "id": "tete", "parent": "torse", "x": 506, "y": 491, "angle": -90, "longueur": 250 },
+    { "id": "oreille_g", "parent": "tete", "x": 360, "y": 241, "angle": -120, "longueur": 125 },
+    { "id": "oreille_d", "parent": "tete", "x": 651, "y": 241, "angle": -60, "longueur": 125 },
+    { "id": "bras_g", "parent": "torse", "x": 360, "y": 640, "angle": 160, "longueur": 117 },
+    { "id": "bras_d", "parent": "torse", "x": 651, "y": 640, "angle": 20, "longueur": 117 },
+    { "id": "jambe_g", "parent": "bassin", "x": 408, "y": 807, "angle": 100, "longueur": 75 },
+    { "id": "jambe_d", "parent": "bassin", "x": 603, "y": 807, "angle": 80, "longueur": 75 },
+    { "id": "queue", "parent": "bassin", "x": 700, "y": 757, "angle": -30, "longueur": 117 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

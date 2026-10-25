@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "soriciere-au-chaudron",
+  "nom": "Soricière au Chaudron",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 3/Soricière au Chaudron.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 139, "y": 960, "angle": 0, "longueur": 777 },
+    { "id": "bassin", "parent": "sol", "x": 528, "y": 896, "angle": -90, "longueur": 64 },
+    { "id": "torse", "parent": "bassin", "x": 528, "y": 833, "angle": -90, "longueur": 159 },
+    { "id": "tete", "parent": "torse", "x": 528, "y": 594, "angle": -90, "longueur": 239 },
+    { "id": "oreille_g", "parent": "tete", "x": 382, "y": 355, "angle": -120, "longueur": 119 },
+    { "id": "oreille_d", "parent": "tete", "x": 673, "y": 355, "angle": -60, "longueur": 119 },
+    { "id": "bras_g", "parent": "torse", "x": 382, "y": 737, "angle": 160, "longueur": 111 },
+    { "id": "bras_d", "parent": "torse", "x": 673, "y": 737, "angle": 20, "longueur": 111 },
+    { "id": "jambe_g", "parent": "bassin", "x": 430, "y": 896, "angle": 100, "longueur": 72 },
+    { "id": "jambe_d", "parent": "bassin", "x": 625, "y": 896, "angle": 80, "longueur": 72 },
+    { "id": "queue", "parent": "bassin", "x": 722, "y": 849, "angle": -30, "longueur": 111 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

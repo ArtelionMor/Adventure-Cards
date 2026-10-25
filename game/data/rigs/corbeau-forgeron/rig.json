@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "corbeau-forgeron",
+  "nom": "Corbeau Forgeron",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 2/Corbeau Forgeron.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 168, "y": 912, "angle": 0, "longueur": 697 },
+    { "id": "bassin", "parent": "sol", "x": 517, "y": 840, "angle": -90, "longueur": 72 },
+    { "id": "torse", "parent": "bassin", "x": 517, "y": 768, "angle": -90, "longueur": 180 },
+    { "id": "tete", "parent": "torse", "x": 517, "y": 497, "angle": -90, "longueur": 271 },
+    { "id": "oreille_g", "parent": "tete", "x": 386, "y": 226, "angle": -120, "longueur": 135 },
+    { "id": "oreille_d", "parent": "tete", "x": 647, "y": 226, "angle": -60, "longueur": 135 },
+    { "id": "bras_g", "parent": "torse", "x": 386, "y": 659, "angle": 160, "longueur": 126 },
+    { "id": "bras_d", "parent": "torse", "x": 647, "y": 659, "angle": 20, "longueur": 126 },
+    { "id": "jambe_g", "parent": "bassin", "x": 429, "y": 840, "angle": 100, "longueur": 81 },
+    { "id": "jambe_d", "parent": "bassin", "x": 604, "y": 840, "angle": 80, "longueur": 81 },
+    { "id": "queue", "parent": "bassin", "x": 691, "y": 786, "angle": -30, "longueur": 126 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

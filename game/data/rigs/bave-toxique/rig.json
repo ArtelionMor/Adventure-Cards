@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "bave-toxique",
+  "nom": "Bave Toxique",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Venimous Frog/Bave Toxique.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 135, "y": 948, "angle": 0, "longueur": 721 },
+    { "id": "bassin", "parent": "sol", "x": 496, "y": 881, "angle": -90, "longueur": 67 },
+    { "id": "torse", "parent": "bassin", "x": 496, "y": 814, "angle": -90, "longueur": 168 },
+    { "id": "tete", "parent": "torse", "x": 496, "y": 561, "angle": -90, "longueur": 253 },
+    { "id": "oreille_g", "parent": "tete", "x": 360, "y": 308, "angle": -120, "longueur": 126 },
+    { "id": "oreille_d", "parent": "tete", "x": 631, "y": 308, "angle": -60, "longueur": 126 },
+    { "id": "bras_g", "parent": "torse", "x": 360, "y": 713, "angle": 160, "longueur": 118 },
+    { "id": "bras_d", "parent": "torse", "x": 631, "y": 713, "angle": 20, "longueur": 118 },
+    { "id": "jambe_g", "parent": "bassin", "x": 405, "y": 881, "angle": 100, "longueur": 76 },
+    { "id": "jambe_d", "parent": "bassin", "x": 586, "y": 881, "angle": 80, "longueur": 76 },
+    { "id": "queue", "parent": "bassin", "x": 676, "y": 830, "angle": -30, "longueur": 118 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

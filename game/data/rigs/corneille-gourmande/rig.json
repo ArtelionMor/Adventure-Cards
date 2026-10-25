@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "corneille-gourmande",
+  "nom": "Corneille Gourmande",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 1/Corneille Gourmande.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 119, "y": 932, "angle": 0, "longueur": 774 },
+    { "id": "bassin", "parent": "sol", "x": 506, "y": 859, "angle": -90, "longueur": 73 },
+    { "id": "torse", "parent": "bassin", "x": 506, "y": 786, "angle": -90, "longueur": 183 },
+    { "id": "tete", "parent": "torse", "x": 506, "y": 512, "angle": -90, "longueur": 274 },
+    { "id": "oreille_g", "parent": "tete", "x": 360, "y": 238, "angle": -120, "longueur": 137 },
+    { "id": "oreille_d", "parent": "tete", "x": 651, "y": 238, "angle": -60, "longueur": 137 },
+    { "id": "bras_g", "parent": "torse", "x": 360, "y": 677, "angle": 160, "longueur": 128 },
+    { "id": "bras_d", "parent": "torse", "x": 651, "y": 677, "angle": 20, "longueur": 128 },
+    { "id": "jambe_g", "parent": "bassin", "x": 409, "y": 859, "angle": 100, "longueur": 82 },
+    { "id": "jambe_d", "parent": "bassin", "x": 602, "y": 859, "angle": 80, "longueur": 82 },
+    { "id": "queue", "parent": "bassin", "x": 699, "y": 804, "angle": -30, "longueur": 128 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

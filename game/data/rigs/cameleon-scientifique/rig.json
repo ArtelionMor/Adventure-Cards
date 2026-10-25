@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "cameleon-scientifique",
+  "nom": "Caméléon Scientifique",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 3/Caméléon Scientifique.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 182, "y": 950, "angle": 0, "longueur": 678 },
+    { "id": "bassin", "parent": "sol", "x": 521, "y": 873, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 521, "y": 796, "angle": -90, "longueur": 193 },
+    { "id": "tete", "parent": "torse", "x": 521, "y": 506, "angle": -90, "longueur": 290 },
+    { "id": "oreille_g", "parent": "tete", "x": 393, "y": 216, "angle": -120, "longueur": 145 },
+    { "id": "oreille_d", "parent": "tete", "x": 648, "y": 216, "angle": -60, "longueur": 145 },
+    { "id": "bras_g", "parent": "torse", "x": 393, "y": 680, "angle": 160, "longueur": 135 },
+    { "id": "bras_d", "parent": "torse", "x": 648, "y": 680, "angle": 20, "longueur": 135 },
+    { "id": "jambe_g", "parent": "bassin", "x": 436, "y": 873, "angle": 100, "longueur": 87 },
+    { "id": "jambe_d", "parent": "bassin", "x": 605, "y": 873, "angle": 80, "longueur": 87 },
+    { "id": "queue", "parent": "bassin", "x": 690, "y": 815, "angle": -30, "longueur": 135 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

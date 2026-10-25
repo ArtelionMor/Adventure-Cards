@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "reanimation",
+  "nom": "Réanimation",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Goat/Réanimation.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 109, "y": 984, "angle": 0, "longueur": 814 },
+    { "id": "bassin", "parent": "sol", "x": 516, "y": 904, "angle": -90, "longueur": 80 },
+    { "id": "torse", "parent": "bassin", "x": 516, "y": 824, "angle": -90, "longueur": 200 },
+    { "id": "tete", "parent": "torse", "x": 516, "y": 524, "angle": -90, "longueur": 300 },
+    { "id": "oreille_g", "parent": "tete", "x": 363, "y": 223, "angle": -120, "longueur": 150 },
+    { "id": "oreille_d", "parent": "tete", "x": 668, "y": 223, "angle": -60, "longueur": 150 },
+    { "id": "bras_g", "parent": "torse", "x": 363, "y": 704, "angle": 160, "longueur": 140 },
+    { "id": "bras_d", "parent": "torse", "x": 668, "y": 704, "angle": 20, "longueur": 140 },
+    { "id": "jambe_g", "parent": "bassin", "x": 414, "y": 904, "angle": 100, "longueur": 90 },
+    { "id": "jambe_d", "parent": "bassin", "x": 617, "y": 904, "angle": 80, "longueur": 90 },
+    { "id": "queue", "parent": "bassin", "x": 719, "y": 844, "angle": -30, "longueur": 140 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

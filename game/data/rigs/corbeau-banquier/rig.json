@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "corbeau-banquier",
+  "nom": "Corbeau Banquier",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 2/Corbeau Banquier.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 197, "y": 961, "angle": 0, "longueur": 646 },
+    { "id": "bassin", "parent": "sol", "x": 520, "y": 885, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 520, "y": 810, "angle": -90, "longueur": 189 },
+    { "id": "tete", "parent": "torse", "x": 520, "y": 526, "angle": -90, "longueur": 284 },
+    { "id": "oreille_g", "parent": "tete", "x": 399, "y": 242, "angle": -120, "longueur": 142 },
+    { "id": "oreille_d", "parent": "tete", "x": 641, "y": 242, "angle": -60, "longueur": 142 },
+    { "id": "bras_g", "parent": "torse", "x": 399, "y": 696, "angle": 160, "longueur": 132 },
+    { "id": "bras_d", "parent": "torse", "x": 641, "y": 696, "angle": 20, "longueur": 132 },
+    { "id": "jambe_g", "parent": "bassin", "x": 439, "y": 885, "angle": 100, "longueur": 85 },
+    { "id": "jambe_d", "parent": "bassin", "x": 601, "y": 885, "angle": 80, "longueur": 85 },
+    { "id": "queue", "parent": "bassin", "x": 682, "y": 829, "angle": -30, "longueur": 132 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

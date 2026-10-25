@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "coulee-de-boue",
+  "nom": "Coulée de Boue",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 1/Coulée de Boue.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 227, "y": 974, "angle": 0, "longueur": 582 },
+    { "id": "bassin", "parent": "sol", "x": 518, "y": 897, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 518, "y": 820, "angle": -90, "longueur": 193 },
+    { "id": "tete", "parent": "torse", "x": 518, "y": 531, "angle": -90, "longueur": 290 },
+    { "id": "oreille_g", "parent": "tete", "x": 408, "y": 241, "angle": -120, "longueur": 145 },
+    { "id": "oreille_d", "parent": "tete", "x": 627, "y": 241, "angle": -60, "longueur": 145 },
+    { "id": "bras_g", "parent": "torse", "x": 408, "y": 704, "angle": 160, "longueur": 135 },
+    { "id": "bras_d", "parent": "torse", "x": 627, "y": 704, "angle": 20, "longueur": 135 },
+    { "id": "jambe_g", "parent": "bassin", "x": 445, "y": 897, "angle": 100, "longueur": 87 },
+    { "id": "jambe_d", "parent": "bassin", "x": 590, "y": 897, "angle": 80, "longueur": 87 },
+    { "id": "queue", "parent": "bassin", "x": 663, "y": 839, "angle": -30, "longueur": 135 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

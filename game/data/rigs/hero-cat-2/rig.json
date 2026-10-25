@@ -7,21 +7,20 @@
     "image": "source.png",
     "largeur": 1024,
     "hauteur": 1024,
-    "origine": "Graphical Assets/Characters/Cat/Hero Cat 2.png"
+    "origine": "Graphical Assets/Characters/Hero Cat 2.png"
   },
   "os": [
     { "id": "sol", "parent": null, "x": 198, "y": 908, "angle": 0, "longueur": 630 },
     { "id": "bassin", "parent": "sol", "x": 513, "y": 840, "angle": -90, "longueur": 68 },
-    { "id": "dos", "parent": "bassin", "x": 513, "y": 772, "angle": -90, "longueur": 136 },
-    { "id": "cou", "parent": "dos", "x": 513, "y": 636, "angle": -90, "longueur": 102 },
-    { "id": "tete", "parent": "cou", "x": 513, "y": 482, "angle": -90, "longueur": 255 },
+    { "id": "torse", "parent": "bassin", "x": 513, "y": 772, "angle": -90, "longueur": 170 },
+    { "id": "tete", "parent": "torse", "x": 513, "y": 517, "angle": -90, "longueur": 255 },
     { "id": "oreille_g", "parent": "tete", "x": 395, "y": 261, "angle": -120, "longueur": 128 },
     { "id": "oreille_d", "parent": "tete", "x": 631, "y": 261, "angle": -60, "longueur": 128 },
-    { "id": "patte_av_g", "parent": "dos", "x": 418, "y": 687, "angle": 100, "longueur": 170 },
-    { "id": "patte_av_d", "parent": "dos", "x": 608, "y": 687, "angle": 80, "longueur": 170 },
-    { "id": "patte_ar_g", "parent": "bassin", "x": 355, "y": 840, "angle": 100, "longueur": 68 },
-    { "id": "patte_ar_d", "parent": "bassin", "x": 671, "y": 840, "angle": 80, "longueur": 68 },
-    { "id": "queue", "parent": "bassin", "x": 749, "y": 789, "angle": -20, "longueur": 119 }
+    { "id": "bras_g", "parent": "torse", "x": 395, "y": 670, "angle": 160, "longueur": 119 },
+    { "id": "bras_d", "parent": "torse", "x": 631, "y": 670, "angle": 20, "longueur": 119 },
+    { "id": "jambe_g", "parent": "bassin", "x": 434, "y": 840, "angle": 100, "longueur": 77 },
+    { "id": "jambe_d", "parent": "bassin", "x": 592, "y": 840, "angle": 80, "longueur": 77 },
+    { "id": "queue", "parent": "bassin", "x": 671, "y": 789, "angle": -30, "longueur": 119 }
   ],
   "calques": [
     {

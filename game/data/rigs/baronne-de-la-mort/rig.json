@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "baronne-de-la-mort",
+  "nom": "Baronne de la mort",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 2/Baronne de la mort.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 123, "y": 932, "angle": 0, "longueur": 782 },
+    { "id": "bassin", "parent": "sol", "x": 514, "y": 857, "angle": -90, "longueur": 75 },
+    { "id": "torse", "parent": "bassin", "x": 514, "y": 782, "angle": -90, "longueur": 187 },
+    { "id": "tete", "parent": "torse", "x": 514, "y": 501, "angle": -90, "longueur": 281 },
+    { "id": "oreille_g", "parent": "tete", "x": 367, "y": 220, "angle": -120, "longueur": 140 },
+    { "id": "oreille_d", "parent": "tete", "x": 661, "y": 220, "angle": -60, "longueur": 140 },
+    { "id": "bras_g", "parent": "torse", "x": 367, "y": 669, "angle": 160, "longueur": 131 },
+    { "id": "bras_d", "parent": "torse", "x": 661, "y": 669, "angle": 20, "longueur": 131 },
+    { "id": "jambe_g", "parent": "bassin", "x": 416, "y": 857, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 612, "y": 857, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 710, "y": 801, "angle": -30, "longueur": 131 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

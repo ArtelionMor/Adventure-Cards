@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "coup-de-langue",
+  "nom": "Coup de Langue",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 1/Coup de Langue.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 169, "y": 948, "angle": 0, "longueur": 708 },
+    { "id": "bassin", "parent": "sol", "x": 523, "y": 873, "angle": -90, "longueur": 74 },
+    { "id": "torse", "parent": "bassin", "x": 523, "y": 799, "angle": -90, "longueur": 186 },
+    { "id": "tete", "parent": "torse", "x": 523, "y": 520, "angle": -90, "longueur": 279 },
+    { "id": "oreille_g", "parent": "tete", "x": 390, "y": 241, "angle": -120, "longueur": 140 },
+    { "id": "oreille_d", "parent": "tete", "x": 655, "y": 241, "angle": -60, "longueur": 140 },
+    { "id": "bras_g", "parent": "torse", "x": 390, "y": 687, "angle": 160, "longueur": 130 },
+    { "id": "bras_d", "parent": "torse", "x": 655, "y": 687, "angle": 20, "longueur": 130 },
+    { "id": "jambe_g", "parent": "bassin", "x": 434, "y": 873, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 611, "y": 873, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 700, "y": 818, "angle": -30, "longueur": 130 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

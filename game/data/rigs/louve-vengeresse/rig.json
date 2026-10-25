@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "louve-vengeresse",
+  "nom": "Louve Vengeresse",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Dog Decks/Dog Deck 2/Louve Vengeresse.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 137, "y": 946, "angle": 0, "longueur": 775 },
+    { "id": "bassin", "parent": "sol", "x": 525, "y": 871, "angle": -90, "longueur": 75 },
+    { "id": "torse", "parent": "bassin", "x": 525, "y": 797, "angle": -90, "longueur": 186 },
+    { "id": "tete", "parent": "torse", "x": 525, "y": 517, "angle": -90, "longueur": 280 },
+    { "id": "oreille_g", "parent": "tete", "x": 379, "y": 237, "angle": -120, "longueur": 140 },
+    { "id": "oreille_d", "parent": "tete", "x": 670, "y": 237, "angle": -60, "longueur": 140 },
+    { "id": "bras_g", "parent": "torse", "x": 379, "y": 685, "angle": 160, "longueur": 130 },
+    { "id": "bras_d", "parent": "torse", "x": 670, "y": 685, "angle": 20, "longueur": 130 },
+    { "id": "jambe_g", "parent": "bassin", "x": 428, "y": 871, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 621, "y": 871, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 718, "y": 815, "angle": -30, "longueur": 130 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

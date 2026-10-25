@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "hibou-scientifique",
+  "nom": "Hibou Scientifique",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Great Duke/Hibou Scientifique.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 141, "y": 928, "angle": 0, "longueur": 748 },
+    { "id": "bassin", "parent": "sol", "x": 515, "y": 855, "angle": -90, "longueur": 73 },
+    { "id": "torse", "parent": "bassin", "x": 515, "y": 783, "angle": -90, "longueur": 181 },
+    { "id": "tete", "parent": "torse", "x": 515, "y": 511, "angle": -90, "longueur": 272 },
+    { "id": "oreille_g", "parent": "tete", "x": 374, "y": 238, "angle": -120, "longueur": 136 },
+    { "id": "oreille_d", "parent": "tete", "x": 655, "y": 238, "angle": -60, "longueur": 136 },
+    { "id": "bras_g", "parent": "torse", "x": 374, "y": 674, "angle": 160, "longueur": 127 },
+    { "id": "bras_d", "parent": "torse", "x": 655, "y": 674, "angle": 20, "longueur": 127 },
+    { "id": "jambe_g", "parent": "bassin", "x": 421, "y": 855, "angle": 100, "longueur": 82 },
+    { "id": "jambe_d", "parent": "bassin", "x": 608, "y": 855, "angle": 80, "longueur": 82 },
+    { "id": "queue", "parent": "bassin", "x": 702, "y": 801, "angle": -30, "longueur": 127 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

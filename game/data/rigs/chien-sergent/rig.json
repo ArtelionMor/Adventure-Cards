@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "chien-sergent",
+  "nom": "Chien Sergent",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Venimous Frog/Chien Sergent.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 147, "y": 964, "angle": 0, "longueur": 707 },
+    { "id": "bassin", "parent": "sol", "x": 501, "y": 887, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 501, "y": 810, "angle": -90, "longueur": 193 },
+    { "id": "tete", "parent": "torse", "x": 501, "y": 520, "angle": -90, "longueur": 290 },
+    { "id": "oreille_g", "parent": "tete", "x": 368, "y": 230, "angle": -120, "longueur": 145 },
+    { "id": "oreille_d", "parent": "tete", "x": 634, "y": 230, "angle": -60, "longueur": 145 },
+    { "id": "bras_g", "parent": "torse", "x": 368, "y": 694, "angle": 160, "longueur": 135 },
+    { "id": "bras_d", "parent": "torse", "x": 634, "y": 694, "angle": 20, "longueur": 135 },
+    { "id": "jambe_g", "parent": "bassin", "x": 413, "y": 887, "angle": 100, "longueur": 87 },
+    { "id": "jambe_d", "parent": "bassin", "x": 589, "y": 887, "angle": 80, "longueur": 87 },
+    { "id": "queue", "parent": "bassin", "x": 678, "y": 829, "angle": -30, "longueur": 135 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "sabotage",
+  "nom": "Sabotage",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Mouse/Sabotage.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 137, "y": 906, "angle": 0, "longueur": 750 },
+    { "id": "bassin", "parent": "sol", "x": 512, "y": 835, "angle": -90, "longueur": 71 },
+    { "id": "torse", "parent": "bassin", "x": 512, "y": 764, "angle": -90, "longueur": 177 },
+    { "id": "tete", "parent": "torse", "x": 512, "y": 498, "angle": -90, "longueur": 266 },
+    { "id": "oreille_g", "parent": "tete", "x": 371, "y": 232, "angle": -120, "longueur": 133 },
+    { "id": "oreille_d", "parent": "tete", "x": 653, "y": 232, "angle": -60, "longueur": 133 },
+    { "id": "bras_g", "parent": "torse", "x": 371, "y": 657, "angle": 160, "longueur": 124 },
+    { "id": "bras_d", "parent": "torse", "x": 653, "y": 657, "angle": 20, "longueur": 124 },
+    { "id": "jambe_g", "parent": "bassin", "x": 418, "y": 835, "angle": 100, "longueur": 80 },
+    { "id": "jambe_d", "parent": "bassin", "x": 606, "y": 835, "angle": 80, "longueur": 80 },
+    { "id": "queue", "parent": "bassin", "x": 700, "y": 782, "angle": -30, "longueur": 124 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "rabbit-token-2",
+  "nom": "Rabbit Token 2",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Rabbit Token 2.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 236, "y": 946, "angle": 0, "longueur": 642 },
+    { "id": "bassin", "parent": "sol", "x": 558, "y": 872, "angle": -90, "longueur": 74 },
+    { "id": "torse", "parent": "bassin", "x": 558, "y": 799, "angle": -90, "longueur": 184 },
+    { "id": "tete", "parent": "torse", "x": 558, "y": 523, "angle": -90, "longueur": 276 },
+    { "id": "oreille_g", "parent": "tete", "x": 437, "y": 246, "angle": -120, "longueur": 138 },
+    { "id": "oreille_d", "parent": "tete", "x": 678, "y": 246, "angle": -60, "longueur": 138 },
+    { "id": "bras_g", "parent": "torse", "x": 437, "y": 688, "angle": 160, "longueur": 129 },
+    { "id": "bras_d", "parent": "torse", "x": 678, "y": 688, "angle": 20, "longueur": 129 },
+    { "id": "jambe_g", "parent": "bassin", "x": 477, "y": 872, "angle": 100, "longueur": 83 },
+    { "id": "jambe_d", "parent": "bassin", "x": 638, "y": 872, "angle": 80, "longueur": 83 },
+    { "id": "queue", "parent": "bassin", "x": 718, "y": 817, "angle": -30, "longueur": 129 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

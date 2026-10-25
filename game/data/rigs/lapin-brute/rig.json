@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "lapin-brute",
+  "nom": "Lapin Brute",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Cat/Lapin Brute.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 151, "y": 930, "angle": 0, "longueur": 727 },
+    { "id": "bassin", "parent": "sol", "x": 515, "y": 857, "angle": -90, "longueur": 74 },
+    { "id": "torse", "parent": "bassin", "x": 515, "y": 783, "angle": -90, "longueur": 184 },
+    { "id": "tete", "parent": "torse", "x": 515, "y": 507, "angle": -90, "longueur": 276 },
+    { "id": "oreille_g", "parent": "tete", "x": 378, "y": 231, "angle": -120, "longueur": 138 },
+    { "id": "oreille_d", "parent": "tete", "x": 651, "y": 231, "angle": -60, "longueur": 138 },
+    { "id": "bras_g", "parent": "torse", "x": 378, "y": 673, "angle": 160, "longueur": 129 },
+    { "id": "bras_d", "parent": "torse", "x": 651, "y": 673, "angle": 20, "longueur": 129 },
+    { "id": "jambe_g", "parent": "bassin", "x": 424, "y": 857, "angle": 100, "longueur": 83 },
+    { "id": "jambe_d", "parent": "bassin", "x": 605, "y": 857, "angle": 80, "longueur": 83 },
+    { "id": "queue", "parent": "bassin", "x": 696, "y": 801, "angle": -30, "longueur": 129 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

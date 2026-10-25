@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "songe",
+  "nom": "Songe",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 2/Songe.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 125, "y": 960, "angle": 0, "longueur": 777 },
+    { "id": "bassin", "parent": "sol", "x": 514, "y": 883, "angle": -90, "longueur": 78 },
+    { "id": "torse", "parent": "bassin", "x": 514, "y": 805, "angle": -90, "longueur": 194 },
+    { "id": "tete", "parent": "torse", "x": 514, "y": 514, "angle": -90, "longueur": 291 },
+    { "id": "oreille_g", "parent": "tete", "x": 368, "y": 223, "angle": -120, "longueur": 146 },
+    { "id": "oreille_d", "parent": "tete", "x": 659, "y": 223, "angle": -60, "longueur": 146 },
+    { "id": "bras_g", "parent": "torse", "x": 368, "y": 689, "angle": 160, "longueur": 136 },
+    { "id": "bras_d", "parent": "torse", "x": 659, "y": 689, "angle": 20, "longueur": 136 },
+    { "id": "jambe_g", "parent": "bassin", "x": 416, "y": 883, "angle": 100, "longueur": 87 },
+    { "id": "jambe_d", "parent": "bassin", "x": 611, "y": 883, "angle": 80, "longueur": 87 },
+    { "id": "queue", "parent": "bassin", "x": 708, "y": 824, "angle": -30, "longueur": 136 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

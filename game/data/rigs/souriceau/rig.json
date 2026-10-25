@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "souriceau",
+  "nom": "Souriceau",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Mouse/Souriceau.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 168, "y": 930, "angle": 0, "longueur": 680 },
+    { "id": "bassin", "parent": "sol", "x": 508, "y": 857, "angle": -90, "longueur": 73 },
+    { "id": "torse", "parent": "bassin", "x": 508, "y": 784, "angle": -90, "longueur": 183 },
+    { "id": "tete", "parent": "torse", "x": 508, "y": 509, "angle": -90, "longueur": 275 },
+    { "id": "oreille_g", "parent": "tete", "x": 381, "y": 234, "angle": -120, "longueur": 137 },
+    { "id": "oreille_d", "parent": "tete", "x": 636, "y": 234, "angle": -60, "longueur": 137 },
+    { "id": "bras_g", "parent": "torse", "x": 381, "y": 674, "angle": 160, "longueur": 128 },
+    { "id": "bras_d", "parent": "torse", "x": 636, "y": 674, "angle": 20, "longueur": 128 },
+    { "id": "jambe_g", "parent": "bassin", "x": 423, "y": 857, "angle": 100, "longueur": 82 },
+    { "id": "jambe_d", "parent": "bassin", "x": 593, "y": 857, "angle": 80, "longueur": 82 },
+    { "id": "queue", "parent": "bassin", "x": 678, "y": 802, "angle": -30, "longueur": 128 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

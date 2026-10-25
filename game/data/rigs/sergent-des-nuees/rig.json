@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "sergent-des-nuees",
+  "nom": "Sergent des nuées",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 2/Sergent des nuées.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 138, "y": 946, "angle": 0, "longueur": 762 },
+    { "id": "bassin", "parent": "sol", "x": 520, "y": 871, "angle": -90, "longueur": 74 },
+    { "id": "torse", "parent": "bassin", "x": 520, "y": 797, "angle": -90, "longueur": 186 },
+    { "id": "tete", "parent": "torse", "x": 520, "y": 518, "angle": -90, "longueur": 279 },
+    { "id": "oreille_g", "parent": "tete", "x": 377, "y": 239, "angle": -120, "longueur": 140 },
+    { "id": "oreille_d", "parent": "tete", "x": 662, "y": 239, "angle": -60, "longueur": 140 },
+    { "id": "bras_g", "parent": "torse", "x": 377, "y": 685, "angle": 160, "longueur": 130 },
+    { "id": "bras_d", "parent": "torse", "x": 662, "y": 685, "angle": 20, "longueur": 130 },
+    { "id": "jambe_g", "parent": "bassin", "x": 424, "y": 871, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 615, "y": 871, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 710, "y": 816, "angle": -30, "longueur": 130 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

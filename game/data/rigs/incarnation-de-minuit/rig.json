@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "incarnation-de-minuit",
+  "nom": "Incarnation de Minuit",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 2/Incarnation de Minuit.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 111, "y": 979, "angle": 0, "longueur": 800 },
+    { "id": "bassin", "parent": "sol", "x": 511, "y": 898, "angle": -90, "longueur": 81 },
+    { "id": "torse", "parent": "bassin", "x": 511, "y": 817, "angle": -90, "longueur": 203 },
+    { "id": "tete", "parent": "torse", "x": 511, "y": 514, "angle": -90, "longueur": 304 },
+    { "id": "oreille_g", "parent": "tete", "x": 361, "y": 210, "angle": -120, "longueur": 152 },
+    { "id": "oreille_d", "parent": "tete", "x": 661, "y": 210, "angle": -60, "longueur": 152 },
+    { "id": "bras_g", "parent": "torse", "x": 361, "y": 696, "angle": 160, "longueur": 142 },
+    { "id": "bras_d", "parent": "torse", "x": 661, "y": 696, "angle": 20, "longueur": 142 },
+    { "id": "jambe_g", "parent": "bassin", "x": 411, "y": 898, "angle": 100, "longueur": 91 },
+    { "id": "jambe_d", "parent": "bassin", "x": 611, "y": 898, "angle": 80, "longueur": 91 },
+    { "id": "queue", "parent": "bassin", "x": 711, "y": 838, "angle": -30, "longueur": 142 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

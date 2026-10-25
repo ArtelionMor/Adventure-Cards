@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "griffe",
+  "nom": "Griffe",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Cat/Griffe.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 142, "y": 876, "angle": 0, "longueur": 757 },
+    { "id": "bassin", "parent": "sol", "x": 520, "y": 808, "angle": -90, "longueur": 68 },
+    { "id": "torse", "parent": "bassin", "x": 520, "y": 739, "angle": -90, "longueur": 171 },
+    { "id": "tete", "parent": "torse", "x": 520, "y": 484, "angle": -90, "longueur": 256 },
+    { "id": "oreille_g", "parent": "tete", "x": 378, "y": 228, "angle": -120, "longueur": 128 },
+    { "id": "oreille_d", "parent": "tete", "x": 662, "y": 228, "angle": -60, "longueur": 128 },
+    { "id": "bras_g", "parent": "torse", "x": 378, "y": 637, "angle": 160, "longueur": 119 },
+    { "id": "bras_d", "parent": "torse", "x": 662, "y": 637, "angle": 20, "longueur": 119 },
+    { "id": "jambe_g", "parent": "bassin", "x": 425, "y": 808, "angle": 100, "longueur": 77 },
+    { "id": "jambe_d", "parent": "bassin", "x": 615, "y": 808, "angle": 80, "longueur": 77 },
+    { "id": "queue", "parent": "bassin", "x": 709, "y": 756, "angle": -30, "longueur": 119 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "etudiant-endormi",
+  "nom": "Etudiant endormi",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 2/Etudiant endormi.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 120, "y": 961, "angle": 0, "longueur": 790 },
+    { "id": "bassin", "parent": "sol", "x": 515, "y": 884, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 515, "y": 807, "angle": -90, "longueur": 192 },
+    { "id": "tete", "parent": "torse", "x": 515, "y": 519, "angle": -90, "longueur": 288 },
+    { "id": "oreille_g", "parent": "tete", "x": 367, "y": 231, "angle": -120, "longueur": 144 },
+    { "id": "oreille_d", "parent": "tete", "x": 663, "y": 231, "angle": -60, "longueur": 144 },
+    { "id": "bras_g", "parent": "torse", "x": 367, "y": 692, "angle": 160, "longueur": 134 },
+    { "id": "bras_d", "parent": "torse", "x": 663, "y": 692, "angle": 20, "longueur": 134 },
+    { "id": "jambe_g", "parent": "bassin", "x": 416, "y": 884, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 614, "y": 884, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 713, "y": 826, "angle": -30, "longueur": 134 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "reine-des-nenuphars",
+  "nom": "Reine des Nénuphars",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 2/Reine des Nénuphars.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 129, "y": 934, "angle": 0, "longueur": 740 },
+    { "id": "bassin", "parent": "sol", "x": 499, "y": 859, "angle": -90, "longueur": 75 },
+    { "id": "torse", "parent": "bassin", "x": 499, "y": 785, "angle": -90, "longueur": 186 },
+    { "id": "tete", "parent": "torse", "x": 499, "y": 505, "angle": -90, "longueur": 280 },
+    { "id": "oreille_g", "parent": "tete", "x": 360, "y": 225, "angle": -120, "longueur": 140 },
+    { "id": "oreille_d", "parent": "tete", "x": 637, "y": 225, "angle": -60, "longueur": 140 },
+    { "id": "bras_g", "parent": "torse", "x": 360, "y": 673, "angle": 160, "longueur": 130 },
+    { "id": "bras_d", "parent": "torse", "x": 637, "y": 673, "angle": 20, "longueur": 130 },
+    { "id": "jambe_g", "parent": "bassin", "x": 406, "y": 859, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 591, "y": 859, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 684, "y": 803, "angle": -30, "longueur": 130 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

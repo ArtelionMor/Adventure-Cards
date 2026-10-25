@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "paraisseux-colosse",
+  "nom": "Paraisseux Colosse",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Sloth/Paraisseux Colosse.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 136, "y": 960, "angle": 0, "longueur": 750 },
+    { "id": "bassin", "parent": "sol", "x": 511, "y": 891, "angle": -90, "longueur": 69 },
+    { "id": "torse", "parent": "bassin", "x": 511, "y": 822, "angle": -90, "longueur": 173 },
+    { "id": "tete", "parent": "torse", "x": 511, "y": 563, "angle": -90, "longueur": 260 },
+    { "id": "oreille_g", "parent": "tete", "x": 370, "y": 303, "angle": -120, "longueur": 130 },
+    { "id": "oreille_d", "parent": "tete", "x": 652, "y": 303, "angle": -60, "longueur": 130 },
+    { "id": "bras_g", "parent": "torse", "x": 370, "y": 718, "angle": 160, "longueur": 121 },
+    { "id": "bras_d", "parent": "torse", "x": 652, "y": 718, "angle": 20, "longueur": 121 },
+    { "id": "jambe_g", "parent": "bassin", "x": 417, "y": 891, "angle": 100, "longueur": 78 },
+    { "id": "jambe_d", "parent": "bassin", "x": 605, "y": 891, "angle": 80, "longueur": 78 },
+    { "id": "queue", "parent": "bassin", "x": 699, "y": 839, "angle": -30, "longueur": 121 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -7,21 +7,20 @@
     "image": "source.png",
     "largeur": 1024,
     "hauteur": 1024,
-    "origine": "Graphical Assets/Characters/Cat/Ombre Feutrée.png"
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 1/Ombre Feutrée.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 165, "y": 913, "angle": 0, "longueur": 571 },
-    { "id": "bassin", "parent": "sol", "x": 451, "y": 856, "angle": -90, "longueur": 57 },
-    { "id": "dos", "parent": "bassin", "x": 451, "y": 799, "angle": -90, "longueur": 114 },
-    { "id": "cou", "parent": "dos", "x": 451, "y": 685, "angle": -90, "longueur": 85 },
-    { "id": "tete", "parent": "cou", "x": 451, "y": 557, "angle": -90, "longueur": 214 },
-    { "id": "oreille_g", "parent": "tete", "x": 344, "y": 371, "angle": -120, "longueur": 107 },
-    { "id": "oreille_d", "parent": "tete", "x": 558, "y": 371, "angle": -60, "longueur": 107 },
-    { "id": "patte_av_g", "parent": "dos", "x": 365, "y": 727, "angle": 100, "longueur": 142 },
-    { "id": "patte_av_d", "parent": "dos", "x": 537, "y": 727, "angle": 80, "longueur": 142 },
-    { "id": "patte_ar_g", "parent": "bassin", "x": 308, "y": 856, "angle": 100, "longueur": 57 },
-    { "id": "patte_ar_d", "parent": "bassin", "x": 594, "y": 856, "angle": 80, "longueur": 57 },
-    { "id": "queue", "parent": "bassin", "x": 665, "y": 813, "angle": -20, "longueur": 100 }
+    { "id": "sol", "parent": null, "x": 150, "y": 897, "angle": 0, "longueur": 709 },
+    { "id": "bassin", "parent": "sol", "x": 504, "y": 829, "angle": -90, "longueur": 68 },
+    { "id": "torse", "parent": "bassin", "x": 504, "y": 761, "angle": -90, "longueur": 170 },
+    { "id": "tete", "parent": "torse", "x": 504, "y": 507, "angle": -90, "longueur": 254 },
+    { "id": "oreille_g", "parent": "tete", "x": 371, "y": 253, "angle": -120, "longueur": 127 },
+    { "id": "oreille_d", "parent": "tete", "x": 637, "y": 253, "angle": -60, "longueur": 127 },
+    { "id": "bras_g", "parent": "torse", "x": 371, "y": 660, "angle": 160, "longueur": 119 },
+    { "id": "bras_d", "parent": "torse", "x": 637, "y": 660, "angle": 20, "longueur": 119 },
+    { "id": "jambe_g", "parent": "bassin", "x": 415, "y": 829, "angle": 100, "longueur": 76 },
+    { "id": "jambe_d", "parent": "bassin", "x": 593, "y": 829, "angle": 80, "longueur": 76 },
+    { "id": "queue", "parent": "bassin", "x": 681, "y": 778, "angle": -30, "longueur": 119 }
   ],
   "calques": [
     {

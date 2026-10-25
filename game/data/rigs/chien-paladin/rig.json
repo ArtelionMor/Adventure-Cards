@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "chien-paladin",
+  "nom": "Chien Paladin",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Octopus/Chien Paladin.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 113, "y": 969, "angle": 0, "longueur": 801 },
+    { "id": "bassin", "parent": "sol", "x": 514, "y": 890, "angle": -90, "longueur": 79 },
+    { "id": "torse", "parent": "bassin", "x": 514, "y": 811, "angle": -90, "longueur": 198 },
+    { "id": "tete", "parent": "torse", "x": 514, "y": 513, "angle": -90, "longueur": 298 },
+    { "id": "oreille_g", "parent": "tete", "x": 363, "y": 215, "angle": -120, "longueur": 149 },
+    { "id": "oreille_d", "parent": "tete", "x": 664, "y": 215, "angle": -60, "longueur": 149 },
+    { "id": "bras_g", "parent": "torse", "x": 363, "y": 692, "angle": 160, "longueur": 139 },
+    { "id": "bras_d", "parent": "torse", "x": 664, "y": 692, "angle": 20, "longueur": 139 },
+    { "id": "jambe_g", "parent": "bassin", "x": 413, "y": 890, "angle": 100, "longueur": 89 },
+    { "id": "jambe_d", "parent": "bassin", "x": 614, "y": 890, "angle": 80, "longueur": 89 },
+    { "id": "queue", "parent": "bassin", "x": 714, "y": 830, "angle": -30, "longueur": 139 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

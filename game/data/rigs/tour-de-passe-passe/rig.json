@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "tour-de-passe-passe",
+  "nom": "Tour de Passe-Passe",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 1/Tour de Passe-Passe.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 153, "y": 935, "angle": 0, "longueur": 718 },
+    { "id": "bassin", "parent": "sol", "x": 512, "y": 862, "angle": -90, "longueur": 72 },
+    { "id": "torse", "parent": "bassin", "x": 512, "y": 790, "angle": -90, "longueur": 181 },
+    { "id": "tete", "parent": "torse", "x": 512, "y": 518, "angle": -90, "longueur": 272 },
+    { "id": "oreille_g", "parent": "tete", "x": 377, "y": 246, "angle": -120, "longueur": 136 },
+    { "id": "oreille_d", "parent": "tete", "x": 646, "y": 246, "angle": -60, "longueur": 136 },
+    { "id": "bras_g", "parent": "torse", "x": 377, "y": 681, "angle": 160, "longueur": 127 },
+    { "id": "bras_d", "parent": "torse", "x": 646, "y": 681, "angle": 20, "longueur": 127 },
+    { "id": "jambe_g", "parent": "bassin", "x": 422, "y": 862, "angle": 100, "longueur": 82 },
+    { "id": "jambe_d", "parent": "bassin", "x": 601, "y": 862, "angle": 80, "longueur": 82 },
+    { "id": "queue", "parent": "bassin", "x": 691, "y": 808, "angle": -30, "longueur": 127 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

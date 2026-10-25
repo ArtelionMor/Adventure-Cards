@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "hibou-astronaute",
+  "nom": "Hibou Astronaute",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Great Duke/Hibou Astronaute.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 156, "y": 972, "angle": 0, "longueur": 709 },
+    { "id": "bassin", "parent": "sol", "x": 510, "y": 893, "angle": -90, "longueur": 79 },
+    { "id": "torse", "parent": "bassin", "x": 510, "y": 814, "angle": -90, "longueur": 197 },
+    { "id": "tete", "parent": "torse", "x": 510, "y": 518, "angle": -90, "longueur": 296 },
+    { "id": "oreille_g", "parent": "tete", "x": 377, "y": 222, "angle": -120, "longueur": 148 },
+    { "id": "oreille_d", "parent": "tete", "x": 643, "y": 222, "angle": -60, "longueur": 148 },
+    { "id": "bras_g", "parent": "torse", "x": 377, "y": 695, "angle": 160, "longueur": 138 },
+    { "id": "bras_d", "parent": "torse", "x": 643, "y": 695, "angle": 20, "longueur": 138 },
+    { "id": "jambe_g", "parent": "bassin", "x": 421, "y": 893, "angle": 100, "longueur": 89 },
+    { "id": "jambe_d", "parent": "bassin", "x": 599, "y": 893, "angle": 80, "longueur": 89 },
+    { "id": "queue", "parent": "bassin", "x": 687, "y": 834, "angle": -30, "longueur": 138 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

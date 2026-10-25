@@ -7,7 +7,7 @@
     "image": "source.png",
     "largeur": 1024,
     "hauteur": 1024,
-    "origine": "Graphical Assets/Characters/Opponents/Opponent Mouse.png"
+    "origine": "Graphical Assets/Characters/Opponent Mouse.png"
   },
   "os": [
     { "id": "sol", "parent": null, "x": 229, "y": 928, "angle": 0, "longueur": 660 },

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "neuf-vies",
+  "nom": "Neuf Vies",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 1/Neuf Vies.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 112, "y": 956, "angle": 0, "longueur": 806 },
+    { "id": "bassin", "parent": "sol", "x": 515, "y": 878, "angle": -90, "longueur": 78 },
+    { "id": "torse", "parent": "bassin", "x": 515, "y": 801, "angle": -90, "longueur": 194 },
+    { "id": "tete", "parent": "torse", "x": 515, "y": 509, "angle": -90, "longueur": 292 },
+    { "id": "oreille_g", "parent": "tete", "x": 363, "y": 217, "angle": -120, "longueur": 146 },
+    { "id": "oreille_d", "parent": "tete", "x": 666, "y": 217, "angle": -60, "longueur": 146 },
+    { "id": "bras_g", "parent": "torse", "x": 363, "y": 684, "angle": 160, "longueur": 136 },
+    { "id": "bras_d", "parent": "torse", "x": 666, "y": 684, "angle": 20, "longueur": 136 },
+    { "id": "jambe_g", "parent": "bassin", "x": 414, "y": 878, "angle": 100, "longueur": 87 },
+    { "id": "jambe_d", "parent": "bassin", "x": 615, "y": 878, "angle": 80, "longueur": 87 },
+    { "id": "queue", "parent": "bassin", "x": 716, "y": 820, "angle": -30, "longueur": 136 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

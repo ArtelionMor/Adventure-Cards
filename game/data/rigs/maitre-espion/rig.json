@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "maitre-espion",
+  "nom": "Maître Espion",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 2/Maître Espion.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 158, "y": 986, "angle": 0, "longueur": 526 },
+    { "id": "bassin", "parent": "sol", "x": 421, "y": 910, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 421, "y": 834, "angle": -90, "longueur": 190 },
+    { "id": "tete", "parent": "torse", "x": 421, "y": 550, "angle": -90, "longueur": 285 },
+    { "id": "oreille_g", "parent": "tete", "x": 322, "y": 265, "angle": -120, "longueur": 142 },
+    { "id": "oreille_d", "parent": "tete", "x": 519, "y": 265, "angle": -60, "longueur": 142 },
+    { "id": "bras_g", "parent": "torse", "x": 322, "y": 720, "angle": 160, "longueur": 133 },
+    { "id": "bras_d", "parent": "torse", "x": 519, "y": 720, "angle": 20, "longueur": 133 },
+    { "id": "jambe_g", "parent": "bassin", "x": 355, "y": 910, "angle": 100, "longueur": 85 },
+    { "id": "jambe_d", "parent": "bassin", "x": 486, "y": 910, "angle": 80, "longueur": 85 },
+    { "id": "queue", "parent": "bassin", "x": 552, "y": 853, "angle": -30, "longueur": 133 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

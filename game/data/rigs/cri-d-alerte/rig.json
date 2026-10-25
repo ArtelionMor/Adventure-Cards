@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "cri-d-alerte",
+  "nom": "Cri d'alerte",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 2/Cri d'alerte.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 119, "y": 914, "angle": 0, "longueur": 787 },
+    { "id": "bassin", "parent": "sol", "x": 513, "y": 839, "angle": -90, "longueur": 75 },
+    { "id": "torse", "parent": "bassin", "x": 513, "y": 764, "angle": -90, "longueur": 188 },
+    { "id": "tete", "parent": "torse", "x": 513, "y": 482, "angle": -90, "longueur": 282 },
+    { "id": "oreille_g", "parent": "tete", "x": 365, "y": 199, "angle": -120, "longueur": 141 },
+    { "id": "oreille_d", "parent": "tete", "x": 661, "y": 199, "angle": -60, "longueur": 141 },
+    { "id": "bras_g", "parent": "torse", "x": 365, "y": 651, "angle": 160, "longueur": 132 },
+    { "id": "bras_d", "parent": "torse", "x": 661, "y": 651, "angle": 20, "longueur": 132 },
+    { "id": "jambe_g", "parent": "bassin", "x": 415, "y": 839, "angle": 100, "longueur": 85 },
+    { "id": "jambe_d", "parent": "bassin", "x": 611, "y": 839, "angle": 80, "longueur": 85 },
+    { "id": "queue", "parent": "bassin", "x": 710, "y": 783, "angle": -30, "longueur": 132 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

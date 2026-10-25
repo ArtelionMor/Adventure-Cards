@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "chouette-tourbillon",
+  "nom": "Chouette Tourbillon",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 1/Chouette Tourbillon.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 154, "y": 943, "angle": 0, "longueur": 742 },
+    { "id": "bassin", "parent": "sol", "x": 525, "y": 871, "angle": -90, "longueur": 72 },
+    { "id": "torse", "parent": "bassin", "x": 525, "y": 798, "angle": -90, "longueur": 181 },
+    { "id": "tete", "parent": "torse", "x": 525, "y": 527, "angle": -90, "longueur": 271 },
+    { "id": "oreille_g", "parent": "tete", "x": 385, "y": 256, "angle": -120, "longueur": 136 },
+    { "id": "oreille_d", "parent": "tete", "x": 664, "y": 256, "angle": -60, "longueur": 136 },
+    { "id": "bras_g", "parent": "torse", "x": 385, "y": 690, "angle": 160, "longueur": 127 },
+    { "id": "bras_d", "parent": "torse", "x": 664, "y": 690, "angle": 20, "longueur": 127 },
+    { "id": "jambe_g", "parent": "bassin", "x": 432, "y": 871, "angle": 100, "longueur": 81 },
+    { "id": "jambe_d", "parent": "bassin", "x": 617, "y": 871, "angle": 80, "longueur": 81 },
+    { "id": "queue", "parent": "bassin", "x": 710, "y": 816, "angle": -30, "longueur": 127 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

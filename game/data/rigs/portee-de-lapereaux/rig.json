@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "portee-de-lapereaux",
+  "nom": "Portée de Lapereaux",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Rabbit Decks/Rabbit Deck 3/Portée de Lapereaux.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 116, "y": 877, "angle": 0, "longueur": 791 },
+    { "id": "bassin", "parent": "sol", "x": 512, "y": 813, "angle": -90, "longueur": 64 },
+    { "id": "torse", "parent": "bassin", "x": 512, "y": 749, "angle": -90, "longueur": 160 },
+    { "id": "tete", "parent": "torse", "x": 512, "y": 510, "angle": -90, "longueur": 239 },
+    { "id": "oreille_g", "parent": "tete", "x": 363, "y": 271, "angle": -120, "longueur": 120 },
+    { "id": "oreille_d", "parent": "tete", "x": 660, "y": 271, "angle": -60, "longueur": 120 },
+    { "id": "bras_g", "parent": "torse", "x": 363, "y": 654, "angle": 160, "longueur": 112 },
+    { "id": "bras_d", "parent": "torse", "x": 660, "y": 654, "angle": 20, "longueur": 112 },
+    { "id": "jambe_g", "parent": "bassin", "x": 413, "y": 813, "angle": 100, "longueur": 72 },
+    { "id": "jambe_d", "parent": "bassin", "x": 610, "y": 813, "angle": 80, "longueur": 72 },
+    { "id": "queue", "parent": "bassin", "x": 709, "y": 765, "angle": -30, "longueur": 112 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

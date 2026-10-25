@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "chat-prudent",
+  "nom": "Chat Prudent",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 1/Chat Prudent.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 139, "y": 942, "angle": 0, "longueur": 742 },
+    { "id": "bassin", "parent": "sol", "x": 510, "y": 867, "angle": -90, "longueur": 74 },
+    { "id": "torse", "parent": "bassin", "x": 510, "y": 793, "angle": -90, "longueur": 186 },
+    { "id": "tete", "parent": "torse", "x": 510, "y": 514, "angle": -90, "longueur": 279 },
+    { "id": "oreille_g", "parent": "tete", "x": 370, "y": 234, "angle": -120, "longueur": 140 },
+    { "id": "oreille_d", "parent": "tete", "x": 649, "y": 234, "angle": -60, "longueur": 140 },
+    { "id": "bras_g", "parent": "torse", "x": 370, "y": 681, "angle": 160, "longueur": 130 },
+    { "id": "bras_d", "parent": "torse", "x": 649, "y": 681, "angle": 20, "longueur": 130 },
+    { "id": "jambe_g", "parent": "bassin", "x": 417, "y": 867, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 602, "y": 867, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 695, "y": 811, "angle": -30, "longueur": 130 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

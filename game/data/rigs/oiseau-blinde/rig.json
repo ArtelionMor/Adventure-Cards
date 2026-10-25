@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "oiseau-blinde",
+  "nom": "Oiseau Blindé",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 2/Oiseau Blindé.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 137, "y": 964, "angle": 0, "longueur": 746 },
+    { "id": "bassin", "parent": "sol", "x": 511, "y": 889, "angle": -90, "longueur": 75 },
+    { "id": "torse", "parent": "bassin", "x": 511, "y": 815, "angle": -90, "longueur": 186 },
+    { "id": "tete", "parent": "torse", "x": 511, "y": 535, "angle": -90, "longueur": 280 },
+    { "id": "oreille_g", "parent": "tete", "x": 371, "y": 255, "angle": -120, "longueur": 140 },
+    { "id": "oreille_d", "parent": "tete", "x": 650, "y": 255, "angle": -60, "longueur": 140 },
+    { "id": "bras_g", "parent": "torse", "x": 371, "y": 703, "angle": 160, "longueur": 130 },
+    { "id": "bras_d", "parent": "torse", "x": 650, "y": 703, "angle": 20, "longueur": 130 },
+    { "id": "jambe_g", "parent": "bassin", "x": 417, "y": 889, "angle": 100, "longueur": 84 },
+    { "id": "jambe_d", "parent": "bassin", "x": 604, "y": 889, "angle": 80, "longueur": 84 },
+    { "id": "queue", "parent": "bassin", "x": 697, "y": 833, "angle": -30, "longueur": 130 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "matou-cambriolleur",
+  "nom": "Matou Cambriolleur",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Cat/Matou Cambriolleur.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 158, "y": 941, "angle": 0, "longueur": 728 },
+    { "id": "bassin", "parent": "sol", "x": 522, "y": 865, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 522, "y": 789, "angle": -90, "longueur": 190 },
+    { "id": "tete", "parent": "torse", "x": 522, "y": 504, "angle": -90, "longueur": 285 },
+    { "id": "oreille_g", "parent": "tete", "x": 386, "y": 219, "angle": -120, "longueur": 143 },
+    { "id": "oreille_d", "parent": "tete", "x": 659, "y": 219, "angle": -60, "longueur": 143 },
+    { "id": "bras_g", "parent": "torse", "x": 386, "y": 675, "angle": 160, "longueur": 133 },
+    { "id": "bras_d", "parent": "torse", "x": 659, "y": 675, "angle": 20, "longueur": 133 },
+    { "id": "jambe_g", "parent": "bassin", "x": 431, "y": 865, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 613, "y": 865, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 704, "y": 808, "angle": -30, "longueur": 133 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

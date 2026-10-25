@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "mime",
+  "nom": "Mime",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 2/Mime.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 221, "y": 946, "angle": 0, "longueur": 605 },
+    { "id": "bassin", "parent": "sol", "x": 523, "y": 873, "angle": -90, "longueur": 73 },
+    { "id": "torse", "parent": "bassin", "x": 523, "y": 800, "angle": -90, "longueur": 183 },
+    { "id": "tete", "parent": "torse", "x": 523, "y": 525, "angle": -90, "longueur": 275 },
+    { "id": "oreille_g", "parent": "tete", "x": 410, "y": 249, "angle": -120, "longueur": 138 },
+    { "id": "oreille_d", "parent": "tete", "x": 636, "y": 249, "angle": -60, "longueur": 138 },
+    { "id": "bras_g", "parent": "torse", "x": 410, "y": 690, "angle": 160, "longueur": 128 },
+    { "id": "bras_d", "parent": "torse", "x": 636, "y": 690, "angle": 20, "longueur": 128 },
+    { "id": "jambe_g", "parent": "bassin", "x": 447, "y": 873, "angle": 100, "longueur": 83 },
+    { "id": "jambe_d", "parent": "bassin", "x": 599, "y": 873, "angle": 80, "longueur": 83 },
+    { "id": "queue", "parent": "bassin", "x": 674, "y": 818, "angle": -30, "longueur": 128 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

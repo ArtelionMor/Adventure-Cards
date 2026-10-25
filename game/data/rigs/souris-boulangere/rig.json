@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "souris-boulangere",
+  "nom": "Souris Boulangère",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Opponents/Opponent Mouse/Souris Boulangère.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 172, "y": 955, "angle": 0, "longueur": 680 },
+    { "id": "bassin", "parent": "sol", "x": 512, "y": 878, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 512, "y": 801, "angle": -90, "longueur": 192 },
+    { "id": "tete", "parent": "torse", "x": 512, "y": 513, "angle": -90, "longueur": 288 },
+    { "id": "oreille_g", "parent": "tete", "x": 385, "y": 225, "angle": -120, "longueur": 144 },
+    { "id": "oreille_d", "parent": "tete", "x": 640, "y": 225, "angle": -60, "longueur": 144 },
+    { "id": "bras_g", "parent": "torse", "x": 385, "y": 686, "angle": 160, "longueur": 134 },
+    { "id": "bras_d", "parent": "torse", "x": 640, "y": 686, "angle": 20, "longueur": 134 },
+    { "id": "jambe_g", "parent": "bassin", "x": 427, "y": 878, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 597, "y": 878, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 682, "y": 820, "angle": -30, "longueur": 134 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

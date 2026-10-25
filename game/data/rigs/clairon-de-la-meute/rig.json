@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "clairon-de-la-meute",
+  "nom": "Clairon de la meute",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Dog Decks/Dog Deck 1/Clairon de la meute.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 101, "y": 880, "angle": 0, "longueur": 805 },
+    { "id": "bassin", "parent": "sol", "x": 503, "y": 808, "angle": -90, "longueur": 72 },
+    { "id": "torse", "parent": "bassin", "x": 503, "y": 736, "angle": -90, "longueur": 180 },
+    { "id": "tete", "parent": "torse", "x": 503, "y": 466, "angle": -90, "longueur": 270 },
+    { "id": "oreille_g", "parent": "tete", "x": 352, "y": 196, "angle": -120, "longueur": 135 },
+    { "id": "oreille_d", "parent": "tete", "x": 654, "y": 196, "angle": -60, "longueur": 135 },
+    { "id": "bras_g", "parent": "torse", "x": 352, "y": 628, "angle": 160, "longueur": 126 },
+    { "id": "bras_d", "parent": "torse", "x": 654, "y": 628, "angle": 20, "longueur": 126 },
+    { "id": "jambe_g", "parent": "bassin", "x": 402, "y": 808, "angle": 100, "longueur": 81 },
+    { "id": "jambe_d", "parent": "bassin", "x": 604, "y": 808, "angle": 80, "longueur": 81 },
+    { "id": "queue", "parent": "bassin", "x": 704, "y": 754, "angle": -30, "longueur": 126 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}

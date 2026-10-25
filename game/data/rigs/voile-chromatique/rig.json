@@ -1,0 +1,37 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "voile-chromatique",
+  "nom": "Voile Chromatique",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 2/Voile Chromatique.png"
+  },
+  "os": [
+    { "id": "sol", "parent": null, "x": 184, "y": 960, "angle": 0, "longueur": 666 },
+    { "id": "bassin", "parent": "sol", "x": 517, "y": 882, "angle": -90, "longueur": 78 },
+    { "id": "torse", "parent": "bassin", "x": 517, "y": 805, "angle": -90, "longueur": 194 },
+    { "id": "tete", "parent": "torse", "x": 517, "y": 514, "angle": -90, "longueur": 291 },
+    { "id": "oreille_g", "parent": "tete", "x": 392, "y": 222, "angle": -120, "longueur": 146 },
+    { "id": "oreille_d", "parent": "tete", "x": 642, "y": 222, "angle": -60, "longueur": 146 },
+    { "id": "bras_g", "parent": "torse", "x": 392, "y": 688, "angle": 160, "longueur": 136 },
+    { "id": "bras_d", "parent": "torse", "x": 642, "y": 688, "angle": 20, "longueur": 136 },
+    { "id": "jambe_g", "parent": "bassin", "x": 434, "y": 882, "angle": 100, "longueur": 87 },
+    { "id": "jambe_d", "parent": "bassin", "x": 600, "y": 882, "angle": 80, "longueur": 87 },
+    { "id": "queue", "parent": "bassin", "x": 683, "y": 824, "angle": -30, "longueur": 136 }
+  ],
+  "calques": [
+    {
+      "id": "tout",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}
