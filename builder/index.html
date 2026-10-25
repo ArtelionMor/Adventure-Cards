@@ -724,9 +724,10 @@ function renderChars() {
     const starter = (DB.starters || []).includes(c.id);
     const row = document.createElement('div');
     row.className = 'charrow' + (c.id === selChar && !selNpc ? ' charrow--active' : '');
-    row.innerHTML = `<img src="${asset(c.sprite)}" alt="">
+    // l'image et le nom que le jeu montrera (la feuille gagne : cf. `vu`), comme dans la fiche a droite
+    row.innerHTML = `<img src="${asset(vu(c, 'sprite', c.sprite))}" alt="">
       <div style="flex:1;min-width:0">
-        <div class="nm">${esc(c.name)}</div>
+        <div class="nm">${esc(vu(c, 'name', c.name))}</div>
         <div class="sub">${esc(c.species || '—')} · ${(c.cards || []).filter(Boolean).length}/5 cartes</div>
       </div>
       ${starter ? '<span class="badge badge--star">tuto</span>' : ''}`;
@@ -761,10 +762,10 @@ function renderNpcs() {
     const row = document.createElement('div');
     row.className = 'charrow' + (n.id === selNpc ? ' charrow--active' : '');
     const cartes = (n.deck || []).reduce((a, l) => a + (l.n || 1), 0);
-    row.innerHTML = `<img src="${asset(n.sprite || 'Graphical Assets/Characters/Dog/Dog.png')}" alt="">
+    row.innerHTML = `<img src="${asset(vu(n, 'sprite', n.sprite, true) || 'Graphical Assets/Characters/Dog/Dog.png')}" alt="">
       <div style="flex:1;min-width:0">
-        <div class="nm">${esc(n.name)}</div>
-        <div class="sub">${n.hp} PV · ${cartes} carte(s)</div>
+        <div class="nm">${esc(vu(n, 'name', n.name, true))}</div>
+        <div class="sub">${vu(n, 'PV_Max', n.hp, true)} PV · ${cartes} carte(s)</div>
       </div>
       ${n.boss ? '<span class="badge badge--star">boss</span>' : ''}`;
     row.onclick = () => { selNpc = n.id; renderAll(); };
@@ -1385,11 +1386,11 @@ function renderCardForm() {
     <div class="field">
       <label>Image de la carte ${estLibre() ? '' : '<span style="text-transform:none;letter-spacing:0">— sinon celle du personnage</span>'}</label>
       <div style="display:flex; align-items:center; gap:10px">
-        <img id="cImg" src="${asset(cd.sprite || (estLibre() ? 'UI/Chest.png' : c.sprite))}" alt=""
+        <img id="cImg" src="${asset(cd.sprite || (estLibre() ? 'UI/Chest.png' : vu(c, 'sprite', c.sprite)))}" alt=""
              style="width:56px;height:56px;object-fit:contain;background:var(--bg);border:1px solid var(--line);border-radius:10px">
         <button class="btn btn--sm" id="pickCardSprite">Changer</button>
         ${cd.sprite ? '<button class="btn btn--sm btn--ghost" id="clearCardSprite">Retirer</button>' : ''}
-        <span class="stat">${cd.sprite ? esc(cd.sprite) : (estLibre() ? 'aucune image : le coffre est un simple repère' : 'aucune : la carte prend le sprite de ' + esc(c.name))}</span>
+        <span class="stat">${cd.sprite ? esc(cd.sprite) : (estLibre() ? 'aucune image : le coffre est un simple repère' : 'aucune : la carte prend le sprite de ' + esc(vu(c, 'name', c.name)))}</span>
       </div>
     </div>
     <div class="field"><label>Texte de la carte</label><input class="input" id="cText" value="${esc(cd.text || '')}" placeholder="Ce que lit le joueur"></div>
@@ -1539,7 +1540,7 @@ function renderPreview() {
   const html = `
     <div class="preview ${cd.type === 'spell' ? 'preview--spell' : ''}">
       <div class="preview__top">
-        <img src="${asset(cd.sprite || (selChar === LIBRE ? 'UI/Chest.png' : c.sprite))}" alt="">
+        <img src="${asset(cd.sprite || (selChar === LIBRE ? 'UI/Chest.png' : vu(c, 'sprite', c.sprite)))}" alt="">
         <div>
           <div class="preview__nm">${esc(cd.name)}</div>
           <div class="preview__tx">${esc(cd.type === 'ally' ? 'Allié' : 'Sort')}${(cd.keys || []).length ? ' · ' + cd.keys.map(keyLabel).join(', ') : ''}</div>
