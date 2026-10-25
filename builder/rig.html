@@ -295,6 +295,8 @@ function restaurePhoto(p) {
   E.rig = JSON.parse(p.rig); E.px = p.px; E.masques = p.masques;
   notePx(avant);
   for (const id of Object.keys(avant)) if (!(id in E.px)) delete E.toiles[id];
+  // l'os selectionne n'existe peut-etre plus apres un annuler : un nouvel os en serait l'enfant d'un os fantome
+  if (E.sel && !E.rig.os.some(b => b.id === E.sel)) E.sel = null;
 }
 function annule() { if (!E.histo.length) return; E.futur.push(photo()); restaurePhoto(E.histo.pop()); E.sale = true; reprepare(); marque(); }
 function retablit() { if (!E.futur.length) return; E.histo.push(photo()); restaurePhoto(E.futur.pop()); E.sale = true; reprepare(); marque(); }
@@ -338,6 +340,9 @@ function rafraichitRect(id, [x, y, w, h]) {
 }
 function reprepare() {
   try {
+    // un os dont le parent n'existe pas (un rig.json abime) devient racine plutot que de rendre le rig invalide
+    const ids = new Set(E.rig.os.map(o => o.id));
+    for (const o of E.rig.os) if (o.parent && !ids.has(o.parent)) { toast('os « ' + o.id + ' » : parent « ' + o.parent + ' » introuvable, mis à la racine'); o.parent = null; E.sale = true; }
     synchroniseToiles();
     const p = prepareRig(E.rig, E.clipsJson);
     p.images = {};
@@ -577,6 +582,7 @@ vue.addEventListener('pointerup', () => {
   if (G.type === 'nouvel') {
     g2.clearRect(0, 0, dessus.width, dessus.height);
     if (!G.loin) { E.sel = null; marque(); return; }
+    if (G.parent && !E.rig.os.some(b => b.id === G.parent)) G.parent = null;
     const id = nomLibre(G.parent ? G.parent + '_' : 'os');
     modifie(r => r.os.push({ id, parent: G.parent || null, x: Math.round(G.wx), y: Math.round(G.wy),
       angle: +(Math.atan2(G.fy - G.wy, G.fx - G.wx) / RAD).toFixed(1), longueur: Math.round(Math.hypot(G.fx - G.wx, G.fy - G.wy)) }), { recalculePoids: true });
