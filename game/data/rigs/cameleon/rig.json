@@ -1,0 +1,33 @@
+{
+  "format": "adventure-rig",
+  "version": 1,
+  "id": "cameleon",
+  "nom": "Cameleon",
+  "source": {
+    "image": "source.png",
+    "largeur": 1024,
+    "hauteur": 1024,
+    "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 1/Cameleon.png"
+  },
+  "os": [
+    { "id": "base", "parent": null, "x": 181, "y": 882, "angle": -0.5, "longueur": 643 },
+    { "id": "body", "parent": "base", "x": 721, "y": 862, "angle": -135.2, "longueur": 400 },
+    { "id": "head", "parent": "body", "x": 444, "y": 564, "angle": -35.5, "longueur": 330 },
+    { "id": "left-front-arm", "parent": "body", "x": 577, "y": 641, "angle": 104, "longueur": 278 },
+    { "id": "right-front-arm", "parent": "body", "x": 397, "y": 598, "angle": 117.5, "longueur": 307 },
+    { "id": "left-back-", "parent": "body", "x": 689, "y": 762, "angle": 72, "longueur": 151 },
+    { "id": "os1_1_5", "parent": "body", "x": 453, "y": 785, "angle": 105.3, "longueur": 93 }
+  ],
+  "calques": [
+    {
+      "id": "corps",
+      "image": "source.png",
+      "ordre": 0,
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
+    }
+  ],
+  "ik": []
+}
