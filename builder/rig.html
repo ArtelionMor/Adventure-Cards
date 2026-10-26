@@ -177,7 +177,7 @@ const E = {
   // les images des calques, A LA TAILLE DE LA SOURCE (recadrees seulement a l'enregistrement) :
   // px = pixels { largeur, hauteur, data } par calque, toiles = leurs canvas (ce que dessine
   // WebGL), masques = les zones a combler ('calque/zone'), source = l'image d'origine (restaurer)
-  multi: new Set(), px: {}, toiles: {}, masques: {}, source: null, salesImages: new Set(), calque: null, opacites: {},
+  multi: new Set(), ancre: null, px: {}, toiles: {}, masques: {}, source: null, salesImages: new Set(), calque: null, opacites: {},
   texteRig: '', texteClips: '',        // ce qui est sur le disque (pour voir un changement)
   sale: false, histo: [], futur: [],
   prep: null, anim: null,
@@ -281,11 +281,25 @@ $('#conflitGarder').onclick = async () => { $('#conflit').style.display = 'none'
 const HISTO_MAX = 40;
 const photo = () => ({ rig: JSON.stringify(E.rig), px: { ...E.px }, masques: { ...E.masques } });
 // La selection d'os : `E.sel` = l'os actif (fiche, poids, parent d'un nouvel os), `E.multi` = tous les os
-// selectionnes (Maj ou Ctrl + clic). `ajoute` : basculer cet os dans la selection au lieu de la remplacer.
-function setSel(id, ajoute = false) {
-  if (!ajoute || !id) { E.multi = new Set(id ? [id] : []); E.sel = id || null; return; }
+// selectionnes, `E.ancre` = d'ou part une plage. Un clic simple remplace la selection ; **Ctrl** (ou Cmd) + clic
+// ajoute ou retire cet os ; **Maj** + clic prend toute la PLAGE de l'ancre a cet os, dans l'ordre de l'arbre.
+function ordreArbre() {
+  const ordre = [], visite = parent => { for (const o of E.rig.os.filter(b => (b.parent || null) === parent)) { ordre.push(o.id); visite(o.id); } };
+  visite(null);
+  return ordre;
+}
+const modeClic = e => (e.ctrlKey || e.metaKey) ? 'ctrl' : e.shiftKey ? 'maj' : false;
+function setSel(id, mode = false) {
+  if (!mode || !id) { E.multi = new Set(id ? [id] : []); E.sel = id || null; E.ancre = E.sel; return; }
+  if (mode === 'maj') {
+    const ordre = ordreArbre(), i = ordre.indexOf(E.ancre ?? E.sel), j = ordre.indexOf(id);
+    if (i < 0 || j < 0) { E.multi = new Set([id]); E.ancre = id; }
+    else E.multi = new Set(ordre.slice(Math.min(i, j), Math.max(i, j) + 1));
+    E.sel = id; return;
+  }
   if (E.multi.has(id)) { E.multi.delete(id); E.sel = [...E.multi].pop() || null; }
   else { E.multi.add(id); E.sel = id; }
+  E.ancre = id;
 }
 const osChoisis = () => E.multi.size ? [...E.multi] : (E.sel ? [E.sel] : []);
 function empile(p) { E.histo.push(p); if (E.histo.length > HISTO_MAX) E.histo.shift(); E.futur = []; }
@@ -472,7 +486,7 @@ function dessineDessus() {
 
 // ------------------------------------------------------------------ souris
 const AIDE = {
-  os: 'Glisser dans le vide : nouvel os (enfant de l\'os sélectionné). Cliquer un os : le sélectionner ; Maj ou Ctrl + clic : en ajouter ou en retirer. Glisser le gros rond : positionner l\'os (avec ses enfants et la sélection ; Alt : le pivot seul) · glisser la barre : l\'orienter. Suppr : effacer la sélection · F2 : renommer. Molette : zoom · clic milieu ou Espace + glisser : déplacer la vue.',
+  os: 'Glisser dans le vide : nouvel os (enfant de l\'os sélectionné). Cliquer un os : le sélectionner ; Ctrl + clic : ajouter ou retirer un os ; Maj + clic : toute la plage jusqu\'à lui (ordre de l\'arbre). Glisser le gros rond : positionner l\'os (avec ses enfants et la sélection ; Alt : le pivot seul) · glisser la barre : l\'orienter. Suppr : effacer la sélection · F2 : renommer. Molette : zoom · clic milieu ou Espace + glisser : déplacer la vue.',
   pose: 'Glisser un os : le tourner (Maj : le déplacer ; une cible d\'IK se déplace, le membre suit). Rien n\'est enregistré. « Remettre au repos » dans la fiche de l\'os.',
   poids: 'Pinceau de poids : glisser sur le calque sélectionné (liste des calques) pour donner du poids à l\'os sélectionné (arbre des os) ; Maj : en retirer. Les poids peints ne se recalculent plus tout seuls.',
   lecture: 'Lecture des clips. Le curseur de temps met en pause.',
@@ -539,7 +553,7 @@ vue.addEventListener('pointerdown', e => {
   const t = touche(px, py);
   if (E.mode === 'os') {
     if (t) {
-      const ajoute = e.shiftKey || e.ctrlKey || e.metaKey;
+      const ajoute = modeClic(e);
       // glisser un os deja choisi : tout le groupe suit ; sinon la selection devient cet os
       if (ajoute || !E.multi.has(t.id)) setSel(t.id, ajoute); else E.sel = t.id;
       marque();
@@ -655,7 +669,7 @@ function dessineArbre() {
     const i = E.rig.os.indexOf(o);
     li.innerHTML = `<span style="width:${prof * 14}px"></span><span class="pastille" style="background:${couleurOs(E.prep?.sq.index.get(o.id) ?? i)}"></span>${o.id}${o.deforme === false ? ' <span class="muet">(ne déforme pas)</span>' : ''}`;
     li.classList.toggle('sel', E.multi.has(o.id) || o.id === E.sel);
-    li.onclick = e => { setSel(o.id, e.shiftKey || e.ctrlKey || e.metaKey); marque(); };
+    li.onclick = e => { setSel(o.id, modeClic(e)); marque(); };
     ul.appendChild(li);
   }
 }
