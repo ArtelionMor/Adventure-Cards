@@ -161,6 +161,12 @@ export function installeSam(api) {
         <canvas id="samToile" width="640" height="640"></canvas><div class="muet" id="samAide">Lancer l'analyse pour voir les régions.</div>
         <div id="samZonesBloc" style="display:none">
           <div class="muet">Entoure chaque partie en glissant la souris, sans précision (une boucle par partie). Ce qui n'est dans aucune boucle reste sur le calque d'origine.</div>
+          <div class="ligne" id="samOutils">
+            <label title="Entourer une partie à main levée"><input type="radio" name="samOutil" value="lasso" checked /> ✎ Boucle</label>
+            <label title="Peindre la zone choisie dans la liste (cliquer son nom) : les pixels lui sont donnés, même repris à une autre zone"><input type="radio" name="samOutil" value="pinceau" /> 🖌 Pinceau</label>
+            <label title="Rendre les pixels au calque d'origine (ils ne seront pas extraits)"><input type="radio" name="samOutil" value="gomme" /> ⌫ Gomme</label>
+          </div>
+          <div class="ligne" id="samPinceauOpt" style="display:none"><label for="samRayon">Rayon</label><input type="range" id="samRayon" min="2" max="150" value="20" style="flex:1" /><span class="muet" id="samRayonTxt" style="width:44px">20 px</span><button id="samAnnule" title="Ctrl + Z">↶ Annuler</button></div>
           <div id="samZones"></div>
           <div class="ligne"><button id="samAffine" class="primaire">Affiner avec SAM</button><button id="samExtraitZones" class="primaire">Extraire toutes les zones</button><button id="samEffaceZones">Effacer les zones</button><span class="muet" id="samZonesTxt"></span></div>
         </div>
@@ -349,12 +355,13 @@ export function installeSam(api) {
     const rgb = id => { const h = (id * 67) % 360, c = document.createElement('canvas').getContext('2d'); c.fillStyle = `hsl(${h} 85% 55%)`; c.fillRect(0, 0, 1, 1); const x = c.fillStyle; return [parseInt(x.slice(1, 3), 16), parseInt(x.slice(3, 5), 16), parseInt(x.slice(5, 7), 16)]; };
     for (const r of S.regions) if (S.choix.has(r.id)) teinte(r, 0.6, rgb(r.id));
     if (S.survol != null) { const r = S.regions.find(x => x.id === S.survol); if (r) teinte(r, 0.35, [255, 255, 255]); }
-    // l'apercu des zones affinees par SAM : chaque zone dans sa couleur
-    if (S.affine) {
-      S.affine.masques.forEach((m, z) => {
-        const [cr, cg, cb] = couleurZone(z);
-        for (let p = 0; p < m.length; p++) if (m[p] > 0.5) { const o = p * 4; d[o] = d[o] * 0.4 + cr * 0.6; d[o + 1] = d[o + 1] * 0.4 + cg * 0.6; d[o + 2] = d[o + 2] * 0.4 + cb * 0.6; }
-      });
+    // les zones affinees par SAM (et retouchees au pinceau) : chaque zone dans sa couleur
+    if (S.etiq) {
+      for (let p = 0; p < S.etiq.length; p++) {
+        const z = S.etiq[p]; if (z < 0) continue;
+        const c = couleurZone(z), o = p * 4;
+        d[o] = d[o] * 0.4 + c[0] * 0.6; d[o + 1] = d[o + 1] * 0.4 + c[1] * 0.6; d[o + 2] = d[o + 2] * 0.4 + c[2] * 0.6;
+      }
     }
     g.putImageData(over, 0, 0);
     // les contours dessines
@@ -366,6 +373,12 @@ export function installeSam(api) {
     };
     S.zones.forEach((z, k) => ligne(z.pts, `rgb(${couleurZone(k).join(',')})`, true));
     if (S.trace) ligne(S.trace, '#fff', false);
+    // le rond du pinceau
+    if (S.mode === 'zones' && S.outil !== 'lasso' && S.curseur) {
+      g.beginPath(); g.arc(S.curseur.x, S.curseur.y, S.rayon, 0, Math.PI * 2);
+      g.lineWidth = trait; g.strokeStyle = S.outil === 'gomme' ? '#fff' : `rgb(${couleurZone(S.zoneActive).join(',')})`; g.stroke();
+      g.lineWidth = trait / 2; g.strokeStyle = '#000'; g.stroke();
+    }
   }
   toile.addEventListener('pointermove', e => {
     if (!S.regions.length || S.mode !== 'regions') return;
@@ -388,83 +401,164 @@ export function installeSam(api) {
   function majCompte() { $('#samCompte').textContent = S.choix.size ? S.choix.size + ' région(s)' : ''; }
   $('#samEfface').onclick = () => { S.choix.clear(); dessine(); majCompte(); };
 
-  // ---------------------------------------------------------------- zones grossieres
+  // ---------------------------------------------------------------- zones grossieres, pinceau
+  // `S.etiq` : pour chaque pixel, le numero de sa zone (ou -1). « Affiner » la calcule (affineZones), le pinceau et la
+  // gomme la retouchent, « Extraire » en fait les calques. `S.annule` garde les etats d'avant chaque coup de pinceau.
   const COULEURS = [[255, 80, 80], [80, 160, 255], [255, 200, 40], [90, 220, 120], [200, 110, 255], [255, 140, 60], [60, 220, 220], [255, 100, 190]];
   function couleurZone(k) { return COULEURS[k % COULEURS.length]; }
+  S.outil = 'lasso'; S.rayon = 20; S.zoneActive = 0; S.etiq = null; S.alpha = null; S.annule = []; S.curseur = null; S.peint = null; S.raf = 0;
+  const redessine = () => { if (!S.raf) S.raf = requestAnimationFrame(() => { S.raf = 0; dessine(); }); };
+
+  function majOutil() {
+    S.outil = document.querySelector('input[name=samOutil]:checked').value;
+    $('#samPinceauOpt').style.display = S.outil === 'lasso' ? 'none' : '';
+    toile.classList.toggle('zones', S.mode === 'zones' && S.outil === 'lasso');
+    toile.style.cursor = S.mode === 'zones' && S.outil !== 'lasso' ? 'none' : '';
+    dessine();
+  }
   function majMode() {
     S.mode = document.querySelector('input[name=samMode]:checked').value;
     $('#samZonesBloc').style.display = S.mode === 'zones' ? '' : 'none';
-    toile.classList.toggle('zones', S.mode === 'zones');
     $('#samAide').textContent = S.mode === 'zones' ? 'Glisser autour d\'une partie, relâcher : la boucle se ferme.' : (S.regions.length ? 'Cliquer sur une partie du personnage.' : 'Lancer l\'analyse pour voir les régions.');
-    dessine();
+    majOutil();
   }
   document.querySelectorAll('input[name=samMode]').forEach(r => { r.onchange = majMode; });
+  document.querySelectorAll('input[name=samOutil]').forEach(r => { r.onchange = majOutil; });
+  $('#samRayon').oninput = e => { S.rayon = +e.target.value; $('#samRayonTxt').textContent = S.rayon + ' px'; };
+
+  function compte() {
+    const n = new Array(S.zones.length).fill(0);
+    if (S.etiq) for (let p = 0; p < S.etiq.length; p++) { const z = S.etiq[p]; if (z >= 0 && z < n.length) n[z]++; }
+    return n;
+  }
   function listeZones() {
     const div = $('#samZones'); div.innerHTML = '';
+    const n = compte();
     S.zones.forEach((z, k) => {
       const l = document.createElement('div'); l.className = 'zone';
+      l.style.outline = k === S.zoneActive ? '1px solid #fff' : '';
+      l.style.borderRadius = '4px';
       l.innerHTML = `<i style="background:rgb(${couleurZone(k).join(',')})"></i><input type="text" value="${z.nom}" placeholder="nom du calque" /><button title="retirer">✕</button>`;
-      l.querySelector('input').oninput = e => { z.nom = e.target.value; };
-      l.querySelector('button').onclick = () => { S.zones.splice(k, 1); S.affine = null; listeZones(); dessine(); };
+      l.title = 'Cliquer pour choisir cette zone (pinceau)';
+      const choisit = () => { if (S.zoneActive !== k) { S.zoneActive = k; listeZones(); } };
+      l.onclick = e => { if (e.target.tagName === 'BUTTON') return; choisit(); };
+      const champ = l.querySelector('input');
+      champ.oninput = e => { z.nom = e.target.value; };
+      champ.onfocus = choisit;
+      l.querySelector('button').onclick = () => retireZone(k);
       div.appendChild(l);
     });
-    $('#samZonesTxt').textContent = S.affine ? S.affine.pixels.map((n, k) => `${S.zones[k]?.nom || k} : ${n.toLocaleString('fr-FR')} px`).join(' · ') : '';
+    $('#samZonesTxt').textContent = S.etiq ? S.zones.map((z, k) => `${z.nom} : ${n[k].toLocaleString('fr-FR')} px`).join(' · ') : '';
   }
-  // le lasso a main levee : on glisse, on relache, la boucle se ferme
-  toile.addEventListener('pointerdown', e => {
-    if (S.mode !== 'zones' || !S.W) return;
-    toile.setPointerCapture(e.pointerId);
-    const q = pose(e); S.trace = [[q.x, q.y]];
-  });
-  toile.addEventListener('pointermove', e => {
-    if (S.mode !== 'zones' || !S.trace) return;
-    const q = pose(e), d = S.trace[S.trace.length - 1];
-    if (Math.hypot(q.x - d[0], q.y - d[1]) > 3) { S.trace.push([q.x, q.y]); dessine(); }
-  });
-  toile.addEventListener('pointerup', () => {
-    if (S.mode !== 'zones' || !S.trace) return;
-    const pts = S.trace; S.trace = null;
-    if (pts.length >= 8) {
-      let k = S.zones.length + 1; while (S.zones.some(z => z.nom === 'zone_' + k)) k++;
-      S.zones.push({ nom: 'zone_' + k, pts }); S.affine = null; listeZones();
-    }
-    dessine();
-  });
+  function retireZone(k) {
+    if (S.etiq) for (let p = 0; p < S.etiq.length; p++) { const v = S.etiq[p]; if (v === k) S.etiq[p] = -1; else if (v > k) S.etiq[p] = v - 1; }
+    S.zones.splice(k, 1); S.annule = [];
+    if (S.zoneActive >= S.zones.length) S.zoneActive = Math.max(0, S.zones.length - 1);
+    if (!S.zones.length) S.etiq = null;
+    listeZones(); dessine();
+  }
   function alphaDe(calque) {
     const im = E.px[calque], a = new Uint8Array(S.W * S.H);
     if (im) for (let p = 0; p < a.length; p++) a[p] = im.data[p * 4 + 3] > 8 ? 1 : 0;
     return a;
   }
   function affine() {
-    if (!S.regions.length) { toile.title = ''; toast('lancer d\'abord l\'analyse'); return null; }
-    if (!S.zones.length) { toast('entourer au moins une partie'); return null; }
-    S.affine = affineZones(S.regions, S.zones, S.W, S.H, alphaDe($('#samDepuis').value));
+    if (!S.regions.length) { toast('lancer d\'abord l\'analyse'); return false; }
+    if (!S.zones.length) { toast('entourer au moins une partie'); return false; }
+    S.alpha = alphaDe($('#samDepuis').value);
+    const r = affineZones(S.regions, S.zones, S.W, S.H, S.alpha);
+    S.etiq = new Int8Array(S.W * S.H).fill(-1);
+    r.masques.forEach((m, z) => { for (let p = 0; p < m.length; p++) if (m[p] > 0.5) S.etiq[p] = z; });
+    S.annule = [];
     listeZones(); dessine();
-    return S.affine;
+    return true;
   }
+  const masquesDe = () => S.zones.map((_, z) => { const m = new Float32Array(S.etiq.length); for (let p = 0; p < m.length; p++) if (S.etiq[p] === z) m[p] = 1; return m; });
+
+  // --- la boucle a main levee
+  toile.addEventListener('pointerdown', e => {
+    if (S.mode !== 'zones' || !S.W) return;
+    toile.setPointerCapture(e.pointerId);
+    const q = pose(e);
+    if (S.outil === 'lasso') { S.trace = [[q.x, q.y]]; return; }
+    if (!S.zones.length) { toast('entourer d\'abord au moins une partie avec « Boucle »'); return; }
+    if (!S.etiq && !affine()) return;
+    if (S.outil === 'pinceau' && !S.zones[S.zoneActive]) { toast('cliquer le nom de la zone à peindre'); return; }
+    S.annule.push(S.etiq.slice()); if (S.annule.length > 20) S.annule.shift();
+    S.peint = q; peint(q.x, q.y); redessine();
+  });
+  toile.addEventListener('pointermove', e => {
+    if (S.mode !== 'zones') return;
+    const q = pose(e);
+    if (S.outil === 'lasso') {
+      if (!S.trace) return;
+      const d = S.trace[S.trace.length - 1];
+      if (Math.hypot(q.x - d[0], q.y - d[1]) > 3) { S.trace.push([q.x, q.y]); redessine(); }
+      return;
+    }
+    S.curseur = q;
+    if (S.peint) { trace(S.peint, q); S.peint = q; }
+    redessine();
+  });
+  toile.addEventListener('pointerup', () => {
+    if (S.mode !== 'zones') return;
+    if (S.peint) { S.peint = null; listeZones(); dessine(); return; }
+    if (!S.trace) return;
+    const pts = S.trace; S.trace = null;
+    if (pts.length >= 8) {
+      let k = S.zones.length + 1; while (S.zones.some(z => z.nom === 'zone_' + k)) k++;
+      S.zones.push({ nom: 'zone_' + k, pts }); S.zoneActive = S.zones.length - 1;
+      // des retouches au pinceau sont gardees ; sans retouche, la nouvelle boucle est prise en compte tout de suite
+      if (S.etiq && !S.annule.length) affine();
+      else listeZones();
+    }
+    dessine();
+  });
+  toile.addEventListener('pointerleave', () => { S.curseur = null; if (S.mode === 'zones') redessine(); });
+
+  // --- le pinceau : un disque sur les pixels du personnage
+  function peint(cx, cy) {
+    const r = S.rayon, r2 = r * r, v = S.outil === 'gomme' ? -1 : S.zoneActive;
+    const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(S.W - 1, Math.ceil(cx + r));
+    const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(S.H - 1, Math.ceil(cy + r));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const p = y * S.W + x;
+      if (S.alpha[p] && (x - cx) * (x - cx) + (y - cy) * (y - cy) <= r2) S.etiq[p] = v;
+    }
+  }
+  function trace(a, b) {
+    const pas = Math.max(1, S.rayon / 3), d = Math.hypot(b.x - a.x, b.y - a.y), n = Math.ceil(d / pas);
+    for (let i = 1; i <= n; i++) peint(a.x + (b.x - a.x) * i / n, a.y + (b.y - a.y) * i / n);
+  }
+  function annule() { if (S.annule.length) { S.etiq = S.annule.pop(); listeZones(); dessine(); } }
+  $('#samAnnule').onclick = annule;
+  addEventListener('keydown', e => {
+    if (!fond.classList.contains('ouvert') || S.mode !== 'zones' || !(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
+    e.preventDefault(); e.stopPropagation(); annule();
+  }, true);
+
   $('#samAffine').onclick = () => { affine(); };
-  $('#samEffaceZones').onclick = () => { S.zones = []; S.affine = null; listeZones(); dessine(); };
+  $('#samEffaceZones').onclick = () => { S.zones = []; S.etiq = null; S.annule = []; listeZones(); dessine(); };
   $('#samExtraitZones').onclick = () => {
-    const r = S.affine || affine();
-    if (!r) return;
+    if (!S.etiq && !affine()) return;
     const depuis = $('#samDepuis').value, c = E.rig.calques.find(k => k.id === depuis);
     if (!c || c.verrou) { toast('calque introuvable ou verrouillé'); return; }
     const noms = S.zones.map(z => (z.nom || '').trim().replace(/\s+/g, '_'));
     if (noms.some(n => !/^[a-z0-9][a-z0-9_-]*$/i.test(n)) || new Set(noms).size !== noms.length) { toast('chaque zone a besoin d\'un nom différent (lettres, chiffres, _ et -)'); return; }
-    const faits = [], vides = [];
+    const masques = masquesDe(), n = compte(), faits = [], vides = [];
     try {
       api.modifie(rig => {
         S.zones.forEach((z, k) => {
-          if (!r.pixels[k]) { vides.push(noms[k]); return; }
-          extraitCalque(rig, E.px, E.masques, { depuis, nom: noms[k], masque: r.masques[k] });
+          if (!n[k]) { vides.push(noms[k]); return; }
+          extraitCalque(rig, E.px, E.masques, { depuis, nom: noms[k], masque: masques[k] });
           faits.push(noms[k]);
         });
         return [depuis, ...faits];
       });
     } catch (e) { toast(e.message); return; }
-    for (const m of r.masques) for (let p = 0; p < m.length; p++) if (m[p] > 0.5) S.pris[p] = 1;
+    for (let p = 0; p < S.etiq.length; p++) if (S.etiq[p] >= 0) S.pris[p] = 1;
     if (faits.length) E.calque = faits[faits.length - 1];
-    S.zones = []; S.affine = null; listeZones(); remplisCalques(); dessine();
+    S.zones = []; S.etiq = null; S.annule = []; listeZones(); remplisCalques(); dessine();
     toast(`${faits.length} calque(s) extrait(s) de « ${depuis} » : ${faits.join(', ')}` + (vides.length ? ` — zones vides ignorées : ${vides.join(', ')}` : ''));
   };
 
@@ -504,5 +598,5 @@ export function installeSam(api) {
   const sec = document.querySelector('#secCalques');
   if (sec) sec.querySelector('h2')?.after(bouton); else document.body.appendChild(bouton);
   // l'etat en memoire : une nouvelle analyse repart de rien quand on change de personnage
-  return { ouvre, ferme, nettoie() { S.regions = []; S.choix.clear(); S.W = 0; S.zones = []; S.affine = null; S.trace = null; } };
+  return { ouvre, ferme, nettoie() { S.regions = []; S.choix.clear(); S.W = 0; S.zones = []; S.etiq = null; S.annule = []; S.trace = null; } };
 }
