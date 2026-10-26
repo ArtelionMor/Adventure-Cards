@@ -16,7 +16,7 @@ import { verifieClips, verifieRig, zonesSousUnCalque } from '../game/src/rig/ver
 import { formateJson } from '../builder/rig/json.js';
 import { encodeGif } from '../builder/rig/gif.js';
 import { decodePng, encodePng } from './lib/png.mjs';
-import { regionsSous, unionRegions, regionContient, affineZones } from '../builder/rig/sam.js';
+import { regionsSous, unionRegions, regionContient, affineZones, affineParRegions } from '../builder/rig/sam.js';
 import { valideReglages, cibles, REGLAGES_DEFAUT } from './lib/sam.mjs';
 import zlib from 'node:zlib';
 
@@ -432,6 +432,28 @@ test('PNG : ecrire puis relire rend les memes pixels', () => {
   test('sam zones : deux zones qui se recouvrent, un pixel va a la plus petite', () => {
     const r = affineZones([], [rect(0, 0, 20, 10), rect(0, 0, 4, 10)], 20, 10, tout);
     return r.pixels[1] === 40 && r.pixels[0] === 160 && r.masques[0][2] === 0 && r.masques[1][2] === 1;
+  });
+  // parties faites de regions : image 20 x 10, A = colonnes 0-9, B = colonnes 10-19, I = un petit carre dans A
+  const I = { id: 2, aire: 4, x: 3, y: 3, w: 2, h: 2, bits: new Uint8Array(4).fill(1) };
+  test('sam IA : une partie prend les pixels de ses regions', () => {
+    const r = affineParRegions([A, B], [[0], [1]], 20, 10, tout, 0);
+    return r.pixels[0] === 100 && r.pixels[1] === 100 && r.etiq[5] === 0 && r.etiq[15] === 1;
+  });
+  test('sam IA : la plus petite region rangee l’emporte, une region non rangee est ignoree', () => {
+    const a = affineParRegions([A, B, I], [[0], [1, 2]], 20, 10, tout, 0);
+    const b = affineParRegions([A, B, I], [[0], [1]], 20, 10, tout, 0);   // I oubliee : ses pixels restent a A
+    return a.etiq[3 * 20 + 3] === 1 && b.etiq[3 * 20 + 3] === 0 && a.pixels[1] === 104;
+  });
+  test('sam IA : le trait (pixels sans region) suit la partie voisine, dans la limite demandee', () => {
+    const petite = { id: 0, aire: 4, x: 5, y: 3, w: 2, h: 2, bits: new Uint8Array(4).fill(1) };
+    const r = affineParRegions([petite], [[0]], 20, 10, tout, 2);
+    // 2x2 au depart, +8 au premier tour, +12 au second (un losange qui grandit)
+    return r.pixels[0] === 24 && affineParRegions([petite], [[0]], 20, 10, tout, 1).pixels[0] === 12 && affineParRegions([petite], [[0]], 20, 10, tout, 0).pixels[0] === 4;
+  });
+  test('sam IA : une region citee par deux parties va a la premiere ; hors du personnage rien', () => {
+    const peu = new Uint8Array(200); for (let y = 0; y < 10; y++) for (let x = 0; x < 5; x++) peu[y * 20 + x] = 1;
+    const r = affineParRegions([A], [[0], [0]], 20, 10, peu, 0);
+    return r.pixels[0] === 50 && r.pixels[1] === 0;
   });
   test('sam : des reglages venus de la page sont nettoyes (nom invalide, port fou, trop de machines)', () => {
     const r = valideReglages({ exporter: 'oui', reseau: 'tail.ts.net', points: 99, machines: [{ nom: 'mon-mien', port: 7340 }, { nom: '../x', port: 1 }, { nom: 'a b', port: 1 }, { nom: 'ok', port: 70000 }, { nom: 'pc', port: '7341', actif: false }] });

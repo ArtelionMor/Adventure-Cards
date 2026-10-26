@@ -21,7 +21,8 @@ const MACHINES_MAX = 8;
 const NOM = /^[a-z0-9]([a-z0-9._-]{0,98}[a-z0-9])?$/i;
 const RESEAU = /^[a-z0-9]([a-z0-9.-]{0,98}[a-z0-9])?$/i;
 
-export const REGLAGES_DEFAUT = { exporter: false, reseau: '', points: 32, machines: [] };
+export const OLLAMA = 11434;
+export const REGLAGES_DEFAUT = { exporter: false, reseau: '', points: 32, modele: '', reflexion: false, machines: [] };
 
 /** Nettoie des reglages venus de la page : jamais un nom ou un port qui ne ressemble pas a une machine. */
 export function valideReglages(r) {
@@ -30,6 +31,8 @@ export function valideReglages(r) {
   o.exporter = r.exporter === true;
   o.reseau = typeof r.reseau === 'string' && RESEAU.test(r.reseau.trim()) ? r.reseau.trim().replace(/^\.+|\.+$/g, '') : '';
   o.points = [16, 32, 48].includes(+r.points) ? +r.points : 32;
+  o.reflexion = r.reflexion === true;
+  o.modele = typeof r.modele === 'string' && /^[\w.:/@-]{1,120}$/.test(r.modele.trim()) ? r.modele.trim() : '';
   o.machines = (Array.isArray(r.machines) ? r.machines : []).slice(0, MACHINES_MAX)
     .map(m => ({ nom: String(m?.nom || '').trim(), port: Math.round(+m?.port) || PORT, actif: m?.actif !== false }))
     .filter(m => NOM.test(m.nom) && m.port >= 1 && m.port <= 65535);
@@ -115,12 +118,92 @@ export async function detecte(port = PORT) {
     // le nom qui se RESOUT (mon-mien), pas celui qu'on affiche (Mon_Mien)
     const nom = String(p.DNSName || '').split('.')[0] || String(p.HostName || '').toLowerCase().replace(/_/g, '-');
     const ip = (p.TailscaleIPs || []).find(a => !a.includes(':'));
-    let sam = null;
+    let sam = null, ia = null;
     if ((p.Online || p.__moi) && ip) {
-      const e = await sonde(p.__moi ? `http://127.0.0.1:${port}` : `http://${ip}:${port}`, 2000);
+      const hote = p.__moi ? '127.0.0.1' : ip;
+      const [e, o] = await Promise.all([sonde(`http://${hote}:${port}`, 2000), fetch(`http://${hote}:${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(2000) }).then(r => r.ok ? r.json() : null).catch(() => null)]);
       if (e.ok) sam = e;
+      if (o?.models) ia = { modeles: o.models.map(m => m.name) };
     }
-    return { nom, os: p.OS || '', enLigne: !!(p.Online || p.__moi), moi: !!p.__moi, sam };
+    return { nom, os: p.OS || '', enLigne: !!(p.Online || p.__moi), moi: !!p.__moi, sam, ia };
   }));
   return { reseau, machines: machines.filter(m => NOM.test(m.nom)) };
+}
+
+// ------------------------------------------------------------------ l'IA qui range les regions en parties (Ollama)
+// SAM trouve les regions (par la couleur), un modele de vision qui tourne sur la meme machine dit lesquelles
+// forment « la tete », « la queue »… On ne lui demande PAS de coordonnees (un petit modele les situe mal) : on lui
+// montre les regions NUMEROTEES et il rend des numeros. Les machines sont celles de la liste (meme nom, port 11434).
+
+function hotesOllama(reglages) {
+  return cibles(reglages).map(c => ({ nom: c.nom, url: c.url.replace(/:\d+$/, ':' + OLLAMA) }));
+}
+
+/** Le premier Ollama qui repond : { nom, url, modeles: [noms] }. */
+export async function ollama(reglages) {
+  const raisons = [];
+  for (const h of hotesOllama(reglages)) {
+    try {
+      const r = await fetch(h.url + '/api/tags', { signal: AbortSignal.timeout(3000) });
+      if (!r.ok) { raisons.push(`${h.nom} : HTTP ${r.status}`); continue; }
+      const d = await r.json();
+      return { ...h, modeles: (d.models || []).map(m => m.name) };
+    } catch { raisons.push(`${h.nom} : Ollama ne répond pas`); }
+  }
+  throw new Error('Aucun Ollama joignable (' + raisons.join(' ; ') + ')');
+}
+
+function lisJson(texte) {
+  const t = String(texte || '').replace(/```(?:json)?/gi, '');
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a < 0 || b <= a) throw new Error("réponse de l'IA sans JSON : " + t.slice(0, 120));
+  return JSON.parse(t.slice(a, b + 1));
+}
+
+/**
+ * Range les regions numerotees d'une image en parties. `image` : PNG en base64 (les regions colorees et
+ * numerotees) ; `parties` : les noms cherches. Rend { machine, modele, parties: { nom: [ids] } }.
+ */
+export async function classe({ image, parties }, reglages) {
+  const o = await ollama(reglages);
+  const modele = reglages.modele && o.modeles.includes(reglages.modele) ? reglages.modele
+    : o.modeles.find(m => /qwen3\.5:9b/.test(m)) || o.modeles[0];
+  if (!modele) throw new Error(o.nom + " n'a aucun modèle Ollama");
+  const noms = (parties || []).map(String).filter(n => /^[\w -]{1,40}$/.test(n)).slice(0, 20);
+  if (!noms.length) throw new Error('aucune partie à chercher');
+  const consigne = 'Cette image montre un personnage de jeu découpé en régions colorées NUMÉROTÉES. '
+    + 'Pour chaque partie ci-dessous, donne la liste des NUMÉROS des régions qui la composent (toutes celles qui en font partie, y compris les petites). '
+    + 'Parties : ' + noms.join(', ') + ". Une région ne va que dans une seule partie ; omets une partie qui n'existe pas. "
+    + 'Réponds UNIQUEMENT par un JSON : {"partie": [numeros]}.';
+  // En FLUX : sans lui, fetch coupe une reponse qui met plus de 5 minutes a arriver (un gros modele qui reflechit) ;
+  // en flux, les morceaux de reflexion arrivent au fil de l'eau et la connexion reste vivante.
+  const r = await fetch(o.url + '/api/chat', {
+    method: 'POST', signal: AbortSignal.timeout(40 * 60 * 1000),
+    body: JSON.stringify({ model: modele, stream: true, think: reglages.reflexion === true, options: { temperature: 0.1, num_ctx: reglages.reflexion ? 16384 : 8192 }, messages: [{ role: 'user', content: consigne, images: [image] }] }),
+  });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Ollama : HTTP ' + r.status); }
+  let contenu = '', reste = '';
+  const lecteur = r.body.getReader(), decode = new TextDecoder();
+  for (;;) {
+    const { done, value } = await lecteur.read();
+    if (done) break;
+    reste += decode.decode(value, { stream: true });
+    let i;
+    while ((i = reste.indexOf('\n')) >= 0) {
+      const ligne = reste.slice(0, i).trim(); reste = reste.slice(i + 1);
+      if (!ligne) continue;
+      const j = JSON.parse(ligne);
+      if (j.error) throw new Error('Ollama : ' + j.error);
+      contenu += j.message?.content || '';
+    }
+  }
+  const d = { message: { content: contenu } };
+  const brut = lisJson(d.message?.content);
+  const sortie = {};
+  for (const [nom, ids] of Object.entries(brut)) {
+    const liste = (Array.isArray(ids) ? ids : []).map(Number).filter(n => Number.isInteger(n) && n >= 0);
+    if (liste.length) sortie[String(nom).trim()] = [...new Set(liste)];
+  }
+  if (!Object.keys(sortie).length) throw new Error("l'IA n'a rangé aucune région");
+  return { machine: o.nom, modele, parties: sortie };
 }

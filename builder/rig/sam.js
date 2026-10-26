@@ -95,6 +95,48 @@ export function affineZones(regions, zones, W, H, alpha, seuil = 0.7) {
   return { masques, pixels };
 }
 
+/**
+ * Des PARTIES faites de regions SAM (c'est ce que rend l'IA : « la queue = les regions 12, 14, 15 »).
+ *   groupes : [ [ids de regions] par partie ]    alpha : Uint8Array W * H, 1 = pixel du personnage
+ *   rend    : { etiq: Int8Array W * H (numero de partie, -1 = aucune), pixels: [nombre par partie] }
+ * Un pixel prend la partie de la PLUS PETITE region qui le contient et qui est rangee quelque part (une region
+ * non rangee est ignoree : l'IA oublie des petites regions, et le pixel retombe sur la grande qui l'entoure).
+ * Une region citee par deux parties va a la premiere. Puis chaque partie GRIGNOTE `trait` pixels autour d'elle,
+ * dans ce qui n'est a personne : le contour noir, que SAM ne range dans aucune region, suit sa partie.
+ */
+export function affineParRegions(regions, groupes, W, H, alpha, trait = 8) {
+  const N = W * H, vers = new Map();
+  groupes.forEach((ids, z) => { for (const id of ids) if (!vers.has(id)) vers.set(id, z); });
+  const etiq = new Int8Array(N).fill(-1);
+  for (const r of [...regions].filter(x => vers.has(x.id)).sort((a, b) => b.aire - a.aire)) {
+    const z = vers.get(r.id);
+    for (let j = 0; j < r.h; j++) {
+      const y = r.y + j; if (y < 0 || y >= H) continue;
+      for (let i = 0; i < r.w; i++) {
+        const x = r.x + i;
+        if (r.bits[j * r.w + i] === 1 && x >= 0 && x < W && alpha[y * W + x]) etiq[y * W + x] = z;
+      }
+    }
+  }
+  // le trait : on etend chaque partie vers les pixels libres du personnage, un pixel par tour
+  let courant = [];
+  for (let p = 0; p < N; p++) if (etiq[p] >= 0) courant.push(p);
+  for (let tour = 0; tour < trait && courant.length; tour++) {
+    const suivant = [];
+    for (const p of courant) {
+      const x = p % W, y = (p - x) / W, z = etiq[p];
+      if (x > 0 && alpha[p - 1] && etiq[p - 1] < 0) { etiq[p - 1] = z; suivant.push(p - 1); }
+      if (x < W - 1 && alpha[p + 1] && etiq[p + 1] < 0) { etiq[p + 1] = z; suivant.push(p + 1); }
+      if (y > 0 && alpha[p - W] && etiq[p - W] < 0) { etiq[p - W] = z; suivant.push(p - W); }
+      if (y < H - 1 && alpha[p + W] && etiq[p + W] < 0) { etiq[p + W] = z; suivant.push(p + W); }
+    }
+    courant = suivant;
+  }
+  const pixels = new Array(groupes.length).fill(0);
+  for (let p = 0; p < N; p++) if (etiq[p] >= 0) pixels[etiq[p]]++;
+  return { etiq, pixels };
+}
+
 // ------------------------------------------------------------------ l'interface
 
 const CSS = `
@@ -168,6 +210,12 @@ export function installeSam(api) {
         <div class="muet" id="samNav">Molette : zoom · Espace + glisser (ou clic milieu, ou clic droit + glisser) : déplacer la vue.</div>
         <div class="muet" id="samAide">Lancer l'analyse pour voir les régions.</div>
         <div id="samZonesBloc" style="display:none">
+          <div class="ligne"><strong style="font-size:13px">🤖 Classer avec l'IA</strong><span class="muet">un modèle de vision (Ollama) range les régions en parties ; tu retouches ensuite</span></div>
+          <div class="ligne"><label for="samParties">Parties</label><input type="text" id="samParties" style="flex:1" title="séparées par des virgules : l'IA cherche celles-là" /></div>
+          <div class="ligne"><label for="samModele">Modèle</label><select id="samModele" style="flex:1"></select>
+            <label title="Le modèle réfléchit avant de répondre : bien plus lent, souvent plus juste (à réserver à un gros modèle)"><input type="checkbox" id="samReflexion" /> réflexion</label></div>
+          <div class="ligne"><button id="samClasse" class="primaire">🤖 Classer les régions</button><span class="muet" id="samClasseTxt"></span></div>
+          <hr style="border:0;border-top:1px solid #394057;margin:8px 0" />
           <div class="muet">Entoure chaque partie en glissant la souris, sans précision (une boucle par partie). Ce qui n'est dans aucune boucle reste sur le calque d'origine.</div>
           <div class="ligne" id="samOutils">
             <label title="Entourer une partie à main levée"><input type="radio" name="samOutil" value="lasso" checked /> ✎ Boucle</label>
@@ -205,6 +253,7 @@ export function installeSam(api) {
   }
   const lisForm = () => ({
     exporter: $('#samExporter').checked, reseau: $('#samReseau').value.trim(), points: +$('#samFinesse').value,
+    modele: $('#samModele').value || '', reflexion: $('#samReflexion').checked,
     machines: machines.filter(m => m.nom),
   });
   function montreReseau() {
@@ -223,7 +272,8 @@ export function installeSam(api) {
       const g = r.reglages;
       $('#samExporter').checked = g.exporter; $('#samReseau').value = g.reseau || ''; $('#samFinesse').value = String(g.points || 32);
       machines = g.machines.map(m => ({ ...m }));
-      montreReseau(); dessineMachines(r.machines);
+      $('#samReflexion').checked = g.reflexion === true; S.modeleVoulu = g.modele || '';
+      montreReseau(); dessineMachines(r.machines); chargeModeles();
     } catch { montreReseau(); dessineMachines(); $('#samEtat').textContent = 'serveur de réglages injoignable (l\'exe sans Node n\'a pas cette fonction)'; }
   }
   $('#samExporter').onchange = montreReseau;
@@ -234,18 +284,19 @@ export function installeSam(api) {
       const r = await fetch('/api/sam/detecte', { cache: 'no-store' }), d = await r.json();
       if (!r.ok) throw new Error(d.erreur || 'échec');
       if (d.reseau && !$('#samReseau').value.trim()) $('#samReseau').value = d.reseau;
-      const reponds = d.machines.filter(m => m.sam && !m.moi);
+      const reponds = d.machines.filter(m => (m.sam || m.ia) && !m.moi);
       let ajoutees = 0;
       for (const m of reponds) {
         const connue = machines.find(x => x.nom === m.nom);
         if (connue) connue.actif = true; else { machines.push({ nom: m.nom, port: 7340, actif: true }); ajoutees++; }
       }
-      dessineMachines(reponds.map(m => ({ nom: m.nom, etat: m.sam })));
-      const autres = d.machines.filter(m => m.enLigne && !m.sam && !m.moi).map(m => m.nom);
+      dessineMachines(reponds.map(m => ({ nom: m.nom, etat: m.sam || { ok: false, raison: 'pas de serveur SAM (IA seulement)' } })));
+      const autres = d.machines.filter(m => m.enLigne && !m.sam && !m.ia && !m.moi).map(m => m.nom);
       const eteintes = d.machines.filter(m => !m.enLigne).length;
-      txt.textContent = `${d.machines.length} machine(s) sur le réseau · ${reponds.length} avec un serveur SAM`
-        + (reponds.length ? ` (${reponds.map(m => m.nom + (m.sam.gpu ? ' · ' + m.sam.gpu : '')).join(', ')})` : '')
-        + (autres.length ? ` · en ligne sans serveur SAM : ${autres.join(', ')}` : '')
+      const avecSam = reponds.filter(m => m.sam), avecIa = reponds.filter(m => m.ia);
+      txt.textContent = `${d.machines.length} machine(s) sur le réseau · SAM : ${avecSam.length ? avecSam.map(m => m.nom + (m.sam.gpu ? ' (' + m.sam.gpu + ')' : '')).join(', ') : 'aucune'}`
+        + ` · IA (Ollama) : ${avecIa.length ? avecIa.map(m => `${m.nom} (${m.ia.modeles.length} modèle${m.ia.modeles.length > 1 ? 's' : ''})`).join(', ') : 'aucune'}`
+        + (autres.length ? ` · en ligne sans rien : ${autres.join(', ')}` : '')
         + (eteintes ? ` · éteintes : ${eteintes}` : '')
         + (ajoutees || reponds.length ? '' : ' — lancer scripts/installe-sam.ps1 sur la machine à carte graphique');
       if (reponds.length) $('#samExporter').checked = true, montreReseau();
@@ -465,6 +516,88 @@ export function installeSam(api) {
   function majCompte() { $('#samCompte').textContent = S.choix.size ? S.choix.size + ' région(s)' : ''; }
   $('#samEfface').onclick = () => { S.choix.clear(); dessine(); majCompte(); };
 
+  // ---------------------------------------------------------------- l'IA range les regions en parties
+  function hslVersRgb(h, s, l) {
+    s /= 100; l /= 100;
+    const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l), f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [Math.round(255 * f(0)), Math.round(255 * f(8)), Math.round(255 * f(4))];
+  }
+  // le personnage, ses regions colorees et leur NUMERO (ecrit sur un pixel de la region, pas au centre d'une boite)
+  function apercuNumerote() {
+    const W = S.W, H = S.H, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+    const fondIm = E.source || E.px[$('#samDepuis').value];
+    if (fondIm) {
+      const t = document.createElement('canvas'); t.width = fondIm.largeur; t.height = fondIm.hauteur;
+      t.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(fondIm.data), fondIm.largeur, fondIm.hauteur), 0, 0);
+      x.drawImage(t, 0, 0);
+    }
+    const over = x.getImageData(0, 0, W, H), d = over.data;
+    for (const r of [...S.regions].sort((a, b) => b.aire - a.aire)) {
+      const [cr, cg, cb] = hslVersRgb((r.id * 67) % 360, 85, 55);
+      for (let j = 0; j < r.h; j++) for (let i = 0; i < r.w; i++) if (r.bits[j * r.w + i]) {
+        const o = ((r.y + j) * W + r.x + i) * 4;
+        d[o] = d[o] * 0.45 + cr * 0.55; d[o + 1] = d[o + 1] * 0.45 + cg * 0.55; d[o + 2] = d[o + 2] * 0.45 + cb * 0.55;
+      }
+    }
+    x.putImageData(over, 0, 0);
+    x.font = `bold ${Math.round(W / 50)}px sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.lineWidth = Math.max(3, Math.round(W / 240)); x.lineJoin = 'round';
+    for (const r of S.regions) {
+      let sx = 0, sy = 0, n = 0;
+      for (let j = 0; j < r.h; j++) for (let i = 0; i < r.w; i++) if (r.bits[j * r.w + i]) { sx += i; sy += j; n++; }
+      if (!n) continue;
+      const mx = sx / n, my = sy / n; let mieux = Infinity, bx = 0, by = 0;
+      for (let j = 0; j < r.h; j++) for (let i = 0; i < r.w; i++) if (r.bits[j * r.w + i]) { const q = (i - mx) ** 2 + (j - my) ** 2; if (q < mieux) { mieux = q; bx = i; by = j; } }
+      x.strokeStyle = '#000'; x.strokeText(String(r.id), r.x + bx, r.y + by);
+      x.fillStyle = '#fff'; x.fillText(String(r.id), r.x + bx, r.y + by);
+    }
+    return c.toDataURL('image/png').split(',')[1];
+  }
+  const PARTIES_DEFAUT = 'tete, oreille_gauche, oreille_droite, corps, bras_gauche, bras_droit, jambe_gauche, jambe_droite, queue';
+  try { $('#samParties').value = localStorage.getItem('adventureCardRig.samParties') || PARTIES_DEFAUT; } catch { $('#samParties').value = PARTIES_DEFAUT; }
+  async function chargeModeles() {
+    const sel = $('#samModele');
+    try {
+      const r = await fetch('/api/sam/modeles', { cache: 'no-store' }), d = await r.json();
+      if (!r.ok) throw new Error(d.erreur);
+      sel.innerHTML = d.modeles.map(m => `<option>${m}</option>`).join('');
+      sel.value = d.modeles.includes(S.modeleVoulu) ? S.modeleVoulu : (d.modeles.find(m => /qwen3\.5:9b/.test(m)) || d.modeles[0]);
+      $('#samClasseTxt').textContent = 'IA sur ' + d.machine;
+    } catch (e) { sel.innerHTML = ''; $('#samClasseTxt').textContent = e.message; }
+  }
+  const nomSur = n => String(n).normalize('NFD').replace(/[̀-ͯ]/g, '').trim().replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '');
+  $('#samClasse').onclick = async () => {
+    if (!S.regions.length) { toast('lancer d\'abord l\'analyse'); return; }
+    const parties = $('#samParties').value.split(',').map(x => x.trim()).filter(Boolean);
+    if (!parties.length) { toast('écrire les parties à chercher'); return; }
+    try { localStorage.setItem('adventureCardRig.samParties', $('#samParties').value); } catch { /* sans stockage */ }
+    const b = $('#samClasse'); b.disabled = true;
+    const t0 = Date.now();
+    const tic = setInterval(() => barre(100, `L'IA regarde le personnage… ${Math.round((Date.now() - t0) / 1000)} s (plusieurs minutes avec un gros modèle)`, true), 1000);
+    barre(100, 'L\'IA regarde le personnage…', true);
+    try {
+      await enregistreReglages();
+      const r = await fetch('/api/sam/classe', { method: 'POST', body: JSON.stringify({ image: apercuNumerote(), parties }) });
+      const rep = await r.json();
+      if (!r.ok) throw new Error(rep.erreur || 'échec');
+      const noms = Object.keys(rep.parties).map(nomSur), vus = new Set();
+      S.zones = Object.entries(rep.parties).map(([nom, ids], k) => {
+        let n = nomSur(nom) || 'zone_' + (k + 1); while (vus.has(n)) n += '_2'; vus.add(n);
+        return { nom: n, pts: [], regions: new Set(ids) };
+      });
+      S.alpha = alphaDe($('#samDepuis').value);
+      S.etiq = affineParRegions(S.regions, S.zones.map(z => [...z.regions]), S.W, S.H, S.alpha).etiq;
+      S.annule = []; S.zoneActive = 0;
+      document.querySelector('input[name=samMode][value=zones]').click();
+      listeZones(); dessine();
+      barre(100, `Rangé par ${rep.modele} sur ${rep.machine} en ${Math.round((Date.now() - t0) / 1000)} s : ${S.zones.length} partie(s)`);
+      toast(`${S.zones.length} partie(s) trouvée(s) : ${S.zones.map(z => z.nom).join(', ')} — à retoucher au pinceau`);
+    } catch (e) { $('#samBarre').style.display = 'none'; toast(e.message); $('#samClasseTxt').textContent = e.message; }
+    clearInterval(tic); b.disabled = false;
+  };
+
   // ---------------------------------------------------------------- zones grossieres, pinceau
   // `S.etiq` : pour chaque pixel, le numero de sa zone (ou -1). « Affiner » la calcule (affineZones), le pinceau et la
   // gomme la retouchent, « Extraire » en fait les calques. `S.annule` garde les etats d'avant chaque coup de pinceau.
@@ -530,12 +663,23 @@ export function installeSam(api) {
     if (!S.regions.length) { toast('lancer d\'abord l\'analyse'); return false; }
     if (!S.zones.length) { toast('entourer au moins une partie'); return false; }
     S.alpha = alphaDe($('#samDepuis').value);
-    const r = affineZones(S.regions, S.zones, S.W, S.H, S.alpha);
-    S.etiq = new Int8Array(S.W * S.H).fill(-1);
-    r.masques.forEach((m, z) => { for (let p = 0; p < m.length; p++) if (m[p] > 0.5) S.etiq[p] = z; });
+    if (S.zones.some(z => z.regions)) {
+      // des parties rangees par l'IA : on repart de leurs regions, les boucles dessinees apres sont peintes par-dessus
+      S.etiq = affineParRegions(S.regions, S.zones.map(z => z.regions ? [...z.regions] : []), S.W, S.H, S.alpha).etiq;
+      S.zones.forEach((z, k) => { if (!z.regions) peintBoucle(k); });
+    } else {
+      const r = affineZones(S.regions, S.zones, S.W, S.H, S.alpha);
+      S.etiq = new Int8Array(S.W * S.H).fill(-1);
+      r.masques.forEach((m, z) => { for (let p = 0; p < m.length; p++) if (m[p] > 0.5) S.etiq[p] = z; });
+    }
     S.annule = [];
     listeZones(); dessine();
     return true;
+  }
+  // une boucle dessinee : tous les pixels du personnage qu'elle entoure vont a cette zone
+  function peintBoucle(k) {
+    const m = masquePolygone(S.zones[k].pts, S.W, S.H);
+    for (let p = 0; p < m.length; p++) if (m[p] > 0.5 && S.alpha[p]) S.etiq[p] = k;
   }
   const masquesDe = () => S.zones.map((_, z) => { const m = new Float32Array(S.etiq.length); for (let p = 0; p < m.length; p++) if (S.etiq[p] === z) m[p] = 1; return m; });
 
@@ -572,8 +716,11 @@ export function installeSam(api) {
     if (pts.length >= 8) {
       let k = S.zones.length + 1; while (S.zones.some(z => z.nom === 'zone_' + k)) k++;
       S.zones.push({ nom: 'zone_' + k, pts }); S.zoneActive = S.zones.length - 1;
-      // des retouches au pinceau sont gardees ; sans retouche, la nouvelle boucle est prise en compte tout de suite
-      if (S.etiq && !S.annule.length) affine();
+      if (S.etiq && S.zones.some(z => z.regions)) {
+        // apres l'IA : la boucle prend les pixels qu'elle entoure (annulable)
+        S.annule.push(S.etiq.slice()); if (S.annule.length > 20) S.annule.shift();
+        peintBoucle(S.zones.length - 1); listeZones();
+      } else if (S.etiq && !S.annule.length) affine();   // des retouches au pinceau sont gardees ; sans retouche, la boucle compte tout de suite
       else listeZones();
     }
     dessine();

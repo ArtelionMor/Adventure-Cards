@@ -633,6 +633,8 @@ http.createServer((req, res) => {
   // nom Tailscale) et rend les regions. Reglages : ~/.adventure-card/sam.json (scripts/lib/sam.mjs).
   //   GET  /api/sam                        -> { reglages, machines: [ { nom, url, etat } ] }
   //   GET  /api/sam/detecte                -> { reseau, machines: [ { nom, os, enLigne, moi, sam } ] } (Tailscale + sonde du port SAM)
+  //   GET  /api/sam/modeles                -> { machine, modeles } (l'Ollama de la machine SAM)
+  //   POST /api/sam/classe (JSON { image, parties }) -> { machine, modele, parties: { nom: [numeros de regions] } }
   //   POST /api/sam/reglages  (JSON)       -> les reglages nettoyes, ecrits
   //   POST /api/sam/segmente?id=<perso>    -> { machine, largeur, hauteur, masques } (source.png du personnage)
   // Pas doublee en C# : l'exe sans Node n'a pas l'Atelier de rig.
@@ -645,6 +647,24 @@ http.createServer((req, res) => {
   }
   if (urlPath === '/api/sam/detecte' && req.method === 'GET') {
     import('./lib/sam.mjs').then(async m => json(res, 200, await m.detecte())).catch(e => json(res, 502, { erreur: e.message }));
+    return;
+  }
+  if (urlPath === '/api/sam/modeles' && req.method === 'GET') {
+    import('./lib/sam.mjs').then(async m => { const o = await m.ollama(m.lisReglages()); json(res, 200, { machine: o.nom, modeles: o.modeles }); })
+      .catch(e => json(res, 502, { erreur: e.message }));
+    return;
+  }
+  if (urlPath === '/api/sam/classe' && req.method === 'POST') {
+    const morceaux = []; let taille = 0;
+    req.on('data', c => { taille += c.length; if (taille <= 16 * 1024 * 1024) morceaux.push(c); });
+    req.on('end', () => {
+      import('./lib/sam.mjs').then(async m => {
+        if (taille > 16 * 1024 * 1024) throw new Error('image trop grosse');
+        const corps = JSON.parse(Buffer.concat(morceaux).toString('utf8') || '{}');
+        console.log("sam : classement des regions par l'IA");
+        json(res, 200, await m.classe({ image: String(corps.image || ''), parties: corps.parties }, m.lisReglages()));
+      }).catch(e => json(res, 502, { erreur: e.message }));
+    });
     return;
   }
   if (urlPath === '/api/sam/reglages' && req.method === 'POST') {
