@@ -1,5 +1,221 @@
 {
   "format": "adventure-rig-clips",
   "version": 1,
-  "clips": {}
+  "clips": {
+    "idle": {
+      "description": "Repos : le corps respire, la tête dodeline, les membres et la queue ondulent en décalé.",
+      "duree": 6,
+      "boucle": true,
+      "pistes": {
+        "sol": {
+          "y": [
+            { "t": 0, "v": 0 },
+            { "t": 2.6, "v": 3 },
+            { "t": 4.2, "v": 0 }
+          ]
+        },
+        "corps": {
+          "rot": [
+            { "t": 0, "v": -0.3 },
+            { "t": 3, "v": 0.4 }
+          ]
+        }
+      },
+      "procedural": [
+        { "type": "sinus", "os": "tete", "canal": "rot", "amplitude": 0.357, "periode": 3, "phase": 0.1 },
+        {
+          "type": "sinus",
+          "os": "oreille_gauche",
+          "canal": "rot",
+          "amplitude": 2.5,
+          "periode": 3,
+          "phase": 0.3
+        },
+        {
+          "type": "sinus",
+          "os": "oreille_droite",
+          "canal": "rot",
+          "amplitude": 2.5,
+          "periode": 3,
+          "phase": 0.4
+        },
+        { "type": "sinus", "os": "bras", "canal": "rot", "amplitude": 1.926, "periode": 3, "phase": 0 },
+        { "type": "sinus", "os": "queue", "canal": "rot", "amplitude": 4, "periode": 3, "phase": 0 }
+      ]
+    },
+    "walking": {
+      "description": "Marche : le corps rebondit à chaque pas, les membres balancent en opposition.",
+      "duree": 1.2,
+      "boucle": true,
+      "pistes": {
+        "sol": {
+          "y": [
+            { "t": 0, "v": 0 },
+            { "t": 0.3, "v": -9 },
+            { "t": 0.6, "v": 0 },
+            { "t": 0.9, "v": -9 }
+          ]
+        },
+        "corps": {
+          "rot": [
+            { "t": 0, "v": -1 },
+            { "t": 0.6, "v": 1 }
+          ]
+        },
+        "tete": {
+          "rot": [
+            { "t": 0, "v": 0.298 },
+            { "t": 0.6, "v": -0.298 }
+          ]
+        },
+        "bras": {
+          "rot": [
+            { "t": 0, "v": -9.628 },
+            { "t": 0.6, "v": 9.628 }
+          ]
+        }
+      },
+      "procedural": [
+        {
+          "type": "sinus",
+          "os": "oreille_gauche",
+          "canal": "rot",
+          "amplitude": 4,
+          "periode": 1.2,
+          "phase": 0.2
+        },
+        {
+          "type": "sinus",
+          "os": "oreille_droite",
+          "canal": "rot",
+          "amplitude": 4,
+          "periode": 1.2,
+          "phase": 0.2
+        },
+        { "type": "sinus", "os": "queue", "canal": "rot", "amplitude": 6, "periode": 1.2, "phase": 0 }
+      ]
+    },
+    "hitting": {
+      "description": "Coup : il se recule, fonce vers l'avant (le bas de l'écran) et revient, les membres fouettent.",
+      "duree": 1.1,
+      "boucle": false,
+      "pistes": {
+        "sol": {
+          "y": [
+            { "t": 0, "v": 0 },
+            { "t": 0.25, "v": -10 },
+            { "t": 0.42, "v": 26 },
+            { "t": 0.6, "v": 26 },
+            { "t": 1.1, "v": 0 }
+          ]
+        },
+        "corps": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.25, "v": -1.5 },
+            { "t": 0.42, "v": 1.5 },
+            { "t": 0.6, "v": 1.5 },
+            { "t": 1.1, "v": 0 }
+          ]
+        },
+        "tete": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.25, "v": -0.596 },
+            { "t": 0.42, "v": 0.894 },
+            { "t": 0.6, "v": 0.894 },
+            { "t": 1.1, "v": 0 }
+          ]
+        },
+        "bras": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.25, "v": 24.071 },
+            { "t": 0.45, "v": -38.514 },
+            { "t": 0.65, "v": -24.071 },
+            { "t": 1.1, "v": 0 }
+          ]
+        },
+        "queue": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.25, "v": -12 },
+            { "t": 0.45, "v": 20 },
+            { "t": 1.1, "v": 0 }
+          ]
+        }
+      },
+      "procedural": []
+    },
+    "taking_damage": {
+      "description": "Dégâts : repoussé en arrière, la tête part en arrière, les membres retombent mollement.",
+      "duree": 0.8,
+      "boucle": false,
+      "pistes": {
+        "sol": {
+          "y": [
+            { "t": 0, "v": 0 },
+            { "t": 0.1, "v": -18 },
+            { "t": 0.3, "v": -6 },
+            { "t": 0.8, "v": 0 }
+          ],
+          "x": [
+            { "t": 0, "v": 0 },
+            { "t": 0.1, "v": 12 },
+            { "t": 0.35, "v": 3 },
+            { "t": 0.8, "v": 0 }
+          ]
+        },
+        "corps": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.1, "v": -2 },
+            { "t": 0.4, "v": 0.6 },
+            { "t": 0.8, "v": 0 }
+          ]
+        },
+        "tete": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.1, "v": -1.49 },
+            { "t": 0.4, "v": 0.447 },
+            { "t": 0.8, "v": 0 }
+          ]
+        },
+        "oreille_gauche": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.12, "v": -8 },
+            { "t": 0.45, "v": 3 },
+            { "t": 0.8, "v": 0 }
+          ]
+        },
+        "oreille_droite": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.12, "v": 8 },
+            { "t": 0.45, "v": -3 },
+            { "t": 0.8, "v": 0 }
+          ]
+        },
+        "bras": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.12, "v": -11.554 },
+            { "t": 0.45, "v": 3.851 },
+            { "t": 0.8, "v": 0 }
+          ]
+        },
+        "queue": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.12, "v": 10 },
+            { "t": 0.45, "v": -4 },
+            { "t": 0.8, "v": 0 }
+          ]
+        }
+      },
+      "procedural": []
+    }
+  }
 }

@@ -10,27 +10,131 @@
     "origine": "Graphical Assets/Characters/Opponent Captain Octopus.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 143, "y": 927, "angle": 0, "longueur": 724 },
-    { "id": "bassin", "parent": "sol", "x": 505, "y": 853, "angle": -90, "longueur": 74 },
-    { "id": "torse", "parent": "bassin", "x": 505, "y": 780, "angle": -90, "longueur": 184 },
-    { "id": "tete", "parent": "torse", "x": 505, "y": 504, "angle": -90, "longueur": 276 },
-    { "id": "oreille_g", "parent": "tete", "x": 369, "y": 227, "angle": -120, "longueur": 138 },
-    { "id": "oreille_d", "parent": "tete", "x": 640, "y": 227, "angle": -60, "longueur": 138 },
-    { "id": "bras_g", "parent": "torse", "x": 369, "y": 669, "angle": 160, "longueur": 129 },
-    { "id": "bras_d", "parent": "torse", "x": 640, "y": 669, "angle": 20, "longueur": 129 },
-    { "id": "jambe_g", "parent": "bassin", "x": 414, "y": 853, "angle": 100, "longueur": 83 },
-    { "id": "jambe_d", "parent": "bassin", "x": 595, "y": 853, "angle": 80, "longueur": 83 },
-    { "id": "queue", "parent": "bassin", "x": 686, "y": 798, "angle": -30, "longueur": 129 }
+    { "id": "sol", "parent": null, "x": 52, "y": 963, "angle": 0, "longueur": 900 },
+    { "id": "fond", "parent": null, "x": 0, "y": 963, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 504, "y": 891, "angle": -66.3, "longueur": 358 },
+    { "id": "tete", "parent": "corps", "x": 528, "y": 562, "angle": -43.7, "longueur": 366 },
+    { "id": "tentacules", "parent": "corps", "x": 350, "y": 681, "angle": -120.1, "longueur": 371 },
+    { "id": "jambes", "parent": "corps", "x": 514, "y": 893, "angle": 11.2, "longueur": 288 },
+    { "id": "tuyau", "parent": "tete", "x": 695, "y": 542, "angle": 76, "longueur": 334 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 369,
+          "y": 238,
+          "largeur": 468,
+          "hauteur": 325,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 644,
+          "y": 386,
+          "largeur": 309,
+          "hauteur": 481,
+          "etat": "provisoire",
+          "par": "tuyau"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 239,
+          "y": 563,
+          "largeur": 453,
+          "hauteur": 329,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 400,
+          "y": 828,
+          "largeur": 397,
+          "hauteur": 136,
+          "etat": "provisoire",
+          "par": "jambes"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 52,
+          "y": 350,
+          "largeur": 391,
+          "hauteur": 343,
+          "etat": "provisoire",
+          "par": "tentacules"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 338,
+      "y": 205,
+      "largeur": 528,
+      "hauteur": 391,
+      "os": "tete"
+    },
+    {
+      "id": "tuyau",
+      "image": "calques/tuyau.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 613,
+      "y": 361,
+      "largeur": 346,
+      "hauteur": 535,
+      "os": "tuyau"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 233,
+      "y": 532,
+      "largeur": 490,
+      "hauteur": 390,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 400,
+      "y": 797,
+      "largeur": 402,
+      "hauteur": 167,
+      "os": "jambes"
+    },
+    {
+      "id": "tentacules",
+      "image": "calques/tentacules.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 46,
+      "y": 339,
+      "largeur": 428,
+      "hauteur": 385,
+      "os": "tentacules"
     }
   ],
   "ik": []

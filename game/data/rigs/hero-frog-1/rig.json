@@ -10,11 +10,12 @@
     "origine": "Graphical Assets/Characters/Hero Frog 1.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 70, "y": 979, "angle": 0, "longueur": 883 },
-    { "id": "corps", "parent": "sol", "x": 395, "y": 979, "angle": -50.6, "longueur": 825 },
-    { "id": "tete", "parent": "corps", "x": 506, "y": 595, "angle": -120.5, "longueur": 467 },
-    { "id": "bras", "parent": "corps", "x": 763, "y": 450, "angle": 118.2, "longueur": 337 },
-    { "id": "jambes", "parent": "corps", "x": 412, "y": 760, "angle": 8.8, "longueur": 545 }
+    { "id": "sol", "parent": null, "x": 153, "y": 943, "angle": 0, "longueur": 708 },
+    { "id": "fond", "parent": null, "x": 0, "y": 943, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 388, "y": 813, "angle": -62.8, "longueur": 409 },
+    { "id": "tete", "parent": "corps", "x": 430, "y": 448, "angle": -38, "longueur": 385 },
+    { "id": "bras", "parent": "corps", "x": 579, "y": 523, "angle": -8.4, "longueur": 211 },
+    { "id": "jambes", "parent": "corps", "x": 254, "y": 676, "angle": 15.5, "longueur": 629 }
   ],
   "calques": [
     {
@@ -32,42 +33,42 @@
           "x": 220,
           "y": 155,
           "largeur": 531,
-          "hauteur": 582,
+          "hauteur": 294,
           "etat": "provisoire",
           "par": "tete"
         },
         {
           "id": "z2",
           "masque": "masques/tout-z2.png",
-          "x": 549,
-          "y": 275,
-          "largeur": 398,
-          "hauteur": 473,
+          "x": 573,
+          "y": 394,
+          "largeur": 218,
+          "hauteur": 157,
           "etat": "provisoire",
           "par": "bras"
         },
         {
           "id": "z3",
           "masque": "masques/tout-z3.png",
-          "x": 70,
-          "y": 322,
-          "largeur": 852,
-          "hauteur": 658,
+          "x": 251,
+          "y": 449,
+          "largeur": 378,
+          "hauteur": 365,
           "etat": "provisoire",
           "par": "corps"
         },
         {
           "id": "z4",
           "masque": "masques/tout-z4.png",
-          "x": 84,
+          "x": 153,
           "y": 512,
-          "largeur": 870,
-          "hauteur": 369,
+          "largeur": 709,
+          "hauteur": 432,
           "etat": "provisoire",
           "par": "jambes"
         }
       ],
-      "os": "corps"
+      "os": "fond"
     },
     {
       "id": "tete",
@@ -77,7 +78,7 @@
       "x": 214,
       "y": 155,
       "largeur": 547,
-      "hauteur": 613,
+      "hauteur": 330,
       "os": "tete"
     },
     {
@@ -85,10 +86,10 @@
       "image": "calques/bras.png",
       "de": "tout",
       "ordre": 3,
-      "x": 518,
-      "y": 270,
-      "largeur": 436,
-      "hauteur": 509,
+      "x": 542,
+      "y": 363,
+      "largeur": 270,
+      "hauteur": 219,
       "os": "bras"
     },
     {
@@ -96,10 +97,10 @@
       "image": "calques/corps.png",
       "de": "tout",
       "ordre": 2,
-      "x": 66,
-      "y": 291,
-      "largeur": 886,
-      "hauteur": 694,
+      "x": 220,
+      "y": 418,
+      "largeur": 440,
+      "hauteur": 427,
       "os": "corps"
     },
     {
@@ -107,10 +108,10 @@
       "image": "calques/jambes.png",
       "de": "tout",
       "ordre": 1,
-      "x": 66,
-      "y": 508,
-      "largeur": 892,
-      "hauteur": 389,
+      "x": 128,
+      "y": 485,
+      "largeur": 765,
+      "hauteur": 487,
       "os": "jambes"
     }
   ],

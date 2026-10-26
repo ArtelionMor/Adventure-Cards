@@ -10,27 +10,131 @@
     "origine": "Graphical Assets/Characters/Opponent Raven.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 183, "y": 930, "angle": 0, "longueur": 696 },
-    { "id": "bassin", "parent": "sol", "x": 531, "y": 869, "angle": -90, "longueur": 61 },
-    { "id": "torse", "parent": "bassin", "x": 531, "y": 808, "angle": -90, "longueur": 152 },
-    { "id": "tete", "parent": "torse", "x": 531, "y": 581, "angle": -90, "longueur": 228 },
-    { "id": "oreille_g", "parent": "tete", "x": 401, "y": 353, "angle": -120, "longueur": 114 },
-    { "id": "oreille_d", "parent": "tete", "x": 662, "y": 353, "angle": -60, "longueur": 114 },
-    { "id": "bras_g", "parent": "torse", "x": 401, "y": 717, "angle": 160, "longueur": 106 },
-    { "id": "bras_d", "parent": "torse", "x": 662, "y": 717, "angle": 20, "longueur": 106 },
-    { "id": "jambe_g", "parent": "bassin", "x": 444, "y": 869, "angle": 100, "longueur": 68 },
-    { "id": "jambe_d", "parent": "bassin", "x": 618, "y": 869, "angle": 80, "longueur": 68 },
-    { "id": "queue", "parent": "bassin", "x": 705, "y": 823, "angle": -30, "longueur": 106 }
+    { "id": "sol", "parent": null, "x": 96, "y": 959, "angle": 0, "longueur": 869 },
+    { "id": "fond", "parent": null, "x": 0, "y": 959, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 544, "y": 840, "angle": -145, "longueur": 365 },
+    { "id": "tete", "parent": "corps", "x": 523, "y": 549, "angle": -9.8, "longueur": 389 },
+    { "id": "aile_droite", "parent": "corps", "x": 672, "y": 668, "angle": 1.7, "longueur": 273 },
+    { "id": "queue", "parent": "corps", "x": 565, "y": 826, "angle": 168.2, "longueur": 479 },
+    { "id": "aile_gauche", "parent": "tete", "x": 669, "y": 558, "angle": 174, "longueur": 498 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 96,
+      "y": 201,
+      "largeur": 870,
+      "hauteur": 759,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 264,
+          "y": 201,
+          "largeur": 643,
+          "hauteur": 349,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 668,
+          "y": 550,
+          "largeur": 278,
+          "hauteur": 198,
+          "etat": "provisoire",
+          "par": "aile_droite"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 174,
+          "y": 544,
+          "largeur": 537,
+          "hauteur": 100,
+          "etat": "provisoire",
+          "par": "aile_gauche"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 229,
+          "y": 550,
+          "largeur": 488,
+          "hauteur": 291,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 96,
+          "y": 699,
+          "largeur": 870,
+          "hauteur": 261,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 264,
+      "y": 201,
+      "largeur": 643,
+      "hauteur": 385,
+      "os": "tete"
+    },
+    {
+      "id": "aile_droite",
+      "image": "calques/aile_droite.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 637,
+      "y": 550,
+      "largeur": 309,
+      "hauteur": 228,
+      "os": "aile_droite"
+    },
+    {
+      "id": "aile_gauche",
+      "image": "calques/aile_gauche.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 174,
+      "y": 513,
+      "largeur": 555,
+      "hauteur": 146,
+      "os": "aile_gauche"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 214,
+      "y": 519,
+      "largeur": 534,
+      "hauteur": 353,
+      "os": "corps"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 96,
+      "y": 666,
+      "largeur": 870,
+      "hauteur": 294,
+      "os": "queue"
     }
   ],
   "ik": []
