@@ -16,7 +16,7 @@ import { verifieClips, verifieRig, zonesSousUnCalque } from '../game/src/rig/ver
 import { formateJson } from '../builder/rig/json.js';
 import { encodeGif } from '../builder/rig/gif.js';
 import { decodePng, encodePng } from './lib/png.mjs';
-import { regionsSous, unionRegions, regionContient } from '../builder/rig/sam.js';
+import { regionsSous, unionRegions, regionContient, affineZones } from '../builder/rig/sam.js';
 import { valideReglages, cibles, REGLAGES_DEFAUT } from './lib/sam.mjs';
 import zlib from 'node:zlib';
 
@@ -409,6 +409,30 @@ test('PNG : ecrire puis relire rend les memes pixels', () => {
     return n === 7 && m[3 * 10 + 3] === 1 && m[0] === 1 && m[1 * 10 + 1] === 0 && m[2 * 10 + 2] === 0;
   });
   test('sam : l’union ignore ce qui sort de l’image', () => unionRegions([{ id: 0, aire: 4, x: 8, y: 8, w: 4, h: 4, bits: new Uint8Array(16).fill(1) }], [0], 10, 10).reduce((a, v) => a + v, 0) === 4);
+  // zones grossieres : image 20 x 10 ; region A = colonnes 0-9, region B = colonnes 10-19, toutes deux sur toute la hauteur
+  const bits = (w, h) => new Uint8Array(w * h).fill(1);
+  const A = { id: 0, aire: 100, x: 0, y: 0, w: 10, h: 10, bits: bits(10, 10) }, B = { id: 1, aire: 100, x: 10, y: 0, w: 10, h: 10, bits: bits(10, 10) };
+  const tout = new Uint8Array(200).fill(1);
+  const rect = (x0, y0, x1, y1) => ({ pts: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] });
+  test('sam zones : une zone grossiere prend les regions qu’elle couvre, avec leurs bords exacts', () => {
+    // la zone 0 deborde de 2 colonnes sur B, la zone 1 deborde de 2 colonnes sur A : chacune garde sa region
+    const r = affineZones([A, B], [rect(0, 0, 12, 10), rect(8, 0, 20, 10)], 20, 10, tout);
+    return r.pixels[0] === 100 && r.pixels[1] === 100 && r.masques[0][5] === 1 && r.masques[0][15] === 0 && r.masques[1][15] === 1;
+  });
+  test('sam zones : une region a cheval sur deux zones suit le trait dessine', () => {
+    const grande = { id: 0, aire: 200, x: 0, y: 0, w: 20, h: 10, bits: bits(20, 10) };
+    const r = affineZones([grande], [rect(0, 0, 10, 10), rect(10, 0, 20, 10)], 20, 10, tout);
+    return r.pixels[0] === 100 && r.pixels[1] === 100 && r.masques[0][9] === 1 && r.masques[1][10] === 1;
+  });
+  test('sam zones : hors de toute zone, ou hors du personnage, rien n’est pris', () => {
+    const peu = new Uint8Array(200); for (let y = 0; y < 10; y++) for (let x = 0; x < 5; x++) peu[y * 20 + x] = 1;
+    const r = affineZones([A, B], [rect(0, 0, 20, 10)], 20, 10, peu);
+    return r.pixels[0] === 50 && r.masques[0][7] === 0;
+  });
+  test('sam zones : deux zones qui se recouvrent, un pixel va a la plus petite', () => {
+    const r = affineZones([], [rect(0, 0, 20, 10), rect(0, 0, 4, 10)], 20, 10, tout);
+    return r.pixels[1] === 40 && r.pixels[0] === 160 && r.masques[0][2] === 0 && r.masques[1][2] === 1;
+  });
   test('sam : des reglages venus de la page sont nettoyes (nom invalide, port fou, trop de machines)', () => {
     const r = valideReglages({ exporter: 'oui', reseau: 'tail.ts.net', points: 99, machines: [{ nom: 'mon-mien', port: 7340 }, { nom: '../x', port: 1 }, { nom: 'a b', port: 1 }, { nom: 'ok', port: 70000 }, { nom: 'pc', port: '7341', actif: false }] });
     return r.exporter === false && r.points === 32 && r.machines.length === 2 && r.machines[1].port === 7341 && r.machines[1].actif === false;
