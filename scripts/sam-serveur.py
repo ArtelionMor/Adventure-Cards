@@ -14,7 +14,7 @@
 #   pip install git+https://github.com/facebookresearch/sam2.git opencv-python pillow numpy
 # Le modele (sam2.1_hiera_large, ~900 Mo) se telecharge au premier appel.
 #
-# Appels :  GET  /etat                     -> { ok, modele, charge, gpu }
+# Appels :  GET  /etat                     -> { ok, modele, charge, gpu, occupe, etape, ecoule, calcul_dernier }
 #           POST /segmente?points=32       -> corps = PNG ; rend { largeur, hauteur, masques: [ { id, aire,
 #                                              x, y, w, h, png (base64, recadre) } ] }, du plus grand au plus petit
 # ⚠ Sans mot de passe : ne jamais l'exposer a internet (cf. scripts/CLAUDE.md, « Le serveur »).
@@ -25,6 +25,7 @@ import json
 import os
 import subprocess
 import threading
+import time
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -34,7 +35,14 @@ URL_MODELE = "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hi
 CONFIG = "configs/sam2.1/sam2.1_hiera_l.yaml"
 TAILLE_MAX = 40 * 1024 * 1024
 
-ETAT = {"gen": None, "gpu": None, "modele": None}
+ETAT = {"gen": None, "gpu": None, "modele": None,
+        "occupe": False, "etape": None, "debut": 0.0, "etape_debut": 0.0, "calcul_dernier": None}
+
+
+def etape(nom):
+    """Dit ou en est le calcul : l'Atelier l'affiche en barre de progression (GET /etat)."""
+    ETAT["etape"] = nom
+    ETAT["etape_debut"] = time.time()
 VERROU = threading.Lock()  # une seule image a la fois sur la carte
 
 
@@ -61,7 +69,11 @@ def segmente(png, points, chemin_modele):
     import numpy as np
     import torch
     from PIL import Image
+    if ETAT["gen"] is None:
+        etape("chargement")
     modele, Generateur = charge_modele(chemin_modele)
+    etape("calcul")
+    t_calcul = time.time()
     gen = Generateur(modele, points_per_side=points, pred_iou_thresh=0.8, stability_score_thresh=0.9, min_mask_region_area=300)
     im = Image.open(io.BytesIO(png)).convert("RGBA")
     alpha = np.array(im)[:, :, 3] > 8
@@ -78,6 +90,8 @@ def segmente(png, points, chemin_modele):
         if n == 0 or (seg & alpha).sum() / n < 0.6:
             continue
         gardes.append((n, seg))
+    ETAT["calcul_dernier"] = round(time.time() - t_calcul, 1)
+    etape("encodage")
     gardes.sort(key=lambda t: -t[0])
     sortie = []
     for k, (n, seg) in enumerate(gardes):
@@ -106,7 +120,11 @@ class Gestionnaire(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if urllib.parse.urlparse(self.path).path == "/etat":
-            self.repond(200, {"ok": True, "modele": ETAT["modele"] or os.path.basename(self.chemin_modele), "charge": ETAT["gen"] is not None, "gpu": ETAT["gpu"]})
+            maintenant = time.time()
+            self.repond(200, {"ok": True, "modele": ETAT["modele"] or os.path.basename(self.chemin_modele), "charge": ETAT["gen"] is not None, "gpu": ETAT["gpu"],
+                              "occupe": ETAT["occupe"], "etape": ETAT["etape"] if ETAT["occupe"] else None,
+                              "ecoule": round(maintenant - ETAT["etape_debut"], 1) if ETAT["occupe"] else 0,
+                              "calcul_dernier": ETAT["calcul_dernier"]})
         else:
             self.repond(404, {"erreur": "inconnu"})
 
@@ -123,7 +141,13 @@ class Gestionnaire(BaseHTTPRequestHandler):
         points = max(8, min(64, int((urllib.parse.parse_qs(url.query).get("points") or ["32"])[0])))
         try:
             with VERROU:
-                self.repond(200, segmente(png, points, self.chemin_modele))
+                ETAT["occupe"] = True
+                etape("lecture")
+                try:
+                    reponse = segmente(png, points, self.chemin_modele)
+                finally:
+                    ETAT["occupe"] = False
+                self.repond(200, reponse)
         except Exception as e:  # noqa: BLE001 : on le dit au serveur du jeu plutot que de couper la connexion
             print("erreur :", repr(e), flush=True)
             self.repond(500, {"erreur": str(e)})

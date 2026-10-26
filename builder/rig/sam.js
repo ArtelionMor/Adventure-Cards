@@ -54,6 +54,11 @@ const CSS = `
 #samBoite .point.ok { background: #4ec36b; } #samBoite .point.ko { background: #d9534f; }
 #samBoite .muet { opacity: .65; font-size: 12px; }
 #samTitre { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; }
+#samBarre { margin: 6px 0 2px; }
+#samBarreFond { height: 10px; background: #11141c; border: 1px solid #394057; border-radius: 6px; overflow: hidden; }
+#samBarreVal { height: 100%; width: 0; background: #4e8cff; transition: width .4s ease; }
+#samBarreVal.indetermine { width: 100% !important; background: repeating-linear-gradient(45deg, #4e8cff 0 10px, #2f5fc0 10px 20px); background-size: 28px 28px; animation: samDefile 1s linear infinite; }
+@keyframes samDefile { to { background-position: 28px 0; } }
 #samToile { max-width: 100%; border: 1px solid #394057; border-radius: 6px; cursor: crosshair; background: repeating-conic-gradient(#2a2f3d 0 25%, #20242f 0 50%) 0 0 / 16px 16px; }
 `;
 
@@ -82,6 +87,7 @@ export function installeSam(api) {
         <div class="ligne"><label for="samFinesse">Finesse</label>
           <select id="samFinesse"><option value="16">grossière (rapide)</option><option value="32" selected>normale</option><option value="48">fine (lente)</option></select></div>
         <div class="ligne"><button id="samAnalyse" class="primaire">Analyser le personnage</button><span id="samEtat" class="muet"></span></div>
+        <div id="samBarre" style="display:none"><div id="samBarreFond"><div id="samBarreVal"></div></div><div class="muet" id="samBarreTxt"></div></div>
         <h3 style="margin-top:12px">La partie à extraire</h3>
         <div class="muet">Clic : ajouter ou retirer la plus petite région sous le curseur. Alt + clic : l'élargir à la région d'au-dessus. Les parties déjà extraites sont grisées.</div>
         <div class="ligne"><label for="samDepuis" title="Le calque dont la partie est retirée">Extraire depuis</label><select id="samDepuis" style="flex:1"></select></div>
@@ -165,23 +171,55 @@ export function installeSam(api) {
     im.src = 'data:image/png;base64,' + r.png;
   });
 
+  // La barre : l'etape que dit la machine (GET /etat, relaye par /api/sam), ou une estimation faite sur la
+  // duree du dernier calcul. Le chargement du modele (une fois par demarrage) est de duree inconnue : barre animee.
+  function barre(pct, texte, indetermine = false) {
+    $('#samBarre').style.display = '';
+    const v = $('#samBarreVal');
+    v.classList.toggle('indetermine', indetermine);
+    v.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    $('#samBarreTxt').textContent = texte;
+  }
+  function avancement(machines, t0) {
+    const m = machines.map(x => x.etat).find(e => e && e.ok && e.occupe);
+    const depuis = Math.round((Date.now() - t0) / 1000);
+    if (!m) return [3, 'Envoi du personnage… ' + depuis + ' s', false];
+    if (m.etape === 'lecture') return [5, 'Le serveur reçoit le personnage…', false];
+    if (m.etape === 'chargement') return [100, 'Chargement du modèle sur la machine (une fois par démarrage, plusieurs minutes) · ' + Math.round(m.ecoule) + ' s', true];
+    if (m.etape === 'calcul') {
+      const est = m.calcul_dernier || 10;
+      return [10 + 78 * Math.min(1, m.ecoule / est), `Calcul des régions · ${Math.round(m.ecoule)} s (habituellement ~${Math.round(est)} s)`, false];
+    }
+    return [92, 'Mise en forme des régions…', false];
+  }
+
   $('#samAnalyse').onclick = async () => {
     if (S.occupe || !E.id) return;
     S.occupe = true; $('#samAnalyse').disabled = true;
-    $('#samEtat').textContent = 'envoi… (le premier calcul charge le modèle : quelques minutes)';
-    const t0 = Date.now(), tic = setInterval(() => { $('#samEtat').textContent = `calcul en cours… ${Math.round((Date.now() - t0) / 1000)} s`; }, 1000);
+    $('#samEtat').textContent = '';
+    const t0 = Date.now();
+    barre(3, 'Envoi du personnage…');
+    let sonde = false;
+    const tic = setInterval(async () => {
+      if (sonde) return; sonde = true;
+      try { const r = await (await fetch('/api/sam', { cache: 'no-store' })).json(); barre(...avancement(r.machines || [], t0)); } catch { /* le serveur est occupe a relayer */ }
+      sonde = false;
+    }, 1000);
     try {
       await enregistreReglages();
       const r = await fetch('/api/sam/segmente?id=' + encodeURIComponent(E.id), { method: 'POST' });
       const rep = await r.json();
       if (!r.ok) throw new Error(rep.erreur || 'échec');
       S.W = rep.largeur; S.H = rep.hauteur;
+      clearInterval(tic);
+      barre(96, 'Lecture des ' + rep.masques.length + ' régions…');
       S.regions = await Promise.all(rep.masques.map(decode));
+      barre(100, 'Terminé en ' + Math.round((Date.now() - t0) / 1000) + ' s');
       S.choix = new Set(); S.pris = new Uint8Array(S.W * S.H);
       $('#samEtat').textContent = `${S.regions.length} régions · ${rep.machine} · ${Math.round((Date.now() - t0) / 1000)} s`;
       $('#samAide').textContent = 'Cliquer sur une partie du personnage.';
       dessine(); majCompte();
-    } catch (e) { $('#samEtat').textContent = e.message; toast(e.message); }
+    } catch (e) { $('#samEtat').textContent = e.message; $('#samBarre').style.display = 'none'; toast(e.message); }
     clearInterval(tic); S.occupe = false; $('#samAnalyse').disabled = false;
   };
 
