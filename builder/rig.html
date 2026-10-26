@@ -125,7 +125,8 @@
         <button id="mailler" title="Image seule : une grille sur toute l'image">Générer le mesh</button></div>
       <div class="ligne"><label><input type="checkbox" id="poidsAuto" checked /> Poids automatiques</label>
         <button id="calculPoids" title="Recalcule les poids de tous les calques maillés (Maj + clic : aussi ceux peints à la main)">Calculer les poids</button></div>
-      <div class="ligne"><label>pinceau de poids</label><label>rayon</label><input type="number" id="pRayon" value="40" min="2" max="400" /><label>force</label><input type="number" id="pForce" value="25" min="1" max="100" /><span class="muet">%</span></div>
+      <div class="ligne"><label style="width:70px">rayon</label><input type="range" id="pRayon" value="40" min="2" max="400" style="flex:1" /><span class="muet" id="pRayonTxt" style="width:48px;text-align:right">40 px</span></div>
+      <div class="ligne"><label style="width:70px">force</label><input type="range" id="pForce" value="25" min="1" max="100" style="flex:1" /><span class="muet" id="pForceTxt" style="width:48px;text-align:right">25 %</span></div>
       <div id="infoMesh" class="muet"></div>
     </section>
     <section>
@@ -737,6 +738,11 @@ function pixels(image) {
   const c = document.createElement('canvas'); c.width = image.width; c.height = image.height;
   const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(image, 0, 0);
   return { largeur: c.width, hauteur: c.height, data: g.getImageData(0, 0, c.width, c.height).data };
+}
+// le pinceau de poids : deux curseurs, leur valeur ecrite a cote
+for (const [id, unite] of [['pRayon', ' px'], ['pForce', ' %']]) {
+  const maj = () => { $('#' + id + 'Txt').textContent = $('#' + id).value + unite; };
+  $('#' + id).addEventListener('input', maj); maj();
 }
 // « Générer le mesh » : maille le calque selectionne (le premier s'il n'y en a qu'un).
 $('#mailler').onclick = () => {
