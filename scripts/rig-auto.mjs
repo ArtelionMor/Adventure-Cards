@@ -43,6 +43,7 @@ const nomSur = s => sansAccent(s).replace(/[^a-z0-9_-]+/g, '_').replace(/^_+|_+$
 // Le role d'une partie, lu dans son nom
 function roleDe(nom) {
   const n = sansAccent(nom);
+  if (/decor|arriere|ombre|herbe|rocher|sol$/.test(n)) return 'decor';
   if (/tete|visage|casque|head/.test(n)) return 'tete';
   if (/oreille/.test(n)) return 'oreille';
   if (/corne/.test(n)) return 'corne';
@@ -77,6 +78,88 @@ let parties = (decoupe.parties || []).map((q, k) => {
   let nom = nomSur(q.nom); while (vus.has(nom)) nom += '_2'; vus.add(nom);
   return { nom, k: k + 1, role: roleDe(q.nom) };
 });
+
+let decorK = new Set();
+// LE DECOR (sol, ombre, herbe, fumee, arriere-plan) n'est pas le personnage : il reste dans le fond, IMMOBILE. Ses pixels
+// n'appartiennent a aucune partie (ni contact, ni os, ni chevauchement).
+{
+  const decors = parties.filter(q => q.role === 'decor');
+  decorK = new Set(decors.map(q => q.k));
+  for (const q of decors) for (let p = 0; p < W * H; p++) if (label[p] === q.k) label[p] = 0;
+  parties = parties.filter(q => q.role !== 'decor');
+  rapport.decor = decors.map(q => q.nom);
+}
+
+// 0. LE NETTOYAGE : la decoupe propage chaque etiquette le long des traits noirs, et l'IA range parfois un morceau de veste
+// dans « tete » : une partie se retrouve avec des tentacules fines et des ilots, et ses traits bougent seuls. On repart du
+// CŒUR de chaque partie (les pixels a plus de `r` px de tout autre), on garde son gros morceau (et les autres cœurs qui font au
+// moins le quart du plus gros : le deuxieme bras), puis chaque pixel du personnage va au cœur le plus proche.
+{
+  const opaque = new Uint8Array(W * H);
+  for (let p = 0; p < W * H; p++) opaque[p] = source.data[p * 4 + 3] > 8 ? 1 : 0;
+  const decorMasque = new Uint8Array(W * H);   // le decor : ni cœur ni propagation
+  // (les pixels du decor ont ete mis a 0 plus haut : on les retrouve car l'etiquette d'origine y valait le decor)
+  for (let p = 0; p < W * H; p++) if (opaque[p] && etiq.data[p * 4] && !label[p] && decorK.has(etiq.data[p * 4])) decorMasque[p] = 1;
+  const dist = new Float32Array(W * H);
+  const distanceAuReste = (k) => {                         // distance (chanfrein) de chaque pixel de k au plus proche pixel qui n'est pas k
+    for (let p = 0; p < W * H; p++) dist[p] = label[p] === k ? 1e9 : 0;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const p = y * W + x; let v = dist[p]; if (!v) continue;
+      if (x > 0) v = Math.min(v, dist[p - 1] + 1); if (y > 0) v = Math.min(v, dist[p - W] + 1);
+      if (x > 0 && y > 0) v = Math.min(v, dist[p - W - 1] + 1.4142); if (x < W - 1 && y > 0) v = Math.min(v, dist[p - W + 1] + 1.4142);
+      dist[p] = v;
+    }
+    for (let y = H - 1; y >= 0; y--) for (let x = W - 1; x >= 0; x--) {
+      const p = y * W + x; let v = dist[p]; if (!v) continue;
+      if (x < W - 1) v = Math.min(v, dist[p + 1] + 1); if (y < H - 1) v = Math.min(v, dist[p + W] + 1);
+      if (x < W - 1 && y < H - 1) v = Math.min(v, dist[p + W + 1] + 1.4142); if (x > 0 && y < H - 1) v = Math.min(v, dist[p + W - 1] + 1.4142);
+      dist[p] = v;
+    }
+  };
+  const graines = new Uint8Array(W * H);
+  const R0 = Math.max(3, Math.round(0.007 * Math.max(W, H)));
+  let changes = 0;
+  for (const q of parties) {
+    distanceAuReste(q.k);
+    let coeur = null;
+    for (const r of [R0, Math.max(2, Math.round(R0 / 2)), 1]) {
+      // les composantes (4-connexes) du cœur
+      const comp = new Int32Array(W * H).fill(-1), tailles = []; let nb = 0;
+      for (let p0 = 0; p0 < W * H; p0++) {
+        if (label[p0] !== q.k || dist[p0] <= r || comp[p0] >= 0) continue;
+        const pile = [p0]; comp[p0] = nb; let n = 0;
+        while (pile.length) {
+          const p = pile.pop(); n++;
+          const x = p % W;
+          for (const v of [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, p >= W ? p - W : -1, p < W * (H - 1) ? p + W : -1]) {
+            if (v >= 0 && comp[v] < 0 && label[v] === q.k && dist[v] > r) { comp[v] = nb; pile.push(v); }
+          }
+        }
+        tailles.push(n); nb++;
+      }
+      if (nb) { const max = Math.max(...tailles); coeur = { comp, garde: new Set(tailles.map((t, i) => t >= 0.25 * max ? i : -1).filter(i => i >= 0)) }; break; }
+    }
+    if (!coeur) { for (let p = 0; p < W * H; p++) if (label[p] === q.k) graines[p] = q.k; continue; }   // une partie fine : on garde tout
+    for (let p = 0; p < W * H; p++) if (label[p] === q.k && coeur.comp[p] >= 0 && coeur.garde.has(coeur.comp[p])) graines[p] = q.k;
+  }
+  // chaque pixel du personnage va au cœur le plus proche (propagation, sans traverser le decor)
+  const nouveau = new Uint8Array(W * H);
+  let front = [];
+  for (let p = 0; p < W * H; p++) if (graines[p]) { nouveau[p] = graines[p]; front.push(p); }
+  while (front.length) {
+    const suivant = [];
+    for (const p of front) {
+      const x = p % W, k = nouveau[p];
+      for (const v of [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, p >= W ? p - W : -1, p < W * (H - 1) ? p + W : -1]) {
+        if (v >= 0 && !nouveau[v] && opaque[v] && !decorMasque[v]) { nouveau[v] = k; suivant.push(v); }
+      }
+    }
+    front = suivant;
+  }
+  for (let p = 0; p < W * H; p++) { if (label[p] !== nouveau[p] && (label[p] || nouveau[p])) changes++; label[p] = nouveau[p]; }
+  rapport.nettoyage = { pixels_changes: changes, rayon_coeur: R0 };
+  if (changes > 0.15 * W * H * 0.3) probleme('info', `nettoyage : ${(100 * changes / Math.max(1, opaque.reduce((a, b) => a + b, 0))).toFixed(1)} % des pixels du personnage ont changé de partie`);
+}
 
 // ------------------------------------------------------------------ les contacts entre parties
 // contact(a, b) = { n, sx, sy } : combien de paires de pixels voisins, et leur somme (leur milieu = l'articulation)
@@ -120,6 +203,33 @@ const compte = () => { const n = new Map(); for (let p = 0; p < W * H; p++) if (
 if (!parties.length) { console.log('ECHEC : aucune partie'); process.exit(1); }
 const ct = contacts();
 
+// 1 bis. une « tete » qui fait plus de 40 % du personnage avale le corps (SAM ne decoupe pas les grandes surfaces lisses, et
+// la partie voisine les absorbe) : on la coupe a la ligne la plus etroite entre ses 25 % et 75 % de hauteur (le cou), et ce
+// qui est dessous va au corps (ou en devient un)
+{
+  const n0 = compte(); const tot0 = [...n0.values()].reduce((s, v) => s + v, 0);
+  for (const tete of parties.filter(q => q.role === 'tete')) {
+    if ((n0.get(tete.k) || 0) / tot0 < 0.40) continue;
+    let y0 = H, y1 = 0; const largeur = new Float32Array(H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (label[y * W + x] === tete.k) { largeur[y]++; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    const h = y1 - y0; if (h < 40) continue;
+    const lisse = y => { let t = 0, n = 0; for (let d = -4; d <= 4; d++) { const yy = y + d; if (yy >= y0 && yy <= y1) { t += largeur[yy]; n++; } } return t / n; };
+    let coupe = -1, mini = Infinity;
+    for (let y = Math.round(y0 + 0.25 * h); y <= Math.round(y0 + 0.75 * h); y++) { const v = lisse(y); if (v < mini) { mini = v; coupe = y; } }
+    const haut = []; for (let y = y0; y < coupe; y++) haut.push(lisse(y));
+    haut.sort((a, b) => a - b); const mediane = haut[Math.floor(haut.length / 2)] || 1;
+    if (coupe < 0 || mini > 0.85 * mediane) { probleme('alerte', `partie « ${tete.nom} » énorme (${(100 * n0.get(tete.k) / tot0).toFixed(0)} %) mais aucun cou net à couper`); continue; }
+    let corpsPart = parties.find(q => q.role === 'corps');
+    if (!corpsPart) {
+      const k = Math.max(...parties.map(q => q.k)) + 1;
+      corpsPart = { nom: 'corps', k, role: 'corps' }; parties.push(corpsPart);
+    }
+    let deplaces = 0;
+    for (let y = coupe + 1; y <= y1; y++) for (let x = 0; x < W; x++) if (label[y * W + x] === tete.k) { label[y * W + x] = corpsPart.k; deplaces++; }
+    probleme('info', `« ${tete.nom} » coupée au cou (ligne ${coupe}) : ${(100 * deplaces / tot0).toFixed(0)} % du personnage passent à « ${corpsPart.nom} »`);
+  }
+}
+
 // 2. la geometrie : centre, boite, echantillon de pixels
 let ymaxPerso = 0, xminPerso = W, xmaxPerso = 0;
 for (const q of parties) {
@@ -133,6 +243,21 @@ for (const q of parties) {
   ymaxPerso = Math.max(ymaxPerso, y1); xminPerso = Math.min(xminPerso, x0); xmaxPerso = Math.max(xmaxPerso, x1);
 }
 const total = parties.reduce((s, q) => s + q.n, 0);
+
+// l'apercu du decoupage FINAL (apres nettoyage, fusions et coupe au cou) : une couleur par partie
+{
+  const COUL = [[255, 80, 80], [80, 160, 255], [255, 200, 40], [90, 220, 120], [200, 110, 255], [255, 140, 60], [60, 220, 220], [255, 100, 190], [150, 150, 150], [120, 80, 40], [0, 120, 80], [160, 0, 60]];
+  const data = new Uint8Array(W * H * 4), idx = new Map(parties.map((q, i) => [q.k, i]));
+  for (let p = 0; p < W * H; p++) {
+    const a = source.data[p * 4 + 3] > 8, i = idx.get(label[p]);
+    const g = 190, c = i === undefined ? [g, g, g] : COUL[i % COUL.length];
+    const m = i === undefined ? 0.0 : 0.65;
+    data[p * 4] = source.data[p * 4] * (1 - m) + c[0] * m; data[p * 4 + 1] = source.data[p * 4 + 1] * (1 - m) + c[1] * m; data[p * 4 + 2] = source.data[p * 4 + 2] * (1 - m) + c[2] * m;
+    data[p * 4 + 3] = a ? 255 : 0;
+  }
+  fs.mkdirSync(auto, { recursive: true });
+  ecrisPng(path.join(auto, 'apercu-assemblage.png'), { largeur: W, hauteur: H, data });
+}
 
 // 3. le corps : la partie qui s'appelle ainsi, sinon la plus grosse
 let corps = [...parties].filter(q => q.role === 'corps').sort((a, b) => b.n - a.n)[0];
@@ -190,7 +315,9 @@ function os(q) {
 }
 // les parents avant leurs enfants
 const ordreOs = [...parties].sort((a, b) => a.profondeur - b.profondeur);
-const squelette = [{ id: 'sol', parent: null, x: Math.round(xminPerso), y: Math.round(ymaxPerso), angle: 0, longueur: Math.max(20, Math.round(xmaxPerso - xminPerso)) }, ...ordreOs.map(os)];
+const squelette = [{ id: 'sol', parent: null, x: Math.round(xminPerso), y: Math.round(ymaxPerso), angle: 0, longueur: Math.max(20, Math.round(xmaxPerso - xminPerso)) },
+  // le FOND (decor, ce qu'aucune partie n'a pris, trous combles) : une racine qui ne bouge jamais
+  { id: 'fond', parent: null, x: 0, y: Math.round(ymaxPerso), angle: 0, longueur: 20 }, ...ordreOs.map(os)];
 
 // ------------------------------------------------------------------ le rig : un calque par partie
 const rig = {
@@ -209,8 +336,8 @@ for (const q of [...parties].sort((a, b) => (RANG[b.role] ?? 5) - (RANG[a.role] 
   try { extraitCalque(rig, images, masques, { depuis: 'tout', nom: q.nom, masque: m, os: q.nom }); }
   catch (e) { probleme('erreur', `partie « ${q.nom} » : ${e.message}`); }
 }
-// le fond (ce qu'aucune partie n'a pris, et les trous combles) suit le CORPS : il ne laisse pas de trou derriere lui
-rig.calques.find(c => c.id === 'tout').os = corps.nom;
+// le fond (decor, trous combles) ne bouge pas : quand une partie s'en va, elle laisse voir le fond, pas un trou
+rig.calques.find(c => c.id === 'tout').os = 'fond';
 const zones = (rig.calques.find(c => c.id === 'tout').zones || []).map(z => z.id);
 for (const z of zones) combleZone(rig, images, masques, 'tout', z, 32);
 if (!rig.calques.some(c => c.id !== 'tout')) { console.log('ECHEC : aucun calque extrait'); process.exit(1); }
@@ -267,7 +394,8 @@ for (const q of parties) {
     const c = rig.calques.find(k => k.id === q.nom);
     if (!c) continue;
     const d = champs.get(q.nom), m = new Float32Array(W * H);
-    for (let p = 0; p < W * H; p++) m[p] = d[p] <= rayon ? 1 : 0;
+    const r = Math.max(rayon, Math.round(0.1 * Math.sqrt(q.n)));       // une grosse partie, qui balaie plus large, deborde davantage
+    for (let p = 0; p < W * H; p++) m[p] = d[p] <= r ? 1 : 0;
     images[q.nom] = extrait(source, m).nouveau;
   }
   rapport.chevauchement = rayon;
@@ -328,6 +456,15 @@ function clipsBruts() {
   i = 0;
   for (const q of par('jambe')) { marche.pistes[nom(q)] = { rot: K([0, 5 * (i % 2 ? -1 : 1)], [0.6, -5 * (i % 2 ? -1 : 1)]) }; i++; }
   for (const q of par('accessoire')) { sin(idle, nom(q), 1.2, 6, 0.2); sin(marche, nom(q), 3, 1.2, 0.3); }
+  // une grosse partie (la queue qui fait 30 % du personnage) balaie bien plus large qu'une petite : on la fait tourner moins
+  for (const q of parties) {
+    const f = Math.min(1, 0.15 / (q.n / total));
+    if (f >= 1 || q === corps) continue;
+    for (const c of [idle, marche, coup, degats]) {
+      for (const k of c.pistes[q.nom]?.rot || []) k.v = +(k.v * f).toFixed(3);
+      for (const m of c.procedural) if (m.os === q.nom) m.amplitude = +(m.amplitude * f).toFixed(3);
+    }
+  }
   return { idle, walking: marche, hitting: coup, taking_damage: degats };
 }
 const calme = (c, f) => {

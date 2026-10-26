@@ -91,6 +91,9 @@ def demande_ia(ia, modele, image_b64, parties):
                 "Pour chaque partie ci-dessous, donne la liste des NUMÉROS des régions qui la composent (toutes celles qui en font partie, y compris les petites). "
                 "Parties : " + ", ".join(parties) + ". Une région ne va que dans une seule partie ; omets une partie qui n'existe pas. "
                 'Réponds UNIQUEMENT par un JSON : {"partie": [numeros]}.')
+    if "decor" in parties:
+        consigne += (" La partie « decor » regroupe tout ce qui N'EST PAS le personnage : sol, herbe, rochers, ombre portée, fumée, "
+                     "bâtiments ou objets d'arrière-plan.")
     corps = {"model": modele, "stream": True, "think": False, "options": {"temperature": 0.1, "num_ctx": 8192},
              "messages": [{"role": "user", "content": consigne, "images": [image_b64]}]}
     texte = ""

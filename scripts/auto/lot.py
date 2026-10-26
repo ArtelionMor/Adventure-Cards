@@ -16,13 +16,13 @@ travaille. Pour recommencer l'un d'eux, le retirer d'etat.json et remettre son r
 import argparse, hashlib, json, os, re, subprocess, sys, time, unicodedata
 
 ESPECES = [
-    (r"octo", "tete, corps, tentacules, tuyau, jambes, arme"),
-    (r"cameleon", "tete, corps, bras, jambes, queue, feuilles, arme"),
-    (r"owl|raven|robin|crow|falcon|bird", "tete, aile_gauche, aile_droite, corps, queue, pattes, arme, cape"),
-    (r"frog|toad", "tete, corps, bras, jambes, arme, cape"),
-    (r"kitsune|fox|wolf|dog|cat|rabbit|mouse|goat|sloth|panda|duke", "tete, oreille_gauche, oreille_droite, corps, bras, jambes, queue, arme, cape"),
+    (r"octo", "tete, corps, tentacules, tuyau, jambes, arme, decor"),
+    (r"cameleon", "tete, corps, bras, jambes, queue, feuilles, arme, decor"),
+    (r"owl|raven|robin|crow|falcon|bird", "tete, aile_gauche, aile_droite, corps, queue, pattes, arme, cape, decor"),
+    (r"frog|toad", "tete, corps, bras, jambes, arme, cape, decor"),
+    (r"kitsune|fox|wolf|dog|cat|rabbit|mouse|goat|sloth|panda|duke", "tete, oreille_gauche, oreille_droite, corps, bras, jambes, queue, arme, cape, decor"),
 ]
-DEFAUT = "tete, corps, bras, jambes, queue, arme, cape"
+DEFAUT = "tete, corps, bras, jambes, queue, arme, cape, decor"
 
 
 def slug(nom):
@@ -82,6 +82,7 @@ def main():
     p.add_argument("--python", default=r"C:\Users\telia\sam2-env\Scripts\python.exe")
     p.add_argument("--node", default="node")
     p.add_argument("--etape", default="tout", choices=["tout", "decoupe", "assemble"], help="decoupe : SAM + IA seulement ; assemble : rig-auto sur ce qui est decoupe ; tout : les deux")
+    p.add_argument("--nos", default="", help="ids dont les rigs sont NOS resultats d'une passe precedente : on les refait sans les croire « deja travailles »")
     p.add_argument("--refaire", action="store_true", help="avec --etape assemble : refait aussi ce qui est deja fait (depuis sa decoupe)")
     a = p.parse_args()
     os.makedirs(a.auto, exist_ok=True)
@@ -126,7 +127,7 @@ def main():
         dossier = os.path.join(a.depot, "game", "data", "rigs", ident)
         if not os.path.isdir(dossier):
             etat[ident] = {"statut": "ignore", "raison": "pas de dossier de rig"}; sauve(); continue
-        if not deja_decoupe:
+        if not deja_decoupe and ident not in a.nos.split(","):
             raison = touche(dossier)
             if raison:
                 etat[ident] = {"statut": "ignore", "raison": raison}; log("%s : ignoré (%s)" % (ident, raison)); sauve(); continue
