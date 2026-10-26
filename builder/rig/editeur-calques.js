@@ -9,7 +9,7 @@
 //   rafraichitRect(id, rect), versEcran, versMonde, reprepare, marque.
 
 import {
-  accroche, lisse, masquePolygone, inclutTrait, extraitCalque, combleZone, gomme, restaure,
+  accroche, lisse, masquePolygone, inclutTrait, extraitCalque, combleZone, gomme, restaure, peint,
   nomDeCalqueLibre, renommeCalque, dupliqueCalque, fusionneVersLeBas, supprimeCalque, reordonne,
   calqueDessous, reimporteZone, rectExport, recadre, masqueEnImage, mailleCalque, recalculePoids, transfereVers,
 } from './calques.js';
@@ -32,6 +32,8 @@ export function installeCalques(api) {
       <button data-outil="poly" class="on" title="Lasso polygonal : un clic par sommet ; double-clic, Entrée ou clic sur le premier point pour fermer ; Retour arrière efface le dernier">⬠ Polygone</button>
       <button data-outil="libre" title="Lasso libre : glisser autour de la partie">〰 Libre</button>
       <button data-outil="gomme" title="Gomme : efface le calque sélectionné">🧽 Gomme</button>
+      <button data-outil="peint" title="Peindre une couleur sur le calque sélectionné (boucher un trou)">🎨 Peindre</button>
+      <button data-outil="pipette" title="Pipette : un clic prend la couleur de l'image d'origine (ou du calque) sous le curseur">💧 Pipette</button>
       <button data-outil="restaure" title="Pinceau de restauration : ramène les pixels de l'image d'origine sur le calque sélectionné">🖌 Restaurer</button>
     </div>
     <div class="ligne" data-pour="lasso"><label>lissage</label><input type="number" id="cLissage" value="1" min="0" max="5" />
@@ -42,6 +44,8 @@ export function installeCalques(api) {
       <select id="cOs" title="Rigide sur un os, ou maillé"></select>
       <button id="cExtraire" class="principal" disabled>Extraire en calque</button>
       <button id="cTransfere" disabled title="Tout ce que la boucle couvre sur les autres calques passe sur le calque sélectionné">↪ Transférer vers le calque</button></div>
+    <div class="ligne" data-pour="peinture" hidden><label>couleur</label><input type="color" id="cCouleur" value="#ffffff" />
+      <button id="cBlanc" title="Blanc">blanc</button><label title="Coché : bouche les trous sans recouvrir ce qui est déjà dessiné"><input type="checkbox" id="cDerriere" checked /> derrière</label></div>
     <div class="ligne" data-pour="pinceau" hidden><label>rayon</label><input type="range" id="cRayonS" min="1" max="300" value="16" /><input type="number" id="cRayon" value="16" min="1" max="300" /><span class="muet">px</span></div>
     <div class="ligne" data-pour="pinceau" hidden><label>dureté</label><input type="range" id="cDureteS" min="0" max="100" value="60" /><input type="number" id="cDurete" value="60" min="0" max="100" /><span class="muet">%</span></div>
     <div class="ligne" data-pour="pinceau" hidden><label>force</label><input type="range" id="cForceS" min="1" max="100" value="100" /><input type="number" id="cForce" value="100" min="1" max="100" /><span class="muet">%</span></div>
@@ -76,9 +80,10 @@ export function installeCalques(api) {
   sec.querySelectorAll('[data-outil]').forEach(b => b.onclick = () => {
     T.outil = b.dataset.outil; T.pts = []; T.ferme = false;
     sec.querySelectorAll('[data-outil]').forEach(x => x.classList.toggle('on', x === b));
-    const pinceau = T.outil === 'gomme' || T.outil === 'restaure';
+    const pinceau = ['gomme', 'restaure', 'peint', 'pipette'].includes(T.outil);
     sec.querySelectorAll('[data-pour=lasso]').forEach(x => x.hidden = pinceau);
-    sec.querySelectorAll('[data-pour=pinceau]').forEach(x => x.hidden = !pinceau);
+    sec.querySelectorAll('[data-pour=pinceau]').forEach(x => x.hidden = !pinceau || T.outil === 'pipette');
+    sec.querySelectorAll('[data-pour=peinture]').forEach(x => x.hidden = T.outil !== 'peint' && T.outil !== 'pipette');
     majBoutons();
   });
 
@@ -245,9 +250,22 @@ export function installeCalques(api) {
     if (!$('#cNom').value) $('#cNom').value = nomDeCalqueLibre(E.rig, 'calque');
     majBoutons();
   }
+  const couleur = () => { const h = $('#cCouleur').value; return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); };
+  const versHex = ([r, g, b]) => '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+  $('#cBlanc').onclick = () => { $('#cCouleur').value = '#ffffff'; };
+  // la pipette : le calque s'il est opaque a cet endroit, sinon l'image d'origine
+  function pipette(wx, wy) {
+    const c = calque(), x = Math.floor(wx), y = Math.floor(wy), W = E.rig.source.largeur;
+    if (x < 0 || y < 0 || x >= W || y >= E.rig.source.hauteur) return;
+    const o = (y * W + x) * 4, im = c && E.px[c.id], src = im && im.data[o + 3] > 128 ? im.data : E.source.data;
+    $('#cCouleur').value = versHex([src[o], src[o + 1], src[o + 2]]);
+    sec.querySelector('[data-outil=peint]').click();
+  }
   function dab(wx, wy) {
     const c = calque(), o = opt();
-    const rect = T.outil === 'gomme' ? gomme(E.px[c.id], wx, wy, o.rayon, o.durete, o.force) : restaure(E.px[c.id], E.source, wx, wy, o.rayon, o.durete, o.force);
+    const rect = T.outil === 'gomme' ? gomme(E.px[c.id], wx, wy, o.rayon, o.durete, o.force)
+      : T.outil === 'peint' ? peint(E.px[c.id], wx, wy, o.rayon, couleur(), o.durete, o.force, $('#cDerriere').checked)
+      : restaure(E.px[c.id], E.source, wx, wy, o.rayon, o.durete, o.force);
     api.rafraichitRect(c.id, rect);
   }
   const souris = {
@@ -264,6 +282,7 @@ export function installeCalques(api) {
         return true;
       }
       if (T.outil === 'libre') { T.pts = [[wx, wy]]; T.ferme = false; T.trace = { px, py }; majBoutons(); return true; }
+      if (T.outil === 'pipette') { pipette(wx, wy); return true; }
       const c = calque();
       if (!c) { toast('choisir un calque'); return true; }
       if (verrouille(c)) return true;
@@ -377,9 +396,9 @@ export function installeCalques(api) {
       g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.stroke(); g.setLineDash([]);
       if (!T.ferme) for (const p of T.pts) { const [x, y] = api.versEcran(...p); g.fillStyle = '#fff'; g.fillRect(x - 2, y - 2, 4, 4); }
     }
-    if ((T.outil === 'gomme' || T.outil === 'restaure') && T.curseur) {
+    if (['gomme', 'restaure', 'peint'].includes(T.outil) && T.curseur) {
       const [x, y] = api.versEcran(...T.curseur), r = opt().rayon * E.vue.z;
-      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.strokeStyle = T.outil === 'gomme' ? '#ff6b81' : '#79e3c5'; g.lineWidth = 1.5; g.stroke();
+      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.strokeStyle = T.outil === 'gomme' ? '#ff6b81' : T.outil === 'peint' ? $('#cCouleur').value : '#79e3c5'; g.lineWidth = 1.5; g.stroke();
     }
   }
 
@@ -387,6 +406,8 @@ export function installeCalques(api) {
     poly: 'Lasso polygonal : un clic par sommet (accroché au trait si « suivre le contour »), double-clic ou clic sur le premier point pour fermer, Retour arrière : dernier point, Échap : annuler. Puis « Extraire en calque ».',
     libre: 'Lasso libre : glisser autour de la partie, relâcher pour fermer. Puis « Extraire en calque ».',
     gomme: 'Gomme : glisser sur le calque sélectionné (dans la liste).',
+    peint: 'Peindre : glisser sur le calque sélectionné avec la couleur choisie (« derrière » : seulement les trous). Pour changer de couleur : 💧 Pipette.',
+    pipette: 'Pipette : un clic prend la couleur sous le curseur, puis on repasse au pinceau.',
     restaure: 'Restaurer : glisser pour ramener les pixels de l\'image d\'origine sur le calque sélectionné.',
   })[T.outil] };
 }

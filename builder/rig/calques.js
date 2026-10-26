@@ -191,6 +191,23 @@ export function restaure(im, source, x, y, rayon, durete = 0.6, force = 1) {
     for (let c = 0; c < 4; c++) d[o + c] = Math.round(d[o + c] + (s[o + c] - d[o + c]) * k);
   }, durete);
 }
+// Le pinceau de couleur : peint `couleur` [r, g, b]. `derriere` : ne couvre pas la matiere (il bouche les trous,
+// le dessin existant reste par-dessus) ; sinon la couleur se pose par-dessus. Rend la boite touchee.
+export function peint(im, x, y, rayon, couleur, durete = 0.6, force = 1, derriere = true) {
+  const d = im.data;
+  return pinceau(im, x, y, rayon, (o, w) => {
+    const as = w * force, ad = d[o + 3] / 255;
+    // « par-dessus » : la nouvelle couleur sur l'ancienne ; « derriere » : l'ancienne sur la nouvelle
+    const [haut, bas] = derriere ? [ad, as] : [as, ad];
+    const ao = haut + bas * (1 - haut);
+    if (ao <= 0) return;
+    for (let c = 0; c < 3; c++) {
+      const ch = derriere ? d[o + c] : couleur[c], cb = derriere ? couleur[c] : d[o + c];
+      d[o + c] = Math.round((ch * haut + cb * bas * (1 - haut)) / ao);
+    }
+    d[o + 3] = Math.round(ao * 255);
+  }, durete);
+}
 function pinceau(im, x, y, rayon, f, durete = 0.6) {
   const { largeur: W, hauteur: H } = im;
   const x0 = Math.max(0, Math.floor(x - rayon)), x1 = Math.min(W - 1, Math.ceil(x + rayon));

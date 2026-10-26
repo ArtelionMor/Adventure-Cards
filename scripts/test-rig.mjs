@@ -340,6 +340,13 @@ test('transférer : la zone passe des autres calques au calque visé, rien ne se
   let rien = false; try { CQ.transfereVers(rig, images, masques, { vers: 'moitie', masque: new Float32Array(1600) }); } catch { rien = true; }
   return touches.join() === 'corps' && images.moitie.data[(20 * 40 + 15) * 4 + 3] > 0 && images.corps.data[(20 * 40 + 15) * 4 + 3] === 0 && total(20 * 40 + 15) === avant && rien;
 });
+test('peindre : derrière bouche le trou sans recouvrir, par-dessus recouvre', () => {
+  const trou = () => { const im = CQ.copieImage(DISQUE); im.data[(20 * 40 + 20) * 4 + 3] = 0; return im; };
+  const ok = (20 * 40 + 20) * 4, plein = (20 * 40 + 15) * 4;
+  const a = trou(); CQ.peint(a, 20, 20, 3, [255, 255, 255], 1, 1, true);
+  const b = trou(); CQ.peint(b, 20, 20, 30, [255, 0, 0], 1, 1, false);
+  return a.data[ok + 3] === 255 && a.data[ok] === 255 && a.data[plein] === DISQUE.data[plein] && b.data[plein] === 255 && b.data[plein + 1] === 0;
+});
 test('fusionner vers le bas rend l\'image d\'origine et retire la zone', () => {
   const rig = rigDisque(), images = { corps: CQ.copieImage(DISQUE) }, masques = {};
   CQ.extraitCalque(rig, images, masques, { depuis: 'corps', nom: 'moitie', masque: CQ.masquePolygone([[20, 0], [40, 0], [40, 40], [20, 40]], 40, 40) });
