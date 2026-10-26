@@ -11,7 +11,7 @@
 import {
   accroche, lisse, masquePolygone, inclutTrait, extraitCalque, combleZone, gomme, restaure,
   nomDeCalqueLibre, renommeCalque, dupliqueCalque, fusionneVersLeBas, supprimeCalque, reordonne,
-  calqueDessous, reimporteZone, rectExport, recadre, masqueEnImage, mailleCalque, recalculePoids,
+  calqueDessous, reimporteZone, rectExport, recadre, masqueEnImage, mailleCalque, recalculePoids, transfereVers,
 } from './calques.js';
 
 export function installeCalques(api) {
@@ -40,7 +40,8 @@ export function installeCalques(api) {
     <div class="ligne" data-pour="lasso"><label title="La sélection s'étend sur le trait noir qui la borde : l'objet emporte tout son contour">inclure le trait</label><input type="number" id="cTrait" value="0" min="0" max="30" /><span class="muet">px</span></div>
     <div class="ligne" data-pour="lasso"><label>nouveau calque</label><input id="cNom" placeholder="nom" style="width:110px" />
       <select id="cOs" title="Rigide sur un os, ou maillé"></select>
-      <button id="cExtraire" class="principal" disabled>Extraire en calque</button></div>
+      <button id="cExtraire" class="principal" disabled>Extraire en calque</button>
+      <button id="cTransfere" disabled title="Tout ce que la boucle couvre sur les autres calques passe sur le calque sélectionné">↪ Transférer vers le calque</button></div>
     <div class="ligne" data-pour="pinceau" hidden><label>rayon</label><input type="number" id="cRayon" value="16" min="1" max="300" />
       <label>dureté</label><input type="number" id="cDurete" value="60" min="0" max="100" /><label>force</label><input type="number" id="cForce" value="100" min="1" max="100" /><span class="muet">%</span></div>
     <ul id="cListe" class="liste-calques"></ul>
@@ -77,6 +78,7 @@ export function installeCalques(api) {
 
   function majBoutons() {
     $('#cExtraire').disabled = !(T.ferme && calque());
+    $('#cTransfere').disabled = !(T.ferme && calque());
     const c = calque();
     $('#cFus').disabled = !c || !calqueDessous(E.rig, c.id);
     for (const id of ['#cDup', '#cSup', '#cMaille']) $(id).disabled = !c;
@@ -305,6 +307,20 @@ export function installeCalques(api) {
       api.modifie(r => { zone = extraitCalque(r, E.px, E.masques, { depuis: c.id, nom, masque: m, os: $('#cOs').value || null }); return [c.id, nom]; });
       E.calque = nom; T.pts = []; T.ferme = false; $('#cNom').value = '';
       toast(`« ${nom} » extrait de « ${c.id} »` + (zone ? ` — zone à combler ${zone.id} sur « ${c.id} »` : ''));
+    } catch (e) { toast(e.message); }
+    dessineListe(); dessineZones();
+  };
+
+  $('#cTransfere').onclick = () => {
+    const c = calque();
+    if (!c || verrouille(c)) return;
+    const o = opt(), W = E.rig.source.largeur, H = E.rig.source.hauteur;
+    const m = masquePolygone(lisse(T.pts, o.lissage), W, H);
+    try {
+      let touches;
+      api.modifie(r => { touches = transfereVers(r, E.px, E.masques, { vers: c.id, masque: m }); return [c.id, ...touches]; });
+      T.pts = []; T.ferme = false;
+      toast(`Transféré vers « ${c.id} » depuis ${touches.map(t => '« ' + t + ' »').join(', ')}`);
     } catch (e) { toast(e.message); }
     dessineListe(); dessineZones();
   };

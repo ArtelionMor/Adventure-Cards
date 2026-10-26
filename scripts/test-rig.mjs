@@ -331,6 +331,15 @@ test('extraire en calque : au-dessus, une zone a combler, la lignee', () => {
   let doublon = false; try { CQ.extraitCalque(rig, images, masques, { depuis: 'corps', nom: 'moitie', masque: new Float32Array(1600).fill(1) }); } catch { doublon = true; }
   return c.ordre === 1 && c.de === 'corps' && c.os === 'b' && z.par === 'moitie' && masques['corps/' + z.id] && rig.calques[0].image === 'calques/corps.png' && doublon;
 });
+test('transférer : la zone passe des autres calques au calque visé, rien ne se perd', () => {
+  const rig = rigDisque(), images = { corps: CQ.copieImage(DISQUE) }, masques = {};
+  CQ.extraitCalque(rig, images, masques, { depuis: 'corps', nom: 'moitie', masque: CQ.masquePolygone([[20, 0], [40, 0], [40, 40], [20, 40]], 40, 40) });
+  const total = p => images.corps.data[p * 4 + 3] + images.moitie.data[p * 4 + 3];
+  const avant = total(20 * 40 + 15);
+  const touches = CQ.transfereVers(rig, images, masques, { vers: 'moitie', masque: CQ.masquePolygone([[0, 0], [20, 0], [20, 40], [0, 40]], 40, 40) });
+  let rien = false; try { CQ.transfereVers(rig, images, masques, { vers: 'moitie', masque: new Float32Array(1600) }); } catch { rien = true; }
+  return touches.join() === 'corps' && images.moitie.data[(20 * 40 + 15) * 4 + 3] > 0 && images.corps.data[(20 * 40 + 15) * 4 + 3] === 0 && total(20 * 40 + 15) === avant && rien;
+});
 test('fusionner vers le bas rend l\'image d\'origine et retire la zone', () => {
   const rig = rigDisque(), images = { corps: CQ.copieImage(DISQUE) }, masques = {};
   CQ.extraitCalque(rig, images, masques, { depuis: 'corps', nom: 'moitie', masque: CQ.masquePolygone([[20, 0], [40, 0], [40, 40], [20, 40]], 40, 40) });

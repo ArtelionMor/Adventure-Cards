@@ -354,6 +354,33 @@ export function extraitCalque(rig, images, masques, { depuis, nom, masque, os = 
   return zone;
 }
 
+// « Transférer vers un calque » : tout ce que `masque` couvre sur les AUTRES calques (sauf `epargne`, le fond
+// « tout » par défaut) passe sur `vers` — un seul geste au lieu de « restaurer ici » puis « gommer là ».
+// Les pixels sont ceux du calque d'où ils viennent (là où `vers` en a déjà, il garde les siens).
+// Rend les ids des calques touchés.
+export function transfereVers(rig, images, masques, { vers, masque, epargne = ['tout'] }) {
+  const D = rig.calques.find(k => k.id === vers);
+  if (!D) throw new Error('calque inconnu : ' + vers);
+  const touches = [];
+  const but = copieImage(images[vers]);
+  for (const k of rig.calques) {
+    if (k.id === vers || epargne.includes(k.id) || !images[k.id]) continue;
+    const { nouveau, reste } = extrait(images[k.id], masque);
+    if (!boiteAlpha(nouveau, 8)) continue;
+    const d = but.data, s = nouveau.data;
+    for (let o = 0; o < d.length; o += 4) {
+      if (s[o + 3] > d[o + 3]) { d[o] = s[o]; d[o + 1] = s[o + 1]; d[o + 2] = s[o + 2]; d[o + 3] = s[o + 3]; }
+    }
+    images[k.id] = reste; touches.push(k.id);
+    if (k.mesh) mailleCalque(rig, images, k.id);
+  }
+  if (!touches.length) throw new Error('la sélection ne prend rien sur les autres calques');
+  images[vers] = but;
+  if (D.mesh) mailleCalque(rig, images, vers);
+  recalculePoids(rig);
+  return touches;
+}
+
 // Le comblement PROVISOIRE d'une zone (cf. comblePrevisoire). Le calque gagne de la matiere :
 // son maillage se refait.
 export function combleZone(rig, images, masques, calque, zoneId, distance = 32) {
