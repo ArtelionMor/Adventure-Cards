@@ -417,6 +417,32 @@ export function installeSam(api) {
   $('#samZoom').oninput = e => zoomeA(+e.target.value / 100, vue.clientWidth / 2, vue.clientHeight / 2);
   $('#samAjuste').onclick = () => { S.vue = { z: 1, x: 0, y: 0 }; appliqueVue(); };
   vue.addEventListener('contextmenu', e => e.preventDefault());
+  // tactile : deux doigts = zoom + deplacement (poses avant tout le reste, ils coupent la suite)
+  const doigts = new Map();
+  let pince = null;
+  const centre = () => { const p = [...doigts.values()]; return { cx: (p[0][0] + p[1][0]) / 2, cy: (p[0][1] + p[1][1]) / 2, d: Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]) || 1 }; };
+  toile.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'touch') return;
+    const r = vue.getBoundingClientRect();
+    doigts.set(e.pointerId, [e.clientX - r.left, e.clientY - r.top]);
+    if (doigts.size < 2) return;
+    e.stopImmediatePropagation();
+    try { toile.setPointerCapture(e.pointerId); } catch { /* pointeur synthetique */ }
+    pince = { ...centre(), z: S.vue.z, x: S.vue.x, y: S.vue.y };
+  });
+  toile.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'touch' || !doigts.has(e.pointerId)) return;
+    const r = vue.getBoundingClientRect();
+    doigts.set(e.pointerId, [e.clientX - r.left, e.clientY - r.top]);
+    if (!pince || doigts.size < 2) return;
+    e.stopImmediatePropagation();
+    const c = centre(), z = Math.max(1, Math.min(24, pince.z * c.d / pince.d));
+    const wx = (pince.cx - pince.x) / pince.z, wy = (pince.cy - pince.y) / pince.z;
+    S.vue.z = z; S.vue.x = c.cx - wx * z; S.vue.y = c.cy - wy * z;
+    appliqueVue();
+  });
+  const leve = e => { if (e.pointerType !== 'touch') return; doigts.delete(e.pointerId); if (doigts.size < 2) pince = null; };
+  toile.addEventListener('pointerup', leve); toile.addEventListener('pointercancel', leve);
   // le deplacement passe AVANT les outils : ces ecouteurs sont poses en premier et coupent la suite
   toile.addEventListener('pointerdown', e => {
     if (!(e.button === 1 || e.button === 2 || (e.button === 0 && S.espace))) return;

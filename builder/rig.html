@@ -91,6 +91,7 @@
   <span class="sep"></span>
   <button id="annuler" title="Ctrl+Z">↶</button>
   <button id="retablir" title="Ctrl+Y">↷</button>
+  <button id="main" title="Déplacer la vue au doigt (comme Espace + glisser). Deux doigts : zoom et déplacement, toujours.">🖐</button>
   <button id="enregistrer" class="principal" title="Ctrl+S">Enregistrer</button>
   <span id="etat">—</span>
 </header>
@@ -517,7 +518,7 @@ addEventListener('keydown', e => {
   if (e.key === 'F2' && E.sel) { e.preventDefault(); const f = $('#fNom'); if (f) { f.focus(); f.select(); } }
   if (e.key === 'f' || e.key === 'F') cadre();
 });
-addEventListener('keyup', e => { if (e.code === 'Space') espace = false; });
+addEventListener('keyup', e => { if (e.code === 'Space') { espace = false; $('#main').classList.remove('on'); } });
 
 // Ce que la souris touche, en pixels ecran : le pivot (rond, gros : on positionne l'os) ou la barre
 // (toute sa longueur : on l'oriente). Le pivot gagne a proximite, sinon on ne l'attraperait pas sur une barre.
@@ -544,6 +545,42 @@ vue.addEventListener('wheel', e => {
   E.vue.z = Math.max(0.03, Math.min(8, E.vue.z * Math.exp(-e.deltaY * 0.0015)));
   E.vue.x = px - wx * E.vue.z; E.vue.y = py - wy * E.vue.z;
 }, { passive: false });
+
+// Tactile (iPad) : deux doigts = zoom + deplacement de la vue ; le geste en cours est abandonne.
+// Ecouteurs poses AVANT ceux de la souris : stopImmediatePropagation leur coupe la suite.
+const doigts = new Map();
+let pince = null;
+function abandonneGeste() {
+  const G = glisse; glisse = null;
+  if (!G) return;
+  if (G.type === 'calques') C.souris.haut();
+  else if (G.depart) { E.rig.os = JSON.parse(JSON.stringify(G.depart)); reprepare(); }
+  else if (G.type === 'nouvel') g2.clearRect(0, 0, dessus.width, dessus.height);
+}
+const centreDoigts = () => { const p = [...doigts.values()]; return { cx: (p[0][0] + p[1][0]) / 2, cy: (p[0][1] + p[1][1]) / 2, d: Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]) || 1 }; };
+vue.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'touch') return;
+  const r = vue.getBoundingClientRect();
+  doigts.set(e.pointerId, [e.clientX - r.left, e.clientY - r.top]);
+  if (doigts.size < 2) return;
+  try { vue.setPointerCapture(e.pointerId); } catch { /* pointeur synthetique */ }
+  abandonneGeste();
+  pince = { ...centreDoigts(), z: E.vue.z, x: E.vue.x, y: E.vue.y };
+  e.stopImmediatePropagation();
+});
+vue.addEventListener('pointermove', e => {
+  if (e.pointerType !== 'touch' || !doigts.has(e.pointerId)) return;
+  const r = vue.getBoundingClientRect();
+  doigts.set(e.pointerId, [e.clientX - r.left, e.clientY - r.top]);
+  if (!pince || doigts.size < 2) return;
+  const c = centreDoigts(), z = Math.max(0.03, Math.min(8, pince.z * c.d / pince.d));
+  const wx = (pince.cx - pince.x) / pince.z, wy = (pince.cy - pince.y) / pince.z;
+  E.vue.z = z; E.vue.x = c.cx - wx * z; E.vue.y = c.cy - wy * z;
+  e.stopImmediatePropagation();
+});
+const leveDoigt = e => { if (e.pointerType !== 'touch') return; doigts.delete(e.pointerId); if (doigts.size < 2) pince = null; };
+vue.addEventListener('pointerup', leveDoigt); vue.addEventListener('pointercancel', leveDoigt);
+$('#main').onclick = () => { espace = !espace; $('#main').classList.toggle('on', espace); };
 
 vue.addEventListener('pointerdown', e => {
   if (!E.prep || e.target.closest('#outils')) return;
