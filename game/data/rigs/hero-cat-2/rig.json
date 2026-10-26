@@ -86,10 +86,10 @@
       "image": "calques/oreille_droite.png",
       "de": "tout",
       "ordre": 5,
-      "x": 306,
+      "x": 627,
       "y": 161,
-      "largeur": 553,
-      "hauteur": 624,
+      "largeur": 232,
+      "hauteur": 388,
       "os": "oreille_droite"
     },
     {
@@ -97,10 +97,10 @@
       "image": "calques/oreille_gauche.png",
       "de": "tout",
       "ordre": 4,
-      "x": 332,
+      "x": 325,
       "y": 87,
-      "largeur": 110,
-      "hauteur": 124,
+      "largeur": 130,
+      "hauteur": 203,
       "os": "oreille_gauche"
     },
     {
@@ -109,9 +109,9 @@
       "de": "tout",
       "ordre": 3,
       "x": 246,
-      "y": 117,
-      "largeur": 573,
-      "hauteur": 483,
+      "y": 159,
+      "largeur": 549,
+      "hauteur": 762,
       "os": "tete"
     },
     {
@@ -119,10 +119,10 @@
       "image": "calques/bras.png",
       "de": "tout",
       "ordre": 2,
-      "x": 114,
-      "y": 101,
-      "largeur": 799,
-      "hauteur": 607,
+      "x": 124,
+      "y": 286,
+      "largeur": 498,
+      "hauteur": 614,
       "os": "bras"
     },
     {
@@ -130,10 +130,10 @@
       "image": "calques/corps.png",
       "de": "tout",
       "ordre": 1,
-      "x": 199,
-      "y": 585,
-      "largeur": 653,
-      "hauteur": 357,
+      "x": 210,
+      "y": 538,
+      "largeur": 631,
+      "hauteur": 404,
       "os": "corps"
     }
   ],
