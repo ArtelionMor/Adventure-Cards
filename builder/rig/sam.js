@@ -214,6 +214,8 @@ export function installeSam(api) {
           <div class="ligne"><label for="samParties">Parties</label><input type="text" id="samParties" style="flex:1" title="séparées par des virgules : l'IA cherche celles-là" /></div>
           <div class="ligne"><label for="samModele">Modèle</label><select id="samModele" style="flex:1"></select>
             <label title="Le modèle réfléchit avant de répondre : bien plus lent, souvent plus juste (à réserver à un gros modèle)"><input type="checkbox" id="samReflexion" /> réflexion</label></div>
+          <div class="ligne"><label for="samEtend" title="Ce que SAM ne découpe pas (grandes surfaces lisses, trait noir) : jusqu'où une partie rangée s'étend dessus">Étendre</label>
+            <select id="samEtend" style="flex:1"><option value="8">au trait seulement (8 px)</option><option value="40">40 px</option><option value="150">150 px</option><option value="9999" selected>à tout le personnage</option></select></div>
           <div class="ligne"><button id="samClasse" class="primaire">🤖 Classer les régions</button><span class="muet" id="samClasseTxt"></span></div>
           <hr style="border:0;border-top:1px solid #394057;margin:8px 0" />
           <div class="muet">Entoure chaque partie en glissant la souris, sans précision (une boucle par partie). Ce qui n'est dans aucune boucle reste sur le calque d'origine.</div>
@@ -555,6 +557,7 @@ export function installeSam(api) {
     }
     return c.toDataURL('image/png').split(',')[1];
   }
+  const etendre = () => +$('#samEtend').value || 8;
   const PARTIES_DEFAUT = 'tete, oreille_gauche, oreille_droite, corps, bras_gauche, bras_droit, jambe_gauche, jambe_droite, queue';
   try { $('#samParties').value = localStorage.getItem('adventureCardRig.samParties') || PARTIES_DEFAUT; } catch { $('#samParties').value = PARTIES_DEFAUT; }
   async function chargeModeles() {
@@ -588,7 +591,7 @@ export function installeSam(api) {
         return { nom: n, pts: [], regions: new Set(ids) };
       });
       S.alpha = alphaDe($('#samDepuis').value);
-      S.etiq = affineParRegions(S.regions, S.zones.map(z => [...z.regions]), S.W, S.H, S.alpha).etiq;
+      S.etiq = affineParRegions(S.regions, S.zones.map(z => [...z.regions]), S.W, S.H, S.alpha, etendre()).etiq;
       S.annule = []; S.zoneActive = 0;
       document.querySelector('input[name=samMode][value=zones]').click();
       listeZones(); dessine();
@@ -665,7 +668,7 @@ export function installeSam(api) {
     S.alpha = alphaDe($('#samDepuis').value);
     if (S.zones.some(z => z.regions)) {
       // des parties rangees par l'IA : on repart de leurs regions, les boucles dessinees apres sont peintes par-dessus
-      S.etiq = affineParRegions(S.regions, S.zones.map(z => z.regions ? [...z.regions] : []), S.W, S.H, S.alpha).etiq;
+      S.etiq = affineParRegions(S.regions, S.zones.map(z => z.regions ? [...z.regions] : []), S.W, S.H, S.alpha, etendre()).etiq;
       S.zones.forEach((z, k) => { if (!z.regions) peintBoucle(k); });
     } else {
       const r = affineZones(S.regions, S.zones, S.W, S.H, S.alpha);
@@ -748,6 +751,12 @@ export function installeSam(api) {
     e.preventDefault(); e.stopPropagation(); annule();
   }, true);
 
+  // changer l'extension recalcule les parties rangees par l'IA (les retouches au pinceau seraient perdues : on demande)
+  $('#samEtend').onchange = () => {
+    if (!S.etiq || !S.zones.some(z => z.regions)) return;
+    if (S.annule.length && !confirm('Changer l'extension recalcule les zones : tes coups de pinceau seront perdus. Continuer ?')) return;
+    affine();
+  };
   $('#samAffine').onclick = () => { affine(); };
   $('#samEffaceZones').onclick = () => { S.zones = []; S.etiq = null; S.annule = []; listeZones(); dessine(); };
   $('#samExtraitZones').onclick = () => {
