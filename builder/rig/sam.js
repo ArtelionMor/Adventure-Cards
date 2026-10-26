@@ -754,7 +754,7 @@ export function installeSam(api) {
   // changer l'extension recalcule les parties rangees par l'IA (les retouches au pinceau seraient perdues : on demande)
   $('#samEtend').onchange = () => {
     if (!S.etiq || !S.zones.some(z => z.regions)) return;
-    if (S.annule.length && !confirm('Changer l'extension recalcule les zones : tes coups de pinceau seront perdus. Continuer ?')) return;
+    if (S.annule.length && !confirm("Changer l'extension recalcule les zones : tes coups de pinceau seront perdus. Continuer ?")) return;
     affine();
   };
   $('#samAffine').onclick = () => { affine(); };
