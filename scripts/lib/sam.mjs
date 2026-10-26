@@ -30,7 +30,7 @@ export function valideReglages(r) {
   if (!r || typeof r !== 'object') return o;
   o.exporter = r.exporter === true;
   o.reseau = typeof r.reseau === 'string' && RESEAU.test(r.reseau.trim()) ? r.reseau.trim().replace(/^\.+|\.+$/g, '') : '';
-  o.points = [16, 32, 48].includes(+r.points) ? +r.points : 32;
+  o.points = [16, 32, 48, 64].includes(+r.points) ? +r.points : 32;
   o.reflexion = r.reflexion === true;
   o.modele = typeof r.modele === 'string' && /^[\w.:/@-]{1,120}$/.test(r.modele.trim()) ? r.modele.trim() : '';
   o.machines = (Array.isArray(r.machines) ? r.machines : []).slice(0, MACHINES_MAX)

@@ -66,6 +66,9 @@ def charge_modele(chemin):
 
 
 def segmente(png, points, chemin_modele):
+    # La finesse : a partir de 48 points on est plus PERMISSIF (seuils plus bas : de grandes surfaces lisses, une tete, une
+    # queue, n'ont souvent aucun contour net et SAM les rate a 0,8 / 0,9) ; a 64 on regarde aussi des recadrages (4 fois plus long).
+    iou, stab, recadrages = (0.7, 0.8, 1 if points >= 64 else 0) if points >= 48 else (0.8, 0.9, 0)
     import numpy as np
     import torch
     from PIL import Image
@@ -74,7 +77,7 @@ def segmente(png, points, chemin_modele):
     modele, Generateur = charge_modele(chemin_modele)
     etape("calcul")
     t_calcul = time.time()
-    gen = Generateur(modele, points_per_side=points, pred_iou_thresh=0.8, stability_score_thresh=0.9, min_mask_region_area=300)
+    gen = Generateur(modele, points_per_side=points, pred_iou_thresh=iou, stability_score_thresh=stab, crop_n_layers=recadrages, min_mask_region_area=300)
     im = Image.open(io.BytesIO(png)).convert("RGBA")
     alpha = np.array(im)[:, :, 3] > 8
     fond = Image.new("RGBA", im.size, (255, 255, 255, 255))
@@ -138,7 +141,7 @@ class Gestionnaire(BaseHTTPRequestHandler):
             self.repond(413, {"erreur": "image absente ou trop grosse"})
             return
         png = self.rfile.read(n)
-        points = max(8, min(64, int((urllib.parse.parse_qs(url.query).get("points") or ["32"])[0])))
+        points = max(8, min(96, int((urllib.parse.parse_qs(url.query).get("points") or ["32"])[0])))
         try:
             with VERROU:
                 ETAT["occupe"] = True

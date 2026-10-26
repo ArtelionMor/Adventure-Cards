@@ -192,7 +192,7 @@ export function installeSam(api) {
           <div class="muet" id="samDetecteTxt"></div>
         </div>
         <div class="ligne"><label for="samFinesse">Finesse</label>
-          <select id="samFinesse"><option value="16">grossière (rapide)</option><option value="32" selected>normale</option><option value="48">fine (lente)</option></select></div>
+          <select id="samFinesse"><option value="16">grossière (rapide)</option><option value="32" selected>normale</option><option value="48">fine (lente)</option><option value="64">très fine (très lente)</option></select></div>
         <div class="ligne"><button id="samAnalyse" class="primaire">Analyser le personnage</button><span id="samEtat" class="muet"></span></div>
         <div id="samBarre" style="display:none"><div id="samBarreFond"><div id="samBarreVal"></div></div><div class="muet" id="samBarreTxt"></div></div>
         <h3 style="margin-top:12px">La partie à extraire</h3>
