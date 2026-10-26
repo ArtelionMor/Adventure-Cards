@@ -11,16 +11,16 @@
   },
   "os": [
     { "id": "sol", "parent": null, "x": 169, "y": 886, "angle": 0, "longueur": 706 },
-    { "id": "bassin", "parent": "sol", "x": 522, "y": 822, "angle": -90, "longueur": 64 },
-    { "id": "torse", "parent": "bassin", "x": 522, "y": 759, "angle": -90, "longueur": 159 },
-    { "id": "tete", "parent": "torse", "x": 522, "y": 520, "angle": -90, "longueur": 239 },
-    { "id": "oreille_g", "parent": "tete", "x": 390, "y": 280, "angle": -120, "longueur": 120 },
-    { "id": "oreille_d", "parent": "tete", "x": 654, "y": 280, "angle": -60, "longueur": 120 },
-    { "id": "bras_g", "parent": "torse", "x": 390, "y": 663, "angle": 160, "longueur": 112 },
-    { "id": "bras_d", "parent": "torse", "x": 654, "y": 663, "angle": 20, "longueur": 112 },
-    { "id": "jambe_g", "parent": "bassin", "x": 434, "y": 822, "angle": 100, "longueur": 72 },
-    { "id": "jambe_d", "parent": "bassin", "x": 610, "y": 822, "angle": 80, "longueur": 72 },
-    { "id": "queue", "parent": "bassin", "x": 698, "y": 775, "angle": -30, "longueur": 112 }
+    { "id": "bassin", "parent": "sol", "x": 583, "y": 771, "angle": -90, "longueur": 64 },
+    { "id": "torse", "parent": "bassin", "x": 583, "y": 708, "angle": -107.6, "longueur": 232 },
+    { "id": "tete", "parent": "torse", "x": 514, "y": 485, "angle": -112.8, "longueur": 309 },
+    { "id": "oeil_g", "parent": "tete", "x": 253, "y": 348, "angle": -114.5, "longueur": 90 },
+    { "id": "oeil_d", "parent": "tete", "x": 592, "y": 267, "angle": -80.1, "longueur": 131 },
+    { "id": "bras_g", "parent": "torse", "x": 892, "y": 194, "angle": 142.1, "longueur": 939 },
+    { "id": "bras_d", "parent": "torse", "x": 591, "y": 601, "angle": 83.2, "longueur": 262 },
+    { "id": "jambe_g", "parent": "bassin", "x": 402, "y": 683, "angle": 88.5, "longueur": 136 },
+    { "id": "jambe_d", "parent": "bassin", "x": 742, "y": 653, "angle": 74.7, "longueur": 183 },
+    { "id": "queue", "parent": "bassin", "x": 740, "y": 600, "angle": -30, "longueur": 112 }
   ],
   "calques": [
     {

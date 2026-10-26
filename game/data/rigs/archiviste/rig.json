@@ -11,26 +11,26 @@
   },
   "os": [
     { "id": "sol", "parent": null, "x": 198, "y": 932, "angle": 0, "longueur": 652 },
-    { "id": "bassin", "parent": "sol", "x": 524, "y": 858, "angle": -90, "longueur": 74 },
-    { "id": "torse", "parent": "bassin", "x": 524, "y": 785, "angle": -90, "longueur": 184 },
-    { "id": "tete", "parent": "torse", "x": 524, "y": 508, "angle": -90, "longueur": 277 },
-    { "id": "oreille_g", "parent": "tete", "x": 401, "y": 231, "angle": -120, "longueur": 138 },
-    { "id": "oreille_d", "parent": "tete", "x": 646, "y": 231, "angle": -60, "longueur": 138 },
-    { "id": "bras_g", "parent": "torse", "x": 401, "y": 674, "angle": 160, "longueur": 129 },
-    { "id": "bras_d", "parent": "torse", "x": 646, "y": 674, "angle": 20, "longueur": 129 },
-    { "id": "jambe_g", "parent": "bassin", "x": 442, "y": 858, "angle": 100, "longueur": 83 },
-    { "id": "jambe_d", "parent": "bassin", "x": 605, "y": 858, "angle": 80, "longueur": 83 },
-    { "id": "queue", "parent": "bassin", "x": 687, "y": 803, "angle": -30, "longueur": 129 }
+    { "id": "bassin", "parent": "sol", "x": 556, "y": 828, "angle": -90, "longueur": 74 },
+    { "id": "torse", "parent": "bassin", "x": 556, "y": 755, "angle": -90, "longueur": 184 },
+    { "id": "tete", "parent": "torse", "x": 565, "y": 558, "angle": -90, "longueur": 277 },
+    { "id": "oreille_g", "parent": "tete", "x": 420, "y": 243, "angle": -147.5, "longueur": 194 },
+    { "id": "oreille_d", "parent": "tete", "x": 656, "y": 226, "angle": -14, "longueur": 265 },
+    { "id": "bras_g", "parent": "torse", "x": 339, "y": 847, "angle": -98.1, "longueur": 348 },
+    { "id": "bras_d", "parent": "torse", "x": 724, "y": 621, "angle": 149.6, "longueur": 222 },
+    { "id": "jambe_g", "parent": "bassin", "x": 465, "y": 836, "angle": 86.4, "longueur": 74 },
+    { "id": "jambe_d", "parent": "bassin", "x": 657, "y": 875, "angle": 80, "longueur": 83 },
+    { "id": "sac", "parent": "bassin", "x": 851, "y": 776, "angle": -97.1, "longueur": 219 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 114,
+      "y": 45,
+      "largeur": 819,
+      "hauteur": 926
     }
   ],
   "ik": []

@@ -11,16 +11,14 @@
   },
   "os": [
     { "id": "sol", "parent": null, "x": 131, "y": 895, "angle": 0, "longueur": 777 },
-    { "id": "bassin", "parent": "sol", "x": 520, "y": 836, "angle": -90, "longueur": 59 },
-    { "id": "torse", "parent": "bassin", "x": 520, "y": 777, "angle": -90, "longueur": 148 },
-    { "id": "tete", "parent": "torse", "x": 520, "y": 555, "angle": -90, "longueur": 222 },
+    { "id": "tete", "parent": "sol", "x": 520, "y": 555, "angle": -90, "longueur": 222 },
     { "id": "oreille_g", "parent": "tete", "x": 374, "y": 333, "angle": -120, "longueur": 111 },
     { "id": "oreille_d", "parent": "tete", "x": 665, "y": 333, "angle": -60, "longueur": 111 },
-    { "id": "bras_g", "parent": "torse", "x": 374, "y": 688, "angle": 160, "longueur": 104 },
-    { "id": "bras_d", "parent": "torse", "x": 665, "y": 688, "angle": 20, "longueur": 104 },
-    { "id": "jambe_g", "parent": "bassin", "x": 422, "y": 836, "angle": 100, "longueur": 67 },
-    { "id": "jambe_d", "parent": "bassin", "x": 617, "y": 836, "angle": 80, "longueur": 67 },
-    { "id": "queue", "parent": "bassin", "x": 714, "y": 792, "angle": -30, "longueur": 104 }
+    { "id": "bras_g", "parent": "sol", "x": 374, "y": 688, "angle": 160, "longueur": 104 },
+    { "id": "bras_d", "parent": "sol", "x": 665, "y": 688, "angle": 20, "longueur": 104 },
+    { "id": "jambe_g", "parent": "sol", "x": 422, "y": 836, "angle": 100, "longueur": 67 },
+    { "id": "jambe_d", "parent": "sol", "x": 617, "y": 836, "angle": 80, "longueur": 67 },
+    { "id": "queue", "parent": "sol", "x": 714, "y": 792, "angle": -30, "longueur": 104 }
   ],
   "calques": [
     {
