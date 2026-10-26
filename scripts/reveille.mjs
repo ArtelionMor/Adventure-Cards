@@ -5,16 +5,17 @@
 //
 // ⚠ Le paquet ne passe PAS par Tailscale : il faut le lancer depuis une machine du MÊME réseau local (192.168.1.x).
 // ⚠ La machine doit accepter le réveil : mon-mien (carte Ethernet Realtek, « Wake on Magic Packet » activé) ; le Mac
-// (« Réveil pour l'accès au réseau » : `pmset -g` → womp 1, sur secteur seulement) — selon l'adaptateur Ethernet USB,
-// un Mac en veille peut ne pas se réveiller : à essayer.
+// (« Réveil pour l'accès au réseau » : `pmset -g` → womp 1, sur secteur seulement) : il se réveille par son **Wi-Fi**, pas par
+// son adaptateur Ethernet USB (essayé le 27 oct. 2026 : mon-mien et le Mac réveillés).
 // Une machine ÉTEINTE (pas en veille) ne se réveille pas ainsi sans réglage du BIOS.
 import dgram from 'node:dgram';
 import net from 'node:net';
 
-// Les cartes réseau à réveiller (l'ADRESSE MAC de l'Ethernet, pas celle du Wi-Fi) et un port qui répond quand elles dorment pas.
+// Les cartes réseau à réveiller (adresses MAC) et un port qui répond quand elles dorment pas.
 const MACHINES = {
-  'mon-mien': { mac: '04:42:1a:87:54:55', ip: '100.79.166.73', port: 22 },
-  mac: { mac: '80:69:1a:b4:f2:35', ip: '100.119.195.112', port: 22 },
+  'mon-mien': { macs: ['04:42:1a:87:54:55'], ip: '100.79.166.73', port: 22 },
+  // Le Mac ne se réveille PAS par son adaptateur Ethernet USB (essayé le 27 oct. 2026) mais par son Wi-Fi : on envoie aux deux
+  mac: { macs: ['6c:7e:67:c3:e6:fd', '80:69:1a:b4:f2:35'], ip: '100.119.195.112', port: 22 },
 };
 const BROADCAST = '192.168.1.255';
 
@@ -50,7 +51,7 @@ for (const nom of cibles) {
   const m = MACHINES[nom];
   if (!m) { console.log(`${nom} : inconnue (${Object.keys(MACHINES).join(', ')})`); tous = false; continue; }
   if (await repond(m)) { console.log(`${nom} : déjà réveillée`); continue; }
-  await envoie(m.mac);
+  for (const mac of m.macs) await envoie(mac);
   const fin = Date.now() + attend * 1000;
   let vue = false;
   while (Date.now() < fin && !(vue = await repond(m))) await new Promise(r => setTimeout(r, 3000));
