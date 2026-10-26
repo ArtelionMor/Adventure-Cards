@@ -15,6 +15,7 @@ import { prepareRig, creeAnimateur } from '../game/src/rig/joueur.js';
 import { verifieClips, verifieRig, zonesSousUnCalque } from '../game/src/rig/verifie.js';
 import { formateJson } from '../builder/rig/json.js';
 import { encodeGif } from '../builder/rig/gif.js';
+import { crans } from '../builder/rig/curseurs.js';
 import { decodePng, encodePng } from './lib/png.mjs';
 import { regionsSous, unionRegions, regionContient, affineZones, affineParRegions } from '../builder/rig/sam.js';
 import { valideReglages, cibles, REGLAGES_DEFAUT } from './lib/sam.mjs';
@@ -346,6 +347,10 @@ test('peindre : derrière bouche le trou sans recouvrir, par-dessus recouvre', (
   const a = trou(); CQ.peint(a, 20, 20, 3, [255, 255, 255], 1, 1, true);
   const b = trou(); CQ.peint(b, 20, 20, 30, [255, 0, 0], 1, 1, false);
   return a.data[ok + 3] === 255 && a.data[ok] === 255 && a.data[plein] === DISQUE.data[plein] && b.data[plein] === 255 && b.data[plein + 1] === 0;
+});
+test('curseurs : crans logarithmiques, bornes comprises, zéro si le minimum est 0', () => {
+  const a = crans(1, 300), b = crans(0, 100);
+  return a[0] === 1 && a.at(-1) === 300 && a.includes(10) && a.includes(100) && b[0] === 0 && b[1] === 1 && b.at(-1) === 100 && a.every((x, i) => !i || x > a[i - 1]);
 });
 test('fusionner vers le bas rend l\'image d\'origine et retire la zone', () => {
   const rig = rigDisque(), images = { corps: CQ.copieImage(DISQUE) }, masques = {};

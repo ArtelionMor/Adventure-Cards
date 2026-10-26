@@ -11,6 +11,7 @@
 //
 // Les fonctions pures (union de regions, regions sous un point) n'ont pas de DOM : test-rig.mjs les joue.
 
+import { curseursLog } from './curseurs.js';
 import { extraitCalque, inclutTrait, masquePolygone } from './calques.js';
 
 // ------------------------------------------------------------------ pur (sans DOM)
@@ -206,7 +207,7 @@ export function installeSam(api) {
         <div id="samMode"><label><input type="radio" name="samMode" value="regions" checked /> Régions (clics)</label>
           <label title="Entourer chaque partie à main levée, sans précision : SAM refait les bords"><input type="radio" name="samMode" value="zones" /> Zones grossières (à main levée)</label></div>
         <div id="samVue"><canvas id="samToile" width="640" height="640"></canvas></div>
-        <div id="samZoomLigne"><label for="samZoom">Zoom</label><input type="range" id="samZoom" min="100" max="2400" value="100" step="10" /><span class="muet" id="samZoomTxt" style="width:46px">100 %</span><button id="samAjuste" title="Tout le personnage dans le cadre">Ajuster</button></div>
+        <div id="samZoomLigne"><label for="samZoom">Zoom</label><input type="range" data-log id="samZoom" min="100" max="2400" value="100" step="10" /><span class="muet" id="samZoomTxt" style="width:46px">100 %</span><button id="samAjuste" title="Tout le personnage dans le cadre">Ajuster</button></div>
         <div class="muet" id="samNav">Molette : zoom · Espace + glisser (ou clic milieu, ou clic droit + glisser) : déplacer la vue.</div>
         <div class="muet" id="samAide">Lancer l'analyse pour voir les régions.</div>
         <div id="samZonesBloc" style="display:none">
@@ -224,13 +225,14 @@ export function installeSam(api) {
             <label title="Peindre la zone choisie dans la liste (cliquer son nom) : les pixels lui sont donnés, même repris à une autre zone"><input type="radio" name="samOutil" value="pinceau" /> 🖌 Pinceau</label>
             <label title="Rendre les pixels au calque d'origine (ils ne seront pas extraits)"><input type="radio" name="samOutil" value="gomme" /> ⌫ Gomme</label>
           </div>
-          <div class="ligne" id="samPinceauOpt" style="display:none"><label for="samRayon">Rayon</label><input type="range" id="samRayon" min="2" max="150" value="20" style="flex:1" /><span class="muet" id="samRayonTxt" style="width:44px">20 px</span><button id="samAnnule" title="Ctrl + Z">↶ Annuler</button></div>
+          <div class="ligne" id="samPinceauOpt" style="display:none"><label for="samRayon">Rayon</label><input type="range" data-log id="samRayon" min="2" max="150" value="20" style="flex:1" /><span class="muet" id="samRayonTxt" style="width:44px">20 px</span><button id="samAnnule" title="Ctrl + Z">↶ Annuler</button></div>
           <div id="samZones"></div>
           <div class="ligne"><button id="samAffine" class="primaire">Affiner avec SAM</button><button id="samExtraitZones" class="primaire">Extraire toutes les zones</button><button id="samEffaceZones">Effacer les zones</button><span class="muet" id="samZonesTxt"></span></div>
         </div>
       </div>
     </div>`;
   document.body.appendChild(fond);
+  curseursLog(fond);
 
   // ---------------------------------------------------------------- reglages et machines
   let machines = [];

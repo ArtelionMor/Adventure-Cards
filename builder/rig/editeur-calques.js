@@ -8,6 +8,7 @@
 //   dont l'image a change), debutTrait(id) (photo avant un coup de pinceau), finTrait(id),
 //   rafraichitRect(id, rect), versEcran, versMonde, reprepare, marque.
 
+import { curseursLog } from './curseurs.js';
 import {
   accroche, lisse, masquePolygone, inclutTrait, extraitCalque, combleZone, gomme, restaure, peint,
   nomDeCalqueLibre, renommeCalque, dupliqueCalque, fusionneVersLeBas, supprimeCalque, reordonne,
@@ -46,9 +47,9 @@ export function installeCalques(api) {
       <button id="cTransfere" disabled title="Tout ce que la boucle couvre sur les autres calques passe sur le calque sélectionné">↪ Transférer vers le calque</button></div>
     <div class="ligne" data-pour="peinture" hidden><label>couleur</label><input type="color" id="cCouleur" value="#ffffff" />
       <button id="cBlanc" title="Blanc">blanc</button><label title="Coché : bouche les trous sans recouvrir ce qui est déjà dessiné"><input type="checkbox" id="cDerriere" checked /> derrière</label></div>
-    <div class="ligne" data-pour="pinceau" hidden><label>rayon</label><input type="range" id="cRayonS" min="1" max="300" value="16" /><input type="number" id="cRayon" value="16" min="1" max="300" /><span class="muet">px</span></div>
-    <div class="ligne" data-pour="pinceau" hidden><label>dureté</label><input type="range" id="cDureteS" min="0" max="100" value="60" /><input type="number" id="cDurete" value="60" min="0" max="100" /><span class="muet">%</span></div>
-    <div class="ligne" data-pour="pinceau" hidden><label>force</label><input type="range" id="cForceS" min="1" max="100" value="100" /><input type="number" id="cForce" value="100" min="1" max="100" /><span class="muet">%</span></div>
+    <div class="ligne" data-pour="pinceau" hidden><label>rayon</label><input type="range" data-log id="cRayonS" min="1" max="300" value="16" /><input type="number" id="cRayon" value="16" min="1" max="300" /><span class="muet">px</span></div>
+    <div class="ligne" data-pour="pinceau" hidden><label>dureté</label><input type="range" data-log id="cDureteS" min="0" max="100" value="60" /><input type="number" id="cDurete" value="60" min="0" max="100" /><span class="muet">%</span></div>
+    <div class="ligne" data-pour="pinceau" hidden><label>force</label><input type="range" data-log id="cForceS" min="1" max="100" value="100" /><input type="number" id="cForce" value="100" min="1" max="100" /><span class="muet">%</span></div>
     <div class="ligne"><label title="Un contour de couleur autour des calques, pour les distinguer sur la vue">contours</label>
       <select id="cContours"><option value="sel">calque choisi</option><option value="tous">tous les calques</option><option value="aucun">aucun</option></select></div>
     <ul id="cListe" class="liste-calques"></ul>
@@ -113,7 +114,8 @@ export function installeCalques(api) {
       li.innerHTML = `<button data-a="vis" title="Visible">${c.visible === false ? '◌' : '👁'}</button><button data-a="verrou" title="Verrou">${c.verrou ? '🔒' : '🔓'}</button>
         <span class="nom" title="Double-clic : renommer">${c.id}${zones ? ` <span style="color:var(--warn)">◐${zones}</span>` : ''}</span>
         <select data-a="os" title="Rigide sur un os, ou maillé"><option value="">maillé</option>${os.map(o => `<option ${c.os === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
-        <input type="range" data-a="op" min="0" max="100" value="${Math.round((E.opacites[c.id] ?? 1) * 100)}" title="Opacité d'aperçu (pas enregistrée)" />`;
+        <input type="range" data-log data-a="op" min="0" max="100" value="${Math.round((E.opacites[c.id] ?? 1) * 100)}" title="Opacité d'aperçu (pas enregistrée)" />`;
+      curseursLog(li);
       // (on ne redessine que si la selection change : sinon le double-clic du renommage tomberait dans le vide)
       li.onclick = e => { if (e.target.closest('button, select, input') || E.calque === c.id) return; E.calque = c.id; dessineListe(); dessineZones(); majBoutons(); api.marque(); };
       li.querySelector('.nom').ondblclick = () => {

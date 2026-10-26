@@ -126,8 +126,8 @@
         <button id="mailler" title="Image seule : une grille sur toute l'image">Générer le mesh</button></div>
       <div class="ligne"><label><input type="checkbox" id="poidsAuto" checked /> Poids automatiques</label>
         <button id="calculPoids" title="Recalcule les poids de tous les calques maillés (Maj + clic : aussi ceux peints à la main)">Calculer les poids</button></div>
-      <div class="ligne"><label style="width:70px">rayon</label><input type="range" id="pRayon" value="40" min="2" max="400" style="flex:1" /><span class="muet" id="pRayonTxt" style="width:48px;text-align:right">40 px</span></div>
-      <div class="ligne"><label style="width:70px">force</label><input type="range" id="pForce" value="25" min="1" max="100" style="flex:1" /><span class="muet" id="pForceTxt" style="width:48px;text-align:right">25 %</span></div>
+      <div class="ligne"><label style="width:70px">rayon</label><input type="range" id="pRayon" data-log value="40" min="2" max="400" style="flex:1" /><span class="muet" id="pRayonTxt" style="width:48px;text-align:right">40 px</span></div>
+      <div class="ligne"><label style="width:70px">force</label><input type="range" id="pForce" data-log value="25" min="1" max="100" style="flex:1" /><span class="muet" id="pForceTxt" style="width:48px;text-align:right">25 %</span></div>
       <div id="infoMesh" class="muet"></div>
     </section>
     <section>
@@ -167,6 +167,7 @@ import { formateJson } from './rig/json.js';
 import { depuisFichiers, pourEnregistrer, mailleCalque, recalculePoids, copieImage } from './rig/calques.js';
 import { installeCalques } from './rig/editeur-calques.js';
 import { installeSam } from './rig/sam.js';
+import { curseursLog } from './rig/curseurs.js';
 import { SPRITES } from '../game/data/sprites.js';
 
 const $ = s => document.querySelector(s);
@@ -973,6 +974,7 @@ $('#nvCreer').onclick = async () => {
 // ------------------------------------------------------------------ le mode calques
 C = installeCalques({ E, toast, modifie, debutTrait, finTrait, rafraichitRect, versEcran, versMonde, reprepare, marque });
 SAM = installeSam({ E, toast, modifie });
+curseursLog(document);
 document.querySelectorAll('#cOutils [data-outil]').forEach(b => b.addEventListener('click', majAide));
 
 // ------------------------------------------------------------------ boutons et depart
