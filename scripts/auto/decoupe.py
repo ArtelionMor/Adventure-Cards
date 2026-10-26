@@ -129,6 +129,12 @@ def etiquettes(regions, groupes, alpha, W, H, etend=9999):
 
 
 def main():
+    # sans console (tache cachee de Windows), Python ecrit en cp1252 et plante sur le moindre accent
+    for flux in (sys.stdout, sys.stderr):
+        try:
+            flux.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     p = argparse.ArgumentParser()
     p.add_argument("--source", required=True)
     p.add_argument("--sortie", required=True)

@@ -64,6 +64,12 @@ def empreinte(dossier):
 
 
 def main():
+    # sans console (tache cachee de Windows), Python ecrit en cp1252 et plante sur le moindre accent
+    for flux in (sys.stdout, sys.stderr):
+        try:
+            flux.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     p = argparse.ArgumentParser()
     p.add_argument("--depot", default=r"C:\Users\telia\Adventure-Cards")
     p.add_argument("--auto", default=r"C:\Users\telia\auto")
