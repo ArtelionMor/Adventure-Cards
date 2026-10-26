@@ -121,7 +121,7 @@ def main():
             continue
         if a.etape == "assemble" and not (deja_decoupe and (statut == "decoupe_faite" or a.refaire)):
             continue
-        if a.etape == "tout" and statut in ("fait", "a_verifier"):
+        if a.etape == "tout" and statut in ("fait", "a_verifier") and not a.refaire:
             continue
         dossier = os.path.join(a.depot, "game", "data", "rigs", ident)
         if not os.path.isdir(dossier):

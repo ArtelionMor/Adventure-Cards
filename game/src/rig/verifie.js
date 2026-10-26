@@ -264,6 +264,14 @@ function mesureClip(rig, nom, S, taille, constats) {
         if (d > p.deplacement) p.deplacement = d;
       }
       for (let j = 0; j < T.length / 3; j++) {
+        // une LAMELLE (triangle de contour de moins de 2,5 px de haut au repos) se retourne au moindre souffle sans que rien ne se voie :
+        // on ne le juge pas (un maillage qui suit un contour en fabrique beaucoup)
+        const ia = T[j * 3], ib = T[j * 3 + 1], ic = T[j * 3 + 2];
+        {
+          const ux = R[ib * 2] - R[ia * 2], uy = R[ib * 2 + 1] - R[ia * 2 + 1], vx = R[ic * 2] - R[ia * 2], vy = R[ic * 2 + 1] - R[ia * 2 + 1];
+          const plusLong = Math.max(Math.hypot(ux, uy), Math.hypot(vx, vy), Math.hypot(vx - ux, vy - uy));
+          if (Math.abs(ux * vy - vx * uy) < 2.5 * plusLong) continue;   // hauteur < 2,5 px : une lamelle de contour, pas un triangle
+        }
         const { s1, s2, det } = etirement(R, P, T[j * 3], T[j * 3 + 1], T[j * 3 + 2]);
         const cx = (R[T[j * 3] * 2] + R[T[j * 3 + 1] * 2] + R[T[j * 3 + 2] * 2]) / 3;
         const cy = (R[T[j * 3] * 2 + 1] + R[T[j * 3 + 1] * 2 + 1] + R[T[j * 3 + 2] * 2 + 1]) / 3;

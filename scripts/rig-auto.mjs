@@ -24,17 +24,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { lisPng, ecrisPng } from './lib/png.mjs';
 import { ecrisJson } from './lib/rig-fichiers.mjs';
-import { extraitCalque, combleZone, mailleCalque, pourEnregistrer } from '../builder/rig/calques.js';
+import { extraitCalque, extrait, combleZone, mailleCalque, pourEnregistrer } from '../builder/rig/calques.js';
 import { verifieClips } from '../game/src/rig/verifie.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const id = args.find(a => !a.startsWith('--'));
 const opt = (k, d = null) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
-if (!id) { console.log('usage : node scripts/rig-auto.mjs <id> [--auto <dossier>] [--sans-ecrire] [--flou 0.04] [--petit 0.008]'); process.exit(1); }
+if (!id) { console.log('usage : node scripts/rig-auto.mjs <id> [--auto <dossier>] [--sans-ecrire] [--chevauche 0.03] [--petit 0.008] [--maille [--flou 0.04]]'); process.exit(1); }
 const dossier = path.join(ROOT, 'game/data/rigs', id);
 const auto = opt('--auto') || path.join(ROOT, 'art-sortie/auto', id);
-const FLOU = +opt('--flou', 0.04), PETIT = +opt('--petit', 0.008);
+const FLOU = +opt('--flou', 0.04), PETIT = +opt('--petit', 0.008), CHEV = +opt('--chevauche', 0.03), MAILLE = args.includes('--maille');
 const RAD = Math.PI / 180;
 
 const sansAccent = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -143,7 +143,10 @@ if (!corps) {
 }
 if (!parties.some(q => q.role === 'tete')) probleme('alerte', 'aucune partie « tête » : rien ne penchera la tête');
 
-// 4. la hierarchie : chaque partie s'accroche a la partie DEJA PLACEE qu'elle touche le plus
+// 4. la hierarchie : chaque partie s'accroche a la partie DEJA PLACEE qu'elle touche le plus ; mais quand le role dit « c'est
+//    naturel » (la tete au corps, l'oreille a la tete, un membre au corps) et qu'elles se touchent, c'est ca qui gagne
+const parentNaturel = (enfant, parent) => (enfant === 'tete' && parent === 'corps') || ((enfant === 'oreille' || enfant === 'corne') && parent === 'tete')
+  || (['bras', 'jambe', 'queue', 'aile', 'tentacule'].includes(enfant) && parent === 'corps');
 corps.parent = 'sol'; corps.profondeur = 0;
 const placees = [corps];
 let restantes = parties.filter(q => q !== corps);
@@ -151,7 +154,9 @@ while (restantes.length) {
   let meilleure = null;
   for (const q of restantes) for (const r of placees) {
     const c = contactEntre(ct, q.k, r.k);
-    if (c && (!meilleure || c.n > meilleure.c.n)) meilleure = { q, r, c };
+    if (!c) continue;
+    const score = c.n * (parentNaturel(q.role, r.role) ? 1000 : 1);   // la tete au corps, l'oreille a la tete : tant qu'elles se touchent, c'est ca
+    if (!meilleure || score > meilleure.score) meilleure = { q, r, c, score };
   }
   if (!meilleure) {
     for (const q of restantes) { q.parent = corps.nom; q.profondeur = 1; placees.push(q); probleme('alerte', `partie « ${q.nom} » ne touche aucune autre : accrochée au corps`); }
@@ -231,6 +236,7 @@ function distanceA(k) {
 }
 const sigma = FLOU * Math.max(W, H);
 const champs = new Map(parties.map(q => [q.nom, distanceA(q.k)]));
+if (MAILLE) {
 const pasMaille = Math.max(8, Math.round(Math.max(W, H) / 50));
 for (const q of parties) {
   const c = rig.calques.find(k => k.id === q.nom);
@@ -250,6 +256,21 @@ for (const q of parties) {
   }
   c.mesh.poids = poids;
   c.mesh.poidsManuels = true;          // l'Atelier ne les recalcule pas a chaque os deplace
+}
+} else {
+  // CHEVAUCHEMENT : chaque calque reste RIGIDE sur son os, mais emporte aussi ce qui l'entoure sur `CHEV` de l'image (des
+  // pixels de la SOURCE, donc identiques a ce qu'ils recouvrent au repos). Quand un os tourne, ce bord emporte la matiere
+  // voisine au lieu de laisser un trou a l'articulation. (Un calque maille dont les poids se fondent ne peut tourner que de
+  // ~1° avant que le contour s'etire de plus de 5 % : la geometrie, pas un reglage.)
+  const rayon = Math.max(2, Math.round(CHEV * Math.max(W, H)));
+  for (const q of parties) {
+    const c = rig.calques.find(k => k.id === q.nom);
+    if (!c) continue;
+    const d = champs.get(q.nom), m = new Float32Array(W * H);
+    for (let p = 0; p < W * H; p++) m[p] = d[p] <= rayon ? 1 : 0;
+    images[q.nom] = extrait(source, m).nouveau;
+  }
+  rapport.chevauchement = rayon;
 }
 
 // ------------------------------------------------------------------ les animations
@@ -340,7 +361,7 @@ for (const [nom, c] of Object.entries(brut)) {
 rapport.parties = parties.map(q => ({ nom: q.nom, role: q.role, parent: q.parent, part: +(q.n / total).toFixed(4) }));
 rapport.zones_a_combler = zones.length;
 rapport.os = squelette.length;
-rapport.flou = FLOU;
+if (MAILLE) rapport.flou = FLOU;
 const sortie = { format: 'adventure-rig-clips', version: 1, clips: clipsFinal };
 if (!args.includes('--sans-ecrire')) {
   for (const f of fichiers) { const p = path.join(dossier, f.chemin); fs.mkdirSync(path.dirname(p), { recursive: true }); ecrisPng(p, f.image); }

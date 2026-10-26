@@ -12,12 +12,12 @@
   "os": [
     { "id": "sol", "parent": null, "x": 98, "y": 996, "angle": 0, "longueur": 916 },
     { "id": "corps", "parent": "sol", "x": 628, "y": 987, "angle": -81.5, "longueur": 974 },
-    { "id": "tete", "parent": "corps", "x": 753, "y": 494, "angle": -144.5, "longueur": 715 },
-    { "id": "aile_gauche", "parent": "corps", "x": 370, "y": 631, "angle": 124, "longueur": 263 },
-    { "id": "aile_droite", "parent": "corps", "x": 678, "y": 577, "angle": -80.2, "longueur": 292 },
-    { "id": "queue", "parent": "corps", "x": 735, "y": 468, "angle": -61.4, "longueur": 478 },
-    { "id": "pattes", "parent": "corps", "x": 575, "y": 832, "angle": 165.2, "longueur": 493 },
-    { "id": "cape", "parent": "corps", "x": 358, "y": 498, "angle": -176.9, "longueur": 148 }
+    { "id": "tete", "parent": "corps", "x": 451, "y": 347, "angle": -46, "longueur": 460 },
+    { "id": "aile_gauche", "parent": "corps", "x": 310, "y": 710, "angle": 122, "longueur": 164 },
+    { "id": "aile_droite", "parent": "corps", "x": 722, "y": 475, "angle": 74.1, "longueur": 263 },
+    { "id": "queue", "parent": "corps", "x": 777, "y": 423, "angle": -63.8, "longueur": 419 },
+    { "id": "pattes", "parent": "corps", "x": 581, "y": 916, "angle": 175, "longueur": 485 },
+    { "id": "cape", "parent": "corps", "x": 302, "y": 485, "angle": 130.4, "longueur": 97 }
   ],
   "calques": [
     {
@@ -107,10 +107,10 @@
       "image": "calques/tete.png",
       "de": "tout",
       "ordre": 7,
-      "x": 160,
-      "y": 15,
-      "largeur": 706,
-      "hauteur": 543,
+      "x": 156,
+      "y": 0,
+      "largeur": 732,
+      "hauteur": 583,
       "os": "tete"
     },
     {
@@ -118,10 +118,10 @@
       "image": "calques/cape.png",
       "de": "tout",
       "ordre": 6,
-      "x": 210,
-      "y": 438,
-      "largeur": 163,
-      "hauteur": 130,
+      "x": 193,
+      "y": 407,
+      "largeur": 211,
+      "hauteur": 188,
       "os": "cape"
     },
     {
@@ -129,10 +129,10 @@
       "image": "calques/aile_droite.png",
       "de": "tout",
       "ordre": 5,
-      "x": 629,
-      "y": 289,
-      "largeur": 292,
-      "hauteur": 442,
+      "x": 598,
+      "y": 267,
+      "largeur": 354,
+      "hauteur": 495,
       "os": "aile_droite"
     },
     {
@@ -140,10 +140,10 @@
       "image": "calques/aile_gauche.png",
       "de": "tout",
       "ordre": 4,
-      "x": 201,
-      "y": 603,
-      "largeur": 170,
-      "hauteur": 247,
+      "x": 196,
+      "y": 572,
+      "largeur": 206,
+      "hauteur": 283,
       "os": "aile_gauche"
     },
     {
@@ -151,10 +151,10 @@
       "image": "calques/corps.png",
       "de": "tout",
       "ordre": 3,
-      "x": 186,
-      "y": 24,
-      "largeur": 817,
-      "hauteur": 964,
+      "x": 156,
+      "y": 0,
+      "largeur": 868,
+      "hauteur": 1002,
       "os": "corps"
     },
     {
@@ -162,10 +162,10 @@
       "image": "calques/pattes.png",
       "de": "tout",
       "ordre": 2,
-      "x": 98,
-      "y": 832,
-      "largeur": 857,
-      "hauteur": 165,
+      "x": 90,
+      "y": 801,
+      "largeur": 870,
+      "hauteur": 223,
       "os": "pattes"
     },
     {
@@ -173,10 +173,10 @@
       "image": "calques/queue.png",
       "de": "tout",
       "ordre": 1,
-      "x": 733,
-      "y": 46,
-      "largeur": 282,
-      "hauteur": 450,
+      "x": 702,
+      "y": 39,
+      "largeur": 322,
+      "hauteur": 488,
       "os": "queue"
     }
   ],

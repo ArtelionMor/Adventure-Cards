@@ -23,8 +23,7 @@
       },
       "procedural": [
         { "type": "sinus", "os": "tete", "canal": "rot", "amplitude": 1.2, "periode": 3, "phase": 0.1 },
-        { "type": "sinus", "os": "bras", "canal": "rot", "amplitude": 2, "periode": 3, "phase": 0.5 },
-        { "type": "sinus", "os": "cape", "canal": "rot", "amplitude": 1.2, "periode": 6, "phase": 0.2 }
+        { "type": "sinus", "os": "bras", "canal": "rot", "amplitude": 2, "periode": 3, "phase": 0.5 }
       ]
     },
     "walking": {
@@ -65,9 +64,7 @@
           ]
         }
       },
-      "procedural": [
-        { "type": "sinus", "os": "cape", "canal": "rot", "amplitude": 3, "periode": 1.2, "phase": 0.3 }
-      ]
+      "procedural": []
     },
     "hitting": {
       "description": "Coup : il se recule, fonce vers l'avant (le bas de l'écran) et revient, les membres fouettent.",

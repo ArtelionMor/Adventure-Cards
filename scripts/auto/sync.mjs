@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -46,9 +47,12 @@ const synchro = fs.existsSync(fSync) ? JSON.parse(fs.readFileSync(fSync, 'utf8')
 
 // 3. le rig est-il toujours « brut » sur GitHub ? (une seule calque, pas de maillage, pas de clip)
 sh('git', ['fetch', '-q']);
+const sha = t => createHash('sha1').update(String(t).split(String.fromCharCode(13)).join('')).digest('hex');
+synchro._hash = synchro._hash || {};   // le contenu de rig.json tel que NOUS l'avons pousse : s'il a change, quelqu'un y a travaille
 function brutSurGithub(id) {
   const rig = sh('git', ['show', `origin/master:game/data/rigs/${id}/rig.json`]);
   if (rig.status !== 0) return true;                       // pas encore sur GitHub : rien a ecraser
+  if (synchro._hash[id] && sha(rig.stdout) === synchro._hash[id]) return true;   // c'est encore notre resultat, intact
   try {
     const j = JSON.parse(rig.stdout);
     if ((j.calques || []).length !== 1 || (j.calques || []).some(c => c.mesh)) return false;
@@ -61,7 +65,7 @@ function brutSurGithub(id) {
 // 4. copier ce qui est nouveau
 for (const [id, e] of Object.entries(etat)) {
   if (id.startsWith('_') || !['fait', 'a_verifier'].includes(e.statut)) continue;
-  if (synchro[id] === e.fin) continue;
+  if (synchro[id] === e.fin && fs.existsSync(path.join(ROOT, 'game/data/rigs', id, 'calques'))) continue;
   if (!brutSurGithub(id)) { sortie.conflits.push(id); continue; }
   const dest = path.join(ROOT, 'game/data/rigs', id), rapp = path.join(ROOT, 'art-sortie/auto', id);
   fs.mkdirSync(rapp, { recursive: true });
@@ -72,6 +76,7 @@ for (const [id, e] of Object.entries(etat)) {
   const b = sh('scp', ['-q', '-r', `${MACHINE}:${DISTANT}/auto/sortie/${id}/*`, rapp + '/']);
   if (a.status !== 0) { sortie.erreur = `copie de ${id} : ` + (a.stderr || '').trim().slice(0, 200); continue; }
   synchro[id] = e.fin; sortie.nouveaux.push(id);
+  try { synchro._hash[id] = sha(fs.readFileSync(path.join(dest, 'rig.json'), 'utf8')); } catch { /* pas de rig */ }
 }
 fs.writeFileSync(fSync, JSON.stringify(synchro, null, 1));
 
