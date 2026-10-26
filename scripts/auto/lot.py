@@ -81,6 +81,8 @@ def main():
     p.add_argument("--max", type=int, default=0)
     p.add_argument("--python", default=r"C:\Users\telia\sam2-env\Scripts\python.exe")
     p.add_argument("--node", default="node")
+    p.add_argument("--etape", default="tout", choices=["tout", "decoupe", "assemble"], help="decoupe : SAM + IA seulement ; assemble : rig-auto sur ce qui est decoupe ; tout : les deux")
+    p.add_argument("--refaire", action="store_true", help="avec --etape assemble : refait aussi ce qui est deja fait (depuis sa decoupe)")
     a = p.parse_args()
     os.makedirs(a.auto, exist_ok=True)
     f_etat, f_log, f_stop = (os.path.join(a.auto, n) for n in ("etat.json", "lot.log", "STOP"))
@@ -110,27 +112,41 @@ def main():
         if a.max and faits >= a.max:
             break
         e = etat.get(ident, {})
-        if e.get("statut") in ("fait", "a_verifier", "ignore") or (e.get("statut") == "echec" and e.get("essais", 0) >= 3):
+        statut = e.get("statut")
+        sortie = os.path.join(a.auto, "sortie", ident)
+        deja_decoupe = os.path.exists(os.path.join(sortie, "etiquettes.png")) and statut in ("decoupe_faite", "fait", "a_verifier")
+        if statut == "ignore" or (statut == "echec" and e.get("essais", 0) >= 3):
+            continue
+        if a.etape == "decoupe" and deja_decoupe:
+            continue
+        if a.etape == "assemble" and not (deja_decoupe and (statut == "decoupe_faite" or a.refaire)):
+            continue
+        if a.etape == "tout" and statut in ("fait", "a_verifier"):
             continue
         dossier = os.path.join(a.depot, "game", "data", "rigs", ident)
         if not os.path.isdir(dossier):
             etat[ident] = {"statut": "ignore", "raison": "pas de dossier de rig"}; sauve(); continue
-        raison = touche(dossier)
-        if raison:
-            etat[ident] = {"statut": "ignore", "raison": raison}; log("%s : ignoré (%s)" % (ident, raison)); sauve(); continue
-        sortie = os.path.join(a.auto, "sortie", ident)
+        if not deja_decoupe:
+            raison = touche(dossier)
+            if raison:
+                etat[ident] = {"statut": "ignore", "raison": raison}; log("%s : ignoré (%s)" % (ident, raison)); sauve(); continue
         os.makedirs(sortie, exist_ok=True)
-        etat[ident] = {"statut": "en_cours", "debut": time.strftime("%Y-%m-%dT%H:%M:%S"), "base": empreinte(dossier), "essais": e.get("essais", 0) + 1}
+        base = e.get("base") if deja_decoupe and e.get("base") else empreinte(dossier)
+        etat[ident] = {"statut": "en_cours", "debut": time.strftime("%Y-%m-%dT%H:%M:%S"), "base": base, "essais": e.get("essais", 0) + 1}
         sauve(ident)
         t0 = time.time()
-        log("%s : découpe (%s)" % (ident, parties_de(ident)))
-        r1 = subprocess.run([a.python, os.path.join(a.depot, "scripts", "auto", "decoupe.py"), "--source", os.path.join(dossier, "source.png"),
-                             "--sortie", sortie, "--parties", parties_de(ident), "--sam", a.sam, "--ia", a.ia, "--modele", a.modele, "--points", str(a.points)],
-                            capture_output=True, text=True, timeout=3600, encoding="utf-8", errors="replace")
-        if r1.returncode != 0:
-            etat[ident].update({"statut": "echec", "etape": "découpe", "erreur": (r1.stdout + r1.stderr).strip()[-400:]})
-            log("%s : ÉCHEC découpe : %s" % (ident, etat[ident]["erreur"][-160:])); sauve(); continue
-        log("%s : %s" % (ident, r1.stdout.strip().splitlines()[-1] if r1.stdout.strip() else "?"))
+        if not deja_decoupe:
+            log("%s : découpe (%s)" % (ident, parties_de(ident)))
+            r1 = subprocess.run([a.python, os.path.join(a.depot, "scripts", "auto", "decoupe.py"), "--source", os.path.join(dossier, "source.png"),
+                                 "--sortie", sortie, "--parties", parties_de(ident), "--sam", a.sam, "--ia", a.ia, "--modele", a.modele, "--points", str(a.points)],
+                                capture_output=True, text=True, timeout=3600, encoding="utf-8", errors="replace")
+            if r1.returncode != 0:
+                etat[ident].update({"statut": "echec", "etape": "découpe", "erreur": (r1.stdout + r1.stderr).strip()[-400:]})
+                log("%s : ÉCHEC découpe : %s" % (ident, etat[ident]["erreur"][-160:])); sauve(); continue
+            log("%s : %s" % (ident, r1.stdout.strip().splitlines()[-1] if r1.stdout.strip() else "?"))
+            etat[ident].update({"statut": "decoupe_faite", "duree_decoupe": round(time.time() - t0)})
+            if a.etape == "decoupe":
+                faits += 1; sauve(); continue
         r2 = subprocess.run([a.node, os.path.join(a.depot, "scripts", "rig-auto.mjs"), ident, "--auto", sortie], capture_output=True, text=True,
                             timeout=1800, encoding="utf-8", errors="replace", cwd=a.depot)
         if r2.returncode != 0:
@@ -141,9 +157,10 @@ def main():
             rapport = json.load(open(os.path.join(sortie, "rapport.json"), encoding="utf-8"))
         except Exception:
             rapport = {"problemes": []}
-        graves = [q for q in rapport.get("problemes", []) if q.get("gravite") == "erreur"]
-        etat[ident].update({"statut": "a_verifier" if (graves or rapport.get("problemes")) else "fait", "fin": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                            "duree": round(time.time() - t0), "problemes": len(rapport.get("problemes", [])), "graves": len(graves), "resume": ligne})
+        pb = [q for q in rapport.get("problemes", []) if q.get("gravite") != "info"]
+        graves = [q for q in pb if q.get("gravite") == "erreur"]
+        etat[ident].update({"statut": "a_verifier" if pb else "fait", "fin": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                            "duree": round(time.time() - t0), "problemes": len(pb), "graves": len(graves), "resume": ligne})
         log("%s : %s (%d s)" % (ident, ligne, etat[ident]["duree"]))
         faits += 1
         sauve()
