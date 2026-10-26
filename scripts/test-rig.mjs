@@ -16,6 +16,8 @@ import { verifieClips, verifieRig, zonesSousUnCalque } from '../game/src/rig/ver
 import { formateJson } from '../builder/rig/json.js';
 import { encodeGif } from '../builder/rig/gif.js';
 import { decodePng, encodePng } from './lib/png.mjs';
+import { regionsSous, unionRegions, regionContient } from '../builder/rig/sam.js';
+import { valideReglages, cibles, REGLAGES_DEFAUT } from './lib/sam.mjs';
 import zlib from 'node:zlib';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -389,6 +391,34 @@ test('PNG : ecrire puis relire rend les memes pixels', () => {
   for (let o = 0; o < im.data.length; o++) if (relu.data[o] !== im.data[o]) return false;
   return relu.largeur === 40;
 });
+
+// ------------------------------------------------------------------ decoupe auto (SAM)
+{
+  // deux regions : un grand carre 6x6 en (2,2), un petit 2x2 en (3,3) dedans
+  const grand = { id: 0, aire: 36, x: 2, y: 2, w: 6, h: 6, bits: new Uint8Array(36).fill(1) };
+  const petit = { id: 1, aire: 4, x: 3, y: 3, w: 2, h: 2, bits: new Uint8Array(4).fill(1) };
+  const rond = { id: 2, aire: 3, x: 0, y: 0, w: 2, h: 2, bits: Uint8Array.from([1, 1, 1, 0]) };
+  const regions = [grand, petit, rond];
+  test('sam : une region contient ses pixels, pas ceux hors de sa boite', () => regionContient(grand, 2, 2) && regionContient(grand, 7, 7) && !regionContient(grand, 8, 8) && !regionContient(grand, 1, 2));
+  test('sam : un bit a zero dans la boite n’est pas dans la region', () => regionContient(rond, 0, 0) && !regionContient(rond, 1, 1));
+  test('sam : les regions sous un point, de la plus petite a la plus grande', () => regionsSous(regions, 3, 3).map(r => r.id).join() === '1,0');
+  test('sam : un point sans region n’en trouve aucune', () => regionsSous(regions, 9, 9).length === 0);
+  test('sam : l’union remplit la boite de chaque region choisie, sans rien d’autre', () => {
+    const m = unionRegions(regions, [1, 2], 10, 10);
+    let n = 0; for (const v of m) n += v;
+    return n === 7 && m[3 * 10 + 3] === 1 && m[0] === 1 && m[1 * 10 + 1] === 0 && m[2 * 10 + 2] === 0;
+  });
+  test('sam : l’union ignore ce qui sort de l’image', () => unionRegions([{ id: 0, aire: 4, x: 8, y: 8, w: 4, h: 4, bits: new Uint8Array(16).fill(1) }], [0], 10, 10).reduce((a, v) => a + v, 0) === 4);
+  test('sam : des reglages venus de la page sont nettoyes (nom invalide, port fou, trop de machines)', () => {
+    const r = valideReglages({ exporter: 'oui', reseau: 'tail.ts.net', points: 99, machines: [{ nom: 'mon-mien', port: 7340 }, { nom: '../x', port: 1 }, { nom: 'a b', port: 1 }, { nom: 'ok', port: 70000 }, { nom: 'pc', port: '7341', actif: false }] });
+    return r.exporter === false && r.points === 32 && r.machines.length === 2 && r.machines[1].port === 7341 && r.machines[1].actif === false;
+  });
+  test('sam : sans export, le calcul reste sur cette machine', () => cibles({ ...REGLAGES_DEFAUT, machines: [{ nom: 'mon-mien', port: 7340, actif: true }] }).map(c => c.url).join() === 'http://127.0.0.1:7340');
+  test('sam : le reseau Tailscale complete un nom court, pas un nom qui a deja un point', () => {
+    const c = cibles({ exporter: true, reseau: 'tail.ts.net', points: 32, machines: [{ nom: 'mon-mien', port: 7340, actif: true }, { nom: 'pi.autre.net', port: 7341, actif: true }, { nom: 'off', port: 1, actif: false }] });
+    return c.length === 2 && c[0].url === 'http://mon-mien.tail.ts.net:7340' && c[1].url === 'http://pi.autre.net:7341';
+  });
+}
 
 // ------------------------------------------------------------------ les personnages du jeu
 const dossier = path.join(ROOT, 'game/data/rigs');

@@ -165,6 +165,7 @@ import { verifieClips } from '../game/src/rig/verifie.js';
 import { formateJson } from './rig/json.js';
 import { depuisFichiers, pourEnregistrer, mailleCalque, recalculePoids, copieImage } from './rig/calques.js';
 import { installeCalques } from './rig/editeur-calques.js';
+import { installeSam } from './rig/sam.js';
 import { SPRITES } from '../game/data/sprites.js';
 
 const $ = s => document.querySelector(s);
@@ -190,6 +191,7 @@ const E = {
 
 const glc = $('#gl'), dessus = $('#dessus'), g2 = dessus.getContext('2d');
 let C = null; // le mode calques (rig/editeur-calques.js), installe plus bas
+let SAM = null; // la decoupe automatique (rig/sam.js)
 const rendu = creeRendu(glc);
 if (!rendu) document.body.insertAdjacentHTML('afterbegin', '<div style="background:#600;padding:8px">WebGL indisponible : la vue ne peut rien dessiner.</div>');
 
@@ -231,7 +233,7 @@ async function ouvre(id) {
   E.texteClips = (await lisTexte('clips.json')) || '';
   E.clipsJson = E.texteClips ? JSON.parse(E.texteClips) : { format: 'adventure-rig-clips', version: 1, clips: {} };
   await chargeTout(E.texteRig);
-  E.histo = []; E.futur = []; setSel(null); E.sale = false; E.calque = null;
+  E.histo = []; E.futur = []; setSel(null); E.sale = false; E.calque = null; SAM?.nettoie();
   $('#pas').value = E.rig.calques?.find(c => c.mesh)?.mesh?.pas || Math.round(Math.max(E.rig.source.largeur, E.rig.source.hauteur) / 50);
   reprepare();
   remplisClips();
@@ -917,6 +919,7 @@ $('#nvCreer').onclick = async () => {
 
 // ------------------------------------------------------------------ le mode calques
 C = installeCalques({ E, toast, modifie, debutTrait, finTrait, rafraichitRect, versEcran, versMonde, reprepare, marque });
+SAM = installeSam({ E, toast, modifie });
 document.querySelectorAll('#cOutils [data-outil]').forEach(b => b.addEventListener('click', majAide));
 
 // ------------------------------------------------------------------ boutons et depart

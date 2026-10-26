@@ -628,6 +628,43 @@ http.createServer((req, res) => {
     return;
   }
 
+  // LE DECOUPAGE AUTOMATIQUE (SAM 2) de l'Atelier « Rig & Anim » (builder/rig/sam.js) : ce serveur relaie
+  // le PNG d'un personnage vers une machine a carte graphique (scripts/sam-serveur.py, jointe par son
+  // nom Tailscale) et rend les regions. Reglages : ~/.adventure-card/sam.json (scripts/lib/sam.mjs).
+  //   GET  /api/sam                        -> { reglages, machines: [ { nom, url, etat } ] }
+  //   POST /api/sam/reglages  (JSON)       -> les reglages nettoyes, ecrits
+  //   POST /api/sam/segmente?id=<perso>    -> { machine, largeur, hauteur, masques } (source.png du personnage)
+  // Pas doublee en C# : l'exe sans Node n'a pas l'Atelier de rig.
+  if (urlPath === '/api/sam' && req.method === 'GET') {
+    import('./lib/sam.mjs').then(async m => {
+      const reglages = m.lisReglages();
+      json(res, 200, { reglages, machines: await m.etat(reglages) });
+    }).catch(e => json(res, 500, { erreur: e.message }));
+    return;
+  }
+  if (urlPath === '/api/sam/reglages' && req.method === 'POST') {
+    const morceaux = [];
+    req.on('data', c => { if (morceaux.length < 64) morceaux.push(c); });
+    req.on('end', () => {
+      import('./lib/sam.mjs').then(async m => {
+        const reglages = m.ecrisReglages(JSON.parse(Buffer.concat(morceaux).toString('utf8') || '{}'));
+        json(res, 200, { reglages, machines: await m.etat(reglages) });
+      }).catch(e => json(res, 400, { erreur: e.message }));
+    });
+    return;
+  }
+  if (urlPath === '/api/sam/segmente' && req.method === 'POST') {
+    const id = new URLSearchParams(query || '').get('id') || '';
+    const source = path.join(ROOT, 'game', 'data', 'rigs', id, 'source.png');
+    if (!/^[a-z0-9_-]+$/i.test(id) || !fs.existsSync(source)) { json(res, 404, { erreur: 'personnage inconnu : ' + id }); return; }
+    import('./lib/sam.mjs').then(async m => {
+      const reglages = m.lisReglages();
+      console.log(`sam : decoupe de ${id} (${reglages.exporter ? 'machines : ' + m.cibles(reglages).map(c => c.nom).join(', ') : 'ici'})`);
+      json(res, 200, await m.segmente(fs.readFileSync(source), reglages));
+    }).catch(e => json(res, 502, { erreur: e.message }));
+    return;
+  }
+
   // Ou en est la file ? La page le demande toutes les secondes tant qu'elle tourne.
   if (req.method === 'GET' && urlPath === '/api/run') {
     json(res, 200, etatCalcul(new URLSearchParams(query || '').get('depuis')));
