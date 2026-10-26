@@ -632,6 +632,7 @@ http.createServer((req, res) => {
   // le PNG d'un personnage vers une machine a carte graphique (scripts/sam-serveur.py, jointe par son
   // nom Tailscale) et rend les regions. Reglages : ~/.adventure-card/sam.json (scripts/lib/sam.mjs).
   //   GET  /api/sam                        -> { reglages, machines: [ { nom, url, etat } ] }
+  //   GET  /api/sam/detecte                -> { reseau, machines: [ { nom, os, enLigne, moi, sam } ] } (Tailscale + sonde du port SAM)
   //   POST /api/sam/reglages  (JSON)       -> les reglages nettoyes, ecrits
   //   POST /api/sam/segmente?id=<perso>    -> { machine, largeur, hauteur, masques } (source.png du personnage)
   // Pas doublee en C# : l'exe sans Node n'a pas l'Atelier de rig.
@@ -640,6 +641,10 @@ http.createServer((req, res) => {
       const reglages = m.lisReglages();
       json(res, 200, { reglages, machines: await m.etat(reglages) });
     }).catch(e => json(res, 500, { erreur: e.message }));
+    return;
+  }
+  if (urlPath === '/api/sam/detecte' && req.method === 'GET') {
+    import('./lib/sam.mjs').then(async m => json(res, 200, await m.detecte())).catch(e => json(res, 502, { erreur: e.message }));
     return;
   }
   if (urlPath === '/api/sam/reglages' && req.method === 'POST') {

@@ -82,7 +82,8 @@ export function installeSam(api) {
           <div class="muet">Un nom de machine sans point est complété en « nom.réseau ». Vide : le nom court tel quel.</div>
           <div class="ligne"><strong style="font-size:12px">Machines</strong><span class="muet">la première qui répond travaille</span></div>
           <div id="samMachines"></div>
-          <div class="ligne"><button id="samAjoute">+ Machine</button><button id="samSonde">Tester</button></div>
+          <div class="ligne"><button id="samDetecte" title="Lit les machines de votre réseau Tailscale et sonde chacune : celles qui font tourner le serveur SAM sont ajoutées">🔍 Détecter</button><button id="samAjoute">+ Machine</button><button id="samSonde">Tester</button></div>
+          <div class="muet" id="samDetecteTxt"></div>
         </div>
         <div class="ligne"><label for="samFinesse">Finesse</label>
           <select id="samFinesse"><option value="16">grossière (rapide)</option><option value="32" selected>normale</option><option value="48">fine (lente)</option></select></div>
@@ -144,6 +145,31 @@ export function installeSam(api) {
     } catch { montreReseau(); dessineMachines(); $('#samEtat').textContent = 'serveur de réglages injoignable (l\'exe sans Node n\'a pas cette fonction)'; }
   }
   $('#samExporter').onchange = montreReseau;
+  $('#samDetecte').onclick = async () => {
+    const txt = $('#samDetecteTxt'), b = $('#samDetecte');
+    b.disabled = true; txt.textContent = 'Recherche des machines du réseau Tailscale…';
+    try {
+      const r = await fetch('/api/sam/detecte', { cache: 'no-store' }), d = await r.json();
+      if (!r.ok) throw new Error(d.erreur || 'échec');
+      if (d.reseau && !$('#samReseau').value.trim()) $('#samReseau').value = d.reseau;
+      const reponds = d.machines.filter(m => m.sam && !m.moi);
+      let ajoutees = 0;
+      for (const m of reponds) {
+        const connue = machines.find(x => x.nom === m.nom);
+        if (connue) connue.actif = true; else { machines.push({ nom: m.nom, port: 7340, actif: true }); ajoutees++; }
+      }
+      dessineMachines(reponds.map(m => ({ nom: m.nom, etat: m.sam })));
+      const autres = d.machines.filter(m => m.enLigne && !m.sam && !m.moi).map(m => m.nom);
+      const eteintes = d.machines.filter(m => !m.enLigne).length;
+      txt.textContent = `${d.machines.length} machine(s) sur le réseau · ${reponds.length} avec un serveur SAM`
+        + (reponds.length ? ` (${reponds.map(m => m.nom + (m.sam.gpu ? ' · ' + m.sam.gpu : '')).join(', ')})` : '')
+        + (autres.length ? ` · en ligne sans serveur SAM : ${autres.join(', ')}` : '')
+        + (eteintes ? ` · éteintes : ${eteintes}` : '')
+        + (ajoutees || reponds.length ? '' : ' — lancer scripts/installe-sam.ps1 sur la machine à carte graphique');
+      if (reponds.length) $('#samExporter').checked = true, montreReseau();
+    } catch (e) { txt.textContent = e.message; }
+    b.disabled = false;
+  };
   $('#samAjoute').onclick = () => { machines.push({ nom: '', port: 7340, actif: true }); dessineMachines(); };
   $('#samSonde').onclick = async () => {
     try { const r = await enregistreReglages(); dessineMachines(r.machines); $('#samEtat').textContent = 'machines sondées'; }

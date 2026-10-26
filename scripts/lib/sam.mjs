@@ -11,6 +11,7 @@
 //               complete en « <nom>.<reseau> » ; vide = le nom court tel quel (MagicDNS)
 //   machines  : [ { nom, port, actif } ]
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { execFile } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 
@@ -83,4 +84,43 @@ export async function segmente(png, reglages, { delai = 15 * 60 * 1000 } = {}) {
     return { machine: c.nom, ...corps };
   }
   throw new Error(raisons.length ? 'Aucune machine n\'a pu découper : ' + raisons.join(' ; ') : 'Aucune machine à essayer (cocher au moins une machine active).');
+}
+
+/** `tailscale status --json` de CETTE machine (celle du serveur) : le CLI du PATH, sinon celui de Windows. */
+function statutTailscale() {
+  const exes = ['tailscale', 'C:\Program Files\Tailscale\tailscale.exe'];
+  return new Promise((ok, ko) => {
+    const essaie = i => {
+      if (i >= exes.length) { ko(new Error('Tailscale introuvable sur la machine du serveur (commande « tailscale »)')); return; }
+      execFile(exes[i], ['status', '--json'], { timeout: 10000, maxBuffer: 8 * 1024 * 1024 }, (e, sortie) => {
+        if (e) { essaie(i + 1); return; }
+        try { ok(JSON.parse(sortie)); } catch { ko(new Error('réponse de Tailscale illisible')); }
+      });
+    };
+    essaie(0);
+  });
+}
+
+/**
+ * Les machines du reseau Tailscale, et lesquelles font tourner le serveur SAM : on lit la liste de Tailscale
+ * puis on sonde chaque machine EN LIGNE sur le port donne (GET /etat). Rend { reseau, machines: [ { nom, os,
+ * enLigne, sam } ] } ; `sam` = la reponse du serveur SAM, ou null.
+ */
+export async function detecte(port = PORT) {
+  const st = await statutTailscale();
+  const reseau = String(st.MagicDNSSuffix || '').replace(/^\.+|\.+$/g, '');
+  const pairs = Object.values(st.Peer || {});
+  const moi = st.Self ? [{ ...st.Self, __moi: true }] : [];
+  const machines = await Promise.all([...moi, ...pairs].map(async p => {
+    // le nom qui se RESOUT (mon-mien), pas celui qu'on affiche (Mon_Mien)
+    const nom = String(p.DNSName || '').split('.')[0] || String(p.HostName || '').toLowerCase().replace(/_/g, '-');
+    const ip = (p.TailscaleIPs || []).find(a => !a.includes(':'));
+    let sam = null;
+    if ((p.Online || p.__moi) && ip) {
+      const e = await sonde(p.__moi ? `http://127.0.0.1:${port}` : `http://${ip}:${port}`, 2000);
+      if (e.ok) sam = e;
+    }
+    return { nom, os: p.OS || '', enLigne: !!(p.Online || p.__moi), moi: !!p.__moi, sam };
+  }));
+  return { reseau, machines: machines.filter(m => NOM.test(m.nom)) };
 }
