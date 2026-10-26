@@ -30,11 +30,21 @@ def slug(nom):
     return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
 
 
-def parties_de(identifiant):
+def parties_de(identifiant, origine=""):
+    """Les parties a chercher : l'espece se lit dans l'id (« hero-cat-1 ») ou, pour une carte (« lapin-voleur »),
+    dans le dossier de son illustration (« Cards/Heroes Deck/Cat Decks/Cat Deck 1 »)."""
+    cherche = (identifiant + " " + os.path.dirname(origine or "")).lower()
     for motif, parties in ESPECES:
-        if re.search(motif, identifiant):
+        if re.search(motif, cherche):
             return parties
     return DEFAUT
+
+
+def origine_de(dossier):
+    try:
+        return json.load(open(os.path.join(dossier, "rig.json"), encoding="utf-8")).get("source", {}).get("origine", "")
+    except Exception:
+        return ""
 
 
 def touche(dossier):
@@ -82,6 +92,7 @@ def main():
     p.add_argument("--python", default=r"C:\Users\telia\sam2-env\Scripts\python.exe")
     p.add_argument("--node", default="node")
     p.add_argument("--etape", default="tout", choices=["tout", "decoupe", "assemble"], help="decoupe : SAM + IA seulement ; assemble : rig-auto sur ce qui est decoupe ; tout : les deux")
+    p.add_argument("--tous-les-rigs", action="store_true", help="candidats : tous les dossiers de game/data/rigs (les cartes aussi), pas seulement les Characters")
     p.add_argument("--nos", default="", help="ids dont les rigs sont NOS resultats d'une passe precedente : on les refait sans les croire « deja travailles »")
     p.add_argument("--refaire", action="store_true", help="avec --etape assemble : refait aussi ce qui est deja fait (depuis sa decoupe)")
     a = p.parse_args()
@@ -103,6 +114,9 @@ def main():
 
     chars = os.path.join(a.depot, "Graphical Assets", "Characters")
     tous = sorted(slug(os.path.splitext(f)[0]) for f in os.listdir(chars) if f.lower().endswith(".png"))
+    if a.tous_les_rigs:
+        rigs = os.path.join(a.depot, "game", "data", "rigs")
+        tous = sorted(d for d in os.listdir(rigs) if os.path.isfile(os.path.join(rigs, d, "rig.json")))
     if a.ids:
         tous = [i for i in a.ids.split(",") if i]
     faits = 0
@@ -137,9 +151,9 @@ def main():
         sauve(ident)
         t0 = time.time()
         if not deja_decoupe:
-            log("%s : découpe (%s)" % (ident, parties_de(ident)))
+            log("%s : découpe (%s)" % (ident, parties_de(ident, origine_de(dossier))))
             r1 = subprocess.run([a.python, os.path.join(a.depot, "scripts", "auto", "decoupe.py"), "--source", os.path.join(dossier, "source.png"),
-                                 "--sortie", sortie, "--parties", parties_de(ident), "--sam", a.sam, "--ia", a.ia, "--modele", a.modele, "--points", str(a.points)],
+                                 "--sortie", sortie, "--parties", parties_de(ident, origine_de(dossier)), "--sam", a.sam, "--ia", a.ia, "--modele", a.modele, "--points", str(a.points)],
                                 capture_output=True, text=True, timeout=3600, encoding="utf-8", errors="replace")
             if r1.returncode != 0:
                 etat[ident].update({"statut": "echec", "etape": "découpe", "erreur": (r1.stdout + r1.stderr).strip()[-400:]})
