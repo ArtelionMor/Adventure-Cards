@@ -42,13 +42,22 @@ export function installeCalques(api) {
       <select id="cOs" title="Rigide sur un os, ou maillé"></select>
       <button id="cExtraire" class="principal" disabled>Extraire en calque</button>
       <button id="cTransfere" disabled title="Tout ce que la boucle couvre sur les autres calques passe sur le calque sélectionné">↪ Transférer vers le calque</button></div>
-    <div class="ligne" data-pour="pinceau" hidden><label>rayon</label><input type="number" id="cRayon" value="16" min="1" max="300" />
-      <label>dureté</label><input type="number" id="cDurete" value="60" min="0" max="100" /><label>force</label><input type="number" id="cForce" value="100" min="1" max="100" /><span class="muet">%</span></div>
+    <div class="ligne" data-pour="pinceau" hidden><label>rayon</label><input type="range" id="cRayonS" min="1" max="300" value="16" /><input type="number" id="cRayon" value="16" min="1" max="300" /><span class="muet">px</span></div>
+    <div class="ligne" data-pour="pinceau" hidden><label>dureté</label><input type="range" id="cDureteS" min="0" max="100" value="60" /><input type="number" id="cDurete" value="60" min="0" max="100" /><span class="muet">%</span></div>
+    <div class="ligne" data-pour="pinceau" hidden><label>force</label><input type="range" id="cForceS" min="1" max="100" value="100" /><input type="number" id="cForce" value="100" min="1" max="100" /><span class="muet">%</span></div>
+    <div class="ligne"><label title="Un contour de couleur autour des calques, pour les distinguer sur la vue">contours</label>
+      <select id="cContours"><option value="sel">calque choisi</option><option value="tous">tous les calques</option><option value="aucun">aucun</option></select></div>
     <ul id="cListe" class="liste-calques"></ul>
     <div class="ligne"><button id="cDup">Dupliquer</button><button id="cFus">Fusionner vers le bas</button><button id="cSup">Supprimer</button><button id="cMaille">Mailler</button></div>
     <div id="cZones"></div>`;
   const avant = document.querySelector('aside section:nth-of-type(2)');
   avant.parentNode.insertBefore(sec, avant);
+  // un curseur et sa case numerique se suivent (opt() lit les cases)
+  for (const k of ['Rayon', 'Durete', 'Force']) {
+    const n = sec.querySelector('#c' + k), r = sec.querySelector('#c' + k + 'S');
+    r.oninput = () => { n.value = r.value; };
+    n.oninput = () => { r.value = n.value; };
+  }
   const style = document.createElement('style');
   style.textContent = `
     .liste-calques { list-style: none; padding: 0; margin: 6px 0; }
@@ -326,7 +335,35 @@ export function installeCalques(api) {
   };
 
   // ---------------------------------------------------------------- le dessin par-dessus la vue
+  // Le contour d'un calque : sa silhouette (alpha) epaissie de `ep` px, moins l'interieur, dans `couleur`.
+  const T2 = {};
+  function contour(g, id, couleur, ep) {
+    const toile = E.toiles[id]?.canvas;
+    if (!toile) return;
+    const d = g.getTransform().a, cv = g.canvas;
+    for (const k of ['a', 'b']) {
+      if (!T2[k]) T2[k] = document.createElement('canvas').getContext('2d');
+      if (T2[k].canvas.width !== cv.width || T2[k].canvas.height !== cv.height) { T2[k].canvas.width = cv.width; T2[k].canvas.height = cv.height; }
+      T2[k].setTransform(1, 0, 0, 1, 0, 0); T2[k].clearRect(0, 0, cv.width, cv.height); T2[k].globalCompositeOperation = 'source-over';
+    }
+    const A = T2.a, B = T2.b, [x0, y0] = api.versEcran(0, 0), z = E.vue.z * d;
+    A.drawImage(toile, x0 * d, y0 * d, toile.width * z, toile.height * z);
+    A.globalCompositeOperation = 'source-in'; A.fillStyle = couleur; A.fillRect(0, 0, cv.width, cv.height);
+    const r = ep * d;
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; B.drawImage(A.canvas, Math.cos(a) * r, Math.sin(a) * r); }
+    B.globalCompositeOperation = 'destination-out'; B.drawImage(A.canvas, 0, 0);
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(B.canvas, 0, 0); g.restore();
+  }
+  function dessineContours(g) {
+    const mode = $('#cContours').value;
+    if (mode === 'aucun') return;
+    const cs = E.rig.calques.filter(c => c.visible !== false);
+    if (mode === 'tous') cs.forEach((c, i) => { if (c.id !== E.calque && E.px[c.id]) contour(g, c.id, `hsl(${(i * 67) % 360} 85% 60%)`, 1); });
+    if (E.calque && E.px[E.calque]) contour(g, E.calque, '#ff9a1f', 2);
+  }
+
   function dessine(g) {
+    dessineContours(g);
     if (T.zoneVue) {
       const z = T.zoneVue.zone, [x0, y0] = api.versEcran(z.x, z.y), [x1, y1] = api.versEcran(z.x + z.largeur, z.y + z.hauteur);
       g.setLineDash([6, 4]); g.strokeStyle = '#f5a623'; g.lineWidth = 2; g.strokeRect(x0, y0, x1 - x0, y1 - y0); g.setLineDash([]);
