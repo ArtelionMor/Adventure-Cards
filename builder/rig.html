@@ -549,7 +549,7 @@ vue.addEventListener('wheel', e => {
 // Tactile (iPad) : deux doigts = zoom + deplacement de la vue ; le geste en cours est abandonne.
 // Ecouteurs poses AVANT ceux de la souris : stopImmediatePropagation leur coupe la suite.
 const doigts = new Map();
-let pince = null;
+let pince = null, tap = null;
 function abandonneGeste() {
   const G = glisse; glisse = null;
   if (!G) return;
@@ -565,6 +565,10 @@ vue.addEventListener('pointerdown', e => {
   if (doigts.size < 2) return;
   try { vue.setPointerCapture(e.pointerId); } catch { /* pointeur synthetique */ }
   abandonneGeste();
+  // un TAP a deux doigts = annuler, a trois = retablir (le reflexe de l'iPad) : court et sans bouger
+  if (!tap) tap = { t: performance.now(), n: 0, bouge: 0, vue: { ...E.vue }, depart: new Map() };
+  tap.n = Math.max(tap.n, doigts.size);
+  for (const [id, p] of doigts) if (!tap.depart.has(id)) tap.depart.set(id, [...p]);
   pince = { ...centreDoigts(), z: E.vue.z, x: E.vue.x, y: E.vue.y };
   e.stopImmediatePropagation();
 });
@@ -572,13 +576,25 @@ vue.addEventListener('pointermove', e => {
   if (e.pointerType !== 'touch' || !doigts.has(e.pointerId)) return;
   const r = vue.getBoundingClientRect();
   doigts.set(e.pointerId, [e.clientX - r.left, e.clientY - r.top]);
+  if (tap && tap.depart.has(e.pointerId)) { const d = tap.depart.get(e.pointerId); tap.bouge = Math.max(tap.bouge, Math.hypot(doigts.get(e.pointerId)[0] - d[0], doigts.get(e.pointerId)[1] - d[1])); }
   if (!pince || doigts.size < 2) return;
   const c = centreDoigts(), z = Math.max(0.03, Math.min(8, pince.z * c.d / pince.d));
   const wx = (pince.cx - pince.x) / pince.z, wy = (pince.cy - pince.y) / pince.z;
   E.vue.z = z; E.vue.x = c.cx - wx * z; E.vue.y = c.cy - wy * z;
   e.stopImmediatePropagation();
 });
-const leveDoigt = e => { if (e.pointerType !== 'touch') return; doigts.delete(e.pointerId); if (doigts.size < 2) pince = null; };
+const leveDoigt = e => {
+  if (e.pointerType !== 'touch') return;
+  doigts.delete(e.pointerId);
+  if (doigts.size < 2) pince = null;
+  if (doigts.size === 0 && tap) {
+    const T = tap; tap = null;
+    if (e.type === 'pointerup' && performance.now() - T.t < 350 && T.bouge < 12) {
+      E.vue = { ...T.vue };
+      if (T.n === 2) annule(); else if (T.n === 3) retablit();
+    }
+  }
+};
 vue.addEventListener('pointerup', leveDoigt); vue.addEventListener('pointercancel', leveDoigt);
 $('#main').onclick = () => { espace = !espace; $('#main').classList.toggle('on', espace); };
 
