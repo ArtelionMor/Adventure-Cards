@@ -118,7 +118,12 @@ const CSS = `
 #samZones .zone { display: grid; grid-template-columns: 14px 1fr auto; gap: 6px; align-items: center; margin: 3px 0; }
 #samZones .zone i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
 #samToile.zones { cursor: copy; }
-#samToile { max-width: 100%; border: 1px solid #394057; border-radius: 6px; cursor: crosshair; background: repeating-conic-gradient(#2a2f3d 0 25%, #20242f 0 50%) 0 0 / 16px 16px; }
+#samVue { width: 100%; aspect-ratio: 1 / 1; overflow: hidden; position: relative; border: 1px solid #394057; border-radius: 6px; background: repeating-conic-gradient(#2a2f3d 0 25%, #20242f 0 50%) 0 0 / 16px 16px; touch-action: none; }
+#samVue.pan, #samVue.pan #samToile { cursor: grab !important; }
+#samVue.panne, #samVue.panne #samToile { cursor: grabbing !important; }
+#samToile { width: 100%; height: auto; display: block; transform-origin: 0 0; cursor: crosshair; }
+#samZoomLigne { display: flex; gap: 8px; align-items: center; margin: 4px 0; font-size: 12px; }
+#samZoomLigne input[type=range] { flex: 1; }
 `;
 
 export function installeSam(api) {
@@ -158,7 +163,10 @@ export function installeSam(api) {
       <div>
         <div id="samMode"><label><input type="radio" name="samMode" value="regions" checked /> Régions (clics)</label>
           <label title="Entourer chaque partie à main levée, sans précision : SAM refait les bords"><input type="radio" name="samMode" value="zones" /> Zones grossières (à main levée)</label></div>
-        <canvas id="samToile" width="640" height="640"></canvas><div class="muet" id="samAide">Lancer l'analyse pour voir les régions.</div>
+        <div id="samVue"><canvas id="samToile" width="640" height="640"></canvas></div>
+        <div id="samZoomLigne"><label for="samZoom">Zoom</label><input type="range" id="samZoom" min="100" max="2400" value="100" step="10" /><span class="muet" id="samZoomTxt" style="width:46px">100 %</span><button id="samAjuste" title="Tout le personnage dans le cadre">Ajuster</button></div>
+        <div class="muet" id="samNav">Molette : zoom · Espace + glisser (ou clic milieu, ou clic droit + glisser) : déplacer la vue.</div>
+        <div class="muet" id="samAide">Lancer l'analyse pour voir les régions.</div>
         <div id="samZonesBloc" style="display:none">
           <div class="muet">Entoure chaque partie en glissant la souris, sans précision (une boucle par partie). Ce qui n'est dans aucune boucle reste sur le calque d'origine.</div>
           <div class="ligne" id="samOutils">
@@ -326,7 +334,63 @@ export function installeSam(api) {
   // ---------------------------------------------------------------- le dessin et les clics
   const toile = $('#samToile'), g = toile.getContext('2d');
   const couleur = id => `hsl(${(id * 67) % 360} 85% 55%)`;
-  function pose(x) { return { x: Math.floor(x.offsetX * S.W / toile.clientWidth), y: Math.floor(x.offsetY * S.H / toile.clientHeight) }; }
+  // Les coordonnees de l'IMAGE sous la souris : le rectangle du canvas tient compte du zoom et du deplacement.
+  function pose(e) {
+    const r = toile.getBoundingClientRect();
+    return { x: Math.floor((e.clientX - r.left) * S.W / r.width), y: Math.floor((e.clientY - r.top) * S.H / r.height) };
+  }
+
+  // ---------------------------------------------------------------- naviguer : zoom et deplacement
+  const vue = $('#samVue');
+  S.vue = { z: 1, x: 0, y: 0 }; S.espace = false; S.pan = null; S.aPane = false;
+  function appliqueVue() {
+    const v = S.vue, L = vue.clientWidth, Hh = vue.clientHeight, ch = toile.clientHeight || Hh;
+    // l'image ne sort jamais du cadre
+    v.x = Math.min(0, Math.max(L * (1 - v.z), v.x));
+    v.y = Math.min(0, Math.max(Hh - ch * v.z, v.y));
+    toile.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.z})`;
+    $('#samZoom').value = Math.round(v.z * 100); $('#samZoomTxt').textContent = Math.round(v.z * 100) + ' %';
+  }
+  function zoomeA(nz, px, py) {
+    const v = S.vue; nz = Math.max(1, Math.min(24, nz));
+    v.x = px - (px - v.x) * nz / v.z; v.y = py - (py - v.y) * nz / v.z; v.z = nz;
+    appliqueVue();
+  }
+  vue.addEventListener('wheel', e => {
+    e.preventDefault();
+    const r = vue.getBoundingClientRect();
+    zoomeA(S.vue.z * Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+  $('#samZoom').oninput = e => zoomeA(+e.target.value / 100, vue.clientWidth / 2, vue.clientHeight / 2);
+  $('#samAjuste').onclick = () => { S.vue = { z: 1, x: 0, y: 0 }; appliqueVue(); };
+  vue.addEventListener('contextmenu', e => e.preventDefault());
+  // le deplacement passe AVANT les outils : ces ecouteurs sont poses en premier et coupent la suite
+  toile.addEventListener('pointerdown', e => {
+    if (!(e.button === 1 || e.button === 2 || (e.button === 0 && S.espace))) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    toile.setPointerCapture(e.pointerId);
+    S.pan = { px: e.clientX, py: e.clientY, x: S.vue.x, y: S.vue.y, bouge: false };
+    vue.classList.add('panne');
+  });
+  toile.addEventListener('pointermove', e => {
+    if (!S.pan) return;
+    e.stopImmediatePropagation();
+    if (Math.hypot(e.clientX - S.pan.px, e.clientY - S.pan.py) > 3) S.pan.bouge = true;
+    S.vue.x = S.pan.x + e.clientX - S.pan.px; S.vue.y = S.pan.y + e.clientY - S.pan.py;
+    appliqueVue();
+  });
+  toile.addEventListener('pointerup', e => {
+    if (!S.pan) return;
+    e.stopImmediatePropagation();
+    S.aPane = S.pan.bouge; S.pan = null; vue.classList.remove('panne');
+    setTimeout(() => { S.aPane = false; }, 0);
+  });
+  addEventListener('keydown', e => {
+    if (e.code === 'Space' && fond.classList.contains('ouvert') && !/INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement?.tagName || '')) {
+      e.preventDefault(); if (!S.espace) { S.espace = true; vue.classList.add('pan'); }
+    }
+  }, true);
+  addEventListener('keyup', e => { if (e.code === 'Space') { S.espace = false; vue.classList.remove('pan'); } });
   function dessine() {
     if (!S.W) return;
     toile.width = S.W; toile.height = S.H;
@@ -388,7 +452,7 @@ export function installeSam(api) {
   });
   toile.addEventListener('pointerleave', () => { if (S.survol != null) { S.survol = null; dessine(); } });
   toile.addEventListener('click', e => {
-    if (!S.regions.length || S.mode !== 'regions') return;
+    if (!S.regions.length || S.mode !== 'regions' || S.aPane || S.espace) return;
     const { x, y } = pose(e), sous = regionsSous(S.regions, x, y);
     if (!sous.length) return;
     if (e.altKey) {
@@ -598,5 +662,5 @@ export function installeSam(api) {
   const sec = document.querySelector('#secCalques');
   if (sec) sec.querySelector('h2')?.after(bouton); else document.body.appendChild(bouton);
   // l'etat en memoire : une nouvelle analyse repart de rien quand on change de personnage
-  return { ouvre, ferme, nettoie() { S.regions = []; S.choix.clear(); S.W = 0; S.zones = []; S.etiq = null; S.annule = []; S.trace = null; } };
+  return { ouvre, ferme, nettoie() { S.vue = { z: 1, x: 0, y: 0 }; appliqueVue(); S.regions = []; S.choix.clear(); S.W = 0; S.zones = []; S.etiq = null; S.annule = []; S.trace = null; } };
 }
