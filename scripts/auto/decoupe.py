@@ -139,7 +139,7 @@ def main():
     p.add_argument("--source", required=True)
     p.add_argument("--sortie", required=True)
     p.add_argument("--parties", required=True)
-    p.add_argument("--sam", default="http://127.0.0.1:7340")
+    p.add_argument("--sam", default="http://100.79.166.73:7340")
     p.add_argument("--ia", default="http://100.119.195.112:11434")
     p.add_argument("--modele", default="qwen3.5:27b")
     p.add_argument("--repli", default="qwen3.5:9b")
