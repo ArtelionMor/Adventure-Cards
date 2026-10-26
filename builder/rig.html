@@ -177,7 +177,7 @@ const E = {
   // les images des calques, A LA TAILLE DE LA SOURCE (recadrees seulement a l'enregistrement) :
   // px = pixels { largeur, hauteur, data } par calque, toiles = leurs canvas (ce que dessine
   // WebGL), masques = les zones a combler ('calque/zone'), source = l'image d'origine (restaurer)
-  px: {}, toiles: {}, masques: {}, source: null, salesImages: new Set(), calque: null, opacites: {},
+  multi: new Set(), px: {}, toiles: {}, masques: {}, source: null, salesImages: new Set(), calque: null, opacites: {},
   texteRig: '', texteClips: '',        // ce qui est sur le disque (pour voir un changement)
   sale: false, histo: [], futur: [],
   prep: null, anim: null,
@@ -230,7 +230,7 @@ async function ouvre(id) {
   E.texteClips = (await lisTexte('clips.json')) || '';
   E.clipsJson = E.texteClips ? JSON.parse(E.texteClips) : { format: 'adventure-rig-clips', version: 1, clips: {} };
   await chargeTout(E.texteRig);
-  E.histo = []; E.futur = []; E.sel = null; E.sale = false; E.calque = null;
+  E.histo = []; E.futur = []; setSel(null); E.sale = false; E.calque = null;
   $('#pas').value = E.rig.calques?.find(c => c.mesh)?.mesh?.pas || Math.round(Math.max(E.rig.source.largeur, E.rig.source.hauteur) / 50);
   reprepare();
   remplisClips();
@@ -280,6 +280,14 @@ $('#conflitGarder').onclick = async () => { $('#conflit').style.display = 'none'
 // Un coup de pinceau, lui, modifie une image en place : debutTrait en fait d'abord une copie.
 const HISTO_MAX = 40;
 const photo = () => ({ rig: JSON.stringify(E.rig), px: { ...E.px }, masques: { ...E.masques } });
+// La selection d'os : `E.sel` = l'os actif (fiche, poids, parent d'un nouvel os), `E.multi` = tous les os
+// selectionnes (Maj ou Ctrl + clic). `ajoute` : basculer cet os dans la selection au lieu de la remplacer.
+function setSel(id, ajoute = false) {
+  if (!ajoute || !id) { E.multi = new Set(id ? [id] : []); E.sel = id || null; return; }
+  if (E.multi.has(id)) { E.multi.delete(id); E.sel = [...E.multi].pop() || null; }
+  else { E.multi.add(id); E.sel = id; }
+}
+const osChoisis = () => E.multi.size ? [...E.multi] : (E.sel ? [E.sel] : []);
 function empile(p) { E.histo.push(p); if (E.histo.length > HISTO_MAX) E.histo.shift(); E.futur = []; }
 function notePx(avant) { for (const id of Object.keys(E.px)) if (avant[id] !== E.px[id]) E.salesImages.add(id); }
 function modifie(f, { recalculePoids: refaire = false } = {}) {
@@ -296,7 +304,9 @@ function restaurePhoto(p) {
   notePx(avant);
   for (const id of Object.keys(avant)) if (!(id in E.px)) delete E.toiles[id];
   // l'os selectionne n'existe peut-etre plus apres un annuler : un nouvel os en serait l'enfant d'un os fantome
-  if (E.sel && !E.rig.os.some(b => b.id === E.sel)) E.sel = null;
+  const vivants = new Set(E.rig.os.map(b => b.id));
+  for (const id of [...E.multi]) if (!vivants.has(id)) E.multi.delete(id);
+  if (E.sel && !vivants.has(E.sel)) E.sel = [...E.multi].pop() || null;
 }
 function annule() { if (!E.histo.length) return; E.futur.push(photo()); restaurePhoto(E.histo.pop()); E.sale = true; reprepare(); marque(); }
 function retablit() { if (!E.futur.length) return; E.histo.push(photo()); restaurePhoto(E.futur.pop()); E.sale = true; reprepare(); marque(); }
@@ -440,7 +450,7 @@ function dessineDessus() {
     const o = versEcran(a.monde.x[i], a.monde.y[i]), t = versEcran(...boutDe(sq, a.monde, i));
     const dx = t[0] - o[0], dy = t[1] - o[1], L = Math.hypot(dx, dy) || 1;
     const ux = dx / L, uy = dy / L, w = Math.max(3, Math.min(12, L * 0.12));
-    const sel = b.id === E.sel;
+    const sel = E.multi.has(b.id) || b.id === E.sel;
     g2.beginPath();
     g2.moveTo(o[0], o[1]);
     g2.lineTo(o[0] + ux * w * 1.4 - uy * w, o[1] + uy * w * 1.4 + ux * w);
@@ -449,8 +459,9 @@ function dessineDessus() {
     g2.closePath();
     g2.fillStyle = sel ? 'rgba(255,255,255,.55)' : couleurOs(i).replace('62%)', '62% / .45)');
     g2.fill(); g2.strokeStyle = sel ? '#fff' : couleurOs(i); g2.lineWidth = sel ? 2 : 1.2; g2.stroke();
-    g2.beginPath(); g2.arc(o[0], o[1], sel ? 6 : 4.5, 0, Math.PI * 2); g2.fillStyle = sel ? '#fff' : couleurOs(i); g2.fill();
-    if (sel && E.mode === 'os') { g2.beginPath(); g2.arc(t[0], t[1], 5, 0, Math.PI * 2); g2.strokeStyle = '#fff'; g2.stroke(); }
+    // la poignee « 1 » (positionner l'os) : grosse, facile a attraper ; la barre entiere est la poignee « 2 » (orienter)
+    g2.beginPath(); g2.arc(o[0], o[1], sel ? 9 : 7, 0, Math.PI * 2); g2.fillStyle = sel ? '#fff' : couleurOs(i); g2.fill();
+    g2.lineWidth = 2; g2.strokeStyle = 'rgba(0,0,0,.65)'; g2.stroke();
     // le lien au parent (pointilles) quand l'os ne part pas du bout de son parent
     if (b.parent >= 0) {
       const p = versEcran(...boutDe(sq, a.monde, b.parent));
@@ -461,7 +472,7 @@ function dessineDessus() {
 
 // ------------------------------------------------------------------ souris
 const AIDE = {
-  os: 'Glisser dans le vide : nouvel os (enfant de l\'os sélectionné). Cliquer un os : le sélectionner. Glisser son rond : déplacer le pivot · son bout : angle et longueur · son corps : l\'os et ses enfants. Suppr : effacer. Molette : zoom · clic milieu ou Espace + glisser : déplacer la vue.',
+  os: 'Glisser dans le vide : nouvel os (enfant de l\'os sélectionné). Cliquer un os : le sélectionner ; Maj ou Ctrl + clic : en ajouter ou en retirer. Glisser le gros rond : positionner l\'os (avec ses enfants et la sélection ; Alt : le pivot seul) · glisser la barre : l\'orienter. Suppr : effacer la sélection · F2 : renommer. Molette : zoom · clic milieu ou Espace + glisser : déplacer la vue.',
   pose: 'Glisser un os : le tourner (Maj : le déplacer ; une cible d\'IK se déplace, le membre suit). Rien n\'est enregistré. « Remettre au repos » dans la fiche de l\'os.',
   poids: 'Pinceau de poids : glisser sur le calque sélectionné (liste des calques) pour donner du poids à l\'os sélectionné (arbre des os) ; Maj : en retirer. Les poids peints ne se recalculent plus tout seuls.',
   lecture: 'Lecture des clips. Le curseur de temps met en pause.',
@@ -485,25 +496,27 @@ addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? retablit() : annule(); }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); retablit(); }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); enregistre().catch(x => toast(x.message)); }
-  if ((e.key === 'Delete' || e.key === 'Backspace') && E.sel && E.mode === 'os') supprimeOs(E.sel);
+  if ((e.key === 'Delete' || e.key === 'Backspace') && E.sel && E.mode === 'os') supprimeOs(osChoisis());
+  if (e.key === 'F2' && E.sel) { e.preventDefault(); const f = $('#fNom'); if (f) { f.focus(); f.select(); } }
   if (e.key === 'f' || e.key === 'F') cadre();
 });
 addEventListener('keyup', e => { if (e.code === 'Space') espace = false; });
 
-// Ce que la souris touche, en pixels ecran : le rond, le bout, ou le corps d'un os.
+// Ce que la souris touche, en pixels ecran : le pivot (rond, gros : on positionne l'os) ou la barre
+// (toute sa longueur : on l'oriente). Le pivot gagne a proximite, sinon on ne l'attraperait pas sur une barre.
 function touche(px, py) {
   const a = E.anim, sq = E.prep.sq;
-  let mieux = null;
+  let piv = null, barre = null;
   sq.os.forEach((b, i) => {
     const o = versEcran(a.monde.x[i], a.monde.y[i]), t = versEcran(...boutDe(sq, a.monde, i));
-    const d0 = Math.hypot(px - o[0], py - o[1]), d1 = Math.hypot(px - t[0], py - t[1]);
+    const d0 = Math.hypot(px - o[0], py - o[1]);
     const dx = t[0] - o[0], dy = t[1] - o[1], L2 = dx * dx + dy * dy || 1;
     const u = Math.max(0, Math.min(1, ((px - o[0]) * dx + (py - o[1]) * dy) / L2));
     const dc = Math.hypot(px - o[0] - u * dx, py - o[1] - u * dy);
-    const cands = [[d0, 'pivot', 8], [d1, 'bout', 7], [dc, 'corps', 7]];
-    for (const [d, ou, r] of cands) if (d <= r && (!mieux || d < mieux.d)) mieux = { d, ou, id: b.id, i };
+    if (d0 <= 12 && (!piv || d0 < piv.d)) piv = { d: d0, ou: 'pivot', id: b.id, i };
+    if (dc <= 7 && (!barre || dc < barre.d)) barre = { d: dc, ou: 'corps', id: b.id, i };
   });
-  return mieux;
+  return piv || barre;
 }
 
 const vue = $('#vue');
@@ -526,15 +539,19 @@ vue.addEventListener('pointerdown', e => {
   const t = touche(px, py);
   if (E.mode === 'os') {
     if (t) {
-      E.sel = t.id; marque();
+      const ajoute = e.shiftKey || e.ctrlKey || e.metaKey;
+      // glisser un os deja choisi : tout le groupe suit ; sinon la selection devient cet os
+      if (ajoute || !E.multi.has(t.id)) setSel(t.id, ajoute); else E.sel = t.id;
+      marque();
+      if (ajoute) { glisse = null; return; }
       const o = E.rig.os.find(b => b.id === t.id);
       empile(photo());
-      glisse = { type: t.ou, id: t.id, wx, wy, depart: JSON.parse(JSON.stringify(E.rig.os)), o };
+      glisse = { type: t.ou, id: t.id, wx, wy, alt: e.altKey, groupe: [...E.multi], depart: JSON.parse(JSON.stringify(E.rig.os)), o };
     } else {
       glisse = { type: 'nouvel', wx, wy, px, py, parent: E.sel };
     }
   } else if (E.mode === 'pose' && t) {
-    E.sel = t.id; marque();
+    setSel(t.id); marque();
     const i = t.i, a = E.anim;
     glisse = { type: e.shiftKey ? 'poseDeplace' : 'poseTourne', i, wx, wy,
       angle0: Math.atan2(wy - a.monde.y[i], wx - a.monde.x[i]) / RAD, rot0: E.pose.rot[i], x0: E.pose.x[i], y0: E.pose.y[i] };
@@ -560,16 +577,19 @@ vue.addEventListener('pointermove', e => {
   E.rig.os = JSON.parse(JSON.stringify(G.depart));
   const b = E.rig.os.find(o => o.id === G.id);
   const dx = wx - G.wx, dy = wy - G.wy;
-  if (G.type === 'pivot') {
-    // le bout reste en place : on deplace l'origine, angle et longueur suivent
+  if (G.type === 'pivot' && G.alt) {
+    // Alt : le bout reste en place, on deplace seulement l'origine (angle et longueur suivent)
     const tx = b.x + Math.cos(b.angle * RAD) * b.longueur, ty = b.y + Math.sin(b.angle * RAD) * b.longueur;
     b.x = Math.round(b.x + dx); b.y = Math.round(b.y + dy);
     b.angle = +(Math.atan2(ty - b.y, tx - b.x) / RAD).toFixed(1); b.longueur = Math.round(Math.hypot(tx - b.x, ty - b.y));
-  } else if (G.type === 'bout') {
+  } else if (G.type === 'pivot') {
+    // positionner : l'os (et le groupe choisi) et tous leurs enfants se deplacent d'un bloc
+    const bouge = new Set(G.groupe);
+    for (const id of G.groupe) for (const d of descendants(id)) bouge.add(d);
+    for (const o of E.rig.os) if (bouge.has(o.id)) { o.x = Math.round(o.x + dx); o.y = Math.round(o.y + dy); }
+  } else {
+    // orienter : le pivot reste, la barre suit la souris (angle et longueur)
     b.angle = +(Math.atan2(wy - b.y, wx - b.x) / RAD).toFixed(1); b.longueur = Math.max(4, Math.round(Math.hypot(wx - b.x, wy - b.y)));
-  } else if (G.type === 'corps') {
-    const desc = descendants(G.id);
-    for (const o of E.rig.os) if (o.id === G.id || desc.has(o.id)) { o.x = Math.round(o.x + dx); o.y = Math.round(o.y + dy); }
   }
   G.bouge = true;
   reprepare();
@@ -581,14 +601,14 @@ vue.addEventListener('pointerup', () => {
   if (G.type === 'poids') { reprepare(); marque(); return; }
   if (G.type === 'nouvel') {
     g2.clearRect(0, 0, dessus.width, dessus.height);
-    if (!G.loin) { E.sel = null; marque(); return; }
+    if (!G.loin) { setSel(null); marque(); return; }
     if (G.parent && !E.rig.os.some(b => b.id === G.parent)) G.parent = null;
     const id = nomLibre(G.parent ? G.parent + '_' : 'os');
     modifie(r => r.os.push({ id, parent: G.parent || null, x: Math.round(G.wx), y: Math.round(G.wy),
       angle: +(Math.atan2(G.fy - G.wy, G.fx - G.wx) / RAD).toFixed(1), longueur: Math.round(Math.hypot(G.fx - G.wx, G.fy - G.wy)) }), { recalculePoids: true });
-    E.sel = id; marque();
-  } else if (['pivot', 'bout', 'corps'].includes(G.type)) {
-    if (!G.bouge) { E.histo.pop(); return; }
+    setSel(id); marque();
+  } else if (['pivot', 'corps'].includes(G.type)) {
+    if (!G.bouge) { E.histo.pop(); if (G.groupe.length > 1) { setSel(G.id); marque(); } return; }
     if ($('#poidsAuto').checked) recalculePoids(E.rig);
     E.sale = true; reprepare(); marque();
   }
@@ -606,16 +626,22 @@ function descendants(id) {
   return s;
 }
 function nomLibre(base) { const ids = new Set(E.rig.os.map(o => o.id)); let k = 1; while (ids.has(base + k)) k++; return base + k; }
-function supprimeOs(id) {
+function supprimeOs(ids) {
+  ids = [].concat(ids).filter(Boolean);
+  if (!ids.length) return;
   modifie(r => {
-    const o = r.os.find(b => b.id === id);
-    // les enfants passent au grand-parent (leur pose de repos est en coordonnees de l'image : rien ne bouge)
-    for (const b of r.os) if (b.parent === id) b.parent = o.parent;
-    r.os = r.os.filter(b => b.id !== id);
-    for (const c of r.calques || []) if (c.os === id) delete c.os;
-    r.ik = (r.ik || []).filter(k => !k.os?.includes(id) && k.cible !== id);
+    for (const id of ids) {
+      const o = r.os.find(b => b.id === id);
+      if (!o) continue;
+      // les enfants passent au grand-parent (leur pose de repos est en coordonnees de l'image : rien ne bouge)
+      for (const b of r.os) if (b.parent === id) b.parent = o.parent;
+      r.os = r.os.filter(b => b.id !== id);
+      for (const c of r.calques || []) if (c.os === id) delete c.os;
+      r.ik = (r.ik || []).filter(k => !k.os?.includes(id) && k.cible !== id);
+    }
   }, { recalculePoids: true });
-  E.sel = null; marque();
+  setSel(null); marque();
+  if (ids.length > 1) toast(ids.length + ' os supprimés');
 }
 function dessineArbre() {
   const ul = $('#arbre');
@@ -628,8 +654,8 @@ function dessineArbre() {
     const li = document.createElement('li');
     const i = E.rig.os.indexOf(o);
     li.innerHTML = `<span style="width:${prof * 14}px"></span><span class="pastille" style="background:${couleurOs(E.prep?.sq.index.get(o.id) ?? i)}"></span>${o.id}${o.deforme === false ? ' <span class="muet">(ne déforme pas)</span>' : ''}`;
-    li.classList.toggle('sel', o.id === E.sel);
-    li.onclick = () => { E.sel = o.id; marque(); };
+    li.classList.toggle('sel', E.multi.has(o.id) || o.id === E.sel);
+    li.onclick = e => { setSel(o.id, e.shiftKey || e.ctrlKey || e.metaKey); marque(); };
     ul.appendChild(li);
   }
 }
@@ -661,10 +687,11 @@ function dessineFiche() {
       for (const b of r.os) { if (b.id === ancien) b.id = nv; if (b.parent === ancien) b.parent = nv; }
       for (const c of r.calques || []) { if (c.os === ancien) c.os = nv; for (const w of c.mesh?.poids || []) for (let j = 0; j < w.length; j += 2) if (w[j] === ancien) w[j] = nv; }
     });
+    if (E.multi.delete(ancien)) E.multi.add(nv);
     E.sel = nv; marque();
     toast('⚠ les clips qui nomment « ' + ancien + ' » sont à renommer aussi');
   };
-  $('#fSuppr').onclick = () => supprimeOs(o.id);
+  $('#fSuppr').onclick = () => supprimeOs(E.multi.has(o.id) ? [...E.multi] : o.id);
   if ($('#fIK')) {
     const majIK = () => modifie(r => {
       r.ik = (r.ik || []).filter(k => !(k.os?.[1] === o.id));
