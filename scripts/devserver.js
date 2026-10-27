@@ -44,6 +44,23 @@ const canWrite = rel => WRITABLE.some(re => re.test(rel));
 // Les fichiers d'un personnage anime (relatifs a game/data/rigs/), cf. /api/rig.
 const RIG_FICHIERS = /^[a-z0-9][a-z0-9_-]*\/(rig\.json|clips\.json|source\.png|(calques|masques|combles)\/[\w-]+\.png)$/;
 const RIG_MAX = 40 * 1024 * 1024;
+// Avant d'ecraser un fichier d'un rig, on en garde l'ancienne version (~/.adventure-card/rig-sauvegardes/<id>/<AAAA-MM-JJ-HH-MM>/<chemin>) :
+// un enregistrement ne perd jamais rien. Une sauvegarde par minute et par fichier (la plus ancienne), 80 minutes gardees par personnage.
+// Rendre une version : scripts/rig-restaure.mjs.
+function sauvegardeRig(rel, file) {
+  try {
+    if (!fs.existsSync(file)) return;
+    const [id, ...reste] = rel.split('/');
+    const base = path.join(os.homedir(), '.adventure-card', 'rig-sauvegardes', id);
+    const minute = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    const dest = path.join(base, minute, reste.join('/'));
+    if (fs.existsSync(dest)) return;
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(file, dest);
+    const anciennes = fs.readdirSync(base).sort().slice(0, -80);
+    for (const d of anciennes) fs.rmSync(path.join(base, d), { recursive: true, force: true });
+  } catch (e) { console.log('sauvegarde du rig impossible : ' + e.message); }
+}
 
 // Le balayage des dossiers d'images vit dans scripts/gen-sprites.mjs — une seule
 // implementation, la meme liste en ligne de commande et depuis le builder. C'est un
@@ -621,6 +638,7 @@ http.createServer((req, res) => {
       if (taille > RIG_MAX) { res.writeHead(413).end('Trop gros : ' + taille + ' octets'); return; }
       const file = path.join(dossier, rel);
       fs.mkdirSync(path.dirname(file), { recursive: true });
+      sauvegardeRig(rel, file);
       fs.writeFileSync(file, Buffer.concat(morceaux));
       console.log('rig ecrit : ' + rel + ' (' + taille + ' octets)');
       res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }).end('ok');

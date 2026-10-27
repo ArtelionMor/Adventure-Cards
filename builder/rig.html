@@ -231,7 +231,7 @@ async function chargeTout(texte) {
   rendu?.oublie();
 }
 
-async function ouvre(id) {
+async function ouvre(id, sansBrouillon = false) {
   E.id = id;
   try { localStorage.setItem('adventureCardRig.perso', id); } catch { /* sans stockage */ }
   E.texteRig = await lisTexte('rig.json');
@@ -245,6 +245,7 @@ async function ouvre(id) {
   cadre();
   marque();
   if ($('#verifAuto').checked) verifie();
+  if (!sansBrouillon) await propose_brouillon(id);
 }
 
 // Les calques dont l'image a change partent en PNG (recadres), puis rig.json.
@@ -255,8 +256,43 @@ async function enregistre() {
   const texte = formateJson(json) + '\n';
   await ecris(E.id + '/rig.json', texte);
   E.texteRig = texte; E.sale = false; E.salesImages = new Set(); marque();
+  efface_brouillon();
   toast(`enregistré : rig.json${fichiers.length ? ' + ' + fichiers.length + ' image(s)' : ''}`);
 }
+
+// BROUILLON : tant que le travail n'est pas enregistre, une copie part dans le navigateur (IndexedDB) quelques secondes apres le
+// dernier changement ; si la page se recharge (iPad : Safari ferme les onglets en arriere-plan), elle propose de la rendre.
+const bdd = () => new Promise((ok, ko) => {
+  const r = indexedDB.open('adventureCardRigBrouillons', 1);
+  r.onupgradeneeded = () => r.result.createObjectStore('b', { keyPath: 'id' });
+  r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error);
+});
+const idb = async (mode, f) => { const d = await bdd(); return new Promise((ok, ko) => { const t = d.transaction('b', mode), q = f(t.objectStore('b')); t.oncomplete = () => ok(q?.result); t.onerror = () => ko(t.error); }); };
+let minuteurBrouillon = null;
+function planifie_brouillon() { clearTimeout(minuteurBrouillon); minuteurBrouillon = setTimeout(sauve_brouillon, 3000); }
+async function sauve_brouillon() {
+  if (!E.id || !E.sale) return;
+  try {
+    const { json, fichiers } = pourEnregistrer(E.rig, E.px, E.masques, [...E.salesImages]);
+    const images = {};
+    for (const f of fichiers) images[f.chemin] = await enPng(f.image);
+    await idb('readwrite', s => s.put({ id: E.id, t: Date.now(), rig: formateJson(json) + '\n', images }));
+  } catch { /* sans stockage : tant pis */ }
+}
+function efface_brouillon() { clearTimeout(minuteurBrouillon); if (E.id) idb('readwrite', s => s.delete(E.id)).catch(() => {}); }
+async function propose_brouillon(id) {
+  let b = null;
+  try { b = await idb('readonly', s => s.get(id)); } catch { return; }
+  if (!b) return;
+  const quand = new Date(b.t).toLocaleString('fr-FR');
+  if (!confirm(`Travail non enregistré retrouvé pour « ${id} » (${quand}). Le restaurer ?\n\nOK : il est écrit sur le serveur puis rechargé. Annuler : il est abandonné.`)) { await idb('readwrite', s => s.delete(id)).catch(() => {}); return; }
+  for (const [chemin, blob] of Object.entries(b.images || {})) await ecris(id + '/' + chemin, blob);
+  await ecris(id + '/rig.json', b.rig);
+  await idb('readwrite', s => s.delete(id)).catch(() => {});
+  await ouvre(id, true);
+  toast('travail restauré');
+}
+E.proposeBrouillon = propose_brouillon;   // (essais en console)
 function enPng(im) {
   const t = document.createElement('canvas'); t.width = im.largeur; t.height = im.hauteur;
   t.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(im.data), im.largeur, im.hauteur), 0, 0);
@@ -345,6 +381,7 @@ function marque() {
   e.textContent = E.id ? (E.sale ? '● modifié, pas enregistré' : 'enregistré') : '—';
   e.classList.toggle('sale', E.sale);
   $('#annuler').disabled = !E.histo.length; $('#retablir').disabled = !E.futur.length;
+  if (E.sale) planifie_brouillon();
   dessineArbre(); dessineFiche(); infoMesh();
   C?.dessineListe(); C?.dessineZones();
 }
@@ -609,9 +646,9 @@ const leveDoigt = e => {
   if (doigts.size < 2) pince = null;
   if (doigts.size === 0 && tap) {
     const T = tap; tap = null;
-    if (e.type === 'pointerup' && performance.now() - T.t < 350 && T.bouge < 12) {
+    if (e.type === 'pointerup' && performance.now() - T.t < 300 && T.bouge < 8 && !(stylet && styletPres())) {
       E.vue = { ...T.vue };
-      if (T.n === 2) annule(); else if (T.n === 3) retablit();
+      if (T.n === 2) { annule(); toast('annulé (tap à trois doigts : rétablir)'); } else if (T.n === 3) { retablit(); toast('rétabli'); }
     }
   }
 };
