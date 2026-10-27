@@ -16,6 +16,7 @@
 import { BALANCE } from '../config/balance.js';
 import { cardById } from '../config/npcs.js';
 import { asset } from './shell.js';
+import { sansRig } from './rig-hero.js';
 import { icone, urlIcone, OEIL } from './icones.js';
 import { ligneDePictos, iconeDeCle } from './pictos.js';
 import { creeBriques, signatureDe } from './vfx.js';
@@ -86,7 +87,7 @@ export function creeFx(acces) {
         // L'uid tel que le moteur le donne (« u12 ») : un `Number()` ici donnait NaN, aucune photo ne se retrouvait, et
         // une unite morte disparaissait sans son animation.
         const uid = n.dataset.uid;
-        const clone = n.cloneNode(true);
+        const clone = sansRig(n.cloneNode(true));
         clone.removeAttribute('data-geste');
         clone.classList.remove('sel', 'ready', 'lit', 'acteur', 'targetable');
         // La taille se lit sur la mise en page (taille de la carte x echelle du plateau), pas sur le rectangle affiche : une
@@ -104,7 +105,7 @@ export function creeFx(acces) {
   /** Un DOUBLE d'une unite vivante, pose sur la couche d'effets (que le plateau ne coupe pas) a l'endroit exact de l'original. */
   function cloneUnite(n) {
     const a = rectDe(n), sc = echelleDe(n);
-    const g = n.cloneNode(true);
+    const g = sansRig(n.cloneNode(true));
     g.removeAttribute('data-geste');
     g.classList.remove('sel', 'ready', 'lit', 'acteur', 'targetable');
     const env = document.createElement('div');

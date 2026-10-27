@@ -1,20 +1,20 @@
 // Ecran de combat. Le mode auto est l'etat par defaut : le jeu est idle d'abord,
 // le mode manuel est une reprise en main volontaire (GDD).
 import { BALANCE } from '../config/balance.js';
-import { CHAR_BY_ID, CHARACTERS, characterDeck } from '../config/characters.js';
+import { CHAR_BY_ID, CHARACTERS, characterDeck, resolveCard } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist, gagneXp, noteCombatArene, etatArene, signale } from '../state.js';
 import { coteEnnemi } from '../config/ennemis.js';
 import { relicMods } from '../config/relics.js';
 import { TRIGGERS, EVENT_TRIGGERS, COUNTERS, keyLabel, hasKey, typesOf, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel, branchesDe, listeEffets } from '../config/mechanics.js';
-import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur, reprisesPossibles, draw, refresh, nbFatigue, pileDeFatigue } from '../combat/engine.js';
+import { createBattle, canPlay, needsTarget, needsChoice, legalTargets, attackableTargets, aurasSur, reprisesPossibles, depose, draw, refresh, nbFatigue, pileDeFatigue } from '../combat/engine.js';
 import { evt, refUnite, refHeros, refCarte } from '../combat/evenements.js';
 import { botAction } from '../combat/ai.js';
 import { joue as joueMoteur, ouvreJournal, fermeJournal, nomDeFichier, texteJournal } from '../combat/journal.js';
 import { enregistre, joueEtNote, sousGraine, rejoue, pas, debutDuTour, toursJoues } from '../combat/rejeu.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
 import { ouvreZone } from './zone.js';
-import { animeHero } from './rig-hero.js';
+import { animeHero, animeUnite, rigDe } from './rig-hero.js';
 import { installeGestes } from './gestes.js';
 import { apercuAttaque, apercuCarte, pilule } from './apercu.js';
 import { creeJournal } from './journal.js';
@@ -39,7 +39,7 @@ import { guideDuCombat, creeGuide } from './guide.js';
 import { montreFin } from './fin.js';
 import { ligneDePictos } from './pictos.js';
 import { fabrique } from './vfx-scenes.js';
-import { cardById } from '../config/npcs.js';
+import { cardById, cardCatalog } from '../config/npcs.js';
 import { couleurDuType } from '../config/familles.js';
 import { ligneSource, lignesDeFait, lignesDeRenforts } from './fiche.js';
 import { skinCourant, skinSuivant, ecouteSkin, fondDuCombat } from './skin.js';   // l'habillage du combat (skins/*.css), AC.skin(), son fond
@@ -330,6 +330,20 @@ function installeTriche() {
   };
   window.AC.triche = {
     aide: "voir(nom, camp='e') · effet(moment, camp='p') · scenes() · aura(camp='p') · gagne() · perd() · mana(n) · pv(camp, n) · pioche(n) · fx.ralenti = 5",
+    // Un plateau de cartes ANIMEES (essai des rigs) : pose `n` allies par camp, pris parmi les cartes dont l'illustration a un rig. Triche : les
+    // cartes sont posees sans etre jouees (« A la pose » ne part pas) et sortent du catalogue, pas du deck.
+    async tableau(n = 5) {
+      if (!B || B.over || !coque) return 'pas de combat en cours';
+      const cartes = cardCatalog().map(x => x.card).filter(c => c.type === 'ally' && c.sprite);
+      const avec = (await Promise.all(cartes.map(async c => ((await rigDe(c.sprite)) ? c : null)))).filter(Boolean);
+      if (!avec.length) return "aucune carte n'a de rig";
+      for (const k of ['p', 'e']) {
+        const tirage = avec.slice().sort(() => Math.random() - 0.5).slice(0, n);
+        for (const c of tirage) depose(B, k, { ...resolveCard(c, 5), ownerLevel: 5 }, 'board');
+      }
+      refresh(B); render();
+      return `${avec.length} cartes ont un rig ; ${n} posees par camp`;
+    },
     scenes: () => Object.keys(SCENES).concat('aura'),
     voir(nom = 'degats', k = 'e') {
       const f = SCENES[nom];
@@ -571,6 +585,7 @@ function majUnite(n, u, side) {
       ${venin ? fiole(oeil) : ''}
       ${ap ? `<div class="pv">${ap}</div>` : ''}`;
   }
+  animeUnite(n, u, hp);   // l'illustration anime (essai) remplace l'image quand son rig existe
   n.classList.toggle('taunt', hasKey(u.keys, 'Taunt'));
   // Les capacites qui changent la facon de jouer se VOIENT sur la carte, pas seulement par leur icone
   // (demande du game designer, 19 oct. 2026) : Provocation = bouclier de pierre, Bouclier = halo d'or, Elusif = palot.

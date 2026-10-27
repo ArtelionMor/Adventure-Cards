@@ -187,7 +187,7 @@ html[data-skin="juice"] {
   & .unit .brume .b2 { top: 52%; left: 4%; animation-duration: 3.4s; animation-delay: -2.1s; }
   & .unit .brume .b3 { top: 74%; left: 18%; animation-duration: 4.3s; animation-delay: -.6s; }
   /* Le personnage : plus haut que le cadre, un contour noir epais fait de quatre ombres sans flou. */
-  & :is(.unit, .hcard:not(.fx-carte)) > img {
+  & :is(.unit, .hcard:not(.fx-carte)) > :is(img, canvas.rig) {
     position: absolute; left: 50%; top: -14px; width: 84%; height: 74%; margin: 0; transform: translateX(-50%); object-fit: contain;
     filter: drop-shadow(2px 0 0 var(--contour)) drop-shadow(-2px 0 0 var(--contour)) drop-shadow(0 2px 0 var(--contour)) drop-shadow(0 -2px 0 var(--contour));
   }
