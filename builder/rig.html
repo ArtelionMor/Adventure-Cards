@@ -300,20 +300,33 @@ const bdd = () => new Promise((ok, ko) => {
 const idb = async (mode, f) => { const d = await bdd(); return new Promise((ok, ko) => { const t = d.transaction('b', mode), q = f(t.objectStore('b')); t.oncomplete = () => ok(q?.result); t.onerror = () => ko(t.error); }); };
 let minuteurBrouillon = null;
 function planifie_brouillon() { clearTimeout(minuteurBrouillon); minuteurBrouillon = setTimeout(sauve_brouillon, 3000); }
+// ⚠ L'encodage des PNG prend des secondes sur iPad : si un enregistrement passe pendant ce temps, le brouillon fini APRES lui serait un
+// vieux travail qui reviendrait ecraser le nouveau a la reouverture. `genBrouillon` change a chaque effacement ; et le brouillon note le
+// rig.json du disque sur lequel il part (`base`) : s'il a change depuis, le brouillon est perime.
+let genBrouillon = 0;
 async function sauve_brouillon() {
   if (!E.id || !E.sale) return;
+  const gen = genBrouillon, id = E.id, base = E.texteRig;
   try {
     const { json, fichiers } = pourEnregistrer(E.rig, E.px, E.masques, [...E.salesImages]);
     const images = {};
     for (const f of fichiers) images[f.chemin] = await enPng(f.image);
-    await idb('readwrite', s => s.put({ id: E.id, t: Date.now(), rig: formateJson(json) + '\n', images }));
+    if (gen !== genBrouillon || E.id !== id) return;
+    await idb('readwrite', s => s.put({ id, t: Date.now(), base, rig: formateJson(json) + '\n', images }));
   } catch { /* sans stockage : tant pis */ }
 }
-function efface_brouillon() { clearTimeout(minuteurBrouillon); if (E.id) idb('readwrite', s => s.delete(E.id)).catch(() => {}); }
+function efface_brouillon() { genBrouillon++; clearTimeout(minuteurBrouillon); if (E.id) idb('readwrite', s => s.delete(E.id)).catch(() => {}); }
 async function propose_brouillon(id) {
   let b = null;
   try { b = await idb('readonly', s => s.get(id)); } catch { return; }
   if (!b) return;
+  // un brouillon d'une autre version du disque ne se rend JAMAIS : il remettrait de vieux calques recadres autrement par-dessus les
+  // nouveaux (le personnage « se disloque »). Le serveur garde de toute facon des versions (scripts/rig-restaure.mjs).
+  if (b.base === undefined || b.base !== E.texteRig) {
+    await idb('readwrite', s => s.delete(id)).catch(() => {});
+    toast('un brouillon plus ancien que le fichier enregistré a été abandonné (le fichier enregistré est gardé tel quel)');
+    return;
+  }
   const quand = new Date(b.t).toLocaleString('fr-FR');
   if (!confirm(`Travail non enregistré retrouvé pour « ${id} » (${quand}). Le restaurer ?\n\nOK : il est écrit sur le serveur puis rechargé. Annuler : il est abandonné.`)) { await idb('readwrite', s => s.delete(id)).catch(() => {}); return; }
   for (const [chemin, blob] of Object.entries(b.images || {})) await ecris(id + '/' + chemin, blob);
