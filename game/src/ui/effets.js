@@ -16,7 +16,7 @@
 import { BALANCE } from '../config/balance.js';
 import { cardById } from '../config/npcs.js';
 import { asset } from './shell.js';
-import { sansRig } from './rig-hero.js';
+import { sansRig, joueSur, animeClone } from './rig-hero.js';
 import { icone, urlIcone, OEIL } from './icones.js';
 import { ligneDePictos, iconeDeCle } from './pictos.js';
 import { creeBriques, signatureDe } from './vfx.js';
@@ -414,10 +414,12 @@ export function creeFx(acces) {
     if (vivant) {
       if (caches.has(n)) return;   // sa carte n'a pas fini d'arriver
       env = cloneUnite(n);
+      animeClone(env, n, 'hitting');
       n.style.visibility = 'hidden';
       enElan.add(n);
       porteur = env;
     }
+    if (!vivant) joueSur(n, 'hitting');   // un heros qui attaque
     const s = vivant ? 1 : echelleDe(n);
     const dx = ((b.x + b.w / 2) - (a.x + a.w / 2)) * f.elanPart / s;
     const dy = ((b.y + b.h / 2) - (a.y + a.h / 2)) * f.elanPart / s;

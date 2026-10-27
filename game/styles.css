@@ -362,6 +362,8 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .bt-hero img { width: 42px; height: 42px; object-fit: contain; }
 .bt-hero.e { position: absolute; left: 50%; top: 8px; width: 104px; height: 104px; margin-left: -52px; border-radius: 50%; }
 .bt-hero.e img { width: 100%; height: 100%; border-radius: 50%; object-fit: contain; }
+.unit canvas.rig { transform-origin: 50% 92%; animation: rig-souffle 2.8s ease-in-out infinite alternate; }
+@keyframes rig-souffle { from { rotate: -1.6deg; scale: 1 1; } to { rotate: 1.6deg; scale: 1.025 .975; } }
 .unit canvas.rig { width: 40px; height: 40px; display: block; }
 .bt-hero canvas.rig { width: 42px; height: 42px; display: block; }
 .bt-hero.e canvas.rig { width: 100%; height: 100%; border-radius: 50%; }

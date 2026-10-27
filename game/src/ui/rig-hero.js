@@ -77,6 +77,7 @@ export function animeImg(hote, img, sprite, hp, reglage) {
     if (!rig || hote.rigAnime !== nouveau || !hote.isConnected) return;
     const canvas = document.createElement('canvas');
     canvas.className = 'rig';
+    canvas.style.animationDelay = `${-Math.random() * 3}s`;   // le souffle de la carte (styles.css) : pas tous ensemble
     const rendu = creeRendu(canvas);
     if (!rendu) return;
     nouveau.canvas = canvas; nouveau.rendu = rendu;
@@ -88,6 +89,30 @@ export function animeImg(hote, img, sprite, hp, reglage) {
     vivants.add(nouveau);
     if (!boucle) { avant = performance.now(); boucle = requestAnimationFrame(image); }
   });
+}
+
+// Joue un clip sur le noeud (l'unite ou le heros) s'il a un personnage anime : `hitting` quand il attaque. Il revient a `idle` tout seul.
+export function joueSur(noeud, clip) {
+  const a = noeud?.rigAnime?.a;
+  if (a && a.rig.clips[clip]) a.joue(clip, { fondu: 0.08 });
+}
+
+// Le double d'une unite qui bondit (l'elan de l'attaque, ui/effets.js) : un canvas a lui, qui rejoue le personnage de l'original.
+export function animeClone(clone, original, clip = 'hitting') {
+  const st = original?.rigAnime;
+  const im = clone.querySelector('img');
+  if (!st?.a || !im) return;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'rig';
+  const rendu = creeRendu(canvas);
+  if (!rendu) return;
+  const a = creeAnimateur(st.a.rig);
+  a.gain = st.a.gain;
+  if (a.rig.clips[clip]) a.joue(clip, { fondu: 0.05 });
+  const v = { sprite: st.sprite, hp: 0, hote: clone, canvas, a, rendu, reveil: Infinity };
+  im.before(canvas); im.style.display = 'none';
+  vivants.add(v);
+  if (!boucle) { avant = performance.now(); boucle = requestAnimationFrame(image); }
 }
 
 export const animeHero = (h, sprite, hp) => animeImg(h.n, h.img, sprite, hp, 'rigsHeros');
