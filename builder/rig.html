@@ -931,7 +931,10 @@ function debutPoids(wx, wy, soustrait) {
   const c = E.rig.calques.find(k => k.id === E.calque);
   if (!c?.mesh) { toast('choisir un calque maillé (liste des calques)'); return; }
   if (!E.sel) { toast('choisir un os (arbre des os)'); return; }
+  if (!c.mesh.sommets?.length) { toast('« ' + c.id + ' » n\'a aucun point de maillage (calque vide ou minuscule) : rien à peindre'); return; }
   empile(photo()); E.sale = true;
+  // un maillage sans poids (marque « peint a la main » mais jamais calcule : le recalcul saute ceux-la) : on les calcule d'abord
+  if (!c.mesh.poids?.length) { delete c.mesh.poidsManuels; recalculePoids(E.rig); }
   c.mesh.poidsManuels = true;
   peintPoids(wx, wy, soustrait);
 }

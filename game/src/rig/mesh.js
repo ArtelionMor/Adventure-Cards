@@ -102,6 +102,7 @@ function distSegment(px, py, ax, ay, bx, by) {
 // puissance 4, 3,6 % a 2,5 ; lisser davantage a la puissance 4 aggravait au contraire.
 export function poidsAuto(mesh, sq, { puissance = 2.5, lissage = 6, max = 4, seuil = 0.03, osPermis = null, geodesique = true, epaisseur = true } = {}) {
   const n = mesh.sommets.length / 2;
+  if (!n) return [];   // un maillage vide (calque minuscule : « bras » d'1 px) : sans sommet, la recherche du plus proche plantait et bloquait le calcul de TOUS les calques
   const os = sq.os.filter(b => b.deforme && (!osPermis || osPermis.includes(b.id)));
   if (!os.length) return new Array(n).fill(null).map(() => []);
   const RAD = Math.PI / 180;
