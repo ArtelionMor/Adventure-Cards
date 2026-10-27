@@ -14,6 +14,7 @@ import { joue as joueMoteur, ouvreJournal, fermeJournal, nomDeFichier, texteJour
 import { enregistre, joueEtNote, sousGraine, rejoue, pas, debutDuTour, toursJoues } from '../combat/rejeu.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
 import { ouvreZone } from './zone.js';
+import { animeHero } from './rig-hero.js';
 import { installeGestes } from './gestes.js';
 import { apercuAttaque, apercuCarte, pilule } from './apercu.js';
 import { creeJournal } from './journal.js';
@@ -620,6 +621,7 @@ function majHero(h, s, k) {
   const pct = Math.max(0, hp / s.maxHp * 100);
   const src = asset(s.sprite);
   if (h.img.getAttribute('src') !== src) h.img.setAttribute('src', src);
+  animeHero(h, s.sprite, hp);   // le heros anime (essai) remplace l'image quand son rig existe
   // L'armure et le mana promis se disent par leur icone, pas par un signe ecrit a la main.
   const extra = `${s.armor ? `<span class="hv">${icone('Armor', 14)}${s.armor}</span>` : ''}${s.nextMana ? `<span class="hv">${icone('Mana', 14)}+${s.nextMana}${icone('TurnStart', 12)}</span>` : ''}`;
   const nom = h.extra ? s.name : `${s.name}${extra ? ' ' + extra : ''}`;

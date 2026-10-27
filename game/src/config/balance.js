@@ -104,6 +104,9 @@ export const BALANCE = {
     // L'ECRAN DE CHARGEMENT (ui/chargement.js) : combien d'images il demande a la fois, et au bout de combien de
     // temps il laisse entrer quand meme (le reste continue de se charger derriere).
     chargement: { parallele: 8, maxMs: 30000 },
+    // LES HEROS ANIMES (ui/rig-hero.js, ESSAI) : le portrait d'un heros qui a un rig (`game/data/rigs/`) joue son `idle` (et `taking_damage`
+    // quand il perd des PV) au lieu de l'image fixe. A false : toujours l'image.
+    rigsHeros: true,
     appuiLongMs: 400,       // au-dela de cette duree, le doigt pose LIT la carte au lieu d'agir
     toleranceDoigtPx: 10,   // un doigt qui glisse de plus que ca fait defiler, il ne lit ni n'agit
 
