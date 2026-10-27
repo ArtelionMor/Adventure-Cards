@@ -46,6 +46,14 @@
     repeating-conic-gradient(#1a1e28 0 25%, #151821 0 50%) 0 0 / 24px 24px; touch-action: none; }
   #vue canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   #outils { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  #pBarre { position: absolute; right: 10px; top: 60px; z-index: 5; width: 232px; display: none; flex-direction: column; gap: 6px; background: rgba(21,24,33,.92); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+  body[data-mode=poids] #pBarre { display: flex; }
+  #pBarre button { min-height: 44px; text-align: left; }
+  #pBarre button.on { background: #24325a; }
+  #pBarre .ligne { margin: 2px 0; flex-wrap: nowrap; gap: 6px; }
+  #pBarre .ligne label { width: 48px; }
+  #pBarre input[type=range] { flex: 1; min-width: 0; }
+  #pBarre .muet { width: 48px; text-align: right; }
   #aide { position: absolute; left: 10px; bottom: 10px; right: 10px; color: var(--muted); font-size: 12px; pointer-events: none; text-shadow: 0 1px 2px #000; }
 
   aside { background: var(--bg-2); border-left: 1px solid var(--line); overflow: auto; padding: 10px 12px 40px; }
@@ -115,6 +123,13 @@
       <button id="voirOs" class="on" title="Afficher les os">Os</button>
       <button id="cadrer" title="Recadrer la vue (F)">⤢</button>
     </div>
+    <div id="pBarre">
+      <button id="pAjoute" class="on" title="Le pinceau donne du poids à l'os sélectionné">＋ Ajouter</button>
+      <button id="pRetire" title="Le pinceau retire du poids à l'os sélectionné (comme Maj)">－ Retirer</button>
+      <button id="pMaille" title="Maille le calque sélectionné (il faut un maillage pour peindre des poids)">▦ Mailler ce calque</button>
+      <div class="ligne"><label>rayon</label><input type="range" id="pRayon" data-log value="40" min="2" max="400" /><span class="muet" id="pRayonTxt">40 px</span></div>
+      <div class="ligne"><label>force</label><input type="range" id="pForce" data-log value="25" min="1" max="100" /><span class="muet" id="pForceTxt">25 %</span></div>
+    </div>
     <div id="aide"></div>
   </div>
   <aside>
@@ -129,8 +144,6 @@
         <button id="mailler" title="Image seule : une grille sur toute l'image">Générer le mesh</button></div>
       <div class="ligne"><label><input type="checkbox" id="poidsAuto" checked /> Poids automatiques</label>
         <button id="calculPoids" title="Recalcule les poids de tous les calques maillés (Maj + clic : aussi ceux peints à la main)">Calculer les poids</button></div>
-      <div class="ligne"><label style="width:70px">rayon</label><input type="range" id="pRayon" data-log value="40" min="2" max="400" style="flex:1" /><span class="muet" id="pRayonTxt" style="width:48px;text-align:right">40 px</span></div>
-      <div class="ligne"><label style="width:70px">force</label><input type="range" id="pForce" data-log value="25" min="1" max="100" style="flex:1" /><span class="muet" id="pForceTxt" style="width:48px;text-align:right">25 %</span></div>
       <div id="infoMesh" class="muet"></div>
     </section>
     <section>
@@ -627,7 +640,7 @@ function abandonneGeste() {
 }
 const centreDoigts = () => { const p = [...doigts.values()]; return { cx: (p[0][0] + p[1][0]) / 2, cy: (p[0][1] + p[1][1]) / 2, d: Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]) || 1 }; };
 vue.addEventListener('pointerdown', e => {
-  if (e.pointerType !== 'touch' || e.target.closest('#outils, #cOutils')) return;
+  if (e.pointerType !== 'touch' || e.target.closest('#outils, #cOutils, #pBarre')) return;
   if (stylet && styletPres()) { e.stopImmediatePropagation(); return; }   // la paume pendant que le stylet dessine
   const r = vue.getBoundingClientRect();
   if (!doigts.size) doigt0 = { t: performance.now(), histo: E.histo.length };
@@ -673,13 +686,13 @@ vue.addEventListener('pointerup', leveDoigt); vue.addEventListener('pointercance
 $('#main').onclick = () => { espace = !espace; $('#main').classList.toggle('on', espace); };
 
 vue.addEventListener('pointerdown', e => {
-  if (!E.prep || e.target.closest('#outils, #cOutils')) return;
+  if (!E.prep || e.target.closest('#outils, #cOutils, #pBarre')) return;
   const r = vue.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
   try { vue.setPointerCapture(e.pointerId); } catch { /* un pointeur synthetique (tests) */ }
   if (e.button === 1 || e.button === 2 || espace) { glisse = { type: 'vue', px, py, x: E.vue.x, y: E.vue.y }; return; }
   const [wx, wy] = versMonde(px, py);
   if (E.mode === 'calques') { if (C.souris.bas(e, wx, wy, px, py)) glisse = { type: 'calques' }; majAide(); return; }
-  if (E.mode === 'poids') { debutPoids(wx, wy, e.shiftKey); glisse = { type: 'poids', soustrait: e.shiftKey }; return; }
+  if (E.mode === 'poids') { const moins = e.shiftKey || retire; debutPoids(wx, wy, moins); glisse = { type: 'poids', soustrait: moins }; return; }
   const t = touche(px, py);
   if (E.mode === 'os') {
     if (t) {
@@ -894,7 +907,9 @@ function infoMesh() {
 
 // Le pinceau de poids : sur le calque selectionne, l'os selectionne gagne (ou perd, Maj) du
 // poids sous le pinceau ; les autres os du sommet se partagent le reste, au prorata.
-let curseurPoids = null;
+let curseurPoids = null, retire = false;
+for (const [id, v] of [['pAjoute', false], ['pRetire', true]]) $('#' + id).onclick = () => { retire = v; $('#pAjoute').classList.toggle('on', !v); $('#pRetire').classList.toggle('on', v); };
+$('#pMaille').onclick = () => $('#mailler').click();
 function debutPoids(wx, wy, soustrait) {
   const c = E.rig.calques.find(k => k.id === E.calque);
   if (!c?.mesh) { toast('choisir un calque maillé (liste des calques)'); return; }
@@ -1048,6 +1063,7 @@ $('#nvCreer').onclick = async () => {
 C = installeCalques({ E, toast, modifie, debutTrait, finTrait, rafraichitRect, versEcran, versMonde, reprepare, marque });
 SAM = installeSam({ E, toast, modifie });
 curseursLog(document);
+for (const id of ['pRayon', 'pForce']) $('#' + id).dispatchEvent(new Event('input'));   // la valeur ecrite suit le cran retenu
 document.querySelectorAll('#cOutils [data-outil]').forEach(b => b.addEventListener('click', majAide));
 
 // ------------------------------------------------------------------ boutons et depart
