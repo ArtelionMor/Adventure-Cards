@@ -33,6 +33,12 @@ export function rigDe(sprite) {
   return rigs.get(sprite);
 }
 
+// UN SEUL contexte WebGL pour tous les personnages (les navigateurs n'en gardent qu'une quinzaine : au-dela, le plus ancien est perdu) :
+// chacun est dessine dans ce canvas (COTE px), puis recopie dans le canvas 2D de son noeud. Les textures sont partagees aussi.
+const COTE = 256;
+let partage;
+const rendu = () => partage === undefined ? (partage = creeRendu(Object.assign(document.createElement('canvas'), { width: COTE, height: COTE }))) : partage;
+
 const vivants = new Set();
 let boucle = 0, avant = 0;
 function image(t) {
@@ -54,8 +60,11 @@ function image(t) {
       if (l.length) a.joue(l[Math.floor(Math.random() * l.length)], { fondu: 0.15 });
     }
     a.calcule();
-    v.rendu.efface();
-    v.rendu.dessine(a, { place: [0, 0], origine: [0, 0], echelle: cote / Math.max(...a.rig.taille) });
+    const R = rendu();
+    R.efface();
+    R.dessine(a, { place: [0, 0], origine: [0, 0], echelle: COTE / Math.max(...a.rig.taille) });
+    v.ctx.clearRect(0, 0, cote, cote);
+    v.ctx.drawImage(R.canvas, 0, 0, COTE, COTE, 0, 0, cote, cote);
   }
   boucle = vivants.size ? requestAnimationFrame(image) : 0;
 }
@@ -72,15 +81,14 @@ export function animeImg(hote, img, sprite, hp, reglage) {
     return;
   }
   if (st?.canvas) { st.canvas.remove(); vivants.delete(st); }
-  const nouveau = hote.rigAnime = { sprite, hp, hote, canvas: null, a: null, rendu: null };
+  const nouveau = hote.rigAnime = { sprite, hp, hote, canvas: null, a: null, ctx: null };
   rigDe(sprite).then(rig => {
     if (!rig || hote.rigAnime !== nouveau || !hote.isConnected) return;
     const canvas = document.createElement('canvas');
     canvas.className = 'rig';
     canvas.style.animationDelay = `${-Math.random() * 3}s`;   // le souffle de la carte (styles.css) : pas tous ensemble
-    const rendu = creeRendu(canvas);
-    if (!rendu) return;
-    nouveau.canvas = canvas; nouveau.rendu = rendu;
+    if (!rendu()) return;
+    nouveau.canvas = canvas; nouveau.ctx = canvas.getContext('2d');
     nouveau.a = creeAnimateur(rig).joue('idle', { fondu: 0, depuis: Math.random() * 2 });
     nouveau.a.gain = BALANCE.ui.rigsGain || 1;   // pas tous en phase
     const im = hote.querySelector('img');
@@ -104,12 +112,11 @@ export function animeClone(clone, original, clip = 'hitting') {
   if (!st?.a || !im) return;
   const canvas = document.createElement('canvas');
   canvas.className = 'rig';
-  const rendu = creeRendu(canvas);
-  if (!rendu) return;
+  if (!rendu()) return;
   const a = creeAnimateur(st.a.rig);
   a.gain = st.a.gain;
   if (a.rig.clips[clip]) a.joue(clip, { fondu: 0.05 });
-  const v = { sprite: st.sprite, hp: 0, hote: clone, canvas, a, rendu, reveil: Infinity };
+  const v = { sprite: st.sprite, hp: 0, hote: clone, canvas, a, ctx: canvas.getContext('2d'), reveil: Infinity };
   im.before(canvas); im.style.display = 'none';
   vivants.add(v);
   if (!boucle) { avant = performance.now(); boucle = requestAnimationFrame(image); }
