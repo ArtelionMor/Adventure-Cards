@@ -29,7 +29,7 @@ export function installeCalques(api) {
   sec.id = 'secCalques';
   sec.innerHTML = `
     <h2>Calques</h2>
-    <div class="ligne" id="cOutils">
+    <div id="cOutils">
       <button data-outil="poly" class="on" title="Lasso polygonal : un clic par sommet ; double-clic, Entrée ou clic sur le premier point pour fermer ; Retour arrière efface le dernier">⬠ Polygone</button>
       <button data-outil="libre" title="Lasso libre : glisser autour de la partie">〰 Libre</button>
       <button data-outil="gomme" title="Gomme : efface le calque sélectionné">🧽 Gomme</button>
@@ -57,6 +57,9 @@ export function installeCalques(api) {
     <div id="cZones"></div>`;
   const avant = document.querySelector('aside section:nth-of-type(2)');
   avant.parentNode.insertBefore(sec, avant);
+  // les outils vont sur le COTE de la vue de dessin (sous le doigt ou le stylet), pas dans le panneau
+  const barre = sec.querySelector('#cOutils');
+  document.querySelector('#vue').appendChild(barre);
   // un curseur et sa case numerique se suivent (opt() lit les cases)
   for (const k of ['Rayon', 'Durete', 'Force']) {
     const n = sec.querySelector('#c' + k), r = sec.querySelector('#c' + k + 'S');
@@ -65,6 +68,10 @@ export function installeCalques(api) {
   }
   const style = document.createElement('style');
   style.textContent = `
+    #cOutils { position: absolute; right: 10px; top: 60px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
+    #cOutils button { min-width: 124px; min-height: 44px; text-align: left; background: rgba(21,24,33,.92); }
+    #cOutils button.on { background: #24325a; }
+    body:not([data-mode=calques]) #cOutils { display: none; }
     .liste-calques { list-style: none; padding: 0; margin: 6px 0; }
     .liste-calques li { display: flex; align-items: center; gap: 4px; padding: 3px 4px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
     .liste-calques li:hover { background: var(--bg-3); }
@@ -78,9 +85,9 @@ export function installeCalques(api) {
     .zone button { padding: 1px 6px; font-size: 12px; margin: 2px 2px 0 0; }`;
   document.head.appendChild(style);
 
-  sec.querySelectorAll('[data-outil]').forEach(b => b.onclick = () => {
+  barre.querySelectorAll('[data-outil]').forEach(b => b.onclick = () => {
     T.outil = b.dataset.outil; T.pts = []; T.ferme = false;
-    sec.querySelectorAll('[data-outil]').forEach(x => x.classList.toggle('on', x === b));
+    barre.querySelectorAll('[data-outil]').forEach(x => x.classList.toggle('on', x === b));
     const pinceau = ['gomme', 'restaure', 'peint', 'pipette'].includes(T.outil);
     sec.querySelectorAll('[data-pour=lasso]').forEach(x => x.hidden = pinceau);
     sec.querySelectorAll('[data-pour=pinceau]').forEach(x => x.hidden = !pinceau || T.outil === 'pipette');
@@ -261,7 +268,7 @@ export function installeCalques(api) {
     if (x < 0 || y < 0 || x >= W || y >= E.rig.source.hauteur) return;
     const o = (y * W + x) * 4, im = c && E.px[c.id], src = im && im.data[o + 3] > 128 ? im.data : E.source.data;
     $('#cCouleur').value = versHex([src[o], src[o + 1], src[o + 2]]);
-    sec.querySelector('[data-outil=peint]').click();
+    barre.querySelector('[data-outil=peint]').click();
   }
   function dab(wx, wy) {
     const c = calque(), o = opt();

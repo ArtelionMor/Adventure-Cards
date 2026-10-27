@@ -501,10 +501,11 @@ const AIDE = {
 };
 function majAide() { $('#aide').textContent = E.mode === 'calques' ? C.aide() : AIDE[E.mode]; }
 document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
-  E.mode = b.dataset.mode;
+  E.mode = b.dataset.mode; document.body.dataset.mode = E.mode;
   document.querySelectorAll('[data-mode]').forEach(x => x.classList.toggle('on', x === b));
   majAide(); dessineFiche();
 });
+document.body.dataset.mode = E.mode;
 majAide();
 for (const [id, k] of [['#voirMesh', 'voirMesh'], ['#voirPoids', 'voirPoids'], ['#voirOs', 'voirOs']]) {
   $(id).onclick = () => { E[k] = !E[k]; $(id).classList.toggle('on', E[k]); };
@@ -572,7 +573,7 @@ function abandonneGeste() {
 }
 const centreDoigts = () => { const p = [...doigts.values()]; return { cx: (p[0][0] + p[1][0]) / 2, cy: (p[0][1] + p[1][1]) / 2, d: Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]) || 1 }; };
 vue.addEventListener('pointerdown', e => {
-  if (e.pointerType !== 'touch') return;
+  if (e.pointerType !== 'touch' || e.target.closest('#outils, #cOutils')) return;
   if (stylet && styletPres()) { e.stopImmediatePropagation(); return; }   // la paume pendant que le stylet dessine
   const r = vue.getBoundingClientRect();
   if (!doigts.size) doigt0 = { t: performance.now(), histo: E.histo.length };
@@ -618,7 +619,7 @@ vue.addEventListener('pointerup', leveDoigt); vue.addEventListener('pointercance
 $('#main').onclick = () => { espace = !espace; $('#main').classList.toggle('on', espace); };
 
 vue.addEventListener('pointerdown', e => {
-  if (!E.prep || e.target.closest('#outils')) return;
+  if (!E.prep || e.target.closest('#outils, #cOutils')) return;
   const r = vue.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
   try { vue.setPointerCapture(e.pointerId); } catch { /* un pointeur synthetique (tests) */ }
   if (e.button === 1 || e.button === 2 || espace) { glisse = { type: 'vue', px, py, x: E.vue.x, y: E.vue.y }; return; }
