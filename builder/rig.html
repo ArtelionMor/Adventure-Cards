@@ -25,7 +25,10 @@
   a { color: var(--accent); }
   button, select, input { font: inherit; color: var(--text); background: var(--bg-3); border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px; }
   button { cursor: pointer; }
-  button:hover { border-color: var(--accent); }
+  /* iPad : pas de delai de double-tap, pas de « survol » colle (le 1er toucher ne fait pas que survoler), lignes cliquables */
+  html, button, select, input, li, label { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  li { cursor: pointer; }
+  @media (hover: hover) { button:hover { border-color: var(--accent); } }
   button.on { background: #24325a; border-color: var(--accent); }
   button.principal { background: linear-gradient(135deg, var(--accent), #5b86ff); color: #0b1020; font-weight: 700; border: 0; }
   button:disabled { opacity: .45; cursor: default; }
@@ -53,7 +56,7 @@
   .muet { color: var(--muted); font-size: 12px; }
   #arbre { list-style: none; padding: 0; margin: 0; }
   #arbre li { padding: 3px 6px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-  #arbre li:hover { background: var(--bg-3); }
+  @media (hover: hover) { #arbre li:hover { background: var(--bg-3); } }
   #arbre li.sel { background: #24325a; }
   #arbre .pastille { width: 10px; height: 10px; border-radius: 50%; flex: none; }
   .constat { font-size: 12px; padding: 4px 6px; border-radius: 6px; margin: 3px 0; background: var(--bg-3); }
@@ -551,6 +554,15 @@ vue.addEventListener('wheel', e => {
 // Ecouteurs poses AVANT ceux de la souris : stopImmediatePropagation leur coupe la suite.
 const doigts = new Map();
 let pince = null, tap = null;
+// Stylet : des qu'un Apple Pencil a servi, le DOIGT ne dessine plus (la paume posee ne fait rien) : il ne sert qu'a zoomer et
+// deplacer, a deux doigts. Pendant que le stylet est pres de l'ecran (1,5 s), les doigts sont ignores.
+let stylet = false, styletT = 0, doigt0 = null;
+const styletPres = () => performance.now() - styletT < 1500;
+for (const t of ['pointerdown', 'pointermove', 'pointerup']) vue.addEventListener(t, e => {
+  if (e.pointerType !== 'pen') return;
+  styletT = performance.now();
+  if (!stylet) { stylet = true; toast('Stylet détecté : le doigt ne dessine plus, il zoome et déplace à deux doigts'); }
+}, true);
 function abandonneGeste() {
   const G = glisse; glisse = null;
   if (!G) return;
@@ -561,11 +573,15 @@ function abandonneGeste() {
 const centreDoigts = () => { const p = [...doigts.values()]; return { cx: (p[0][0] + p[1][0]) / 2, cy: (p[0][1] + p[1][1]) / 2, d: Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]) || 1 }; };
 vue.addEventListener('pointerdown', e => {
   if (e.pointerType !== 'touch') return;
+  if (stylet && styletPres()) { e.stopImmediatePropagation(); return; }   // la paume pendant que le stylet dessine
   const r = vue.getBoundingClientRect();
+  if (!doigts.size) doigt0 = { t: performance.now(), histo: E.histo.length };
   doigts.set(e.pointerId, [e.clientX - r.left, e.clientY - r.top]);
-  if (doigts.size < 2) return;
+  if (doigts.size < 2) { if (stylet) e.stopImmediatePropagation(); return; }
   try { vue.setPointerCapture(e.pointerId); } catch { /* pointeur synthetique */ }
   abandonneGeste();
+  // le premier doigt a deja pose un point de pinceau : on le defait (pas de points quand on commence a zoomer)
+  if (doigt0 && performance.now() - doigt0.t < 800) while (E.histo.length > doigt0.histo) annule();
   // un TAP a deux doigts = annuler, a trois = retablir (le reflexe de l'iPad) : court et sans bouger
   if (!tap) tap = { t: performance.now(), n: 0, bouge: 0, vue: { ...E.vue }, depart: new Map() };
   tap.n = Math.max(tap.n, doigts.size);
@@ -574,9 +590,11 @@ vue.addEventListener('pointerdown', e => {
   e.stopImmediatePropagation();
 });
 vue.addEventListener('pointermove', e => {
-  if (e.pointerType !== 'touch' || !doigts.has(e.pointerId)) return;
+  if (e.pointerType !== 'touch') return;
+  if (!doigts.has(e.pointerId)) { if (stylet) e.stopImmediatePropagation(); return; }
   const r = vue.getBoundingClientRect();
   doigts.set(e.pointerId, [e.clientX - r.left, e.clientY - r.top]);
+  if (stylet && !pince) { e.stopImmediatePropagation(); return; }
   if (tap && tap.depart.has(e.pointerId)) { const d = tap.depart.get(e.pointerId); tap.bouge = Math.max(tap.bouge, Math.hypot(doigts.get(e.pointerId)[0] - d[0], doigts.get(e.pointerId)[1] - d[1])); }
   if (!pince || doigts.size < 2) return;
   const c = centreDoigts(), z = Math.max(0.03, Math.min(8, pince.z * c.d / pince.d));
