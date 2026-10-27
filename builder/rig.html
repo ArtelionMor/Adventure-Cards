@@ -247,6 +247,10 @@ async function chargeTout(texte) {
 }
 
 async function ouvre(id, sansBrouillon = false) {
+  ouvrant = true; genBrouillon++; clearTimeout(minuteurBrouillon);
+  try { await ouvre1(id, sansBrouillon); } finally { ouvrant = false; }
+}
+async function ouvre1(id, sansBrouillon) {
   E.id = id;
   try { localStorage.setItem('adventureCardRig.perso', id); } catch { /* sans stockage */ }
   E.texteRig = await lisTexte('rig.json');
@@ -303,9 +307,9 @@ function planifie_brouillon() { clearTimeout(minuteurBrouillon); minuteurBrouill
 // ⚠ L'encodage des PNG prend des secondes sur iPad : si un enregistrement passe pendant ce temps, le brouillon fini APRES lui serait un
 // vieux travail qui reviendrait ecraser le nouveau a la reouverture. `genBrouillon` change a chaque effacement ; et le brouillon note le
 // rig.json du disque sur lequel il part (`base`) : s'il a change depuis, le brouillon est perime.
-let genBrouillon = 0;
+let genBrouillon = 0, ouvrant = false;
 async function sauve_brouillon() {
-  if (!E.id || !E.sale) return;
+  if (!E.id || !E.sale || ouvrant) return;   // pendant « ouvre », E.id est deja le nouveau et E.rig encore l'ancien : le brouillon d'un personnage serait range sous le nom d'un autre
   const gen = genBrouillon, id = E.id, base = E.texteRig;
   try {
     const { json, fichiers } = pourEnregistrer(E.rig, E.px, E.masques, [...E.salesImages]);
