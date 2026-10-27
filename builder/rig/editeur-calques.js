@@ -66,12 +66,25 @@ export function installeCalques(api) {
     r.oninput = () => { n.value = r.value; };
     n.oninput = () => { r.value = n.value; };
   }
+  // les reglages du pinceau (taille, durete, force, couleur) suivent les outils, sur le cote de la vue
+  const reglages = document.createElement('div');
+  reglages.id = 'cReglages';
+  sec.querySelectorAll('[data-pour=pinceau], [data-pour=peinture]').forEach(l => reglages.appendChild(l));
+  barre.appendChild(reglages);
   const style = document.createElement('style');
   style.textContent = `
-    #cOutils { position: absolute; right: 10px; top: 60px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
+    #cOutils { position: absolute; right: 10px; top: 60px; display: flex; flex-direction: column; gap: 6px; z-index: 5; max-height: calc(100% - 70px); overflow-y: auto; overflow-x: hidden; width: 236px; align-items: flex-end; }
     #cOutils button { min-width: 124px; min-height: 44px; text-align: left; background: rgba(21,24,33,.92); }
     #cOutils button.on { background: #24325a; }
     body:not([data-mode=calques]) #cOutils { display: none; }
+    #cReglages { width: 232px; background: rgba(21,24,33,.92); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+    #cReglages .ligne { margin: 4px 0; flex-wrap: nowrap; gap: 6px; }
+    #cReglages .ligne label { width: 48px; }
+    #cReglages .ligne[data-pour=peinture] { flex-wrap: wrap; }
+    #cReglages .ligne[data-pour=peinture] label:first-child { width: auto; }
+    #cReglages input[type=range] { flex: 1; min-width: 0; }
+    #cReglages input[type=number] { width: 52px; }
+    #cReglages:not(:has(.ligne:not([hidden]))) { display: none; }
     .liste-calques { list-style: none; padding: 0; margin: 6px 0; }
     .liste-calques li { display: flex; align-items: center; gap: 4px; padding: 3px 4px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
     .liste-calques li:hover { background: var(--bg-3); }
@@ -90,8 +103,8 @@ export function installeCalques(api) {
     barre.querySelectorAll('[data-outil]').forEach(x => x.classList.toggle('on', x === b));
     const pinceau = ['gomme', 'restaure', 'peint', 'pipette'].includes(T.outil);
     sec.querySelectorAll('[data-pour=lasso]').forEach(x => x.hidden = pinceau);
-    sec.querySelectorAll('[data-pour=pinceau]').forEach(x => x.hidden = !pinceau || T.outil === 'pipette');
-    sec.querySelectorAll('[data-pour=peinture]').forEach(x => x.hidden = T.outil !== 'peint' && T.outil !== 'pipette');
+    barre.querySelectorAll('[data-pour=pinceau]').forEach(x => x.hidden = !pinceau || T.outil === 'pipette');
+    barre.querySelectorAll('[data-pour=peinture]').forEach(x => x.hidden = T.outil !== 'peint' && T.outil !== 'pipette');
     majBoutons();
   });
 
