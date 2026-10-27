@@ -10,109 +10,27 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 2/Doyen du Marais.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 92, "y": 986, "angle": 0, "longueur": 836 },
-    { "id": "fond", "parent": null, "x": 0, "y": 986, "angle": 0, "longueur": 20 },
-    { "id": "corps", "parent": "sol", "x": 832, "y": 949, "angle": -131.7, "longueur": 938 },
-    { "id": "tete", "parent": "corps", "x": 642, "y": 421, "angle": -152.5, "longueur": 504 },
-    { "id": "bras", "parent": "corps", "x": 339, "y": 785, "angle": -131, "longueur": 306 },
-    { "id": "jambes", "parent": "corps", "x": 655, "y": 660, "angle": -119.8, "longueur": 600 }
+    { "id": "sol", "parent": null, "x": 176, "y": 949, "angle": 0, "longueur": 670 },
+    { "id": "bassin", "parent": "sol", "x": 511, "y": 872, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 511, "y": 796, "angle": -90, "longueur": 191 },
+    { "id": "tete", "parent": "torse", "x": 511, "y": 509, "angle": -90, "longueur": 287 },
+    { "id": "oreille_g", "parent": "tete", "x": 385, "y": 222, "angle": -120, "longueur": 143 },
+    { "id": "oreille_d", "parent": "tete", "x": 636, "y": 222, "angle": -60, "longueur": 143 },
+    { "id": "bras_g", "parent": "torse", "x": 385, "y": 681, "angle": 160, "longueur": 134 },
+    { "id": "bras_d", "parent": "torse", "x": 636, "y": 681, "angle": 20, "longueur": 134 },
+    { "id": "jambe_g", "parent": "bassin", "x": 427, "y": 872, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 594, "y": 872, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 678, "y": 815, "angle": -30, "longueur": 134 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "calques/tout.png",
+      "image": "source.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024,
-      "zones": [
-        {
-          "id": "z1",
-          "masque": "masques/tout-z1.png",
-          "x": 191,
-          "y": 31,
-          "largeur": 691,
-          "hauteur": 614,
-          "etat": "provisoire",
-          "par": "tete"
-        },
-        {
-          "id": "z2",
-          "masque": "masques/tout-z2.png",
-          "x": 92,
-          "y": 531,
-          "largeur": 464,
-          "hauteur": 360,
-          "etat": "provisoire",
-          "par": "bras"
-        },
-        {
-          "id": "z3",
-          "masque": "masques/tout-z3.png",
-          "x": 183,
-          "y": 162,
-          "largeur": 746,
-          "hauteur": 788,
-          "etat": "provisoire",
-          "par": "corps"
-        },
-        {
-          "id": "z4",
-          "masque": "masques/tout-z4.png",
-          "x": 152,
-          "y": 134,
-          "largeur": 741,
-          "hauteur": 853,
-          "etat": "provisoire",
-          "par": "jambes"
-        }
-      ],
-      "os": "fond"
-    },
-    {
-      "id": "tete",
-      "image": "calques/tete.png",
-      "de": "tout",
-      "ordre": 4,
-      "x": 184,
-      "y": 0,
-      "largeur": 707,
-      "hauteur": 689,
-      "os": "tete"
-    },
-    {
-      "id": "bras",
-      "image": "calques/bras.png",
-      "de": "tout",
-      "ordre": 3,
-      "x": 88,
-      "y": 500,
-      "largeur": 499,
-      "hauteur": 422,
-      "os": "bras"
-    },
-    {
-      "id": "corps",
-      "image": "calques/corps.png",
-      "de": "tout",
-      "ordre": 2,
-      "x": 178,
-      "y": 131,
-      "largeur": 758,
-      "hauteur": 830,
-      "os": "corps"
-    },
-    {
-      "id": "jambes",
-      "image": "calques/jambes.png",
-      "de": "tout",
-      "ordre": 1,
-      "x": 139,
-      "y": 88,
-      "largeur": 763,
-      "hauteur": 933,
-      "os": "jambes"
+      "hauteur": 1024
     }
   ],
   "ik": []

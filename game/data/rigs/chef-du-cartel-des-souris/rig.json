@@ -10,131 +10,27 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Mouse/Chef du Cartel des Souris.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 23, "y": 966, "angle": 0, "longueur": 936 },
-    { "id": "fond", "parent": null, "x": 0, "y": 966, "angle": 0, "longueur": 20 },
-    { "id": "corps", "parent": "sol", "x": 698, "y": 770, "angle": -99.5, "longueur": 598 },
-    { "id": "oreille_gauche", "parent": "corps", "x": 667, "y": 256, "angle": -22.1, "longueur": 213 },
-    { "id": "oreille_droite", "parent": "corps", "x": 640, "y": 578, "angle": 86, "longueur": 57 },
-    { "id": "bras", "parent": "corps", "x": 507, "y": 415, "angle": 50.1, "longueur": 640 },
-    { "id": "tete", "parent": "bras", "x": 361, "y": 154, "angle": 93.9, "longueur": 223 }
+    { "id": "sol", "parent": null, "x": 118, "y": 930, "angle": 0, "longueur": 790 },
+    { "id": "bassin", "parent": "sol", "x": 513, "y": 857, "angle": -90, "longueur": 73 },
+    { "id": "torse", "parent": "bassin", "x": 513, "y": 784, "angle": -90, "longueur": 183 },
+    { "id": "tete", "parent": "torse", "x": 513, "y": 509, "angle": -90, "longueur": 275 },
+    { "id": "oreille_g", "parent": "tete", "x": 365, "y": 234, "angle": -120, "longueur": 137 },
+    { "id": "oreille_d", "parent": "tete", "x": 661, "y": 234, "angle": -60, "longueur": 137 },
+    { "id": "bras_g", "parent": "torse", "x": 365, "y": 674, "angle": 160, "longueur": 128 },
+    { "id": "bras_d", "parent": "torse", "x": 661, "y": 674, "angle": 20, "longueur": 128 },
+    { "id": "jambe_g", "parent": "bassin", "x": 414, "y": 857, "angle": 100, "longueur": 82 },
+    { "id": "jambe_d", "parent": "bassin", "x": 612, "y": 857, "angle": 80, "longueur": 82 },
+    { "id": "queue", "parent": "bassin", "x": 711, "y": 802, "angle": -30, "longueur": 128 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "calques/tout.png",
+      "image": "source.png",
       "ordre": 0,
-      "x": 17,
-      "y": 49,
-      "largeur": 992,
-      "hauteur": 920,
-      "zones": [
-        {
-          "id": "z1",
-          "masque": "masques/tout-z1.png",
-          "x": 649,
-          "y": 105,
-          "largeur": 216,
-          "hauteur": 218,
-          "etat": "provisoire",
-          "par": "oreille_gauche"
-        },
-        {
-          "id": "z2",
-          "masque": "masques/tout-z2.png",
-          "x": 585,
-          "y": 536,
-          "largeur": 81,
-          "hauteur": 100,
-          "etat": "provisoire",
-          "par": "oreille_droite"
-        },
-        {
-          "id": "z3",
-          "masque": "masques/tout-z3.png",
-          "x": 211,
-          "y": 110,
-          "largeur": 169,
-          "hauteur": 269,
-          "etat": "provisoire",
-          "par": "tete"
-        },
-        {
-          "id": "z4",
-          "masque": "masques/tout-z4.png",
-          "x": 23,
-          "y": 114,
-          "largeur": 937,
-          "hauteur": 853,
-          "etat": "provisoire",
-          "par": "bras"
-        },
-        {
-          "id": "z5",
-          "masque": "masques/tout-z5.png",
-          "x": 322,
-          "y": 179,
-          "largeur": 425,
-          "hauteur": 592,
-          "etat": "provisoire",
-          "par": "corps"
-        }
-      ],
-      "os": "fond"
-    },
-    {
-      "id": "oreille_gauche",
-      "image": "calques/oreille_gauche.png",
-      "de": "tout",
-      "ordre": 5,
-      "x": 618,
-      "y": 101,
-      "largeur": 249,
-      "hauteur": 246,
-      "os": "oreille_gauche"
-    },
-    {
-      "id": "oreille_droite",
-      "image": "calques/oreille_droite.png",
-      "de": "tout",
-      "ordre": 4,
-      "x": 554,
-      "y": 505,
-      "largeur": 143,
-      "hauteur": 162,
-      "os": "oreille_droite"
-    },
-    {
-      "id": "tete",
-      "image": "calques/tete.png",
-      "de": "tout",
-      "ordre": 3,
-      "x": 209,
-      "y": 103,
-      "largeur": 202,
-      "hauteur": 307,
-      "os": "tete"
-    },
-    {
-      "id": "bras",
-      "image": "calques/bras.png",
-      "de": "tout",
-      "ordre": 2,
-      "x": 21,
-      "y": 97,
-      "largeur": 959,
-      "hauteur": 872,
-      "os": "bras"
-    },
-    {
-      "id": "corps",
-      "image": "calques/corps.png",
-      "de": "tout",
-      "ordre": 1,
-      "x": 287,
-      "y": 144,
-      "largeur": 495,
-      "hauteur": 662,
-      "os": "corps"
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
     }
   ],
   "ik": []

@@ -10,175 +10,27 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 3/Caméléon Scientifique.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 97, "y": 988, "angle": 0, "longueur": 846 },
-    { "id": "fond", "parent": null, "x": 0, "y": 988, "angle": 0, "longueur": 20 },
-    { "id": "corps", "parent": "sol", "x": 490, "y": 932, "angle": -59.9, "longueur": 475 },
-    { "id": "tete", "parent": "corps", "x": 549, "y": 521, "angle": -83.9, "longueur": 501 },
-    { "id": "bras", "parent": "corps", "x": 390, "y": 713, "angle": -134.5, "longueur": 154 },
-    { "id": "jambes", "parent": "corps", "x": 595, "y": 920, "angle": 170, "longueur": 230 },
-    { "id": "queue", "parent": "corps", "x": 764, "y": 807, "angle": 40.5, "longueur": 233 },
-    { "id": "feuilles", "parent": "tete", "x": 787, "y": 243, "angle": -23.2, "longueur": 114 },
-    { "id": "arme", "parent": "bras", "x": 280, "y": 687, "angle": -125.4, "longueur": 287 }
+    { "id": "sol", "parent": null, "x": 182, "y": 950, "angle": 0, "longueur": 678 },
+    { "id": "bassin", "parent": "sol", "x": 521, "y": 873, "angle": -90, "longueur": 77 },
+    { "id": "torse", "parent": "bassin", "x": 521, "y": 796, "angle": -90, "longueur": 193 },
+    { "id": "tete", "parent": "torse", "x": 521, "y": 506, "angle": -90, "longueur": 290 },
+    { "id": "oreille_g", "parent": "tete", "x": 393, "y": 216, "angle": -120, "longueur": 145 },
+    { "id": "oreille_d", "parent": "tete", "x": 648, "y": 216, "angle": -60, "longueur": 145 },
+    { "id": "bras_g", "parent": "torse", "x": 393, "y": 680, "angle": 160, "longueur": 135 },
+    { "id": "bras_d", "parent": "torse", "x": 648, "y": 680, "angle": 20, "longueur": 135 },
+    { "id": "jambe_g", "parent": "bassin", "x": 436, "y": 873, "angle": 100, "longueur": 87 },
+    { "id": "jambe_d", "parent": "bassin", "x": 605, "y": 873, "angle": 80, "longueur": 87 },
+    { "id": "queue", "parent": "bassin", "x": 690, "y": 815, "angle": -30, "longueur": 135 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "calques/tout.png",
+      "image": "source.png",
       "ordre": 0,
-      "x": 95,
-      "y": 21,
-      "largeur": 851,
-      "hauteur": 970,
-      "zones": [
-        {
-          "id": "z1",
-          "masque": "masques/tout-z1.png",
-          "x": 201,
-          "y": 23,
-          "largeur": 643,
-          "hauteur": 542,
-          "etat": "provisoire",
-          "par": "tete"
-        },
-        {
-          "id": "z2",
-          "masque": "masques/tout-z2.png",
-          "x": 97,
-          "y": 439,
-          "largeur": 199,
-          "hauteur": 342,
-          "etat": "provisoire",
-          "par": "arme"
-        },
-        {
-          "id": "z3",
-          "masque": "masques/tout-z3.png",
-          "x": 724,
-          "y": 154,
-          "largeur": 169,
-          "hauteur": 175,
-          "etat": "provisoire",
-          "par": "feuilles"
-        },
-        {
-          "id": "z4",
-          "masque": "masques/tout-z4.png",
-          "x": 265,
-          "y": 602,
-          "largeur": 174,
-          "hauteur": 180,
-          "etat": "provisoire",
-          "par": "bras"
-        },
-        {
-          "id": "z5",
-          "masque": "masques/tout-z5.png",
-          "x": 308,
-          "y": 512,
-          "largeur": 487,
-          "hauteur": 421,
-          "etat": "provisoire",
-          "par": "corps"
-        },
-        {
-          "id": "z6",
-          "masque": "masques/tout-z6.png",
-          "x": 368,
-          "y": 869,
-          "largeur": 358,
-          "hauteur": 120,
-          "etat": "provisoire",
-          "par": "jambes"
-        },
-        {
-          "id": "z7",
-          "masque": "masques/tout-z7.png",
-          "x": 715,
-          "y": 697,
-          "largeur": 229,
-          "hauteur": 272,
-          "etat": "provisoire",
-          "par": "queue"
-        }
-      ],
-      "os": "fond"
-    },
-    {
-      "id": "tete",
-      "image": "calques/tete.png",
-      "de": "tout",
-      "ordre": 7,
-      "x": 177,
-      "y": 21,
-      "largeur": 675,
-      "hauteur": 592,
-      "os": "tete"
-    },
-    {
-      "id": "arme",
-      "image": "calques/arme.png",
-      "de": "tout",
-      "ordre": 6,
-      "x": 95,
-      "y": 437,
-      "largeur": 232,
-      "hauteur": 346,
-      "os": "arme"
-    },
-    {
-      "id": "feuilles",
-      "image": "calques/feuilles.png",
-      "de": "tout",
-      "ordre": 5,
-      "x": 693,
-      "y": 123,
-      "largeur": 202,
-      "hauteur": 237,
-      "os": "feuilles"
-    },
-    {
-      "id": "bras",
-      "image": "calques/bras.png",
-      "de": "tout",
-      "ordre": 4,
-      "x": 234,
-      "y": 579,
-      "largeur": 236,
-      "hauteur": 234,
-      "os": "bras"
-    },
-    {
-      "id": "corps",
-      "image": "calques/corps.png",
-      "de": "tout",
-      "ordre": 3,
-      "x": 291,
-      "y": 474,
-      "largeur": 542,
-      "hauteur": 497,
-      "os": "corps"
-    },
-    {
-      "id": "jambes",
-      "image": "calques/jambes.png",
-      "de": "tout",
-      "ordre": 2,
-      "x": 337,
-      "y": 838,
-      "largeur": 420,
-      "hauteur": 153,
-      "os": "jambes"
-    },
-    {
-      "id": "queue",
-      "image": "calques/queue.png",
-      "de": "tout",
-      "ordre": 1,
-      "x": 684,
-      "y": 680,
-      "largeur": 262,
-      "hauteur": 301,
-      "os": "queue"
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
     }
   ],
   "ik": []

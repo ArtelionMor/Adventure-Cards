@@ -10,109 +10,27 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 3/Epidémie.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 205, "y": 817, "angle": 0, "longueur": 634 },
-    { "id": "fond", "parent": null, "x": 0, "y": 817, "angle": 0, "longueur": 20 },
-    { "id": "bras", "parent": "sol", "x": 556, "y": 817, "angle": -117.1, "longueur": 584 },
-    { "id": "tete", "parent": "bras", "x": 431, "y": 344, "angle": -30.8, "longueur": 196 },
-    { "id": "jambes", "parent": "bras", "x": 640, "y": 403, "angle": 135.5, "longueur": 561 },
-    { "id": "cape", "parent": "bras", "x": 386, "y": 782, "angle": 0.1, "longueur": 404 }
+    { "id": "sol", "parent": null, "x": 124, "y": 794, "angle": 0, "longueur": 774 },
+    { "id": "bassin", "parent": "sol", "x": 511, "y": 746, "angle": -90, "longueur": 48 },
+    { "id": "torse", "parent": "bassin", "x": 511, "y": 698, "angle": -90, "longueur": 120 },
+    { "id": "tete", "parent": "torse", "x": 511, "y": 518, "angle": -90, "longueur": 180 },
+    { "id": "oreille_g", "parent": "tete", "x": 366, "y": 338, "angle": -120, "longueur": 90 },
+    { "id": "oreille_d", "parent": "tete", "x": 656, "y": 338, "angle": -60, "longueur": 90 },
+    { "id": "bras_g", "parent": "torse", "x": 366, "y": 626, "angle": 160, "longueur": 84 },
+    { "id": "bras_d", "parent": "torse", "x": 656, "y": 626, "angle": 20, "longueur": 84 },
+    { "id": "jambe_g", "parent": "bassin", "x": 414, "y": 746, "angle": 100, "longueur": 54 },
+    { "id": "jambe_d", "parent": "bassin", "x": 608, "y": 746, "angle": 80, "longueur": 54 },
+    { "id": "queue", "parent": "bassin", "x": 705, "y": 710, "angle": -30, "longueur": 84 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "calques/tout.png",
+      "image": "source.png",
       "ordre": 0,
-      "x": 25,
-      "y": 217,
-      "largeur": 971,
-      "hauteur": 601,
-      "zones": [
-        {
-          "id": "z1",
-          "masque": "masques/tout-z1.png",
-          "x": 412,
-          "y": 221,
-          "largeur": 191,
-          "hauteur": 185,
-          "etat": "provisoire",
-          "par": "tete"
-        },
-        {
-          "id": "z2",
-          "masque": "masques/tout-z2.png",
-          "x": 325,
-          "y": 758,
-          "largeur": 466,
-          "hauteur": 49,
-          "etat": "provisoire",
-          "par": "cape"
-        },
-        {
-          "id": "z3",
-          "masque": "masques/tout-z3.png",
-          "x": 205,
-          "y": 269,
-          "largeur": 580,
-          "hauteur": 549,
-          "etat": "provisoire",
-          "par": "bras"
-        },
-        {
-          "id": "z4",
-          "masque": "masques/tout-z4.png",
-          "x": 233,
-          "y": 369,
-          "largeur": 607,
-          "hauteur": 434,
-          "etat": "provisoire",
-          "par": "jambes"
-        }
-      ],
-      "os": "fond"
-    },
-    {
-      "id": "tete",
-      "image": "calques/tete.png",
-      "de": "tout",
-      "ordre": 4,
-      "x": 381,
-      "y": 220,
-      "largeur": 224,
-      "hauteur": 217,
-      "os": "tete"
-    },
-    {
-      "id": "cape",
-      "image": "calques/cape.png",
-      "de": "tout",
-      "ordre": 3,
-      "x": 294,
-      "y": 727,
-      "largeur": 520,
-      "hauteur": 86,
-      "os": "cape"
-    },
-    {
-      "id": "bras",
-      "image": "calques/bras.png",
-      "de": "tout",
-      "ordre": 2,
-      "x": 174,
-      "y": 266,
-      "largeur": 631,
-      "hauteur": 552,
-      "os": "bras"
-    },
-    {
-      "id": "jambes",
-      "image": "calques/jambes.png",
-      "de": "tout",
-      "ordre": 1,
-      "x": 202,
-      "y": 338,
-      "largeur": 664,
-      "hauteur": 467,
-      "os": "jambes"
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
     }
   ],
   "ik": []

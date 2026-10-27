@@ -10,131 +10,27 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Octopus/Chien Paladin.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 121, "y": 1008, "angle": 0, "longueur": 889 },
-    { "id": "fond", "parent": null, "x": 0, "y": 1008, "angle": 0, "longueur": 20 },
-    { "id": "corps", "parent": "sol", "x": 517, "y": 688, "angle": -107.1, "longueur": 434 },
-    { "id": "tete", "parent": "corps", "x": 486, "y": 388, "angle": -0.5, "longueur": 524 },
-    { "id": "jambes", "parent": "corps", "x": 599, "y": 642, "angle": 137.3, "longueur": 529 },
-    { "id": "arme", "parent": "tete", "x": 253, "y": 339, "angle": -107.2, "longueur": 331 },
-    { "id": "tentacules", "parent": "arme", "x": 294, "y": 498, "angle": 92.1, "longueur": 138 }
+    { "id": "sol", "parent": null, "x": 113, "y": 969, "angle": 0, "longueur": 801 },
+    { "id": "bassin", "parent": "sol", "x": 514, "y": 890, "angle": -90, "longueur": 79 },
+    { "id": "torse", "parent": "bassin", "x": 514, "y": 811, "angle": -90, "longueur": 198 },
+    { "id": "tete", "parent": "torse", "x": 514, "y": 513, "angle": -90, "longueur": 298 },
+    { "id": "oreille_g", "parent": "tete", "x": 363, "y": 215, "angle": -120, "longueur": 149 },
+    { "id": "oreille_d", "parent": "tete", "x": 664, "y": 215, "angle": -60, "longueur": 149 },
+    { "id": "bras_g", "parent": "torse", "x": 363, "y": 692, "angle": 160, "longueur": 139 },
+    { "id": "bras_d", "parent": "torse", "x": 664, "y": 692, "angle": 20, "longueur": 139 },
+    { "id": "jambe_g", "parent": "bassin", "x": 413, "y": 890, "angle": 100, "longueur": 89 },
+    { "id": "jambe_d", "parent": "bassin", "x": 614, "y": 890, "angle": 80, "longueur": 89 },
+    { "id": "queue", "parent": "bassin", "x": 714, "y": 830, "angle": -30, "longueur": 139 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "calques/tout.png",
+      "image": "source.png",
       "ordre": 0,
-      "x": 11,
-      "y": 15,
-      "largeur": 1005,
-      "hauteur": 996,
-      "zones": [
-        {
-          "id": "z1",
-          "masque": "masques/tout-z1.png",
-          "x": 222,
-          "y": 163,
-          "largeur": 789,
-          "hauteur": 374,
-          "etat": "provisoire",
-          "par": "tete"
-        },
-        {
-          "id": "z2",
-          "masque": "masques/tout-z2.png",
-          "x": 121,
-          "y": 23,
-          "largeur": 247,
-          "hauteur": 590,
-          "etat": "provisoire",
-          "par": "arme"
-        },
-        {
-          "id": "z3",
-          "masque": "masques/tout-z3.png",
-          "x": 312,
-          "y": 263,
-          "largeur": 449,
-          "hauteur": 426,
-          "etat": "provisoire",
-          "par": "corps"
-        },
-        {
-          "id": "z4",
-          "masque": "masques/tout-z4.png",
-          "x": 209,
-          "y": 591,
-          "largeur": 513,
-          "hauteur": 418,
-          "etat": "provisoire",
-          "par": "jambes"
-        },
-        {
-          "id": "z5",
-          "masque": "masques/tout-z5.png",
-          "x": 265,
-          "y": 484,
-          "largeur": 79,
-          "hauteur": 153,
-          "etat": "provisoire",
-          "par": "tentacules"
-        }
-      ],
-      "os": "fond"
-    },
-    {
-      "id": "tete",
-      "image": "calques/tete.png",
-      "de": "tout",
-      "ordre": 5,
-      "x": 185,
-      "y": 138,
-      "largeur": 828,
-      "hauteur": 415,
-      "os": "tete"
-    },
-    {
-      "id": "arme",
-      "image": "calques/arme.png",
-      "de": "tout",
-      "ordre": 4,
-      "x": 119,
-      "y": 15,
-      "largeur": 280,
-      "hauteur": 629,
-      "os": "arme"
-    },
-    {
-      "id": "corps",
-      "image": "calques/corps.png",
-      "de": "tout",
-      "ordre": 3,
-      "x": 281,
-      "y": 232,
-      "largeur": 500,
-      "hauteur": 488,
-      "os": "corps"
-    },
-    {
-      "id": "jambes",
-      "image": "calques/jambes.png",
-      "de": "tout",
-      "ordre": 2,
-      "x": 178,
-      "y": 561,
-      "largeur": 575,
-      "hauteur": 450,
-      "os": "jambes"
-    },
-    {
-      "id": "tentacules",
-      "image": "calques/tentacules.png",
-      "de": "tout",
-      "ordre": 1,
-      "x": 234,
-      "y": 453,
-      "largeur": 120,
-      "hauteur": 215,
-      "os": "tentacules"
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
     }
   ],
   "ik": []

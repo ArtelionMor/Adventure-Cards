@@ -10,87 +10,27 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 1/Elixir Venimeux.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 266, "y": 980, "angle": 0, "longueur": 408 },
-    { "id": "fond", "parent": null, "x": 0, "y": 980, "angle": 0, "longueur": 20 },
-    { "id": "corps", "parent": "sol", "x": 457, "y": 974, "angle": -76.6, "longueur": 727 },
-    { "id": "tete", "parent": "corps", "x": 446, "y": 265, "angle": -20.9, "longueur": 187 },
-    { "id": "jambes", "parent": "corps", "x": 481, "y": 955, "angle": 9, "longueur": 135 }
+    { "id": "sol", "parent": null, "x": 261, "y": 949, "angle": 0, "longueur": 368 },
+    { "id": "bassin", "parent": "sol", "x": 445, "y": 884, "angle": -90, "longueur": 65 },
+    { "id": "torse", "parent": "bassin", "x": 445, "y": 819, "angle": -90, "longueur": 162 },
+    { "id": "tete", "parent": "torse", "x": 445, "y": 576, "angle": -90, "longueur": 243 },
+    { "id": "oreille_g", "parent": "tete", "x": 376, "y": 332, "angle": -120, "longueur": 122 },
+    { "id": "oreille_d", "parent": "tete", "x": 514, "y": 332, "angle": -60, "longueur": 122 },
+    { "id": "bras_g", "parent": "torse", "x": 376, "y": 721, "angle": 160, "longueur": 114 },
+    { "id": "bras_d", "parent": "torse", "x": 514, "y": 721, "angle": 20, "longueur": 114 },
+    { "id": "jambe_g", "parent": "bassin", "x": 399, "y": 884, "angle": 100, "longueur": 73 },
+    { "id": "jambe_d", "parent": "bassin", "x": 491, "y": 884, "angle": 80, "longueur": 73 },
+    { "id": "queue", "parent": "bassin", "x": 537, "y": 835, "angle": -30, "longueur": 114 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "calques/tout.png",
+      "image": "source.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024,
-      "zones": [
-        {
-          "id": "z1",
-          "masque": "masques/tout-z1.png",
-          "x": 282,
-          "y": 170,
-          "largeur": 344,
-          "hauteur": 180,
-          "etat": "provisoire",
-          "par": "tete"
-        },
-        {
-          "id": "z2",
-          "masque": "masques/tout-z2.png",
-          "x": 266,
-          "y": 265,
-          "largeur": 409,
-          "hauteur": 710,
-          "etat": "provisoire",
-          "par": "corps"
-        },
-        {
-          "id": "z3",
-          "masque": "masques/tout-z3.png",
-          "x": 359,
-          "y": 950,
-          "largeur": 257,
-          "hauteur": 31,
-          "etat": "provisoire",
-          "par": "jambes"
-        }
-      ],
-      "os": "fond"
-    },
-    {
-      "id": "tete",
-      "image": "calques/tete.png",
-      "de": "tout",
-      "ordre": 3,
-      "x": 276,
-      "y": 164,
-      "largeur": 369,
-      "hauteur": 217,
-      "os": "tete"
-    },
-    {
-      "id": "corps",
-      "image": "calques/corps.png",
-      "de": "tout",
-      "ordre": 2,
-      "x": 245,
-      "y": 214,
-      "largeur": 439,
-      "hauteur": 807,
-      "os": "corps"
-    },
-    {
-      "id": "jambes",
-      "image": "calques/jambes.png",
-      "de": "tout",
-      "ordre": 1,
-      "x": 329,
-      "y": 919,
-      "largeur": 312,
-      "hauteur": 71,
-      "os": "jambes"
+      "hauteur": 1024
     }
   ],
   "ik": []

@@ -10,109 +10,27 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Octobot/Chaine de montage.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 33, "y": 997, "angle": 0, "longueur": 973 },
-    { "id": "fond", "parent": null, "x": 0, "y": 997, "angle": 0, "longueur": 20 },
-    { "id": "corps", "parent": "sol", "x": 769, "y": 997, "angle": -145.2, "longueur": 528 },
-    { "id": "tentacules", "parent": "corps", "x": 485, "y": 638, "angle": -58.2, "longueur": 707 },
-    { "id": "tete", "parent": "tentacules", "x": 468, "y": 472, "angle": 152.7, "longueur": 131 },
-    { "id": "tuyau", "parent": "tentacules", "x": 224, "y": 763, "angle": 141.5, "longueur": 218 }
+    { "id": "sol", "parent": null, "x": 130, "y": 959, "angle": 0, "longueur": 779 },
+    { "id": "bassin", "parent": "sol", "x": 520, "y": 881, "angle": -90, "longueur": 78 },
+    { "id": "torse", "parent": "bassin", "x": 520, "y": 803, "angle": -90, "longueur": 195 },
+    { "id": "tete", "parent": "torse", "x": 520, "y": 510, "angle": -90, "longueur": 293 },
+    { "id": "oreille_g", "parent": "tete", "x": 374, "y": 216, "angle": -120, "longueur": 147 },
+    { "id": "oreille_d", "parent": "tete", "x": 666, "y": 216, "angle": -60, "longueur": 147 },
+    { "id": "bras_g", "parent": "torse", "x": 374, "y": 685, "angle": 160, "longueur": 137 },
+    { "id": "bras_d", "parent": "torse", "x": 666, "y": 685, "angle": 20, "longueur": 137 },
+    { "id": "jambe_g", "parent": "bassin", "x": 423, "y": 881, "angle": 100, "longueur": 88 },
+    { "id": "jambe_d", "parent": "bassin", "x": 617, "y": 881, "angle": 80, "longueur": 88 },
+    { "id": "queue", "parent": "bassin", "x": 715, "y": 822, "angle": -30, "longueur": 137 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "calques/tout.png",
+      "image": "source.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024,
-      "zones": [
-        {
-          "id": "z1",
-          "masque": "masques/tout-z1.png",
-          "x": 350,
-          "y": 376,
-          "largeur": 238,
-          "hauteur": 184,
-          "etat": "provisoire",
-          "par": "tete"
-        },
-        {
-          "id": "z2",
-          "masque": "masques/tout-z2.png",
-          "x": 33,
-          "y": 589,
-          "largeur": 254,
-          "hauteur": 387,
-          "etat": "provisoire",
-          "par": "tuyau"
-        },
-        {
-          "id": "z3",
-          "masque": "masques/tout-z3.png",
-          "x": 330,
-          "y": 577,
-          "largeur": 663,
-          "hauteur": 421,
-          "etat": "provisoire",
-          "par": "corps"
-        },
-        {
-          "id": "z4",
-          "masque": "masques/tout-z4.png",
-          "x": 64,
-          "y": 21,
-          "largeur": 943,
-          "hauteur": 948,
-          "etat": "provisoire",
-          "par": "tentacules"
-        }
-      ],
-      "os": "fond"
-    },
-    {
-      "id": "tete",
-      "image": "calques/tete.png",
-      "de": "tout",
-      "ordre": 4,
-      "x": 319,
-      "y": 345,
-      "largeur": 300,
-      "hauteur": 246,
-      "os": "tete"
-    },
-    {
-      "id": "tuyau",
-      "image": "calques/tuyau.png",
-      "de": "tout",
-      "ordre": 3,
-      "x": 33,
-      "y": 558,
-      "largeur": 285,
-      "hauteur": 418,
-      "os": "tuyau"
-    },
-    {
-      "id": "corps",
-      "image": "calques/corps.png",
-      "de": "tout",
-      "ordre": 2,
-      "x": 289,
-      "y": 536,
-      "largeur": 704,
-      "hauteur": 462,
-      "os": "corps"
-    },
-    {
-      "id": "tentacules",
-      "image": "calques/tentacules.png",
-      "de": "tout",
-      "ordre": 1,
-      "x": 62,
-      "y": 0,
-      "largeur": 961,
-      "hauteur": 976,
-      "os": "tentacules"
+      "hauteur": 1024
     }
   ],
   "ik": []

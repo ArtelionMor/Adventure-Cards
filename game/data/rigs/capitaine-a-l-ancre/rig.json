@@ -10,153 +10,27 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Octopus/Capitaine à l'Ancre.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 47, "y": 903, "angle": 0, "longueur": 880 },
-    { "id": "fond", "parent": null, "x": 0, "y": 903, "angle": 0, "longueur": 20 },
-    { "id": "corps", "parent": "sol", "x": 494, "y": 903, "angle": -110, "longueur": 630 },
-    { "id": "tete", "parent": "corps", "x": 525, "y": 311, "angle": -136.1, "longueur": 300 },
-    { "id": "tentacules", "parent": "corps", "x": 265, "y": 318, "angle": 140.1, "longueur": 239 },
-    { "id": "tuyau", "parent": "corps", "x": 244, "y": 598, "angle": 141.3, "longueur": 211 },
-    { "id": "jambes", "parent": "corps", "x": 442, "y": 714, "angle": 146.2, "longueur": 250 },
-    { "id": "arme", "parent": "corps", "x": 715, "y": 592, "angle": 112.4, "longueur": 265 }
+    { "id": "sol", "parent": null, "x": 139, "y": 918, "angle": 0, "longueur": 736 },
+    { "id": "bassin", "parent": "sol", "x": 507, "y": 847, "angle": -90, "longueur": 71 },
+    { "id": "torse", "parent": "bassin", "x": 507, "y": 776, "angle": -90, "longueur": 177 },
+    { "id": "tete", "parent": "torse", "x": 507, "y": 511, "angle": -90, "longueur": 265 },
+    { "id": "oreille_g", "parent": "tete", "x": 369, "y": 246, "angle": -120, "longueur": 133 },
+    { "id": "oreille_d", "parent": "tete", "x": 645, "y": 246, "angle": -60, "longueur": 133 },
+    { "id": "bras_g", "parent": "torse", "x": 369, "y": 670, "angle": 160, "longueur": 124 },
+    { "id": "bras_d", "parent": "torse", "x": 645, "y": 670, "angle": 20, "longueur": 124 },
+    { "id": "jambe_g", "parent": "bassin", "x": 415, "y": 847, "angle": 100, "longueur": 80 },
+    { "id": "jambe_d", "parent": "bassin", "x": 599, "y": 847, "angle": 80, "longueur": 80 },
+    { "id": "queue", "parent": "bassin", "x": 691, "y": 794, "angle": -30, "longueur": 124 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "calques/tout.png",
+      "image": "source.png",
       "ordre": 0,
-      "x": 45,
-      "y": 67,
-      "largeur": 924,
-      "hauteur": 888,
-      "zones": [
-        {
-          "id": "z1",
-          "masque": "masques/tout-z1.png",
-          "x": 279,
-          "y": 69,
-          "largeur": 476,
-          "hauteur": 323,
-          "etat": "provisoire",
-          "par": "tete"
-        },
-        {
-          "id": "z2",
-          "masque": "masques/tout-z2.png",
-          "x": 613,
-          "y": 477,
-          "largeur": 315,
-          "hauteur": 362,
-          "etat": "provisoire",
-          "par": "arme"
-        },
-        {
-          "id": "z3",
-          "masque": "masques/tout-z3.png",
-          "x": 47,
-          "y": 473,
-          "largeur": 250,
-          "hauteur": 308,
-          "etat": "provisoire",
-          "par": "tuyau"
-        },
-        {
-          "id": "z4",
-          "masque": "masques/tout-z4.png",
-          "x": 222,
-          "y": 308,
-          "largeur": 679,
-          "hauteur": 596,
-          "etat": "provisoire",
-          "par": "corps"
-        },
-        {
-          "id": "z5",
-          "masque": "masques/tout-z5.png",
-          "x": 232,
-          "y": 636,
-          "largeur": 268,
-          "hauteur": 240,
-          "etat": "provisoire",
-          "par": "jambes"
-        },
-        {
-          "id": "z6",
-          "masque": "masques/tout-z6.png",
-          "x": 63,
-          "y": 219,
-          "largeur": 295,
-          "hauteur": 282,
-          "etat": "provisoire",
-          "par": "tentacules"
-        }
-      ],
-      "os": "fond"
-    },
-    {
-      "id": "tete",
-      "image": "calques/tete.png",
-      "de": "tout",
-      "ordre": 6,
-      "x": 248,
-      "y": 67,
-      "largeur": 538,
-      "hauteur": 356,
-      "os": "tete"
-    },
-    {
-      "id": "arme",
-      "image": "calques/arme.png",
-      "de": "tout",
-      "ordre": 5,
-      "x": 582,
-      "y": 446,
-      "largeur": 362,
-      "hauteur": 424,
-      "os": "arme"
-    },
-    {
-      "id": "tuyau",
-      "image": "calques/tuyau.png",
-      "de": "tout",
-      "ordre": 4,
-      "x": 45,
-      "y": 442,
-      "largeur": 283,
-      "hauteur": 348,
-      "os": "tuyau"
-    },
-    {
-      "id": "corps",
-      "image": "calques/corps.png",
-      "de": "tout",
-      "ordre": 3,
-      "x": 179,
-      "y": 265,
-      "largeur": 765,
-      "hauteur": 672,
-      "os": "corps"
-    },
-    {
-      "id": "jambes",
-      "image": "calques/jambes.png",
-      "de": "tout",
-      "ordre": 2,
-      "x": 230,
-      "y": 605,
-      "largeur": 301,
-      "hauteur": 297,
-      "os": "jambes"
-    },
-    {
-      "id": "tentacules",
-      "image": "calques/tentacules.png",
-      "de": "tout",
-      "ordre": 1,
-      "x": 61,
-      "y": 192,
-      "largeur": 328,
-      "hauteur": 340,
-      "os": "tentacules"
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
     }
   ],
   "ik": []

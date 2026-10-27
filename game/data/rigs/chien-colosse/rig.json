@@ -10,197 +10,27 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Big Bad Wolf/Chien Colosse.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 72, "y": 974, "angle": 0, "longueur": 902 },
-    { "id": "fond", "parent": null, "x": 0, "y": 974, "angle": 0, "longueur": 20 },
-    { "id": "corps", "parent": "sol", "x": 577, "y": 702, "angle": -42.1, "longueur": 291 },
-    { "id": "tete", "parent": "corps", "x": 602, "y": 503, "angle": -48.2, "longueur": 351 },
-    { "id": "bras", "parent": "corps", "x": 504, "y": 682, "angle": -21.4, "longueur": 434 },
-    { "id": "jambes", "parent": "corps", "x": 647, "y": 664, "angle": 43.3, "longueur": 434 },
-    { "id": "oreille_gauche", "parent": "tete", "x": 807, "y": 387, "angle": 50.5, "longueur": 245 },
-    { "id": "queue", "parent": "bras", "x": 339, "y": 665, "angle": 132.8, "longueur": 388 },
-    { "id": "cape", "parent": "jambes", "x": 842, "y": 695, "angle": -44, "longueur": 170 },
-    { "id": "arme", "parent": "queue", "x": 214, "y": 615, "angle": -97.5, "longueur": 595 }
+    { "id": "sol", "parent": null, "x": 162, "y": 937, "angle": 0, "longueur": 722 },
+    { "id": "bassin", "parent": "sol", "x": 524, "y": 861, "angle": -90, "longueur": 76 },
+    { "id": "torse", "parent": "bassin", "x": 524, "y": 785, "angle": -90, "longueur": 190 },
+    { "id": "tete", "parent": "torse", "x": 524, "y": 500, "angle": -90, "longueur": 285 },
+    { "id": "oreille_g", "parent": "tete", "x": 388, "y": 215, "angle": -120, "longueur": 143 },
+    { "id": "oreille_d", "parent": "tete", "x": 659, "y": 215, "angle": -60, "longueur": 143 },
+    { "id": "bras_g", "parent": "torse", "x": 388, "y": 671, "angle": 160, "longueur": 133 },
+    { "id": "bras_d", "parent": "torse", "x": 659, "y": 671, "angle": 20, "longueur": 133 },
+    { "id": "jambe_g", "parent": "bassin", "x": 433, "y": 861, "angle": 100, "longueur": 86 },
+    { "id": "jambe_d", "parent": "bassin", "x": 614, "y": 861, "angle": 80, "longueur": 86 },
+    { "id": "queue", "parent": "bassin", "x": 704, "y": 804, "angle": -30, "longueur": 133 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "calques/tout.png",
+      "image": "source.png",
       "ordre": 0,
-      "x": 70,
-      "y": 23,
-      "largeur": 907,
-      "hauteur": 954,
-      "zones": [
-        {
-          "id": "z1",
-          "masque": "masques/tout-z1.png",
-          "x": 747,
-          "y": 244,
-          "largeur": 218,
-          "hauteur": 335,
-          "etat": "provisoire",
-          "par": "oreille_gauche"
-        },
-        {
-          "id": "z2",
-          "masque": "masques/tout-z2.png",
-          "x": 317,
-          "y": 175,
-          "largeur": 525,
-          "hauteur": 382,
-          "etat": "provisoire",
-          "par": "tete"
-        },
-        {
-          "id": "z3",
-          "masque": "masques/tout-z3.png",
-          "x": 83,
-          "y": 25,
-          "largeur": 268,
-          "hauteur": 667,
-          "etat": "provisoire",
-          "par": "arme"
-        },
-        {
-          "id": "z4",
-          "masque": "masques/tout-z4.png",
-          "x": 721,
-          "y": 543,
-          "largeur": 254,
-          "hauteur": 262,
-          "etat": "provisoire",
-          "par": "cape"
-        },
-        {
-          "id": "z5",
-          "masque": "masques/tout-z5.png",
-          "x": 267,
-          "y": 473,
-          "largeur": 642,
-          "hauteur": 309,
-          "etat": "provisoire",
-          "par": "bras"
-        },
-        {
-          "id": "z6",
-          "masque": "masques/tout-z6.png",
-          "x": 423,
-          "y": 471,
-          "largeur": 387,
-          "hauteur": 232,
-          "etat": "provisoire",
-          "par": "corps"
-        },
-        {
-          "id": "z7",
-          "masque": "masques/tout-z7.png",
-          "x": 394,
-          "y": 634,
-          "largeur": 570,
-          "hauteur": 341,
-          "etat": "provisoire",
-          "par": "jambes"
-        },
-        {
-          "id": "z8",
-          "masque": "masques/tout-z8.png",
-          "x": 72,
-          "y": 563,
-          "largeur": 357,
-          "hauteur": 394,
-          "etat": "provisoire",
-          "par": "queue"
-        }
-      ],
-      "os": "fond"
-    },
-    {
-      "id": "oreille_gauche",
-      "image": "calques/oreille_gauche.png",
-      "de": "tout",
-      "ordre": 8,
-      "x": 716,
-      "y": 225,
-      "largeur": 254,
-      "hauteur": 385,
-      "os": "oreille_gauche"
-    },
-    {
-      "id": "tete",
-      "image": "calques/tete.png",
-      "de": "tout",
-      "ordre": 7,
-      "x": 307,
-      "y": 173,
-      "largeur": 573,
-      "hauteur": 422,
-      "os": "tete"
-    },
-    {
-      "id": "arme",
-      "image": "calques/arme.png",
-      "de": "tout",
-      "ordre": 6,
-      "x": 81,
-      "y": 23,
-      "largeur": 301,
-      "hauteur": 685,
-      "os": "arme"
-    },
-    {
-      "id": "cape",
-      "image": "calques/cape.png",
-      "de": "tout",
-      "ordre": 5,
-      "x": 690,
-      "y": 512,
-      "largeur": 287,
-      "hauteur": 309,
-      "os": "cape"
-    },
-    {
-      "id": "bras",
-      "image": "calques/bras.png",
-      "de": "tout",
-      "ordre": 4,
-      "x": 236,
-      "y": 442,
-      "largeur": 704,
-      "hauteur": 371,
-      "os": "bras"
-    },
-    {
-      "id": "corps",
-      "image": "calques/corps.png",
-      "de": "tout",
-      "ordre": 3,
-      "x": 392,
-      "y": 440,
-      "largeur": 449,
-      "hauteur": 294,
-      "os": "corps"
-    },
-    {
-      "id": "jambes",
-      "image": "calques/jambes.png",
-      "de": "tout",
-      "ordre": 2,
-      "x": 361,
-      "y": 601,
-      "largeur": 605,
-      "hauteur": 376,
-      "os": "jambes"
-    },
-    {
-      "id": "queue",
-      "image": "calques/queue.png",
-      "de": "tout",
-      "ordre": 1,
-      "x": 70,
-      "y": 532,
-      "largeur": 390,
-      "hauteur": 427,
-      "os": "queue"
+      "x": 0,
+      "y": 0,
+      "largeur": 1024,
+      "hauteur": 1024
     }
   ],
   "ik": []
