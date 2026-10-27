@@ -186,7 +186,9 @@ const E = {
   // WebGL), masques = les zones a combler ('calque/zone'), source = l'image d'origine (restaurer)
   multi: new Set(), ancre: null, px: {}, toiles: {}, masques: {}, source: null, salesImages: new Set(), calque: null, opacites: {},
   texteRig: '', texteClips: '',        // ce qui est sur le disque (pour voir un changement)
-  sale: false, histo: [], futur: [],
+  _sale: false, rev: 0, histo: [], futur: [],
+  // `sale` (modifie, pas enregistre) : chaque passage a vrai compte une revision (`rev`) : un enregistrement ne le remet a faux que si rien n'a bouge pendant qu'il ecrivait
+  get sale() { return this._sale; }, set sale(v) { this._sale = v; if (v) this.rev++; },
   prep: null, anim: null,
   mode: 'os', sel: null,
   vue: { z: 0.3, x: 0, y: 0 },
@@ -249,15 +251,30 @@ async function ouvre(id, sansBrouillon = false) {
 }
 
 // Les calques dont l'image a change partent en PNG (recadres), puis rig.json.
+// ⚠ Pendant qu'il ecrit (plusieurs secondes sur iPad) on continue de dessiner : ce qui change PENDANT l'enregistrement reste « a enregistrer »
+// (avant, la fin d'un enregistrement remettait tout a zero et ces retouches n'etaient plus jamais ecrites). Un seul enregistrement a la fois.
+let enregistreEnCours = false, enregistreEncore = false;
 async function enregistre() {
   if (!E.id) return;
-  const { json, fichiers } = pourEnregistrer(E.rig, E.px, E.masques, [...E.salesImages]);
-  for (const f of fichiers) await ecris(E.id + '/' + f.chemin, await enPng(f.image));
-  const texte = formateJson(json) + '\n';
-  await ecris(E.id + '/rig.json', texte);
-  E.texteRig = texte; E.sale = false; E.salesImages = new Set(); marque();
-  efface_brouillon();
-  toast(`enregistré : rig.json${fichiers.length ? ' + ' + fichiers.length + ' image(s)' : ''}`);
+  if (enregistreEnCours) { enregistreEncore = true; return; }
+  enregistreEnCours = true;
+  try {
+    do {
+      enregistreEncore = false;
+      const rev0 = E.rev, partis = new Set(E.salesImages), refs = { ...E.px };
+      const { json, fichiers } = pourEnregistrer(E.rig, E.px, E.masques, [...partis]);
+      for (const f of fichiers) await ecris(E.id + '/' + f.chemin, await enPng(f.image));
+      const texte = formateJson(json) + '\n';
+      await ecris(E.id + '/rig.json', texte);
+      E.texteRig = texte;
+      const intact = E.rev === rev0;
+      E.salesImages = new Set([...E.salesImages].filter(id => !partis.has(id) || !intact || E.px[id] !== refs[id]));
+      if (intact) E.sale = false;
+      marque();
+      if (intact) efface_brouillon();
+      toast(`enregistré : rig.json${fichiers.length ? ' + ' + fichiers.length + ' image(s)' : ''}` + (intact ? "" : " (des retouches faites pendant l'enregistrement restent à enregistrer)"));
+    } while (enregistreEncore);
+  } finally { enregistreEnCours = false; }
 }
 
 // BROUILLON : tant que le travail n'est pas enregistre, une copie part dans le navigateur (IndexedDB) quelques secondes apres le
