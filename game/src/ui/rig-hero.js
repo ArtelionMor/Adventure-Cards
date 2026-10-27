@@ -47,6 +47,12 @@ function image(t) {
     const a = v.a;
     a.avance(dt);
     if (a.clip && !a.clip.boucle && a.t >= a.clip.duree) a.joue('idle', { fondu: 0.15 });
+    // PROVISOIRE (essai) : de temps en temps, un petit mouvement en plus, pour que le plateau vive
+    if (BALANCE.ui.rigsRemuants && a.clip.boucle && (v.reveil = (v.reveil ?? 1 + Math.random() * 4) - dt) < 0) {
+      v.reveil = 3 + Math.random() * 4;
+      const l = ['hitting', 'walking', 'idle'].filter(n => a.rig.clips[n]);
+      if (l.length) a.joue(l[Math.floor(Math.random() * l.length)], { fondu: 0.15 });
+    }
     a.calcule();
     v.rendu.efface();
     v.rendu.dessine(a, { place: [0, 0], origine: [0, 0], echelle: cote / Math.max(...a.rig.taille) });
@@ -74,7 +80,8 @@ export function animeImg(hote, img, sprite, hp, reglage) {
     const rendu = creeRendu(canvas);
     if (!rendu) return;
     nouveau.canvas = canvas; nouveau.rendu = rendu;
-    nouveau.a = creeAnimateur(rig).joue('idle', { fondu: 0, depuis: Math.random() * 2 });   // pas tous en phase
+    nouveau.a = creeAnimateur(rig).joue('idle', { fondu: 0, depuis: Math.random() * 2 });
+    nouveau.a.gain = BALANCE.ui.rigsGain || 1;   // pas tous en phase
     const im = hote.querySelector('img');
     if (!im) return;
     im.before(canvas); im.style.display = 'none';

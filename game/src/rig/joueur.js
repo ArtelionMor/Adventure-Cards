@@ -53,7 +53,7 @@ export function creeAnimateur(rig) {
   let peau = new Float64Array(n * 6);
   const sommets = rig.calques.map(c => new Float32Array(c.n * 2));
   const a = {
-    rig, clip: null, t: 0, vitesse: 1,
+    rig, clip: null, t: 0, vitesse: 1, gain: 1,
     // le clip qu'on quitte, pendant un fondu
     avant: null, tAvant: 0, fondu: 0, fonduEcoule: 0,
     pose, monde, sommets,
@@ -88,6 +88,8 @@ export function creeAnimateur(rig) {
       } else {
         evalueClip(rig.sq, a.clip, a.t, pose);
       }
+      // `gain` : exagere la pose par rapport au repos (un jeu qui veut des mouvements plus lisibles a petite taille ; 1 = tel quel)
+      if (a.gain !== 1 && !poseForcee) for (let i = 0; i < n; i++) { pose.rot[i] *= a.gain; pose.x[i] *= a.gain; pose.y[i] *= a.gain; pose.sx[i] = 1 + (pose.sx[i] - 1) * a.gain; pose.sy[i] = 1 + (pose.sy[i] - 1) * a.gain; }
       calculeMonde(rig.sq, pose, monde);
       peau = matricesDePeau(rig.sq, monde, peau);
       rig.calques.forEach((c, k) => deforme(c, peau, sommets[k]));
