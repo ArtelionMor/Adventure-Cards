@@ -187,22 +187,8 @@ html[data-skin="juice"][data-variante="cozy"] #battle[data-fond="clairiere"] {
   &.overlay {
     background:
       /* le flanc droit */
-      url("cozy/pommier.svg") right -64px top 68% / 140px no-repeat,
-      url("cozy/buisson.svg") right -14px top 60% / 62px no-repeat,
-      url("cozy/chene2.svg") right -72px top 46% / 145px no-repeat,
-      url("cozy/sapin.svg") right -62px top 29% / 130px no-repeat,
-      url("cozy/chene.svg") right -66px top 11% / 150px no-repeat,
       /* le flanc gauche */
-      url("cozy/chene.svg") left -74px top 66% / 150px no-repeat,
-      url("cozy/pommier.svg") left -66px top 50% / 140px no-repeat,
-      url("cozy/buisson.svg") left -16px top 46% / 60px no-repeat,
-      url("cozy/chene2.svg") left -72px top 32% / 140px no-repeat,
-      url("cozy/sapin.svg") left -60px top 16% / 130px no-repeat,
       /* la lisiere du haut, derriere l'adversaire */
-      url("cozy/chene2.svg") right -50px top -66px / 155px no-repeat,
-      url("cozy/chene.svg") left -52px top -70px / 155px no-repeat,
-      url("cozy/sapin.svg") left 24% top -80px / 128px no-repeat,
-      url("cozy/pommier.svg") left 62% top -86px / 140px no-repeat,
       /* le soleil qui tombe dans la clairiere */
       radial-gradient(ellipse 70% 40% at 50% 40%, rgba(255, 236, 150, .22), transparent 70%),
       /* l'ombre des sous-bois, vers les bords */
@@ -267,15 +253,6 @@ html[data-skin="juice"][data-variante="cozy"] #battle[data-fond="prairie"] {
 html[data-skin="juice"][data-variante="cozy"] #battle[data-fond="etang"] {
   &.overlay {
     background:
-      url("cozy/nenuphar-fleur.svg") right -20px top 64% / 92px no-repeat,
-      url("cozy/nenuphar.svg") right -34px top 44% / 104px no-repeat,
-      url("cozy/nenuphar.svg") right -26px top 22% / 86px no-repeat,
-      url("cozy/nenuphar.svg") left -30px top 70% / 100px no-repeat,
-      url("cozy/nenuphar-fleur.svg") left -22px top 46% / 90px no-repeat,
-      url("cozy/nenuphar.svg") left -34px top 26% / 104px no-repeat,
-      url("cozy/nenuphar-fleur.svg") left 30% top -30px / 88px no-repeat,
-      url("cozy/nenuphar.svg") right 6% top -36px / 100px no-repeat,
-      url("cozy/nenuphar.svg") left -30px top -28px / 96px no-repeat,
       radial-gradient(ellipse 70% 40% at 50% 38%, rgba(255, 250, 210, .18), transparent 70%),
       url("cozy/eau.svg") 0 0 / 260px 220px,
       radial-gradient(ellipse 85% 70% at 50% 45%, #74c8c8 0%, #4aa2ad 60%, #2f7787 100%);
@@ -305,3 +282,29 @@ html[data-skin="juice"][data-variante="cozy"] #battle[data-fond="pastel"] {
   & #boardE { background: rgba(255, 228, 236, .6); }
   & #boardP { background: rgba(232, 250, 242, .6); }
 }
+
+/* ================================================================ LE DECOR VIVANT (ui/decor.js, `BALANCE.ui.decorVivant`)
+   Les arbres et les nenuphars sont des images dans une couche DERRIERE le jeu (z-index -1 : au-dessus du fond de `#battle`, sous tout
+   son contenu). Ils oscillent autour de leur bord (le pied de l'arbre est hors de l'ecran) ; les feuilles, rides et lucioles passent. */
+html[data-skin="juice"][data-variante="cozy"] #battle > .decor {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
+  & > * { position: absolute; user-select: none; }
+  & .arbre { height: auto; transform-origin: 50% 50%; animation: decor-vent var(--duree, 6s) ease-in-out infinite alternate; }
+  & .arbre.left { transform-origin: 0 50%; }
+  & .arbre.right { transform-origin: 100% 50%; }
+  & .nenu { height: auto; animation: decor-flotte var(--duree, 6s) ease-in-out infinite alternate; }
+  & .feuille { width: 9px; height: 13px; border-radius: 0 100% 0 100%; background: #d7e46a; opacity: .75; box-shadow: inset -2px -2px 0 rgba(60, 110, 30, .35);
+    animation: decor-chute var(--duree, 12s) linear infinite; }
+  & .feuille:nth-child(3n) { background: #f3b45a; } & .feuille:nth-child(3n+1) { background: #9fd36a; }
+  & .ride { width: 40px; height: 22px; margin: -11px 0 0 -20px; border: 2px solid rgba(235, 255, 250, .5); border-radius: 50%; opacity: 0;
+    animation: decor-ride var(--duree, 8s) ease-out infinite; }
+  & .luciole { width: 5px; height: 5px; border-radius: 50%; background: #fff6a8; box-shadow: 0 0 8px 3px rgba(255, 240, 140, .7);
+    animation: decor-luciole var(--duree, 8s) ease-in-out infinite alternate; }
+  &.fixe > * { animation: none !important; }
+}
+@keyframes decor-vent { from { rotate: -1.8deg; scale: 1; translate: -1px 0; } to { rotate: 1.8deg; scale: 1.025; translate: 3px 1px; } }
+@keyframes decor-flotte { from { translate: 0 -2px; rotate: -3deg; } to { translate: 2px 3px; rotate: 3deg; } }
+@keyframes decor-chute { 0% { translate: 0 0; rotate: 0deg; opacity: 0; } 8% { opacity: .75; } 92% { opacity: .75; } 100% { translate: var(--dx, 40px) 118vh; rotate: 540deg; opacity: 0; } }
+@keyframes decor-ride { 0% { scale: .3; opacity: 0; } 25% { opacity: .55; } 100% { scale: 2.2; opacity: 0; } }
+@keyframes decor-luciole { 0% { translate: 0 0; opacity: .1; } 50% { opacity: 1; } 100% { translate: var(--dx, 30px) -40px; opacity: .15; } }
+@media (prefers-reduced-motion: reduce) { html[data-skin="juice"][data-variante="cozy"] #battle > .decor > * { animation: none !important; } }

@@ -10,27 +10,175 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Rabbit Decks/Rabbit Deck 2/Doyenne du Clapier.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 203, "y": 961, "angle": 0, "longueur": 617 },
-    { "id": "bassin", "parent": "sol", "x": 512, "y": 882, "angle": -90, "longueur": 79 },
-    { "id": "torse", "parent": "bassin", "x": 512, "y": 803, "angle": -90, "longueur": 198 },
-    { "id": "tete", "parent": "torse", "x": 512, "y": 507, "angle": -90, "longueur": 296 },
-    { "id": "oreille_g", "parent": "tete", "x": 396, "y": 211, "angle": -120, "longueur": 148 },
-    { "id": "oreille_d", "parent": "tete", "x": 627, "y": 211, "angle": -60, "longueur": 148 },
-    { "id": "bras_g", "parent": "torse", "x": 396, "y": 685, "angle": 160, "longueur": 138 },
-    { "id": "bras_d", "parent": "torse", "x": 627, "y": 685, "angle": 20, "longueur": 138 },
-    { "id": "jambe_g", "parent": "bassin", "x": 434, "y": 882, "angle": 100, "longueur": 89 },
-    { "id": "jambe_d", "parent": "bassin", "x": 589, "y": 882, "angle": 80, "longueur": 89 },
-    { "id": "queue", "parent": "bassin", "x": 666, "y": 823, "angle": -30, "longueur": 138 }
+    { "id": "sol", "parent": null, "x": 157, "y": 1000, "angle": 0, "longueur": 739 },
+    { "id": "fond", "parent": null, "x": 0, "y": 1000, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 360, "y": 994, "angle": -63.5, "longueur": 790 },
+    { "id": "tete", "parent": "corps", "x": 648, "y": 315, "angle": 173, "longueur": 495 },
+    { "id": "oreille_gauche", "parent": "tete", "x": 388, "y": 232, "angle": -139.6, "longueur": 256 },
+    { "id": "oreille_droite", "parent": "tete", "x": 559, "y": 217, "angle": -124.8, "longueur": 247 },
+    { "id": "bras", "parent": "tete", "x": 331, "y": 335, "angle": 14.5, "longueur": 558 },
+    { "id": "jambes", "parent": "tete", "x": 481, "y": 791, "angle": 26.4, "longueur": 308 },
+    { "id": "queue", "parent": "tete", "x": 733, "y": 843, "angle": -39.7, "longueur": 99 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 400,
+          "y": 13,
+          "largeur": 255,
+          "hauteur": 256,
+          "etat": "provisoire",
+          "par": "oreille_droite"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 193,
+          "y": 63,
+          "largeur": 222,
+          "hauteur": 202,
+          "etat": "provisoire",
+          "par": "oreille_gauche"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 157,
+          "y": 13,
+          "largeur": 740,
+          "hauteur": 641,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 166,
+          "y": 325,
+          "largeur": 706,
+          "hauteur": 179,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 172,
+          "y": 280,
+          "largeur": 601,
+          "hauteur": 715,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z6",
+          "masque": "masques/tout-z6.png",
+          "x": 342,
+          "y": 629,
+          "largeur": 416,
+          "hauteur": 372,
+          "etat": "provisoire",
+          "par": "jambes"
+        },
+        {
+          "id": "z7",
+          "masque": "masques/tout-z7.png",
+          "x": 718,
+          "y": 755,
+          "largeur": 95,
+          "hauteur": 174,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "oreille_droite",
+      "image": "calques/oreille_droite.png",
+      "de": "tout",
+      "ordre": 7,
+      "x": 369,
+      "y": 0,
+      "largeur": 317,
+      "hauteur": 300,
+      "os": "oreille_droite"
+    },
+    {
+      "id": "oreille_gauche",
+      "image": "calques/oreille_gauche.png",
+      "de": "tout",
+      "ordre": 6,
+      "x": 188,
+      "y": 57,
+      "largeur": 258,
+      "hauteur": 239,
+      "os": "oreille_gauche"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 153,
+      "y": 0,
+      "largeur": 749,
+      "hauteur": 700,
+      "os": "tete"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 153,
+      "y": 295,
+      "largeur": 742,
+      "hauteur": 212,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 137,
+      "y": 245,
+      "largeur": 665,
+      "hauteur": 776,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 326,
+      "y": 598,
+      "largeur": 458,
+      "hauteur": 424,
+      "os": "jambes"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 687,
+      "y": 737,
+      "largeur": 131,
+      "hauteur": 209,
+      "os": "queue"
     }
   ],
   "ik": []

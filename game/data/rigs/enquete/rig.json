@@ -10,27 +10,197 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Dog Decks/Dog Deck 3/Enquête.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 141, "y": 839, "angle": 0, "longueur": 730 },
-    { "id": "bassin", "parent": "sol", "x": 507, "y": 780, "angle": -90, "longueur": 59 },
-    { "id": "torse", "parent": "bassin", "x": 507, "y": 721, "angle": -90, "longueur": 147 },
-    { "id": "tete", "parent": "torse", "x": 507, "y": 502, "angle": -90, "longueur": 220 },
-    { "id": "oreille_g", "parent": "tete", "x": 370, "y": 282, "angle": -120, "longueur": 110 },
-    { "id": "oreille_d", "parent": "tete", "x": 643, "y": 282, "angle": -60, "longueur": 110 },
-    { "id": "bras_g", "parent": "torse", "x": 370, "y": 633, "angle": 160, "longueur": 103 },
-    { "id": "bras_d", "parent": "torse", "x": 643, "y": 633, "angle": 20, "longueur": 103 },
-    { "id": "jambe_g", "parent": "bassin", "x": 415, "y": 780, "angle": 100, "longueur": 66 },
-    { "id": "jambe_d", "parent": "bassin", "x": 598, "y": 780, "angle": 80, "longueur": 66 },
-    { "id": "queue", "parent": "bassin", "x": 689, "y": 736, "angle": -30, "longueur": 103 }
+    { "id": "sol", "parent": null, "x": 50, "y": 834, "angle": 0, "longueur": 912 },
+    { "id": "fond", "parent": null, "x": 0, "y": 834, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 419, "y": 774, "angle": -42.7, "longueur": 294 },
+    { "id": "tete", "parent": "corps", "x": 415, "y": 550, "angle": -68, "longueur": 203 },
+    { "id": "bras", "parent": "corps", "x": 323, "y": 643, "angle": -107.8, "longueur": 357 },
+    { "id": "jambes", "parent": "corps", "x": 645, "y": 607, "angle": 53.2, "longueur": 262 },
+    { "id": "queue", "parent": "corps", "x": 572, "y": 546, "angle": 26.7, "longueur": 433 },
+    { "id": "oreille_gauche", "parent": "tete", "x": 353, "y": 390, "angle": -79.7, "longueur": 195 },
+    { "id": "oreille_droite", "parent": "queue", "x": 686, "y": 386, "angle": -93.9, "longueur": 251 },
+    { "id": "cape", "parent": "queue", "x": 827, "y": 550, "angle": -98.5, "longueur": 354 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 602,
+          "y": 135,
+          "largeur": 169,
+          "hauteur": 315,
+          "etat": "provisoire",
+          "par": "oreille_droite"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 238,
+          "y": 197,
+          "largeur": 205,
+          "hauteur": 278,
+          "etat": "provisoire",
+          "par": "oreille_gauche"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 281,
+          "y": 349,
+          "largeur": 238,
+          "hauteur": 222,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 753,
+          "y": 200,
+          "largeur": 206,
+          "hauteur": 434,
+          "etat": "provisoire",
+          "par": "cape"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 50,
+          "y": 302,
+          "largeur": 334,
+          "hauteur": 519,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z6",
+          "masque": "masques/tout-z6.png",
+          "x": 296,
+          "y": 505,
+          "largeur": 363,
+          "hauteur": 270,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z7",
+          "masque": "masques/tout-z7.png",
+          "x": 597,
+          "y": 565,
+          "largeur": 207,
+          "hauteur": 270,
+          "etat": "provisoire",
+          "par": "jambes"
+        },
+        {
+          "id": "z8",
+          "masque": "masques/tout-z8.png",
+          "x": 504,
+          "y": 313,
+          "largeur": 459,
+          "hauteur": 519,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "oreille_droite",
+      "image": "calques/oreille_droite.png",
+      "de": "tout",
+      "ordre": 8,
+      "x": 571,
+      "y": 130,
+      "largeur": 228,
+      "hauteur": 351,
+      "os": "oreille_droite"
+    },
+    {
+      "id": "oreille_gauche",
+      "image": "calques/oreille_gauche.png",
+      "de": "tout",
+      "ordre": 7,
+      "x": 207,
+      "y": 192,
+      "largeur": 251,
+      "hauteur": 314,
+      "os": "oreille_gauche"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 6,
+      "x": 250,
+      "y": 323,
+      "largeur": 300,
+      "hauteur": 279,
+      "os": "tete"
+    },
+    {
+      "id": "cape",
+      "image": "calques/cape.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 722,
+      "y": 177,
+      "largeur": 242,
+      "hauteur": 488,
+      "os": "cape"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 48,
+      "y": 298,
+      "largeur": 367,
+      "hauteur": 552,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 265,
+      "y": 474,
+      "largeur": 425,
+      "hauteur": 323,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 590,
+      "y": 534,
+      "largeur": 245,
+      "hauteur": 308,
+      "os": "jambes"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 473,
+      "y": 296,
+      "largeur": 494,
+      "hauteur": 541,
+      "os": "queue"
     }
   ],
   "ik": []

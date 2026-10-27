@@ -15,6 +15,7 @@ import { enregistre, joueEtNote, sousGraine, rejoue, pas, debutDuTour, toursJoue
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
 import { ouvreZone } from './zone.js';
 import { animeHero, animeUnite, rigDe } from './rig-hero.js';
+import { monteLeDecor } from './decor.js';
 import { installeGestes } from './gestes.js';
 import { apercuAttaque, apercuCarte, pilule } from './apercu.js';
 import { creeJournal } from './journal.js';
@@ -858,6 +859,7 @@ function telecharge(texte, nom, type) {
 /** Construit, une fois par combat, tout ce qui ne bouge pas. */
 function monteLaCoque(root) {
   root.innerHTML = '';
+  monteLeDecor(root);
   const c = {};
   c.fx = el('<div class="fx"></div>');
 

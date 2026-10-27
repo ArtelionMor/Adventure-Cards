@@ -10,27 +10,109 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 2/Coasseur.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 141, "y": 950, "angle": 0, "longueur": 741 },
-    { "id": "bassin", "parent": "sol", "x": 511, "y": 876, "angle": -90, "longueur": 74 },
-    { "id": "torse", "parent": "bassin", "x": 511, "y": 801, "angle": -90, "longueur": 186 },
-    { "id": "tete", "parent": "torse", "x": 511, "y": 523, "angle": -90, "longueur": 278 },
-    { "id": "oreille_g", "parent": "tete", "x": 372, "y": 245, "angle": -120, "longueur": 139 },
-    { "id": "oreille_d", "parent": "tete", "x": 650, "y": 245, "angle": -60, "longueur": 139 },
-    { "id": "bras_g", "parent": "torse", "x": 372, "y": 690, "angle": 160, "longueur": 130 },
-    { "id": "bras_d", "parent": "torse", "x": 650, "y": 690, "angle": 20, "longueur": 130 },
-    { "id": "jambe_g", "parent": "bassin", "x": 418, "y": 876, "angle": 100, "longueur": 84 },
-    { "id": "jambe_d", "parent": "bassin", "x": 604, "y": 876, "angle": 80, "longueur": 84 },
-    { "id": "queue", "parent": "bassin", "x": 696, "y": 820, "angle": -30, "longueur": 130 }
+    { "id": "sol", "parent": null, "x": 48, "y": 960, "angle": 0, "longueur": 868 },
+    { "id": "fond", "parent": null, "x": 0, "y": 960, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 313, "y": 960, "angle": -95.6, "longueur": 513 },
+    { "id": "tete", "parent": "corps", "x": 544, "y": 593, "angle": -87.3, "longueur": 429 },
+    { "id": "bras", "parent": "corps", "x": 360, "y": 460, "angle": 2.4, "longueur": 479 },
+    { "id": "jambes", "parent": "bras", "x": 807, "y": 455, "angle": -95.1, "longueur": 136 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 394,
+          "y": 164,
+          "largeur": 379,
+          "hauteur": 517,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 191,
+          "y": 210,
+          "largeur": 650,
+          "hauteur": 687,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 48,
+          "y": 449,
+          "largeur": 691,
+          "hauteur": 512,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 761,
+          "y": 320,
+          "largeur": 156,
+          "hauteur": 155,
+          "etat": "provisoire",
+          "par": "jambes"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 360,
+      "y": 150,
+      "largeur": 447,
+      "hauteur": 565,
+      "os": "tete"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 184,
+      "y": 180,
+      "largeur": 680,
+      "hauteur": 748,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 46,
+      "y": 412,
+      "largeur": 730,
+      "hauteur": 580,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 730,
+      "y": 314,
+      "largeur": 194,
+      "hauteur": 190,
+      "os": "jambes"
     }
   ],
   "ik": []

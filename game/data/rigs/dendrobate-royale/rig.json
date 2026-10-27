@@ -10,27 +10,109 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 3/Dendrobate Royale.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 217, "y": 929, "angle": 0, "longueur": 610 },
-    { "id": "bassin", "parent": "sol", "x": 522, "y": 856, "angle": -90, "longueur": 73 },
-    { "id": "torse", "parent": "bassin", "x": 522, "y": 783, "angle": -90, "longueur": 182 },
-    { "id": "tete", "parent": "torse", "x": 522, "y": 510, "angle": -90, "longueur": 273 },
-    { "id": "oreille_g", "parent": "tete", "x": 408, "y": 237, "angle": -120, "longueur": 137 },
-    { "id": "oreille_d", "parent": "tete", "x": 636, "y": 237, "angle": -60, "longueur": 137 },
-    { "id": "bras_g", "parent": "torse", "x": 408, "y": 674, "angle": 160, "longueur": 127 },
-    { "id": "bras_d", "parent": "torse", "x": 636, "y": 674, "angle": 20, "longueur": 127 },
-    { "id": "jambe_g", "parent": "bassin", "x": 446, "y": 856, "angle": 100, "longueur": 82 },
-    { "id": "jambe_d", "parent": "bassin", "x": 598, "y": 856, "angle": 80, "longueur": 82 },
-    { "id": "queue", "parent": "bassin", "x": 674, "y": 801, "angle": -30, "longueur": 127 }
+    { "id": "sol", "parent": null, "x": 141, "y": 964, "angle": 0, "longueur": 761 },
+    { "id": "fond", "parent": null, "x": 0, "y": 964, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 694, "y": 664, "angle": -159.5, "longueur": 485 },
+    { "id": "tete", "parent": "corps", "x": 556, "y": 470, "angle": -110.8, "longueur": 443 },
+    { "id": "bras", "parent": "corps", "x": 589, "y": 632, "angle": 44.3, "longueur": 395 },
+    { "id": "jambes", "parent": "bras", "x": 348, "y": 868, "angle": 173.7, "longueur": 208 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 139,
+      "y": 53,
+      "largeur": 766,
+      "hauteur": 914,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 247,
+          "y": 55,
+          "largeur": 586,
+          "hauteur": 447,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 249,
+          "y": 611,
+          "largeur": 654,
+          "hauteur": 310,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 235,
+          "y": 369,
+          "largeur": 608,
+          "hauteur": 296,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 141,
+          "y": 792,
+          "largeur": 325,
+          "hauteur": 173,
+          "etat": "provisoire",
+          "par": "jambes"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 233,
+      "y": 53,
+      "largeur": 602,
+      "hauteur": 492,
+      "os": "tete"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 235,
+      "y": 571,
+      "largeur": 670,
+      "hauteur": 374,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 233,
+      "y": 338,
+      "largeur": 612,
+      "hauteur": 358,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 139,
+      "y": 761,
+      "largeur": 352,
+      "hauteur": 206,
+      "os": "jambes"
     }
   ],
   "ik": []

@@ -109,6 +109,7 @@ export const BALANCE = {
     rigsHeros: true,
     rigsGain: 2.5,       // exagere les mouvements des rigs (1 = tel quel : les clips sont calmes, ils se lisent mal a 40 px)
     rigsRemuants: true,  // PROVISOIRE : de temps en temps, un `hitting` ou un `walking` pour que le plateau vive
+    decorVivant: true,   // le decor du combat bouge (ui/decor.js : arbres, nenuphars, feuilles, rides, lucioles) ; a false : le decor fixe d'avant
     rigsUnites: true,   // idem pour les cartes posees sur le plateau (leur illustration a un rig : `game/data/rigs/`)
     appuiLongMs: 400,       // au-dela de cette duree, le doigt pose LIT la carte au lieu d'agir
     toleranceDoigtPx: 10,   // un doigt qui glisse de plus que ca fait defiler, il ne lit ni n'agit

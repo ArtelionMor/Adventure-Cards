@@ -10,27 +10,116 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 1/Coup de Bec.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 135, "y": 971, "angle": 0, "longueur": 763 },
-    { "id": "bassin", "parent": "sol", "x": 517, "y": 892, "angle": -90, "longueur": 79 },
-    { "id": "torse", "parent": "bassin", "x": 517, "y": 813, "angle": -90, "longueur": 198 },
-    { "id": "tete", "parent": "torse", "x": 517, "y": 515, "angle": -90, "longueur": 298 },
-    { "id": "oreille_g", "parent": "tete", "x": 374, "y": 217, "angle": -120, "longueur": 149 },
-    { "id": "oreille_d", "parent": "tete", "x": 660, "y": 217, "angle": -60, "longueur": 149 },
-    { "id": "bras_g", "parent": "torse", "x": 374, "y": 694, "angle": 160, "longueur": 139 },
-    { "id": "bras_d", "parent": "torse", "x": 660, "y": 694, "angle": 20, "longueur": 139 },
-    { "id": "jambe_g", "parent": "bassin", "x": 422, "y": 892, "angle": 100, "longueur": 89 },
-    { "id": "jambe_d", "parent": "bassin", "x": 612, "y": 892, "angle": 80, "longueur": 89 },
-    { "id": "queue", "parent": "bassin", "x": 708, "y": 832, "angle": -30, "longueur": 139 }
+    { "id": "sol", "parent": null, "x": 40, "y": 1010, "angle": 0, "longueur": 953 },
+    { "id": "fond", "parent": null, "x": 0, "y": 1010, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 358, "y": 1009, "angle": -91.4, "longueur": 300 },
+    { "id": "aile_gauche", "parent": "corps", "x": 280, "y": 825, "angle": -83.4, "longueur": 469 },
+    {
+      "id": "aile_droite",
+      "parent": "aile_gauche",
+      "x": 343,
+      "y": 507,
+      "angle": -13.1,
+      "longueur": 640
+    },
+    { "id": "tete", "parent": "aile_droite", "x": 613, "y": 238, "angle": -22.3, "longueur": 411 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 579,
+          "y": 45,
+          "largeur": 415,
+          "hauteur": 300,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 315,
+          "y": 129,
+          "largeur": 652,
+          "hauteur": 525,
+          "etat": "provisoire",
+          "par": "aile_droite"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 40,
+          "y": 359,
+          "largeur": 377,
+          "hauteur": 652,
+          "etat": "provisoire",
+          "par": "aile_gauche"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 267,
+          "y": 708,
+          "largeur": 188,
+          "hauteur": 302,
+          "etat": "provisoire",
+          "par": "corps"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 548,
+      "y": 24,
+      "largeur": 465,
+      "hauteur": 352,
+      "os": "tete"
+    },
+    {
+      "id": "aile_droite",
+      "image": "calques/aile_droite.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 278,
+      "y": 92,
+      "largeur": 694,
+      "hauteur": 565,
+      "os": "aile_droite"
+    },
+    {
+      "id": "aile_gauche",
+      "image": "calques/aile_gauche.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 34,
+      "y": 342,
+      "largeur": 414,
+      "hauteur": 682,
+      "os": "aile_gauche"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 236,
+      "y": 677,
+      "largeur": 223,
+      "hauteur": 347,
+      "os": "corps"
     }
   ],
   "ik": []
