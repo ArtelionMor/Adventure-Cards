@@ -22,6 +22,9 @@ const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
 const MACHINE = opt('--machine', 'telia@100.79.166.73');
 const DISTANT = opt('--distant', 'C:/Users/telia');
+// Quand Tailscale de CE PC est coince (27 oct.), on passe par le Pi, qui est sur le reseau : `--saut teliau@192.168.1.75` (ou ADVENTURE_SAUT).
+const SAUT = opt('--saut', process.env.ADVENTURE_SAUT || '');
+const scp = a => sh('scp', SAUT ? ['-J', SAUT, ...a] : a);
 const sh = (cmd, a, o = {}) => spawnSync(cmd, a, { encoding: 'utf8', cwd: ROOT, timeout: 600000, ...o });
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-auto-'));
 
@@ -29,7 +32,7 @@ const sortie = { vivant: false, battement: null, faits: 0, a_verifier: 0, echecs
 const fin = () => { console.log(JSON.stringify(sortie)); process.exit(0); };
 
 // 1. l'etat du lot
-const r = sh('scp', ['-q', `${MACHINE}:${DISTANT}/auto/etat.json`, path.join(tmp, 'etat.json')]);
+const r = scp(['-q', `${MACHINE}:${DISTANT}/auto/etat.json`, path.join(tmp, 'etat.json')]);
 if (r.status !== 0) { sortie.erreur = 'mon-mien injoignable ou pas d\'etat.json : ' + (r.stderr || '').trim().slice(0, 200); fin(); }
 const etat = JSON.parse(fs.readFileSync(path.join(tmp, 'etat.json'), 'utf8'));
 sortie.battement = etat._battement || null; sortie.en_cours = etat._courant || null;
@@ -44,6 +47,10 @@ for (const [id, e] of Object.entries(etat)) {
 const fSync = path.join(ROOT, 'art-sortie', 'auto', 'synchro.json');
 fs.mkdirSync(path.dirname(fSync), { recursive: true });
 const synchro = fs.existsSync(fSync) ? JSON.parse(fs.readFileSync(fSync, 'utf8')) : {};
+
+// les illustrations en double (rig-alias.mjs --liste) ne reviennent pas : on les a retirees, une seule copie par image
+const fDbl = path.join(ROOT, 'art-sortie', 'auto', 'doublons.json');
+const doublons = new Set(fs.existsSync(fDbl) ? JSON.parse(fs.readFileSync(fDbl, 'utf8')) : []);
 
 // 3. le rig est-il toujours « brut » sur GitHub ? (une seule calque, pas de maillage, pas de clip)
 sh('git', ['fetch', '-q']);
@@ -64,7 +71,7 @@ function brutSurGithub(id) {
 
 // 4. copier ce qui est nouveau
 for (const [id, e] of Object.entries(etat)) {
-  if (id.startsWith('_') || !['fait', 'a_verifier'].includes(e.statut)) continue;
+  if (id.startsWith('_') || doublons.has(id) || !['fait', 'a_verifier'].includes(e.statut)) continue;
   if (synchro[id] === e.fin && fs.existsSync(path.join(ROOT, 'game/data/rigs', id, 'calques'))) continue;
   if (!brutSurGithub(id)) { sortie.conflits.push(id); continue; }
   const dest = path.join(ROOT, 'game/data/rigs', id), rapp = path.join(ROOT, 'art-sortie/auto', id);
@@ -72,8 +79,8 @@ for (const [id, e] of Object.entries(etat)) {
   // les calques d'une ancienne passe sont retires : un rig n'a que ceux de la derniere
   fs.rmSync(path.join(dest, 'calques'), { recursive: true, force: true });
   fs.rmSync(path.join(dest, 'masques'), { recursive: true, force: true });
-  const a = sh('scp', ['-q', '-r', `${MACHINE}:${DISTANT}/Adventure-Cards/game/data/rigs/${id}/*`, dest + '/']);
-  const b = sh('scp', ['-q', '-r', `${MACHINE}:${DISTANT}/auto/sortie/${id}/*`, rapp + '/']);
+  const a = scp(['-q', '-r', `${MACHINE}:${DISTANT}/Adventure-Cards/game/data/rigs/${id}/*`, dest + '/']);
+  const b = scp(['-q', '-r', `${MACHINE}:${DISTANT}/auto/sortie/${id}/*`, rapp + '/']);
   if (a.status !== 0) { sortie.erreur = `copie de ${id} : ` + (a.stderr || '').trim().slice(0, 200); continue; }
   synchro[id] = e.fin; sortie.nouveaux.push(id);
   try { synchro._hash[id] = sha(fs.readFileSync(path.join(dest, 'rig.json'), 'utf8')); } catch { /* pas de rig */ }
