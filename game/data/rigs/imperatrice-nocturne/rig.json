@@ -10,27 +10,197 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 1/Impératrice Nocturne.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 112, "y": 969, "angle": 0, "longueur": 806 },
-    { "id": "bassin", "parent": "sol", "x": 515, "y": 888, "angle": -90, "longueur": 81 },
-    { "id": "torse", "parent": "bassin", "x": 515, "y": 807, "angle": -90, "longueur": 202 },
-    { "id": "tete", "parent": "torse", "x": 515, "y": 505, "angle": -90, "longueur": 303 },
-    { "id": "oreille_g", "parent": "tete", "x": 363, "y": 202, "angle": -120, "longueur": 151 },
-    { "id": "oreille_d", "parent": "tete", "x": 666, "y": 202, "angle": -60, "longueur": 151 },
-    { "id": "bras_g", "parent": "torse", "x": 363, "y": 686, "angle": 160, "longueur": 141 },
-    { "id": "bras_d", "parent": "torse", "x": 666, "y": 686, "angle": 20, "longueur": 141 },
-    { "id": "jambe_g", "parent": "bassin", "x": 414, "y": 888, "angle": 100, "longueur": 91 },
-    { "id": "jambe_d", "parent": "bassin", "x": 615, "y": 888, "angle": 80, "longueur": 91 },
-    { "id": "queue", "parent": "bassin", "x": 716, "y": 827, "angle": -30, "longueur": 141 }
+    { "id": "sol", "parent": null, "x": 11, "y": 1008, "angle": 0, "longueur": 1006 },
+    { "id": "fond", "parent": null, "x": 0, "y": 1008, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 457, "y": 743, "angle": -53.5, "longueur": 361 },
+    { "id": "aile_gauche", "parent": "corps", "x": 559, "y": 463, "angle": -159.6, "longueur": 282 },
+    { "id": "queue", "parent": "corps", "x": 413, "y": 705, "angle": 147.1, "longueur": 479 },
+    { "id": "cape", "parent": "corps", "x": 553, "y": 637, "angle": 35.6, "longueur": 571 },
+    { "id": "aile_droite", "parent": "aile_gauche", "x": 652, "y": 362, "angle": -28, "longueur": 143 },
+    { "id": "pattes", "parent": "cape", "x": 687, "y": 880, "angle": 154.9, "longueur": 293 },
+    { "id": "arme", "parent": "aile_gauche", "x": 395, "y": 350, "angle": -119.2, "longueur": 386 },
+    { "id": "tete", "parent": "aile_droite", "x": 667, "y": 291, "angle": -116.9, "longueur": 303 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 474,
+          "y": 0,
+          "largeur": 349,
+          "hauteur": 328,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 468,
+          "y": 556,
+          "largeur": 550,
+          "hauteur": 449,
+          "etat": "provisoire",
+          "par": "cape"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 206,
+          "y": 12,
+          "largeur": 252,
+          "hauteur": 386,
+          "etat": "provisoire",
+          "par": "arme"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 295,
+          "y": 273,
+          "largeur": 451,
+          "hauteur": 233,
+          "etat": "provisoire",
+          "par": "aile_gauche"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 577,
+          "y": 288,
+          "largeur": 202,
+          "hauteur": 89,
+          "etat": "provisoire",
+          "par": "aile_droite"
+        },
+        {
+          "id": "z6",
+          "masque": "masques/tout-z6.png",
+          "x": 409,
+          "y": 442,
+          "largeur": 282,
+          "hauteur": 302,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z7",
+          "masque": "masques/tout-z7.png",
+          "x": 422,
+          "y": 806,
+          "largeur": 311,
+          "hauteur": 203,
+          "etat": "provisoire",
+          "par": "pattes"
+        },
+        {
+          "id": "z8",
+          "masque": "masques/tout-z8.png",
+          "x": 11,
+          "y": 628,
+          "largeur": 570,
+          "hauteur": 379,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 8,
+      "x": 443,
+      "y": 0,
+      "largeur": 408,
+      "hauteur": 359,
+      "os": "tete"
+    },
+    {
+      "id": "cape",
+      "image": "calques/cape.png",
+      "de": "tout",
+      "ordre": 7,
+      "x": 437,
+      "y": 525,
+      "largeur": 587,
+      "hauteur": 499,
+      "os": "cape"
+    },
+    {
+      "id": "arme",
+      "image": "calques/arme.png",
+      "de": "tout",
+      "ordre": 6,
+      "x": 181,
+      "y": 0,
+      "largeur": 308,
+      "hauteur": 429,
+      "os": "arme"
+    },
+    {
+      "id": "aile_gauche",
+      "image": "calques/aile_gauche.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 292,
+      "y": 242,
+      "largeur": 485,
+      "hauteur": 295,
+      "os": "aile_gauche"
+    },
+    {
+      "id": "aile_droite",
+      "image": "calques/aile_droite.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 546,
+      "y": 257,
+      "largeur": 264,
+      "hauteur": 151,
+      "os": "aile_droite"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 378,
+      "y": 411,
+      "largeur": 344,
+      "hauteur": 364,
+      "os": "corps"
+    },
+    {
+      "id": "pattes",
+      "image": "calques/pattes.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 391,
+      "y": 775,
+      "largeur": 373,
+      "hauteur": 249,
+      "os": "pattes"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 0,
+      "y": 594,
+      "largeur": 615,
+      "hauteur": 430,
+      "os": "queue"
     }
   ],
   "ik": []

@@ -10,27 +10,65 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 2/Cambrioleur.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 202, "y": 953, "angle": 0, "longueur": 622 },
-    { "id": "bassin", "parent": "sol", "x": 513, "y": 877, "angle": -90, "longueur": 76 },
-    { "id": "torse", "parent": "bassin", "x": 513, "y": 802, "angle": -90, "longueur": 189 },
-    { "id": "tete", "parent": "torse", "x": 513, "y": 518, "angle": -90, "longueur": 284 },
-    { "id": "oreille_g", "parent": "tete", "x": 396, "y": 233, "angle": -120, "longueur": 142 },
-    { "id": "oreille_d", "parent": "tete", "x": 630, "y": 233, "angle": -60, "longueur": 142 },
-    { "id": "bras_g", "parent": "torse", "x": 396, "y": 688, "angle": 160, "longueur": 133 },
-    { "id": "bras_d", "parent": "torse", "x": 630, "y": 688, "angle": 20, "longueur": 133 },
-    { "id": "jambe_g", "parent": "bassin", "x": 435, "y": 877, "angle": 100, "longueur": 85 },
-    { "id": "jambe_d", "parent": "bassin", "x": 591, "y": 877, "angle": 80, "longueur": 85 },
-    { "id": "queue", "parent": "bassin", "x": 669, "y": 821, "angle": -30, "longueur": 133 }
+    { "id": "sol", "parent": null, "x": 124, "y": 990, "angle": 0, "longueur": 777 },
+    { "id": "fond", "parent": null, "x": 0, "y": 990, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 554, "y": 990, "angle": -87.6, "longueur": 895 },
+    { "id": "tete", "parent": "corps", "x": 479, "y": 360, "angle": -32.1, "longueur": 451 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 185,
+          "y": 44,
+          "largeur": 680,
+          "hauteur": 478,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 124,
+          "y": 96,
+          "largeur": 778,
+          "hauteur": 895,
+          "etat": "provisoire",
+          "par": "corps"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 167,
+      "y": 40,
+      "largeur": 703,
+      "hauteur": 514,
+      "os": "tete"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 121,
+      "y": 83,
+      "largeur": 784,
+      "hauteur": 937,
+      "os": "corps"
     }
   ],
   "ik": []

@@ -1,5 +1,151 @@
 {
   "format": "adventure-rig-clips",
   "version": 1,
-  "clips": {}
+  "clips": {
+    "idle": {
+      "description": "Repos : le corps respire, la tête dodeline, les membres et la queue ondulent en décalé.",
+      "duree": 6,
+      "boucle": true,
+      "pistes": {
+        "sol": {
+          "y": [
+            { "t": 0, "v": 0 },
+            { "t": 2.6, "v": 3 },
+            { "t": 4.2, "v": 0 }
+          ]
+        },
+        "corps": {
+          "rot": [
+            { "t": 0, "v": -0.3 },
+            { "t": 3, "v": 0.4 }
+          ]
+        }
+      },
+      "procedural": [
+        { "type": "sinus", "os": "tete", "canal": "rot", "amplitude": 0.684, "periode": 3, "phase": 0.1 },
+        { "type": "sinus", "os": "tentacules", "canal": "rot", "amplitude": 4, "periode": 3, "phase": 0 },
+        { "type": "sinus", "os": "tuyau", "canal": "rot", "amplitude": 1.146, "periode": 6, "phase": 0.2 }
+      ]
+    },
+    "walking": {
+      "description": "Marche : le corps rebondit à chaque pas, les membres balancent en opposition.",
+      "duree": 1.2,
+      "boucle": true,
+      "pistes": {
+        "sol": {
+          "y": [
+            { "t": 0, "v": 0 },
+            { "t": 0.3, "v": -9 },
+            { "t": 0.6, "v": 0 },
+            { "t": 0.9, "v": -9 }
+          ]
+        },
+        "corps": {
+          "rot": [
+            { "t": 0, "v": -1 },
+            { "t": 0.6, "v": 1 }
+          ]
+        },
+        "tete": {
+          "rot": [
+            { "t": 0, "v": 0.57 },
+            { "t": 0.6, "v": -0.57 }
+          ]
+        }
+      },
+      "procedural": [
+        { "type": "sinus", "os": "tentacules", "canal": "rot", "amplitude": 6, "periode": 1.2, "phase": 0 },
+        { "type": "sinus", "os": "tuyau", "canal": "rot", "amplitude": 2.865, "periode": 1.2, "phase": 0.3 }
+      ]
+    },
+    "hitting": {
+      "description": "Coup : il se recule, fonce vers l'avant (le bas de l'écran) et revient, les membres fouettent.",
+      "duree": 1.1,
+      "boucle": false,
+      "pistes": {
+        "sol": {
+          "y": [
+            { "t": 0, "v": 0 },
+            { "t": 0.25, "v": -10 },
+            { "t": 0.42, "v": 26 },
+            { "t": 0.6, "v": 26 },
+            { "t": 1.1, "v": 0 }
+          ]
+        },
+        "corps": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.25, "v": -1.5 },
+            { "t": 0.42, "v": 1.5 },
+            { "t": 0.6, "v": 1.5 },
+            { "t": 1.1, "v": 0 }
+          ]
+        },
+        "tete": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.25, "v": -1.139 },
+            { "t": 0.42, "v": 1.709 },
+            { "t": 0.6, "v": 1.709 },
+            { "t": 1.1, "v": 0 }
+          ]
+        },
+        "tentacules": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.25, "v": 12 },
+            { "t": 0.45, "v": -20 },
+            { "t": 1.1, "v": 0 }
+          ]
+        }
+      },
+      "procedural": []
+    },
+    "taking_damage": {
+      "description": "Dégâts : repoussé en arrière, la tête part en arrière, les membres retombent mollement.",
+      "duree": 0.8,
+      "boucle": false,
+      "pistes": {
+        "sol": {
+          "y": [
+            { "t": 0, "v": 0 },
+            { "t": 0.1, "v": -18 },
+            { "t": 0.3, "v": -6 },
+            { "t": 0.8, "v": 0 }
+          ],
+          "x": [
+            { "t": 0, "v": 0 },
+            { "t": 0.1, "v": 12 },
+            { "t": 0.35, "v": 3 },
+            { "t": 0.8, "v": 0 }
+          ]
+        },
+        "corps": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.1, "v": -2 },
+            { "t": 0.4, "v": 0.6 },
+            { "t": 0.8, "v": 0 }
+          ]
+        },
+        "tete": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.1, "v": -2.848 },
+            { "t": 0.4, "v": 0.854 },
+            { "t": 0.8, "v": 0 }
+          ]
+        },
+        "tentacules": {
+          "rot": [
+            { "t": 0, "v": 0 },
+            { "t": 0.12, "v": -10 },
+            { "t": 0.45, "v": 4 },
+            { "t": 0.8, "v": 0 }
+          ]
+        }
+      },
+      "procedural": []
+    }
+  }
 }

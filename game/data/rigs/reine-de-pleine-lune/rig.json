@@ -10,27 +10,197 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Rabbit Decks/Rabbit Deck 3/Reine de Pleine Lune.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 154, "y": 944, "angle": 0, "longueur": 699 },
-    { "id": "bassin", "parent": "sol", "x": 504, "y": 871, "angle": -90, "longueur": 74 },
-    { "id": "torse", "parent": "bassin", "x": 504, "y": 797, "angle": -90, "longueur": 184 },
-    { "id": "tete", "parent": "torse", "x": 504, "y": 522, "angle": -90, "longueur": 276 },
-    { "id": "oreille_g", "parent": "tete", "x": 373, "y": 246, "angle": -120, "longueur": 138 },
-    { "id": "oreille_d", "parent": "tete", "x": 635, "y": 246, "angle": -60, "longueur": 138 },
-    { "id": "bras_g", "parent": "torse", "x": 373, "y": 687, "angle": 160, "longueur": 129 },
-    { "id": "bras_d", "parent": "torse", "x": 635, "y": 687, "angle": 20, "longueur": 129 },
-    { "id": "jambe_g", "parent": "bassin", "x": 417, "y": 871, "angle": 100, "longueur": 83 },
-    { "id": "jambe_d", "parent": "bassin", "x": 591, "y": 871, "angle": 80, "longueur": 83 },
-    { "id": "queue", "parent": "bassin", "x": 679, "y": 816, "angle": -30, "longueur": 129 }
+    { "id": "sol", "parent": null, "x": 67, "y": 980, "angle": 0, "longueur": 873 },
+    { "id": "fond", "parent": null, "x": 0, "y": 980, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 643, "y": 765, "angle": -62.3, "longueur": 243 },
+    { "id": "tete", "parent": "corps", "x": 641, "y": 597, "angle": -143, "longueur": 314 },
+    { "id": "oreille_gauche", "parent": "corps", "x": 609, "y": 320, "angle": -122.1, "longueur": 294 },
+    { "id": "bras", "parent": "corps", "x": 672, "y": 694, "angle": -154.3, "longueur": 346 },
+    { "id": "jambes", "parent": "corps", "x": 620, "y": 739, "angle": 135.2, "longueur": 330 },
+    { "id": "queue", "parent": "corps", "x": 776, "y": 565, "angle": -71.4, "longueur": 367 },
+    { "id": "oreille_droite", "parent": "tete", "x": 690, "y": 367, "angle": -84, "longueur": 249 },
+    { "id": "cape", "parent": "jambes", "x": 447, "y": 851, "angle": 168.1, "longueur": 388 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 419,
+          "y": 62,
+          "largeur": 201,
+          "hauteur": 276,
+          "etat": "provisoire",
+          "par": "oreille_gauche"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 625,
+          "y": 119,
+          "largeur": 144,
+          "hauteur": 251,
+          "etat": "provisoire",
+          "par": "oreille_droite"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 390,
+          "y": 362,
+          "largeur": 344,
+          "hauteur": 261,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 67,
+          "y": 637,
+          "largeur": 435,
+          "hauteur": 335,
+          "etat": "provisoire",
+          "par": "cape"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 355,
+          "y": 529,
+          "largeur": 425,
+          "hauteur": 222,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z6",
+          "masque": "masques/tout-z6.png",
+          "x": 509,
+          "y": 549,
+          "largeur": 256,
+          "hauteur": 217,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z7",
+          "masque": "masques/tout-z7.png",
+          "x": 386,
+          "y": 713,
+          "largeur": 335,
+          "hauteur": 268,
+          "etat": "provisoire",
+          "par": "jambes"
+        },
+        {
+          "id": "z8",
+          "masque": "masques/tout-z8.png",
+          "x": 759,
+          "y": 217,
+          "largeur": 182,
+          "hauteur": 368,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "oreille_gauche",
+      "image": "calques/oreille_gauche.png",
+      "de": "tout",
+      "ordre": 8,
+      "x": 389,
+      "y": 57,
+      "largeur": 262,
+      "hauteur": 312,
+      "os": "oreille_gauche"
+    },
+    {
+      "id": "oreille_droite",
+      "image": "calques/oreille_droite.png",
+      "de": "tout",
+      "ordre": 7,
+      "x": 598,
+      "y": 114,
+      "largeur": 175,
+      "hauteur": 287,
+      "os": "oreille_droite"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 6,
+      "x": 369,
+      "y": 331,
+      "largeur": 382,
+      "hauteur": 323,
+      "os": "tete"
+    },
+    {
+      "id": "cape",
+      "image": "calques/cape.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 65,
+      "y": 606,
+      "largeur": 468,
+      "hauteur": 373,
+      "os": "cape"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 350,
+      "y": 498,
+      "largeur": 461,
+      "hauteur": 284,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 478,
+      "y": 521,
+      "largeur": 318,
+      "hauteur": 276,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 355,
+      "y": 682,
+      "largeur": 397,
+      "hauteur": 299,
+      "os": "jambes"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 730,
+      "y": 213,
+      "largeur": 218,
+      "hauteur": 401,
+      "os": "queue"
     }
   ],
   "ik": []

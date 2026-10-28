@@ -10,27 +10,131 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 1/Ombre Feutrée.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 150, "y": 897, "angle": 0, "longueur": 709 },
-    { "id": "bassin", "parent": "sol", "x": 504, "y": 829, "angle": -90, "longueur": 68 },
-    { "id": "torse", "parent": "bassin", "x": 504, "y": 761, "angle": -90, "longueur": 170 },
-    { "id": "tete", "parent": "torse", "x": 504, "y": 507, "angle": -90, "longueur": 254 },
-    { "id": "oreille_g", "parent": "tete", "x": 371, "y": 253, "angle": -120, "longueur": 127 },
-    { "id": "oreille_d", "parent": "tete", "x": 637, "y": 253, "angle": -60, "longueur": 127 },
-    { "id": "bras_g", "parent": "torse", "x": 371, "y": 660, "angle": 160, "longueur": 119 },
-    { "id": "bras_d", "parent": "torse", "x": 637, "y": 660, "angle": 20, "longueur": 119 },
-    { "id": "jambe_g", "parent": "bassin", "x": 415, "y": 829, "angle": 100, "longueur": 76 },
-    { "id": "jambe_d", "parent": "bassin", "x": 593, "y": 829, "angle": 80, "longueur": 76 },
-    { "id": "queue", "parent": "bassin", "x": 681, "y": 778, "angle": -30, "longueur": 119 }
+    { "id": "sol", "parent": null, "x": 91, "y": 930, "angle": 0, "longueur": 855 },
+    { "id": "fond", "parent": null, "x": 0, "y": 930, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 558, "y": 930, "angle": -146.2, "longueur": 537 },
+    { "id": "tete", "parent": "corps", "x": 516, "y": 695, "angle": -99.6, "longueur": 565 },
+    { "id": "arme", "parent": "corps", "x": 722, "y": 824, "angle": -61.2, "longueur": 309 },
+    { "id": "oreille_gauche", "parent": "tete", "x": 248, "y": 535, "angle": -104.9, "longueur": 310 },
+    { "id": "bras", "parent": "tete", "x": 710, "y": 538, "angle": 116.4, "longueur": 135 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 91,
+          "y": 235,
+          "largeur": 169,
+          "hauteur": 384,
+          "etat": "provisoire",
+          "par": "oreille_gauche"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 241,
+          "y": 138,
+          "largeur": 597,
+          "hauteur": 558,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 687,
+          "y": 532,
+          "largeur": 260,
+          "hauteur": 373,
+          "etat": "provisoire",
+          "par": "arme"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 648,
+          "y": 412,
+          "largeur": 134,
+          "hauteur": 253,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 102,
+          "y": 594,
+          "largeur": 667,
+          "hauteur": 337,
+          "etat": "provisoire",
+          "par": "corps"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "oreille_gauche",
+      "image": "calques/oreille_gauche.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 73,
+      "y": 205,
+      "largeur": 218,
+      "hauteur": 445,
+      "os": "oreille_gauche"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 194,
+      "y": 131,
+      "largeur": 661,
+      "hauteur": 612,
+      "os": "tete"
+    },
+    {
+      "id": "arme",
+      "image": "calques/arme.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 656,
+      "y": 501,
+      "largeur": 302,
+      "hauteur": 411,
+      "os": "arme"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 617,
+      "y": 381,
+      "largeur": 193,
+      "hauteur": 315,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 78,
+      "y": 558,
+      "largeur": 727,
+      "hauteur": 382,
+      "os": "corps"
     }
   ],
   "ik": []

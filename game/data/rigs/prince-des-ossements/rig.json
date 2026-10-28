@@ -10,27 +10,175 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 3/Prince des Ossements.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 145, "y": 939, "angle": 0, "longueur": 752 },
-    { "id": "bassin", "parent": "sol", "x": 521, "y": 862, "angle": -90, "longueur": 77 },
-    { "id": "torse", "parent": "bassin", "x": 521, "y": 785, "angle": -90, "longueur": 192 },
-    { "id": "tete", "parent": "torse", "x": 521, "y": 497, "angle": -90, "longueur": 288 },
-    { "id": "oreille_g", "parent": "tete", "x": 380, "y": 209, "angle": -120, "longueur": 144 },
-    { "id": "oreille_d", "parent": "tete", "x": 662, "y": 209, "angle": -60, "longueur": 144 },
-    { "id": "bras_g", "parent": "torse", "x": 380, "y": 670, "angle": 160, "longueur": 134 },
-    { "id": "bras_d", "parent": "torse", "x": 662, "y": 670, "angle": 20, "longueur": 134 },
-    { "id": "jambe_g", "parent": "bassin", "x": 427, "y": 862, "angle": 100, "longueur": 86 },
-    { "id": "jambe_d", "parent": "bassin", "x": 615, "y": 862, "angle": 80, "longueur": 86 },
-    { "id": "queue", "parent": "bassin", "x": 709, "y": 804, "angle": -30, "longueur": 134 }
+    { "id": "sol", "parent": null, "x": 51, "y": 976, "angle": 0, "longueur": 939 },
+    { "id": "fond", "parent": null, "x": 0, "y": 976, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 524, "y": 908, "angle": -67.7, "longueur": 503 },
+    { "id": "tete", "parent": "corps", "x": 595, "y": 639, "angle": -131.9, "longueur": 636 },
+    { "id": "aile_droite", "parent": "corps", "x": 751, "y": 620, "angle": 59.1, "longueur": 305 },
+    { "id": "pattes", "parent": "corps", "x": 749, "y": 825, "angle": 163.7, "longueur": 484 },
+    { "id": "aile_gauche", "parent": "tete", "x": 530, "y": 238, "angle": 137.6, "longueur": 527 },
+    { "id": "queue", "parent": "tete", "x": 434, "y": 813, "angle": -151.7, "longueur": 422 },
+    { "id": "cape", "parent": "tete", "x": 394, "y": 632, "angle": 155.1, "longueur": 278 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 111,
+          "y": 125,
+          "largeur": 726,
+          "hauteur": 588,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 138,
+          "y": 555,
+          "largeur": 280,
+          "hauteur": 201,
+          "etat": "provisoire",
+          "par": "cape"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 736,
+          "y": 536,
+          "largeur": 253,
+          "hauteur": 359,
+          "etat": "provisoire",
+          "par": "aile_droite"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 102,
+          "y": 110,
+          "largeur": 557,
+          "hauteur": 506,
+          "etat": "provisoire",
+          "par": "aile_gauche"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 379,
+          "y": 443,
+          "largeur": 428,
+          "hauteur": 466,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z6",
+          "masque": "masques/tout-z6.png",
+          "x": 284,
+          "y": 716,
+          "largeur": 707,
+          "hauteur": 261,
+          "etat": "provisoire",
+          "par": "pattes"
+        },
+        {
+          "id": "z7",
+          "masque": "masques/tout-z7.png",
+          "x": 51,
+          "y": 612,
+          "largeur": 431,
+          "hauteur": 352,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 7,
+      "x": 94,
+      "y": 124,
+      "largeur": 788,
+      "hauteur": 634,
+      "os": "tete"
+    },
+    {
+      "id": "cape",
+      "image": "calques/cape.png",
+      "de": "tout",
+      "ordre": 6,
+      "x": 107,
+      "y": 524,
+      "largeur": 342,
+      "hauteur": 262,
+      "os": "cape"
+    },
+    {
+      "id": "aile_droite",
+      "image": "calques/aile_droite.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 705,
+      "y": 505,
+      "largeur": 309,
+      "hauteur": 421,
+      "os": "aile_droite"
+    },
+    {
+      "id": "aile_gauche",
+      "image": "calques/aile_gauche.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 94,
+      "y": 79,
+      "largeur": 596,
+      "hauteur": 567,
+      "os": "aile_gauche"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 348,
+      "y": 412,
+      "largeur": 490,
+      "hauteur": 528,
+      "os": "corps"
+    },
+    {
+      "id": "pattes",
+      "image": "calques/pattes.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 254,
+      "y": 699,
+      "largeur": 743,
+      "hauteur": 285,
+      "os": "pattes"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 48,
+      "y": 608,
+      "largeur": 465,
+      "hauteur": 363,
+      "os": "queue"
     }
   ],
   "ik": []

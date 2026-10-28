@@ -10,27 +10,87 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 1/Griffure.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 102, "y": 982, "angle": 0, "longueur": 819 },
-    { "id": "bassin", "parent": "sol", "x": 512, "y": 900, "angle": -90, "longueur": 82 },
-    { "id": "torse", "parent": "bassin", "x": 512, "y": 819, "angle": -90, "longueur": 204 },
-    { "id": "tete", "parent": "torse", "x": 512, "y": 512, "angle": -90, "longueur": 307 },
-    { "id": "oreille_g", "parent": "tete", "x": 358, "y": 205, "angle": -120, "longueur": 153 },
-    { "id": "oreille_d", "parent": "tete", "x": 666, "y": 205, "angle": -60, "longueur": 153 },
-    { "id": "bras_g", "parent": "torse", "x": 358, "y": 696, "angle": 160, "longueur": 143 },
-    { "id": "bras_d", "parent": "torse", "x": 666, "y": 696, "angle": 20, "longueur": 143 },
-    { "id": "jambe_g", "parent": "bassin", "x": 410, "y": 900, "angle": 100, "longueur": 92 },
-    { "id": "jambe_d", "parent": "bassin", "x": 614, "y": 900, "angle": 80, "longueur": 92 },
-    { "id": "queue", "parent": "bassin", "x": 717, "y": 839, "angle": -30, "longueur": 143 }
+    { "id": "sol", "parent": null, "x": 0, "y": 1022, "angle": 0, "longueur": 1023 },
+    { "id": "fond", "parent": null, "x": 0, "y": 1022, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 270, "y": 1022, "angle": -60, "longueur": 559 },
+    { "id": "bras", "parent": "corps", "x": 224, "y": 652, "angle": -37.8, "longueur": 982 },
+    { "id": "jambes", "parent": "corps", "x": 348, "y": 896, "angle": 8.4, "longueur": 587 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 149,
+          "y": 1,
+          "largeur": 875,
+          "hauteur": 744,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 0,
+          "y": 532,
+          "largeur": 565,
+          "hauteur": 491,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 302,
+          "y": 674,
+          "largeur": 628,
+          "hauteur": 347,
+          "etat": "provisoire",
+          "par": "jambes"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 105,
+      "y": 0,
+      "largeur": 919,
+      "hauteur": 786,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 0,
+      "y": 502,
+      "largeur": 565,
+      "hauteur": 522,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 271,
+      "y": 646,
+      "largeur": 690,
+      "hauteur": 377,
+      "os": "jambes"
     }
   ],
   "ik": []

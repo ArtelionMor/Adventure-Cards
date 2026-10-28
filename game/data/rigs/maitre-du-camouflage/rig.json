@@ -10,27 +10,153 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 1/Maître du Camouflage.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 188, "y": 950, "angle": 0, "longueur": 633 },
-    { "id": "bassin", "parent": "sol", "x": 505, "y": 877, "angle": -90, "longueur": 73 },
-    { "id": "torse", "parent": "bassin", "x": 505, "y": 804, "angle": -90, "longueur": 183 },
-    { "id": "tete", "parent": "torse", "x": 505, "y": 529, "angle": -90, "longueur": 275 },
-    { "id": "oreille_g", "parent": "tete", "x": 386, "y": 254, "angle": -120, "longueur": 137 },
-    { "id": "oreille_d", "parent": "tete", "x": 623, "y": 254, "angle": -60, "longueur": 137 },
-    { "id": "bras_g", "parent": "torse", "x": 386, "y": 694, "angle": 160, "longueur": 128 },
-    { "id": "bras_d", "parent": "torse", "x": 623, "y": 694, "angle": 20, "longueur": 128 },
-    { "id": "jambe_g", "parent": "bassin", "x": 425, "y": 877, "angle": 100, "longueur": 82 },
-    { "id": "jambe_d", "parent": "bassin", "x": 584, "y": 877, "angle": 80, "longueur": 82 },
-    { "id": "queue", "parent": "bassin", "x": 663, "y": 822, "angle": -30, "longueur": 128 }
+    { "id": "sol", "parent": null, "x": 109, "y": 986, "angle": 0, "longueur": 790 },
+    { "id": "fond", "parent": null, "x": 0, "y": 986, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 571, "y": 900, "angle": -69.6, "longueur": 546 },
+    { "id": "tete", "parent": "corps", "x": 592, "y": 443, "angle": -160, "longueur": 480 },
+    { "id": "bras", "parent": "corps", "x": 456, "y": 656, "angle": -171.1, "longueur": 350 },
+    { "id": "jambes", "parent": "corps", "x": 667, "y": 795, "angle": 167.2, "longueur": 380 },
+    { "id": "queue", "parent": "corps", "x": 767, "y": 665, "angle": 84.4, "longueur": 258 },
+    { "id": "feuilles", "parent": "tete", "x": 322, "y": 355, "angle": 85.2, "longueur": 203 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 141,
+          "y": 71,
+          "largeur": 678,
+          "hauteur": 398,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 183,
+          "y": 271,
+          "largeur": 230,
+          "hauteur": 287,
+          "etat": "provisoire",
+          "par": "feuilles"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 109,
+          "y": 533,
+          "largeur": 402,
+          "hauteur": 246,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 397,
+          "y": 386,
+          "largeur": 406,
+          "hauteur": 515,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 295,
+          "y": 707,
+          "largeur": 506,
+          "hauteur": 280,
+          "etat": "provisoire",
+          "par": "jambes"
+        },
+        {
+          "id": "z6",
+          "masque": "masques/tout-z6.png",
+          "x": 728,
+          "y": 632,
+          "largeur": 172,
+          "hauteur": 291,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 6,
+      "x": 138,
+      "y": 67,
+      "largeur": 687,
+      "hauteur": 444,
+      "os": "tete"
+    },
+    {
+      "id": "feuilles",
+      "image": "calques/feuilles.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 179,
+      "y": 240,
+      "largeur": 265,
+      "hauteur": 349,
+      "os": "feuilles"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 106,
+      "y": 528,
+      "largeur": 436,
+      "hauteur": 282,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 363,
+      "y": 352,
+      "largeur": 445,
+      "hauteur": 583,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 292,
+      "y": 676,
+      "largeur": 538,
+      "hauteur": 317,
+      "os": "jambes"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 697,
+      "y": 601,
+      "largeur": 209,
+      "hauteur": 353,
+      "os": "queue"
     }
   ],
   "ik": []

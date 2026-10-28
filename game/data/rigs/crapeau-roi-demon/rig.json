@@ -10,27 +10,109 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Venimous Frog/Crapeau roi démon.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 129, "y": 945, "angle": 0, "longueur": 766 },
-    { "id": "bassin", "parent": "sol", "x": 512, "y": 868, "angle": -90, "longueur": 77 },
-    { "id": "torse", "parent": "bassin", "x": 512, "y": 791, "angle": -90, "longueur": 192 },
-    { "id": "tete", "parent": "torse", "x": 512, "y": 503, "angle": -90, "longueur": 288 },
-    { "id": "oreille_g", "parent": "tete", "x": 368, "y": 215, "angle": -120, "longueur": 144 },
-    { "id": "oreille_d", "parent": "tete", "x": 656, "y": 215, "angle": -60, "longueur": 144 },
-    { "id": "bras_g", "parent": "torse", "x": 368, "y": 676, "angle": 160, "longueur": 134 },
-    { "id": "bras_d", "parent": "torse", "x": 656, "y": 676, "angle": 20, "longueur": 134 },
-    { "id": "jambe_g", "parent": "bassin", "x": 416, "y": 868, "angle": 100, "longueur": 86 },
-    { "id": "jambe_d", "parent": "bassin", "x": 608, "y": 868, "angle": 80, "longueur": 86 },
-    { "id": "queue", "parent": "bassin", "x": 704, "y": 810, "angle": -30, "longueur": 134 }
+    { "id": "sol", "parent": null, "x": 153, "y": 976, "angle": 0, "longueur": 837 },
+    { "id": "fond", "parent": null, "x": 0, "y": 976, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 352, "y": 952, "angle": -48.7, "longueur": 495 },
+    { "id": "tete", "parent": "corps", "x": 436, "y": 585, "angle": -43.7, "longueur": 759 },
+    { "id": "bras", "parent": "corps", "x": 685, "y": 781, "angle": -161.5, "longueur": 551 },
+    { "id": "jambes", "parent": "corps", "x": 495, "y": 890, "angle": 12.7, "longueur": 318 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 31,
+      "y": 21,
+      "largeur": 962,
+      "hauteur": 966,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 247,
+          "y": 23,
+          "largeur": 744,
+          "hauteur": 592,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 163,
+          "y": 364,
+          "largeur": 621,
+          "hauteur": 526,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 153,
+          "y": 556,
+          "largeur": 625,
+          "hauteur": 397,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 205,
+          "y": 805,
+          "largeur": 601,
+          "hauteur": 172,
+          "etat": "provisoire",
+          "par": "jambes"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 203,
+      "y": 21,
+      "largeur": 790,
+      "hauteur": 638,
+      "os": "tete"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 161,
+      "y": 333,
+      "largeur": 645,
+      "hauteur": 588,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 113,
+      "y": 516,
+      "largeur": 700,
+      "hauteur": 463,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 174,
+      "y": 774,
+      "largeur": 663,
+      "hauteur": 213,
+      "os": "jambes"
     }
   ],
   "ik": []

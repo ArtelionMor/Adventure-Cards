@@ -10,27 +10,131 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 3/Index.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 180, "y": 944, "angle": 0, "longueur": 730 },
-    { "id": "bassin", "parent": "sol", "x": 545, "y": 873, "angle": -90, "longueur": 70 },
-    { "id": "torse", "parent": "bassin", "x": 545, "y": 803, "angle": -90, "longueur": 176 },
-    { "id": "tete", "parent": "torse", "x": 545, "y": 539, "angle": -90, "longueur": 264 },
-    { "id": "oreille_g", "parent": "tete", "x": 408, "y": 275, "angle": -120, "longueur": 132 },
-    { "id": "oreille_d", "parent": "tete", "x": 682, "y": 275, "angle": -60, "longueur": 132 },
-    { "id": "bras_g", "parent": "torse", "x": 408, "y": 697, "angle": 160, "longueur": 123 },
-    { "id": "bras_d", "parent": "torse", "x": 682, "y": 697, "angle": 20, "longueur": 123 },
-    { "id": "jambe_g", "parent": "bassin", "x": 454, "y": 873, "angle": 100, "longueur": 79 },
-    { "id": "jambe_d", "parent": "bassin", "x": 636, "y": 873, "angle": 80, "longueur": 79 },
-    { "id": "queue", "parent": "bassin", "x": 727, "y": 821, "angle": -30, "longueur": 123 }
+    { "id": "sol", "parent": null, "x": 89, "y": 978, "angle": 0, "longueur": 911 },
+    { "id": "fond", "parent": null, "x": 0, "y": 978, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 332, "y": 978, "angle": -78.9, "longueur": 896 },
+    { "id": "tete", "parent": "corps", "x": 292, "y": 230, "angle": -159, "longueur": 193 },
+    { "id": "aile_droite", "parent": "corps", "x": 595, "y": 690, "angle": 36.2, "longueur": 273 },
+    { "id": "pattes", "parent": "corps", "x": 555, "y": 867, "angle": 1.6, "longueur": 321 },
+    { "id": "queue", "parent": "corps", "x": 684, "y": 576, "angle": 37.1, "longueur": 396 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 87,
+      "y": 97,
+      "largeur": 916,
+      "hauteur": 884,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 103,
+          "y": 123,
+          "largeur": 319,
+          "hauteur": 193,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 554,
+          "y": 603,
+          "largeur": 262,
+          "hauteur": 314,
+          "etat": "provisoire",
+          "par": "aile_droite"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 89,
+          "y": 99,
+          "largeur": 618,
+          "hauteur": 880,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 545,
+          "y": 852,
+          "largeur": 333,
+          "hauteur": 85,
+          "etat": "provisoire",
+          "par": "pattes"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 677,
+          "y": 403,
+          "largeur": 324,
+          "hauteur": 473,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 101,
+      "y": 121,
+      "largeur": 352,
+      "hauteur": 226,
+      "os": "tete"
+    },
+    {
+      "id": "aile_droite",
+      "image": "calques/aile_droite.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 523,
+      "y": 572,
+      "largeur": 324,
+      "hauteur": 363,
+      "os": "aile_droite"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 87,
+      "y": 97,
+      "largeur": 669,
+      "hauteur": 884,
+      "os": "corps"
+    },
+    {
+      "id": "pattes",
+      "image": "calques/pattes.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 514,
+      "y": 821,
+      "largeur": 391,
+      "hauteur": 118,
+      "os": "pattes"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 646,
+      "y": 401,
+      "largeur": 357,
+      "hauteur": 493,
+      "os": "queue"
     }
   ],
   "ik": []

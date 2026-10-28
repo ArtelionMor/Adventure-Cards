@@ -10,27 +10,109 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 1/Guérisseuse Gluante.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 168, "y": 946, "angle": 0, "longueur": 684 },
-    { "id": "bassin", "parent": "sol", "x": 510, "y": 873, "angle": -90, "longueur": 73 },
-    { "id": "torse", "parent": "bassin", "x": 510, "y": 800, "angle": -90, "longueur": 182 },
-    { "id": "tete", "parent": "torse", "x": 510, "y": 526, "angle": -90, "longueur": 274 },
-    { "id": "oreille_g", "parent": "tete", "x": 381, "y": 252, "angle": -120, "longueur": 137 },
-    { "id": "oreille_d", "parent": "tete", "x": 638, "y": 252, "angle": -60, "longueur": 137 },
-    { "id": "bras_g", "parent": "torse", "x": 381, "y": 690, "angle": 160, "longueur": 128 },
-    { "id": "bras_d", "parent": "torse", "x": 638, "y": 690, "angle": 20, "longueur": 128 },
-    { "id": "jambe_g", "parent": "bassin", "x": 424, "y": 873, "angle": 100, "longueur": 82 },
-    { "id": "jambe_d", "parent": "bassin", "x": 595, "y": 873, "angle": 80, "longueur": 82 },
-    { "id": "queue", "parent": "bassin", "x": 681, "y": 818, "angle": -30, "longueur": 128 }
+    { "id": "sol", "parent": null, "x": 82, "y": 981, "angle": 0, "longueur": 854 },
+    { "id": "fond", "parent": null, "x": 0, "y": 981, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 399, "y": 981, "angle": -55.1, "longueur": 500 },
+    { "id": "tete", "parent": "corps", "x": 540, "y": 553, "angle": -104.9, "longueur": 489 },
+    { "id": "bras", "parent": "corps", "x": 388, "y": 710, "angle": -2, "longueur": 547 },
+    { "id": "cape", "parent": "bras", "x": 260, "y": 563, "angle": -74.9, "longueur": 196 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 234,
+          "y": 70,
+          "largeur": 585,
+          "hauteur": 508,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 99,
+          "y": 374,
+          "largeur": 239,
+          "hauteur": 231,
+          "etat": "provisoire",
+          "par": "cape"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 82,
+          "y": 501,
+          "largeur": 855,
+          "hauteur": 468,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 200,
+          "y": 532,
+          "largeur": 487,
+          "hauteur": 450,
+          "etat": "provisoire",
+          "par": "corps"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 230,
+      "y": 63,
+      "largeur": 599,
+      "hauteur": 561,
+      "os": "tete"
+    },
+    {
+      "id": "cape",
+      "image": "calques/cape.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 95,
+      "y": 343,
+      "largeur": 274,
+      "hauteur": 293,
+      "os": "cape"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 78,
+      "y": 461,
+      "largeur": 864,
+      "hauteur": 511,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 179,
+      "y": 498,
+      "largeur": 536,
+      "hauteur": 486,
+      "os": "corps"
     }
   ],
   "ik": []

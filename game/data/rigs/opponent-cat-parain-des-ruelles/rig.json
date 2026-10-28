@@ -10,27 +10,197 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Cat/Parain des Ruelles.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 119, "y": 981, "angle": 0, "longueur": 795 },
-    { "id": "bassin", "parent": "sol", "x": 517, "y": 900, "angle": -90, "longueur": 81 },
-    { "id": "torse", "parent": "bassin", "x": 517, "y": 819, "angle": -90, "longueur": 202 },
-    { "id": "tete", "parent": "torse", "x": 517, "y": 517, "angle": -90, "longueur": 302 },
-    { "id": "oreille_g", "parent": "tete", "x": 368, "y": 215, "angle": -120, "longueur": 151 },
-    { "id": "oreille_d", "parent": "tete", "x": 666, "y": 215, "angle": -60, "longueur": 151 },
-    { "id": "bras_g", "parent": "torse", "x": 368, "y": 698, "angle": 160, "longueur": 141 },
-    { "id": "bras_d", "parent": "torse", "x": 666, "y": 698, "angle": 20, "longueur": 141 },
-    { "id": "jambe_g", "parent": "bassin", "x": 418, "y": 900, "angle": 100, "longueur": 91 },
-    { "id": "jambe_d", "parent": "bassin", "x": 616, "y": 900, "angle": 80, "longueur": 91 },
-    { "id": "queue", "parent": "bassin", "x": 716, "y": 840, "angle": -30, "longueur": 141 }
+    { "id": "sol", "parent": null, "x": 71, "y": 947, "angle": 0, "longueur": 924 },
+    { "id": "fond", "parent": null, "x": 0, "y": 947, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 216, "y": 628, "angle": -78.1, "longueur": 354 },
+    { "id": "tete", "parent": "corps", "x": 226, "y": 317, "angle": -31.4, "longueur": 460 },
+    { "id": "jambes", "parent": "corps", "x": 242, "y": 615, "angle": 77.1, "longueur": 341 },
+    { "id": "queue", "parent": "corps", "x": 835, "y": 417, "angle": -64.7, "longueur": 336 },
+    { "id": "cape", "parent": "corps", "x": 717, "y": 513, "angle": 25.5, "longueur": 307 },
+    { "id": "oreille_gauche", "parent": "tete", "x": 340, "y": 196, "angle": 95.7, "longueur": 142 },
+    { "id": "oreille_droite", "parent": "tete", "x": 645, "y": 171, "angle": 154, "longueur": 631 },
+    { "id": "bras", "parent": "jambes", "x": 399, "y": 708, "angle": -1.7, "longueur": 477 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 71,
+          "y": 69,
+          "largeur": 674,
+          "hauteur": 392,
+          "etat": "provisoire",
+          "par": "oreille_droite"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 205,
+          "y": 97,
+          "largeur": 197,
+          "hauteur": 241,
+          "etat": "provisoire",
+          "par": "oreille_gauche"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 77,
+          "y": 17,
+          "largeur": 576,
+          "hauteur": 392,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 717,
+          "y": 501,
+          "largeur": 279,
+          "hauteur": 166,
+          "etat": "provisoire",
+          "par": "cape"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 380,
+          "y": 593,
+          "largeur": 497,
+          "hauteur": 321,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z6",
+          "masque": "masques/tout-z6.png",
+          "x": 167,
+          "y": 282,
+          "largeur": 239,
+          "hauteur": 347,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z7",
+          "masque": "masques/tout-z7.png",
+          "x": 139,
+          "y": 609,
+          "largeur": 310,
+          "hauteur": 339,
+          "etat": "provisoire",
+          "par": "jambes"
+        },
+        {
+          "id": "z8",
+          "masque": "masques/tout-z8.png",
+          "x": 835,
+          "y": 111,
+          "largeur": 155,
+          "hauteur": 337,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "oreille_droite",
+      "image": "calques/oreille_droite.png",
+      "de": "tout",
+      "ordre": 8,
+      "x": 45,
+      "y": 65,
+      "largeur": 722,
+      "hauteur": 427,
+      "os": "oreille_droite"
+    },
+    {
+      "id": "oreille_gauche",
+      "image": "calques/oreille_gauche.png",
+      "de": "tout",
+      "ordre": 7,
+      "x": 174,
+      "y": 93,
+      "largeur": 259,
+      "hauteur": 276,
+      "os": "oreille_gauche"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 6,
+      "x": 54,
+      "y": 0,
+      "largeur": 630,
+      "hauteur": 440,
+      "os": "tete"
+    },
+    {
+      "id": "cape",
+      "image": "calques/cape.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 686,
+      "y": 470,
+      "largeur": 336,
+      "hauteur": 228,
+      "os": "cape"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 349,
+      "y": 562,
+      "largeur": 559,
+      "hauteur": 383,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 136,
+      "y": 251,
+      "largeur": 301,
+      "hauteur": 409,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 108,
+      "y": 578,
+      "largeur": 372,
+      "hauteur": 401,
+      "os": "jambes"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 804,
+      "y": 91,
+      "largeur": 196,
+      "hauteur": 388,
+      "os": "queue"
     }
   ],
   "ik": []

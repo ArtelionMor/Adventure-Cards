@@ -10,27 +10,197 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Mouse/Sabotage.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 137, "y": 906, "angle": 0, "longueur": 750 },
-    { "id": "bassin", "parent": "sol", "x": 512, "y": 835, "angle": -90, "longueur": 71 },
-    { "id": "torse", "parent": "bassin", "x": 512, "y": 764, "angle": -90, "longueur": 177 },
-    { "id": "tete", "parent": "torse", "x": 512, "y": 498, "angle": -90, "longueur": 266 },
-    { "id": "oreille_g", "parent": "tete", "x": 371, "y": 232, "angle": -120, "longueur": 133 },
-    { "id": "oreille_d", "parent": "tete", "x": 653, "y": 232, "angle": -60, "longueur": 133 },
-    { "id": "bras_g", "parent": "torse", "x": 371, "y": 657, "angle": 160, "longueur": 124 },
-    { "id": "bras_d", "parent": "torse", "x": 653, "y": 657, "angle": 20, "longueur": 124 },
-    { "id": "jambe_g", "parent": "bassin", "x": 418, "y": 835, "angle": 100, "longueur": 80 },
-    { "id": "jambe_d", "parent": "bassin", "x": 606, "y": 835, "angle": 80, "longueur": 80 },
-    { "id": "queue", "parent": "bassin", "x": 700, "y": 782, "angle": -30, "longueur": 124 }
+    { "id": "sol", "parent": null, "x": 135, "y": 922, "angle": 0, "longueur": 797 },
+    { "id": "fond", "parent": null, "x": 0, "y": 922, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 519, "y": 781, "angle": -58.6, "longueur": 364 },
+    { "id": "tete", "parent": "corps", "x": 601, "y": 519, "angle": -149, "longueur": 408 },
+    { "id": "bras", "parent": "corps", "x": 425, "y": 609, "angle": -157.7, "longueur": 313 },
+    { "id": "jambes", "parent": "corps", "x": 551, "y": 756, "angle": 75.2, "longueur": 172 },
+    { "id": "queue", "parent": "corps", "x": 777, "y": 565, "angle": 41.8, "longueur": 178 },
+    { "id": "oreille_gauche", "parent": "tete", "x": 300, "y": 277, "angle": -76.7, "longueur": 183 },
+    { "id": "oreille_droite", "parent": "tete", "x": 611, "y": 240, "angle": -18, "longueur": 317 },
+    { "id": "cape", "parent": "tete", "x": 505, "y": 190, "angle": -25.1, "longueur": 179 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 41,
+      "y": 53,
+      "largeur": 942,
+      "hauteur": 890,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 595,
+          "y": 55,
+          "largeur": 324,
+          "hauteur": 374,
+          "etat": "provisoire",
+          "par": "oreille_droite"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 251,
+          "y": 97,
+          "largeur": 155,
+          "hauteur": 187,
+          "etat": "provisoire",
+          "par": "oreille_gauche"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 247,
+          "y": 166,
+          "largeur": 477,
+          "hauteur": 386,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 404,
+          "y": 99,
+          "largeur": 264,
+          "hauteur": 118,
+          "etat": "provisoire",
+          "par": "cape"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 135,
+          "y": 381,
+          "largeur": 330,
+          "hauteur": 294,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z6",
+          "masque": "masques/tout-z6.png",
+          "x": 415,
+          "y": 467,
+          "largeur": 314,
+          "hauteur": 315,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z7",
+          "masque": "masques/tout-z7.png",
+          "x": 489,
+          "y": 731,
+          "largeur": 182,
+          "hauteur": 192,
+          "etat": "provisoire",
+          "par": "jambes"
+        },
+        {
+          "id": "z8",
+          "masque": "masques/tout-z8.png",
+          "x": 774,
+          "y": 545,
+          "largeur": 159,
+          "hauteur": 192,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "oreille_droite",
+      "image": "calques/oreille_droite.png",
+      "de": "tout",
+      "ordre": 8,
+      "x": 564,
+      "y": 53,
+      "largeur": 357,
+      "hauteur": 399,
+      "os": "oreille_droite"
+    },
+    {
+      "id": "oreille_gauche",
+      "image": "calques/oreille_gauche.png",
+      "de": "tout",
+      "ordre": 7,
+      "x": 249,
+      "y": 95,
+      "largeur": 188,
+      "hauteur": 220,
+      "os": "oreille_gauche"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 6,
+      "x": 245,
+      "y": 133,
+      "largeur": 512,
+      "hauteur": 452,
+      "os": "tete"
+    },
+    {
+      "id": "cape",
+      "image": "calques/cape.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 373,
+      "y": 97,
+      "largeur": 326,
+      "hauteur": 151,
+      "os": "cape"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 107,
+      "y": 350,
+      "largeur": 389,
+      "hauteur": 356,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 384,
+      "y": 436,
+      "largeur": 376,
+      "hauteur": 377,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 458,
+      "y": 700,
+      "largeur": 244,
+      "hauteur": 237,
+      "os": "jambes"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 743,
+      "y": 543,
+      "largeur": 192,
+      "hauteur": 225,
+      "os": "queue"
     }
   ],
   "ik": []

@@ -10,27 +10,131 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 3/Lecture en diagonale.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 212, "y": 931, "angle": 0, "longueur": 648 },
-    { "id": "bassin", "parent": "sol", "x": 536, "y": 856, "angle": -90, "longueur": 75 },
-    { "id": "torse", "parent": "bassin", "x": 536, "y": 781, "angle": -90, "longueur": 188 },
-    { "id": "tete", "parent": "torse", "x": 536, "y": 498, "angle": -90, "longueur": 283 },
-    { "id": "oreille_g", "parent": "tete", "x": 415, "y": 215, "angle": -120, "longueur": 141 },
-    { "id": "oreille_d", "parent": "tete", "x": 658, "y": 215, "angle": -60, "longueur": 141 },
-    { "id": "bras_g", "parent": "torse", "x": 415, "y": 668, "angle": 160, "longueur": 132 },
-    { "id": "bras_d", "parent": "torse", "x": 658, "y": 668, "angle": 20, "longueur": 132 },
-    { "id": "jambe_g", "parent": "bassin", "x": 455, "y": 856, "angle": 100, "longueur": 85 },
-    { "id": "jambe_d", "parent": "bassin", "x": 617, "y": 856, "angle": 80, "longueur": 85 },
-    { "id": "queue", "parent": "bassin", "x": 698, "y": 799, "angle": -30, "longueur": 132 }
+    { "id": "sol", "parent": null, "x": 131, "y": 968, "angle": 0, "longueur": 809 },
+    { "id": "fond", "parent": null, "x": 0, "y": 968, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 508, "y": 968, "angle": -58.5, "longueur": 562 },
+    { "id": "aile_gauche", "parent": "corps", "x": 409, "y": 650, "angle": -150.6, "longueur": 265 },
+    { "id": "aile_droite", "parent": "corps", "x": 716, "y": 489, "angle": -90.6, "longueur": 281 },
+    { "id": "cape", "parent": "aile_droite", "x": 640, "y": 366, "angle": 164.8, "longueur": 420 },
+    { "id": "tete", "parent": "cape", "x": 443, "y": 343, "angle": -50.7, "longueur": 407 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 129,
+      "y": 25,
+      "largeur": 814,
+      "hauteur": 946,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 131,
+          "y": 27,
+          "largeur": 604,
+          "hauteur": 463,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 234,
+          "y": 240,
+          "largeur": 435,
+          "hauteur": 303,
+          "etat": "provisoire",
+          "par": "cape"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 601,
+          "y": 208,
+          "largeur": 328,
+          "hauteur": 309,
+          "etat": "provisoire",
+          "par": "aile_droite"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 169,
+          "y": 481,
+          "largeur": 318,
+          "hauteur": 230,
+          "etat": "provisoire",
+          "par": "aile_gauche"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 270,
+          "y": 472,
+          "largeur": 671,
+          "hauteur": 497,
+          "etat": "provisoire",
+          "par": "corps"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 129,
+      "y": 25,
+      "largeur": 608,
+      "hauteur": 493,
+      "os": "tete"
+    },
+    {
+      "id": "cape",
+      "image": "calques/cape.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 211,
+      "y": 209,
+      "largeur": 489,
+      "hauteur": 365,
+      "os": "cape"
+    },
+    {
+      "id": "aile_droite",
+      "image": "calques/aile_droite.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 570,
+      "y": 177,
+      "largeur": 361,
+      "hauteur": 371,
+      "os": "aile_droite"
+    },
+    {
+      "id": "aile_gauche",
+      "image": "calques/aile_gauche.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 167,
+      "y": 450,
+      "largeur": 351,
+      "hauteur": 278,
+      "os": "aile_gauche"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 227,
+      "y": 429,
+      "largeur": 716,
+      "hauteur": 542,
+      "os": "corps"
     }
   ],
   "ik": []

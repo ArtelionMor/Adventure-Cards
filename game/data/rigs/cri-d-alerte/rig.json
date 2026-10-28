@@ -10,27 +10,131 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 2/Cri d'alerte.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 119, "y": 914, "angle": 0, "longueur": 787 },
-    { "id": "bassin", "parent": "sol", "x": 513, "y": 839, "angle": -90, "longueur": 75 },
-    { "id": "torse", "parent": "bassin", "x": 513, "y": 764, "angle": -90, "longueur": 188 },
-    { "id": "tete", "parent": "torse", "x": 513, "y": 482, "angle": -90, "longueur": 282 },
-    { "id": "oreille_g", "parent": "tete", "x": 365, "y": 199, "angle": -120, "longueur": 141 },
-    { "id": "oreille_d", "parent": "tete", "x": 661, "y": 199, "angle": -60, "longueur": 141 },
-    { "id": "bras_g", "parent": "torse", "x": 365, "y": 651, "angle": 160, "longueur": 132 },
-    { "id": "bras_d", "parent": "torse", "x": 661, "y": 651, "angle": 20, "longueur": 132 },
-    { "id": "jambe_g", "parent": "bassin", "x": 415, "y": 839, "angle": 100, "longueur": 85 },
-    { "id": "jambe_d", "parent": "bassin", "x": 611, "y": 839, "angle": 80, "longueur": 85 },
-    { "id": "queue", "parent": "bassin", "x": 710, "y": 783, "angle": -30, "longueur": 132 }
+    { "id": "sol", "parent": null, "x": 56, "y": 590, "angle": 0, "longueur": 948 },
+    { "id": "fond", "parent": null, "x": 0, "y": 590, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 617, "y": 590, "angle": -86.8, "longueur": 140 },
+    { "id": "tete", "parent": "corps", "x": 569, "y": 476, "angle": -39, "longueur": 534 },
+    { "id": "aile_gauche", "parent": "tete", "x": 449, "y": 313, "angle": -149.5, "longueur": 454 },
+    { "id": "aile_droite", "parent": "tete", "x": 913, "y": 179, "angle": -82.1, "longueur": 153 },
+    { "id": "pattes", "parent": "tete", "x": 489, "y": 487, "angle": 112.3, "longueur": 84 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 369,
+          "y": 110,
+          "largeur": 627,
+          "hauteur": 399,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 56,
+          "y": 11,
+          "largeur": 438,
+          "hauteur": 456,
+          "etat": "provisoire",
+          "par": "aile_gauche"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 838,
+          "y": 27,
+          "largeur": 167,
+          "hauteur": 205,
+          "etat": "provisoire",
+          "par": "aile_droite"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 521,
+          "y": 450,
+          "largeur": 203,
+          "hauteur": 141,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 407,
+          "y": 464,
+          "largeur": 93,
+          "hauteur": 102,
+          "etat": "provisoire",
+          "par": "pattes"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 338,
+      "y": 79,
+      "largeur": 672,
+      "hauteur": 459,
+      "os": "tete"
+    },
+    {
+      "id": "aile_gauche",
+      "image": "calques/aile_gauche.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 52,
+      "y": 0,
+      "largeur": 473,
+      "hauteur": 472,
+      "os": "aile_gauche"
+    },
+    {
+      "id": "aile_droite",
+      "image": "calques/aile_droite.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 812,
+      "y": 2,
+      "largeur": 200,
+      "hauteur": 261,
+      "os": "aile_droite"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 491,
+      "y": 419,
+      "largeur": 237,
+      "hauteur": 174,
+      "os": "corps"
+    },
+    {
+      "id": "pattes",
+      "image": "calques/pattes.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 402,
+      "y": 433,
+      "largeur": 128,
+      "hauteur": 164,
+      "os": "pattes"
     }
   ],
   "ik": []

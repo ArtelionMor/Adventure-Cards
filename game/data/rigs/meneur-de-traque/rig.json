@@ -10,27 +10,87 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Snow Fox/Meneur de traque.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 111, "y": 826, "angle": 0, "longueur": 812 },
-    { "id": "bassin", "parent": "sol", "x": 517, "y": 765, "angle": -90, "longueur": 61 },
-    { "id": "torse", "parent": "bassin", "x": 517, "y": 704, "angle": -90, "longueur": 153 },
-    { "id": "tete", "parent": "torse", "x": 517, "y": 475, "angle": -90, "longueur": 229 },
-    { "id": "oreille_g", "parent": "tete", "x": 364, "y": 246, "angle": -120, "longueur": 115 },
-    { "id": "oreille_d", "parent": "tete", "x": 669, "y": 246, "angle": -60, "longueur": 115 },
-    { "id": "bras_g", "parent": "torse", "x": 364, "y": 613, "angle": 160, "longueur": 107 },
-    { "id": "bras_d", "parent": "torse", "x": 669, "y": 613, "angle": 20, "longueur": 107 },
-    { "id": "jambe_g", "parent": "bassin", "x": 415, "y": 765, "angle": 100, "longueur": 69 },
-    { "id": "jambe_d", "parent": "bassin", "x": 618, "y": 765, "angle": 80, "longueur": 69 },
-    { "id": "queue", "parent": "bassin", "x": 720, "y": 719, "angle": -30, "longueur": 107 }
+    { "id": "sol", "parent": null, "x": 9, "y": 856, "angle": 0, "longueur": 1014 },
+    { "id": "fond", "parent": null, "x": 0, "y": 856, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 647, "y": 856, "angle": -147.8, "longueur": 732 },
+    { "id": "tete", "parent": "corps", "x": 559, "y": 368, "angle": -58.9, "longueur": 321 },
+    { "id": "arme", "parent": "corps", "x": 800, "y": 275, "angle": -41, "longueur": 221 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 7,
+      "y": 91,
+      "largeur": 1017,
+      "hauteur": 768,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 333,
+          "y": 93,
+          "largeur": 404,
+          "hauteur": 311,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 779,
+          "y": 107,
+          "largeur": 206,
+          "hauteur": 202,
+          "etat": "provisoire",
+          "par": "arme"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 9,
+          "y": 238,
+          "largeur": 1015,
+          "hauteur": 619,
+          "etat": "provisoire",
+          "par": "corps"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 331,
+      "y": 91,
+      "largeur": 426,
+      "hauteur": 344,
+      "os": "tete"
+    },
+    {
+      "id": "arme",
+      "image": "calques/arme.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 749,
+      "y": 105,
+      "largeur": 238,
+      "hauteur": 230,
+      "os": "arme"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 7,
+      "y": 173,
+      "largeur": 1017,
+      "hauteur": 686,
+      "os": "corps"
     }
   ],
   "ik": []

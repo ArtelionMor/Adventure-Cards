@@ -10,27 +10,131 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Cameleon Decks/Cameleon Deck 3/Mimétisme.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 139, "y": 945, "angle": 0, "longueur": 723 },
-    { "id": "bassin", "parent": "sol", "x": 501, "y": 870, "angle": -90, "longueur": 75 },
-    { "id": "torse", "parent": "bassin", "x": 501, "y": 795, "angle": -90, "longueur": 188 },
-    { "id": "tete", "parent": "torse", "x": 501, "y": 514, "angle": -90, "longueur": 281 },
-    { "id": "oreille_g", "parent": "tete", "x": 365, "y": 233, "angle": -120, "longueur": 141 },
-    { "id": "oreille_d", "parent": "tete", "x": 637, "y": 233, "angle": -60, "longueur": 141 },
-    { "id": "bras_g", "parent": "torse", "x": 365, "y": 683, "angle": 160, "longueur": 131 },
-    { "id": "bras_d", "parent": "torse", "x": 637, "y": 683, "angle": 20, "longueur": 131 },
-    { "id": "jambe_g", "parent": "bassin", "x": 411, "y": 870, "angle": 100, "longueur": 84 },
-    { "id": "jambe_d", "parent": "bassin", "x": 591, "y": 870, "angle": 80, "longueur": 84 },
-    { "id": "queue", "parent": "bassin", "x": 682, "y": 814, "angle": -30, "longueur": 131 }
+    { "id": "sol", "parent": null, "x": 49, "y": 982, "angle": 0, "longueur": 903 },
+    { "id": "fond", "parent": null, "x": 0, "y": 982, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 493, "y": 982, "angle": -121.1, "longueur": 473 },
+    { "id": "tete", "parent": "corps", "x": 514, "y": 576, "angle": -42, "longueur": 577 },
+    { "id": "bras", "parent": "corps", "x": 413, "y": 695, "angle": -80, "longueur": 97 },
+    { "id": "queue", "parent": "corps", "x": 322, "y": 851, "angle": 156, "longueur": 236 },
+    { "id": "feuilles", "parent": "tete", "x": 707, "y": 526, "angle": 69, "longueur": 381 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 47,
+      "y": 43,
+      "largeur": 908,
+      "hauteur": 942,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 49,
+          "y": 45,
+          "largeur": 904,
+          "hauteur": 532,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 581,
+          "y": 454,
+          "largeur": 346,
+          "hauteur": 433,
+          "etat": "provisoire",
+          "par": "feuilles"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 343,
+          "y": 599,
+          "largeur": 93,
+          "hauteur": 167,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 246,
+          "y": 577,
+          "largeur": 572,
+          "hauteur": 406,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 104,
+          "y": 697,
+          "largeur": 263,
+          "hauteur": 280,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 47,
+      "y": 43,
+      "largeur": 908,
+      "hauteur": 593,
+      "os": "tete"
+    },
+    {
+      "id": "feuilles",
+      "image": "calques/feuilles.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 550,
+      "y": 423,
+      "largeur": 379,
+      "hauteur": 466,
+      "os": "feuilles"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 312,
+      "y": 568,
+      "largeur": 155,
+      "hauteur": 229,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 219,
+      "y": 542,
+      "largeur": 601,
+      "hauteur": 443,
+      "os": "corps"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 102,
+      "y": 695,
+      "largeur": 296,
+      "hauteur": 286,
+      "os": "queue"
     }
   ],
   "ik": []

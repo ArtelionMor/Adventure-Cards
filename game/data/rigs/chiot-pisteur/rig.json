@@ -10,27 +10,109 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Dog Decks/Dog Deck 3/Chiot Pisteur.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 194, "y": 916, "angle": 0, "longueur": 560 },
-    { "id": "bassin", "parent": "sol", "x": 474, "y": 854, "angle": -90, "longueur": 62 },
-    { "id": "torse", "parent": "bassin", "x": 474, "y": 792, "angle": -90, "longueur": 155 },
-    { "id": "tete", "parent": "torse", "x": 474, "y": 560, "angle": -90, "longueur": 233 },
-    { "id": "oreille_g", "parent": "tete", "x": 369, "y": 327, "angle": -120, "longueur": 116 },
-    { "id": "oreille_d", "parent": "tete", "x": 579, "y": 327, "angle": -60, "longueur": 116 },
-    { "id": "bras_g", "parent": "torse", "x": 369, "y": 699, "angle": 160, "longueur": 109 },
-    { "id": "bras_d", "parent": "torse", "x": 579, "y": 699, "angle": 20, "longueur": 109 },
-    { "id": "jambe_g", "parent": "bassin", "x": 404, "y": 854, "angle": 100, "longueur": 70 },
-    { "id": "jambe_d", "parent": "bassin", "x": 544, "y": 854, "angle": 80, "longueur": 70 },
-    { "id": "queue", "parent": "bassin", "x": 614, "y": 808, "angle": -30, "longueur": 109 }
+    { "id": "sol", "parent": null, "x": 216, "y": 926, "angle": 0, "longueur": 601 },
+    { "id": "fond", "parent": null, "x": 0, "y": 926, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 618, "y": 871, "angle": -137.2, "longueur": 411 },
+    { "id": "tete", "parent": "corps", "x": 615, "y": 572, "angle": -167.7, "longueur": 408 },
+    { "id": "jambes", "parent": "corps", "x": 603, "y": 870, "angle": -15.3, "longueur": 205 },
+    { "id": "oreille_gauche", "parent": "tete", "x": 393, "y": 371, "angle": -132.9, "longueur": 98 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 326,
+          "y": 297,
+          "largeur": 98,
+          "hauteur": 93,
+          "etat": "provisoire",
+          "par": "oreille_gauche"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 216,
+          "y": 333,
+          "largeur": 434,
+          "hauteur": 259,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 315,
+          "y": 592,
+          "largeur": 503,
+          "hauteur": 280,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 445,
+          "y": 731,
+          "largeur": 365,
+          "hauteur": 196,
+          "etat": "provisoire",
+          "par": "jambes"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "oreille_gauche",
+      "image": "calques/oreille_gauche.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 295,
+      "y": 266,
+      "largeur": 160,
+      "hauteur": 155,
+      "os": "oreille_gauche"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 192,
+      "y": 302,
+      "largeur": 489,
+      "hauteur": 321,
+      "os": "tete"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 296,
+      "y": 561,
+      "largeur": 527,
+      "hauteur": 342,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 420,
+      "y": 700,
+      "largeur": 408,
+      "hauteur": 250,
+      "os": "jambes"
     }
   ],
   "ik": []

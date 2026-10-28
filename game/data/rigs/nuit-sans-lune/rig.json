@@ -10,27 +10,87 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 1/Nuit sans Lune.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 103, "y": 924, "angle": 0, "longueur": 728 },
-    { "id": "bassin", "parent": "sol", "x": 467, "y": 850, "angle": -90, "longueur": 74 },
-    { "id": "torse", "parent": "bassin", "x": 467, "y": 776, "angle": -90, "longueur": 185 },
-    { "id": "tete", "parent": "torse", "x": 467, "y": 498, "angle": -90, "longueur": 278 },
-    { "id": "oreille_g", "parent": "tete", "x": 331, "y": 219, "angle": -120, "longueur": 139 },
-    { "id": "oreille_d", "parent": "tete", "x": 604, "y": 219, "angle": -60, "longueur": 139 },
-    { "id": "bras_g", "parent": "torse", "x": 331, "y": 664, "angle": 160, "longueur": 130 },
-    { "id": "bras_d", "parent": "torse", "x": 604, "y": 664, "angle": 20, "longueur": 130 },
-    { "id": "jambe_g", "parent": "bassin", "x": 376, "y": 850, "angle": 100, "longueur": 83 },
-    { "id": "jambe_d", "parent": "bassin", "x": 558, "y": 850, "angle": 80, "longueur": 83 },
-    { "id": "queue", "parent": "bassin", "x": 649, "y": 794, "angle": -30, "longueur": 130 }
+    { "id": "sol", "parent": null, "x": 12, "y": 960, "angle": 0, "longueur": 887 },
+    { "id": "fond", "parent": null, "x": 0, "y": 960, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 449, "y": 745, "angle": -62.5, "longueur": 689 },
+    { "id": "tete", "parent": "corps", "x": 507, "y": 432, "angle": 95.2, "longueur": 154 },
+    { "id": "aile_gauche", "parent": "corps", "x": 271, "y": 415, "angle": 34.1, "longueur": 689 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 357,
+          "y": 280,
+          "largeur": 303,
+          "hauteur": 306,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 12,
+          "y": 34,
+          "largeur": 874,
+          "hauteur": 927,
+          "etat": "provisoire",
+          "par": "aile_gauche"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 225,
+          "y": 124,
+          "largeur": 675,
+          "hauteur": 622,
+          "etat": "provisoire",
+          "par": "corps"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 326,
+      "y": 249,
+      "largeur": 365,
+      "hauteur": 368,
+      "os": "tete"
+    },
+    {
+      "id": "aile_gauche",
+      "image": "calques/aile_gauche.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 0,
+      "y": 2,
+      "largeur": 934,
+      "hauteur": 967,
+      "os": "aile_gauche"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 179,
+      "y": 78,
+      "largeur": 752,
+      "hauteur": 714,
+      "os": "corps"
     }
   ],
   "ik": []

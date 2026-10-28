@@ -10,27 +10,109 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Rabbit Decks/Rabbit Deck 3/Portée de Lapereaux.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 116, "y": 877, "angle": 0, "longueur": 791 },
-    { "id": "bassin", "parent": "sol", "x": 512, "y": 813, "angle": -90, "longueur": 64 },
-    { "id": "torse", "parent": "bassin", "x": 512, "y": 749, "angle": -90, "longueur": 160 },
-    { "id": "tete", "parent": "torse", "x": 512, "y": 510, "angle": -90, "longueur": 239 },
-    { "id": "oreille_g", "parent": "tete", "x": 363, "y": 271, "angle": -120, "longueur": 120 },
-    { "id": "oreille_d", "parent": "tete", "x": 660, "y": 271, "angle": -60, "longueur": 120 },
-    { "id": "bras_g", "parent": "torse", "x": 363, "y": 654, "angle": 160, "longueur": 112 },
-    { "id": "bras_d", "parent": "torse", "x": 660, "y": 654, "angle": 20, "longueur": 112 },
-    { "id": "jambe_g", "parent": "bassin", "x": 413, "y": 813, "angle": 100, "longueur": 72 },
-    { "id": "jambe_d", "parent": "bassin", "x": 610, "y": 813, "angle": 80, "longueur": 72 },
-    { "id": "queue", "parent": "bassin", "x": 709, "y": 765, "angle": -30, "longueur": 112 }
+    { "id": "sol", "parent": null, "x": 90, "y": 892, "angle": 0, "longueur": 868 },
+    { "id": "fond", "parent": null, "x": 0, "y": 892, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 577, "y": 892, "angle": -151, "longueur": 497 },
+    { "id": "tete", "parent": "corps", "x": 535, "y": 634, "angle": -159.2, "longueur": 467 },
+    { "id": "oreille_gauche", "parent": "tete", "x": 501, "y": 393, "angle": -163.4, "longueur": 414 },
+    { "id": "oreille_droite", "parent": "tete", "x": 503, "y": 388, "angle": -30.7, "longueur": 513 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 99,
+          "y": 111,
+          "largeur": 699,
+          "hauteur": 355,
+          "etat": "provisoire",
+          "par": "oreille_gauche"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 373,
+          "y": 125,
+          "largeur": 586,
+          "hauteur": 304,
+          "etat": "provisoire",
+          "par": "oreille_droite"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 90,
+          "y": 376,
+          "largeur": 843,
+          "hauteur": 273,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 117,
+          "y": 606,
+          "largeur": 831,
+          "hauteur": 287,
+          "etat": "provisoire",
+          "par": "corps"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "oreille_gauche",
+      "image": "calques/oreille_gauche.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 91,
+      "y": 106,
+      "largeur": 742,
+      "hauteur": 395,
+      "os": "oreille_gauche"
+    },
+    {
+      "id": "oreille_droite",
+      "image": "calques/oreille_droite.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 342,
+      "y": 122,
+      "largeur": 628,
+      "hauteur": 338,
+      "os": "oreille_droite"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 84,
+      "y": 337,
+      "largeur": 856,
+      "hauteur": 351,
+      "os": "tete"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 79,
+      "y": 568,
+      "largeur": 889,
+      "hauteur": 329,
+      "os": "corps"
     }
   ],
   "ik": []

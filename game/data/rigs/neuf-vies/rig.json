@@ -10,27 +10,131 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Cat Decks/Cat Deck 1/Neuf Vies.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 112, "y": 956, "angle": 0, "longueur": 806 },
-    { "id": "bassin", "parent": "sol", "x": 515, "y": 878, "angle": -90, "longueur": 78 },
-    { "id": "torse", "parent": "bassin", "x": 515, "y": 801, "angle": -90, "longueur": 194 },
-    { "id": "tete", "parent": "torse", "x": 515, "y": 509, "angle": -90, "longueur": 292 },
-    { "id": "oreille_g", "parent": "tete", "x": 363, "y": 217, "angle": -120, "longueur": 146 },
-    { "id": "oreille_d", "parent": "tete", "x": 666, "y": 217, "angle": -60, "longueur": 146 },
-    { "id": "bras_g", "parent": "torse", "x": 363, "y": 684, "angle": 160, "longueur": 136 },
-    { "id": "bras_d", "parent": "torse", "x": 666, "y": 684, "angle": 20, "longueur": 136 },
-    { "id": "jambe_g", "parent": "bassin", "x": 414, "y": 878, "angle": 100, "longueur": 87 },
-    { "id": "jambe_d", "parent": "bassin", "x": 615, "y": 878, "angle": 80, "longueur": 87 },
-    { "id": "queue", "parent": "bassin", "x": 716, "y": 820, "angle": -30, "longueur": 136 }
+    { "id": "sol", "parent": null, "x": 11, "y": 994, "angle": 0, "longueur": 1006 },
+    { "id": "fond", "parent": null, "x": 0, "y": 994, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 941, "y": 880, "angle": -145.3, "longueur": 914 },
+    { "id": "tete", "parent": "corps", "x": 669, "y": 265, "angle": -179.2, "longueur": 346 },
+    { "id": "oreille_droite", "parent": "corps", "x": 852, "y": 234, "angle": -91.3, "longueur": 179 },
+    { "id": "bras", "parent": "corps", "x": 604, "y": 581, "angle": 39.5, "longueur": 533 },
+    { "id": "jambes", "parent": "corps", "x": 481, "y": 763, "angle": 163.5, "longueur": 490 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 800,
+          "y": 53,
+          "largeur": 78,
+          "hauteur": 182,
+          "etat": "provisoire",
+          "par": "oreille_droite"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 323,
+          "y": 23,
+          "largeur": 525,
+          "hauteur": 243,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 113,
+          "y": 217,
+          "largeur": 905,
+          "hauteur": 778,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 180,
+          "y": 266,
+          "largeur": 803,
+          "hauteur": 615,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 11,
+          "y": 706,
+          "largeur": 594,
+          "hauteur": 284,
+          "etat": "provisoire",
+          "par": "jambes"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "oreille_droite",
+      "image": "calques/oreille_droite.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 769,
+      "y": 39,
+      "largeur": 115,
+      "hauteur": 201,
+      "os": "oreille_droite"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 297,
+      "y": 0,
+      "largeur": 571,
+      "hauteur": 297,
+      "os": "tete"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 84,
+      "y": 169,
+      "largeur": 940,
+      "hauteur": 853,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 165,
+      "y": 224,
+      "largeur": 848,
+      "hauteur": 699,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 0,
+      "y": 673,
+      "largeur": 638,
+      "hauteur": 348,
+      "os": "jambes"
     }
   ],
   "ik": []

@@ -10,27 +10,109 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 2/Grand Veilleur.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 113, "y": 933, "angle": 0, "longueur": 798 },
-    { "id": "bassin", "parent": "sol", "x": 512, "y": 857, "angle": -90, "longueur": 76 },
-    { "id": "torse", "parent": "bassin", "x": 512, "y": 780, "angle": -90, "longueur": 191 },
-    { "id": "tete", "parent": "torse", "x": 512, "y": 494, "angle": -90, "longueur": 286 },
-    { "id": "oreille_g", "parent": "tete", "x": 362, "y": 208, "angle": -120, "longueur": 143 },
-    { "id": "oreille_d", "parent": "tete", "x": 661, "y": 208, "angle": -60, "longueur": 143 },
-    { "id": "bras_g", "parent": "torse", "x": 362, "y": 666, "angle": 160, "longueur": 134 },
-    { "id": "bras_d", "parent": "torse", "x": 661, "y": 666, "angle": 20, "longueur": 134 },
-    { "id": "jambe_g", "parent": "bassin", "x": 412, "y": 857, "angle": 100, "longueur": 86 },
-    { "id": "jambe_d", "parent": "bassin", "x": 611, "y": 857, "angle": 80, "longueur": 86 },
-    { "id": "queue", "parent": "bassin", "x": 711, "y": 799, "angle": -30, "longueur": 134 }
+    { "id": "sol", "parent": null, "x": 13, "y": 970, "angle": 0, "longueur": 996 },
+    { "id": "fond", "parent": null, "x": 0, "y": 970, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 512, "y": 890, "angle": -64.5, "longueur": 807 },
+    { "id": "tete", "parent": "corps", "x": 472, "y": 369, "angle": -125.6, "longueur": 426 },
+    { "id": "pattes", "parent": "corps", "x": 443, "y": 847, "angle": 117.7, "longueur": 138 },
+    { "id": "aile_gauche", "parent": "tete", "x": 341, "y": 242, "angle": -168.7, "longueur": 331 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1024,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 221,
+          "y": 17,
+          "largeur": 617,
+          "hauteur": 426,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 16,
+          "y": 105,
+          "largeur": 424,
+          "hauteur": 217,
+          "etat": "provisoire",
+          "par": "aile_gauche"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 13,
+          "y": 161,
+          "largeur": 997,
+          "hauteur": 730,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 350,
+          "y": 836,
+          "largeur": 165,
+          "hauteur": 135,
+          "etat": "provisoire",
+          "par": "pattes"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 187,
+      "y": 0,
+      "largeur": 687,
+      "hauteur": 483,
+      "os": "tete"
+    },
+    {
+      "id": "aile_gauche",
+      "image": "calques/aile_gauche.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 0,
+      "y": 100,
+      "largeur": 471,
+      "hauteur": 253,
+      "os": "aile_gauche"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 0,
+      "y": 151,
+      "largeur": 1024,
+      "hauteur": 783,
+      "os": "corps"
+    },
+    {
+      "id": "pattes",
+      "image": "calques/pattes.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 332,
+      "y": 805,
+      "largeur": 214,
+      "hauteur": 169,
+      "os": "pattes"
     }
   ],
   "ik": []

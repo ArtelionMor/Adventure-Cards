@@ -10,27 +10,131 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Raven Decks/Raven Deck 1/Mauvais Oeil.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 103, "y": 968, "angle": 0, "longueur": 820 },
-    { "id": "bassin", "parent": "sol", "x": 513, "y": 898, "angle": -90, "longueur": 70 },
-    { "id": "torse", "parent": "bassin", "x": 513, "y": 829, "angle": -90, "longueur": 174 },
-    { "id": "tete", "parent": "torse", "x": 513, "y": 567, "angle": -90, "longueur": 262 },
-    { "id": "oreille_g", "parent": "tete", "x": 359, "y": 305, "angle": -120, "longueur": 131 },
-    { "id": "oreille_d", "parent": "tete", "x": 666, "y": 305, "angle": -60, "longueur": 131 },
-    { "id": "bras_g", "parent": "torse", "x": 359, "y": 724, "angle": 160, "longueur": 122 },
-    { "id": "bras_d", "parent": "torse", "x": 666, "y": 724, "angle": 20, "longueur": 122 },
-    { "id": "jambe_g", "parent": "bassin", "x": 410, "y": 898, "angle": 100, "longueur": 78 },
-    { "id": "jambe_d", "parent": "bassin", "x": 615, "y": 898, "angle": 80, "longueur": 78 },
-    { "id": "queue", "parent": "bassin", "x": 718, "y": 846, "angle": -30, "longueur": 122 }
+    { "id": "sol", "parent": null, "x": 0, "y": 993, "angle": 0, "longueur": 828 },
+    { "id": "fond", "parent": null, "x": 0, "y": 993, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 363, "y": 783, "angle": -41, "longueur": 423 },
+    { "id": "aile_gauche", "parent": "corps", "x": 533, "y": 465, "angle": -48.7, "longueur": 432 },
+    { "id": "aile_droite", "parent": "corps", "x": 399, "y": 566, "angle": -115.6, "longueur": 331 },
+    { "id": "pattes", "parent": "corps", "x": 397, "y": 774, "angle": 161.6, "longueur": 418 },
+    { "id": "tete", "parent": "aile_droite", "x": 291, "y": 382, "angle": 0.7, "longueur": 537 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 0,
       "y": 0,
       "largeur": 1025,
-      "hauteur": 1024
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 245,
+          "y": 135,
+          "largeur": 584,
+          "hauteur": 303,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 151,
+          "y": 267,
+          "largeur": 318,
+          "hauteur": 478,
+          "etat": "provisoire",
+          "par": "aile_droite"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 432,
+          "y": 141,
+          "largeur": 397,
+          "hauteur": 351,
+          "etat": "provisoire",
+          "par": "aile_gauche"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 302,
+          "y": 361,
+          "largeur": 383,
+          "hauteur": 423,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 0,
+          "y": 732,
+          "largeur": 669,
+          "hauteur": 262,
+          "etat": "provisoire",
+          "par": "pattes"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 214,
+      "y": 130,
+      "largeur": 646,
+      "hauteur": 339,
+      "os": "tete"
+    },
+    {
+      "id": "aile_droite",
+      "image": "calques/aile_droite.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 135,
+      "y": 252,
+      "largeur": 365,
+      "hauteur": 523,
+      "os": "aile_droite"
+    },
+    {
+      "id": "aile_gauche",
+      "image": "calques/aile_gauche.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 401,
+      "y": 136,
+      "largeur": 459,
+      "hauteur": 383,
+      "os": "aile_gauche"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 271,
+      "y": 337,
+      "largeur": 439,
+      "hauteur": 474,
+      "os": "corps"
+    },
+    {
+      "id": "pattes",
+      "image": "calques/pattes.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 0,
+      "y": 701,
+      "largeur": 699,
+      "hauteur": 323,
+      "os": "pattes"
     }
   ],
   "ik": []

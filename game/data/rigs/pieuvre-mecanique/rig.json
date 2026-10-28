@@ -10,27 +10,109 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Captain Frog/Pieuvre Mécanique.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 117, "y": 933, "angle": 0, "longueur": 800 },
-    { "id": "bassin", "parent": "sol", "x": 517, "y": 860, "angle": -90, "longueur": 73 },
-    { "id": "torse", "parent": "bassin", "x": 517, "y": 787, "angle": -90, "longueur": 182 },
-    { "id": "tete", "parent": "torse", "x": 517, "y": 514, "angle": -90, "longueur": 273 },
-    { "id": "oreille_g", "parent": "tete", "x": 367, "y": 241, "angle": -120, "longueur": 137 },
-    { "id": "oreille_d", "parent": "tete", "x": 667, "y": 241, "angle": -60, "longueur": 137 },
-    { "id": "bras_g", "parent": "torse", "x": 367, "y": 678, "angle": 160, "longueur": 127 },
-    { "id": "bras_d", "parent": "torse", "x": 667, "y": 678, "angle": 20, "longueur": 127 },
-    { "id": "jambe_g", "parent": "bassin", "x": 417, "y": 860, "angle": 100, "longueur": 82 },
-    { "id": "jambe_d", "parent": "bassin", "x": 617, "y": 860, "angle": 80, "longueur": 82 },
-    { "id": "queue", "parent": "bassin", "x": 717, "y": 805, "angle": -30, "longueur": 127 }
+    { "id": "sol", "parent": null, "x": 17, "y": 968, "angle": 0, "longueur": 999 },
+    { "id": "fond", "parent": null, "x": 0, "y": 968, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 452, "y": 968, "angle": -109.2, "longueur": 920 },
+    { "id": "tete", "parent": "corps", "x": 567, "y": 340, "angle": -102.5, "longueur": 138 },
+    { "id": "bras", "parent": "corps", "x": 847, "y": 650, "angle": -164.9, "longueur": 768 },
+    { "id": "jambes", "parent": "corps", "x": 240, "y": 902, "angle": 175.7, "longueur": 121 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 16,
+      "y": 57,
+      "largeur": 1003,
+      "hauteur": 914,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 458,
+          "y": 205,
+          "largeur": 230,
+          "hauteur": 260,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 103,
+          "y": 395,
+          "largeur": 914,
+          "hauteur": 344,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 17,
+          "y": 59,
+          "largeur": 920,
+          "hauteur": 910,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 118,
+          "y": 868,
+          "largeur": 200,
+          "hauteur": 87,
+          "etat": "provisoire",
+          "par": "jambes"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 427,
+      "y": 174,
+      "largeur": 292,
+      "hauteur": 322,
+      "os": "tete"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 85,
+      "y": 383,
+      "largeur": 934,
+      "hauteur": 385,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 16,
+      "y": 57,
+      "largeur": 966,
+      "hauteur": 914,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 91,
+      "y": 837,
+      "largeur": 258,
+      "hauteur": 120,
+      "os": "jambes"
     }
   ],
   "ik": []

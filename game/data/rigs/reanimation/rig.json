@@ -10,27 +10,131 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Goat/Réanimation.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 109, "y": 984, "angle": 0, "longueur": 814 },
-    { "id": "bassin", "parent": "sol", "x": 516, "y": 904, "angle": -90, "longueur": 80 },
-    { "id": "torse", "parent": "bassin", "x": 516, "y": 824, "angle": -90, "longueur": 200 },
-    { "id": "tete", "parent": "torse", "x": 516, "y": 524, "angle": -90, "longueur": 300 },
-    { "id": "oreille_g", "parent": "tete", "x": 363, "y": 223, "angle": -120, "longueur": 150 },
-    { "id": "oreille_d", "parent": "tete", "x": 668, "y": 223, "angle": -60, "longueur": 150 },
-    { "id": "bras_g", "parent": "torse", "x": 363, "y": 704, "angle": 160, "longueur": 140 },
-    { "id": "bras_d", "parent": "torse", "x": 668, "y": 704, "angle": 20, "longueur": 140 },
-    { "id": "jambe_g", "parent": "bassin", "x": 414, "y": 904, "angle": 100, "longueur": 90 },
-    { "id": "jambe_d", "parent": "bassin", "x": 617, "y": 904, "angle": 80, "longueur": 90 },
-    { "id": "queue", "parent": "bassin", "x": 719, "y": 844, "angle": -30, "longueur": 140 }
+    { "id": "sol", "parent": null, "x": 206, "y": 804, "angle": 0, "longueur": 543 },
+    { "id": "fond", "parent": null, "x": 0, "y": 804, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 402, "y": 804, "angle": -61, "longueur": 565 },
+    { "id": "tete", "parent": "corps", "x": 547, "y": 266, "angle": -139.9, "longueur": 109 },
+    { "id": "bras", "parent": "corps", "x": 338, "y": 571, "angle": -91.3, "longueur": 218 },
+    { "id": "cape", "parent": "corps", "x": 470, "y": 334, "angle": -126.7, "longueur": 112 },
+    { "id": "arme", "parent": "corps", "x": 652, "y": 303, "angle": -81.5, "longueur": 283 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 7,
+      "y": 168,
+      "largeur": 1017,
+      "hauteur": 856,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 449,
+          "y": 168,
+          "largeur": 159,
+          "hauteur": 140,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 630,
+          "y": 23,
+          "largeur": 120,
+          "hauteur": 287,
+          "etat": "provisoire",
+          "par": "arme"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 401,
+          "y": 244,
+          "largeur": 79,
+          "hauteur": 94,
+          "etat": "provisoire",
+          "par": "cape"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 206,
+          "y": 353,
+          "largeur": 200,
+          "hauteur": 333,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 249,
+          "y": 253,
+          "largeur": 433,
+          "hauteur": 552,
+          "etat": "provisoire",
+          "par": "corps"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 423,
+      "y": 168,
+      "largeur": 214,
+      "hauteur": 171,
+      "os": "tete"
+    },
+    {
+      "id": "arme",
+      "image": "calques/arme.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 599,
+      "y": 23,
+      "largeur": 151,
+      "hauteur": 318,
+      "os": "arme"
+    },
+    {
+      "id": "cape",
+      "image": "calques/cape.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 401,
+      "y": 217,
+      "largeur": 110,
+      "hauteur": 152,
+      "os": "cape"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 206,
+      "y": 353,
+      "largeur": 231,
+      "hauteur": 345,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 231,
+      "y": 221,
+      "largeur": 455,
+      "hauteur": 616,
+      "os": "corps"
     }
   ],
   "ik": []

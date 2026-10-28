@@ -10,27 +10,197 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Cat/Dompteur de foudre.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 248, "y": 983, "angle": 0, "longueur": 514 },
-    { "id": "bassin", "parent": "sol", "x": 506, "y": 901, "angle": -90, "longueur": 82 },
-    { "id": "torse", "parent": "bassin", "x": 506, "y": 819, "angle": -90, "longueur": 205 },
-    { "id": "tete", "parent": "torse", "x": 506, "y": 512, "angle": -90, "longueur": 307 },
-    { "id": "oreille_g", "parent": "tete", "x": 409, "y": 205, "angle": -120, "longueur": 154 },
-    { "id": "oreille_d", "parent": "tete", "x": 602, "y": 205, "angle": -60, "longueur": 154 },
-    { "id": "bras_g", "parent": "torse", "x": 409, "y": 696, "angle": 160, "longueur": 143 },
-    { "id": "bras_d", "parent": "torse", "x": 602, "y": 696, "angle": 20, "longueur": 143 },
-    { "id": "jambe_g", "parent": "bassin", "x": 441, "y": 901, "angle": 100, "longueur": 92 },
-    { "id": "jambe_d", "parent": "bassin", "x": 570, "y": 901, "angle": 80, "longueur": 92 },
-    { "id": "queue", "parent": "bassin", "x": 634, "y": 840, "angle": -30, "longueur": 143 }
+    { "id": "sol", "parent": null, "x": 184, "y": 1023, "angle": 0, "longueur": 642 },
+    { "id": "fond", "parent": null, "x": 0, "y": 1023, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 307, "y": 1023, "angle": -50.3, "longueur": 447 },
+    { "id": "tete", "parent": "corps", "x": 534, "y": 671, "angle": -92.2, "longueur": 235 },
+    { "id": "bras", "parent": "corps", "x": 565, "y": 735, "angle": -20.2, "longueur": 252 },
+    { "id": "jambes", "parent": "corps", "x": 422, "y": 911, "angle": -142.7, "longueur": 269 },
+    { "id": "cape", "parent": "corps", "x": 434, "y": 692, "angle": 35.8, "longueur": 299 },
+    { "id": "oreille_gauche", "parent": "tete", "x": 341, "y": 558, "angle": -132.3, "longueur": 229 },
+    { "id": "oreille_droite", "parent": "tete", "x": 446, "y": 516, "angle": 176.8, "longueur": 107 },
+    { "id": "queue", "parent": "jambes", "x": 664, "y": 938, "angle": -39.1, "longueur": 192 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
+      "x": 183,
       "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "largeur": 646,
+      "hauteur": 1024,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 184,
+          "y": 388,
+          "largeur": 171,
+          "hauteur": 252,
+          "etat": "provisoire",
+          "par": "oreille_gauche"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 339,
+          "y": 474,
+          "largeur": 167,
+          "hauteur": 62,
+          "etat": "provisoire",
+          "par": "oreille_droite"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 327,
+          "y": 435,
+          "largeur": 332,
+          "hauteur": 263,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 233,
+          "y": 582,
+          "largeur": 454,
+          "hauteur": 309,
+          "etat": "provisoire",
+          "par": "cape"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 548,
+          "y": 615,
+          "largeur": 259,
+          "hauteur": 183,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z6",
+          "masque": "masques/tout-z6.png",
+          "x": 227,
+          "y": 671,
+          "largeur": 375,
+          "hauteur": 353,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z7",
+          "masque": "masques/tout-z7.png",
+          "x": 198,
+          "y": 741,
+          "largeur": 480,
+          "hauteur": 283,
+          "etat": "provisoire",
+          "par": "jambes"
+        },
+        {
+          "id": "z8",
+          "masque": "masques/tout-z8.png",
+          "x": 655,
+          "y": 793,
+          "largeur": 172,
+          "hauteur": 189,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "oreille_gauche",
+      "image": "calques/oreille_gauche.png",
+      "de": "tout",
+      "ordre": 8,
+      "x": 183,
+      "y": 379,
+      "largeur": 203,
+      "hauteur": 292,
+      "os": "oreille_gauche"
+    },
+    {
+      "id": "oreille_droite",
+      "image": "calques/oreille_droite.png",
+      "de": "tout",
+      "ordre": 7,
+      "x": 308,
+      "y": 443,
+      "largeur": 229,
+      "hauteur": 124,
+      "os": "oreille_droite"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 6,
+      "x": 296,
+      "y": 404,
+      "largeur": 394,
+      "hauteur": 325,
+      "os": "tete"
+    },
+    {
+      "id": "cape",
+      "image": "calques/cape.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 231,
+      "y": 551,
+      "largeur": 479,
+      "hauteur": 371,
+      "os": "cape"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 517,
+      "y": 584,
+      "largeur": 297,
+      "hauteur": 245,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 225,
+      "y": 640,
+      "largeur": 408,
+      "hauteur": 384,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 197,
+      "y": 740,
+      "largeur": 509,
+      "hauteur": 284,
+      "os": "jambes"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 624,
+      "y": 792,
+      "largeur": 205,
+      "hauteur": 221,
+      "os": "queue"
     }
   ],
   "ik": []
