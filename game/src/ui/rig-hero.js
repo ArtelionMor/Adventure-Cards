@@ -16,15 +16,21 @@ const candidats = sprite => {
   return [...new Set([slug(nom), slug((deck || '') + ' ' + nom)])].filter(Boolean);
 };
 
+// Une meme illustration rangee dans plusieurs dossiers (le deck complet de chaque adversaire) n'a de rig que dans UNE copie :
+// `game/data/rigs-alias.json` (ecrit par `scripts/rig-alias.mjs`) renvoie les autres chemins vers lui.
+let alias;
+const aliasDe = () => alias || (alias = fetch('/game/data/rigs-alias.json').then(r => (r.ok ? r.json() : {})).catch(() => ({})));
+
 const rigs = new Map();   // sprite -> Promise<rig | null> (un personnage se charge une fois pour tous ses portraits)
 export function rigDe(sprite) {
   if (!rigs.has(sprite)) {
     rigs.set(sprite, (async () => {
-      for (const id of candidats(sprite)) {
+      const renvoi = (await aliasDe())[sprite];
+      for (const id of renvoi ? [renvoi] : candidats(sprite)) {
         try {
           const r = await chargeRig(`/game/data/rigs/${id}/`);
           const origine = r.json.source?.origine;
-          if (r.clips.idle && (!origine || origine === sprite)) return r;
+          if (r.clips.idle && (renvoi || !origine || origine === sprite)) return r;
         } catch { /* pas de dossier de ce nom */ }
       }
       return null;

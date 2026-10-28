@@ -73,6 +73,22 @@ def empreinte(dossier):
         return None
 
 
+def doublons(rigs):
+    # Une meme illustration peut etre rangee dans plusieurs dossiers (le deck complet de chaque adversaire) : chaque copie a recu son squelette.
+    # On ne decoupe QU'UNE copie (la premiere par ordre alphabetique, celle sans prefixe de deck) ; les autres renvoient a elle.
+    vus, rendu = {}, {}
+    for d in sorted(x for x in os.listdir(rigs) if os.path.isfile(os.path.join(rigs, x, "rig.json"))):
+        try:
+            h = hashlib.md5(open(os.path.join(rigs, d, "source.png"), "rb").read()).hexdigest()
+        except Exception:
+            continue
+        if h in vus:
+            rendu[d] = vus[h]
+        else:
+            vus[h] = d
+    return rendu
+
+
 def main():
     # sans console (tache cachee de Windows), Python ecrit en cp1252 et plante sur le moindre accent
     for flux in (sys.stdout, sys.stderr):
@@ -119,6 +135,7 @@ def main():
         tous = sorted(d for d in os.listdir(rigs) if os.path.isfile(os.path.join(rigs, d, "rig.json")))
     if a.ids:
         tous = [i for i in a.ids.split(",") if i]
+    doubles = doublons(os.path.join(a.depot, "game", "data", "rigs"))
     faits = 0
     log("lot démarré : %d personnage(s) candidat(s), modèle %s, SAM %d points" % (len(tous), a.modele, a.points))
     for ident in tous:
@@ -128,6 +145,8 @@ def main():
             break
         e = etat.get(ident, {})
         statut = e.get("statut")
+        if ident in doubles and statut not in ("fait", "a_verifier", "ignore"):
+            etat[ident] = {"statut": "ignore", "raison": "doublon de %s" % doubles[ident]}; log("%s : ignoré (doublon de %s)" % (ident, doubles[ident])); sauve(); continue
         sortie = os.path.join(a.auto, "sortie", ident)
         deja_decoupe = os.path.exists(os.path.join(sortie, "etiquettes.png")) and statut in ("decoupe_faite", "fait", "a_verifier")
         if statut == "ignore" or (statut == "echec" and e.get("essais", 0) >= 3):
