@@ -10,17 +10,131 @@
     "origine": "Graphical Assets/Cards/Opponent Cat/Garde paraisseux.png"
   },
   "os": [
-    { "id": "os1", "parent": null, "x": 393, "y": 954, "angle": -2.9, "longueur": 370 }
+    { "id": "sol", "parent": null, "x": 60, "y": 960, "angle": 0, "longueur": 810 },
+    { "id": "fond", "parent": null, "x": 0, "y": 960, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 550, "y": 776, "angle": -71.2, "longueur": 732 },
+    { "id": "tete", "parent": "corps", "x": 503, "y": 312, "angle": 22.6, "longueur": 379 },
+    { "id": "bras", "parent": "corps", "x": 454, "y": 658, "angle": -124.5, "longueur": 688 },
+    { "id": "queue", "parent": "corps", "x": 339, "y": 662, "angle": -113.1, "longueur": 695 },
+    { "id": "jambes", "parent": "bras", "x": 641, "y": 853, "angle": 8.4, "longueur": 212 }
   ],
   "calques": [
     {
-      "id": "corps",
-      "image": "calques/corps.png",
+      "id": "tout",
+      "image": "calques/tout.png",
       "ordre": 0,
       "x": 58,
       "y": 21,
       "largeur": 933,
-      "hauteur": 942
+      "hauteur": 942,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 340,
+          "y": 117,
+          "largeur": 531,
+          "hauteur": 372,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 63,
+          "y": 90,
+          "largeur": 599,
+          "hauteur": 832,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 289,
+          "y": 77,
+          "largeur": 502,
+          "hauteur": 700,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 611,
+          "y": 821,
+          "largeur": 241,
+          "hauteur": 122,
+          "etat": "provisoire",
+          "par": "jambes"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 60,
+          "y": 23,
+          "largeur": 481,
+          "hauteur": 938,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 302,
+      "y": 81,
+      "largeur": 585,
+      "hauteur": 446,
+      "os": "tete"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 59,
+      "y": 59,
+      "largeur": 634,
+      "hauteur": 884,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 260,
+      "y": 76,
+      "largeur": 533,
+      "hauteur": 732,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 580,
+      "y": 790,
+      "largeur": 302,
+      "hauteur": 155,
+      "os": "jambes"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 58,
+      "y": 21,
+      "largeur": 507,
+      "hauteur": 942,
+      "os": "queue"
     }
   ],
   "ik": []

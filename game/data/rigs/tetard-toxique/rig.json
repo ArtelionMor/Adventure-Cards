@@ -10,27 +10,109 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Frog Decks/Frog Deck 3/Têtard Toxique.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 139, "y": 935, "angle": 0, "longueur": 702 },
-    { "id": "bassin", "parent": "sol", "x": 490, "y": 863, "angle": -90, "longueur": 72 },
-    { "id": "torse", "parent": "bassin", "x": 490, "y": 792, "angle": -90, "longueur": 179 },
-    { "id": "tete", "parent": "torse", "x": 490, "y": 523, "angle": -90, "longueur": 269 },
-    { "id": "oreille_g", "parent": "tete", "x": 358, "y": 254, "angle": -120, "longueur": 134 },
-    { "id": "oreille_d", "parent": "tete", "x": 622, "y": 254, "angle": -60, "longueur": 134 },
-    { "id": "bras_g", "parent": "torse", "x": 358, "y": 684, "angle": 160, "longueur": 125 },
-    { "id": "bras_d", "parent": "torse", "x": 622, "y": 684, "angle": 20, "longueur": 125 },
-    { "id": "jambe_g", "parent": "bassin", "x": 402, "y": 863, "angle": 100, "longueur": 81 },
-    { "id": "jambe_d", "parent": "bassin", "x": 578, "y": 863, "angle": 80, "longueur": 81 },
-    { "id": "queue", "parent": "bassin", "x": 666, "y": 810, "angle": -30, "longueur": 125 }
+    { "id": "sol", "parent": null, "x": 51, "y": 970, "angle": 0, "longueur": 877 },
+    { "id": "fond", "parent": null, "x": 0, "y": 970, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 558, "y": 864, "angle": -66.1, "longueur": 615 },
+    { "id": "tete", "parent": "corps", "x": 693, "y": 325, "angle": 176.7, "longueur": 493 },
+    { "id": "bras", "parent": "corps", "x": 446, "y": 636, "angle": 146.8, "longueur": 305 },
+    { "id": "jambes", "parent": "corps", "x": 682, "y": 809, "angle": 172.7, "longueur": 636 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 49,
+      "y": 73,
+      "largeur": 882,
+      "hauteur": 900,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 201,
+          "y": 75,
+          "largeur": 728,
+          "hauteur": 425,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 191,
+          "y": 413,
+          "largeur": 294,
+          "hauteur": 510,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 422,
+          "y": 297,
+          "largeur": 452,
+          "hauteur": 568,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 51,
+          "y": 749,
+          "largeur": 710,
+          "hauteur": 222,
+          "etat": "provisoire",
+          "par": "jambes"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 168,
+      "y": 73,
+      "largeur": 763,
+      "hauteur": 470,
+      "os": "tete"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 160,
+      "y": 382,
+      "largeur": 352,
+      "hauteur": 572,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 381,
+      "y": 256,
+      "largeur": 528,
+      "hauteur": 638,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 49,
+      "y": 718,
+      "largeur": 714,
+      "hauteur": 255,
+      "os": "jambes"
     }
   ],
   "ik": []

@@ -10,27 +10,65 @@
     "origine": "Graphical Assets/Cards/Heroes Deck/Owl Decks/Owl Deck 3/Veilleuse de Nuit.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 165, "y": 929, "angle": 0, "longueur": 710 },
-    { "id": "bassin", "parent": "sol", "x": 520, "y": 854, "angle": -90, "longueur": 75 },
-    { "id": "torse", "parent": "bassin", "x": 520, "y": 779, "angle": -90, "longueur": 188 },
-    { "id": "tete", "parent": "torse", "x": 520, "y": 497, "angle": -90, "longueur": 282 },
-    { "id": "oreille_g", "parent": "tete", "x": 386, "y": 215, "angle": -120, "longueur": 141 },
-    { "id": "oreille_d", "parent": "tete", "x": 653, "y": 215, "angle": -60, "longueur": 141 },
-    { "id": "bras_g", "parent": "torse", "x": 386, "y": 666, "angle": 160, "longueur": 132 },
-    { "id": "bras_d", "parent": "torse", "x": 653, "y": 666, "angle": 20, "longueur": 132 },
-    { "id": "jambe_g", "parent": "bassin", "x": 431, "y": 854, "angle": 100, "longueur": 85 },
-    { "id": "jambe_d", "parent": "bassin", "x": 608, "y": 854, "angle": 80, "longueur": 85 },
-    { "id": "queue", "parent": "bassin", "x": 697, "y": 798, "angle": -30, "longueur": 132 }
+    { "id": "sol", "parent": null, "x": 76, "y": 966, "angle": 0, "longueur": 886 },
+    { "id": "fond", "parent": null, "x": 0, "y": 966, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 486, "y": 966, "angle": -113.2, "longueur": 969 },
+    { "id": "tete", "parent": "corps", "x": 489, "y": 348, "angle": 49, "longueur": 351 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 74,
+      "y": 25,
+      "largeur": 891,
+      "hauteur": 944,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 273,
+          "y": 110,
+          "largeur": 472,
+          "hauteur": 504,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 76,
+          "y": 27,
+          "largeur": 887,
+          "hauteur": 940,
+          "etat": "provisoire",
+          "par": "corps"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 241,
+      "y": 91,
+      "largeur": 532,
+      "hauteur": 555,
+      "os": "tete"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 74,
+      "y": 25,
+      "largeur": 891,
+      "hauteur": 944,
+      "os": "corps"
     }
   ],
   "ik": []

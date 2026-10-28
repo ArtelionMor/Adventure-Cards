@@ -10,27 +10,109 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Big Bad Wolf/Traque du loup.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 75, "y": 954, "angle": 0, "longueur": 542 },
-    { "id": "bassin", "parent": "sol", "x": 346, "y": 875, "angle": -90, "longueur": 79 },
-    { "id": "torse", "parent": "bassin", "x": 346, "y": 796, "angle": -90, "longueur": 197 },
-    { "id": "tete", "parent": "torse", "x": 346, "y": 500, "angle": -90, "longueur": 296 },
-    { "id": "oreille_g", "parent": "tete", "x": 244, "y": 204, "angle": -120, "longueur": 148 },
-    { "id": "oreille_d", "parent": "tete", "x": 448, "y": 204, "angle": -60, "longueur": 148 },
-    { "id": "bras_g", "parent": "torse", "x": 244, "y": 677, "angle": 160, "longueur": 138 },
-    { "id": "bras_d", "parent": "torse", "x": 448, "y": 677, "angle": 20, "longueur": 138 },
-    { "id": "jambe_g", "parent": "bassin", "x": 278, "y": 875, "angle": 100, "longueur": 89 },
-    { "id": "jambe_d", "parent": "bassin", "x": 414, "y": 875, "angle": 80, "longueur": 89 },
-    { "id": "queue", "parent": "bassin", "x": 482, "y": 816, "angle": -30, "longueur": 138 }
+    { "id": "sol", "parent": null, "x": 7, "y": 992, "angle": 0, "longueur": 677 },
+    { "id": "fond", "parent": null, "x": 0, "y": 992, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 248, "y": 852, "angle": -61.5, "longueur": 887 },
+    { "id": "tete", "parent": "corps", "x": 557, "y": 677, "angle": -68.5, "longueur": 251 },
+    { "id": "jambes", "parent": "corps", "x": 174, "y": 808, "angle": 22, "longueur": 402 },
+    { "id": "cape", "parent": "corps", "x": 222, "y": 152, "angle": -167.7, "longueur": 145 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1024
+      "x": 5,
+      "y": 5,
+      "largeur": 682,
+      "hauteur": 990,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 501,
+          "y": 443,
+          "largeur": 152,
+          "hauteur": 342,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 80,
+          "y": 67,
+          "largeur": 213,
+          "hauteur": 115,
+          "etat": "provisoire",
+          "par": "cape"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 7,
+          "y": 7,
+          "largeur": 678,
+          "hauteur": 846,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 28,
+          "y": 757,
+          "largeur": 520,
+          "hauteur": 236,
+          "etat": "provisoire",
+          "par": "jambes"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 470,
+      "y": 441,
+      "largeur": 185,
+      "hauteur": 346,
+      "os": "tete"
+    },
+    {
+      "id": "cape",
+      "image": "calques/cape.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 72,
+      "y": 47,
+      "largeur": 252,
+      "hauteur": 166,
+      "os": "cape"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 5,
+      "y": 5,
+      "largeur": 682,
+      "hauteur": 905,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 25,
+      "y": 726,
+      "largeur": 525,
+      "hauteur": 269,
+      "os": "jambes"
     }
   ],
   "ik": []

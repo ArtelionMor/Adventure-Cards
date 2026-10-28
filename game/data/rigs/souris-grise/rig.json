@@ -10,27 +10,219 @@
     "origine": "Graphical Assets/Cards/Opponents/Opponent Mouse/Souris Grise.png"
   },
   "os": [
-    { "id": "sol", "parent": null, "x": 164, "y": 924, "angle": 0, "longueur": 696 },
-    { "id": "bassin", "parent": "sol", "x": 512, "y": 854, "angle": -90, "longueur": 70 },
-    { "id": "torse", "parent": "bassin", "x": 512, "y": 784, "angle": -90, "longueur": 175 },
-    { "id": "tete", "parent": "torse", "x": 512, "y": 521, "angle": -90, "longueur": 263 },
-    { "id": "oreille_g", "parent": "tete", "x": 382, "y": 258, "angle": -120, "longueur": 131 },
-    { "id": "oreille_d", "parent": "tete", "x": 643, "y": 258, "angle": -60, "longueur": 131 },
-    { "id": "bras_g", "parent": "torse", "x": 382, "y": 679, "angle": 160, "longueur": 123 },
-    { "id": "bras_d", "parent": "torse", "x": 643, "y": 679, "angle": 20, "longueur": 123 },
-    { "id": "jambe_g", "parent": "bassin", "x": 425, "y": 854, "angle": 100, "longueur": 79 },
-    { "id": "jambe_d", "parent": "bassin", "x": 599, "y": 854, "angle": 80, "longueur": 79 },
-    { "id": "queue", "parent": "bassin", "x": 686, "y": 801, "angle": -30, "longueur": 123 }
+    { "id": "sol", "parent": null, "x": 77, "y": 958, "angle": 0, "longueur": 869 },
+    { "id": "fond", "parent": null, "x": 0, "y": 958, "angle": 0, "longueur": 20 },
+    { "id": "corps", "parent": "sol", "x": 547, "y": 795, "angle": -117.4, "longueur": 214 },
+    { "id": "tete", "parent": "corps", "x": 546, "y": 632, "angle": -54, "longueur": 334 },
+    { "id": "bras", "parent": "corps", "x": 434, "y": 652, "angle": 124.3, "longueur": 172 },
+    { "id": "jambes", "parent": "corps", "x": 524, "y": 763, "angle": 40.8, "longueur": 298 },
+    { "id": "oreille_gauche", "parent": "tete", "x": 444, "y": 474, "angle": -152.1, "longueur": 257 },
+    { "id": "oreille_droite", "parent": "tete", "x": 707, "y": 401, "angle": -54.8, "longueur": 388 },
+    { "id": "queue", "parent": "bras", "x": 320, "y": 727, "angle": 157.6, "longueur": 236 },
+    { "id": "cape", "parent": "jambes", "x": 711, "y": 838, "angle": -48.5, "longueur": 332 },
+    { "id": "arme", "parent": "oreille_gauche", "x": 243, "y": 397, "angle": 99.7, "longueur": 340 }
   ],
   "calques": [
     {
       "id": "tout",
-      "image": "source.png",
+      "image": "calques/tout.png",
       "ordre": 0,
-      "x": 0,
-      "y": 0,
-      "largeur": 1024,
-      "hauteur": 1026
+      "x": 75,
+      "y": 81,
+      "largeur": 874,
+      "hauteur": 880,
+      "zones": [
+        {
+          "id": "z1",
+          "masque": "masques/tout-z1.png",
+          "x": 472,
+          "y": 83,
+          "largeur": 463,
+          "hauteur": 454,
+          "etat": "provisoire",
+          "par": "oreille_droite"
+        },
+        {
+          "id": "z2",
+          "masque": "masques/tout-z2.png",
+          "x": 217,
+          "y": 271,
+          "largeur": 284,
+          "hauteur": 337,
+          "etat": "provisoire",
+          "par": "oreille_gauche"
+        },
+        {
+          "id": "z3",
+          "masque": "masques/tout-z3.png",
+          "x": 426,
+          "y": 342,
+          "largeur": 350,
+          "hauteur": 308,
+          "etat": "provisoire",
+          "par": "tete"
+        },
+        {
+          "id": "z4",
+          "masque": "masques/tout-z4.png",
+          "x": 77,
+          "y": 127,
+          "largeur": 338,
+          "hauteur": 606,
+          "etat": "provisoire",
+          "par": "arme"
+        },
+        {
+          "id": "z5",
+          "masque": "masques/tout-z5.png",
+          "x": 639,
+          "y": 549,
+          "largeur": 308,
+          "hauteur": 410,
+          "etat": "provisoire",
+          "par": "cape"
+        },
+        {
+          "id": "z6",
+          "masque": "masques/tout-z6.png",
+          "x": 288,
+          "y": 590,
+          "largeur": 159,
+          "hauteur": 205,
+          "etat": "provisoire",
+          "par": "bras"
+        },
+        {
+          "id": "z7",
+          "masque": "masques/tout-z7.png",
+          "x": 431,
+          "y": 604,
+          "largeur": 239,
+          "hauteur": 192,
+          "etat": "provisoire",
+          "par": "corps"
+        },
+        {
+          "id": "z8",
+          "masque": "masques/tout-z8.png",
+          "x": 347,
+          "y": 726,
+          "largeur": 405,
+          "hauteur": 233,
+          "etat": "provisoire",
+          "par": "jambes"
+        },
+        {
+          "id": "z9",
+          "masque": "masques/tout-z9.png",
+          "x": 101,
+          "y": 671,
+          "largeur": 332,
+          "hauteur": 258,
+          "etat": "provisoire",
+          "par": "queue"
+        }
+      ],
+      "os": "fond"
+    },
+    {
+      "id": "oreille_droite",
+      "image": "calques/oreille_droite.png",
+      "de": "tout",
+      "ordre": 9,
+      "x": 441,
+      "y": 81,
+      "largeur": 496,
+      "hauteur": 487,
+      "os": "oreille_droite"
+    },
+    {
+      "id": "oreille_gauche",
+      "image": "calques/oreille_gauche.png",
+      "de": "tout",
+      "ordre": 8,
+      "x": 186,
+      "y": 246,
+      "largeur": 346,
+      "hauteur": 388,
+      "os": "oreille_gauche"
+    },
+    {
+      "id": "tete",
+      "image": "calques/tete.png",
+      "de": "tout",
+      "ordre": 7,
+      "x": 395,
+      "y": 311,
+      "largeur": 406,
+      "hauteur": 370,
+      "os": "tete"
+    },
+    {
+      "id": "arme",
+      "image": "calques/arme.png",
+      "de": "tout",
+      "ordre": 6,
+      "x": 75,
+      "y": 125,
+      "largeur": 360,
+      "hauteur": 610,
+      "os": "arme"
+    },
+    {
+      "id": "cape",
+      "image": "calques/cape.png",
+      "de": "tout",
+      "ordre": 5,
+      "x": 608,
+      "y": 520,
+      "largeur": 341,
+      "hauteur": 441,
+      "os": "cape"
+    },
+    {
+      "id": "bras",
+      "image": "calques/bras.png",
+      "de": "tout",
+      "ordre": 4,
+      "x": 266,
+      "y": 559,
+      "largeur": 212,
+      "hauteur": 257,
+      "os": "bras"
+    },
+    {
+      "id": "corps",
+      "image": "calques/corps.png",
+      "de": "tout",
+      "ordre": 3,
+      "x": 400,
+      "y": 573,
+      "largeur": 301,
+      "hauteur": 254,
+      "os": "corps"
+    },
+    {
+      "id": "jambes",
+      "image": "calques/jambes.png",
+      "de": "tout",
+      "ordre": 2,
+      "x": 316,
+      "y": 695,
+      "largeur": 467,
+      "hauteur": 266,
+      "os": "jambes"
+    },
+    {
+      "id": "queue",
+      "image": "calques/queue.png",
+      "de": "tout",
+      "ordre": 1,
+      "x": 100,
+      "y": 646,
+      "largeur": 364,
+      "hauteur": 302,
+      "os": "queue"
     }
   ],
   "ik": []
