@@ -12,11 +12,11 @@
   "os": [
     { "id": "sol", "parent": null, "x": 52, "y": 963, "angle": 0, "longueur": 900 },
     { "id": "fond", "parent": null, "x": 0, "y": 963, "angle": 0, "longueur": 20 },
-    { "id": "corps", "parent": "sol", "x": 504, "y": 891, "angle": -66.3, "longueur": 358 },
-    { "id": "tete", "parent": "corps", "x": 528, "y": 562, "angle": -43.7, "longueur": 366 },
-    { "id": "tentacules", "parent": "corps", "x": 350, "y": 681, "angle": -120.1, "longueur": 371 },
-    { "id": "jambes", "parent": "corps", "x": 514, "y": 893, "angle": 11.2, "longueur": 288 },
-    { "id": "tuyau", "parent": "tete", "x": 695, "y": 542, "angle": 76, "longueur": 334 }
+    { "id": "corps", "parent": "sol", "x": 557, "y": 746, "angle": -95.6, "longueur": 180 },
+    { "id": "tete", "parent": "corps", "x": 530, "y": 528, "angle": -91.8, "longueur": 408 },
+    { "id": "tentacules", "parent": "corps", "x": 701, "y": 550, "angle": 64.7, "longueur": 276 },
+    { "id": "jambes", "parent": "corps", "x": 558, "y": 786, "angle": 89.3, "longueur": 119 },
+    { "id": "tuyau", "parent": "corps", "x": 396, "y": 633, "angle": -156.8, "longueur": 293 }
   ],
   "calques": [
     {
@@ -86,32 +86,32 @@
       "image": "calques/tete.png",
       "de": "tout",
       "ordre": 5,
-      "x": 338,
-      "y": 205,
-      "largeur": 528,
-      "hauteur": 391,
+      "x": 215,
+      "y": 39,
+      "largeur": 747,
+      "hauteur": 684,
       "os": "tete"
     },
     {
       "id": "tuyau",
       "image": "calques/tuyau.png",
       "de": "tout",
-      "ordre": 4,
-      "x": 613,
-      "y": 361,
-      "largeur": 346,
-      "hauteur": 535,
+      "ordre": 3,
+      "x": 46,
+      "y": 345,
+      "largeur": 394,
+      "hauteur": 479,
       "os": "tuyau"
     },
     {
       "id": "corps",
       "image": "calques/corps.png",
       "de": "tout",
-      "ordre": 3,
-      "x": 233,
-      "y": 532,
-      "largeur": 490,
-      "hauteur": 390,
+      "ordre": 1,
+      "x": 251,
+      "y": 350,
+      "largeur": 572,
+      "hauteur": 561,
       "os": "corps"
     },
     {
@@ -120,20 +120,20 @@
       "de": "tout",
       "ordre": 2,
       "x": 400,
-      "y": 797,
-      "largeur": 402,
-      "hauteur": 167,
+      "y": 838,
+      "largeur": 397,
+      "hauteur": 126,
       "os": "jambes"
     },
     {
       "id": "tentacules",
       "image": "calques/tentacules.png",
       "de": "tout",
-      "ordre": 1,
-      "x": 46,
-      "y": 339,
-      "largeur": 428,
-      "hauteur": 385,
+      "ordre": 4,
+      "x": 146,
+      "y": 355,
+      "largeur": 794,
+      "hauteur": 502,
       "os": "tentacules"
     }
   ],
