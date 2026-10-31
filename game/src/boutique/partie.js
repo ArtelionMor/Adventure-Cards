@@ -1,7 +1,8 @@
 // LA PARTIE DE BOUTIQUE : l'etat du noyau, sa sauvegarde (cle a part de celle du jeu), le temps et le resume d'absence.
 // Pas de DOM. Les ecrans lisent `partie()` et appellent les moteurs du noyau avec `ctx`, puis `change()`.
 import { BOUTIQUE } from '../config/boutique.js';
-import { persist, save } from '../state.js';
+import { BALANCE } from '../config/balance.js';
+import { persist, sauvegardeFigee, save } from '../state.js';
 import { createContext } from './noyau/context.js';
 import { CARTES, CONFIG } from './noyau/donnees.js';
 import { recordWin } from './noyau/engines/progression.js';
@@ -9,7 +10,7 @@ import { tick } from './noyau/engines/tick.js';
 import { createShop, syncBaseFurniture } from './noyau/engines/shop.js';
 import { createState } from './noyau/state.js';
 
-const CLE = 'adventureCard.boutique.v1';
+const CLE = BALANCE.save.cleBoutique;
 const ecouteurs = new Set();
 let resume = null;      // ce qui arrive pendant une absence : le recapitulatif du retour
 let retour = null;
@@ -45,7 +46,7 @@ export const ecoute = f => { ecouteurs.add(f); return () => ecouteurs.delete(f);
 export const surRetour = f => { retour = f; };
 
 export function sauve() {
-  if (!etat) return;
+  if (!etat || sauvegardeFigee()) return;
   try { localStorage.setItem(CLE, JSON.stringify({ etat, rng: ctx.rng.state, quand: dernier })); } catch { /* stockage plein : on retentera */ }
 }
 
@@ -182,6 +183,18 @@ export function noteVictoireBoutique(arene, niveau) {
   if (arene !== c.arene || niveau !== c.niveau) return;
   recordWin(etat, ctx);
   change();
+}
+
+/** Une absence, avec son recapitulatif (console de triche). Rend faux s'il n'y a rien a dire. */
+export function simuleAbsence(minutes) {
+  resume = nouveauResume();
+  tick(etat, minutes * 60000, ctx);
+  const r = { ...resume, absenceMs: minutes * 60000 };
+  resume = null;
+  change();
+  if (!aDire(r)) return false;
+  retour?.(r);
+  return true;
 }
 
 /** Avance le temps a la main (console : `AC.boutique.avance(60)`). */

@@ -8,7 +8,8 @@ export const BALANCE = {
 
   save: {
     key: 'adventure-card/save/v1',
-    autosaveMs: 4000
+    autosaveMs: 4000,
+    cleBoutique: 'adventureCard.boutique.v1'
   },
 
   progression: {

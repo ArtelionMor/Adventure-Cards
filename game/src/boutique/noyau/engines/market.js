@@ -44,12 +44,21 @@ function noteBid(lot           , who                   , amount        )       {
 const RIVALS_PER_LOT = 3;
 const DAY = 24 * 60 * MIN;
 
-function openLot(state           , card         , at        , ctx     )       {
+/** Ce qu'une console de test impose à un lot ; le reste se tire comme d'habitude. */
+                            
+                  
+                 
+                   
+ 
+
+function openLot(state           , card         , at        , ctx     , force            = {})       {
   const { lot: c } = ctx.cfg.market;
   const { companies } = ctx.cfg.grading;
-  const finish         = scratch.next() < c.foilChance ? 'foil' : 'normal';
+  const rollFoil = scratch.next() < c.foilChance;
+  const finish         = force.foil ?? rollFoil ? 'foil' : 'normal';
   // La carte a été gradée par un concurrent, un jour des trois derniers mois.
-  const graded = scratch.next() < c.gradedChance;
+  const rollGraded = scratch.next() < c.gradedChance;
+  const graded = force.graded ?? rollGraded;
   const first = scratch.int(1000);
   const company = companies[scratch.int(companies.length)];
   const grade = graded && company ? drawGrade(scratch, company) : null;
@@ -79,13 +88,28 @@ function openLot(state           , card         , at        , ctx     )       {
   });
 }
 
-function drawLots(state           , at        , ctx     )       {
-  const { rarities, offersPerRefresh } = ctx.cfg.market;
+function lotPool(state           , ctx     )            {
   const pool            = [];
   for (const c of ctx.index.cardById.values()) {
-    if (!rarities.includes(c.rarity) || !state.progression.extensions.includes(c.extension)) continue;
+    if (!ctx.cfg.market.rarities.includes(c.rarity) || !state.progression.extensions.includes(c.extension)) continue;
     if (state.collection[c.id] === undefined && !state.market.lots.some((l) => l.cardId === c.id)) pool.push(c);
   }
+  return pool;
+}
+
+/** Sort un lot tout de suite, hors du rythme des tirages. Rend sa carte, ou null s'il n'y a plus rien à proposer. */
+export function openLotNow(state           , ctx     , force            = {})                {
+  const pool = lotPool(state, ctx).filter((c) => !force.rarity || c.rarity === force.rarity);
+  scratch.state = state.market.rngState;
+  const card = pool[scratch.int(pool.length)];
+  if (card) openLot(state, card, state.nowMs, ctx, force);
+  state.market.rngState = scratch.state;
+  return card?.id ?? null;
+}
+
+function drawLots(state           , at        , ctx     )       {
+  const { offersPerRefresh } = ctx.cfg.market;
+  const pool = lotPool(state, ctx);
   scratch.state = state.market.rngState;
   for (let i = 0; i < offersPerRefresh && pool.length > 0; i++) {
     const [card] = pool.splice(scratch.int(pool.length), 1);

@@ -14,7 +14,7 @@
 
 ## Console de debug (F12, ou `javascript_tool` du navigateur intégré)
 `window.AC` : `AC.fight('wolf')` (lance un combat contre une rencontre de `ENCOUNTERS`), `AC.give('C', 500)`, `AC.go('farm')`, `AC.teleport(x, y)`, `AC.level('dog', 5)`, `AC.save`, `AC.persist()`, `AC.console()` (ouvre la console de triche).
-**La console de triche en boutons** (24 oct. 2026, `src/ui/triche.js`) : le bouton rond à gauche des monnaies, dans la barre du haut (tant que `BALANCE.triche.bouton`) — monnaies, niveau d'un héros, recruter/renvoyer, combat contre une arène à un niveau choisi (direct ou par sa fiche), niveau d'une arène, « Tout débloqué » le temps d'une session, recruter tous les héros, passer le tutoriel, +1 place, toutes les arènes vues. Celle **du combat** reste à part (5 touchers sur « Tour N »).
+**La console de triche en boutons** (24 oct. 2026, `src/ui/triche.js`) : le bouton rond à gauche des monnaies, dans la barre du haut (tant que `BALANCE.triche.bouton`) — monnaies, temps, enchères, boutique, sauvegarde, niveau d'un héros, recruter/renvoyer, combat contre une arène à un niveau choisi (direct ou par sa fiche), niveau d'une arène, « Tout débloqué » le temps d'une session, recruter tous les héros, passer le tutoriel, +1 place, toutes les arènes vues. Celle **du combat** reste à part (5 touchers sur « Tour N »).
 `AC.boutique` : `etat()`, `avance(minutes)`, `donne(or)`.
 **Tout débloqué** (provisoire, `BALANCE.toutDebloque`, en attendant la nouvelle carte) : toutes les arènes dans l'onglet Arène et tous les héros alignables, **sans rien écrire dans la sauvegarde**.
 ⚠ Une victoire **crédite la sauvegarde** : voir la mémoire « Éprouver l'UI dans le navigateur intégré » pour tester sans la salir.

@@ -145,14 +145,31 @@ function migreMonde(neuve, w) {
 }
 
 export function persist() {
+  if (figee) return;
   save.lastSeen = Date.now();
   try { localStorage.setItem(KEY, JSON.stringify(save)); } catch {}
 }
 
-export function resetSave() {
-  localStorage.removeItem(KEY);
+// Avant de recharger la page apres avoir touche au stockage : sinon la sauvegarde de `beforeunload` reecrirait la partie en memoire.
+let figee = false;
+export const sauvegardeFigee = () => figee;
+
+/** Remplace les deux sauvegardes (jeu, boutique ; null les efface) et repart de la. */
+export function rechargeAvec(jeu = null, boutique = null) {
+  figee = true;
+  for (const [cle, v] of [[KEY, jeu], [BALANCE.save.cleBoutique, boutique]]) {
+    if (v === null) localStorage.removeItem(cle); else localStorage.setItem(cle, v);
+  }
   location.reload();
 }
+
+export const resetSave = () => rechargeAvec();
+
+/** La sauvegarde telle qu'elle est stockee : la console de triche la copie et en fait des points de retour. */
+export const sauvegardeBrute = () => {
+  persist();
+  return { jeu: localStorage.getItem(KEY), boutique: localStorage.getItem(BALANCE.save.cleBoutique) };
+};
 
 // ---------------------------------------------------------------- monnaies
 export function gain(kind, n) {
