@@ -11,24 +11,38 @@ import { createState } from './noyau/state.js';
 
 const CLE = 'adventureCard.boutique.v1';
 const ecouteurs = new Set();
-let resume = null;
+let resume = null;      // ce qui arrive pendant une absence : le recapitulatif du retour
+let retour = null;
 let etat = null;
 let dernier = 0;
 let compte = 0;
 
-function recoit(e) {
-  if (resume && e.t === 'sale') {
-    resume.ventes++;
+const nouveauResume = () => ({ absenceMs: 0, or: 0, vendues: [], gagnees: [], perdues: [], gradees: [], heros: [] });
+
+function note(e) {
+  if (e.t === 'sale') {
     resume.or += e.price;
-    resume.canaux[e.channel] = (resume.canaux[e.channel] || 0) + 1;
+    resume.vendues.push({ cardId: e.cardId, prix: e.price, canal: e.channel });
   }
-  if (resume && e.t === 'heroUnlocked') resume.heros.push(e.hero);
+  if (e.t === 'auctionWon') resume.gagnees.push({ cardId: e.cardId, prix: e.price });
+  if (e.t === 'auctionLost') resume.perdues.push({ cardId: e.cardId, prix: e.price });
+  if (e.t === 'gradeDone') resume.gradees.push({ cardId: e.cardId, note: e.grade });
+  if (e.t === 'heroUnlocked') resume.heros.push(e.hero);
+}
+
+function recoit(e) {
+  if (resume) note(e);
   for (const f of ecouteurs) f(e);
 }
+
+// Un retour merite un recapitulatif s'il a dure, et s'il y a quelque chose a dire.
+const aDire = r => r.absenceMs >= BOUTIQUE.resumeHorsLigneDesS * 1000 && (r.vendues.length || r.gagnees.length || r.perdues.length || r.gradees.length);
 
 export const ctx = createContext(CONFIG, CARTES, Date.now() >>> 0, recoit);
 export const partie = () => etat;
 export const ecoute = f => { ecouteurs.add(f); return () => ecouteurs.delete(f); };
+/** `f(resume)` : le joueur revient apres avoir quitte l'application sans la fermer. */
+export const surRetour = f => { retour = f; };
 
 export function sauve() {
   if (!etat) return;
@@ -53,14 +67,19 @@ function lieLaBourse(e) {
 // Une partie faite avant le 31 octobre 2026 : les paliers ont change (acheter aux encheres d'abord, vendre ensuite), on repose ceux
 // qu'elle a deja passes ; ses cartes comptent comme vues, sinon toute sa collection serait « nouvelle ».
 function metAJour(e) {
-  if ((e.version ?? 1) >= 2) return;
-  const p = e.progression;
-  const faits = CONFIG.progression.steps.slice(0, p.stepIndex);
-  p.features = [...new Set([...p.features, ...faits.flatMap(s => s.features)])];
-  p.auctionSlots = Math.max(e.auctions.length, faits.at(-1)?.auctionSlots ?? 0);
-  e.market.nextRefreshMs = e.nowMs;
-  e.vues = Object.fromEntries(Object.keys(e.collection).map(id => [id, true]));
-  e.version = 2;
+  if ((e.version ?? 1) < 2) {
+    const p = e.progression;
+    const faits = CONFIG.progression.steps.slice(0, p.stepIndex);
+    p.features = [...new Set([...p.features, ...faits.flatMap(s => s.features)])];
+    p.auctionSlots = Math.max(e.auctions.length, faits.at(-1)?.auctionSlots ?? 0);
+    e.vues = Object.fromEntries(Object.keys(e.collection).map(id => [id, true]));
+  }
+  // Les encheres d'achat a lots et le grading qui prend du temps : les anciennes offres a prix fixe disparaissent.
+  if ((e.version ?? 1) < 3) {
+    e.market = { lots: [], nextLotId: 1, nextRefreshMs: e.nowMs, rngState: e.market.rngState };
+    e.gradingQueue = [];
+  }
+  e.version = 3;
 }
 
 function avance() {
@@ -88,14 +107,14 @@ export function demarreBoutique() {
       etat.showcase.forEach((l, i) => { l.displayId = presentoirs[i]?.id ?? null; });
     }
     metAJour(etat);
-  } else etat = { ...createState(ctx), vues: {}, version: 2 };
+  } else etat = { ...createState(ctx), vues: {}, version: 3 };
   lieLaBourse(etat);
   persist();
 
   const absence = Date.now() - dernier;
-  resume = { absenceMs: absence, ventes: 0, or: 0, canaux: {}, heros: [] };
+  resume = nouveauResume();
   avance();
-  const fini = resume;
+  const fini = { ...resume, absenceMs: absence };
   resume = null;
   sauve();
   setInterval(() => {
@@ -103,9 +122,17 @@ export function demarreBoutique() {
     if (++compte >= BOUTIQUE.sauvegardeToutesLesS) { compte = 0; sauve(); }
     for (const f of ecouteurs) f({ t: 'seconde' });
   }, 1000);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) sauve(); });
+  let parti = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { sauve(); resume = nouveauResume(); parti = Date.now(); return; }
+    if (!resume) return;
+    avance();
+    const r = { ...resume, absenceMs: Date.now() - parti };
+    resume = null;
+    if (aDire(r)) retour?.(r);
+  });
   addEventListener('beforeunload', sauve);
-  return absence >= BOUTIQUE.resumeHorsLigneDesS * 1000 && fini.ventes > 0 ? fini : null;
+  return aDire(fini) ? fini : null;
 }
 
 // LES CARTES NOUVELLES : decouvertes (dans la collection) et pas encore vues. Ce sont elles qui allument la pastille rouge.

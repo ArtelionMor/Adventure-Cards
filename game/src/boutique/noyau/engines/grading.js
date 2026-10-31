@@ -1,6 +1,6 @@
 // GÉNÉRÉ par scripts/gen-boutique.mjs depuis le noyau de la boutique : ne pas éditer ici.
 // Atelier de grading : prix fixe selon la rareté, note de 1 à 10 selon une loi normale.
-// Le grading se fait sur une copie du stock. Casser une note coûte des gems et rend la copie
+// Le grading se fait sur une copie du stock, qui part à l'atelier le temps de `grading.minutes` et revient notée. Casser une note coûte des gems et rend la copie
 // non gradée : on repaie alors pour retenter le 10.
 
 import { normal } from '../rng.js';
@@ -29,8 +29,25 @@ export function gradeCard(state           , id            , ctx     )           
   if (cost === undefined) return { ok: false, reason: 'Rareté inconnue.' };
   if (state.gold < cost) return { ok: false, reason: 'Or insuffisant.' };
   state.gold -= cost;
-  inst.grade = drawGrade(ctx.rng, ctx.cfg);
-  return { ok: true, value: inst.grade };
+  inst.location = 'grading';
+  const grade = drawGrade(ctx.rng, ctx.cfg);
+  state.gradingQueue.push({ instanceId: id, grade, doneMs: state.nowMs + ctx.cfg.grading.minutes * 60000 });
+  return { ok: true, value: grade };
+}
+
+/** Les copies dont le grading est fini reviennent au stock, avec leur note. */
+export function settleGrading(state           , ctx     )       {
+  const q = state.gradingQueue;
+  for (let i = q.length - 1; i >= 0; i--) {
+    const job = q[i];
+    if (!job || state.nowMs < job.doneMs) continue;
+    q.splice(i, 1);
+    const inst = state.instances[job.instanceId];
+    if (!inst) continue;
+    inst.location = 'stock';
+    inst.grade = job.grade;
+    ctx.on?.({ t: 'gradeDone', instanceId: job.instanceId, cardId: inst.cardId, grade: job.grade });
+  }
 }
 
 export function breakGrade(state           , id            , ctx     )         {

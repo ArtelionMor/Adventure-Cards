@@ -7,6 +7,7 @@
                                                   
 import { settleAuctions } from './auction.js';
 import { settleBulk } from './bulk.js';
+import { settleGrading } from './grading.js';
 import { settleMarket } from './market.js';
 import { settleShowcase } from './showcase.js';
 
@@ -35,4 +36,5 @@ export function tick(state           , dtMs        , ctx     )       {
   settleAuctions(state, ctx);
   settleBulk(state, dtMs, ctx);
   settleMarket(state, ctx);
+  settleGrading(state, ctx);
 }

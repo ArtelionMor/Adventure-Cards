@@ -14,8 +14,8 @@ import { chargeLeJeu } from './ui/chargement.js';
 import { openBattle } from './ui/battle.js';
 import { installeQuetes } from './ui/quetes.js';
 import { installeTriche } from './ui/triche.js';
-import { renderBoutique, quitteBoutique, renderEncheres, quitteEncheres, montreResumeBoutique, consoleBoutique } from './ui/boutique.js';
-import { demarreBoutique, ecoute } from './boutique/partie.js';
+import { renderBoutique, quitteBoutique, renderEncheres, quitteEncheres, montreResumeBoutique, consoleBoutique, alerteBoutique, encheresADefendre } from './ui/boutique.js';
+import { demarreBoutique, ecoute, surRetour } from './boutique/partie.js';
 
 let current = 'arene';
 
@@ -50,12 +50,16 @@ function refreshTop() {
 }
 setRefreshTop(refreshTop);
 
-// La pastille rouge de l'onglet Deck : des cartes nouvelles attendent d'etre vues.
-function majPastille() {
-  const b = $('#nav [data-go=deck]');
+// Les pastilles rouges de la navigation : des cartes nouvelles a voir, une enchere ou l'on s'est fait depasser.
+function pastille(ecran, allumee) {
+  const b = $(`#nav [data-go=${ecran}]`);
   const p = b.querySelector('.pastille');
-  if (nombreDeNouvelles() && !p) b.appendChild(el('<i class="pastille"></i>'));
-  else if (!nombreDeNouvelles()) p?.remove();
+  if (allumee && !p) b.appendChild(el('<i class="pastille"></i>'));
+  else if (!allumee) p?.remove();
+}
+function majPastilles() {
+  pastille('deck', nombreDeNouvelles() > 0);
+  pastille('encheres', encheresADefendre() > 0);
 }
 
 // ------------------------------------------------------------------ idle
@@ -104,8 +108,14 @@ function boot() {
   $('#topbar .hero-chip').onclick = ouvreProfil;
   const absenceBoutique = demarreBoutique();
   // La bourse est commune (boutique/partie.js) : une vente ou un achat se voient tout de suite dans la barre du haut.
-  ecoute(e => { if (e.t === 'change' || e.t === 'sale') { refreshTop(); majPastille(); } });
-  majPastille();
+  ecoute(e => {
+    if (e.t === 'seconde') return;
+    alerteBoutique(e);
+    refreshTop();
+    majPastilles();
+  });
+  majPastilles();
+  surRetour(montreResumeBoutique);
   go('arene');
   offlineReport();
   if (absenceBoutique) montreResumeBoutique(absenceBoutique);

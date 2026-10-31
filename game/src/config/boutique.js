@@ -4,7 +4,10 @@ const M = n => `Decor/Kenney Furniture Kit/${n}`;
 
 export const BOUTIQUE = {
   sauvegardeToutesLesS: 5,
-  resumeHorsLigneDesS: 60,    // absence au-dela de laquelle le resume s'ouvre au retour
+  resumeHorsLigneDesS: 60,    // absence au-dela de laquelle le recapitulatif s'ouvre au retour
+  resumeCartesMax: 10,        // cartes montrees par section du recapitulatif
+  // Les concurrents des encheres d'achat : seulement leur nom, ce qu'ils misent vit dans le noyau.
+  rivaux: ['Renard Filou', 'Mamie Chouette', 'Le Collectionneur', 'Baron Grenouille', 'Dame Pie', 'Monsieur Loutre', 'La Taupe', 'Capitaine Mulot'],
   dossierPoses: 'Decor/Kenney Toon Characters/',
   dossierMeubles: 'Decor/Kenney Furniture Kit/',
   scene: {

@@ -8,7 +8,7 @@ import { bulkClearHours, sendToBulk } from '../boutique/noyau/engines/bulk.js';
 import { breakGrade, gradeCard } from '../boutique/noyau/engines/grading.js';
 import { requiredCards, setHeroTier } from '../boutique/noyau/engines/heroUnlock.js';
 import { upgradeCost, upgradeHero } from '../boutique/noyau/engines/heroUpgrade.js';
-import { buyMarketCard, marketPrice } from '../boutique/noyau/engines/market.js';
+import { nextBid, placeBid } from '../boutique/noyau/engines/market.js';
 import { buyPremium, premiumRef } from '../boutique/noyau/engines/packs.js';
 import { betterCopyFor, buyerReaction, instanceRef, instanceRefMax } from '../boutique/noyau/engines/pricing.js';
 import { cancelShowcase, formatDuration, listShowcase, quoteShowcase, repriceShowcase, showcasePriceCap } from '../boutique/noyau/engines/showcase.js';
@@ -116,7 +116,8 @@ function ficheCopie(id) {
     ajoute(`Grader · ${ctx.index.rarityById.get(c.rarity).gradingCost}`, () => {
       const r = gradeCard(S, id, ctx);
       if (!r.ok) { toast(r.reason); return; }
-      closeModal(); change(); ficheCopie(id);
+      closeModal(); change();
+      toast(t('grading.parti', { d: formatDuration(cfg.grading.minutes) }));
     });
   }
   if (inst.grade !== null) {
@@ -182,6 +183,7 @@ function panneauVentes() {
   const S = partie();
   const box = el(`<div>
     <h3>Vitrines ${S.showcase.length}/${showcaseCapacity(S, ctx)}</h3><div class="btq-liste" id="lV"></div>
+    <div id="lG"></div>
     <h3>Bulk</h3><p class="muted">${S.bulkBox.length} cartes · ${cfg.bulk.salesPerHour} ventes par heure${S.bulkBox.length ? ` · vide dans ${formatDuration(bulkClearHours(S, ctx) * 60)}` : ''}</p>
   </div>`);
   for (const l of S.showcase) {
@@ -191,15 +193,55 @@ function panneauVentes() {
     n.onclick = () => ficheVitrine(l.instanceId);
     box.querySelector('#lV').appendChild(n);
   }
+  if (S.gradingQueue.length) box.querySelector('#lG').appendChild(el(`<h3>${t('grading.titre')}</h3>`));
+  for (const g of S.gradingQueue) {
+    const inst = S.instances[g.instanceId];
+    if (inst) box.querySelector('#lG').appendChild(el(`<div class="btq-rang">${carteHtml(inst.cardId, inst.finish)}<span>${carteDef(inst.cardId).name}</span><em>${formatDuration(Math.max(0, g.doneMs - S.nowMs) / 60000)}</em></div>`));
+  }
   return box;
 }
 
 // ------------------------------------------------------------------ l'ecran des encheres
-// D'abord ACHETER (ouvert des le depart), puis VENDRE, qui se debloque en avancant dans la ligne de combats (economy.json).
+// D'abord ACHETER (ouvert des le depart), puis VENDRE, qui se debloque en avancant dans la ligne de combats (economy.json). Acheter,
+// c'est se placer sur un lot : la mise part de la bourse et revient si un concurrent passe devant ; a la fin du temps, le dernier
+// en tete recoit la carte. Tout se decide dans le noyau (`engines/market`), ici on montre et on mise.
+const rival = lot => BOUTIQUE.rivaux[lot.rival % BOUTIQUE.rivaux.length];
+const estDepasse = lot => lot.engaged && lot.holder !== 'player';
+
+/** Ce qui reste : « 1 h 12 », ou « 09:41 » sous l'heure. */
+function tempsRestant(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  const p = n => String(n).padStart(2, '0');
+  return s >= 3600 ? `${Math.floor(s / 3600)} h ${p(Math.floor(s / 60) % 60)}` : `${p(Math.floor(s / 60))}:${p(s % 60)}`;
+}
+
+function etatDuLot(lot) {
+  if (lot.holder === 'player') return t('encheres.enTete');
+  if (lot.holder === 'rival') return t(lot.engaged ? 'encheres.depasse' : 'encheres.rival', { nom: rival(lot) });
+  return t('encheres.personne');
+}
+
+function ligneDeLot(S, lot) {
+  const c = carteDef(lot.cardId);
+  const prix = nextBid(lot, ctx);
+  const moi = lot.holder === 'player';
+  const n = el(`<div class="btq-lot ${moi ? 'tete' : ''} ${estDepasse(lot) ? 'depasse' : ''}">
+    ${carteHtml(lot.cardId)}
+    <div class="btq-nom"><b>${c.name}</b><span class="muted">${c.hero} · ${ctx.index.rarityById.get(c.rarity).name}</span><span class="btq-lot-etat">${etatDuLot(lot)}</span></div>
+    <div class="btq-lot-droite"><time data-fin="${lot.endMs}">${tempsRestant(lot.endMs - S.nowMs)}</time><span>${or(lot.price)}</span>
+      <button class="btq-puce ${S.gold < prix ? 'pauvre' : ''}" ${moi ? 'disabled' : ''}>${moi ? t('encheres.tienne') : t('encheres.miser', { n: court(prix) })}</button></div>
+  </div>`);
+  n.querySelector('button').onclick = () => {
+    const r = placeBid(S, lot.id, ctx);
+    if (!r.ok) toast(r.reason); else change();
+  };
+  return n;
+}
+
 function panneauEncheres() {
   const S = partie();
   const box = el(`<div class="btq-panneau"><h3>Acheter aux enchères</h3>
-    <p class="muted">${t('encheres.offres', { d: formatDuration(Math.max(0, S.market.nextRefreshMs - S.nowMs) / 60000) })}</p>
+    <p class="muted">${t('encheres.offres')} <time data-fin="${S.market.nextRefreshMs}">${tempsRestant(S.market.nextRefreshMs - S.nowMs)}</time></p>
     <div class="btq-liste" id="lM"></div><div id="lP"></div>
     <h3>Tes enchères${S.progression.auctionSlots ? ` ${S.auctions.length}/${S.progression.auctionSlots}` : ''}</h3><div class="btq-liste" id="lE"></div></div>`);
   if (S.progression.auctionSlots <= 0) {
@@ -212,16 +254,9 @@ function panneauEncheres() {
     box.querySelector('#lE').appendChild(el(`<div class="btq-rang">${inst ? carteHtml(inst.cardId, inst.finish, inst.grade) : '<b>Premium</b>'}<span>${or(a.price)}</span><em>${formatDuration(reste)}</em></div>`));
   }
   if (!hasFeature(S, cfg.market.feature)) box.querySelector('#lM').appendChild(el('<p class="muted">Débloqué en avançant dans la ligne de combats.</p>'));
-  else if (!S.market.offers.length) box.querySelector('#lM').appendChild(el(`<p class="muted">${t('encheres.rien')}</p>`));
-  else for (const id of S.market.offers) {
-    const possede = S.collection[id] !== undefined;
-    const n = el(`<div class="btq-rang">${carteHtml(id)}<div class="btq-nom"><b>${carteDef(id).name}</b><span class="muted">${carteDef(id).hero} · ${ctx.index.rarityById.get(carteDef(id).rarity).name}</span></div><button class="btq-puce" ${possede ? 'disabled' : ''}>${possede ? 'Déjà à toi' : court(marketPrice(id, S, ctx))}</button></div>`);
-    n.querySelector('button').onclick = () => {
-      const r = buyMarketCard(S, id, ctx);
-      if (!r.ok) toast(r.reason); else change();
-    };
-    box.querySelector('#lM').appendChild(n);
-  }
+  else if (!S.market.lots.length) box.querySelector('#lM').appendChild(el(`<p class="muted">${t('encheres.rien')}</p>`));
+  // Les lots ou l'on a mise d'abord, puis ceux qui finissent le plus tot.
+  else for (const lot of [...S.market.lots].sort((a, b) => b.engaged - a.engaged || a.endMs - b.endMs)) box.querySelector('#lM').appendChild(ligneDeLot(S, lot));
   if (hasFeature(S, 'premiumMarket')) {
     for (const p of cfg.premium.boosters) {
       const b = el(`<button class="btq-puce">Booster premium · ${court(Math.ceil(premiumRef(p.id, S, ctx) * cfg.premium.marketBuyMultiplier))}</button>`);
@@ -239,10 +274,43 @@ let quitte = null;
 
 export function renderEncheres() {
   const ecran = $('#screen-encheres');
-  const dessine = () => { ecran.innerHTML = ''; ecran.appendChild(panneauEncheres()); };
+  // Chaque seconde, seuls les comptes a rebours bougent : redessiner ferait perdre un toucher en cours sur « Miser ».
+  const signature = () => {
+    const S = partie();
+    return JSON.stringify([S.market.lots.map(l => [l.id, l.price, l.holder, l.endMs]), S.auctions.map(a => [a.price, a.stepsDone]), S.gold]);
+  };
+  let vue = '';
+  const dessine = () => {
+    const haut = ecran.scrollTop;
+    vue = signature();
+    ecran.innerHTML = '';
+    ecran.appendChild(panneauEncheres());
+    ecran.scrollTop = haut;
+  };
   dessine();
   quitte?.();
-  quitte = ecoute(e => { if (e.t === 'seconde' || e.t === 'change') dessine(); });
+  quitte = ecoute(e => {
+    if (e.t !== 'seconde' && e.t !== 'change') return;
+    if (e.t === 'change' || signature() !== vue) { dessine(); return; }
+    for (const n of ecran.querySelectorAll('time[data-fin]')) {
+      const reste = +n.dataset.fin - partie().nowMs;
+      n.textContent = tempsRestant(reste);
+      n.classList.toggle('urgent', reste <= cfg.market.lot.warnMinutes * 60000);
+    }
+  });
+}
+
+/** Une enchere ou l'on s'est fait depasser : elle allume la pastille de la navigation. */
+export const encheresADefendre = () => partie().market.lots.filter(estDepasse).length;
+
+/** Les alertes, ou qu'on soit dans le jeu. */
+export function alerteBoutique(e) {
+  const nom = e.cardId ? carteDef(e.cardId)?.name : '';
+  if (e.t === 'auctionOutbid') toast(t('alerte.depasse', { nom, n: court(e.refund) }));
+  else if (e.t === 'auctionEnding') toast(t(e.holder ? 'alerte.finEnTete' : 'alerte.finDepasse', { nom, n: cfg.market.lot.warnMinutes }), 5000);
+  else if (e.t === 'auctionWon') toast(t('alerte.gagnee', { nom }), 4000);
+  else if (e.t === 'auctionLost') toast(t('alerte.perdue', { nom }));
+  else if (e.t === 'gradeDone') toast(t('alerte.gradee', { nom, n: e.grade }), 4000);
 }
 
 export function quitteEncheres() {
@@ -406,14 +474,25 @@ export function quitteBoutique() {
   desabonne = null;
 }
 
-/** Le resume au retour : ce qui s'est vendu, sans rejouer la scene. */
+/** Le recapitulatif au retour : ce qui s'est vendu, ce qu'on a gagne ou perdu aux encheres, ce qui revient du grading. */
 export function montreResumeBoutique(r) {
-  const nom = { showcase: 'en vitrine', auction: 'aux enchères', bulk: 'au bulk' };
-  const detail = Object.entries(r.canaux).map(([k, n]) => `${n} ${nom[k]}`).join(', ');
-  const box = el(`<div><h2>Ta boutique a tourné</h2><p class="muted">${fmtTime(r.absenceMs)} d'absence.</p>
-    <p><b>${r.ventes}</b> ventes (${detail}) : ${or(r.or)}</p>
-    ${r.heros.length ? `<p>Nouveaux héros : <b>${r.heros.join(', ')}</b></p>` : ''}</div>`);
-  const b = el('<button class="btn">Merci</button>');
+  const vitrine = r.vendues.filter(v => v.canal !== 'bulk' && v.cardId);
+  const bulk = r.vendues.filter(v => v.canal === 'bulk');
+  const box = el(`<div class="btq-retour"><h2>${t('retour.titre')}</h2><p class="muted">${fmtTime(r.absenceMs)}${r.or ? ` · ${or(r.or)}` : ''}</p></div>`);
+  const section = (titre, liste, legende) => {
+    if (!liste.length) return;
+    const g = el(`<div><h3>${titre}</h3><div class="btq-grille"></div></div>`);
+    for (const x of liste.slice(0, BOUTIQUE.resumeCartesMax)) g.lastChild.appendChild(el(`<div class="btq-case-c">${carteHtml(x.cardId, 'normal', x.note ?? null)}<span>${legende(x)}</span></div>`));
+    if (liste.length > BOUTIQUE.resumeCartesMax) g.appendChild(el(`<p class="muted">+${liste.length - BOUTIQUE.resumeCartesMax}</p>`));
+    box.appendChild(g);
+  };
+  section(t('retour.vendues'), vitrine, x => court(Math.round(x.prix)));
+  section(t('retour.gagnees'), r.gagnees, x => court(Math.round(x.prix)));
+  section(t('retour.gradees'), r.gradees, x => t('retour.note', { n: x.note }));
+  section(t('retour.perdues'), r.perdues, () => '');
+  if (bulk.length) box.appendChild(el(`<p>${t('retour.bulk', { n: bulk.length })} : ${or(bulk.reduce((s, x) => s + x.prix, 0))}</p>`));
+  if (r.heros.length) box.appendChild(el(`<p>${t('retour.heros', { noms: r.heros.join(', ') })}</p>`));
+  const b = el(`<button class="btn">${t('retour.merci')}</button>`);
   b.onclick = closeModal;
   box.appendChild(b);
   modal(box);

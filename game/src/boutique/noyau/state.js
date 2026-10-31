@@ -30,7 +30,8 @@ export function createState(ctx     )            {
     bulkProgressMs: 0,
     shop: createShop(cfg),
     foilCollection: {},
-    market: { offers: [], nextRefreshMs: 0, rngState: ctx.rng.nextU32() },
+    market: { lots: [], nextLotId: 1, nextRefreshMs: 0, rngState: ctx.rng.nextU32() },
+    gradingQueue: [],
     settings: { bulkFilterThreshold: cfg.bulk.defaultFilterThreshold, bulkFilterProtectVariants: true },
     progression: {
       stepIndex: 0,
