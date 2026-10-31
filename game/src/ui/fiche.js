@@ -48,22 +48,37 @@ function lignesDeMots(x) {
  * Ce qu'une carte ou une unite FAIT, le plus court possible (« il y a trop de texte », game designer, 19 oct. 2026) :
  * le TEXTE de la carte quand le builder en a un (ecrit par le game designer, plus court que la description generee),
  * precede des icones de ses moments et de ses effets ; sinon une ligne par effet, generee. Puis ses mots-cles.
+ * Le texte de la carte ne parle que de sa version de base : chaque palier debloque qui ajoute un effet a sa propre ligne.
+ * Sans ca, ses icones se collaient devant un texte qui n'en disait rien (le crane du Lapin Soldat devant « Provocation. »).
  */
 export function lignesDeFait(x, texte = x.text) {
+  const carte = x.card || x;
+  const paliers = texte ? (carte.tiers || []).filter(t => carte.unlocked?.includes(t.lvl) && (t.extra || t.aura)) : [];
+  const dePalier = slot => paliers.filter(t => t.extra && (TRIGGERS[t.slot] ? t.slot : 'play') === slot).length;
   const out = [];
   const icones = [];
   const genere = [];
   for (const slot of Object.keys(TRIGGERS)) {
-    for (const e of x[slot] || []) {
+    const effets = x[slot] || [];
+    effets.forEach((e, i) => {
       const ic = [iconeDeMoment(slot), iconeDeOp(e.op)].filter(Boolean);
-      for (const n of ic) if (!icones.includes(n)) icones.push(n);
+      if (i < effets.length - dePalier(slot)) for (const n of ic) if (!icones.includes(n)) icones.push(n);
       genere.push(ligneEffet(ic, (slot === 'play' ? '' : `${momentLabel(slot, x)} : `) + describeEffect(e)));
-    }
+    });
   }
-  if (x.aura) { icones.push('Aura'); genere.push(ligneEffet(['Aura'], describeAura(x.aura))); }
+  if (x.aura) {
+    if (carte.auraImprimee !== false) icones.push('Aura');
+    genere.push(ligneEffet(['Aura'], describeAura(x.aura)));
+  }
   for (const m of x.statics || []) { if (!icones.includes('Static')) icones.push('Static'); genere.push(ligneEffet(['Static'], describeStatic(m))); }
-  if (texte) out.push(ligneEffet(icones.slice(0, 3), texte));
-  else out.push(...genere);
+  // Un texte qui ne fait que nommer un mot-cle (« Provocation. ») : sa ligne de mot-cle le dit deja.
+  const repete = icones.length === 0 && (x.keys || []).some(k => keyLabel(k).toLowerCase() === String(texte).replace(/[.\s]+$/, '').toLowerCase());
+  if (texte && !repete) out.push(ligneEffet(icones.slice(0, 3), texte));
+  else if (!texte) out.push(...genere);
+  for (const t of paliers) {
+    const ic = t.aura ? ['Aura'] : [iconeDeMoment(TRIGGERS[t.slot] ? t.slot : 'play'), iconeDeOp(t.extra.op)];
+    out.push(ligneEffet(ic, t.text || (t.aura ? describeAura(t.aura) : describeEffect(t.extra))));
+  }
   return out.concat(lignesDeMots(x));
 }
 

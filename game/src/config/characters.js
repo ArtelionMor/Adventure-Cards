@@ -65,6 +65,7 @@ export function resolveCard(def, level) {
     ...def,
     keys: [...(def.keys || [])],
     aura: def.aura ? { ...def.aura } : null,
+    auraImprimee: !!def.aura,   // la fiche distingue l'aura de la carte de celle d'un palier
     // Les effets statiques sont copies eux aussi : un palier peut en ajouter, et la
     // definition de la carte ne doit pas bouger quand le personnage monte de niveau.
     statics: copy(def.statics),
