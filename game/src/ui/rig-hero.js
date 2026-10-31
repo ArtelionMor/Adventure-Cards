@@ -46,6 +46,15 @@ let partage;
 const rendu = () => partage === undefined ? (partage = creeRendu(Object.assign(document.createElement('canvas'), { width: COTE, height: COTE }), { maxCote: BALANCE.ui.rigsTexture })) : partage;
 export const renduPartage = rendu;
 
+// Un nouveau combat repart de zero : les personnages d'avant ne sont plus la, leur memoire graphique se rend. Sans ca, les
+// textures s'accumulent de combat en combat jusqu'a saturer un telephone. La boucle aussi repart proprement.
+export function videPersonnages() {
+  vivants.clear();
+  if (boucle) cancelAnimationFrame(boucle);
+  boucle = 0;
+  if (partage) partage.oublie();
+}
+
 // Contexte WebGL perdu (memoire du telephone, application en arriere-plan) : le canvas resterait vide. On rend l'image
 // fixe au personnage, et l'animation revient avec le contexte.
 function repli(v, oui) {
@@ -63,30 +72,35 @@ function image(t) {
   const dt = Math.min(0.1, (t - avant) / 1000); avant = t;
   for (const v of vivants) {
     if (!v.hote.isConnected) { vivants.delete(v); continue; }   // l'unite est partie ; si elle revient, animeImg la remet
-    if (partage.perdu) { repli(v, true); continue; }
+    if (partage.perdu || partage.sature) { repli(v, true); continue; }
     repli(v, false);
     if (!v.canvas.isConnected) continue;   // son contenu est en cours de redessin
-    const r = v.canvas.getBoundingClientRect();
-    if (!r.width) continue;
-    const d = Math.min(2, devicePixelRatio || 1), cote = Math.max(16, Math.round(r.width * d));
-    if (v.canvas.width !== cote) v.canvas.width = v.canvas.height = cote;
-    const a = v.a;
-    a.avance(dt);
-    if (a.clip && !a.clip.boucle && a.t >= a.clip.duree) a.joue('idle', { fondu: 0.15 });
-    // PROVISOIRE (essai) : de temps en temps, un petit mouvement en plus, pour que le plateau vive
-    if (BALANCE.ui.rigsRemuants && a.clip.boucle && (v.reveil = (v.reveil ?? 1 + Math.random() * 4) - dt) < 0) {
-      v.reveil = 3 + Math.random() * 4;
-      const l = ['hitting', 'walking', 'idle'].filter(n => a.rig.clips[n]);
-      if (l.length) a.joue(l[Math.floor(Math.random() * l.length)], { fondu: 0.15 });
-    }
-    a.calcule();
-    const R = rendu();
-    R.efface();
-    R.dessine(a, { place: [0, 0], origine: [0, 0], echelle: COTE / Math.max(...a.rig.taille) });
-    v.ctx.clearRect(0, 0, cote, cote);
-    v.ctx.drawImage(R.canvas, 0, 0, COTE, COTE, 0, 0, cote, cote);
+    // Une erreur sur un personnage lui rend son image : elle ne doit pas couper la boucle de tous les autres.
+    try { dessineUn(v, dt); } catch (e) { console.warn('rig', v.sprite, e); vivants.delete(v); repli(v, true); }
   }
   boucle = vivants.size ? requestAnimationFrame(image) : 0;
+}
+
+function dessineUn(v, dt) {
+  const r = v.canvas.getBoundingClientRect();
+  if (!r.width) return;
+  const d = Math.min(2, devicePixelRatio || 1), cote = Math.max(16, Math.round(r.width * d));
+  if (v.canvas.width !== cote) v.canvas.width = v.canvas.height = cote;
+  const a = v.a;
+  a.avance(dt);
+  if (a.clip && !a.clip.boucle && a.t >= a.clip.duree) a.joue('idle', { fondu: 0.15 });
+  // PROVISOIRE (essai) : de temps en temps, un petit mouvement en plus, pour que le plateau vive
+  if (BALANCE.ui.rigsRemuants && a.clip.boucle && (v.reveil = (v.reveil ?? 1 + Math.random() * 4) - dt) < 0) {
+    v.reveil = 3 + Math.random() * 4;
+    const l = ['hitting', 'walking', 'idle'].filter(n => a.rig.clips[n]);
+    if (l.length) a.joue(l[Math.floor(Math.random() * l.length)], { fondu: 0.15 });
+  }
+  a.calcule();
+  const R = rendu();
+  R.efface();
+  R.dessine(a, { place: [0, 0], origine: [0, 0], echelle: COTE / Math.max(...a.rig.taille) });
+  v.ctx.clearRect(0, 0, cote, cote);
+  v.ctx.drawImage(R.canvas, 0, 0, COTE, COTE, 0, 0, cote, cote);
 }
 
 // `hote` : le noeud du heros ou de l'unite (il garde l'etat) ; `img` : son <img> du moment (une unite la refait quand son contenu

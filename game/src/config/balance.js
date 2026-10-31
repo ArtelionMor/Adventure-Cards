@@ -107,7 +107,7 @@ export const BALANCE = {
     // LES HEROS ANIMES (ui/rig-hero.js, ESSAI) : le portrait d'un heros qui a un rig (`game/data/rigs/`) joue son `idle` (et `taking_damage`
     // quand il perd des PV) au lieu de l'image fixe. A false : toujours l'image.
     rigsHeros: true,
-    rigsTexture: 512,    // plus grand cote d'une texture de personnage en jeu (px) : ils s'affichent en 256, et 1024 sature la memoire d'un telephone
+    rigsTexture: 256,    // plus grand cote d'une texture de calque en jeu (px) : un personnage s'affiche au quart de sa source, et plus sature un telephone
     rigsGain: 2.5,       // exagere les mouvements des rigs (1 = tel quel : les clips sont calmes, ils se lisent mal a 40 px)
     rigsRemuants: true,  // PROVISOIRE : de temps en temps, un `hitting` ou un `walking` pour que le plateau vive
     decorVivant: true,   // le decor du combat bouge (ui/decor.js : arbres, nenuphars, feuilles, rides, lucioles) ; a false : le decor fixe d'avant
@@ -190,7 +190,7 @@ export const BALANCE = {
         compteMs: 800,          // le compteur d'une recompense (0 -> N)
         confettis: 34,          // la pluie de la victoire
         confettiMs: 2600,
-        enchaineMs: 2800        // la ligne de combats : apres une victoire, le combat suivant part seul au bout de ce temps
+        enchaineMs: 6000        // la ligne de combats : apres une victoire, le combat suivant part seul au bout de ce temps (vraies millisecondes : x4 n'y change rien)
       },
       // LA MORT : apres le coup (`mortDelaiMs`), la carte s'assombrit et montre le crane (`mortMs`), puis vole vers la
       // defausse de son camp (`mortVolMs`) — un jeton, qui n'a pas de carte, s'efface sur place.

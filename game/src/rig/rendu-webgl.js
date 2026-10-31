@@ -34,8 +34,9 @@ const puissanceDe2 = n => 2 ** Math.ceil(Math.log2(Math.max(1, n)));
 export function creeRendu(canvas, { conserve = false, maxCote = Infinity } = {}) {
   const gl = canvas.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: true, preserveDrawingBuffer: conserve });
   if (!gl) return null;
-  let prog, L, maxTex, textures, statiques, bufPos;   // tout ce qu'une perte du contexte detruit
+  let prog, L, maxTex, textures, statiques, tampons, bufPos;   // tout ce qu'une perte du contexte detruit
   let perdu = false;
+  let sature = false;   // une texture n'a pas tenu en memoire : le dessin serait vide, sans aucune erreur
 
   function monte() {
     prog = gl.createProgram();
@@ -52,7 +53,9 @@ export function creeRendu(canvas, { conserve = false, maxCote = Infinity } = {})
     maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
     textures = new Map();   // image -> texture
     statiques = new WeakMap(); // calque prepare -> { uv, idx }
+    tampons = [];
     bufPos = gl.createBuffer();
+    sature = false;
   }
   monte();
 
@@ -78,6 +81,7 @@ export function creeRendu(canvas, { conserve = false, maxCote = Infinity } = {})
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    if (gl.getError() === gl.OUT_OF_MEMORY) sature = true;
     textures.set(image, t);
     return t;
   }
@@ -86,6 +90,7 @@ export function creeRendu(canvas, { conserve = false, maxCote = Infinity } = {})
     let s = statiques.get(cal);
     if (!s) {
       s = { uv: gl.createBuffer(), idx: gl.createBuffer() };
+      tampons.push(s.uv, s.idx);
       gl.bindBuffer(gl.ARRAY_BUFFER, s.uv); gl.bufferData(gl.ARRAY_BUFFER, cal.uv, gl.STATIC_DRAW);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.idx); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, cal.indices, gl.STATIC_DRAW);
       statiques.set(cal, s);
@@ -96,6 +101,7 @@ export function creeRendu(canvas, { conserve = false, maxCote = Infinity } = {})
   return {
     gl, canvas,
     get perdu() { return perdu; },
+    get sature() { return sature; },
     // Vide le canvas (transparent, ou d'une couleur [r, g, b] en 0..1).
     efface(fond) {
       if (perdu) return;
@@ -137,8 +143,15 @@ export function creeRendu(canvas, { conserve = false, maxCote = Infinity } = {})
         gl.drawElements(gl.TRIANGLES, cal.indices.length, gl.UNSIGNED_SHORT, 0);
       });
     },
-    // Oublie les textures (une image source remplacee dans l'editeur).
-    oublie() { for (const t of textures.values()) gl.deleteTexture(t); textures.clear(); },
+    // Libere la memoire graphique : textures et tampons se refont au prochain dessin (fin d'un combat, image remplacee).
+    oublie() {
+      for (const t of textures.values()) gl.deleteTexture(t);
+      textures.clear();
+      for (const b of tampons) gl.deleteBuffer(b);
+      tampons = [];
+      statiques = new WeakMap();
+      sature = false;
+    },
     // Une image a change (un calque gomme dans l'editeur) : sa texture sera refaite au prochain dessin.
     rafraichit(image) { const t = textures.get(image); if (t) { gl.deleteTexture(t); textures.delete(image); } },
   };

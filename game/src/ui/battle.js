@@ -16,7 +16,7 @@ import { joue as joueMoteur, ouvreJournal, fermeJournal, nomDeFichier, texteJour
 import { enregistre, joueEtNote, sousGraine, rejoue, pas, debutDuTour, toursJoues } from '../combat/rejeu.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
 import { ouvreZone } from './zone.js';
-import { animeHero, animeUnite, rigDe } from './rig-hero.js';
+import { animeHero, animeUnite, rigDe, videPersonnages } from './rig-hero.js';
 import { monteLeDecor } from './decor.js';
 import { installeGestes } from './gestes.js';
 import { apercuAttaque, apercuCarte, pilule } from './apercu.js';
@@ -152,6 +152,7 @@ function buildEnemySide(encId, niveau = 1) {
 }
 
 export function openBattle(node, done, { rejeu: donnees = null, apres = null } = {}) {
+  videPersonnages();
   ctx = node;
   onDone = done;
   selCard = selUnit = null;
