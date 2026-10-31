@@ -1127,6 +1127,7 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 /* ---------------------------------------------------- boutique (ui/boutique.js, ui/boutique-scene.js) */
 #screen-boutique { overflow: hidden; background: #f7ead0; color: #3a2a22; }
 #screen-encheres { background: #f7ead0; color: #3a2a22; }
+#screen-encheres .muted { color: #7c6a5a; }
 #screen-encheres .btq-panneau { min-height: 100%; box-sizing: border-box; border-top: 4px solid #4a342a; }
 #screen-encheres .btq-puce { margin-top: 8px; }
 .btq { height: 100%; display: flex; flex-direction: column; min-height: 0; }
@@ -1147,18 +1148,51 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 .btq .ong-tab { height: 40px; }
 .btq .ong-tab.on { height: 46px; }
 .btq-panneau { padding: 10px 12px 14px; }
-/* Un lot des encheres : vert quand on est en tete, rouge quand on s'est fait depasser ; le compte a rebours passe au rouge a la fin. */
-.btq-lot { display: flex; align-items: center; gap: 8px; padding: 6px; margin-bottom: 6px; background: #fff8e8; border: 2px solid #c9b48c; border-radius: 10px; font-size: 13px; }
-.btq-lot > .btq-c { flex: 0 0 52px; width: 52px; height: 52px; }
-.btq-lot.tete { border-color: #16bb77; background: #eafbe9; }
-.btq-lot.depasse { border-color: #e8352e; background: #fff0ec; }
-.btq-lot-etat { font-size: 12px; color: #6b5a5e; }
-.btq-lot.tete .btq-lot-etat { color: #0d8a57; }
-.btq-lot.depasse .btq-lot-etat { color: #c9302a; }
-.btq-lot-droite { flex: none; display: grid; justify-items: end; gap: 3px; }
-.btq-lot-droite span { display: inline-flex; gap: 3px; align-items: center; }
-#screen-encheres time { font-variant-numeric: tabular-nums; font-weight: 700; }
-#screen-encheres time.urgent { color: #e8352e; }
+/* Un lot des encheres (maquette du 31 octobre 2026) : la carte en grand, ce qu'il faut savoir a cote, et le tableau de ceux qui misent.
+   Le cadre est vert quand on est en tete, rouge quand on s'est fait depasser ; la fin passe au rouge dans les 10 dernieres minutes. */
+.ench-lot { display: grid; grid-template-columns: 46% minmax(0, 1fr); gap: 8px 10px; padding: 8px; margin-bottom: 12px; background: #fff3d8; border: 4px solid #c9b48c; border-radius: 16px; font-family: "Lilita One", system-ui, sans-serif; }
+.ench-lot.tete { border-color: #16bb77; }
+.ench-lot.depasse { border-color: #e8352e; }
+.ench-visu { min-width: 0; }
+.ench-info { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ench-info h4 { margin: 0; color: #1d1412; font-size: 19px; line-height: 1.05; font-weight: 400; }
+.ench-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+.ench-badges span { padding: 2px 9px; background: var(--r); color: #fff; border: 2px solid #1d1412; border-radius: 99px; font-size: 13px; -webkit-text-stroke: 2.5px #1d1412; paint-order: stroke fill; }
+.ench-badges span.foil { background: linear-gradient(100deg, #ff5f7a, #ffb04d, #ffe65f, #6fe08a, #5fb4ff, #b57cf0); }
+.ench-fin { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding: 3px 8px; background: #d9d3a2; border: 3px solid #c9b48c; border-radius: 10px; color: #1d1412; font-size: 13px; }
+.ench-fin:has(time.urgent) { background: #f4544c; border-color: #c9302a; }
+#screen-encheres time { font-variant-numeric: tabular-nums; font-size: 16px; }
+.ench-miser { display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; margin-top: auto; min-height: 58px; padding: 6px; background: #ffc94d; border: 0; border-bottom: 4px solid #d99a1e; border-radius: 10px; color: #1d1412; font: inherit; font-size: 18px; line-height: 1.05; }
+.ench-miser b { font-weight: 400; font-size: 23px; }
+.ench-miser:active { transform: translateY(2px); border-bottom-width: 2px; }
+.ench-miser.tete { background: #86f07a; border-bottom-color: #4fbf49; font-size: 15px; }
+.ench-miser.tete:active { transform: none; border-bottom-width: 4px; }
+.ench-miser.pauvre { background: #e3d6bb; border-bottom-color: #c9b48c; color: #8c7b66; }
+.ench-miseurs { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.ench-miseurs li { display: flex; align-items: center; gap: 4px; min-width: 0; padding: 2px 5px 2px 2px; background: #e6e2da; border-radius: 4px; color: #1d1412; font-size: 12px; }
+.ench-miseurs li.enTete { background: #86f07a; }
+.ench-miseurs img:not(.ico) { flex: none; width: 26px; height: 26px; object-fit: cover; background: #fff8e8; border-radius: 3px; }
+.ench-miseurs span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ench-miseurs b { font-weight: 400; }
+.ench-vide { grid-column: 1 / -1; margin: 0; text-align: center; font-size: 13px; }
+.ench-visu .btq-c.foil::after, .slab .btq-c.foil::after { background: repeating-linear-gradient(125deg, #ff5f7a88 0 26px, #ffe65f88 26px 52px, #6fe08a88 52px 78px, #5fb4ff88 78px 104px, #b57cf088 104px 130px); background-size: 300% 100%; mix-blend-mode: multiply; }
+/* Le boitier d'une carte gradee : l'etiquette de l'entreprise, puis la carte. */
+.slab { padding: 3px; background: #fff; border: 2px solid #1d1412; border-radius: 3px; color: #1d1412; box-shadow: 0 2px 0 #0003; }
+.slab-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 0 3px; margin-bottom: 3px; padding: 2px 3px; background: #e6e2da; }
+.slab-nom { flex: 0 0 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 8px/1.3 ui-monospace, Consolas, monospace; }
+.slab-tete img { flex: none; width: 24px; height: 24px; object-fit: cover; }
+.slab-txt { flex: 1; min-width: 0; display: grid; font: 8px/1.2 ui-monospace, Consolas, monospace; }
+.slab-txt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slab-note { flex: none; padding: 0 2px; font: 400 26px/1 "Lilita One", system-ui, sans-serif; }
+.slab .btq-c { border: 2px solid #1d1412; border-radius: 0; box-shadow: none; animation: none; }
+.btq-boitiers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.btq-fiche-haut > .slab { flex: 0 0 140px; width: 140px; box-sizing: border-box; }
+.btq-entreprises { display: grid; gap: 4px; }
+.btq-entreprise { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 8px 4px 4px; background: #fff8e8; border: 2px solid #c9b48c; border-radius: 8px; color: inherit; font: inherit; font-size: 13px; text-align: left; }
+.btq-entreprise img:not(.ico) { flex: none; width: 34px; height: 34px; object-fit: cover; border-radius: 6px; }
+.btq-entreprise > span:not(.btq-prix) { flex: 1; min-width: 0; display: grid; }
+.btq-entreprise em { font-style: normal; font-size: 11px; color: #7c6a5a; }
+.btq-prix { flex: none; display: inline-flex; align-items: center; gap: 3px; }
 .btq-puce.pauvre { background: #e3d6bb; color: #8c7b66; }
 .btq-retour { display: grid; gap: 8px; }
 .btq-retour h3 { margin: 4px 0 6px; color: #3a2a22; font-size: 14px; text-transform: none; letter-spacing: 0; }

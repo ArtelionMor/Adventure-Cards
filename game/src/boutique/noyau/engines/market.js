@@ -3,15 +3,17 @@
 // concurrents la challengent, et celui qui se fait passer devant récupère sa mise tout de suite. À la fin, le dernier en tête
 // reçoit la carte. C'est la soupape du déblocage : une carte qui ne sort pas se gagne ici.
 // Chaque lot a sa graine et ses concurrents agissent à des heures fixées d'avance : le découpage des ticks ne change rien.
+// Un lot peut être foil ou déjà gradé : son plafond suit alors la valeur de cette copie-là.
 // Seule une carte manquante se gagne : elle prend son emplacement de collection, donc elle ne se revend pas et ne se grade pas.
 // Sinon, grader une carte gagnée puis la revendre rapporterait à coup sûr (`validateConfig` borne aussi le plafond des concurrents).
 
 import { Rng } from '../rng.js';
 import { addCopy, hasFeature } from '../state.js';
-                                                                                      
+                                                                                                    
 import { maxBuyerMultiplier } from './buyers.js';
+import { drawGrade } from './grading.js';
 import { checkHeroUnlock } from './heroUnlock.js';
-import { effectiveRef } from './pricing.js';
+import { effectiveRef, instanceRef } from './pricing.js';
 
 const scratch = new Rng(0);
 const MIN = 60000;
@@ -33,20 +35,41 @@ function delay([min, max]                  )         {
   return Math.round((min + scratch.next() * (max - min)) * MIN);
 }
 
+function noteBid(lot           , who                   , amount        )       {
+  const bid = lot.bids.find((b) => b.who === who);
+  if (bid) bid.amount = amount;
+  else lot.bids.push({ who, amount });
+}
+
+const RIVALS_PER_LOT = 3;
+const DAY = 24 * 60 * MIN;
+
 function openLot(state           , card         , at        , ctx     )       {
   const { lot: c } = ctx.cfg.market;
-  const top = marketPrice(card.id, state, ctx);
+  const { companies } = ctx.cfg.grading;
+  const finish         = scratch.next() < c.foilChance ? 'foil' : 'normal';
+  // La carte a été gradée par un concurrent, un jour des trois derniers mois.
+  const graded = scratch.next() < c.gradedChance;
+  const first = scratch.int(1000);
+  const company = companies[scratch.int(companies.length)];
+  const grade = graded && company ? drawGrade(scratch, company) : null;
+  const slab              = grade !== null && company ? { company: company.id, by: first + RIVALS_PER_LOT, atMs: at - scratch.int(90) * DAY } : null;
+  const top = Math.ceil(instanceRef({ cardId: card.id, finish, grade, slab }, state, ctx) * maxBuyerMultiplier(card, state, ctx) * ctx.cfg.market.buyMultiplier);
   const hours = c.durationsHours[scratch.int(c.durationsHours.length)] ?? 1;
   const maxRival = Math.ceil(top * (c.rivalMaxMin + scratch.next() * (c.rivalMaxMax - c.rivalMaxMin)));
   const nextRivalMs = at + delay(c.rivalDelayMinutes);
-  const rival = scratch.int(1000);
   state.market.lots.push({
     id: state.market.nextLotId++,
     cardId: card.id,
+    finish,
+    grade,
+    slab,
     price: Math.max(1, Math.ceil(top * c.startFraction)),
     holder: null,
     stake: 0,
-    rival,
+    rival: first,
+    rivals: Array.from({ length: RIVALS_PER_LOT }, (_, i) => first + i),
+    bids: [],
     maxRival,
     nextRivalMs,
     endMs: at + hours * 3600000,
@@ -85,8 +108,11 @@ function rivalActs(state           , lot           , at        , ctx     )      
     lot.stake = 0;
   }
   lot.price = price;
+  // Un concurrent ne se passe pas devant lui-même.
+  const others = lot.rivals.filter((r) => lot.holder !== 'rival' || r !== lot.rival);
+  lot.rival = others[scratch.int(others.length)] ?? lot.rival;
   lot.holder = 'rival';
-  lot.rival = scratch.int(1000);
+  noteBid(lot, lot.rival, price);
   lot.nextRivalMs = at + delay(ctx.cfg.market.lot.rivalDelayMinutes);
   lot.rngState = scratch.state;
 }
@@ -102,7 +128,12 @@ function closeLot(state           , lot           , ctx     )       {
     ctx.on?.({ t: 'auctionLost', cardId: lot.cardId, price: lot.price });
     return;
   }
-  addCopy(state, lot.cardId, 'normal');
+  const inst = state.instances[addCopy(state, lot.cardId, lot.finish).id];
+  if (inst) {
+    inst.grade = lot.grade;
+    inst.slab = lot.slab;
+  }
+  if (lot.finish === 'foil') state.foilCollection[lot.cardId] = true;
   const card = ctx.index.cardById.get(lot.cardId);
   if (card) checkHeroUnlock(state, card.hero, ctx);
   ctx.on?.({ t: 'auctionWon', cardId: lot.cardId, price: lot.price });
@@ -153,6 +184,7 @@ export function placeBid(state           , lotId        , ctx     )             
   lot.stake = price;
   lot.holder = 'player';
   lot.engaged = true;
+  noteBid(lot, 'player', price);
   // Un concurrent qui a encore les moyens répond ; une mise de dernière minute prolonge le lot pour lui en laisser le temps.
   scratch.state = lot.rngState;
   lot.nextRivalMs = nextBid(lot, ctx) <= lot.maxRival ? state.nowMs + delay(c.reactionMinutes) : null;

@@ -26,7 +26,7 @@ function note(e) {
   }
   if (e.t === 'auctionWon') resume.gagnees.push({ cardId: e.cardId, prix: e.price });
   if (e.t === 'auctionLost') resume.perdues.push({ cardId: e.cardId, prix: e.price });
-  if (e.t === 'gradeDone') resume.gradees.push({ cardId: e.cardId, note: e.grade });
+  if (e.t === 'gradeDone') resume.gradees.push({ cardId: e.cardId, note: e.grade, instanceId: e.instanceId });
   if (e.t === 'heroUnlocked') resume.heros.push(e.hero);
 }
 
@@ -79,7 +79,17 @@ function metAJour(e) {
     e.market = { lots: [], nextLotId: 1, nextRefreshMs: e.nowMs, rngState: e.market.rngState };
     e.gradingQueue = [];
   }
-  e.version = 3;
+  // Les entreprises de grading et le tableau des miseurs : ce qui existait passe chez l'entreprise neutre, sans rien perdre.
+  if ((e.version ?? 1) < 4) {
+    const company = CONFIG.grading.defaultCompany;
+    for (const i of Object.values(e.instances)) i.slab = i.grade === null ? null : { company, by: null, atMs: e.nowMs };
+    for (const g of e.gradingQueue) g.company = company;
+    for (const l of e.market.lots) {
+      Object.assign(l, { finish: 'normal', grade: null, slab: null, rivals: [l.rival, l.rival + 1, l.rival + 2], bids: [] });
+      if (l.holder) l.bids.push({ who: l.holder === 'player' ? 'player' : l.rival, amount: l.price });
+    }
+  }
+  e.version = 4;
 }
 
 function avance() {
@@ -107,7 +117,7 @@ export function demarreBoutique() {
       etat.showcase.forEach((l, i) => { l.displayId = presentoirs[i]?.id ?? null; });
     }
     metAJour(etat);
-  } else etat = { ...createState(ctx), vues: {}, version: 3 };
+  } else etat = { ...createState(ctx), vues: {}, version: 4 };
   lieLaBourse(etat);
   persist();
 

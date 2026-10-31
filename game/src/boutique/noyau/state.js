@@ -59,7 +59,7 @@ export function hasFeature(state           , feature        )          {
 export function addCopy(state           , cardId        , finish        )                                     {
   const id = state.nextInstanceId++;
   const isNew = state.collection[cardId] === undefined;
-  state.instances[id] = { id, cardId, finish, grade: null, location: isNew ? 'collection' : 'stock' };
+  state.instances[id] = { id, cardId, finish, grade: null, slab: null, location: isNew ? 'collection' : 'stock' };
   if (isNew) state.collection[cardId] = id;
   return { id, isNew };
 }

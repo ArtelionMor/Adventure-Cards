@@ -18,14 +18,14 @@ export function effectiveRef(card         , state           , ctx     )         
   return Math.min(r.priceCeil, Math.max(r.priceFloor, moved));
 }
 
-export function instanceRef(inst              , state           , ctx     )         {
+export function instanceRef(inst                                                            , state           , ctx     )         {
   const card = ctx.index.cardById.get(inst.cardId);
   if (!card) throw new Error(`Carte inconnue : ${inst.cardId}`);
   const { foil, grading } = ctx.cfg;
   let variant = 1;
   if (inst.finish === 'foil') variant *= foil.priceMultiplier;
   if (inst.grade !== null) {
-    variant *= grading.multipliers[inst.grade - 1] ?? 1;
+    variant *= (grading.multipliers[inst.grade - 1] ?? 1) * (grading.companies.find((c) => c.id === inst.slab?.company)?.noteValue ?? 1);
     if (inst.finish === 'foil') variant *= foil.gradeSynergy[inst.grade - 1] ?? 1;
   }
   const power = ctx.index.rarityById.get(card.rarity)?.variantPower ?? 1;

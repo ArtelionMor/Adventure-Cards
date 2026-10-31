@@ -1,13 +1,28 @@
 // GAME CONFIG — LA SCENE DE LA BOUTIQUE : ce qui se voit. L'economie (prix, attentes, meubles, couts) vit dans le noyau
 // (game/src/boutique/noyau/, genere par scripts/gen-boutique.mjs), jamais ici.
 const M = n => `Decor/Kenney Furniture Kit/${n}`;
+const H = n => `Graphical Assets/Characters/${n}.png`;
 
 export const BOUTIQUE = {
   sauvegardeToutesLesS: 5,
   resumeHorsLigneDesS: 60,    // absence au-dela de laquelle le recapitulatif s'ouvre au retour
   resumeCartesMax: 10,        // cartes montrees par section du recapitulatif
-  // Les concurrents des encheres d'achat : seulement leur nom, ce qu'ils misent vit dans le noyau.
-  rivaux: ['Renard Filou', 'Mamie Chouette', 'Le Collectionneur', 'Baron Grenouille', 'Dame Pie', 'Monsieur Loutre', 'La Taupe', 'Capitaine Mulot'],
+  // Les concurrents des encheres d'achat, de faux joueurs en attendant le jeu en ligne : leur nom et leur avatar. Ce qu'ils misent
+  // vit dans le noyau.
+  rivaux: [
+    { nom: 'f4ke_t3liau', image: H('Hero Cat 2') },
+    { nom: 'Blue_Plane', image: H('Opponent Raven') },
+    { nom: 'popular_player', image: H('Hero Dog 3') },
+    { nom: 'mamie_chouette', image: H('Hero Owl 2') },
+    { nom: 'baron.grenouille', image: H('Opponent Captain Frog') },
+    { nom: 'xX_DamePie_Xx', image: H('Opponent Robin') },
+    { nom: 'renard_filou', image: H('Opponent Snow Fox') },
+    { nom: 'La_Taupe', image: H('Opponent Mouse') },
+    { nom: 'cap_mulot', image: H('Hero Rabbit 3') },
+    { nom: 'kitsune42', image: H('Opponent Kitsune') }
+  ],
+  // Le logo de chaque entreprise de grading, en attendant ceux du game designer. Leur nom et leur facon de noter vivent dans le noyau.
+  logosGrading: { owl: H('Hero Owl 1'), frog: H('Hero Frog 1'), rabbit: H('Hero Rabbit 1') },
   dossierPoses: 'Decor/Kenney Toon Characters/',
   dossierMeubles: 'Decor/Kenney Furniture Kit/',
   scene: {

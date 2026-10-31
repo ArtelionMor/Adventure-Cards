@@ -5,7 +5,7 @@ import { CHAR_BY_ID } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
 import { auctionMeanPrice, listAuction } from '../boutique/noyau/engines/auction.js';
 import { bulkClearHours, sendToBulk } from '../boutique/noyau/engines/bulk.js';
-import { breakGrade, gradeCard } from '../boutique/noyau/engines/grading.js';
+import { breakGrade, gradeCard, gradingCompany } from '../boutique/noyau/engines/grading.js';
 import { requiredCards, setHeroTier } from '../boutique/noyau/engines/heroUnlock.js';
 import { upgradeCost, upgradeHero } from '../boutique/noyau/engines/heroUpgrade.js';
 import { nextBid, placeBid } from '../boutique/noyau/engines/market.js';
@@ -15,6 +15,7 @@ import { cancelShowcase, formatDuration, listShowcase, quoteShowcase, repriceSho
 import { buyFurniture, canExpand, expandCost, expandShop, furniturePrice, moveFurniture, sellFurniture, showcaseCapacity } from '../boutique/noyau/engines/shop.js';
 import { checkSellable, hasFeature, swapCollectionOccupant } from '../boutique/noyau/state.js';
 import { adversaireCourant, avanceDeMinutes, change, ctx, ecoute, partie } from '../boutique/partie.js';
+import { save } from '../state.js';
 import { arreteScene, choisisMeuble, lanceScene, modeDeco } from './boutique-scene.js';
 import { t } from '../config/textes.js';
 import { icone } from './icones.js';
@@ -45,6 +46,25 @@ export function carteHtml(cardId, finish = 'normal', grade = null, classe = '') 
   return `<div class="btq-c ${finish === 'foil' ? 'foil' : ''} ${classe}" data-r="${c.rarity}" style="--r:${couleur}"><img src="${asset(SPRITES.get(cardId))}" alt="${c.name}">${grade ? `<b class="btq-note">${grade}</b>` : ''}</div>`;
 }
 const or = n => `${icone('Coin', 14)}<b>${court(Math.round(n))}</b>`;
+
+// LE BOITIER D'UNE CARTE GRADEE (maquette du 31 octobre 2026) : l'entreprise, la carte, qui l'a fait grader et quand, et la note.
+const rivalDe = n => BOUTIQUE.rivaux[n % BOUTIQUE.rivaux.length];
+const leJoueur = () => CHAR_BY_ID[save.team.find(Boolean) || 'dog'];
+// `atMs` est l'heure du noyau : une date se lit en remontant depuis maintenant.
+const dateDe = atMs => new Date(Date.now() - (partie().nowMs - atMs)).toLocaleDateString('fr-FR');
+
+export function boitierHtml(copie) {
+  const { slab } = copie;
+  const qui = slab.by === null ? leJoueur().name : rivalDe(slab.by).nom;
+  return `<div class="slab">
+    <div class="slab-tete"><span class="slab-nom">${gradingCompany(cfg, slab.company).name}</span><img src="${asset(BOUTIQUE.logosGrading[slab.company])}" alt="">
+      <div class="slab-txt"><span>${carteDef(copie.cardId).name}</span><span>${qui}</span><span>${dateDe(slab.atMs)}</span></div>
+      <b class="slab-note">${copie.grade}</b></div>
+    ${carteHtml(copie.cardId, copie.finish)}
+  </div>`;
+}
+/** Une copie en grand : dans son boitier si elle est gradee. */
+const visuel = copie => (copie.slab ? boitierHtml(copie) : carteHtml(copie.cardId, copie.finish));
 
 // ------------------------------------------------------------------ la scene
 function majBarre() {
@@ -79,7 +99,7 @@ function ficheCopie(id) {
   const cap = showcasePriceCap(cfg, refMax);
   const prixBase = Math.min(refMax, cap);
   const box = el(`<div class="btq-fiche">
-    <div class="btq-fiche-haut">${carteHtml(inst.cardId, inst.finish, inst.grade)}
+    <div class="btq-fiche-haut">${visuel(inst)}
       <div><h2>${c.name}</h2><p class="muted">${c.hero} · ${ctx.index.rarityById.get(c.rarity).name}${inst.finish === 'foil' ? ' · Foil' : ''}${inst.grade ? ` · Note ${inst.grade}` : ''}</p><p>Référence ${or(instanceRef(inst, S, ctx))}</p></div></div>
     <h3>Vitrine</h3>
     <input type="range" id="fPrix" min="1" max="${Math.max(1, Math.round(cap))}" value="${Math.round(prixBase)}">
@@ -87,6 +107,7 @@ function ficheCopie(id) {
     <div class="btq-avis-liste" id="fAvis"></div>
     <button class="btn" id="fVitrine">Mettre en vitrine</button>
     <div id="fEncheres"><h3>Enchères</h3><div class="btq-puces" id="fDurees"></div></div>
+    <div id="fGrading"><h3>${t('grading.choisir')}</h3><div class="btq-entreprises"></div></div>
     <h3>Autres</h3>
     <div class="btq-puces" id="fAutres"></div>
   </div>`);
@@ -113,13 +134,18 @@ function ficheCopie(id) {
   const ajoute = (texte, f) => { const b = el(`<button class="btq-puce">${texte}</button>`); b.onclick = f; autres.appendChild(b); };
   ajoute(`Bulk · ${court(Math.round(instanceRef(inst, S, ctx)))}`, () => agit(sendToBulk(S, id)));
   if (hasFeature(S, cfg.grading.feature) && inst.grade === null) {
-    ajoute(`Grader · ${ctx.index.rarityById.get(c.rarity).gradingCost}`, () => {
-      const r = gradeCard(S, id, ctx);
-      if (!r.ok) { toast(r.reason); return; }
-      closeModal(); change();
-      toast(t('grading.parti', { d: formatDuration(cfg.grading.minutes) }));
-    });
-  }
+    const prixGrading = ctx.index.rarityById.get(c.rarity).gradingCost;
+    for (const e of cfg.grading.companies) {
+      const b = el(`<button class="btq-entreprise"><img src="${asset(BOUTIQUE.logosGrading[e.id])}" alt=""><span><b>${e.name}</b><em>${t('grading.loi', { n: e.mean, v: e.noteValue })}</em></span><span class="btq-prix">${or(prixGrading)}</span></button>`);
+      b.onclick = () => {
+        const r = gradeCard(S, id, ctx, e.id);
+        if (!r.ok) { toast(r.reason); return; }
+        closeModal(); change();
+        toast(t('grading.parti', { d: formatDuration(cfg.grading.minutes) }));
+      };
+      box.querySelector('.btq-entreprises').appendChild(b);
+    }
+  } else box.querySelector('#fGrading').remove();
   if (inst.grade !== null) {
     ajoute(`Casser la note · ${cfg.gems.sinks[cfg.grading.breakSink].cost} gems`, () => {
       const r = breakGrade(S, id, ctx);
@@ -152,7 +178,7 @@ function ficheVitrine(id) {
   const refMax = instanceRefMax(inst, S, ctx);
   const cap = showcasePriceCap(cfg, refMax);
   const box = el(`<div class="btq-fiche">
-    <div class="btq-fiche-haut">${carteHtml(inst.cardId, inst.finish, inst.grade)}
+    <div class="btq-fiche-haut">${visuel(inst)}
       <div><h2>${c.name}</h2><p class="muted">En vitrine à ${court(Math.round(l.price))}</p><p class="muted">Se vend dans ${formatDuration(Math.max(0, l.sellAtMs - S.nowMs) / 60000)}</p></div></div>
     <h3>Nouveau prix</h3>
     <input type="range" id="fPrix" min="1" max="${Math.max(1, Math.round(cap))}" value="${Math.round(l.price)}">
@@ -205,7 +231,6 @@ function panneauVentes() {
 // D'abord ACHETER (ouvert des le depart), puis VENDRE, qui se debloque en avancant dans la ligne de combats (economy.json). Acheter,
 // c'est se placer sur un lot : la mise part de la bourse et revient si un concurrent passe devant ; a la fin du temps, le dernier
 // en tete recoit la carte. Tout se decide dans le noyau (`engines/market`), ici on montre et on mise.
-const rival = lot => BOUTIQUE.rivaux[lot.rival % BOUTIQUE.rivaux.length];
 const estDepasse = lot => lot.engaged && lot.holder !== 'player';
 
 /** Ce qui reste : « 1 h 12 », ou « 09:41 » sous l'heure. */
@@ -215,23 +240,35 @@ function tempsRestant(ms) {
   return s >= 3600 ? `${Math.floor(s / 3600)} h ${p(Math.floor(s / 60) % 60)}` : `${p(Math.floor(s / 60))}:${p(s % 60)}`;
 }
 
-function etatDuLot(lot) {
-  if (lot.holder === 'player') return t('encheres.enTete');
-  if (lot.holder === 'rival') return t(lot.engaged ? 'encheres.depasse' : 'encheres.rival', { nom: rival(lot) });
-  return t('encheres.personne');
+// Le tableau du lot : la derniere mise de chacun, la plus haute d'abord et en vert.
+function tableauDuLot(lot) {
+  if (!lot.bids.length) return `<p class="muted ench-vide">${t('encheres.personne')}</p>`;
+  const lignes = [...lot.bids].sort((a, b) => b.amount - a.amount).map(b => {
+    const joueur = b.who === 'player';
+    const qui = joueur ? { nom: t('encheres.toi'), image: leJoueur().sprite } : rivalDe(b.who);
+    return `<li class="${b.amount === lot.price ? 'enTete' : ''}"><img src="${asset(qui.image)}" alt=""><span>${qui.nom}</span>${or(b.amount)}</li>`;
+  });
+  return `<ul class="ench-miseurs">${lignes.join('')}</ul>`;
 }
 
-function ligneDeLot(S, lot) {
+function carteDeLot(S, lot) {
   const c = carteDef(lot.cardId);
   const prix = nextBid(lot, ctx);
   const moi = lot.holder === 'player';
-  const n = el(`<div class="btq-lot ${moi ? 'tete' : ''} ${estDepasse(lot) ? 'depasse' : ''}">
-    ${carteHtml(lot.cardId)}
-    <div class="btq-nom"><b>${c.name}</b><span class="muted">${c.hero} · ${ctx.index.rarityById.get(c.rarity).name}</span><span class="btq-lot-etat">${etatDuLot(lot)}</span></div>
-    <div class="btq-lot-droite"><time data-fin="${lot.endMs}">${tempsRestant(lot.endMs - S.nowMs)}</time><span>${or(lot.price)}</span>
-      <button class="btq-puce ${S.gold < prix ? 'pauvre' : ''}" ${moi ? 'disabled' : ''}>${moi ? t('encheres.tienne') : t('encheres.miser', { n: court(prix) })}</button></div>
-  </div>`);
-  n.querySelector('button').onclick = () => {
+  const reste = lot.endMs - S.nowMs;
+  const n = el(`<article class="ench-lot ${moi ? 'tete' : ''} ${estDepasse(lot) ? 'depasse' : ''}">
+    <div class="ench-visu">${visuel(lot)}</div>
+    <div class="ench-info">
+      <h4>${c.name}</h4>
+      <div class="ench-badges"><span style="--r:${BOUTIQUE.couleursRaretes[c.rarity]}">${ctx.index.rarityById.get(c.rarity).name}</span>${lot.finish === 'foil' ? `<span class="foil">${t('encheres.foil')}</span>` : ''}</div>
+      <div class="ench-fin">${t('encheres.finDans')}<time data-fin="${lot.endMs}" class="${reste <= cfg.market.lot.warnMinutes * 60000 ? 'urgent' : ''}">${tempsRestant(reste)}</time></div>
+      ${moi ? `<div class="ench-miser tete"><span>${t('encheres.enTete')}</span><b>${court(lot.price)}</b>${icone('Coin', 18)}</div>`
+    : `<button class="ench-miser ${S.gold < prix ? 'pauvre' : ''}"><span>${t('encheres.miser')}</span><b>${court(prix)}</b>${icone('Coin', 18)}</button>`}
+    </div>
+    ${tableauDuLot(lot)}
+  </article>`);
+  const miser = n.querySelector('button');
+  if (miser) miser.onclick = () => {
     const r = placeBid(S, lot.id, ctx);
     if (!r.ok) toast(r.reason); else change();
   };
@@ -256,7 +293,7 @@ function panneauEncheres() {
   if (!hasFeature(S, cfg.market.feature)) box.querySelector('#lM').appendChild(el('<p class="muted">Débloqué en avançant dans la ligne de combats.</p>'));
   else if (!S.market.lots.length) box.querySelector('#lM').appendChild(el(`<p class="muted">${t('encheres.rien')}</p>`));
   // Les lots ou l'on a mise d'abord, puis ceux qui finissent le plus tot.
-  else for (const lot of [...S.market.lots].sort((a, b) => b.engaged - a.engaged || a.endMs - b.endMs)) box.querySelector('#lM').appendChild(ligneDeLot(S, lot));
+  else for (const lot of [...S.market.lots].sort((a, b) => b.engaged - a.engaged || a.endMs - b.endMs)) box.querySelector('#lM').appendChild(carteDeLot(S, lot));
   if (hasFeature(S, 'premiumMarket')) {
     for (const p of cfg.premium.boosters) {
       const b = el(`<button class="btq-puce">Booster premium · ${court(Math.ceil(premiumRef(p.id, S, ctx) * cfg.premium.marketBuyMultiplier))}</button>`);
@@ -488,7 +525,14 @@ export function montreResumeBoutique(r) {
   };
   section(t('retour.vendues'), vitrine, x => court(Math.round(x.prix)));
   section(t('retour.gagnees'), r.gagnees, x => court(Math.round(x.prix)));
-  section(t('retour.gradees'), r.gradees, x => t('retour.note', { n: x.note }));
+  if (r.gradees.length) {
+    const g = el(`<div><h3>${t('retour.gradees')}</h3><div class="btq-boitiers"></div></div>`);
+    for (const x of r.gradees.slice(0, BOUTIQUE.resumeCartesMax)) {
+      const inst = partie().instances[x.instanceId];
+      if (inst?.slab) g.lastChild.appendChild(el(boitierHtml(inst)));
+    }
+    box.appendChild(g);
+  }
   section(t('retour.perdues'), r.perdues, () => '');
   if (bulk.length) box.appendChild(el(`<p>${t('retour.bulk', { n: bulk.length })} : ${or(bulk.reduce((s, x) => s + x.prix, 0))}</p>`));
   if (r.heros.length) box.appendChild(el(`<p>${t('retour.heros', { noms: r.heros.join(', ') })}</p>`));
