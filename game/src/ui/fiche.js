@@ -6,9 +6,10 @@
 // La mise en forme suit la maquette « Combat Screen Zoom on a card » (19 octobre 2026) : ce que la carte FAIT s'ecrit
 // « icones : texte » (vert pour un effet, jaune pour un mot-cle) ; ce qui la MODIFIE s'ecrit sous le portrait de sa
 // source, le nom de la source en titre et le changement dessous (vert s'il l'aide, rouge s'il la desservit).
-import { TRIGGERS, keyLabel, momentLabel, describeEffect, describeAura, describeStatic } from '../config/mechanics.js';
+import { TRIGGERS, keyLabel, momentLabel, describeEffect, describeAura, describeStatic, typesOf } from '../config/mechanics.js';
+import { couleurDuType } from '../config/familles.js';
 import { icone } from './icones.js';
-import { asset } from './shell.js';
+import { $, el, asset } from './shell.js';
 import { iconeDeCle, iconeDeOp, iconeDeMoment } from './pictos.js';
 
 const div = (cl, html) => {
@@ -64,6 +65,79 @@ export function lignesDeFait(x, texte = x.text) {
   if (texte) out.push(ligneEffet(icones.slice(0, 3), texte));
   else out.push(...genere);
   return out.concat(lignesDeMots(x));
+}
+
+/** Le fond de la puce « Type » : une part de couleur par type, en biais (config/familles.js, `couleurDuType`). */
+function fondDesTypes(types) {
+  const k = types.length;
+  const parts = types.map((t, i) => `${couleurDuType(t)} ${(i * 100 / k).toFixed(1)}% ${((i + 1) * 100 / k).toFixed(1)}%`);
+  return `linear-gradient(135deg, ${parts.join(', ')})`;
+}
+
+/** L'en-tete : la carte en grand (cout, dessin), le nom, l'attaque et la vie, les types, une ligne d'etat. */
+export function teteFiche({ nom, sprite, cout, coutBase, sort, atk, hp, maxHp, plus, moins, types, note, adverse = false }) {
+  const stats = sort ? '<span class="fi-sort">Sort</span>'
+    : `<span class="a${plus ? ' plus' : ''}">${atk}</span>${icone('Attack', 24)}<span class="h${moins ? ' moins' : ''}">${hp}${maxHp != null ? '/' + maxHp : ''}</span>${icone('Health', 24)}`;
+  return el(`
+    <div class="fi-tete">
+      <div class="fi-carte${sort ? ' spell' : ''}${adverse ? ' adverse' : ''}">
+        ${cout != null ? `<div class="cost" ${coutBase != null && coutBase !== cout ? `title="coût de base ${coutBase}"` : ''}>${cout}</div>` : ''}
+        ${sprite ? `<img src="${asset(sprite)}" alt="">` : ''}
+      </div>
+      <div class="fi-id">
+        <div class="nm">${nom}</div>
+        <div class="fi-stats">${stats}</div>
+        ${types.length ? `<span class="fi-type" style="background:${fondDesTypes(types)}">Type : ${types.join(' & ')}</span>` : ''}
+        ${note ? `<div class="src">${note}</div>` : ''}
+      </div>
+    </div>`);
+}
+
+/** Ce qu'une carte ou une unite FAIT : son texte (ou ses effets) puis ses mots-cles. */
+export function blocFait(x, texte) {
+  const lignes = lignesDeFait(x, texte);
+  if (!lignes.length) return null;
+  const n = el('<section class="fi-fait"></section>');
+  lignes.forEach(l => n.appendChild(l));
+  return n;
+}
+
+/** La fiche d'une CARTE : `cout` est celui du moment (en combat, `cardCost` ; hors combat, le cout imprime). */
+export function ficheDeCarte(c, { cout = c.cost, adverse = false } = {}) {
+  const box = el('<div class="insp fiche"></div>');
+  box.appendChild(teteFiche({
+    nom: c.name, sprite: c.sprite, cout, coutBase: c.cost, sort: c.type !== 'ally', atk: c.atk, hp: c.hp, maxHp: null,
+    types: typesOf(c), note: '', adverse
+  }));
+  const bFait = blocFait(c, c.text);
+  if (bFait) box.appendChild(bFait);
+  return box;
+}
+
+/**
+ * LE PANNEAU DE LECTURE : flotte au-dessus de tout, y compris d'une fenetre, ne recoit aucun toucher (le doigt qui lit
+ * reste sur sa carte). Partage par le combat et l'ecran Deck.
+ */
+export function montreLecture(contenu) {
+  let p = $('#lecture');
+  if (!p) {
+    p = el('<div id="lecture" class="lecture hidden"></div>');
+    $('#app').appendChild(p);
+  }
+  const sheet = el('<div class="sheet"></div>');
+  sheet.appendChild(contenu);
+  p.replaceChildren(sheet);
+  p.classList.remove('hidden');
+}
+
+export function cacheLecture() {
+  const p = $('#lecture');
+  if (p) { p.classList.add('hidden'); p.replaceChildren(); }
+}
+
+/** Une fiche ouverte d'un toucher (pas d'un appui) : elle se ferme au prochain toucher, ou qu'il tombe. */
+export function fermeAuProchainToucher(fermer = cacheLecture) {
+  setTimeout(() => document.addEventListener('pointerdown', () => fermer(), { capture: true, once: true }), 0);
 }
 
 const signe = v => (v >= 0 ? '+' : '') + v;

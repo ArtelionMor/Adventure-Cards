@@ -13,6 +13,10 @@ export const TEXTES = {
   'deck.niveau': 'Level {n}',
   'deck.ameliorer': 'Upgrade',
   'deck.puissance': '+{n} power',
+  'deck.ongletDeck': 'Deck',
+  'deck.ongletAmelioration': 'Amélioration',
+  'deck.fermer': 'Fermer',
+  'deck.echanger': 'Échanger les deux cartes',
   // Les ARENES : la fiche (presentation de l'ennemi, puis choix de l'equipe) et l'onglet (16 octobre 2026).
   'arene.onglet': 'Combats',
   'ligne.niveau': 'Palier {n}',

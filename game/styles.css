@@ -153,9 +153,13 @@ button.btn:disabled { opacity: .4; cursor: default; }
   width: 100%; max-width: 340px; box-sizing: border-box; background: var(--dk-creme); border: 3px solid var(--dk-trait); border-radius: 10px;
   box-shadow: inset 0 6px 0 #fff, 0 4px 0 var(--dk-trait); padding: 6px 8px 14px; color: var(--dk-trait);
 }
-.dk-titre, .dk-onglet, .upg-nom, .upg-niv, .upg-carte-nom, .upg-bouton, .upg-pilule, .dk-vig .nm, .dk-pastille, .upg-cout, .upg-rond {
-  color: #fff; text-shadow: 0 2px 0 #000; font-weight: 400; letter-spacing: 0; text-transform: none;
+/* LE CERNE : du blanc sur la creme ne se lit qu'avec un vrai contour (game designer, 31 octobre 2026 : « blanc sur blanc sans
+   outline, c'est pas possible ») ; une ombre seule ne suffisait pas. `--cerne` : sa largeur, selon la taille du texte. */
+.dk-titre, .dk-onglet, .upg-nom, .upg-espece, .upg-niv, .upg-carte-nom, .upg-bouton, .upg-pilule, .dk-vig .nm, .dk-nom, .dk-capa .pc, .dk-stat, .dk-pastille, .upg-cout, .upg-rond, .ong-tab {
+  color: #fff; -webkit-text-stroke: var(--cerne, 4px) var(--dk-trait, #2b1c1f); paint-order: stroke fill; text-shadow: 0 2px 0 var(--dk-trait, #2b1c1f);
+  font-weight: 400; letter-spacing: 0; text-transform: none;
 }
+.dk-pastille, .upg-cout, .upg-rond, .dk-vig .nm, .dk-nom, .dk-capa .pc { --cerne: 3px; }
 .dk-titre { font-size: 20px; margin: 0 0 14px 2px; }
 .dk-ligne, .dk-grille { display: grid; grid-template-columns: repeat(3, 92px); justify-content: center; gap: 12px; }
 .dk-grille { row-gap: 18px; }
@@ -169,7 +173,7 @@ button.btn:disabled { opacity: .4; cursor: default; }
 }
 .dk-vig:active { transform: translateY(2px); }
 .dk-vig img { position: absolute; left: -4px; top: -12px; width: 93px; height: 93px; object-fit: contain; pointer-events: none; }
-.dk-vig .nm { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-size: 10px; text-shadow: 0 .5px 0 #000, 0 0 2px rgba(0,0,0,.5); }
+.dk-vig .nm { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-size: 13px; line-height: 1; text-shadow: none; }
 .dk-vig.vide { background: rgba(43, 28, 31, .08); box-shadow: inset 0 0 0 1.5px rgba(43,28,31,.25); }
 .dk-vig.verrou { background: linear-gradient(180deg, #a1a1a1 0 64%, var(--dk-creme) 64% 100%); }
 .dk-vig.verrou img { filter: grayscale(1) brightness(.45) contrast(.9); opacity: .85; }
@@ -181,15 +185,15 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .dk-pastille { top: -9px; right: -9px; }
 .dk-coche .ico { color: #fff; font-size: 18px; }
 .dk-coche {
-  position: absolute; right: -2px; top: 67px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  position: absolute; right: -7px; top: 44px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
   background: var(--dk-vert-clair); border: 2px solid var(--dk-trait); box-sizing: border-box; color: #fff;
   box-shadow: inset 0 -4px 0 var(--dk-vert), 0 2px 0 var(--dk-trait);
 }
 
 /* Les puces de tri : jaunes allumees, grises eteintes. */
-.dk-puces { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0 10px 2px; }
+.dk-puces { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 10px 2px; }
 .dk-puce {
-  font: inherit; font-size: 12px; color: var(--dk-trait); padding: 0 6px; height: 17px; line-height: 14px; border-radius: 8.5px;
+  font: inherit; font-size: 14px; color: var(--dk-trait); padding: 0 10px; height: 28px; border-radius: 14px;
   background: #c3c3c3; border: 1.5px solid var(--dk-trait); cursor: pointer;
 }
 .dk-puce.on { background: #ffe27a; box-shadow: 0 2px 0 var(--dk-trait); }
@@ -203,14 +207,39 @@ button.btn:disabled { opacity: .4; cursor: default; }
 }
 .dk-onglet::after { content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 5px; background: var(--dk-creme); }
 
-/* ---------- la fiche d'amelioration ---------- */
-#modal .sheet.upg-feuille { max-width: 395px; max-height: 94%; padding: 0; overflow: hidden; border: 3px solid var(--dk-trait); border-radius: 10px; background: var(--dk-creme); box-shadow: inset 0 6px 0 #fff, 0 4px 0 var(--dk-trait); }
+/* ---------- les onglets du bas (ui/onglets.js) ----------
+   Les intercalaires des maquettes de la boutique, retournes : ils pendent sous le panneau, a portee du pouce. L'onglet ouvert
+   prolonge le panneau (meme creme, il mange son trait du bas), les autres sont eteints. Ne depend ni du skin ni du deck. */
+.ong { --ong-creme: #fff3d8; --ong-eteint: #cdbb9b; --ong-trait: #2b1c1f; display: flex; flex-direction: column; height: 100%; min-height: 0; font-family: var(--police, inherit); font-synthesis: none; }
+.ong.replie .ong-page { display: none; }
+.ong-page { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--ong-creme); border: 3px solid var(--ong-trait); border-radius: 10px 10px 0 0; box-shadow: inset 0 6px 0 #fff; overflow: hidden; }
+.ong-corps { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.ong-barre { position: relative; flex: none; display: flex; align-items: flex-start; gap: 6px; margin-top: -3px; }
+.ong-tab {
+  flex: 1 1 0; min-width: 0; height: 46px; padding: 0 2px 3px; font: inherit; font-size: min(19px, calc(100vw / var(--n) / 5.2)); cursor: pointer; background: var(--ong-eteint);
+  border: 3px solid var(--ong-trait); border-radius: 0 0 12px 12px; box-shadow: 0 3px 0 var(--ong-trait);
+}
+.ong-tab.on { height: 54px; background: var(--ong-creme); border-top-width: 0; }
+.ong-tab:active { translate: 0 2px; box-shadow: 0 1px 0 var(--ong-trait); }
+.ong-fin {
+  flex: none; display: grid; place-items: center; width: 46px; height: 46px; margin-top: 7px; padding: 0; border-radius: 50%; font: inherit; color: #fff; cursor: pointer;
+  background: #ff6a5c; border: 3px solid var(--ong-trait); box-shadow: inset 0 3px 0 #ffb0a6, 0 3px 0 var(--ong-trait);
+}
+.ong-fin:active { translate: 0 2px; box-shadow: inset 0 3px 0 #ffb0a6, 0 1px 0 var(--ong-trait); }
+.ong-fin .ico.g { color: #fff; font-size: 24px; -webkit-text-stroke: 3px var(--ong-trait); paint-order: stroke fill; }
+
+/* ---------- la fiche d'un heros ----------
+   Elle prend la hauteur de l'ecran et s'appuie sur le bas : les onglets tombent sous le pouce. Le panneau, c'est `.ong-page`. */
+#modal:has(.upg-feuille) { justify-content: flex-end; padding: 8px 8px 12px; }
+#modal .sheet.upg-feuille { display: block; max-width: 395px; height: min(100%, 790px); max-height: none; padding: 0; overflow: visible; border: 0; border-radius: 0; background: none; box-shadow: none; }
 #modal .sheet.dk-feuille:not(.upg-feuille) { max-width: 360px; background: var(--dk-creme); border: 3px solid var(--dk-trait); border-radius: 10px; padding: 22px 8px; }
-.upg { position: relative; padding: 0 0 18px; color: var(--dk-trait); user-select: none; overflow: hidden; }
+.upg { position: relative; height: 100%; color: var(--dk-trait); user-select: none; }
+.upg-page { padding-bottom: 18px; overflow: hidden; }
+.upg-haut { flex: none; }
 .upg-tete { display: grid; grid-template-columns: 79px 1fr auto; align-items: center; gap: 0 4px; padding: 4px 26px 0 52px; }
 .upg-tete img { width: 79px; height: 79px; object-fit: contain; }
 .upg-nom { font-size: 20px; }
-.upg-espece { font-size: 20px; color: var(--fond); text-shadow: 0 2px 0 #000; }
+.upg-espece { font-size: 20px; color: var(--fond); }
 .upg-niv, .upg-bouton, .upg-pilule {
   display: inline-grid; place-items: center; border-radius: 999px; background: var(--dk-or); border: 0;
   box-shadow: inset 2px 2px 0 var(--dk-or-clair), 0 2px 0 var(--dk-trait);
@@ -243,8 +272,8 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .upg-stats { display: inline-flex; align-items: center; gap: 1px; font-size: 10px; color: #fff; text-shadow: 0 1px 0 #000; }
 .upg-stats .a { color: #fed13a; } .upg-stats .h { color: #ff7d8d; }
 .upg-etape.centre .upg-stats { font-size: 15px; }
-.upg-carte-nom { margin-top: 6px; font-size: 12px; color: var(--dk-or); text-shadow: 0 2px 0 var(--dk-trait); line-height: 1.1; }
-.upg-etape.centre .upg-carte-nom { font-size: 20px; color: #fff; margin-top: 8px; }
+.upg-carte-nom { --cerne: 3px; margin-top: 6px; font-size: 12px; color: var(--dk-or); line-height: 1.1; }
+.upg-etape.centre .upg-carte-nom { --cerne: 4px; font-size: 20px; color: #fff; margin-top: 8px; }
 .upg-apport { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px; min-height: 34px; font-size: 12px; line-height: 1.15; color: var(--dk-trait); text-align: left; }
 .upg-etape:not(.centre) .upg-apport { font-size: 11px; }
 .upg-pilule { margin-top: 6px; height: 25px; padding: 0 8px; font-size: 15px; }
@@ -254,10 +283,6 @@ button.btn:disabled { opacity: .4; cursor: default; }
 .upg-etape.faite .upg-face::after { content: ""; position: absolute; inset: -3px; border-radius: 15px; background: rgba(47, 215, 146, .5); pointer-events: none; }
 .upg-etape.centre.faite .upg-carte-nom { color: #fff; }
 .upg-etape.hors .upg-face { filter: saturate(.35) brightness(.95); }
-.upg-switch {
-  position: absolute; left: 50%; top: 4px; margin-left: -89px; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
-  background: var(--dk-or); border: 2px solid var(--dk-trait); color: #fff; box-shadow: inset 2px 2px 0 var(--dk-or-clair), 0 2px 0 var(--dk-trait);
-}
 /* Les fleches : jaunes, contour brun, a mi-hauteur de la carte. */
 .upg-fl { position: absolute; top: 40px; z-index: 2; width: 36px; height: 54px; border: 0; padding: 0; background: none; cursor: pointer; filter: drop-shadow(0 2px 0 var(--dk-trait)); }
 .upg-fl::before, .upg-fl::after { content: ""; position: absolute; inset: 0; clip-path: polygon(100% 6%, 79% 50%, 100% 94%, 93% 100%, 0 50%, 93% 0); }
@@ -290,12 +315,49 @@ button.btn:disabled { opacity: .4; cursor: default; }
 /* Le bouton d'amelioration : le prix en pieces, ce qu'il rapporte en dessous. */
 .upg-achat { display: grid; justify-items: center; margin-top: 30px; }
 .upg-bouton { grid-auto-flow: column; gap: 6px; height: 37px; min-width: 193px; padding: 0 16px; font: inherit; font-size: 22px; cursor: pointer; box-shadow: inset 4px 4px 0 var(--dk-or-clair), 0 2px 0 var(--dk-trait); transition: transform .07s; }
-.upg-bouton b { font-weight: 400; font-size: 20px; text-shadow: 0 1px 0 #000; }
+.upg-bouton b { font-weight: 400; font-size: 20px; }
 .upg-bouton:active { transform: translateY(2px); box-shadow: inset 4px 4px 0 var(--dk-or-clair); }
 .upg-bouton.pauvre b { color: #ff8d8d; }
 .upg-bouton.non { animation: dk-non .35s; }
 @keyframes dk-non { 20%, 60% { translate: -6px 0; } 40%, 80% { translate: 6px 0; } }
 .upg-gain { margin-top: 6px; font-size: 12px; color: var(--dk-trait); }
+
+/* L'onglet Deck : deux colonnes de paires. Une paire = la carte jouee devant, l'autre face en retrait, assombrie, qui depasse en
+   haut a droite (la maquette). Les deux faces sont empilees : passer devant ne change que leur classe (ui/deck.js, `joueEchange`).
+   Tout se compte en % de la paire pour suivre la largeur de l'ecran. */
+.dk-cartes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; padding: 12px 14px 18px; }
+.dk-paire { position: relative; aspect-ratio: 1 / 1.1; isolation: isolate; }
+.dk-paire:last-child:nth-child(odd) { grid-column: 1 / -1; justify-self: center; width: calc(50% - 6px); }
+.dk-paire.echange { z-index: 1; }
+.dk-paire.retiree .dk-face { filter: grayscale(1) opacity(.6); }
+.dk-face {
+  position: absolute; left: 0; bottom: 0; width: 78%; aspect-ratio: 1 / 1.3; box-sizing: border-box; cursor: pointer;
+  border: 3px solid var(--dk-trait); border-radius: 12px; background: linear-gradient(180deg, var(--fond) 0 64%, var(--dk-creme) 64% 100%);
+  box-shadow: inset 0 0 0 2px var(--rar), 0 4px 0 var(--dk-trait);
+}
+.dk-face > * { pointer-events: none; }
+.dk-face.sort { box-shadow: inset 0 0 0 2px #9a6bff, 0 4px 0 var(--dk-trait); }
+.dk-face.devant { z-index: 2; }
+.dk-face.derriere { z-index: 1; translate: 28% -7%; filter: brightness(.62) saturate(.7); }
+.dk-face.derriere :is(.upg-cout, .dk-stat, .dk-bande) { opacity: 0; }   /* seul le dessin depasse : un bout de nom ne se lit pas */
+.dk-face.derriere.verrou { filter: grayscale(1) brightness(.6); }
+.dk-art { position: absolute; left: 5%; top: -8%; width: 90%; height: 76%; object-fit: contain; object-position: 50% 100%; }
+.dk-face .upg-cout { width: 28px; height: 28px; font-size: 19px; top: -11px; right: -11px; border-width: 2px; box-shadow: inset 2px 2px 0 var(--dk-or-clair), 0 2px 0 var(--dk-trait); }
+.dk-stat { position: absolute; bottom: 33%; display: grid; place-items: center; min-width: 25px; height: 25px; padding: 0 3px; box-sizing: border-box; border: 2px solid var(--dk-trait); border-radius: 50%; font-size: 15px; --cerne: 3px; text-shadow: none; }
+.dk-stat.a { left: -7px; background: #ffb92a; }
+.dk-stat.h { right: -7px; background: #f4545f; }
+.dk-bande { position: absolute; left: 4px; right: 4px; bottom: 6px; display: grid; justify-items: center; gap: 2px; text-align: center; }
+.dk-nom { font-size: 14px; line-height: 1.05; text-shadow: none; }
+.dk-capa { display: flex; justify-content: center; align-items: center; gap: 5px; min-height: 17px; max-width: 100%; }
+.dk-capa .pc { --cerne: 2.5px; display: inline-flex; align-items: center; gap: 3px; min-width: 0; color: #5cff72; font-size: 13px; line-height: 1; text-shadow: none; white-space: nowrap; }
+.dk-capa .pc b { font-weight: 400; font-size: 14px; color: inherit; }
+.dk-capa .ico { filter: drop-shadow(1px 0 0 var(--dk-trait)) drop-shadow(-1px 0 0 var(--dk-trait)) drop-shadow(0 1px 0 var(--dk-trait)) drop-shadow(0 -1px 0 var(--dk-trait)); }
+.dk-swap {
+  position: absolute; right: -6px; top: -6px; z-index: 4; width: 36px; height: 36px; padding: 0; display: grid; place-items: center; border-radius: 50%; cursor: pointer; color: #fff;
+  background: var(--dk-or); border: 2px solid var(--dk-trait); box-shadow: inset 2px 2px 0 var(--dk-or-clair), 0 2px 0 var(--dk-trait);
+}
+.dk-swap:active { translate: 0 2px; }
+.dk-swap.verrou { background: #a99d97; box-shadow: inset 2px 2px 0 #c9bfba, 0 2px 0 var(--dk-trait); }
 
 .cardlist { display: grid; gap: 8px; }
 
@@ -1065,7 +1127,7 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 /* ---------------------------------------------------- boutique (ui/boutique.js, ui/boutique-scene.js) */
 #screen-boutique { overflow: hidden; background: #f7ead0; color: #3a2a22; }
 #screen-encheres { background: #f7ead0; color: #3a2a22; }
-#screen-encheres .btq-panneau { min-height: 100%; box-sizing: border-box; }
+#screen-encheres .btq-panneau { min-height: 100%; box-sizing: border-box; border-top: 4px solid #4a342a; }
 #screen-encheres .btq-puce { margin-top: 8px; }
 .btq { height: 100%; display: flex; flex-direction: column; min-height: 0; }
 .btq .muted { color: #7c6a5a; }
@@ -1074,11 +1136,16 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 #btqEchelle { margin-left: auto; color: #7c6a5a; }
 .btq-monde { position: relative; flex: 1 1 0; min-height: 0; overflow: hidden; background: #17141f; }
 #btqCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
-.btq-onglets { display: flex; background: #fff3d8; border-top: 3px solid #4a342a; padding-bottom: 38px; }
-.btq-onglets button { flex: 1; padding: 8px 0; background: none; border: 0; color: #7c6a5a; font: inherit; font-size: 13px; font-weight: 700; }
-.btq-onglets button.on { background: #ffc94a; color: #3a2a22; }
-.btq-panneau { flex: 0 0 46%; min-height: 0; overflow-y: auto; padding: 10px 12px 14px; background: #f7ead0; border-top: 4px solid #4a342a; }
-.btq-panneau.ferme { display: none; }
+/* Les onglets (ui/onglets.js) sous la scene : le panneau fait 46 % de l'ecran, et le bas de la rangee laisse la place a la tuile de la
+   navigation, qui depasse vers le haut. */
+.btq .ong { flex: none; height: calc(46% + 72px); }
+.btq .ong.replie { height: auto; }
+.btq .ong-page { border-width: 3px 0; border-radius: 0; }
+.btq .ong-barre { gap: 3px; padding: 0 4px 34px; }
+.btq .ong.replie .ong-barre { margin-top: 0; }
+.btq .ong-tab { height: 40px; }
+.btq .ong-tab.on { height: 46px; }
+.btq-panneau { padding: 10px 12px 14px; }
 .btq-meubles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .btq-meuble { padding: 4px 2px; display: flex; flex-direction: column; align-items: center; gap: 1px; background: #fff8e8; border: 2px solid #c9b48c; border-radius: 8px; color: inherit; font: inherit; font-size: 10px; }
 .btq-meuble img { height: 44px; max-width: 100%; object-fit: contain; }

@@ -1,19 +1,26 @@
-// L'ECRAN D'EQUIPE et la FICHE D'AMELIORATION d'un heros — les maquettes « Deck Screen » et « Upgrade Deck Screen »
-// du game designer (mockups/, Figma « La place du chat », 12 octobre 2026). Aucun texte de plus que la maquette :
-// les mots viennent de config/textes.js, les pictogrammes de ui/icones.js.
+// L'ECRAN D'EQUIPE et la FICHE d'un heros — les maquettes « Deck Screen » et « Upgrade Deck Screen » du game designer
+// (mockups/, Figma « La place du chat », 12 octobre 2026), plus les onglets du 31 octobre. Aucun texte de plus que la
+// maquette : les mots viennent de config/textes.js, les pictogrammes de ui/icones.js.
 //
 // L'equipe : 3 heros (toutes les places sont ouvertes), un toucher change celui de la place.
 // La collection : rangee par FAMILLE (config/familles.js), des puces pour n'en montrer que certaines.
-// La fiche : on ameliore le HEROS, chaque amelioration ameliore UNE carte d'un palier (`etapesDe`) ; le carrousel
-// fait defiler ces etapes, la frise du bas les montre toutes, le bouton achete la prochaine.
+// La fiche : deux onglets en bas de l'ecran, a portee du pouce (ui/onglets.js).
+//   - Deck : les cinq emplacements du heros en grand, la carte jouee devant, son autre face derriere ; un toucher sur
+//     celle de derriere (ou le bouton) la fait passer devant.
+//   - Amelioration : on ameliore le HEROS, chaque amelioration ameliore UNE carte d'un palier (`etapesDe`) ; le carrousel
+//     fait defiler ces etapes, la frise du bas les montre toutes, le bouton achete la prochaine.
 import { BALANCE } from '../config/balance.js';
-import { CHARACTERS, CHAR_BY_ID, resolveCard, etapesDe, niveauMax } from '../config/characters.js';
+import { CHARACTERS, CHAR_BY_ID, resolveCard, etapesDe, niveauMax, niveauxDesCartes } from '../config/characters.js';
+import { keyLabel } from '../config/mechanics.js';
 import { FAMILLES, familleDe, rareteDe } from '../config/familles.js';
 import { t } from '../config/textes.js';
 import { save, persist, upgradeCost, upgradeChar, toggleSwitch, unlockChar, setTeamSlot, puissance, signale, possede } from '../state.js';
 import { $, el, asset, toast, modal, closeModal, court } from './shell.js';
 import { icone } from './icones.js';
-import { ligneDePictos, iconeDeCle, iconeDeOp } from './pictos.js';
+import { ligneDePictos, pictosDe, iconeDeCle, iconeDeOp } from './pictos.js';
+import { creeOnglets } from './onglets.js';
+import { installeGestes } from './gestes.js';
+import { ficheDeCarte, montreLecture, cacheLecture, fermeAuProchainToucher } from './fiche.js';
 import { refreshTop } from './shell.js';
 
 // Les familles montrees (puces allumees). Vide = toutes, comme « Tous ».
@@ -135,7 +142,166 @@ function unlockSheet(id) {
   modal(box);
 }
 
-// ------------------------------------------------------------------ la fiche d'amelioration
+// ------------------------------------------------------------------ la fiche d'un heros
+
+// L'onglet ouvert : on passe d'un heros a l'autre sans le rechoisir.
+let ongletFiche = 'deck';
+
+/**
+ * La fiche d'un heros : son en-tete, puis ses deux onglets. `vue` : l'etape que montre l'onglet Amelioration (par
+ * defaut, la prochaine) ; `echange` : l'emplacement dont l'onglet Deck joue l'echange en s'ouvrant (une switch achetee).
+ */
+function ficheHeros(id, { onglet = ongletFiche, vue, echange } = {}) {
+  const c = CHAR_BY_ID[id];
+  const st = save.chars[id];
+  const f = familleDe(c);
+  const entete = el(`<div class="upg-haut">
+    <div class="upg-tete">
+      <img src="${asset(c.sprite)}" alt="">
+      <div><div class="upg-nom">${c.name}</div><div class="upg-espece">${c.species}</div></div>
+      <span class="upg-niv">${t('deck.niveau', { n: st.level })}</span>
+    </div>
+    <div class="upg-sep"></div>
+  </div>`);
+  const croix = el(`<button class="ong-fin" aria-label="${t('deck.fermer')}">${icone('Close', 24)}</button>`);
+  croix.onclick = closeModal;
+  const onglets = creeOnglets({
+    entete, fin: croix,
+    onglets: [
+      { id: 'deck', nom: t('deck.ongletDeck'), rendu: corps => pageDeck(corps, id, echange) },
+      { id: 'amelioration', nom: t('deck.ongletAmelioration'), rendu: corps => pageAmelioration(corps, id, vue) }
+    ],
+    surChange: x => { ongletFiche = x; }
+  });
+  const box = el(`<div class="upg" style="--fond:${f.fond};--cadre:${f.cadre}"></div>`);
+  box.appendChild(onglets.node);
+  modal(box).classList.add('dk-feuille', 'upg-feuille');
+  onglets.va(onglet);
+}
+
+// ------------------------------------------------------------------ l'onglet Deck
+
+/** La carte d'un emplacement, sur la face `face` ('base' ou 'switch'), telle que le niveau du heros la laisse. */
+function carteDeFace(heros, slot, face) {
+  const def = face === 'switch' ? heros.switches[slot] : heros.cards[slot];
+  const carte = resolveCard(def, niveauxDesCartes(heros, save.chars[heros.id].level)[face][slot]);
+  carte.sprite = carte.sprite || heros.sprite;
+  return carte;
+}
+
+/** Une face : le personnage, le cout, les chiffres, le nom et ce qu'elle fait (son mot-cle s'ecrit en toutes lettres). */
+function faceDeCarte(carte, face, place, verrou = false) {
+  const allie = carte.type === 'ally';
+  const mot = (carte.keys || []).find(iconeDeCle);
+  const capacite = pictosDe(carte, { max: 2 }).liste.map((p, i) =>
+    `<span class="pc">${icone(p.nom, 16)}${p.n !== null ? `<b>${p.n}</b>` : ''}${i === 0 && mot ? `<b>${keyLabel(mot)}</b>` : ''}</span>`).join('');
+  return el(`<div class="dk-face ${place} ${allie ? '' : 'sort'} ${verrou ? 'verrou' : ''}" data-face="${face}">
+    <img class="dk-art" src="${asset(carte.sprite)}" alt="">
+    <span class="upg-cout">${carte.cost}</span>
+    ${allie ? `<span class="dk-stat a">${carte.atk}</span><span class="dk-stat h">${carte.hp}</span>` : ''}
+    <div class="dk-bande"><div class="dk-nom">${carte.name}</div><div class="dk-capa">${capacite}</div></div>
+  </div>`);
+}
+
+/** Un emplacement : la carte jouee devant, l'autre face derriere, et le bouton qui les echange. */
+function paireDeCartes(heros, slot) {
+  const st = save.chars[heros.id];
+  const f = familleDe(heros);
+  const alt = (heros.switches || [])[slot];
+  const sw = !!(alt && st.switches[slot]);
+  const retiree = ((save.retraits && save.retraits[heros.id]) || []).includes(slot);
+  const paire = el(`<div class="dk-paire ${retiree ? 'retiree' : ''}" data-slot="${slot}" style="--fond:${f.fond};--rar:${rareteDe(heros)}"></div>`);
+  paire.appendChild(faceDeCarte(carteDeFace(heros, slot, 'base'), 'base', sw ? 'derriere' : 'devant'));
+  if (alt) {
+    const verrou = !sw && !aLaSwitch(heros.id, slot);
+    paire.appendChild(faceDeCarte(carteDeFace(heros, slot, 'switch'), 'switch', sw ? 'devant' : 'derriere', verrou));
+    const bouton = el(`<button class="dk-swap ${verrou ? 'verrou' : ''}" aria-label="${t('deck.echanger')}">${icone(verrou ? 'Lock' : 'Switch', 20)}</button>`);
+    bouton.onclick = () => echangeFaces(heros, paire);
+    paire.appendChild(bouton);
+  }
+  return paire;
+}
+
+/** La face de derriere passe devant ; une switch pas encore achetee passe d'abord par son achat. */
+function echangeFaces(heros, paire) {
+  if (paire.classList.contains('echange')) return;
+  const slot = +paire.dataset.slot;
+  const st = save.chars[heros.id];
+  if (!st.switches[slot] && !aLaSwitch(heros.id, slot)) {
+    achatSwitch(heros.id, slot, () => ficheHeros(heros.id, { onglet: 'deck', echange: st.switches[slot] ? slot : null }));
+    return;
+  }
+  toggleSwitch(heros.id, slot);
+  const devant = paire.querySelector('.dk-face.devant');
+  const derriere = paire.querySelector('.dk-face.derriere');
+  devant.classList.replace('devant', 'derriere');
+  derriere.classList.replace('derriere', 'devant');
+  joueEchange(paire);
+}
+
+/**
+ * L'ANIMATION DE L'ECHANGE (demande du game designer, 31 octobre 2026) : les faces ont deja pris leur place finale ; elles
+ * repartent de l'ancienne, s'ecartent, se croisent quand elles sont le plus loin (c'est la que la carte PASSE DEVANT : un
+ * saut de `zIndex`, invisible a cet instant) et se posent. `translate` et `filter` de la carte de derriere se lisent sur le
+ * style, la seule place ou ils sont ecrits (⚠ `translate` y reste en %, le navigateur ne le convertit pas en px).
+ */
+function joueEchange(paire) {
+  const vient = paire.querySelector('.dk-face.devant');
+  const part = paire.querySelector('.dk-face.derriere');
+  const { translate, filter } = getComputedStyle(part);
+  const [dx, dy] = translate.split(' ');
+  const loin = `calc(${dx} + 12%) calc(${dy} - 7%)`;   // la carte qui vient s'ecarte vers l'exterieur de la paire
+  const pres = '-11% 5%';                              // celle qui part recule de l'autre cote
+  const ecarte = 'ease-out', pose = 'cubic-bezier(.35, 1.35, .6, 1)';   // la pose depasse un peu sa place, et s'y cale
+  const croise = .42;
+  paire.classList.add('echange');
+  const temps = { duration: BALANCE.ui.echangeCarteMs };
+  vient.animate([
+    { offset: 0, easing: ecarte, translate: `${dx} ${dy}`, rotate: '0deg', scale: 1, filter, zIndex: 1 },
+    { offset: croise, translate: loin, rotate: '7deg', scale: 1.06, filter: 'none', zIndex: 1 },
+    { offset: croise + .01, easing: pose, translate: loin, rotate: '7deg', scale: 1.06, filter: 'none', zIndex: 3 },
+    { offset: 1, translate: '0% 0%', rotate: '0deg', scale: 1, filter: 'none', zIndex: 3 }
+  ], temps);
+  const fin = part.animate([
+    { offset: 0, easing: ecarte, translate: '0% 0%', rotate: '0deg', scale: 1, filter: 'none', zIndex: 2 },
+    { offset: croise, translate: pres, rotate: '-5deg', scale: .95, zIndex: 2 },
+    { offset: croise + .01, easing: pose, translate: pres, rotate: '-5deg', scale: .95, zIndex: 1 },
+    { offset: 1, translate: `${dx} ${dy}`, rotate: '0deg', scale: 1, filter, zIndex: 1 }
+  ], temps);
+  paire.querySelector('.dk-swap').animate({ rotate: ['0deg', '180deg'], easing: 'ease-in-out' }, temps);
+  fin.onfinish = fin.oncancel = () => paire.classList.remove('echange');
+}
+
+/** Les cinq emplacements. Toucher ou maintenir une carte la lit ; toucher celle de derriere l'echange. */
+function pageDeck(corps, id, echange) {
+  const heros = CHAR_BY_ID[id];
+  const grille = el('<div class="dk-cartes"></div>');
+  heros.cards.forEach((_, slot) => grille.appendChild(paireDeCartes(heros, slot)));
+  corps.appendChild(grille);
+
+  const lis = n => montreLecture(ficheDeCarte(carteDeFace(heros, +n.closest('.dk-paire').dataset.slot, n.dataset.face)));
+  // Le toucher qui referme une fiche ouverte d'un toucher ne doit pas rouvrir celle de la carte sur laquelle il tombe.
+  let avale = false;
+  const referme = () => {
+    cacheLecture();
+    avale = true;
+    setTimeout(() => { avale = false; }, BALANCE.ui.appuiLongMs);
+  };
+  installeGestes(grille, {
+    cible: '.dk-face',
+    tap: n => {
+      if (avale) return;
+      if (n.classList.contains('derriere')) { echangeFaces(heros, n.closest('.dk-paire')); return; }
+      lis(n);
+      fermeAuProchainToucher(referme);
+    },
+    lire: lis,
+    finLire: cacheLecture
+  });
+  if (echange != null) joueEchange(grille.querySelector(`.dk-paire[data-slot="${echange}"]`));
+}
+
+// ------------------------------------------------------------------ l'onglet Amelioration
 
 /** L'icone de ce qu'apporte un palier (la frise, et la ligne sous la carte). */
 function iconeDePalier(p) {
@@ -149,25 +315,18 @@ function iconeDePalier(p) {
 }
 
 /**
- * La fiche d'un heros, ouverte sur l'etape `vue` (par defaut : la prochaine amelioration). Une etape faite est
- * verte, la prochaine orange (c'est celle du bouton), les suivantes grisees sur la frise.
+ * L'onglet Amelioration, ouvert sur l'etape `vue` (par defaut : la prochaine amelioration). Une etape faite est verte, la
+ * prochaine orange (c'est celle du bouton), les suivantes grisees sur la frise.
  */
-function ficheHeros(id, vue) {
+function pageAmelioration(corps, id, vue) {
   const c = CHAR_BY_ID[id];
   const st = save.chars[id];
-  const f = familleDe(c);
   const etapes = etapesDe(c);
   const faites = st.level - 1;                 // les etapes 0 .. faites-1 sont faites
   const max = st.level >= niveauMax(c);
   let k = Math.max(0, Math.min(etapes.length - 1, vue ?? faites));
 
-  const box = el(`<div class="upg" style="--fond:${f.fond};--cadre:${f.cadre}">
-    <div class="upg-tete">
-      <img src="${asset(c.sprite)}" alt="">
-      <div><div class="upg-nom">${c.name}</div><div class="upg-espece">${c.species}</div></div>
-      <span class="upg-niv">${t('deck.niveau', { n: st.level })}</span>
-    </div>
-    <div class="upg-sep"></div>
+  const box = el(`<div class="upg-page">
     <div class="upg-carrousel">
       <button class="upg-fl g" aria-label="precedente"></button>
       <div class="upg-scene"></div>
@@ -236,7 +395,7 @@ function ficheHeros(id, vue) {
       const r = upgradeChar(id);
       if (r !== 'ok') { b.classList.remove('non'); void b.offsetWidth; b.classList.add('non'); return; }
       refreshTop(); renderDeck();
-      ficheHeros(id);
+      ficheHeros(id, { onglet: 'amelioration' });
       const fait = document.querySelector(`#modal .upg-noeud[data-i="${faites}"]`);
       if (fait) fait.classList.add('gagne');
     };
@@ -244,7 +403,7 @@ function ficheHeros(id, vue) {
     achat.appendChild(el(`<div class="upg-gain">${t('deck.puissance', { n: gain })}</div>`));
   }
 
-  modal(box).classList.add('dk-feuille', 'upg-feuille');
+  corps.appendChild(box);
   dessine();
 }
 
@@ -252,11 +411,10 @@ function ficheHeros(id, vue) {
 function carteDEtape(heros, e, i, classes, centre) {
   const carte = resolveCard(e.carte, e.lvl);
   const st = save.chars[heros.id];
-  const alt = e.face === 'base' ? (heros.switches || [])[e.slot] : heros.cards[e.slot];
-  // La face qu'on ne joue pas est pale ; un toucher sur le pictogramme « switch » l'equipe.
+  // La face qu'on ne joue pas est pale ; c'est l'onglet Deck qui l'equipe.
   const equipee = (e.face === 'switch') === !!st.switches[e.slot];
   const p = e.paliers[0];
-  const n = el(`<div class="upg-etape ${classes} ${equipee ? '' : 'hors'}">
+  return el(`<div class="upg-etape ${classes} ${equipee ? '' : 'hors'}">
     <div class="upg-face">
       <img src="${asset(carte.sprite || heros.sprite)}" alt="">
       <span class="upg-cout">${carte.cost}</span>
@@ -268,17 +426,7 @@ function carteDEtape(heros, e, i, classes, centre) {
     <div class="upg-carte-nom">${carte.name}</div>
     <div class="upg-apport">${icone(iconeDePalier(p), centre ? 24 : 18)}<span>${e.paliers.map(x => x.text).join(' · ')}</span></div>
     <span class="upg-pilule">${t('deck.niveau', { n: i + 2 })}</span>
-    ${centre && alt && !equipee ? `<button class="upg-switch">${icone('Switch', 18)}</button>` : ''}
   </div>`);
-  const sw = n.querySelector('.upg-switch');
-  if (sw) sw.onclick = ev => {
-    ev.stopPropagation();
-    if (e.face === 'switch' && !aLaSwitch(heros.id, e.slot)) { achatSwitch(heros.id, e.slot, () => ficheHeros(heros.id, i)); return; }
-    toggleSwitch(heros.id, e.slot);
-    renderDeck();
-    ficheHeros(heros.id, i);
-  };
-  return n;
 }
 
 // Une carte switch s'achete une fois (monnaie B), ensuite on bascule librement.
@@ -311,7 +459,7 @@ function achatSwitch(id, slot, done) {
     closeModal();
     renderDeck();
     if (done) done();
-    toast(`${alt.name} debloquee.`);
+    toast(`${alt.name} débloquée.`);
   };
   const b = el('<button class="btn ghost">Annuler</button>');
   b.onclick = () => { closeModal(); if (done) done(); };

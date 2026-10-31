@@ -29,8 +29,8 @@ export const ICONES = {
   Taunt: '▣', Charge: '➤', Venom: '☣', Shield: '◍', Elusive: '◌', WallWalker: '⇉', Mirror: '◫', Flashback: '↺',
   // resultats d'un coup
   Cancel: '⊗', Choice: '⑂',
-  // l'ecran d'equipe : la coche d'un heros dans l'equipe
-  Check: '✔',
+  // l'ecran d'equipe : la coche d'un heros dans l'equipe, le cadenas d'une carte switch pas encore achetee
+  Check: '✔', Lock: '🔒',
   // fin de combat
   Victory: '★', Defeat: '✖',
   // la barre de navigation (maquette « Arena Screen », 19 octobre 2026) : un dessin par ecran
@@ -82,7 +82,7 @@ const KENNEY = {
   Deathrattle: 'dice_skull', Aura: 'hexagon', Static: 'tag_infinite', TurnStart: 'hourglass_top', TurnEnd: 'hourglass_bottom', Trigger: 'exploding',
   Taunt: 'tag_shield', Charge: 'arrow_right', Venom: 'flask_full', Shield: 'shield', Elusive: 'hexagon_question',
   WallWalker: 'structure_wall', Mirror: 'hexagon_switch', Flashback: 'arrow_rotate',
-  Victory: 'crown_a', Defeat: 'skull', Fanion: 'flag_triangle', Sceau: 'award'
+  Victory: 'crown_a', Defeat: 'skull', Fanion: 'flag_triangle', Sceau: 'award', Lock: 'lock_closed'
 };
 const urlKenney = f => asset(`${DOSSIER_ICONES}/Kenney/${f}.png`);
 

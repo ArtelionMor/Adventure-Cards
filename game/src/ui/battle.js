@@ -43,8 +43,7 @@ import { montreFin } from './fin.js';
 import { ligneDePictos } from './pictos.js';
 import { fabrique } from './vfx-scenes.js';
 import { cardById, cardCatalog } from '../config/npcs.js';
-import { couleurDuType } from '../config/familles.js';
-import { ligneSource, lignesDeFait, lignesDeRenforts } from './fiche.js';
+import { ligneSource, lignesDeRenforts, teteFiche, blocFait, ficheDeCarte, montreLecture, cacheLecture, fermeAuProchainToucher } from './fiche.js';
 import { skinCourant, skinSuivant, ecouteSkin, fondDuCombat } from './skin.js';   // l'habillage du combat (skins/*.css), AC.skin(), son fond
 
 let B = null;
@@ -1332,7 +1331,7 @@ function reprendLaMain() {
 function tape(n) {
   // Une carte du JOURNAL : un toucher n'y a rien d'autre a faire, il ouvre donc sa fiche, qui reste jusqu'au toucher
   // suivant (et ne rend pas la main en Auto : on lit le combat qu'on regarde).
-  if (n.dataset.geste === 'journal') { lisCe(n); fermeAuProchainToucher(); return; }
+  if (n.dataset.geste === 'journal') { lisCe(n); fermeAuProchainToucher(fermeLecture); return; }
   if (reprendLaMain()) return;
   const d = n.dataset;
   if (d.geste === 'unit') tapeUnite(d.side, d.uid);
@@ -1368,11 +1367,6 @@ function lisCe(n) {
     if (c) lecture = { kind: 'carte', carte: c.sprite || !d.sprite ? c : { ...c, sprite: d.sprite }, camp: d.camp === 'e' ? 'e' : 'p' };
   }
   renderLecture();
-}
-
-/** Une fiche ouverte d'un toucher (pas d'un appui) : elle se ferme au prochain toucher, ou qu'il tombe. */
-function fermeAuProchainToucher() {
-  setTimeout(() => document.addEventListener('pointerdown', () => fermeLecture(), { capture: true, once: true }), 0);
 }
 
 // ------------------------------------------------------------- glisser-deposer une carte, viser d'un geste
@@ -1603,44 +1597,8 @@ function renderZone() {
 // ------------------------------------------------------------- lecture (appui long)
 // LA FICHE (maquette « Combat Screen Zoom on a card », 19 octobre 2026) : la carte en grand a gauche, son nom, son
 // attaque et sa vie, ses types ; dessous ce qu'elle FAIT (« icones : texte ») ; puis, apres un trait, ce qui la
-// MODIFIE en ce moment, chaque chose sous le portrait de sa source (ui/fiche.js).
-
-
-
-/** Le fond de la puce « Type » : une part de couleur par type, en biais (config/familles.js, `couleurDuType`). */
-function fondDesTypes(types) {
-  const k = types.length;
-  const parts = types.map((t, i) => `${couleurDuType(t)} ${(i * 100 / k).toFixed(1)}% ${((i + 1) * 100 / k).toFixed(1)}%`);
-  return `linear-gradient(135deg, ${parts.join(', ')})`;
-}
-
-/** L'en-tete : la carte en grand (cout, dessin), le nom, l'attaque et la vie, les types, une ligne d'etat. */
-function teteFiche({ nom, sprite, cout, coutBase, sort, atk, hp, maxHp, plus, moins, types, note, adverse = false }) {
-  const stats = sort ? '<span class="fi-sort">Sort</span>'
-    : `<span class="a${plus ? ' plus' : ''}">${atk}</span>${icone('Attack', 24)}<span class="h${moins ? ' moins' : ''}">${hp}${maxHp != null ? '/' + maxHp : ''}</span>${icone('Health', 24)}`;
-  return el(`
-    <div class="fi-tete">
-      <div class="fi-carte${sort ? ' spell' : ''}${adverse ? ' adverse' : ''}">
-        ${cout != null ? `<div class="cost" ${coutBase != null && coutBase !== cout ? `title="coût de base ${coutBase}"` : ''}>${cout}</div>` : ''}
-        ${sprite ? `<img src="${asset(sprite)}" alt="">` : ''}
-      </div>
-      <div class="fi-id">
-        <div class="nm">${nom}</div>
-        <div class="fi-stats">${stats}</div>
-        ${types.length ? `<span class="fi-type" style="background:${fondDesTypes(types)}">Type : ${types.join(' & ')}</span>` : ''}
-        ${note ? `<div class="src">${note}</div>` : ''}
-      </div>
-    </div>`);
-}
-
-/** Ce qu'une carte ou une unite FAIT : son texte (ou ses effets) puis ses mots-cles (voir ui/fiche.js). */
-function blocFait(x, texte) {
-  const lignes = lignesDeFait(x, texte);
-  if (!lignes.length) return null;
-  const n = el('<section class="fi-fait"></section>');
-  lignes.forEach(l => n.appendChild(l));
-  return n;
-}
+// MODIFIE en ce moment, chaque chose sous le portrait de sa source (ui/fiche.js : l'en-tete et ce que la carte fait, partages
+// avec l'ecran Deck, qui lit ses cartes hors combat).
 
 /**
  * La fiche d'une unite : la meme unite en grand, avec ce qu'elle FAIT (ses moments, son aura, ses effets statiques)
@@ -1701,15 +1659,7 @@ function inspectNode(u, side) {
 
 /** La fiche d'une CARTE (main, defausse, exil) : ce que la vignette n'a pas la place de dire. */
 function ficheCarte(c, camp) {
-  const box = el('<div class="insp fiche"></div>');
-  const cout = cardCost(c, B, camp);
-  const ally = c.type === 'ally';
-  box.appendChild(teteFiche({
-    nom: c.name, sprite: c.sprite, cout, coutBase: c.cost, sort: !ally, atk: c.atk, hp: c.hp, maxHp: null,
-    types: typesOf(c), note: '', adverse: camp === 'e'
-  }));
-  const bFait = blocFait(c, c.text);
-  if (bFait) box.appendChild(bFait);
+  const box = ficheDeCarte(c, { cout: cardCost(c, B, camp), adverse: camp === 'e' });
   // UNE CARTE PISTEE (V3) : ce que le camp d'en face a en reserve si on la joue. Le surcout en mana est deja
   // dans le cout affiche en haut ; ici, ce qui part EN PLUS — lu sur les unites de l'adversaire.
   if (c.pistee) {
@@ -1726,20 +1676,9 @@ function ficheCarte(c, camp) {
   return box;
 }
 
-/** Le panneau de lecture : flotte au-dessus de tout, ne recoit aucun toucher (le doigt qui lit reste sur sa carte). */
-function panneauLecture() {
-  let p = $('#lecture');
-  if (!p) {
-    p = el('<div id="lecture" class="lecture hidden"></div>');
-    $('#app').appendChild(p);
-  }
-  return p;
-}
-
 function fermeLecture() {
   lecture = null;
-  const p = $('#lecture');
-  if (p) { p.classList.add('hidden'); p.replaceChildren(); }
+  cacheLecture();
 }
 
 /** Redessine la lecture ouverte, ou la ferme si ce qu'elle lisait n'est plus la. */
@@ -1753,11 +1692,7 @@ function renderLecture() {
     contenu = ficheCarte(lecture.carte, lecture.camp);
   }
   if (!contenu) { fermeLecture(); return; }
-  const sheet = el('<div class="sheet"></div>');
-  sheet.appendChild(contenu);
-  const p = panneauLecture();
-  p.replaceChildren(sheet);
-  p.classList.remove('hidden');
+  montreLecture(contenu);
 }
 
 // --------------------------------------------------------------- fin de combat

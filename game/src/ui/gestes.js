@@ -22,11 +22,13 @@ import { BALANCE } from '../config/balance.js';
  *                   glissement ne fait rien), puis `bouge(ev)` a chaque pas et `lache(ev, annule)` au relachement.
  *                   Un relachement qui termine un glisser porte `ev.gesteGlisse = true` (l'ecran n'y voit pas un
  *                   « toucher le fond »).
+ *   cible        — facultatif, le selecteur des noeuds touchables : un ecran hors combat pose ses gestes sur ses propres
+ *                  noeuds sans `data-geste`, que les ecouteurs du combat (poses sur `#modal`) prendraient pour les leurs.
  */
-export function installeGestes(racine, { tap, lire, finLire, glisse = null }) {
+export function installeGestes(racine, { tap, lire, finLire, glisse = null, cible = '[data-geste]' }) {
   const ms = BALANCE.ui.appuiLongMs, tolerance = BALANCE.ui.toleranceDoigtPx;
   let g = null;
-  const noeud = ev => (ev.target.closest ? ev.target.closest('[data-geste]') : null);
+  const noeud = ev => (ev.target.closest ? ev.target.closest(cible) : null);
 
   racine.addEventListener('pointerdown', ev => {
     if (g || (ev.pointerType === 'mouse' && ev.button !== 0)) return;

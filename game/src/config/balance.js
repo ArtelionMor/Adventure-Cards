@@ -114,6 +114,7 @@ export const BALANCE = {
     rigsUnites: true,   // idem pour les cartes posees sur le plateau (leur illustration a un rig : `game/data/rigs/`)
     appuiLongMs: 400,       // au-dela de cette duree, le doigt pose LIT la carte au lieu d'agir
     toleranceDoigtPx: 10,   // un doigt qui glisse de plus que ca fait defiler, il ne lit ni n'agit
+    echangeCarteMs: 520,    // l'ecran Deck : le temps qu'une carte passe devant l'autre (switch)
 
     // LES EFFETS DU COMBAT (ui/effets.js) : du ressenti, pas des regles. Tous les temps sont en
     // millisecondes a vitesse x1 ; le bouton x2 de la barre les divise. Decision du game

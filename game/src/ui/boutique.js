@@ -1,4 +1,4 @@
-// L'ECRAN DE LA BOUTIQUE : la scene (ui/boutique-scene.js) prend l'ecran, cinq onglets ouvrent un panneau par-dessus. Toute regle vient du noyau
+// L'ECRAN DE LA BOUTIQUE : la scene (ui/boutique-scene.js) prend l'ecran, cinq onglets (ui/onglets.js) ouvrent un panneau sous elle. Toute regle vient du noyau
 // (`boutique/noyau/`, genere par scripts/gen-boutique.mjs) : cet ecran affiche et appelle ses moteurs, il ne calcule rien.
 import { BOUTIQUE } from '../config/boutique.js';
 import { CHAR_BY_ID } from '../config/characters.js';
@@ -17,11 +17,12 @@ import { checkSellable, hasFeature, swapCollectionOccupant } from '../boutique/n
 import { adversaireCourant, avanceDeMinutes, change, ctx, ecoute, partie } from '../boutique/partie.js';
 import { arreteScene, choisisMeuble, lanceScene, modeDeco } from './boutique-scene.js';
 import { icone } from './icones.js';
+import { creeOnglets } from './onglets.js';
 import { $, asset, closeModal, court, el, fmtTime, modal, toast } from './shell.js';
 
 const cfg = ctx.cfg;
 const ONGLETS = [['boosters', 'Boosters'], ['stock', 'Stock'], ['ventes', 'Ventes'], ['deco', 'Décorer'], ['heros', 'Héros']];
-let onglet = null;
+let onglets = null;
 let racine = null;
 let desabonne = null;
 let tirage = null;
@@ -393,35 +394,36 @@ function panneauHeros() {
 // ------------------------------------------------------------------ l'ecran
 const PANNEAUX = { boosters: panneauBoosters, stock: panneauStock, ventes: panneauVentes, deco: panneauDeco, heros: panneauHeros };
 
-function majPanneau() {
-  const p = $('#btqPanneau');
-  const haut = p.scrollTop;
-  p.innerHTML = '';
-  p.classList.toggle('ferme', !onglet);
-  if (onglet) p.appendChild(PANNEAUX[onglet]());
-  p.scrollTop = haut;
-  if (onglet === 'boosters') majCompteurBoosters();
-  document.querySelectorAll('.btq-onglets button').forEach(b => b.classList.toggle('on', b.dataset.o === onglet));
-}
-
-// Un onglet ouvre son panneau sur la boutique ; le retoucher le ferme et rend toute la vue.
-function ouvreOnglet(id) {
-  onglet = onglet === id ? null : id;
-  tirage = null;
-  meubleChoisi = null;
-  modeDeco(onglet === 'deco');
-  majPanneau();
+// Un onglet ouvre son panneau sous la scene ; le retoucher le ferme et rend toute la vue (`fermable`).
+function creeOngletsBoutique() {
+  return creeOnglets({
+    fermable: true,
+    onglets: ONGLETS.map(([id, nom]) => ({
+      id, nom,
+      rendu: corps => {
+        const p = el('<div class="btq-panneau"></div>');
+        p.appendChild(PANNEAUX[id]());
+        corps.appendChild(p);
+        if (id === 'boosters') majCompteurBoosters();
+      }
+    })),
+    surChange: id => {
+      tirage = null;
+      meubleChoisi = null;
+      modeDeco(id === 'deco');
+    }
+  });
 }
 
 function surEvenement(e) {
   if (!racine?.isConnected) return;
   if (e.t === 'seconde') {
     majBarre();
-    if (onglet === 'ventes') majPanneau();
-    if (onglet === 'boosters') majCompteurBoosters();
+    if (onglets.courant() === 'ventes') onglets.redessine();
+    if (onglets.courant() === 'boosters') majCompteurBoosters();
   } else if (e.t === 'change') {
     majBarre();
-    majPanneau();
+    onglets.redessine();
   } else if (e.t === 'sale') {
     // Le noyau annonce la vente avant de retirer la carte : on lit l'etat juste apres.
     setTimeout(() => { if (racine?.isConnected) majBarre(); }, 0);
@@ -434,26 +436,19 @@ export function renderBoutique() {
   racine = el(`<div class="btq">
     <div class="btq-barre"><span id="btqOr"></span><span id="btqGems"></span><span id="btqEchelle"></span></div>
     <div class="btq-monde"><canvas id="btqCanvas"></canvas></div>
-    <div class="btq-panneau ferme" id="btqPanneau"></div>
-    <div class="btq-onglets"></div>
   </div>`);
+  onglets = creeOngletsBoutique();
+  racine.appendChild(onglets.node);
   ecran.appendChild(racine);
-  for (const [id, nom] of ONGLETS) {
-    const b = el(`<button data-o="${id}">${nom}</button>`);
-    b.onclick = () => ouvreOnglet(id);
-    racine.querySelector('.btq-onglets').appendChild(b);
-  }
-  onglet = null;
   majBarre();
-  majPanneau();
   desabonne?.();
   desabonne = ecoute(surEvenement);
   lanceScene($('#btqCanvas'), {
     visuelCarte: id => SPRITES.get(id),
-    vitrine: l => { if (l) ficheVitrine(l.instanceId); else { onglet = null; ouvreOnglet('stock'); } },
+    vitrine: l => { if (l) ficheVitrine(l.instanceId); else onglets.va('stock'); },
     encheres: () => document.querySelector('#nav [data-go=encheres]').click(),
-    bulk: () => { onglet = null; ouvreOnglet('ventes'); },
-    choix: it => { meubleChoisi = it ? it.id : null; majPanneau(); },
+    bulk: () => onglets.va('ventes'),
+    choix: it => { meubleChoisi = it ? it.id : null; onglets.redessine(); },
     deplace: (id, x, y, dir) => { const r = moveFurniture(partie(), id, x, y, dir, ctx); if (!r.ok) toast(r.reason); else change(); }
   });
   modeDeco(false);
