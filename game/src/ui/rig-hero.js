@@ -110,7 +110,8 @@ export function animeImg(hote, img, sprite, hp, reglage) {
   const st = hote.rigAnime;
   if (st && st.sprite === sprite) {
     if (st.canvas) { if (img.style.display !== 'none' && !st.repli) { img.before(st.canvas); img.style.display = 'none'; } if (!vivants.has(st)) { vivants.add(st); if (!boucle) { avant = performance.now(); boucle = requestAnimationFrame(image); } } }
-    if (st.a && hp < st.hp) st.a.joue('taking_damage', { fondu: 0.05 });
+    // Tous les personnages n'ont pas ce clip (un sort n'a que idle et play) : `joue` leverait une erreur, a chaque rendu.
+    if (hp < st.hp) joueSur(hote, 'taking_damage');
     st.hp = hp;
     return;
   }
@@ -136,7 +137,7 @@ export function animeImg(hote, img, sprite, hp, reglage) {
 // Joue un clip sur le noeud (l'unite ou le heros) s'il a un personnage anime : `hitting` quand il attaque. Il revient a `idle` tout seul.
 export function joueSur(noeud, clip) {
   const a = noeud?.rigAnime?.a;
-  if (a && a.rig.clips[clip]) a.joue(clip, { fondu: 0.08 });
+  if (a && a.rig.clips[clip]) a.joue(clip, { fondu: clip === 'taking_damage' ? 0.05 : 0.08 });
 }
 
 // Le double d'une unite qui bondit (l'elan de l'attaque, ui/effets.js) : un canvas a lui, qui rejoue le personnage de l'original.

@@ -29,8 +29,10 @@ let tirage = null;
 // ------------------------------------------------------------------ images
 const SPRITES = new Map();
 const SPRITES_HEROS = new Map();
+// Le jeu ecrit « Félix », le catalogue « Felix » : un nom de heros se compare sans accent ni casse.
+const cleHeros = n => String(n).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 for (const c of Object.values(CHAR_BY_ID)) {
-  SPRITES_HEROS.set(c.name, c.sprite);
+  SPRITES_HEROS.set(cleHeros(c.name), c.sprite);
   for (const x of [...(c.cards || []), ...Object.values(c.switches || {})]) if (x?.id) SPRITES.set(x.id, x.sprite || c.sprite);
 }
 const carteDef = id => ctx.index.cardById.get(id);
@@ -370,7 +372,7 @@ function panneauHeros() {
     const h = S.heroes[hero];
     const requises = requiredCards(hero, ctx);
     const faites = requises.filter(c => S.collection[c.id] !== undefined).length;
-    const n = el(`<div class="btq-rang ${h.unlocked ? '' : 'verrou'}"><img src="${asset(SPRITES_HEROS.get(hero))}" alt="">
+    const n = el(`<div class="btq-rang ${h.unlocked ? '' : 'verrou'}"><img src="${asset(SPRITES_HEROS.get(cleHeros(hero)))}" alt="">
       <div class="btq-nom"><b>${hero}</b><span class="muted">${h.unlocked ? `Niveau ${h.level}` : `${faites}/${requises.length} cartes`}</span></div>
       <div class="btq-tiers"></div></div>`);
     for (const t of cfg.tiers.list) {
