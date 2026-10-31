@@ -29,30 +29,43 @@ function compile(gl, type, src) {
 
 const puissanceDe2 = n => 2 ** Math.ceil(Math.log2(Math.max(1, n)));
 
-export function creeRendu(canvas, { conserve = false } = {}) {
+// `maxCote` : le plus grand cote d'une texture. Un personnage affiche petit n'a pas besoin de ses 1024 px, et un telephone
+// perd son contexte WebGL quand la memoire graphique sature.
+export function creeRendu(canvas, { conserve = false, maxCote = Infinity } = {}) {
   const gl = canvas.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: true, preserveDrawingBuffer: conserve });
   if (!gl) return null;
-  const prog = gl.createProgram();
-  gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VS));
-  gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, FS));
-  gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
-  const L = {
-    pos: gl.getAttribLocation(prog, 'a_pos'), uv: gl.getAttribLocation(prog, 'a_uv'),
-    ecran: gl.getUniformLocation(prog, 'u_ecran'), place: gl.getUniformLocation(prog, 'u_place'),
-    origine: gl.getUniformLocation(prog, 'u_origine'), echelle: gl.getUniformLocation(prog, 'u_echelle'),
-    tex: gl.getUniformLocation(prog, 'u_tex'), alpha: gl.getUniformLocation(prog, 'u_alpha'),
-  };
-  const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
-  const textures = new Map();   // image -> texture
-  const statiques = new WeakMap(); // calque prepare -> { uv, idx }
-  const bufPos = gl.createBuffer();
+  let prog, L, maxTex, textures, statiques, bufPos;   // tout ce qu'une perte du contexte detruit
+  let perdu = false;
+
+  function monte() {
+    prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VS));
+    gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, FS));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+    L = {
+      pos: gl.getAttribLocation(prog, 'a_pos'), uv: gl.getAttribLocation(prog, 'a_uv'),
+      ecran: gl.getUniformLocation(prog, 'u_ecran'), place: gl.getUniformLocation(prog, 'u_place'),
+      origine: gl.getUniformLocation(prog, 'u_origine'), echelle: gl.getUniformLocation(prog, 'u_echelle'),
+      tex: gl.getUniformLocation(prog, 'u_tex'), alpha: gl.getUniformLocation(prog, 'u_alpha'),
+    };
+    maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+    textures = new Map();   // image -> texture
+    statiques = new WeakMap(); // calque prepare -> { uv, idx }
+    bufPos = gl.createBuffer();
+  }
+  monte();
+
+  // Le navigateur peut retirer le contexte a tout moment (memoire, application en arriere-plan) : plus rien ne se dessine.
+  // `preventDefault` demande de pouvoir le recuperer ; tout est alors a refaire.
+  canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); perdu = true; });
+  canvas.addEventListener('webglcontextrestored', () => { monte(); perdu = false; });
 
   // ⚠ Une texture en puissance de 2 avec mipmaps : un personnage de 2000 px affiche a
   // 200 px sans mipmaps crenele ses contours noirs (un pixel sur dix echantillonne).
   function textureDe(image) {
     if (textures.has(image)) return textures.get(image);
-    const cote = Math.min(maxTex, puissanceDe2(Math.max(image.width, image.height)));
+    const cote = Math.min(maxTex, maxCote, puissanceDe2(Math.max(image.width, image.height)));
     const c = document.createElement('canvas');
     c.width = c.height = cote;
     c.getContext('2d').drawImage(image, 0, 0, cote, cote);
@@ -82,8 +95,10 @@ export function creeRendu(canvas, { conserve = false } = {}) {
 
   return {
     gl, canvas,
+    get perdu() { return perdu; },
     // Vide le canvas (transparent, ou d'une couleur [r, g, b] en 0..1).
     efface(fond) {
+      if (perdu) return;
       gl.viewport(0, 0, canvas.width, canvas.height);
       if (fond) gl.clearColor(fond[0], fond[1], fond[2], 1); else gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -92,6 +107,7 @@ export function creeRendu(canvas, { conserve = false } = {}) {
     // (en pixels de la source) tombe au point `place` du canvas, a l'echelle `echelle`.
     // `opacites` : { idCalque: 0..1 } (apercu de l'editeur).
     dessine(anim, { place = [0, 0], origine = [0, 0], echelle = 1, opacites = null } = {}) {
+      if (perdu) return;
       const rig = anim.rig;
       gl.useProgram(prog);
       gl.enable(gl.BLEND);

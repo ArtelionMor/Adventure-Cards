@@ -43,7 +43,19 @@ export function rigDe(sprite) {
 // chacun est dessine dans ce canvas (COTE px), puis recopie dans le canvas 2D de son noeud. Les textures sont partagees aussi.
 const COTE = 256;
 let partage;
-const rendu = () => partage === undefined ? (partage = creeRendu(Object.assign(document.createElement('canvas'), { width: COTE, height: COTE }))) : partage;
+const rendu = () => partage === undefined ? (partage = creeRendu(Object.assign(document.createElement('canvas'), { width: COTE, height: COTE }), { maxCote: BALANCE.ui.rigsTexture })) : partage;
+export const renduPartage = rendu;
+
+// Contexte WebGL perdu (memoire du telephone, application en arriere-plan) : le canvas resterait vide. On rend l'image
+// fixe au personnage, et l'animation revient avec le contexte.
+function repli(v, oui) {
+  if (!!v.repli === oui) return;
+  v.repli = oui;
+  const im = v.hote.querySelector('img');
+  if (!oui && im && !v.canvas.isConnected) im.before(v.canvas);
+  v.canvas.style.display = oui ? 'none' : '';
+  if (im) im.style.display = oui ? '' : 'none';
+}
 
 const vivants = new Set();
 let boucle = 0, avant = 0;
@@ -51,6 +63,8 @@ function image(t) {
   const dt = Math.min(0.1, (t - avant) / 1000); avant = t;
   for (const v of vivants) {
     if (!v.hote.isConnected) { vivants.delete(v); continue; }   // l'unite est partie ; si elle revient, animeImg la remet
+    if (partage.perdu) { repli(v, true); continue; }
+    repli(v, false);
     if (!v.canvas.isConnected) continue;   // son contenu est en cours de redessin
     const r = v.canvas.getBoundingClientRect();
     if (!r.width) continue;
@@ -81,7 +95,7 @@ export function animeImg(hote, img, sprite, hp, reglage) {
   if (!img || !sprite || !BALANCE.ui[reglage]) return;
   const st = hote.rigAnime;
   if (st && st.sprite === sprite) {
-    if (st.canvas) { if (img.style.display !== 'none') { img.before(st.canvas); img.style.display = 'none'; } if (!vivants.has(st)) { vivants.add(st); if (!boucle) { avant = performance.now(); boucle = requestAnimationFrame(image); } } }
+    if (st.canvas) { if (img.style.display !== 'none' && !st.repli) { img.before(st.canvas); img.style.display = 'none'; } if (!vivants.has(st)) { vivants.add(st); if (!boucle) { avant = performance.now(); boucle = requestAnimationFrame(image); } } }
     if (st.a && hp < st.hp) st.a.joue('taking_damage', { fondu: 0.05 });
     st.hp = hp;
     return;

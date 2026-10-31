@@ -107,6 +107,7 @@ export const BALANCE = {
     // LES HEROS ANIMES (ui/rig-hero.js, ESSAI) : le portrait d'un heros qui a un rig (`game/data/rigs/`) joue son `idle` (et `taking_damage`
     // quand il perd des PV) au lieu de l'image fixe. A false : toujours l'image.
     rigsHeros: true,
+    rigsTexture: 512,    // plus grand cote d'une texture de personnage en jeu (px) : ils s'affichent en 256, et 1024 sature la memoire d'un telephone
     rigsGain: 2.5,       // exagere les mouvements des rigs (1 = tel quel : les clips sont calmes, ils se lisent mal a 40 px)
     rigsRemuants: true,  // PROVISOIRE : de temps en temps, un `hitting` ou un `walking` pour que le plateau vive
     decorVivant: true,   // le decor du combat bouge (ui/decor.js : arbres, nenuphars, feuilles, rides, lucioles) ; a false : le decor fixe d'avant
