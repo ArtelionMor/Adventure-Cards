@@ -24,7 +24,7 @@
       "procedural": [
         { "type": "sinus", "os": "tete", "canal": "rot", "amplitude": 0.328, "periode": 3, "phase": 0.1 },
         { "type": "sinus", "os": "bras", "canal": "rot", "amplitude": 2, "periode": 3, "phase": 0.5 },
-        { "type": "sinus", "os": "queue", "canal": "rot", "amplitude": 4, "periode": 3, "phase": 0 }
+        { "type": "sinus", "os": "queue", "canal": "rot", "amplitude": 0.411, "periode": 3, "phase": 0 }
       ]
     },
     "walking": {
@@ -60,7 +60,7 @@
         }
       },
       "procedural": [
-        { "type": "sinus", "os": "queue", "canal": "rot", "amplitude": 6, "periode": 1.2, "phase": 0 }
+        { "type": "sinus", "os": "queue", "canal": "rot", "amplitude": 0.616, "periode": 1.2, "phase": 0 }
       ]
     },
     "hitting": {
@@ -107,8 +107,8 @@
         "queue": {
           "rot": [
             { "t": 0, "v": 0 },
-            { "t": 0.25, "v": -12 },
-            { "t": 0.45, "v": 20 },
+            { "t": 0.25, "v": -1.233 },
+            { "t": 0.45, "v": 2.055 },
             { "t": 1.1, "v": 0 }
           ]
         }
@@ -161,8 +161,8 @@
         "queue": {
           "rot": [
             { "t": 0, "v": 0 },
-            { "t": 0.12, "v": 10 },
-            { "t": 0.45, "v": -4 },
+            { "t": 0.12, "v": 1.028 },
+            { "t": 0.45, "v": -0.411 },
             { "t": 0.8, "v": 0 }
           ]
         }

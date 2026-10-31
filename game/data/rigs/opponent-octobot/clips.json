@@ -3,49 +3,23 @@
   "version": 1,
   "clips": {
     "idle": {
-      "description": "Repos : le corps respire, la tête dodeline à peine, les tentacules ondulent en décalé, la vapeur du tuyau tremble.",
+      "description": "Repos : le corps respire, la tête dodeline, les membres et la queue ondulent en décalé.",
       "duree": 6,
       "boucle": true,
       "pistes": {
-        "bassin": {
+        "sol": {
           "y": [
             {
               "t": 0,
-              "v": 0.0
+              "v": 0
             },
             {
               "t": 2.6,
-              "v": 1.173
+              "v": 5
             },
             {
               "t": 4.2,
-              "v": 0.0
-            }
-          ]
-        },
-        "torse": {
-          "sy": [
-            {
-              "t": 0,
-              "v": 1.0
-            },
-            {
-              "t": 2.6,
-              "v": 1.0039
-            },
-            {
-              "t": 4.2,
-              "v": 1.0
-            }
-          ],
-          "rot": [
-            {
-              "t": 0,
-              "v": -0.117
-            },
-            {
-              "t": 3,
-              "v": 0.156
+              "v": 0
             }
           ]
         },
@@ -53,238 +27,58 @@
           "rot": [
             {
               "t": 0,
-              "v": 0.156
+              "v": -0.6
             },
             {
-              "t": 3.4,
-              "v": -0.196
+              "t": 3,
+              "v": 0.8
             }
           ]
         }
       },
       "procedural": [
         {
-          "type": "bruit",
-          "os": "tete",
-          "canal": "rot",
-          "amplitude": 0.156,
-          "periode": 2,
-          "graine": 3
-        },
-        {
           "type": "sinus",
-          "os": "Bras_3_1",
+          "os": "bras",
           "canal": "rot",
-          "amplitude": 0.782,
+          "amplitude": 2,
           "periode": 3,
-          "phase": 0.0
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_3_2",
-          "canal": "rot",
-          "amplitude": 0.978,
-          "periode": 3,
-          "phase": 0.08
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_3_3",
-          "canal": "rot",
-          "amplitude": 1.173,
-          "periode": 3,
-          "phase": 0.16
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_3_4",
-          "canal": "rot",
-          "amplitude": 1.369,
-          "periode": 3,
-          "phase": 0.24
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_3_5",
-          "canal": "rot",
-          "amplitude": 1.564,
-          "periode": 3,
-          "phase": 0.32
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_4_1",
-          "canal": "rot",
-          "amplitude": 0.978,
-          "periode": 3,
-          "phase": 0.4
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_4_2",
-          "canal": "rot",
-          "amplitude": 1.22,
-          "periode": 3,
-          "phase": 0.48
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_4_3",
-          "canal": "rot",
-          "amplitude": 1.466,
-          "periode": 3,
-          "phase": 0.56
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_4_4",
-          "canal": "rot",
-          "amplitude": 1.713,
-          "periode": 3,
-          "phase": 0.64
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_2_1",
-          "canal": "rot",
-          "amplitude": 0.782,
-          "periode": 6,
-          "phase": 0.55
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_2_2",
-          "canal": "rot",
-          "amplitude": 0.978,
-          "periode": 6,
-          "phase": 0.63
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_2_3",
-          "canal": "rot",
-          "amplitude": 1.173,
-          "periode": 6,
-          "phase": 0.71
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_2_4",
-          "canal": "rot",
-          "amplitude": 1.369,
-          "periode": 6,
-          "phase": 0.79
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_2_5",
-          "canal": "rot",
-          "amplitude": 1.564,
-          "periode": 6,
-          "phase": 0.87
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_5_1",
-          "canal": "rot",
-          "amplitude": 1.173,
-          "periode": 2,
-          "phase": 0.2
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_5_2",
-          "canal": "rot",
-          "amplitude": 1.466,
-          "periode": 2,
-          "phase": 0.28
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_5_3",
-          "canal": "rot",
-          "amplitude": 1.76,
-          "periode": 2,
-          "phase": 0.36
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_1_1",
-          "canal": "rot",
-          "amplitude": 0.978,
-          "periode": 2,
-          "phase": 0.1
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_1_2",
-          "canal": "rot",
-          "amplitude": 1.22,
-          "periode": 2,
-          "phase": 0.18
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_1_3",
-          "canal": "rot",
-          "amplitude": 1.466,
-          "periode": 2,
-          "phase": 0.26
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_1_4",
-          "canal": "rot",
-          "amplitude": 1.713,
-          "periode": 2,
-          "phase": 0.34
+          "phase": 0.5
         }
       ]
     },
     "walking": {
-      "description": "Marche : le corps rebondit à chaque pas et se balance, les jambes alternent, les tentacules battent en opposition.",
+      "description": "Marche : le corps rebondit à chaque pas, les membres balancent en opposition.",
       "duree": 1.2,
       "boucle": true,
       "pistes": {
-        "bassin": {
+        "sol": {
           "y": [
             {
               "t": 0,
-              "v": 0.0
+              "v": 0
             },
             {
               "t": 0.3,
-              "v": -2.394
+              "v": -14
             },
             {
               "t": 0.6,
-              "v": 0.0
+              "v": 0
             },
             {
               "t": 0.9,
-              "v": -2.394
-            }
-          ]
-        },
-        "torse": {
-          "rot": [
-            {
-              "t": 0,
-              "v": -0.319
-            },
-            {
-              "t": 0.6,
-              "v": 0.319
+              "v": -14
             }
           ],
           "x": [
             {
               "t": 0,
-              "v": -1.064
+              "v": -6
             },
             {
               "t": 0.6,
-              "v": 1.064
+              "v": 6
             }
           ]
         },
@@ -292,278 +86,67 @@
           "rot": [
             {
               "t": 0,
-              "v": 0.266
+              "v": -2.2
             },
             {
               "t": 0.6,
-              "v": -0.266
+              "v": 2.2
             }
           ]
         },
-        "jambe_g": {
+        "bras": {
           "rot": [
             {
               "t": 0,
-              "v": 1.33
+              "v": 10
             },
             {
               "t": 0.6,
-              "v": -1.33
+              "v": -10
             }
           ]
         },
-        "jambe_d": {
+        "jambes": {
           "rot": [
             {
               "t": 0,
-              "v": -1.33
+              "v": 2.589
             },
             {
               "t": 0.6,
-              "v": 1.33
+              "v": -2.589
             }
           ]
         }
       },
-      "procedural": [
-        {
-          "type": "sinus",
-          "os": "Bras_3_1",
-          "canal": "rot",
-          "amplitude": 0.798,
-          "periode": 1.2,
-          "phase": 0.0
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_3_2",
-          "canal": "rot",
-          "amplitude": 0.998,
-          "periode": 1.2,
-          "phase": 0.08
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_3_3",
-          "canal": "rot",
-          "amplitude": 1.197,
-          "periode": 1.2,
-          "phase": 0.16
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_3_4",
-          "canal": "rot",
-          "amplitude": 1.397,
-          "periode": 1.2,
-          "phase": 0.24
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_3_5",
-          "canal": "rot",
-          "amplitude": 1.596,
-          "periode": 1.2,
-          "phase": 0.32
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_4_1",
-          "canal": "rot",
-          "amplitude": 1.064,
-          "periode": 1.2,
-          "phase": 0.2
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_4_2",
-          "canal": "rot",
-          "amplitude": 1.33,
-          "periode": 1.2,
-          "phase": 0.28
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_4_3",
-          "canal": "rot",
-          "amplitude": 1.596,
-          "periode": 1.2,
-          "phase": 0.36
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_4_4",
-          "canal": "rot",
-          "amplitude": 1.862,
-          "periode": 1.2,
-          "phase": 0.44
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_2_1",
-          "canal": "rot",
-          "amplitude": 0.798,
-          "periode": 1.2,
-          "phase": 0.5
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_2_2",
-          "canal": "rot",
-          "amplitude": 0.998,
-          "periode": 1.2,
-          "phase": 0.58
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_2_3",
-          "canal": "rot",
-          "amplitude": 1.197,
-          "periode": 1.2,
-          "phase": 0.66
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_2_4",
-          "canal": "rot",
-          "amplitude": 1.397,
-          "periode": 1.2,
-          "phase": 0.74
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_2_5",
-          "canal": "rot",
-          "amplitude": 1.596,
-          "periode": 1.2,
-          "phase": 0.82
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_5_1",
-          "canal": "rot",
-          "amplitude": 1.064,
-          "periode": 1.2,
-          "phase": 0.65
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_5_2",
-          "canal": "rot",
-          "amplitude": 1.33,
-          "periode": 1.2,
-          "phase": 0.73
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_5_3",
-          "canal": "rot",
-          "amplitude": 1.596,
-          "periode": 1.2,
-          "phase": 0.81
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_1_1",
-          "canal": "rot",
-          "amplitude": 0.798,
-          "periode": 1.2,
-          "phase": 0.3
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_1_2",
-          "canal": "rot",
-          "amplitude": 0.998,
-          "periode": 1.2,
-          "phase": 0.38
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_1_3",
-          "canal": "rot",
-          "amplitude": 1.197,
-          "periode": 1.2,
-          "phase": 0.46
-        },
-        {
-          "type": "sinus",
-          "os": "Bras_1_4",
-          "canal": "rot",
-          "amplitude": 1.397,
-          "periode": 1.2,
-          "phase": 0.54
-        }
-      ]
+      "procedural": []
     },
     "hitting": {
-      "description": "Attaque : il se recule, puis fonce vers l'avant (le bas de l'écran) en fouettant ses tentacules droits, et revient.",
+      "description": "Coup : il se recule, fonce vers l'avant (le bas de l'écran) et revient, les membres fouettent.",
       "duree": 1.1,
       "boucle": false,
       "pistes": {
-        "bassin": {
+        "sol": {
           "y": [
             {
               "t": 0,
-              "v": 0.0
+              "v": 0
             },
             {
               "t": 0.25,
-              "v": -1.02
+              "v": -10
             },
             {
               "t": 0.42,
-              "v": 2.856
+              "v": 26
             },
             {
               "t": 0.6,
-              "v": 2.856
+              "v": 26
             },
             {
               "t": 1.1,
-              "v": 0.0
-            }
-          ]
-        },
-        "torse": {
-          "rot": [
-            {
-              "t": 0,
-              "v": 0.0
-            },
-            {
-              "t": 0.25,
-              "v": -0.153
-            },
-            {
-              "t": 0.42,
-              "v": 0.153
-            },
-            {
-              "t": 0.6,
-              "v": 0.153
-            },
-            {
-              "t": 1.1,
-              "v": 0.0
-            }
-          ],
-          "sy": [
-            {
-              "t": 0,
-              "v": 1.0
-            },
-            {
-              "t": 0.25,
-              "v": 1.0015
-            },
-            {
-              "t": 0.42,
-              "v": 0.999
-            },
-            {
-              "t": 1.1,
-              "v": 1.0
+              "v": 0
             }
           ]
         },
@@ -571,232 +154,93 @@
           "rot": [
             {
               "t": 0,
-              "v": 0.0
+              "v": 0
             },
             {
               "t": 0.25,
-              "v": -0.204
+              "v": -1.5
             },
             {
               "t": 0.42,
-              "v": 0.255
+              "v": 1.5
             },
             {
               "t": 0.6,
-              "v": 0.255
+              "v": 1.5
             },
             {
               "t": 1.1,
-              "v": 0.0
+              "v": 0
             }
           ]
         },
-        "Bras_2_1": {
+        "bras": {
           "rot": [
             {
               "t": 0,
-              "v": 0.0
+              "v": 0
             },
             {
               "t": 0.25,
-              "v": -2.244
+              "v": -25
             },
             {
               "t": 0.45,
-              "v": 2.856
+              "v": 40
             },
             {
               "t": 0.65,
-              "v": 2.04
+              "v": 25
             },
             {
               "t": 1.1,
-              "v": 0.0
-            }
-          ]
-        },
-        "Bras_2_2": {
-          "rot": [
-            {
-              "t": 0,
-              "v": 0.0
-            },
-            {
-              "t": 0.28,
-              "v": -1.428
-            },
-            {
-              "t": 0.48,
-              "v": 2.244
-            },
-            {
-              "t": 1.1,
-              "v": 0.0
-            }
-          ]
-        },
-        "Bras_3_1": {
-          "rot": [
-            {
-              "t": 0,
-              "v": 0.0
-            },
-            {
-              "t": 0.25,
-              "v": 0.816
-            },
-            {
-              "t": 0.45,
-              "v": -1.224
-            },
-            {
-              "t": 1.1,
-              "v": 0.0
-            }
-          ]
-        },
-        "Bras_3_2": {
-          "rot": [
-            {
-              "t": 0,
-              "v": 0.0
-            },
-            {
-              "t": 0.28,
-              "v": 1.02
-            },
-            {
-              "t": 0.48,
-              "v": -1.428
-            },
-            {
-              "t": 1.1,
-              "v": 0.0
+              "v": 0
             }
           ]
         }
       },
-      "procedural": [
-        {
-          "type": "ressort",
-          "os": [
-            "Bras_2_3",
-            "Bras_2_4",
-            "Bras_2_5"
-          ],
-          "source": "Bras_2_2",
-          "frequence": 3,
-          "amortissement": 0.3,
-          "gain": 0.122,
-          "gainY": 0.0
-        },
-        {
-          "type": "ressort",
-          "os": [
-            "Bras_3_3",
-            "Bras_3_4",
-            "Bras_3_5"
-          ],
-          "source": "Bras_3_2",
-          "frequence": 3,
-          "amortissement": 0.3,
-          "gain": 0.122,
-          "gainY": 0.0
-        },
-        {
-          "type": "ressort",
-          "os": [
-            "Bras_1_1",
-            "Bras_1_2",
-            "Bras_1_3",
-            "Bras_1_4"
-          ],
-          "source": "torse",
-          "frequence": 2.5,
-          "amortissement": 0.3,
-          "gain": 0.102,
-          "gainY": 0.031
-        }
-      ]
+      "procedural": []
     },
     "taking_damage": {
-      "description": "Coup reçu : repoussé en arrière (vers le haut de l'écran), il se tasse, la tête part en arrière, les tentacules fouettent dans le vide puis tout se rassoit en tremblant.",
+      "description": "Dégâts : repoussé en arrière, la tête part en arrière, les membres retombent mollement.",
       "duree": 0.8,
       "boucle": false,
       "pistes": {
-        "bassin": {
+        "sol": {
           "y": [
             {
               "t": 0,
-              "v": 0.0
+              "v": 0
             },
             {
               "t": 0.1,
-              "v": -6.534
+              "v": -18
             },
             {
               "t": 0.3,
-              "v": -2.376
+              "v": -6
             },
             {
               "t": 0.8,
-              "v": 0.0
+              "v": 0
             }
           ],
           "x": [
             {
               "t": 0,
-              "v": 0.0
+              "v": 0
             },
             {
               "t": 0.1,
-              "v": 4.158
+              "v": 12
             },
             {
               "t": 0.35,
-              "v": 1.188
+              "v": 3
             },
             {
               "t": 0.8,
-              "v": 0.0
-            }
-          ]
-        },
-        "torse": {
-          "rot": [
-            {
-              "t": 0,
-              "v": 0.0
-            },
-            {
-              "t": 0.1,
-              "v": -0.653
-            },
-            {
-              "t": 0.4,
-              "v": 0.178
-            },
-            {
-              "t": 0.8,
-              "v": 0.0
-            }
-          ],
-          "sy": [
-            {
-              "t": 0,
-              "v": 1.0
-            },
-            {
-              "t": 0.1,
-              "v": 0.9955
-            },
-            {
-              "t": 0.4,
-              "v": 1.0015
-            },
-            {
-              "t": 0.8,
-              "v": 1.0
+              "v": 0
             }
           ]
         },
@@ -804,109 +248,44 @@
           "rot": [
             {
               "t": 0,
-              "v": 0.0
+              "v": 0
             },
             {
               "t": 0.1,
-              "v": -1.188
+              "v": -2
             },
             {
               "t": 0.4,
-              "v": 0.356
+              "v": 0.6
             },
             {
               "t": 0.8,
-              "v": 0.0
+              "v": 0
             }
           ]
         },
-        "Bras_2_1": {
+        "bras": {
           "rot": [
             {
               "t": 0,
-              "v": 0.0
+              "v": 0
             },
             {
               "t": 0.12,
-              "v": -4.158
+              "v": 12
             },
             {
               "t": 0.45,
-              "v": 1.485
+              "v": -4
             },
             {
               "t": 0.8,
-              "v": 0.0
-            }
-          ]
-        },
-        "Bras_3_1": {
-          "rot": [
-            {
-              "t": 0,
-              "v": 0.0
-            },
-            {
-              "t": 0.12,
-              "v": 2.97
-            },
-            {
-              "t": 0.45,
-              "v": -0.891
-            },
-            {
-              "t": 0.8,
-              "v": 0.0
+              "v": 0
             }
           ]
         }
       },
-      "procedural": [
-        {
-          "type": "ressort",
-          "os": [
-            "Bras_2_2",
-            "Bras_2_3",
-            "Bras_2_4",
-            "Bras_2_5"
-          ],
-          "source": "Bras_2_1",
-          "frequence": 3.5,
-          "amortissement": 0.25,
-          "gain": 0.386,
-          "decalage": 0.03,
-          "gainY": 0.0
-        },
-        {
-          "type": "ressort",
-          "os": [
-            "Bras_3_2",
-            "Bras_3_3",
-            "Bras_3_4",
-            "Bras_3_5"
-          ],
-          "source": "Bras_3_1",
-          "frequence": 3.5,
-          "amortissement": 0.25,
-          "gain": 0.386,
-          "decalage": 0.03,
-          "gainY": 0.0
-        },
-        {
-          "type": "ressort",
-          "os": [
-            "Bras_1_1",
-            "Bras_1_2",
-            "Bras_1_3",
-            "Bras_1_4"
-          ],
-          "source": "torse",
-          "frequence": 3,
-          "amortissement": 0.25,
-          "gain": 0.297,
-          "gainY": 0.119
-        }
-      ]
+      "procedural": []
     }
   }
 }

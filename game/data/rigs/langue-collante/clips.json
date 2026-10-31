@@ -3,158 +3,534 @@
   "version": 1,
   "clips": {
     "idle": {
-      "description": "Repos : le corps respire, la tête dodeline, les membres et la queue ondulent en décalé.",
-      "duree": 6,
+      "description": "Repos : la grenouille respire, la langue ondule en vague, de la base vers le bout, la petite proie se balance avec elle.",
+      "duree": 4,
       "boucle": true,
       "pistes": {
         "sol": {
           "y": [
-            { "t": 0, "v": 0 },
-            { "t": 2.6, "v": 3 },
-            { "t": 4.2, "v": 0 }
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 2,
+              "v": 3
+            }
           ]
         },
         "corps": {
           "rot": [
-            { "t": 0, "v": -0.3 },
-            { "t": 3, "v": 0.4 }
+            {
+              "t": 0,
+              "v": -0.3
+            },
+            {
+              "t": 2,
+              "v": 0.4
+            }
           ]
         }
       },
       "procedural": [
-        { "type": "sinus", "os": "tete", "canal": "rot", "amplitude": 1.2, "periode": 3, "phase": 0.1 },
-        { "type": "sinus", "os": "bras", "canal": "rot", "amplitude": 2, "periode": 3, "phase": 0 }
+        {
+          "type": "sinus",
+          "os": "tete",
+          "canal": "rot",
+          "amplitude": 1,
+          "periode": 4,
+          "phase": 0.1
+        },
+        {
+          "type": "sinus",
+          "os": "bras",
+          "canal": "rot",
+          "amplitude": 2.2,
+          "periode": 4,
+          "phase": 0
+        },
+        {
+          "type": "ressort",
+          "os": [
+            "langue_b"
+          ],
+          "source": "bras",
+          "frequence": 2.2,
+          "amortissement": 0.3,
+          "gain": 0.8,
+          "decalage": 0.06
+        }
       ]
     },
+    "play": {
+      "description": "Sort, joué une fois : la grenouille se ramasse et recule la tête, puis la langue se déroule d'un coup vers l'avant (le bas de l'écran) en fouet, le bout claque plus loin que le reste, et tout revient en rebondissant.",
+      "duree": 1.5,
+      "boucle": false,
+      "pistes": {
+        "sol": {
+          "y": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.3,
+              "v": -8,
+              "courbe": "entree"
+            },
+            {
+              "t": 0.5,
+              "v": 24,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.78,
+              "v": 18
+            },
+            {
+              "t": 1.5,
+              "v": 0
+            }
+          ]
+        },
+        "corps": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.3,
+              "v": -2.5,
+              "courbe": "entree"
+            },
+            {
+              "t": 0.5,
+              "v": 2,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.78,
+              "v": 1.2
+            },
+            {
+              "t": 1.5,
+              "v": 0
+            }
+          ]
+        },
+        "tete": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.3,
+              "v": -4.25,
+              "courbe": "entree"
+            },
+            {
+              "t": 0.5,
+              "v": 3.4,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.78,
+              "v": 1.7
+            },
+            {
+              "t": 1.5,
+              "v": 0
+            }
+          ]
+        },
+        "bras": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.3,
+              "v": 9,
+              "courbe": "entree"
+            },
+            {
+              "t": 0.5,
+              "v": -14,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.8,
+              "v": -9
+            },
+            {
+              "t": 1.15,
+              "v": 3
+            },
+            {
+              "t": 1.5,
+              "v": 0
+            }
+          ]
+        },
+        "langue_b": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.3,
+              "v": 1,
+              "courbe": "entree"
+            },
+            {
+              "t": 0.56,
+              "v": -3,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.8,
+              "v": -1
+            },
+            {
+              "t": 1.5,
+              "v": 0
+            }
+          ]
+        }
+      },
+      "procedural": []
+    },
     "walking": {
-      "description": "Marche : le corps rebondit à chaque pas, les membres balancent en opposition.",
+      "description": "Marche : il rebondit, le corps et la tête se balancent à contretemps.",
       "duree": 1.2,
       "boucle": true,
       "pistes": {
         "sol": {
           "y": [
-            { "t": 0, "v": 0 },
-            { "t": 0.3, "v": -9 },
-            { "t": 0.6, "v": 0 },
-            { "t": 0.9, "v": -9 }
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.3,
+              "v": -1.98
+            },
+            {
+              "t": 0.6,
+              "v": 0
+            },
+            {
+              "t": 0.9,
+              "v": -1.98
+            }
+          ],
+          "x": [
+            {
+              "t": 0,
+              "v": -0.66
+            },
+            {
+              "t": 0.6,
+              "v": 0.66
+            }
           ]
         },
         "corps": {
           "rot": [
-            { "t": 0, "v": -1 },
-            { "t": 0.6, "v": 1 }
+            {
+              "t": 0,
+              "v": -0.44
+            },
+            {
+              "t": 0.6,
+              "v": 0.44
+            }
           ]
         },
         "tete": {
           "rot": [
-            { "t": 0, "v": 1 },
-            { "t": 0.6, "v": -1 }
+            {
+              "t": 0,
+              "v": 0.44
+            },
+            {
+              "t": 0.6,
+              "v": -0.44
+            }
           ]
         },
         "bras": {
           "rot": [
-            { "t": 0, "v": -10 },
-            { "t": 0.6, "v": 10 }
+            {
+              "t": 0,
+              "v": 1.1
+            },
+            {
+              "t": 0.6,
+              "v": -1.1
+            }
           ]
         },
         "jambes": {
           "rot": [
-            { "t": 0, "v": 5 },
-            { "t": 0.6, "v": -5 }
+            {
+              "t": 0,
+              "v": 0.88
+            },
+            {
+              "t": 0.6,
+              "v": -0.88
+            }
           ]
         }
       },
-      "procedural": []
+      "procedural": [
+        {
+          "type": "ressort",
+          "os": [
+            "langue_b"
+          ],
+          "source": "corps",
+          "frequence": 2.4,
+          "amortissement": 0.3,
+          "gain": 0.22,
+          "decalage": 0.05
+        }
+      ]
     },
     "hitting": {
-      "description": "Coup : il se recule, fonce vers l'avant (le bas de l'écran) et revient, les membres fouettent.",
+      "description": "Coup : il se ramasse, se jette vers l'avant (le bas de l'écran) et revient.",
       "duree": 1.1,
       "boucle": false,
       "pistes": {
         "sol": {
           "y": [
-            { "t": 0, "v": 0 },
-            { "t": 0.25, "v": -10 },
-            { "t": 0.42, "v": 26 },
-            { "t": 0.6, "v": 26 },
-            { "t": 1.1, "v": 0 }
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.25,
+              "v": -7.8,
+              "courbe": "entree"
+            },
+            {
+              "t": 0.42,
+              "v": 20.28,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.6,
+              "v": 18.72
+            },
+            {
+              "t": 1.1,
+              "v": 0
+            }
           ]
         },
         "corps": {
           "rot": [
-            { "t": 0, "v": 0 },
-            { "t": 0.25, "v": -1.5 },
-            { "t": 0.42, "v": 1.5 },
-            { "t": 0.6, "v": 1.5 },
-            { "t": 1.1, "v": 0 }
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.25,
+              "v": -1.56
+            },
+            {
+              "t": 0.42,
+              "v": 1.95
+            },
+            {
+              "t": 1.1,
+              "v": 0
+            }
           ]
         },
         "tete": {
           "rot": [
-            { "t": 0, "v": 0 },
-            { "t": 0.25, "v": -2 },
-            { "t": 0.42, "v": 3 },
-            { "t": 0.6, "v": 3 },
-            { "t": 1.1, "v": 0 }
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.25,
+              "v": -2.34
+            },
+            {
+              "t": 0.42,
+              "v": 3.12
+            },
+            {
+              "t": 1.1,
+              "v": 0
+            }
           ]
         },
         "bras": {
           "rot": [
-            { "t": 0, "v": 0 },
-            { "t": 0.25, "v": 25 },
-            { "t": 0.45, "v": -40 },
-            { "t": 0.65, "v": -25 },
-            { "t": 1.1, "v": 0 }
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.25,
+              "v": 15.6
+            },
+            {
+              "t": 0.45,
+              "v": -35.1
+            },
+            {
+              "t": 0.65,
+              "v": -19.5
+            },
+            {
+              "t": 1.1,
+              "v": 0
+            }
           ]
         }
       },
-      "procedural": []
+      "procedural": [
+        {
+          "type": "ressort",
+          "os": [
+            "langue_b"
+          ],
+          "source": "corps",
+          "frequence": 1.8,
+          "amortissement": 0.3,
+          "gain": 1.092,
+          "decalage": 0.05
+        }
+      ]
     },
     "taking_damage": {
-      "description": "Dégâts : repoussé en arrière, la tête part en arrière, les membres retombent mollement.",
+      "description": "Dégâts : repoussé en arrière, le corps et la tête partent en arrière puis reviennent.",
       "duree": 0.8,
       "boucle": false,
       "pistes": {
         "sol": {
           "y": [
-            { "t": 0, "v": 0 },
-            { "t": 0.1, "v": -18 },
-            { "t": 0.3, "v": -6 },
-            { "t": 0.8, "v": 0 }
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.1,
+              "v": -14.88,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.3,
+              "v": -4.65
+            },
+            {
+              "t": 0.8,
+              "v": 0
+            }
           ],
           "x": [
-            { "t": 0, "v": 0 },
-            { "t": 0.1, "v": 12 },
-            { "t": 0.35, "v": 3 },
-            { "t": 0.8, "v": 0 }
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.1,
+              "v": 11.16,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.35,
+              "v": 2.79
+            },
+            {
+              "t": 0.8,
+              "v": 0
+            }
           ]
         },
         "corps": {
           "rot": [
-            { "t": 0, "v": 0 },
-            { "t": 0.1, "v": -2 },
-            { "t": 0.4, "v": 0.6 },
-            { "t": 0.8, "v": 0 }
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.1,
+              "v": -1.86
+            },
+            {
+              "t": 0.4,
+              "v": 0.558
+            },
+            {
+              "t": 0.8,
+              "v": 0
+            }
           ]
         },
         "tete": {
           "rot": [
-            { "t": 0, "v": 0 },
-            { "t": 0.1, "v": -5 },
-            { "t": 0.4, "v": 1.5 },
-            { "t": 0.8, "v": 0 }
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.1,
+              "v": -4.65
+            },
+            {
+              "t": 0.4,
+              "v": 1.395
+            },
+            {
+              "t": 0.8,
+              "v": 0
+            }
           ]
         },
         "bras": {
           "rot": [
-            { "t": 0, "v": 0 },
-            { "t": 0.12, "v": -12 },
-            { "t": 0.45, "v": 4 },
-            { "t": 0.8, "v": 0 }
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.12,
+              "v": 7.44
+            },
+            {
+              "t": 0.45,
+              "v": -2.79
+            },
+            {
+              "t": 0.8,
+              "v": 0
+            }
           ]
         }
       },
-      "procedural": []
+      "procedural": [
+        {
+          "type": "ressort",
+          "os": [
+            "langue_b"
+          ],
+          "source": "corps",
+          "frequence": 3,
+          "amortissement": 0.3,
+          "gain": 1.116,
+          "decalage": 0.05
+        }
+      ]
     }
   }
 }

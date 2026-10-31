@@ -3,25 +3,482 @@
   "version": 1,
   "clips": {
     "idle": {
-      "description": "En garde : un petit rebond sur les appuis, le buste qui tisse lentement, les poings qui alternent, la tete qui suit le buste, les oreilles qui trainent derriere la tete ; la queue fretille de temps en temps.",
-      "duree": 4.8,
+      "description": "Repos : le corps respire, la tête dodeline, les membres et la queue ondulent en décalé.",
+      "duree": 6,
       "boucle": true,
-      "pistes": {},
+      "pistes": {
+        "sol": {
+          "y": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 2.6,
+              "v": 5
+            },
+            {
+              "t": 4.2,
+              "v": 0
+            }
+          ]
+        },
+        "corps": {
+          "rot": [
+            {
+              "t": 0,
+              "v": -0.6
+            },
+            {
+              "t": 3,
+              "v": 0.8
+            }
+          ]
+        }
+      },
       "procedural": [
-        { "type": "sinus", "os": "bassin", "canal": "y", "amplitude": 2, "periode": 0.8, "phase": 0 },
-        { "type": "sinus", "os": "torse", "canal": "rot", "amplitude": 0.6, "periode": 2.4, "phase": 0.1 },
-        { "type": "bruit", "os": "torse", "canal": "rot", "amplitude": 0.3, "periode": 1.2, "graine": 21 },
-        { "type": "bruit", "os": "tete", "canal": "rot", "amplitude": 0.4, "periode": 1.6, "graine": 7 },
-        { "type": "ressort", "os": "tete", "source": "torse", "frequence": 2, "amortissement": 0.4 },
-        { "type": "sinus", "os": "bras_g", "canal": "rot", "amplitude": 0.7, "periode": 1.6, "phase": 0 },
-        { "type": "sinus", "os": "bras_d", "canal": "rot", "amplitude": 0.7, "periode": 1.6, "phase": 0.5 },
-        { "type": "ressort", "os": ["oreille_g", "oreille_g_b"], "source": "tete", "frequence": 2.2, "amortissement": 0.3, "gainY": -0.8 },
-        { "type": "ressort", "os": ["oreille_d", "oreille_d_b"], "source": "tete", "frequence": 2.0, "amortissement": 0.3, "gainY": 0.8 },
-        { "type": "sinus", "os": "queue", "canal": "rot", "amplitude": 0.8, "periode": 1.2, "phase": 0.2 },
-        { "type": "evenement", "intervalle": [1.5, 3], "graine": 4, "pistes": {
-          "queue": { "rot": [ { "t": 0, "v": 0 }, { "t": 0.08, "v": -0.4 }, { "t": 0.2, "v": 1.4, "courbe": "sortie" }, { "t": 0.45, "v": 0 } ] }
-        } }
+        {
+          "type": "sinus",
+          "os": "tete",
+          "canal": "rot",
+          "amplitude": 0.939,
+          "periode": 3,
+          "phase": 0.1
+        },
+        {
+          "type": "sinus",
+          "os": "oreille_gauche",
+          "canal": "rot",
+          "amplitude": 2.5,
+          "periode": 3,
+          "phase": 0.3
+        },
+        {
+          "type": "sinus",
+          "os": "oreille_droite",
+          "canal": "rot",
+          "amplitude": 2.024,
+          "periode": 3,
+          "phase": 0.4
+        },
+        {
+          "type": "sinus",
+          "os": "bras",
+          "canal": "rot",
+          "amplitude": 2,
+          "periode": 3,
+          "phase": 0
+        },
+        {
+          "type": "sinus",
+          "os": "queue",
+          "canal": "rot",
+          "amplitude": 4,
+          "periode": 3,
+          "phase": 0
+        }
       ]
+    },
+    "walking": {
+      "description": "Marche : le corps rebondit à chaque pas, les membres balancent en opposition.",
+      "duree": 1.2,
+      "boucle": true,
+      "pistes": {
+        "sol": {
+          "y": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.3,
+              "v": -14
+            },
+            {
+              "t": 0.6,
+              "v": 0
+            },
+            {
+              "t": 0.9,
+              "v": -14
+            }
+          ],
+          "x": [
+            {
+              "t": 0,
+              "v": -6
+            },
+            {
+              "t": 0.6,
+              "v": 6
+            }
+          ]
+        },
+        "corps": {
+          "rot": [
+            {
+              "t": 0,
+              "v": -2.2
+            },
+            {
+              "t": 0.6,
+              "v": 2.2
+            }
+          ]
+        },
+        "tete": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 1.043
+            },
+            {
+              "t": 0.6,
+              "v": -1.043
+            }
+          ]
+        },
+        "bras": {
+          "rot": [
+            {
+              "t": 0,
+              "v": -10
+            },
+            {
+              "t": 0.6,
+              "v": 10
+            }
+          ]
+        },
+        "jambes": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 5
+            },
+            {
+              "t": 0.6,
+              "v": -5
+            }
+          ]
+        }
+      },
+      "procedural": [
+        {
+          "type": "sinus",
+          "os": "oreille_gauche",
+          "canal": "rot",
+          "amplitude": 4,
+          "periode": 1.2,
+          "phase": 0.2
+        },
+        {
+          "type": "sinus",
+          "os": "oreille_droite",
+          "canal": "rot",
+          "amplitude": 3.239,
+          "periode": 1.2,
+          "phase": 0.2
+        },
+        {
+          "type": "sinus",
+          "os": "queue",
+          "canal": "rot",
+          "amplitude": 6,
+          "periode": 1.2,
+          "phase": 0
+        }
+      ]
+    },
+    "hitting": {
+      "description": "Coup : il se recule, fonce vers l'avant (le bas de l'écran) et revient, les membres fouettent.",
+      "duree": 1.1,
+      "boucle": false,
+      "pistes": {
+        "sol": {
+          "y": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.25,
+              "v": -10
+            },
+            {
+              "t": 0.42,
+              "v": 26
+            },
+            {
+              "t": 0.6,
+              "v": 26
+            },
+            {
+              "t": 1.1,
+              "v": 0
+            }
+          ]
+        },
+        "corps": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.25,
+              "v": -1.5
+            },
+            {
+              "t": 0.42,
+              "v": 1.5
+            },
+            {
+              "t": 0.6,
+              "v": 1.5
+            },
+            {
+              "t": 1.1,
+              "v": 0
+            }
+          ]
+        },
+        "tete": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.25,
+              "v": -1.043
+            },
+            {
+              "t": 0.42,
+              "v": 1.565
+            },
+            {
+              "t": 0.6,
+              "v": 1.565
+            },
+            {
+              "t": 1.1,
+              "v": 0
+            }
+          ]
+        },
+        "bras": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.25,
+              "v": 25
+            },
+            {
+              "t": 0.45,
+              "v": -40
+            },
+            {
+              "t": 0.65,
+              "v": -25
+            },
+            {
+              "t": 1.1,
+              "v": 0
+            }
+          ]
+        },
+        "queue": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.25,
+              "v": -12
+            },
+            {
+              "t": 0.45,
+              "v": 20
+            },
+            {
+              "t": 1.1,
+              "v": 0
+            }
+          ]
+        }
+      },
+      "procedural": []
+    },
+    "taking_damage": {
+      "description": "Dégâts : repoussé en arrière, la tête part en arrière, les membres retombent mollement.",
+      "duree": 0.8,
+      "boucle": false,
+      "pistes": {
+        "sol": {
+          "y": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.1,
+              "v": -18
+            },
+            {
+              "t": 0.3,
+              "v": -6
+            },
+            {
+              "t": 0.8,
+              "v": 0
+            }
+          ],
+          "x": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.1,
+              "v": 12
+            },
+            {
+              "t": 0.35,
+              "v": 3
+            },
+            {
+              "t": 0.8,
+              "v": 0
+            }
+          ]
+        },
+        "corps": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.1,
+              "v": -2
+            },
+            {
+              "t": 0.4,
+              "v": 0.6
+            },
+            {
+              "t": 0.8,
+              "v": 0
+            }
+          ]
+        },
+        "tete": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.1,
+              "v": -2.609
+            },
+            {
+              "t": 0.4,
+              "v": 0.783
+            },
+            {
+              "t": 0.8,
+              "v": 0
+            }
+          ]
+        },
+        "oreille_gauche": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.12,
+              "v": -8
+            },
+            {
+              "t": 0.45,
+              "v": 3
+            },
+            {
+              "t": 0.8,
+              "v": 0
+            }
+          ]
+        },
+        "oreille_droite": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.12,
+              "v": 6.478
+            },
+            {
+              "t": 0.45,
+              "v": -2.429
+            },
+            {
+              "t": 0.8,
+              "v": 0
+            }
+          ]
+        },
+        "bras": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.12,
+              "v": -12
+            },
+            {
+              "t": 0.45,
+              "v": 4
+            },
+            {
+              "t": 0.8,
+              "v": 0
+            }
+          ]
+        },
+        "queue": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.12,
+              "v": 10
+            },
+            {
+              "t": 0.45,
+              "v": -4
+            },
+            {
+              "t": 0.8,
+              "v": 0
+            }
+          ]
+        }
+      },
+      "procedural": []
     }
   }
 }
