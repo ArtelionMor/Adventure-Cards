@@ -10,7 +10,6 @@ import { ENCOUNTERS } from '../config/world.js';
 import { save, persist, etatArene, passeLeTutoriel, possede } from '../state.js';
 import { el, closeModal, CURRENCY_NAME } from './shell.js';
 import { icone } from './icones.js';
-import { stopWorld } from './overworld.js';
 import { openBattle } from './battle.js';
 import { noeudDeLArene, ouvreFicheArene } from './arene.js';
 
@@ -77,7 +76,7 @@ export function installeTriche(nav) {
   bouton('Combattre', () => {
     const n = point();
     if (!n) return 'pas de point du monde pour cette arène';
-    ferme(); stopWorld();
+    ferme();
     openBattle({ ...n, niveau: Number(niv.value) }, () => nav.rafraichit());
   });
   bouton('Ouvrir sa fiche', () => {
@@ -86,7 +85,7 @@ export function installeTriche(nav) {
     const a = etatArene(arene.value);
     a.niveau = Math.max(a.niveau || 1, Number(niv.value));   // la fiche ne propose que les niveaux deja atteints
     ferme();
-    ouvreFicheArene(n, { niveau: Number(niv.value), avant: stopWorld, apres: () => nav.rafraichit() });
+    ouvreFicheArene(n, { niveau: Number(niv.value), apres: () => nav.rafraichit() });
   });
   // Le niveau courant de l'arene : l'onglet « Arene » propose alors tous les niveaux jusqu'a lui.
   bouton('Arène à ce niveau', () => {

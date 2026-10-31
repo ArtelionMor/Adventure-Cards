@@ -12,9 +12,9 @@ const COULEURS = ['#ffc46b', '#7fd6a6', '#6ec1ff', '#ff6f7f', '#d6a8ff'];
 
 /**
  * `issue` : 'victoire', 'defaite' ou 'nul'. `recompenses` : [{ label, n }]. `notes` : lignes en retrait.
- * `boutons` : [{ texte, primaire, onClick }].
+ * `boutons` : [{ texte, primaire, onClick }]. `enchaine` : appele seul apres `fin.enchaineMs`, sauf si le joueur touche l'ecran.
  */
-export function montreFin({ racine, issue, sousTitre, recompenses = [], notes = [], boutons = [] }) {
+export function montreFin({ racine, issue, sousTitre, recompenses = [], notes = [], boutons = [], enchaine = null }) {
   const f = BALANCE.ui.fx.fin;
   const titre = { victoire: 'Victoire', defaite: 'Défaite', nul: 'Match nul' }[issue];
   const calque = el(`
@@ -51,6 +51,10 @@ export function montreFin({ racine, issue, sousTitre, recompenses = [], notes = 
     zoneBoutons.style.pointerEvents = 'auto';
   };
   calque.addEventListener('pointerdown', termine);
+  if (enchaine) {
+    const depart = setTimeout(enchaine, f.enchaineMs);
+    calque.addEventListener('pointerdown', () => clearTimeout(depart));
+  }
   zoneBoutons.style.pointerEvents = 'none';
 
   // Le fond se ferme sur le plateau, le titre s'abat.

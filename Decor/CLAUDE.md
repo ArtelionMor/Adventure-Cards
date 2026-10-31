@@ -1,4 +1,6 @@
-# Decor/ — les packs d'assets tiers essayés pour la carte (overworld)
+# Decor/ — les packs d'assets tiers
+
+**La boutique** dessine ses meubles et ses clients avec `Kenney Furniture Kit/` et `Kenney Toon Characters/`. Les trois autres packs servaient à la carte du monde, retirée le 31 oct. 2026 : ils ne servent plus.
 
 Un sous-dossier **par pack**, avec la licence d'origine (`License.txt`) et **seulement les images utilisées**. Le jeu dessine la carte
 avec **Medieval RTS + Foliage Pack** (`game/src/ui/sol-carte.js`, décision du game designer du 16 octobre 2026, `docs/PACKS-CARTE.md`) ;
@@ -6,6 +8,8 @@ avec **Medieval RTS + Foliage Pack** (`game/src/ui/sol-carte.js`, décision du g
 
 | Dossier | Pack | Licence | Fichiers |
 |---|---|---|---|
+| `Kenney Furniture Kit/` | [Furniture Kit](https://kenney.nl/assets/furniture-kit), Kenney (rendus `Isometric`) | CC0 1.0 | `<meuble>_<NE,NW,SE,SW>.png`, chargés par `ui/boutique-scene.js` ; un meuble ajouté = ses 4 images + une ligne de `BOUTIQUE.meubles` + une ligne de `shopLayout.furniture` dans le noyau |
+| `Kenney Toon Characters/` | [Toon Characters](https://kenney.nl/assets/toon-characters-1), Kenney | CC0 1.0 | `<personnage>_<pose>.png` (idle, walk0-7, cheer, think, talk, hold…) |
 | `Kenney Tiny Town/` | [Tiny Town](https://kenney.nl/assets/tiny-town) v1.1, Kenney | CC0 1.0 | `tile_NNNN.png` (16 × 16) : herbe 0-2, arbres 3-4 / 15-16 / 27-28, buisson 5, champignon 29, terre 12-14 / 24-26 / 36-38 (bords) et 39-42 (coins rentrants) |
 | `Kenney Foliage Pack/` | [Foliage Pack](https://kenney.nl/assets/foliage-pack), Kenney (version « Default size ») | CC0 1.0 | `foliagePack_NNN.png` : fleurs 001-003 / 062, sapins 004-005 / 036, arbres ronds 006-010 / 037-041, arbres d'automne 012-016, touffes 018-021, sapins enneigés 027-032, buissons 049-052, rochers 053-058, rochers enneigés 059-061 |
 | `Kenney Medieval RTS/` | [Medieval RTS](https://kenney.nl/assets/medieval-rts), Kenney (version « Retina », 128 px) | CC0 1.0 | `medievalTile_NN.png` : herbe 57-58, eau 27, neige 29, terre 13 ; `medievalEnvironment_NN.png` : arbres 01-03 / 21, souche 04, tronc 05, rochers 07-08 / 14, buissons 12 / 19 |

@@ -30,14 +30,9 @@
   <div id="quete" class="hidden"></div>
 
   <main id="screens">
-    <section class="screen" id="screen-world">
-      <canvas id="worldCanvas"></canvas>
-      <div id="worldHint" class="world-hint"></div>
-      <div id="joystick" class="joystick"><i></i></div>
-      <div id="interactBtn" class="interact hidden">Entrer</div>
-    </section>
-
-    <section class="screen hidden" id="screen-arene"></section>
+    <section class="screen" id="screen-arene"></section>
+    <section class="screen hidden" id="screen-boutique"></section>
+    <section class="screen hidden" id="screen-encheres"></section>
     <section class="screen hidden" id="screen-farm"></section>
     <section class="screen hidden" id="screen-deck"></section>
     <section class="screen hidden" id="screen-bag"></section>
@@ -46,9 +41,9 @@
   <!-- La navigation (maquette « Arena Screen », 19 octobre 2026) : un dessin par ecran, sans texte. main.js pose les
        icones (`data-ico`, ui/icones.js) ; l'ecran actif est une grande tuile jaune qui depasse vers le haut. -->
   <nav id="nav">
-    <button data-go="farm" data-ico="Farm" aria-label="Ferme"></button>
-    <button data-go="arene" data-ico="Arena" aria-label="Arène"></button>
-    <button data-go="world" data-ico="Map" aria-label="Carte" class="active"></button>
+    <button data-go="encheres" data-ico="Farm" aria-label="Enchères"></button>
+    <button data-go="arene" data-ico="Arena" aria-label="Combats" class="active"></button>
+    <button data-go="boutique" data-ico="Coin" aria-label="Boutique"></button>
     <button data-go="deck" data-ico="Icon Deck" aria-label="Deck"></button>
     <button data-go="bag" data-ico="Shop" aria-label="Sac"></button>
   </nav>

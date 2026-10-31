@@ -188,7 +188,8 @@ export const BALANCE = {
         recompenseMs: 700,      // entre deux recompenses qui defilent
         compteMs: 800,          // le compteur d'une recompense (0 -> N)
         confettis: 34,          // la pluie de la victoire
-        confettiMs: 2600
+        confettiMs: 2600,
+        enchaineMs: 2800        // la ligne de combats : apres une victoire, le combat suivant part seul au bout de ce temps
       },
       // LA MORT : apres le coup (`mortDelaiMs`), la carte s'assombrit et montre le crane (`mortMs`), puis vole vers la
       // defausse de son camp (`mortVolMs`) — un jeton, qui n'a pas de carte, s'efface sur place.
@@ -286,6 +287,10 @@ export const BALANCE = {
   //     triche sait le passer).
   // La console de triche peut le couper le temps d'une session. Remettre a false quand la carte est la.
   toutDebloque: true,
+
+  // LA FERME est hors du jeu pour l'instant (31 oct. 2026) : son ecran et son code restent, mais rien n'y mene, elle ne tourne
+  // plus et ses quetes se sautent. Remettre a true pour la rebrancher (et son bouton dans game/index.html).
+  fermeActive: false,
 
   // LA CONSOLE DE TRICHE hors combat (ui/triche.js) : monnaies, niveaux, combats, deblocages. `bouton` : son bouton dans
   // la barre du haut ; a false, elle ne s'ouvre plus que par la console du navigateur (`AC.console()`). PROVISOIRE : outil

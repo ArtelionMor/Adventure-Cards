@@ -1,6 +1,6 @@
 # Adventure Card
 
-Idle RPG mobile (F2P) : exploration overworld + combats de cartes + deckbuilding + mini-jeu de Ferme.
+Idle RPG mobile (F2P) : boutique de cartes + ligne de combats de cartes + deckbuilding. La Ferme est hors du jeu pour l'instant (`BALANCE.fermeActive`).
 
 Avant de travailler sur ce projet, lis **`docs/GDD.md`** : c'est le document de conception à jour, avec toutes les mécaniques décidées (deckbuilding, monnaies, combat, architecture idle, art/anim) et les 2 seuls points encore réellement non tranchés (marqués ⚠ NON DÉCIDÉ dedans), plus une réflexion ouverte (⚠ EN RÉFLEXION : taille du deck, places d'équipe, choix guidé).
 
@@ -191,7 +191,8 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | `game/src/config/` | **Game config** (`balance.js` : tout ce qui se tune) et **registres** (`mechanics.js`), personnages, adversaires, monde, validation, courbes. | `game/src/config/CLAUDE.md` |
 | `game/src/combat/` | **Moteur**, bot, journal de décisions, événements du combat. Pas de DOM. | `game/src/combat/CLAUDE.md` |
 | `game/src/tools/` | L'**arène** de mesure (deck contre deck) et le montage des **situations**. | `game/src/tools/CLAUDE.md` |
-| `game/src/ui/` | Les **écrans** : combat, overworld, arènes, profil, deck, ferme, sac, journal graphique, gestes, icônes. | `game/src/ui/CLAUDE.md` |
+| `game/src/boutique/` | L'**économie de la boutique** : `partie.js` + `noyau/` (généré par `scripts/gen-boutique.mjs` depuis le dépôt TypeScript `core/`). | `game/src/CLAUDE.md` |
+| `game/src/ui/` | Les **écrans** : combat, ligne de combats, boutique, profil, deck, ferme, sac, journal graphique, gestes, icônes. | `game/src/ui/CLAUDE.md` |
 | `game/src/rig/` | L'**animation squelettique 2D** : squelette, clips, maillage, runtime, rendu WebGL, validateur (sans import extérieur). | `game/src/rig/CLAUDE.md` |
 | `game/data/` | Les données : **cartes** (écrites par le builder), situations, liste des sprites. | `game/data/CLAUDE.md` |
 | `builder/` | **L'Atelier** : Card Builder, équilibrage, courbes, situations, lancer un calcul, versions, Rig & Anim (pages autonomes, PWA). | `builder/CLAUDE.md` |
@@ -201,7 +202,7 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | `android/` | Le widget Android (Java, sans bibliothèque). | `android/CLAUDE.md` |
 | `docs/` | La conception : GDD, héros V3, grammaire des paliers, mécaniques à coder, situations. | `docs/CLAUDE.md` |
 | `Graphical Assets/` | **Toutes les images du game designer** (rangées le 19 oct. 2026) : `Characters/<Espèce>/` (portraits), `Buildings/` (bâtiments, arènes), `Ressources/` (Ferme, Sac), `Old UI/` (petits objets : coffre, arbre, reliques), `Icons/` (le logo et les **icônes d'interface**, + `Icons/Kenney/`), `CardBack/` (dos de carte), `VFX/` (les **particules** des effets, extraites du pack Kenney Particle) ; et, pas câblés, `Socials/` et les packs Kenney complets (`Kenney_*`, `Kenney Particle`). Les données citent le chemin complet (`Graphical Assets/Characters/Dog/Dog Cocker.png`) ; le jeu affiche leurs vignettes (`game/vignettes/`). | `Graphical Assets/CLAUDE.md`, `Graphical Assets/Icons/CLAUDE.md` |
-| `Decor/` | Packs d'assets **tiers** (Kenney, CC0) du sol et du décor de la carte : **Medieval RTS + Foliage Pack**, dessinés par `game/src/ui/sol-carte.js` ; Tiny Town (essayé, écarté) ne sert qu'au prototype (`docs/PACKS-CARTE.md`). | `Decor/CLAUDE.md` |
+| `Decor/` | Packs d'assets **tiers** (Kenney, CC0) de l'ancienne carte du monde, **retirée le 31 oct. 2026** : plus utilisés par le jeu. | `Decor/CLAUDE.md` |
 | `mockups/` | Maquettes (cartes, widget). | `mockups/CLAUDE.md` |
 | `combatLogs/` | Anciens exports de mesures (archives). | `combatLogs/CLAUDE.md` |
 | `build/` | Sorties de compilation, ignorées par git (vide). | — |
@@ -216,9 +217,8 @@ Le serveur de prévisualisation de l'outil est déclaré dans `.claude/launch.js
 | régler un coût, un timer, un plafond, le bot | `game/src/config/balance.js` |
 | régler la game config dans la **Google Sheet** | [« Config Adventure-Cards »](https://docs.google.com/spreadsheets/d/1B01tuggXdbvqO3_7wh2YserIoDVnarMXCPXPaYbSGCY/edit) → page « Feuille » de l'Atelier (lien en haut) ou `scripts/sync-feuille.mjs` sur le Pi ; onglets branchés : `animations`, `heroes` (la feuille commande les **statistiques** des héros et adversaires, le builder les **cartes**), `encounters` (puissance requise), `enemy_progress_profile` (un profil de progression par adversaire, lu par `config/ennemis.js`), et **le tutoriel** : `quests` (le fil de quêtes), `tutorial_guide` (les bulles du combat guidé), `start` (le départ d'une partie), cf. `docs/TUTORIEL.md` — `game/src/config/feuille.js` ; `~` = pas exporté |
 | modifier l'écran de combat, les gestes, le journal graphique | `game/src/ui/` (+ `game/styles.css`) |
-| changer le sol, les chemins, les arbres ou le feuillage de la carte | `game/src/ui/sol-carte.js` (le pack B+, cf. `docs/PACKS-CARTE.md`) |
 | changer l'aspect (couleurs, cadres, polices) ou une animation de carte | `game/skins/cozy.css` (le défaut, posé sur `juice.css` ; le fond de chaque arène : `fond` dans `config/arenes.js`) ; `game/src/ui/vfx.js` (`SIGNATURES`, cf. `docs/VFX-CARTES.md`) |
-| modifier la carte du monde, un bâtiment, une rencontre | `game/src/config/world.js` (placement) + `game/src/ui/overworld.js` (dessin) |
+| changer l'ordre des combats, un paliers de la progression | `core/config/meta.json` et `economy.json` (`progression`), puis `node scripts/gen-boutique.mjs` ; les récompenses d'une rencontre : `game/src/config/world.js` ; l'écran : `game/src/ui/arene.js` |
 | changer une arène (fiche, archétype, héros conseillés), un ennemi provisoire, sa progression | `game/src/config/arenes.js`, `game/src/config/ennemis.js` (+ onglets `encounters` / `enemy_progress_profile` de la feuille) ; l'écran : `game/src/ui/arene.js` |
 | changer l'arbre du profil du joueur, les jokers, les decks enregistrés | `game/src/config/profil.js`, `BALANCE.profil` / `BALANCE.decks` ; écrans `game/src/ui/profil.js`, `arene.js` |
 | mesurer l'équilibre | `scripts/matchups.mjs`, `simulate.mjs`, `check-decks.mjs`, `analyse-cartes.mjs` (ou `builder/balance.html`) |

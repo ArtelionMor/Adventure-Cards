@@ -482,8 +482,12 @@ export const tutorielFini = () => {
   return !fin || save.quetes.faites.includes(fin.id);
 };
 
-/** Une quete qui offre un heros deja possede ne se fait pas (un joueur qui a deja Medor ne refait pas sa quete). */
-const sautee = q => !!(q.recompense && q.recompense.heros && save.chars[q.recompense.heros] && save.chars[q.recompense.heros].owned);
+/**
+ * Une quete qui offre un heros deja possede ne se fait pas (un joueur qui a deja Medor ne refait pas sa quete), ni une quete
+ * de la Ferme tant qu'elle est hors du jeu.
+ */
+const QUETES_DE_FERME = ['plante', 'vend'];
+const sautee = q => (!BALANCE.fermeActive && QUETES_DE_FERME.includes(q.objectif?.quoi)) || !!(q.recompense && q.recompense.heros && save.chars[q.recompense.heros] && save.chars[q.recompense.heros].owned);
 
 /** Passe a la quete qui suit `q` dans le fil (`null` au bout). */
 function suivante(q) {

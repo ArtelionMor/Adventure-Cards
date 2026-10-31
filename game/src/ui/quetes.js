@@ -6,7 +6,6 @@ import { queteCourante, progresQuete, recupereQuete, ecouteQuetes } from '../sta
 import { t } from '../config/textes.js';
 import { $, el, toast, CURRENCY_NAME } from './shell.js';
 import { icone } from './icones.js';
-import { noeudDeLArene, ouvreFicheArene } from './arene.js';
 
 // Ou mene une quete, selon ce qu'elle demande.
 const ECRAN = { equipe: 'deck', ameliore: 'deck', switch: 'deck', plante: 'farm', vend: 'farm', victoire: 'arene' };
@@ -53,13 +52,6 @@ function recupere() {
 function guide(q) {
   if (!nav) return;
   const o = q.objectif;
-  if (o.quoi === 'arene') {
-    const n = noeudDeLArene(o.arene);
-    if (!n) { nav.go('arene'); return; }
-    // Comme depuis l'onglet « Arene » : la fiche s'ouvre a distance, et l'onglet se redessine apres le combat.
-    nav.go('arene');
-    ouvreFicheArene(n, { apres: () => nav.rafraichit() });
-    return;
-  }
-  nav.go(ECRAN[o.quoi] || 'world');
+  // Un objectif de combat mene a la ligne : le combat suivant s'y joue, dans l'ordre.
+  nav.go(ECRAN[o.quoi] || 'arene');
 }

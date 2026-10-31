@@ -12,4 +12,6 @@
 | `Combat Screen.png`, `Combat Screen more than 3 cards.png` | L'**écran de combat** (19 oct. 2026) : adversaire en haut (piles, médaillon, main de dos en éventail, mana), onglets Menu / Registre / Log à gauche, Fin de tour et x2 à droite, ligne du joueur avec Auto, plateau de la main (mana, main, pioche et défausse qui dépassent du bas) ; à plat jusqu'à 3 cartes, en éventail au-delà. Cible de `monteLaCoque` (`ui/battle.js`). |
 | `Combat Screen Zoom on a card.png` | La **fiche d'appui long** (19 oct. 2026) : la carte en grand, nom, attaque et vie, puce Type (une couleur par type), ce qu'elle fait (« icônes : texte »), un trait, ce qui la modifie sous le portrait de chaque source. Cible de `inspectNode` / `ficheCarte` et `ui/fiche.js`. |
 
+| `Card Shop/Frame *.png` | **La boutique** (30 oct. 2026) : vue isométrique, tables avec les cartes, bulle de prix, bulle d'humeur, gain qui s'envole, « + » sur une table vide, et la fenêtre de pose d'une carte. Cible de `game/src/ui/boutique-scene.js`. |
+
 Aucun code ne les lit. Binaires : n'ouvre une image que si la tâche porte sur ce qu'elle montre.

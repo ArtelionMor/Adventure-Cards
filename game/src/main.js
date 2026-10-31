@@ -3,9 +3,8 @@ import { BALANCE } from './config/balance.js';
 import { CHAR_BY_ID } from './config/characters.js';
 import { CHAR_BY_ID as HEROS, niveauMax } from './config/characters.js';
 import { save, persist, upgradeCost } from './state.js';
-import { $, $$, el, asset, toast, modal, closeModal, fmtTime, court } from './ui/shell.js';
+import { $, $$, el, asset, toast, modal, closeModal, fmtTime, court, setRefreshTop } from './ui/shell.js';
 import { icone } from './ui/icones.js';
-import { initWorld, startWorld, stopWorld, setRefreshTop } from './ui/overworld.js';
 import { renderFarm, processFarm } from './ui/farm.js';
 import { renderDeck } from './ui/deck.js';
 import { renderBag } from './ui/bag.js';
@@ -15,19 +14,22 @@ import { chargeLeJeu } from './ui/chargement.js';
 import { openBattle } from './ui/battle.js';
 import { installeQuetes } from './ui/quetes.js';
 import { installeTriche } from './ui/triche.js';
+import { renderBoutique, quitteBoutique, renderEncheres, quitteEncheres, montreResumeBoutique, consoleBoutique } from './ui/boutique.js';
+import { demarreBoutique } from './boutique/partie.js';
 
-let current = 'world';
+let current = 'arene';
 
 function go(screen) {
   current = screen;
   $$('#screens .screen').forEach(s => s.classList.add('hidden'));
   $('#screen-' + screen).classList.remove('hidden');
   $$('#nav button').forEach(b => b.classList.toggle('active', b.dataset.go === screen));
-  if (screen === 'world') startWorld(); else stopWorld();
   if (screen === 'farm') renderFarm();
   if (screen === 'deck') renderDeck();
   if (screen === 'bag') renderBag();
   if (screen === 'arene') renderArene();
+  if (screen === 'boutique') renderBoutique(); else quitteBoutique();
+  if (screen === 'encheres') renderEncheres(); else quitteEncheres();
   refreshTop();
 }
 
@@ -60,14 +62,17 @@ async function wakeLock() {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     wakeLock();
-    const r = processFarm();
-    if (r.earned) toast(`Vente pendant ton absence : +${r.earned} legumes.`);
-    if (current === 'farm') renderFarm();
+    if (BALANCE.fermeActive) {
+      const r = processFarm();
+      if (r.earned) toast(`Vente pendant ton absence : +${r.earned} legumes.`);
+      if (current === 'farm') renderFarm();
+    }
     refreshTop();
   } else persist();
 });
 
 function offlineReport() {
+  if (!BALANCE.fermeActive) return;
   const away = Date.now() - (save.lastSeen || Date.now());
   const r = processFarm();
   if (away < 60000 && !r.earned) return;
@@ -86,12 +91,13 @@ function offlineReport() {
 
 // ------------------------------------------------------------------ boot
 function boot() {
-  initWorld();
   $$('#nav button').forEach(b => { b.innerHTML = icone(b.dataset.ico, 46); b.onclick = () => go(b.dataset.go); });
   // L'avatar de la barre du haut ouvre le PROFIL DU JOUEUR (ui/profil.js), comme toucher le joueur sur la carte.
   $('#topbar .hero-chip').onclick = ouvreProfil;
-  go('world');
+  const absenceBoutique = demarreBoutique();
+  go('arene');
   offlineReport();
+  if (absenceBoutique) montreResumeBoutique(absenceBoutique);
   wakeLock();
 
   // Le TUTORIEL n'est plus une fenetre : c'est le debut du fil de quetes (config/quetes.js), dans le bandeau sous la
@@ -99,6 +105,7 @@ function boot() {
   installeQuetes({ go, rafraichit: () => go(current) });
   // La CONSOLE DE TRICHE hors combat (ui/triche.js) : son bouton dans la barre du haut (`BALANCE.triche.bouton`).
   window.AC.console = installeTriche({ go, rafraichit: () => go(current) });
+  window.AC.boutique = consoleBoutique();
 
   setInterval(() => { persist(); refreshTop(); }, BALANCE.save.autosaveMs);
   addEventListener('beforeunload', persist);
@@ -108,9 +115,8 @@ function boot() {
 // console de triche en boutons (ui/triche.js), une fois le jeu charge.
 window.AC = {
   save, persist, go,
-  fight: enc => { stopWorld(); openBattle({ id: 'debug', name: 'Test', enemy: enc }, () => { startWorld(); refreshTop(); }); },
+  fight: enc => openBattle({ id: 'debug', name: 'Test', enemy: enc }, () => refreshTop()),
   give: (k, n) => { save.cur[k] = (save.cur[k] || 0) + n; persist(); refreshTop(); },
-  teleport: (x, y) => { save.world.px = x; save.world.py = y; persist(); },
   level: (id, l) => { save.chars[id].level = l; persist(); refreshTop(); }
 };
 

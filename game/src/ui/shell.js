@@ -14,6 +14,10 @@ export const asset = p => {
   return ALLEGEES.has(p) ? '/game/vignettes/' + encode(p.replace(/\.[^./]+$/, '.webp')) : '/' + encode(p);
 };
 
+// Redessine la barre du haut : main.js donne la fonction, les ecrans l'appellent.
+export let refreshTop = () => {};
+export function setRefreshTop(fn) { refreshTop = fn; }
+
 export const $ = sel => document.querySelector(sel);
 export const $$ = sel => [...document.querySelectorAll(sel)];
 
@@ -59,7 +63,7 @@ export function fmtTime(ms) {
 }
 
 export const CURRENCY_NAME = {
-  A: 'Fanions',        // distribues en explorant l'overworld
+  A: 'Fanions',        // gagnes en combat
   B: 'Sceaux',         // debloquent les cartes switch (collecte a trancher, cf. GDD)
   C: 'Pièces',         // ameliorations des heros + progression path (la Ferme en rapporte)
   G: 'Gemmes'          // affichees dans la barre du haut ; rien ne les depense encore

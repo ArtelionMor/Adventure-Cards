@@ -8,6 +8,7 @@
 | `combat/` | Le **moteur**, le bot, les journaux (décisions + événements) — `combat/CLAUDE.md`. |
 | `tools/` | L'**arène** de mesure et le montage de situations — `tools/CLAUDE.md`. |
 | `ui/` | Les **écrans** — `ui/CLAUDE.md`. |
+| `boutique/` | **L'économie de la boutique** : `partie.js` (état, sauvegarde `adventureCard.boutique.v1`, temps, résumé d'absence, `noteVictoireBoutique`) et `noyau/` (**généré** par `scripts/gen-boutique.mjs` depuis le dépôt TypeScript `core/` : ne pas l'éditer ici). Pas de DOM. |
 | `rig/` | **L'animation squelettique 2D** (23 oct. 2026) : squelette, clips, maillage, runtime, rendu WebGL, validateur — sans aucun import hors du dossier (il se copie dans un autre jeu) — `rig/CLAUDE.md`. Pas encore branché sur les écrans. |
 
 ## Sens des dépendances (ne pas les inverser)
@@ -21,5 +22,5 @@
 | coder une mécanique nouvelle | `config/mechanics.js` (registre) + `combat/engine.js` (`case`) + `combat/ai.js` (valeur) |
 | régler un coût, un timer, le bot, un plafond | `config/balance.js` |
 | changer l'écran de combat | `ui/battle.js` (+ `styles.css`) |
-| changer la carte du monde, un bâtiment, une rencontre | `config/world.js` (placement) et `ui/overworld.js` (dessin) |
+| changer les récompenses d'une rencontre | `config/world.js` (la carte du monde a été retirée le 31 oct. 2026 : il ne reste que les rencontres) |
 | une icône | déposer `Graphical Assets/Icons/<Nom>.png` (`ui/icones.js` liste les noms) |

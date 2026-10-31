@@ -1,4 +1,4 @@
-// LES ARENES (spec « Refonte Overworld + Arenes », 16 octobre 2026).
+// LES COMBATS : la fiche d'un adversaire et la ligne de combats.
 //
 // La FICHE d'une arene, en deux etapes dans la meme fenetre :
 //   1. l'ennemi — nom, sprite, batiment, niveau de l'arene, archetype, ce que le combat demande, la strategie
@@ -7,12 +7,11 @@
 //   2. l'equipe — le panneau d'equipe de l'ecran Deck (ui/deck.js, `panneauEquipe`), les decks enregistres (un
 //      toucher recharge un deck), la taille du deck et les jokers de retrait, puis « Combattre » -> `openBattle`
 //      (mode auto par defaut, comme tout combat).
-// On l'ouvre en entrant dans le batiment (ui/overworld.js) ou depuis l'onglet « Arene » (`renderArene`), qui
-// montre une carte par arene DECOUVERTE (`save.world.seen`), sans avoir a marcher jusqu'a elle.
+// On l'ouvre depuis LA LIGNE DE COMBATS (`renderArene`) : tous les combats a la suite, un adversaire a un niveau, le
+// suivant au centre. La position vient de boutique/partie.js.
 // Les mots viennent de config/textes.js (`arene.*`), les donnees de config/arenes.js et config/ennemis.js.
-import { BALANCE } from '../config/balance.js';
 import { WORLD, ENCOUNTERS } from '../config/world.js';
-import { ARENES, libelleArchetype } from '../config/arenes.js';
+import { ARENE_PAR_ID, libelleArchetype } from '../config/arenes.js';
 import { coteEnnemi } from '../config/ennemis.js';
 import { CHAR_BY_ID } from '../config/characters.js';
 import { t } from '../config/textes.js';
@@ -20,10 +19,14 @@ import {
   save, persist, team, etatArene, areneDe, puissanceEquipe, tailleDuDeck, tailleMinDuDeck, retireCarte, rendCarte,
   enregistreDeck, chargeDeck, supprimeDeck, possede
 } from '../state.js';
+import { CONFIG } from '../boutique/noyau/donnees.js';
+import { combatDeLaLigne, indexCourant, longueurLigne } from '../boutique/partie.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
 import { panneauEquipe } from './deck.js';
 import { icone } from './icones.js';
 import { openBattle } from './battle.js';
+
+const COMBATS_PAR_ADVERSAIRE = CONFIG.progression.ladder.winsToAdvance;
 
 /** Le point du monde qui porte une arene. */
 export const noeudDeLArene = id => WORLD.nodes.find(n => n.type === 'arena' && n.arene === id) || null;
@@ -31,16 +34,16 @@ export const noeudDeLArene = id => WORLD.nodes.find(n => n.type === 'arena' && n
 const echappe = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /**
- * Ouvre la fiche de l'arene du point `n`. `avant()` est appele juste avant le combat (la carte s'arrete),
+ * Ouvre la fiche de l'arene du point `n`. `avant()` est appele juste avant le combat,
  * `apres(gagne)` au retour du combat — ou a la fermeture de la fiche sans combattre (`gagne` = null).
- * `niveau` : le niveau a jouer (choisi dans l'onglet, un niveau deja battu se rejoue) ; le niveau courant sinon.
+ * `niveau` : le niveau a jouer (celui du combat touche dans la ligne) ; le niveau courant sinon.
  */
-export function ouvreFicheArene(n, { avant = () => {}, apres = () => {}, niveau = null } = {}) {
+export function ouvreFicheArene(n, { avant = () => {}, apres = () => {}, niveau = null, enchaine = false } = {}) {
   const a = areneDe(n);
   if (!a) return;
   save.world.seen[n.id] = true;
   persist();
-  presentation(n, a, { avant, apres, niveau });
+  presentation(n, a, { avant, apres, niveau, enchaine });
 }
 
 /** Le niveau que la fiche fera jouer. */
@@ -140,89 +143,83 @@ function choixEquipe(n, a, cb) {
     closeModal();
     cb.avant();
     // Le combat existant, inchange : le point du monde porte l'arene, le niveau est celui de l'arene.
-    openBattle({ ...n, niveau: niveauJoue(a, cb) }, gagne => cb.apres(gagne));
+    openBattle({ ...n, niveau: niveauJoue(a, cb), enchaine: cb.enchaine }, gagne => cb.apres(gagne));
   };
   box.appendChild(boutons);
   modal(box).classList.add('dk-feuille', 'ar-feuille');
 }
 
-// --------------------------------------------------------------- l'onglet « Arene »
-// Une CARTE par arene decouverte (maquette « Arena Screen », 19 octobre 2026) : le batiment en fond, l'ennemi en
-// grand, son nom, son archetype, la mecanique de son deck (`signature`, config/arenes.js), l'equipe conseillee (avec
-// ce qu'il reste a faire pour chaque heros) et le CHOIX DU NIVEAU — fleches, niveaux battus coches, la recompense
-// au-dessus. Toucher la carte ouvre la fiche au niveau choisi ; les fleches ne l'ouvrent pas.
+// --------------------------------------------------------------- la ligne de combats
+// Une piste qui monte de bas en haut : un point par combat, le courant en evidence, l'ennemi du point choisi en grand dans le
+// fond avec ses infos. Toucher un point montre son ennemi ; on combat le courant, on rejoue un combat fait.
+const AVANT = 12;     // combats deja faits montres sous le combat courant
+const APRES = 30;     // combats a venir montres au-dessus
+let choisi = null;
 
-// Le niveau choisi par arene, le temps de la session (au depart : le niveau courant, celui qu'on n'a pas encore battu).
-const choisis = new Map();
-
-/** Ou en est un heros conseille : recrute (« Upgrade »), recrutable (« Unlock »), ou pas encore decouvert. */
-function statutHeros(h) {
-  const st = save.chars[h.id] || {};
-  if (possede(h.id)) return { cl: 'ameliorer', mot: t('deck.ameliorer') };
-  if (st.bossBeaten) return { cl: 'debloquer', mot: t('arene.debloquer') };
-  return { cl: 'inconnu', mot: t('arene.inconnu') };
+function point(i, cur) {
+  const c = combatDeLaLigne(i);
+  const etat = i < cur ? 'fait' : i === cur ? 'courant' : 'avenir';
+  const nouveau = i % COMBATS_PAR_ADVERSAIRE === 0;
+  const p = el(`<button class="lg-pt ${etat} ${nouveau ? 'nouveau' : ''} ${i === choisi ? 'choisi' : ''}" aria-label="${t('ligne.combat', { n: i + 1 })}">
+    ${etat === 'fait' ? icone('Validate', 20) : `<span>${i + 1}</span>`}
+  </button>`);
+  p.onclick = () => { choisi = i; dessineLigne(); };
+  return p;
 }
 
-function carteArene(a, n) {
-  const etat = etatArene(a.id);
-  const max = Math.max(1, etat.niveau);
-  if (!choisis.has(a.id) || choisis.get(a.id) > max) choisis.set(a.id, max);
-  const enc = ENCOUNTERS[a.ennemi] || {};
-  const heros = a.herosConseilles.map(id => CHAR_BY_ID[id]).filter(Boolean);
-  const equipe = heros.length
-    ? heros.map(h => {
-      const s = statutHeros(h);
-      return `<div class="arn-h ${s.cl}"><img src="${asset(h.sprite)}" alt=""><span>${echappe(h.name)}</span><em>${s.mot}</em></div>`;
-    }).join('')
-    : `<p>${t('arene.tousConseilles')}</p>`;
-  const sig = a.signature ? `<div class="arn-sig">${icone(a.signature.icone, 30)}<span>${echappe(a.signature.texte)}</span></div>` : '';
-  const c = el(`<div class="arn" role="button">
-    <img class="arn-bat" src="${asset(a.batiment)}" alt="">
-    <img class="arn-ennemi" src="${asset(enc.sprite || '')}" alt="">
-    <div class="arn-droite">
-      <h3>${echappe(n.name)}</h3>
-      <div class="arn-corps">
-        <div class="arn-gauche">
-          <span class="arn-arch">${echappe(libelleArchetype(a))}</span>
-          <div class="arn-equipe"><b>${t('arene.equipeConseillee')}</b>${equipe}</div>
-        </div>
-        <div class="arn-col">
-          ${sig}
-          <div class="arn-niv"></div>
-        </div>
-      </div>
+/** Enchaine le combat suivant de la ligne, avec l'equipe en place. Une defaite ou « Arreter » ramene a la ligne. */
+function combatSuivant() {
+  const cur = indexCourant();
+  const c = combatDeLaLigne(cur);
+  const n = noeudDeLArene(c.arene);
+  if (cur >= longueurLigne() || !n || tailleDuDeck() < tailleMinDuDeck()) { renderArene(); return; }
+  openBattle({ ...n, niveau: c.niveau, enchaine: true }, g => (g ? combatSuivant() : renderArene()));
+}
+
+function dessineLigne() {
+  const root = $('#screen-arene');
+  const cur = indexCourant();
+  const total = longueurLigne();
+  const i = Math.min(total - 1, choisi ?? cur);
+  const c = combatDeLaLigne(i);
+  const a = ARENE_PAR_ID[c.arene];
+  const n = noeudDeLArene(c.arene);
+  const enc = ENCOUNTERS[a?.ennemi] || {};
+  const ennemi = coteEnnemi(a?.ennemi, c.niveau) || enc;
+  const avenir = i > cur;
+  root.innerHTML = '';
+  const ecran = el(`<div class="lg-ecran">
+    <img class="lg-bat" src="${asset(a?.batiment || '')}" alt="">
+    <img class="lg-ennemi" src="${asset(ennemi.sprite || enc.sprite || '')}" alt="">
+    <div class="lg-rail"><div class="lg-points"></div></div>
+    <div class="lg-infos">
+      <div class="lg-num">${t('ligne.combat', { n: i + 1 })} / ${total}</div>
+      <h2>${echappe(n?.name || c.arene)}</h2>
+      <div class="ar-puces"><span class="ar-puce arch">${a ? echappe(libelleArchetype(a)) : ''}</span><span class="ar-puce">${t('arene.niveau', { n: c.niveau })}</span></div>
+      <div class="lg-stats">${ennemi.hp ?? '?'} PV · ${(ennemi.deck || []).length} cartes</div>
+      ${a?.signature ? `<div class="lg-sig">${icone(a.signature.icone, 22)}<span>${echappe(a.signature.texte)}</span></div>` : ''}
+      <button class="btn lg-go" ${avenir || !n ? 'disabled' : ''}>${avenir ? t('ligne.verrou') : i < cur ? t('ligne.rejouer') : t('ligne.jouer')}</button>
     </div>
   </div>`);
-  const niv = c.querySelector('.arn-niv');
-  const dessine = () => {
-    const k = choisis.get(a.id);
-    const gain = enc.rewards ? enc.rewards.A : null;
-    const pilule = (v, cl) => (v < 1 ? '<span class="arn-p vide"></span>'
-      : `<span class="arn-p ${cl} ${v <= etat.meilleur ? 'battu' : ''} ${v > max ? 'ferme' : ''}">${cl === 'cur' ? t('deck.niveau', { n: v }) : v}${v <= etat.meilleur && cl !== 'cur' ? icone('Validate', 26) : ''}</span>`);
-    niv.innerHTML = `
-      ${gain != null ? `<div class="arn-gain">${icone('Fanion', 16)}<b>${gain}</b></div>` : ''}
-      <div class="arn-rail"><i></i></div>
-      <div class="arn-choix">
-        <button class="arn-fl g" ${k <= 1 ? 'disabled' : ''} aria-label="niveau précédent"></button>
-        <div class="arn-pilules">${pilule(k - 1, 'prec')}${pilule(k, 'cur')}${pilule(k + 1, 'suiv')}</div>
-        <button class="arn-fl d" ${k >= max ? 'disabled' : ''} aria-label="niveau suivant"></button>
-      </div>`;
-    niv.querySelector('.g').onclick = ev => { ev.stopPropagation(); if (k > 1) { choisis.set(a.id, k - 1); dessine(); } };
-    niv.querySelector('.d').onclick = ev => { ev.stopPropagation(); if (k < max) { choisis.set(a.id, k + 1); dessine(); } };
-  };
-  dessine();
-  c.onclick = () => ouvreFicheArene(n, { niveau: choisis.get(a.id), apres: () => renderArene() });
-  return c;
+  const points = ecran.querySelector('.lg-points');
+  // Du plus loin au plus proche : le premier combat est en bas, on monte.
+  for (let k = Math.min(total - 1, cur + APRES); k >= Math.max(0, cur - AVANT); k--) points.appendChild(point(k, cur));
+  // Le combat courant lance la suite : chaque victoire enchaine le suivant. Un combat rejoue reste seul.
+  if (n && !avenir) {
+    ecran.querySelector('.lg-go').onclick = () => ouvreFicheArene(n, {
+      niveau: c.niveau,
+      enchaine: i === cur,
+      apres: g => { choisi = null; if (g && i === cur) combatSuivant(); else renderArene(); }
+    });
+  }
+  root.appendChild(ecran);
+  const rail = ecran.querySelector('.lg-rail');
+  const vise = ecran.querySelector('.lg-pt.choisi') || ecran.querySelector('.lg-pt.courant');
+  if (vise) rail.scrollTop = vise.offsetTop - rail.clientHeight * 0.62;
 }
 
-/** L'onglet : une carte par arene decouverte, dans l'ordre de config/arenes.js. */
+/** L'onglet : la piste, sur le combat courant. */
 export function renderArene() {
-  const root = $('#screen-arene');
-  root.innerHTML = '';
-  const wrap = el(`<div class="pad ar-onglet"><h2>${t('arene.onglet')}</h2><div class="arn-liste"></div></div>`);
-  const liste = wrap.querySelector('.arn-liste');
-  const vues = ARENES.map(a => ({ a, n: noeudDeLArene(a.id) })).filter(x => x.n && (BALANCE.toutDebloque || save.world.seen[x.n.id]));
-  if (!vues.length) liste.appendChild(el(`<p class="muted">${t('arene.vide')}</p>`));
-  for (const { a, n } of vues) liste.appendChild(carteArene(a, n));
-  root.appendChild(wrap);
+  choisi = null;
+  dessineLigne();
 }

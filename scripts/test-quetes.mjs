@@ -144,8 +144,9 @@ for (const q of QUETES.filter(x => x.objectif.quoi === 'equipe')) {
   verifie('ancienne sauvegarde : tutoriel sauté', S.tutorielFini());
   verifie('ancienne sauvegarde : les Lapins reçus', ['lapin1', 'lapin2', 'lapin3'].every(id => S.save.chars[id].owned));
   verifie('ancienne sauvegarde : son equipe gardee', S.save.team.join() === 'dog,cat,crow', S.save.team.join());
-  verifie('ancienne sauvegarde : Medor, Felix, Corax sautés → la Ferme',
-    S.queteCourante() && S.queteCourante().id === 'plante', S.queteCourante() && S.queteCourante().id);
+  // La Ferme est hors du jeu (BALANCE.fermeActive) : ses quêtes se sautent aussi.
+  verifie('ancienne sauvegarde : Medor, Felix, Corax sautés, et la Ferme aussi',
+    !S.queteCourante() || !['plante', 'vend'].includes(S.queteCourante().objectif.quoi), S.queteCourante() && S.queteCourante().id);
 }
 
 // ------------------------------------------------------------------ 7. « tout debloque » (provisoire) et la triche

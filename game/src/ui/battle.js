@@ -4,6 +4,8 @@ import { BALANCE } from '../config/balance.js';
 import { CHAR_BY_ID, CHARACTERS, characterDeck, resolveCard } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist, gagneXp, noteCombatArene, etatArene, signale } from '../state.js';
+import { noteVictoireBoutique } from '../boutique/partie.js';
+import { t } from '../config/textes.js';
 import { coteEnnemi } from '../config/ennemis.js';
 import { relicMods } from '../config/relics.js';
 import { TRIGGERS, EVENT_TRIGGERS, COUNTERS, keyLabel, hasKey, typesOf, cardCost, describeStatic, describeEffect, describeAura, eachSubEffect, momentLabel, branchesDe, listeEffets } from '../config/mechanics.js';
@@ -1814,21 +1816,26 @@ function finish() {
   }
   // Le FIL DE QUETES (state.js) : une victoire compte pour « gagne un combat », et une arene battue se relit toute seule.
   if (win) signale('victoire', { equipe: team().length });
+  // LA LIGNE DE COMBATS : la victoire sur le combat courant fait avancer d'un cran (boutique/partie.js).
+  if (win && ctx.arene) noteVictoireBoutique(ctx.arene, ctx.niveau);
 
   // `onDone` est lu ici et non au moment du toucher : « Revoir le combat » ouvre un rejeu qui le remplace.
   const fini = onDone;
-  const ferme = () => {
+  const ferme = (issue = win) => {
     $('#battle').classList.add('hidden');
     $('#battle').classList.remove('spot');
     $('#battle').innerHTML = '';
     B = null;
-    if (fini) fini(win);
+    if (fini) fini(issue);
   };
   const boutons = [];
+  // La LIGNE DE COMBATS enchaine (ui/arene.js) : une victoire lance le combat suivant toute seule. Toucher l'ecran la retient.
+  const enchaine = win && ctx.enchaine;
   // Perdre ne coute rien : on relance tout de suite la meme rencontre (la victoire, elle, paie
   // des recompenses — la rejouer en boucle est une question d'economie, pas d'interface).
   if (!win) boutons.push({ texte: 'Réessayer', primaire: true, onClick: () => { const n = ctx, d = onDone; B = null; openBattle(n, d); } });
-  boutons.push({ texte: win ? 'Continuer' : 'Retour', primaire: win, onClick: ferme });
+  boutons.push({ texte: enchaine ? t('ligne.suivant') : win ? 'Continuer' : 'Retour', primaire: win, onClick: () => ferme() });
+  if (enchaine) boutons.push({ texte: t('ligne.arreter'), onClick: () => ferme(false) });
   // « Revoir le combat » le REJOUE devant le joueur ; « Continuer » au bout du rejeu reprend ou celui-ci s'arretait.
   // Le journal de DECISIONS (outil du game designer) n'est plus ici : `AC.triche.decisions()`, 5 touchers sur « Tour N ».
   if (idRecit) boutons.push({ texte: 'Revoir le combat', onClick: () => lanceRejeu(idRecit, ferme) });
@@ -1839,7 +1846,7 @@ function finish() {
   montreFin({
     racine: root, issue: win ? 'victoire' : (B.abandon || B.winner === 'e' ? 'defaite' : 'nul'),
     sousTitre: win ? `${enc.name} est vaincu.` : B.abandon ? 'Tu as abandonné.' : `${enc.name} tient bon. Reviens plus fort.`,
-    recompenses, notes, boutons
+    recompenses, notes, boutons, enchaine: enchaine ? () => ferme() : null
   });
 }
 

@@ -101,35 +101,6 @@ img { image-rendering: auto; }
 /* ---------- screens ---------- */
 #screens { position: relative; overflow: hidden; }
 .screen { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; }
-#screen-world { overflow: hidden; }
-#worldCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
-
-.world-hint {
-  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-  background: rgba(20,16,28,.86); border: 1px solid var(--line); border-radius: 999px;
-  padding: 5px 14px; font-size: 12px; color: var(--ink); pointer-events: none;
-  opacity: 0; transition: opacity .2s; max-width: 90%; text-align: center;
-}
-.world-hint.on { opacity: 1; }
-
-/* La manette est FLOTTANTE : le JS la pose (left/top) sous le doigt et la cache au relache.
-   Son rayon (62 px) est repris tel quel par `RAYON` dans ui/overworld.js. Elle ne recoit
-   aucun toucher : c'est le canvas qui ecoute, la manette n'est que le dessin. */
-.joystick {
-  position: absolute; width: 124px; height: 124px; box-sizing: border-box;
-  border-radius: 50%; background: rgba(255,255,255,.07); border: 1.5px solid rgba(255,255,255,.28);
-  pointer-events: none; z-index: 5;
-}
-.joystick i {
-  position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px;
-  border-radius: 50%; background: rgba(255,255,255,.34);
-}
-.interact {
-  position: absolute; right: 20px; bottom: 40px; background: var(--accent); color: #3a2a10;
-  font-weight: 700; padding: 14px 22px; border-radius: 999px; cursor: pointer;
-  box-shadow: 0 6px 0 rgba(0,0,0,.3);
-}
-.interact:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(0,0,0,.3); }
 
 /* ---------- panels generiques ---------- */
 .pad { padding: 14px; display: grid; gap: 12px; }
@@ -1090,3 +1061,87 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 #chargement .chg-barre { width: 220px; height: 18px; border-radius: 10px; background: #4a3532; border: 3px solid #2b1c1f; overflow: hidden; box-shadow: 0 3px 0 #2b1c1f; }
 #chargement .chg-barre i { display: block; height: 100%; width: 0; background: linear-gradient(180deg, #ffef9f 0 40%, #ffb92a 40% 100%); transition: width .15s linear; }
 #chargement .chg-texte { font: 14px "Lilita One", system-ui, sans-serif; color: #2b1c1f; }
+
+/* ---------------------------------------------------- boutique (ui/boutique.js, ui/boutique-scene.js) */
+#screen-boutique { overflow: hidden; background: #f7ead0; color: #3a2a22; }
+#screen-encheres { background: #f7ead0; color: #3a2a22; }
+#screen-encheres .btq-panneau { min-height: 100%; box-sizing: border-box; }
+#screen-encheres .btq-puce { margin-top: 8px; }
+.btq { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.btq .muted { color: #7c6a5a; }
+.btq-barre { display: flex; gap: 12px; align-items: center; padding: 6px 12px; background: #fff3d8; border-bottom: 3px solid #4a342a; font-size: 13px; }
+.btq-barre span { display: inline-flex; gap: 4px; align-items: center; }
+#btqEchelle { margin-left: auto; color: #7c6a5a; }
+.btq-monde { position: relative; flex: 1 1 0; min-height: 0; overflow: hidden; background: #17141f; }
+#btqCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.btq-onglets { display: flex; background: #fff3d8; border-top: 3px solid #4a342a; padding-bottom: 38px; }
+.btq-onglets button { flex: 1; padding: 8px 0; background: none; border: 0; color: #7c6a5a; font: inherit; font-size: 13px; font-weight: 700; }
+.btq-onglets button.on { background: #ffc94a; color: #3a2a22; }
+.btq-panneau { flex: 0 0 46%; min-height: 0; overflow-y: auto; padding: 10px 12px 14px; background: #f7ead0; border-top: 4px solid #4a342a; }
+.btq-panneau.ferme { display: none; }
+.btq-meubles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.btq-meuble { padding: 4px 2px; display: flex; flex-direction: column; align-items: center; gap: 1px; background: #fff8e8; border: 2px solid #c9b48c; border-radius: 8px; color: inherit; font: inherit; font-size: 10px; }
+.btq-meuble img { height: 44px; max-width: 100%; object-fit: contain; }
+.btq-meuble b { color: #a06a00; }
+.btq-nuances { display: flex; gap: 8px; }
+.btq-nuances button { width: 40px; height: 32px; padding: 0; border: 3px solid #c9b48c; border-radius: 8px; }
+.btq-nuances button.on { border-color: #2b1c1f; }
+.btq-panneau h3, .btq-fiche h3 { margin: 10px 0 6px; color: #3a2a22; font-size: 14px; text-transform: none; letter-spacing: 0; }
+.btq-panneau .btn { width: 100%; margin-top: 6px; }
+.btq-ligne { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
+.btq-c { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; background: #fff8e8; border: 3px solid var(--r); border-radius: 8px; }
+.btq-c img { width: 100%; height: 100%; object-fit: contain; }
+.btq-c.foil::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, #ff5fa055, #ffe65f55 30%, #5fffc055 55%, #5fb4ff55 80%); background-size: 240% 100%; mix-blend-mode: screen; animation: btq-foil 3s linear infinite; }
+@keyframes btq-foil { to { background-position: -240% 0; } }
+.btq-note { position: absolute; right: 2px; bottom: 2px; min-width: 18px; padding: 0 3px; text-align: center; background: #3a2a22; color: #ffd76a; border-radius: 5px; font-size: 11px; }
+.btq-tirage { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; min-height: 12px; margin: 8px 0; }
+.btq-tirage:has(.btq-revele:nth-child(4)) { grid-template-columns: repeat(5, 1fr); }
+.btq-revele { position: relative; animation: btq-revele .4s ease-out backwards; }
+.btq-revele em { position: absolute; left: 50%; bottom: -6px; translate: -50% 0; padding: 0 5px; background: #2d9d5f; color: #fff; border-radius: 6px; font-size: 10px; font-style: normal; white-space: nowrap; }
+.btq-revele em.b { background: #8f5f3a; }
+.btq-revele.va-bulk { animation: btq-revele .4s ease-out backwards, btq-bulk .7s ease-in 1.1s forwards; }
+@keyframes btq-revele { from { transform: scale(.4) rotate(-8deg); opacity: 0; } }
+@keyframes btq-bulk { to { transform: translate(40px, -90px) scale(.2); opacity: 0; } }
+.btq-filtre { display: block; margin-top: 12px; font-size: 13px; }
+.btq-filtre input, .btq-fiche input[type=range] { width: 100%; }
+.btq-case { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.btq-grille { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.btq-case-c { padding: 0; background: none; border: 0; color: inherit; font: inherit; font-size: 11px; }
+.btq-rang { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #e3cfa9; font-size: 13px; }
+.btq-rang > .btq-c, .btq-rang > img { flex: 0 0 42px; width: 42px; height: 42px; object-fit: contain; }
+.btq-rang > span { flex: 1; display: inline-flex; gap: 4px; align-items: center; }
+.btq-rang > em { font-style: normal; color: #7c6a5a; font-size: 12px; }
+.btq-rang.verrou > img { filter: grayscale(1); opacity: .6; }
+.btq-nom { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.btq-nom span { font-size: 11px; }
+.btq-tiers { display: flex; gap: 2px; }
+.btq-tiers button { width: 22px; height: 22px; padding: 0; background: #fff3d8; border: 2px solid #c9b48c; border-radius: 5px; color: #7c6a5a; font-size: 11px; font-weight: 800; }
+.btq-tiers button.on { background: #ffc94a; border-color: #4a342a; color: #3a2a22; }
+.btq-puces { display: flex; flex-wrap: wrap; gap: 6px; }
+.btq-puce { padding: 6px 9px; background: #ffc94a; border: 2px solid #4a342a; border-radius: 8px; color: #3a2a22; font: inherit; font-size: 12px; font-weight: 700; }
+.btq-puce:disabled { background: #e3d6bb; color: #8c7b66; }
+.btq-fiche-haut { display: flex; gap: 12px; align-items: center; }
+.btq-fiche-haut > .btq-c { flex: 0 0 84px; width: 84px; }
+.btq-fiche-haut h2 { margin: 0; }
+.btq-fiche-haut p { margin: 2px 0; }
+
+/* ---------------------------------------------------- la ligne de combats (ui/arene.js) */
+#screen-arene { overflow: hidden; }
+.lg-ecran { position: relative; height: 100%; overflow: hidden; background: #2b2233; }
+.lg-bat { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .32; filter: blur(3px) saturate(.8); }
+.lg-ennemi { position: absolute; right: -6%; top: 6%; width: 88%; height: 58%; object-fit: contain; filter: drop-shadow(0 10px 16px #0008); }
+.lg-rail { position: absolute; left: 0; top: 0; bottom: 0; width: 74px; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; }
+.lg-rail::-webkit-scrollbar { display: none; }
+.lg-points { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px 0 86px; }
+.lg-points::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 6px; margin-left: -3px; background: #ffffff38; }
+.lg-pt { position: relative; flex: none; width: 38px; height: 38px; padding: 0; display: grid; place-items: center; background: #3d3346; border: 3px solid #ffffff55; border-radius: 50%; color: #ffffffb0; font: inherit; font-size: 12px; font-weight: 800; }
+.lg-pt.nouveau { width: 46px; height: 46px; border-color: #ffd76a; color: #ffd76a; }
+.lg-pt.fait { background: #2d9d5f; border-color: #bff0cf; }
+.lg-pt.courant { width: 54px; height: 54px; background: var(--accent); border-color: #fff; color: #3a2a10; font-size: 16px; box-shadow: 0 0 0 6px #ffc46b55; }
+.lg-pt.choisi:not(.courant) { box-shadow: 0 0 0 4px #fff; }
+.lg-infos { position: absolute; left: 82px; right: 12px; bottom: 74px; display: grid; gap: 6px; color: #fff; text-shadow: 0 2px 3px #0009; }
+.lg-infos h2 { color: #fff; font-size: 23px; line-height: 1.1; }
+.lg-num { font-size: 12px; font-weight: 800; color: #ffd76a; }
+.lg-stats { font-size: 13px; font-weight: 700; }
+.lg-sig { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.lg-go { margin-top: 4px; width: 100%; }

@@ -1,6 +1,6 @@
 // LE PROFIL DU JOUEUR (spec « Refonte Overworld + Arenes », 16 octobre 2026) : son niveau, son XP, sa puissance,
 // et l'ARBRE de 25 niveaux (config/profil.js) — ce que chaque niveau rapporte, ce qui est deja acquis.
-// On l'ouvre en touchant le joueur sur la carte (ui/overworld.js) ou l'avatar de la barre du haut (main.js).
+// On l'ouvre en touchant l'avatar de la barre du haut (main.js).
 // Libelle neutre « Profil » / « Niveau du joueur » : le nom de cette progression n'est pas tranche.
 import { CHAR_BY_ID } from '../config/characters.js';
 import { NIVEAU_MAX_PROFIL, recompensesDuNiveau } from '../config/profil.js';

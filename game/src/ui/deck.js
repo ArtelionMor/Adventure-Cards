@@ -14,7 +14,7 @@ import { save, persist, upgradeCost, upgradeChar, toggleSwitch, unlockChar, setT
 import { $, el, asset, toast, modal, closeModal, court } from './shell.js';
 import { icone } from './icones.js';
 import { ligneDePictos, iconeDeCle, iconeDeOp } from './pictos.js';
-import { refreshTop } from './overworld.js';
+import { refreshTop } from './shell.js';
 
 // Les familles montrees (puces allumees). Vide = toutes, comme « Tous ».
 const filtre = new Set();
@@ -119,7 +119,7 @@ function unlockSheet(id) {
     <p class="muted">${c.role}</p>
     <p class="muted">${st.bossBeaten
       ? `Disponible a l'achat : <b>${save.cur.A}/${cost}</b> Fanions.`
-      : 'Bats son boss dans l’overworld pour rendre son achat possible.'}</p>
+      : 'Bats son boss dans la ligne de combats pour rendre son achat possible.'}</p>
   </div>`);
   const buy = el(`<button class="btn" ${st.bossBeaten ? '' : 'disabled'}>Recruter (${cost} Fanions)</button>`);
   buy.onclick = () => {

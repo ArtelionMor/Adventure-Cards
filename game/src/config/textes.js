@@ -14,7 +14,15 @@ export const TEXTES = {
   'deck.ameliorer': 'Upgrade',
   'deck.puissance': '+{n} power',
   // Les ARENES : la fiche (presentation de l'ennemi, puis choix de l'equipe) et l'onglet (16 octobre 2026).
-  'arene.onglet': 'Arènes',
+  'arene.onglet': 'Combats',
+  'ligne.niveau': 'Palier {n}',
+  'ligne.combat': 'Combat {n}',
+  'ligne.jouer': 'Combattre',
+  'ligne.rejouer': 'Rejouer',
+  'ligne.verrou': 'Pas encore atteint',
+  'ligne.suivant': 'Combat suivant',
+  'ligne.arreter': 'Arrêter',
+  'ligne.fin': 'Tu as fini la ligne.',
   // La carte d'une arene dans l'onglet : les mots de la maquette « Arena Screen » (19 octobre 2026), comme l'ecran d'equipe.
   'arene.equipeConseillee': 'Suggested team',
   'arene.debloquer': 'Unlock',
