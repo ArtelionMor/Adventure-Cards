@@ -2,6 +2,7 @@
 // et l'ARBRE de 25 niveaux (config/profil.js) — ce que chaque niveau rapporte, ce qui est deja acquis.
 // On l'ouvre en touchant l'avatar de la barre du haut (main.js).
 // Libelle neutre « Profil » / « Niveau du joueur » : le nom de cette progression n'est pas tranche.
+import { ouvreSac } from './bag.js';
 import { CHAR_BY_ID } from '../config/characters.js';
 import { NIVEAU_MAX_PROFIL, recompensesDuNiveau } from '../config/profil.js';
 import { FONDS } from '../config/arenes.js';
@@ -72,6 +73,9 @@ export function ouvreProfil() {
     arbre.appendChild(el(`<li class="pf-n ${etat}"><span class="pf-rond">${n}</span>${recompensesDuNiveau(n).map(ligneRecompense).join('')}</li>`));
   }
   box.insertBefore(choixDuFond(), arbre);
+  const sac = el(`<button class="btn ghost">${t('profil.sac')}</button>`);
+  sac.onclick = ouvreSac;
+  box.appendChild(sac);
   const b = el(`<button class="btn">${t('arene.fermer')}</button>`);
   b.onclick = closeModal;
   box.appendChild(b);

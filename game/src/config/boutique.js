@@ -59,5 +59,24 @@ export const BOUTIQUE = {
     tropCher: { signe: '😠', texte: 'Trop cher', fond: '#e8352e' },
     pasAssezRare: { signe: '🤨', texte: 'Pas assez rare', fond: '#f08a2c' }
   },
+  // L'OUVERTURE D'UN BOOSTER (ui/packs.js). `raretes` : une rarete citee arrive DE DOS et se retourne avec son effet ; les autres
+  // arrivent de face, sans rien. `particules` : leur nombre ; `portee` : jusqu'ou elles volent (px).
+  ouverture: {
+    heros: { base: 'dog', premium: 'crow' },     // le dessin sur le booster, en attendant le sien
+    ligneDechirure: 14,                          // ou le haut se detache, en % de la hauteur
+    seuilDechirure: .55,                         // le doigt a parcouru cette part de la largeur : le booster s'ouvre
+    gerbeDechirure: 18,
+    dechirureMs: 420,
+    sortieMs: 620,
+    retourneMs: 460,
+    jetteMs: 240,
+    particules: ['star_06', 'spark_05', 'star_01', 'magic_02', 'spark_01', 'star_08', 'magic_05', 'flare_01'],
+    raretes: {
+      rare: { particules: 18, portee: 170 },
+      epic: { particules: 34, portee: 210, rayons: true },
+      legendaire: { particules: 60, portee: 260, rayons: true, secousse: true },
+      mythique: { particules: 90, portee: 300, rayons: true, secousse: true }
+    }
+  },
   couleursRaretes: { common: '#b9b2a3', rare: '#4f9bd9', epic: '#a35fd6', legendaire: '#eea82e', mythique: '#e4482e' }
 };

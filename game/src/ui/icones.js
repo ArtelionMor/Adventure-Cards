@@ -34,7 +34,7 @@ export const ICONES = {
   // fin de combat
   Victory: '★', Defeat: '✖',
   // la barre de navigation (maquette « Arena Screen », 19 octobre 2026) : un dessin par ecran
-  Arena: '⚔', Farm: '🌱', Map: '🗺', 'Icon Deck': '▤', Shop: '🛒',
+  Arena: '⚔', Farm: '🌱', Map: '🗺', 'Icon Deck': '▤', Shop: '🛒', Booster: '▦',
   // les recompenses d'une arene (monnaies A et B), la coche d'un niveau battu
   Fanion: '⚑', Sceau: '✪', Validate: '✔',
   // le bandeau de quete (ui/quetes.js, 21 oct. 2026) : la quete en cours (dessin du game designer a venir)

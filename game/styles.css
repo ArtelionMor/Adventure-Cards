@@ -1140,6 +1140,7 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
    navigation, qui depasse vers le haut. */
 .btq .ong { flex: none; height: calc(46% + 72px); }
 .btq .ong.replie { height: auto; }
+.btq .ong:has(.ong-tab.on[data-id="deco"]) { height: calc(36% + 72px); }   /* on decore en regardant la boutique */
 .btq .ong-page { border-width: 3px 0; border-radius: 0; }
 .btq .ong-barre { gap: 3px; padding: 0 4px 34px; }
 .btq .ong.replie .ong-barre { margin-top: 0; }
@@ -1158,6 +1159,10 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 .btq-ligne { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
 .btq-c { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; background: #fff8e8; border: 3px solid var(--r); border-radius: 8px; }
 .btq-c img { width: 100%; height: 100%; object-fit: contain; }
+/* Une carte rare se remarque partout ou elle passe. */
+.btq-c[data-r="epic"] { box-shadow: 0 0 8px var(--r); }
+.btq-c:is([data-r="legendaire"], [data-r="mythique"]) { animation: btq-rare 1.8s ease-in-out infinite; }
+@keyframes btq-rare { 0%, 100% { box-shadow: 0 0 6px var(--r); } 50% { box-shadow: 0 0 16px 3px var(--r); } }
 .btq-c.foil::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, #ff5fa055, #ffe65f55 30%, #5fffc055 55%, #5fb4ff55 80%); background-size: 240% 100%; mix-blend-mode: screen; animation: btq-foil 3s linear infinite; }
 @keyframes btq-foil { to { background-position: -240% 0; } }
 .btq-note { position: absolute; right: 2px; bottom: 2px; min-width: 18px; padding: 0 3px; text-align: center; background: #3a2a22; color: #ffd76a; border-radius: 5px; font-size: 11px; }
@@ -1212,3 +1217,73 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 .lg-stats { font-size: 13px; font-weight: 700; }
 .lg-sig { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 .lg-go { margin-top: 4px; width: 100%; }
+
+/* ---------- la pastille rouge : du nouveau a voir (navigation, heros, onglet, carte) ---------- */
+.pastille { position: absolute; top: -5px; right: -5px; z-index: 5; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; background: #ff3347; border: 2px solid #2b1c1f; box-shadow: inset 0 2px 0 #ff9aa5; animation: pastille 1.4s ease-in-out infinite; pointer-events: none; }
+@keyframes pastille { 50% { scale: 1.2; } }
+#nav button, .ong-tab { position: relative; }
+#nav .pastille { top: 6px; right: calc(50% - 26px); }
+.dk-paire .pastille { top: 4%; left: -6px; right: auto; }
+
+/* ---------- les packs (ui/packs.js) ----------
+   Le booster se dessine en CSS (en attendant son illustration) : une face, copiee en deux morceaux decoupes le long de la dechirure. */
+#screen-packs { background: linear-gradient(168deg, #b48cff 0 34%, #fff3d8 34.3% 100%); color: #3a2a22; font-family: var(--police, inherit); }
+.pk { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 16px 56px; }
+.pk-compte { width: 100%; display: flex; justify-content: space-between; align-items: center; color: #fff; -webkit-text-stroke: 3px #2b1c1f; paint-order: stroke fill; }
+.pk-compte b { font-size: 18px; font-weight: 400; }
+.pk-compte span { font-size: 13px; }
+.pk-vitrine { cursor: pointer; --pk-l: min(52vw, 210px); animation: pk-flotte 3.4s ease-in-out infinite; }
+@keyframes pk-flotte { 50% { translate: 0 -8px; } }
+.pk-actions { width: 100%; max-width: 360px; display: grid; gap: 8px; }
+.pk-actions .btn { width: 100%; }
+.pk-pack { position: relative; width: var(--pk-l); aspect-ratio: 5 / 7.2; filter: drop-shadow(0 8px 10px rgba(43, 28, 31, .4)); }
+.pk-morceau { position: absolute; inset: 0; transform-origin: 0 14%; }
+.pk-face {
+  position: absolute; inset: 0; overflow: hidden; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2%;
+  background: radial-gradient(90% 60% at 50% 55%, #ffe27a 0 30%, transparent 70%), linear-gradient(160deg, #7c4dff, #3ec6e0 60%, #62e6a0);
+  border: 3px solid #2b1c1f; box-sizing: border-box;
+}
+.pk-face.premium { background: radial-gradient(90% 60% at 50% 55%, #fff 0 20%, transparent 70%), linear-gradient(160deg, #e0a020, #ff5f7a 60%, #a35fd6); }
+.pk-sertie { position: absolute; left: 0; right: 0; height: 7%; background: repeating-linear-gradient(90deg, #fff6 0 5px, #0002 5px 10px); }
+.pk-sertie.h { top: 0; } .pk-sertie.b { bottom: 0; }
+.pk-titre { font-weight: 400; font-size: calc(var(--pk-l) * .115); color: #fff; -webkit-text-stroke: 4px #2b1c1f; paint-order: stroke fill; margin-top: 14%; }
+.pk-dessin { width: 86%; height: 52%; object-fit: contain; filter: drop-shadow(0 3px 0 #2b1c1f); }
+.pk-nom { font-size: calc(var(--pk-l) * .08); color: #fff; -webkit-text-stroke: 3px #2b1c1f; paint-order: stroke fill; margin-bottom: 8%; }
+.pk-reflet { position: absolute; inset: -20%; background: linear-gradient(115deg, transparent 42%, #fff8 50%, transparent 58%); animation: pk-reflet 3.2s ease-in-out infinite; pointer-events: none; }
+@keyframes pk-reflet { from { translate: -70% 0; } 60%, to { translate: 70% 0; } }
+
+/* L'ouverture : l'ecran entier, par-dessus la navigation. */
+.pk-ouv { position: absolute; inset: 0; z-index: 25; overflow: hidden; display: flex; flex-direction: column; align-items: center; background: linear-gradient(180deg, #dfe9ff, #b9cdf5); font-family: var(--police, inherit); font-synthesis: none; touch-action: none; user-select: none; --pk-l: min(68vw, 280px); }
+.pk-bandeau { align-self: stretch; padding: 34px 16px 40px; text-align: center; font-size: 28px; color: #fff; -webkit-text-stroke: 5px #2b1c1f; paint-order: stroke fill; background: #6fe06a; clip-path: polygon(0 0, 100% 0, 100% 72%, 0 100%); }
+.pk-plan { position: relative; flex: 1; align-self: stretch; display: grid; place-items: center; touch-action: none; }
+.pk-plan > * { grid-area: 1 / 1; }
+.pk-plan .pk-pack { z-index: 2; cursor: grab; }
+.pk-guide { z-index: 3; width: var(--pk-l); aspect-ratio: 5 / 7.2; pointer-events: none; position: relative; }
+.pk-guide::before { content: ""; position: absolute; left: 0; right: 0; top: 14%; border-top: 3px dashed #fff; filter: drop-shadow(0 1px 0 #2b1c1f); }
+.pk-guide i { position: absolute; left: 0; top: calc(14% - 13px); width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 3px solid #2b1c1f; box-sizing: border-box; animation: pk-guide 1.5s ease-in-out infinite; }
+@keyframes pk-guide { from { left: 0; opacity: 0; } 15% { opacity: 1; } 80% { opacity: 1; } to { left: calc(100% - 26px); opacity: 0; } }
+.pk-aide { min-height: 22px; padding: 6px 16px 44px; font-size: 15px; color: #fff; -webkit-text-stroke: 3px #2b1c1f; paint-order: stroke fill; text-align: center; }
+.pk-pile { position: relative; z-index: 1; width: var(--pk-l); aspect-ratio: 5 / 7; perspective: 900px; }
+.pk-carte { position: absolute; inset: 0; box-sizing: border-box; border: 4px solid #2b1c1f; border-radius: 14px; overflow: hidden; background: #fff8e8; box-shadow: 0 0 0 3px var(--r), 0 6px 10px rgba(43, 28, 31, .35); }
+.pk-recto, .pk-dos { position: absolute; inset: 0; }
+.pk-dos img { width: 100%; height: 100%; object-fit: cover; }
+.pk-carte:not(.cachee) .pk-dos, .pk-carte.cachee .pk-recto { display: none; }
+.pk-carte.cachee { box-shadow: 0 0 0 3px var(--r), 0 0 26px 8px var(--r); animation: pk-attend 1s ease-in-out infinite; }
+@keyframes pk-attend { 50% { scale: 1.025; } }
+.pk-recto { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 10px; background: linear-gradient(180deg, color-mix(in srgb, var(--r) 35%, #fff) 0 66%, #fff3d8 66%); }
+.pk-recto img { position: absolute; left: 6%; top: 3%; width: 88%; height: 64%; object-fit: contain; }
+.pk-recto b { font-weight: 400; font-size: 21px; text-align: center; color: #fff; -webkit-text-stroke: 4px #2b1c1f; paint-order: stroke fill; }
+.pk-recto small { font-size: 13px; color: var(--r); -webkit-text-stroke: 3px #2b1c1f; paint-order: stroke fill; }
+.pk-recto em { position: absolute; top: 8px; left: 8px; padding: 1px 8px; border-radius: 8px; border: 2px solid #2b1c1f; background: #2fd792; color: #fff; font-style: normal; font-size: 13px; -webkit-text-stroke: 3px #2b1c1f; paint-order: stroke fill; }
+.pk-carte.foil .pk-recto::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, #ff5fa055, #ffe65f55 30%, #5fffc055 55%, #5fb4ff55 80%); background-size: 240% 100%; mix-blend-mode: screen; animation: btq-foil 3s linear infinite; pointer-events: none; }
+.pk-part { position: absolute; left: 50%; top: 50%; margin: -27px 0 0 -27px; z-index: 6; mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; pointer-events: none; }
+.pk-rayons { width: 170%; aspect-ratio: 1; border-radius: 50%; opacity: 0; transition: opacity .3s; pointer-events: none; background: repeating-conic-gradient(var(--r, #fff) 0 12deg, transparent 12deg 30deg); mask-image: radial-gradient(closest-side, #000 25%, transparent); -webkit-mask-image: radial-gradient(closest-side, #000 25%, transparent); animation: pk-tourne 9s linear infinite; }
+.pk-rayons.on { opacity: .75; }
+@keyframes pk-tourne { to { rotate: 360deg; } }
+.pk-rang { position: absolute; top: 118px; left: 0; right: 0; z-index: 7; text-align: center; font-size: 34px; color: var(--r, #fff); -webkit-text-stroke: 6px #2b1c1f; paint-order: stroke fill; opacity: 0; pointer-events: none; }
+.pk-rang.vu { animation: pk-rang .5s cubic-bezier(.2, 1.5, .4, 1) forwards; }
+@keyframes pk-rang { from { opacity: 0; scale: 2; } to { opacity: 1; scale: 1; } }
+.pk-resume { flex: 1; align-self: stretch; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-content: center; padding: 0 16px; }
+.pk-resume.large { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pk-bas-ecran { align-self: stretch; display: grid; gap: 8px; padding: 0 16px 16px; }
+.pk-bas-ecran:empty { display: none; }

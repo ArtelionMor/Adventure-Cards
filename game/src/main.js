@@ -6,8 +6,8 @@ import { save, persist, upgradeCost } from './state.js';
 import { $, $$, el, asset, toast, modal, closeModal, fmtTime, court, setRefreshTop } from './ui/shell.js';
 import { icone } from './ui/icones.js';
 import { renderFarm, processFarm } from './ui/farm.js';
-import { renderDeck } from './ui/deck.js';
-import { renderBag } from './ui/bag.js';
+import { renderDeck, nombreDeNouvelles } from './ui/deck.js';
+import { renderPacks, quittePacks } from './ui/packs.js';
 import { renderArene } from './ui/arene.js';
 import { ouvreProfil } from './ui/profil.js';
 import { chargeLeJeu } from './ui/chargement.js';
@@ -15,7 +15,7 @@ import { openBattle } from './ui/battle.js';
 import { installeQuetes } from './ui/quetes.js';
 import { installeTriche } from './ui/triche.js';
 import { renderBoutique, quitteBoutique, renderEncheres, quitteEncheres, montreResumeBoutique, consoleBoutique } from './ui/boutique.js';
-import { demarreBoutique } from './boutique/partie.js';
+import { demarreBoutique, ecoute } from './boutique/partie.js';
 
 let current = 'arene';
 
@@ -26,7 +26,7 @@ function go(screen) {
   $$('#nav button').forEach(b => b.classList.toggle('active', b.dataset.go === screen));
   if (screen === 'farm') renderFarm();
   if (screen === 'deck') renderDeck();
-  if (screen === 'bag') renderBag();
+  if (screen === 'packs') renderPacks(); else quittePacks();
   if (screen === 'arene') renderArene();
   if (screen === 'boutique') renderBoutique(); else quitteBoutique();
   if (screen === 'encheres') renderEncheres(); else quitteEncheres();
@@ -49,6 +49,14 @@ function refreshTop() {
   $('#topGem').innerHTML = `${icone('Gem', 15)}<b>${court(save.cur.G || 0)}</b>`;
 }
 setRefreshTop(refreshTop);
+
+// La pastille rouge de l'onglet Deck : des cartes nouvelles attendent d'etre vues.
+function majPastille() {
+  const b = $('#nav [data-go=deck]');
+  const p = b.querySelector('.pastille');
+  if (nombreDeNouvelles() && !p) b.appendChild(el('<i class="pastille"></i>'));
+  else if (!nombreDeNouvelles()) p?.remove();
+}
 
 // ------------------------------------------------------------------ idle
 // Foreground : on garde l'ecran allume tant que l'onglet est visible (GDD).
@@ -95,6 +103,9 @@ function boot() {
   // L'avatar de la barre du haut ouvre le PROFIL DU JOUEUR (ui/profil.js), comme toucher le joueur sur la carte.
   $('#topbar .hero-chip').onclick = ouvreProfil;
   const absenceBoutique = demarreBoutique();
+  // La bourse est commune (boutique/partie.js) : une vente ou un achat se voient tout de suite dans la barre du haut.
+  ecoute(e => { if (e.t === 'change' || e.t === 'sale') { refreshTop(); majPastille(); } });
+  majPastille();
   go('arene');
   offlineReport();
   if (absenceBoutique) montreResumeBoutique(absenceBoutique);

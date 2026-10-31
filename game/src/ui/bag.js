@@ -1,16 +1,14 @@
-// Sac : inventaire, monnaies et objets a passifs.
-// Les monnaies ne s'affichent nulle part en permanence — c'est ici qu'on les consulte.
+// Sac : monnaies, objets a passifs, derniers combats, sauvegarde. Une fenetre ouverte depuis le Profil (31 octobre 2026 : son onglet
+// de la barre du bas est devenu les Packs).
 import { RELIC_BY_ID } from '../config/relics.js';
 import { BALANCE } from '../config/balance.js';
 import { save, resetSave, partyLevel } from '../state.js';
-import { $, el, asset, CURRENCY_NAME } from './shell.js';
+import { el, asset, closeModal, modal, CURRENCY_NAME } from './shell.js';
 import { listeCombats } from './combats.js';
 import { lanceRejeu } from './battle.js';
 import { icone } from './icones.js';
 
-export function renderBag() {
-  const root = $('#screen-bag');
-  root.innerHTML = '';
+export function ouvreSac() {
   const wrap = el('<div class="pad"></div>');
 
   const cur = el(`<div class="card-panel"><h3>Monnaies</h3></div>`);
@@ -58,7 +56,7 @@ export function renderBag() {
         <div><div class="nm">${c.nom} · ${issue}</div><div class="tx">${c.equipe} · ${c.tours} tours · ${quand}</div></div>
         <button class="btn ghost" style="display:flex;gap:6px;align-items:center">${icone('Log', 18)} Revoir</button></div>`);
       // Le combat se REJOUE sur l'ecran de combat (un combat garde avant le rejeu ouvre son journal graphique).
-      row.querySelector('button').onclick = () => lanceRejeu(c.id);
+      row.querySelector('button').onclick = () => { closeModal(); lanceRejeu(c.id); };
       list.appendChild(row);
     }
     cb.appendChild(list);
@@ -75,5 +73,5 @@ export function renderBag() {
   info.appendChild(reset);
   wrap.appendChild(info);
 
-  root.appendChild(wrap);
+  modal(wrap);
 }

@@ -633,8 +633,10 @@ function debut(e) {
     geste = { type: 'pince', d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: cam.z };
     return;
   }
-  const it = deco.actif && deco.choisi !== null ? surCase(e.offsetX, e.offsetY) : null;
-  geste = { type: it && it.id === deco.choisi ? 'meuble' : 'vue', x: e.offsetX, y: e.offsetY, cx: cam.x, cy: cam.y, bouge: false };
+  // En mode Decorer, on attrape n'importe quel meuble directement : il devient le meuble choisi.
+  const it = deco.actif ? surCase(e.offsetX, e.offsetY) : null;
+  if (it && it.id !== deco.choisi) { deco.choisi = it.id; deco.fantome = null; actions.choix?.(it); }
+  geste = { type: it ? 'meuble' : 'vue', x: e.offsetX, y: e.offsetY, cx: cam.x, cy: cam.y, bouge: false };
 }
 
 function zoomVers(sx, sy, z) {
@@ -712,13 +714,26 @@ export function arreteScene() {
   canvas = null;
 }
 
+// Le panneau vient de changer la hauteur de la scene : on recadre au prochain dessin, une fois la mise en page refaite.
+const recadre = f => requestAnimationFrame(() => { if (canvas) { mesure(); f(); } });
+
 export function modeDeco(actif) {
   deco = { actif, choisi: null, fantome: null };
+  if (actif) recadre(centre);
 }
 
+/** Choisit un meuble et l'amene au milieu de la vue : un meuble qu'on vient d'acheter ne doit pas tomber sous le panneau. */
 export function choisisMeuble(id) {
   deco.choisi = id;
   deco.fantome = null;
+  recadre(() => {
+    const it = itemDe(id);
+    if (!it) return;
+    const [wx, wy] = versEcran(it.x + .5, it.y + .5);
+    cam.x = largeur / 2 - wx * cam.z;
+    cam.y = hauteur / 2 - wy * cam.z;
+    borneCamera();
+  });
 }
 
 export const clientsDeLaScene = () => clients;

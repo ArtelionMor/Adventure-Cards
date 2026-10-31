@@ -10,7 +10,8 @@
 import { el } from './shell.js';
 
 /**
- * `onglets` : `[{ id, nom, rendu(corps) }]` ; `rendu` est rappele a chaque ouverture de l'onglet, sur un corps vide.
+ * `onglets` : `[{ id, nom, rendu(corps), pastille }]` ; `rendu` est rappele a chaque ouverture de l'onglet, sur un corps vide ;
+ * `pastille` : un point rouge sur l'onglet, jusqu'a ce qu'on l'ouvre.
  * `entete` (facultatif) : un noeud pose au-dessus du corps, qui ne defile pas et reste d'un onglet a l'autre.
  * `fin` (facultatif) : un noeud pose au bout de la rangee d'onglets (la croix de la fiche d'un heros).
  * `fermable` : retoucher l'onglet ouvert le ferme et replie le panneau (ce que fait la boutique : `va(null)`).
@@ -37,6 +38,7 @@ export function creeOnglets({ onglets, entete = null, fin = null, fermable = fal
     for (const b of barre.querySelectorAll('.ong-tab')) {
       b.classList.toggle('on', b.dataset.id === id);
       b.setAttribute('aria-selected', b.dataset.id === id);
+      if (b.dataset.id === id) b.querySelector('.pastille')?.remove();
     }
     surChange(id);
     dessine();
@@ -49,7 +51,7 @@ export function creeOnglets({ onglets, entete = null, fin = null, fermable = fal
   };
 
   for (const o of onglets) {
-    const b = el(`<button class="ong-tab" role="tab" data-id="${o.id}">${o.nom}</button>`);
+    const b = el(`<button class="ong-tab" role="tab" data-id="${o.id}">${o.nom}${o.pastille ? '<i class="pastille"></i>' : ''}</button>`);
     b.onclick = () => va(fermable && courant === o.id ? null : o.id);
     barre.appendChild(b);
   }

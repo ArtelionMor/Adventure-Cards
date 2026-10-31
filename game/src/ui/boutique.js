@@ -4,28 +4,28 @@ import { BOUTIQUE } from '../config/boutique.js';
 import { CHAR_BY_ID } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
 import { auctionMeanPrice, listAuction } from '../boutique/noyau/engines/auction.js';
-import { bulkClearHours, sendToBulk, setBulkFilter, setBulkFilterProtectsVariants } from '../boutique/noyau/engines/bulk.js';
+import { bulkClearHours, sendToBulk } from '../boutique/noyau/engines/bulk.js';
 import { breakGrade, gradeCard } from '../boutique/noyau/engines/grading.js';
 import { requiredCards, setHeroTier } from '../boutique/noyau/engines/heroUnlock.js';
 import { upgradeCost, upgradeHero } from '../boutique/noyau/engines/heroUpgrade.js';
 import { buyMarketCard, marketPrice } from '../boutique/noyau/engines/market.js';
-import { boosterShopPrice, buyBooster, buyPremium, openBooster, openPremium, premiumRef } from '../boutique/noyau/engines/packs.js';
+import { buyPremium, premiumRef } from '../boutique/noyau/engines/packs.js';
 import { betterCopyFor, buyerReaction, instanceRef, instanceRefMax } from '../boutique/noyau/engines/pricing.js';
 import { cancelShowcase, formatDuration, listShowcase, quoteShowcase, repriceShowcase, showcasePriceCap } from '../boutique/noyau/engines/showcase.js';
 import { buyFurniture, canExpand, expandCost, expandShop, furniturePrice, moveFurniture, sellFurniture, showcaseCapacity } from '../boutique/noyau/engines/shop.js';
 import { checkSellable, hasFeature, swapCollectionOccupant } from '../boutique/noyau/state.js';
 import { adversaireCourant, avanceDeMinutes, change, ctx, ecoute, partie } from '../boutique/partie.js';
 import { arreteScene, choisisMeuble, lanceScene, modeDeco } from './boutique-scene.js';
+import { t } from '../config/textes.js';
 import { icone } from './icones.js';
 import { creeOnglets } from './onglets.js';
 import { $, asset, closeModal, court, el, fmtTime, modal, toast } from './shell.js';
 
 const cfg = ctx.cfg;
-const ONGLETS = [['boosters', 'Boosters'], ['stock', 'Stock'], ['ventes', 'Ventes'], ['deco', 'Décorer'], ['heros', 'Héros']];
+const ONGLETS = [['stock', 'Stock'], ['ventes', 'Ventes'], ['deco', 'Décorer'], ['heros', 'Héros']];
 let onglets = null;
 let racine = null;
 let desabonne = null;
-let tirage = null;
 
 // ------------------------------------------------------------------ images
 const SPRITES = new Map();
@@ -36,12 +36,13 @@ for (const c of Object.values(CHAR_BY_ID)) {
   SPRITES_HEROS.set(cleHeros(c.name), c.sprite);
   for (const x of [...(c.cards || []), ...Object.values(c.switches || {})]) if (x?.id) SPRITES.set(x.id, x.sprite || c.sprite);
 }
-const carteDef = id => ctx.index.cardById.get(id);
+export const carteDef = id => ctx.index.cardById.get(id);
+export const spriteDeCarte = id => SPRITES.get(id);
 
-function carteHtml(cardId, finish = 'normal', grade = null, classe = '') {
+export function carteHtml(cardId, finish = 'normal', grade = null, classe = '') {
   const c = carteDef(cardId);
   const couleur = BOUTIQUE.couleursRaretes[c.rarity] || '#999';
-  return `<div class="btq-c ${finish === 'foil' ? 'foil' : ''} ${classe}" style="--r:${couleur}"><img src="${asset(SPRITES.get(cardId))}" alt="${c.name}">${grade ? `<b class="btq-note">${grade}</b>` : ''}</div>`;
+  return `<div class="btq-c ${finish === 'foil' ? 'foil' : ''} ${classe}" data-r="${c.rarity}" style="--r:${couleur}"><img src="${asset(SPRITES.get(cardId))}" alt="${c.name}">${grade ? `<b class="btq-note">${grade}</b>` : ''}</div>`;
 }
 const or = n => `${icone('Coin', 14)}<b>${court(Math.round(n))}</b>`;
 
@@ -49,70 +50,11 @@ const or = n => `${icone('Coin', 14)}<b>${court(Math.round(n))}</b>`;
 function majBarre() {
   const S = partie();
   const p = S.progression;
-  $('#btqOr').innerHTML = or(S.gold);
   $('#btqGems').innerHTML = `${icone('Gem', 14)}<b>${court(S.gems)}</b>`;
   $('#btqEchelle').textContent = `Niv. ${p.level} · ${ENCOUNTERS[adversaireCourant()]?.name || adversaireCourant()} ${p.wins}/${cfg.progression.ladder.winsToAdvance}`;
 }
 
 // La scene se redessine toute seule (ui/boutique-scene.js) : elle lit l'etat a chaque image.
-
-// ------------------------------------------------------------------ onglet Boosters
-function panneauBoosters() {
-  const S = partie(), b = S.boosters;
-  const box = el(`<div>
-    <div class="btq-ligne"><h3 id="btqStock"></h3><span class="muted" id="btqProchain"></span></div>
-    <div class="btq-tirage" id="btqTirage"></div>
-    <button class="btn" id="btqOuvre" ${b.stock ? '' : 'disabled'}>Ouvrir un booster</button>
-    <button class="btn alt" id="btqAchete">Acheter un booster · ${court(boosterShopPrice(S, ctx))}</button>
-    <label class="btq-filtre">Filtre bulk : doubles sous <b id="btqSeuilV">${S.settings.bulkFilterThreshold}</b>
-      <input type="range" id="btqSeuil" min="0" max="60" value="${S.settings.bulkFilterThreshold}"></label>
-    <label class="btq-case"><input type="checkbox" id="btqProtege" ${S.settings.bulkFilterProtectVariants ? 'checked' : ''}> Garder les foils hors du filtre</label>
-    <div id="btqPremium"></div>
-  </div>`);
-  if (tirage) box.querySelector('#btqTirage').innerHTML = tirage;
-  box.querySelector('#btqOuvre').onclick = ouvreUn;
-  box.querySelector('#btqAchete').onclick = () => {
-    const r = buyBooster(S, ctx);
-    if (!r.ok) toast(r.reason); else change();
-  };
-  box.querySelector('#btqSeuil').oninput = e => { setBulkFilter(S, Number(e.target.value)); box.querySelector('#btqSeuilV').textContent = e.target.value; };
-  box.querySelector('#btqProtege').onchange = e => setBulkFilterProtectsVariants(S, e.target.checked);
-  for (const [id, n] of Object.entries(b.premium)) {
-    if (n <= 0) continue;
-    const bouton = el(`<button class="btn alt">Ouvrir un premium (${n})</button>`);
-    bouton.onclick = () => montreTirage(openPremium(S, id, ctx), cfg.premium.boosters.find(p => p.id === id).slots.length);
-    box.querySelector('#btqPremium').appendChild(bouton);
-  }
-  return box;
-}
-
-// Chaque seconde, seuls le compteur et le bouton changent : redessiner rejouerait l'animation du tirage.
-function majCompteurBoosters() {
-  const b = partie().boosters;
-  const stock = $('#btqStock');
-  if (!stock) return;
-  stock.textContent = `${b.stock} / ${cfg.boosters.storageCap} boosters`;
-  $('#btqProchain').textContent = b.stock >= cfg.boosters.storageCap ? 'stock plein' : `prochain dans ${Math.ceil((cfg.boosters.intervalMinutes * 60000 - b.progressMs) / 1000)} s`;
-  $('#btqOuvre').disabled = b.stock <= 0;
-}
-
-function ouvreUn() {
-  montreTirage(openBooster(partie(), ctx), cfg.boosters.cardsPerBooster);
-}
-
-// Les derniers exemplaires crees sont ceux du tirage : on y lit ce qui est neuf, foil ou parti au bulk.
-function montreTirage(r, n) {
-  if (!r.ok) { toast(r.reason); return; }
-  const S = partie();
-  const ids = Array.from({ length: n }, (_, i) => S.nextInstanceId - n + i);
-  tirage = ids.map((id, i) => {
-    const inst = S.instances[id];
-    const neuve = inst.location === 'collection';
-    const bulk = inst.location === 'bulk';
-    return `<div class="btq-revele ${bulk ? 'va-bulk' : ''}" style="animation-delay:${i * 0.18}s">${carteHtml(inst.cardId, inst.finish)}${neuve ? '<em>Nouvelle</em>' : ''}${bulk ? '<em class="b">Bulk</em>' : ''}</div>`;
-  }).join('');
-  change();
-}
 
 // ------------------------------------------------------------------ onglet Stock
 function panneauStock() {
@@ -144,7 +86,7 @@ function ficheCopie(id) {
     <div class="btq-ligne"><span id="fPrixV"></span><span class="muted" id="fAttente"></span></div>
     <div class="btq-avis-liste" id="fAvis"></div>
     <button class="btn" id="fVitrine">Mettre en vitrine</button>
-    <h3>Enchères</h3><div class="btq-puces" id="fDurees"></div>
+    <div id="fEncheres"><h3>Enchères</h3><div class="btq-puces" id="fDurees"></div></div>
     <h3>Autres</h3>
     <div class="btq-puces" id="fAutres"></div>
   </div>`);
@@ -160,7 +102,9 @@ function ficheCopie(id) {
   maj();
   const agit = r => { if (!r.ok) { toast(r.reason); return; } closeModal(); change(); };
   box.querySelector('#fVitrine').onclick = () => agit(listShowcase(S, id, Number(prix.value), ctx));
-  for (const h of cfg.auction.durationsHours) {
+  // Vendre aux encheres se debloque apres avoir pu y acheter : sans slot, rien a proposer.
+  if (S.progression.auctionSlots <= 0) box.querySelector('#fEncheres').remove();
+  else for (const h of cfg.auction.durationsHours) {
     const b = el(`<button class="btq-puce">${h} h · ~${court(Math.round(auctionMeanPrice(cfg, refMax, h, 1)))}</button>`);
     b.onclick = () => agit(listAuction(S, id, h, ctx));
     box.querySelector('#fDurees').appendChild(b);
@@ -251,22 +195,27 @@ function panneauVentes() {
 }
 
 // ------------------------------------------------------------------ l'ecran des encheres
-// Tout ce qui passe aux encheres : les cartes du joueur en vente, les mythiques a acheter, les boosters premium.
+// D'abord ACHETER (ouvert des le depart), puis VENDRE, qui se debloque en avancant dans la ligne de combats (economy.json).
 function panneauEncheres() {
   const S = partie();
-  const box = el(`<div class="btq-panneau"><h3>Tes enchères ${S.auctions.length}/${S.progression.auctionSlots}</h3><div class="btq-liste" id="lE"></div>
-    <h3>Mythiques aux enchères</h3><div class="btq-liste" id="lM"></div>
-    <div id="lP"></div></div>`);
-  if (!S.auctions.length) box.querySelector('#lE').appendChild(el('<p class="muted">Mets une carte en vente depuis ton stock.</p>'));
+  const box = el(`<div class="btq-panneau"><h3>Acheter aux enchères</h3>
+    <p class="muted">${t('encheres.offres', { d: formatDuration(Math.max(0, S.market.nextRefreshMs - S.nowMs) / 60000) })}</p>
+    <div class="btq-liste" id="lM"></div><div id="lP"></div>
+    <h3>Tes enchères${S.progression.auctionSlots ? ` ${S.auctions.length}/${S.progression.auctionSlots}` : ''}</h3><div class="btq-liste" id="lE"></div></div>`);
+  if (S.progression.auctionSlots <= 0) {
+    const palier = cfg.progression.steps.find(s => s.auctionSlots > 0);
+    box.querySelector('#lE').appendChild(el(`<p class="muted">${t('encheres.venteVerrou', { nom: ENCOUNTERS[palier?.unlockAt.opponent]?.name || '…' })}</p>`));
+  } else if (!S.auctions.length) box.querySelector('#lE').appendChild(el('<p class="muted">Mets une carte en vente depuis ton stock.</p>'));
   for (const a of S.auctions) {
     const inst = a.item.kind === 'card' ? S.instances[a.item.instanceId] : null;
     const reste = (a.stepsTotal - a.stepsDone) * cfg.auction.stepMinutes;
     box.querySelector('#lE').appendChild(el(`<div class="btq-rang">${inst ? carteHtml(inst.cardId, inst.finish, inst.grade) : '<b>Premium</b>'}<span>${or(a.price)}</span><em>${formatDuration(reste)}</em></div>`));
   }
   if (!hasFeature(S, cfg.market.feature)) box.querySelector('#lM').appendChild(el('<p class="muted">Débloqué en avançant dans la ligne de combats.</p>'));
+  else if (!S.market.offers.length) box.querySelector('#lM').appendChild(el(`<p class="muted">${t('encheres.rien')}</p>`));
   else for (const id of S.market.offers) {
     const possede = S.collection[id] !== undefined;
-    const n = el(`<div class="btq-rang">${carteHtml(id)}<span>${carteDef(id).hero}</span><button class="btq-puce" ${possede ? 'disabled' : ''}>${possede ? 'Déjà à toi' : court(marketPrice(id, S, ctx))}</button></div>`);
+    const n = el(`<div class="btq-rang">${carteHtml(id)}<div class="btq-nom"><b>${carteDef(id).name}</b><span class="muted">${carteDef(id).hero} · ${ctx.index.rarityById.get(carteDef(id).rarity).name}</span></div><button class="btq-puce" ${possede ? 'disabled' : ''}>${possede ? 'Déjà à toi' : court(marketPrice(id, S, ctx))}</button></div>`);
     n.querySelector('button').onclick = () => {
       const r = buyMarketCard(S, id, ctx);
       if (!r.ok) toast(r.reason); else change();
@@ -392,7 +341,7 @@ function panneauHeros() {
 }
 
 // ------------------------------------------------------------------ l'ecran
-const PANNEAUX = { boosters: panneauBoosters, stock: panneauStock, ventes: panneauVentes, deco: panneauDeco, heros: panneauHeros };
+const PANNEAUX = { stock: panneauStock, ventes: panneauVentes, deco: panneauDeco, heros: panneauHeros };
 
 // Un onglet ouvre son panneau sous la scene ; le retoucher le ferme et rend toute la vue (`fermable`).
 function creeOngletsBoutique() {
@@ -404,11 +353,9 @@ function creeOngletsBoutique() {
         const p = el('<div class="btq-panneau"></div>');
         p.appendChild(PANNEAUX[id]());
         corps.appendChild(p);
-        if (id === 'boosters') majCompteurBoosters();
       }
     })),
     surChange: id => {
-      tirage = null;
       meubleChoisi = null;
       modeDeco(id === 'deco');
     }
@@ -420,7 +367,6 @@ function surEvenement(e) {
   if (e.t === 'seconde') {
     majBarre();
     if (onglets.courant() === 'ventes') onglets.redessine();
-    if (onglets.courant() === 'boosters') majCompteurBoosters();
   } else if (e.t === 'change') {
     majBarre();
     onglets.redessine();
@@ -434,7 +380,7 @@ export function renderBoutique() {
   const ecran = $('#screen-boutique');
   ecran.innerHTML = '';
   racine = el(`<div class="btq">
-    <div class="btq-barre"><span id="btqOr"></span><span id="btqGems"></span><span id="btqEchelle"></span></div>
+    <div class="btq-barre"><span id="btqGems"></span><span id="btqEchelle"></span></div>
     <div class="btq-monde"><canvas id="btqCanvas"></canvas></div>
   </div>`);
   onglets = creeOngletsBoutique();

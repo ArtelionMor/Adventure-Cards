@@ -28,9 +28,13 @@ export function el(html) {
 }
 
 export function toast(msg, ms = 2200) {
-  const n = el(`<div class="toast">${msg}</div>`);
-  $('#toasts').appendChild(n);
-  setTimeout(() => n.remove(), ms);
+  // Le meme message, deja a l'ecran, reste seul : toucher dix fois un bouton refuse n'empile pas dix bulles.
+  const deja = [...$('#toasts').children].find(x => x.dataset.msg === msg);
+  const n = deja || el(`<div class="toast">${msg}</div>`);
+  n.dataset.msg = msg;
+  clearTimeout(n.fin);
+  n.fin = setTimeout(() => n.remove(), ms);
+  if (!deja) $('#toasts').appendChild(n);
 }
 
 let modalClose = null;

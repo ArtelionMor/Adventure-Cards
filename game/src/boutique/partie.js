@@ -1,6 +1,7 @@
 // LA PARTIE DE BOUTIQUE : l'etat du noyau, sa sauvegarde (cle a part de celle du jeu), le temps et le resume d'absence.
 // Pas de DOM. Les ecrans lisent `partie()` et appellent les moteurs du noyau avec `ctx`, puis `change()`.
 import { BOUTIQUE } from '../config/boutique.js';
+import { persist, save } from '../state.js';
 import { createContext } from './noyau/context.js';
 import { CARTES, CONFIG } from './noyau/donnees.js';
 import { recordWin } from './noyau/engines/progression.js';
@@ -40,6 +41,28 @@ export function change() {
   for (const f of ecouteurs) f({ t: 'change' });
 }
 
+// UNE SEULE BOURSE (31 octobre 2026) : l'or du noyau EST les pieces du jeu (`save.cur.C`), celles de la barre du haut. Deux
+// monnaies au meme dessin faisaient refuser un meuble (« Or insuffisant ») a un joueur qui avait 200 pieces a l'ecran. Le noyau ne
+// le sait pas : il lit et ecrit `gold`, qui mene aux pieces. L'or d'une ancienne partie les rejoint une fois.
+function lieLaBourse(e) {
+  if (!e.bourseUnique) save.cur.C += e.gold;
+  e.bourseUnique = true;
+  Object.defineProperty(e, 'gold', { get: () => save.cur.C, set: v => { save.cur.C = v; }, enumerable: true, configurable: true });
+}
+
+// Une partie faite avant le 31 octobre 2026 : les paliers ont change (acheter aux encheres d'abord, vendre ensuite), on repose ceux
+// qu'elle a deja passes ; ses cartes comptent comme vues, sinon toute sa collection serait « nouvelle ».
+function metAJour(e) {
+  if ((e.version ?? 1) >= 2) return;
+  const p = e.progression;
+  const faits = CONFIG.progression.steps.slice(0, p.stepIndex);
+  p.features = [...new Set([...p.features, ...faits.flatMap(s => s.features)])];
+  p.auctionSlots = Math.max(e.auctions.length, faits.at(-1)?.auctionSlots ?? 0);
+  e.market.nextRefreshMs = e.nowMs;
+  e.vues = Object.fromEntries(Object.keys(e.collection).map(id => [id, true]));
+  e.version = 2;
+}
+
 function avance() {
   const maintenant = Date.now();
   const dt = maintenant - dernier;
@@ -64,7 +87,10 @@ export function demarreBoutique() {
       const presentoirs = etat.shop.items.filter(i => i.type === 'presentoir');
       etat.showcase.forEach((l, i) => { l.displayId = presentoirs[i]?.id ?? null; });
     }
-  } else etat = createState(ctx);
+    metAJour(etat);
+  } else etat = { ...createState(ctx), vues: {}, version: 2 };
+  lieLaBourse(etat);
+  persist();
 
   const absence = Date.now() - dernier;
   resume = { absenceMs: absence, ventes: 0, or: 0, canaux: {}, heros: [] };
@@ -80,6 +106,13 @@ export function demarreBoutique() {
   document.addEventListener('visibilitychange', () => { if (document.hidden) sauve(); });
   addEventListener('beforeunload', sauve);
   return absence >= BOUTIQUE.resumeHorsLigneDesS * 1000 && fini.ventes > 0 ? fini : null;
+}
+
+// LES CARTES NOUVELLES : decouvertes (dans la collection) et pas encore vues. Ce sont elles qui allument la pastille rouge.
+export const cartesNouvelles = () => (etat ? Object.keys(etat.collection).filter(id => !etat.vues[id]) : []);
+export function marqueVues(ids) {
+  for (const id of ids) etat.vues[id] = true;
+  change();
 }
 
 export const adversaireCourant = () => CONFIG.meta.opponents[etat.progression.opponentIndex]?.id;

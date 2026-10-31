@@ -14,6 +14,7 @@ import { CHARACTERS, CHAR_BY_ID, resolveCard, etapesDe, niveauMax, niveauxDesCar
 import { keyLabel } from '../config/mechanics.js';
 import { FAMILLES, familleDe, rareteDe } from '../config/familles.js';
 import { t } from '../config/textes.js';
+import { cartesNouvelles, marqueVues } from '../boutique/partie.js';
 import { save, persist, upgradeCost, upgradeChar, toggleSwitch, unlockChar, setTeamSlot, puissance, signale, possede } from '../state.js';
 import { $, el, asset, toast, modal, closeModal, court } from './shell.js';
 import { icone } from './icones.js';
@@ -22,6 +23,12 @@ import { creeOnglets } from './onglets.js';
 import { installeGestes } from './gestes.js';
 import { ficheDeCarte, montreLecture, cacheLecture, fermeAuProchainToucher } from './fiche.js';
 import { refreshTop } from './shell.js';
+
+// LES CARTES NOUVELLES (sorties d'un booster, ou achetees) : une pastille rouge les signale sur la navigation, le heros, l'onglet Deck
+// et la carte elle-meme ; ouvrir l'onglet Deck du heros les marque vues.
+const HEROS_DE_CARTE = new Map(CHARACTERS.flatMap(c => [...c.cards, ...(c.switches || [])].filter(Boolean).map(x => [x.id, c.id])));
+const nouvellesDe = id => cartesNouvelles().filter(x => HEROS_DE_CARTE.get(x) === id);
+export const nombreDeNouvelles = () => cartesNouvelles().filter(x => possede(HEROS_DE_CARTE.get(x))).length;
 
 // Les familles montrees (puces allumees). Vide = toutes, comme « Tous ».
 const filtre = new Set();
@@ -92,6 +99,7 @@ function vignette(c, conseilles = []) {
     <div class="nm">${a ? c.name : t('deck.verrouille')}</div>
     <span class="dk-pastille">${a ? st.level : '-'}</span>
     ${a && dans ? `<span class="dk-coche">${icone('Check', 16)}</span>` : ''}
+    ${a && nouvellesDe(c.id).length ? '<i class="pastille"></i>' : ''}
   </div>`);
 }
 
@@ -168,7 +176,7 @@ function ficheHeros(id, { onglet = ongletFiche, vue, echange } = {}) {
   const onglets = creeOnglets({
     entete, fin: croix,
     onglets: [
-      { id: 'deck', nom: t('deck.ongletDeck'), rendu: corps => pageDeck(corps, id, echange) },
+      { id: 'deck', nom: t('deck.ongletDeck'), pastille: nouvellesDe(id).length > 0, rendu: corps => pageDeck(corps, id, echange) },
       { id: 'amelioration', nom: t('deck.ongletAmelioration'), rendu: corps => pageAmelioration(corps, id, vue) }
     ],
     surChange: x => { ongletFiche = x; }
@@ -210,7 +218,8 @@ function paireDeCartes(heros, slot) {
   const alt = (heros.switches || [])[slot];
   const sw = !!(alt && st.switches[slot]);
   const retiree = ((save.retraits && save.retraits[heros.id]) || []).includes(slot);
-  const paire = el(`<div class="dk-paire ${retiree ? 'retiree' : ''}" data-slot="${slot}" style="--fond:${f.fond};--rar:${rareteDe(heros)}"></div>`);
+  const neuve = nouvellesDe(heros.id).some(x => x === heros.cards[slot].id || x === alt?.id);
+  const paire = el(`<div class="dk-paire ${retiree ? 'retiree' : ''}" data-slot="${slot}" style="--fond:${f.fond};--rar:${rareteDe(heros)}">${neuve ? '<i class="pastille"></i>' : ''}</div>`);
   paire.appendChild(faceDeCarte(carteDeFace(heros, slot, 'base'), 'base', sw ? 'derriere' : 'devant'));
   if (alt) {
     const verrou = !sw && !aLaSwitch(heros.id, slot);
@@ -299,6 +308,8 @@ function pageDeck(corps, id, echange) {
     finLire: cacheLecture
   });
   if (echange != null) joueEchange(grille.querySelector(`.dk-paire[data-slot="${echange}"]`));
+  const vues = nouvellesDe(id);
+  if (vues.length) { marqueVues(vues); renderDeck(); }
 }
 
 // ------------------------------------------------------------------ l'onglet Amelioration

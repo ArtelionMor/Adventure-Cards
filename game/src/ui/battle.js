@@ -695,7 +695,7 @@ function plateauNode(id) {
 }
 
 // Le dos des cartes (pioches, main adverse) : un des dos dessines par le game designer (Graphical Assets/CardBack/).
-const DOS_DE_CARTE = 'Graphical Assets/CardBack/CardBack Cozy.png';
+export const DOS_DE_CARTE = 'Graphical Assets/CardBack/CardBack Cozy.png';
 
 /** Une pioche (des dos empiles, le nombre dessus) ou une defausse (la derniere carte, le nombre dessus). */
 function pileNode(quoi, camp) {

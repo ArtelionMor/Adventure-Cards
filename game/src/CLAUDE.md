@@ -8,7 +8,7 @@
 | `combat/` | Le **moteur**, le bot, les journaux (décisions + événements) — `combat/CLAUDE.md`. |
 | `tools/` | L'**arène** de mesure et le montage de situations — `tools/CLAUDE.md`. |
 | `ui/` | Les **écrans** — `ui/CLAUDE.md`. |
-| `boutique/` | **L'économie de la boutique** : `partie.js` (état, sauvegarde `adventureCard.boutique.v1`, temps, résumé d'absence, `noteVictoireBoutique`) et `noyau/` (**généré** par `scripts/gen-boutique.mjs` depuis le dépôt TypeScript `core/` : ne pas l'éditer ici). Pas de DOM. |
+| `boutique/` | **L'économie de la boutique** : `partie.js` (état, sauvegarde `adventureCard.boutique.v1`, temps, résumé d'absence, `noteVictoireBoutique`, **une seule bourse** : l'or du noyau mène à `save.cur.C`, `lieLaBourse` ; `cartesNouvelles`/`marqueVues`) et `noyau/` (**généré** par `scripts/gen-boutique.mjs` depuis le dépôt TypeScript `core/` : ne pas l'éditer ici). Pas de DOM. |
 | `rig/` | **L'animation squelettique 2D** (23 oct. 2026) : squelette, clips, maillage, runtime, rendu WebGL, validateur — sans aucun import hors du dossier (il se copie dans un autre jeu) — `rig/CLAUDE.md`. Pas encore branché sur les écrans. |
 
 ## Sens des dépendances (ne pas les inverser)
