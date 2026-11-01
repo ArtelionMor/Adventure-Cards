@@ -1,0 +1,431 @@
+{
+  "format": "adventure-rig-clips",
+  "version": 1,
+  "clips": {
+    "idle": {
+      "description": "Repos : le corps respire, la tête dodeline, ce qui flotte (flammes, oreilles, queue…) suit en décalé.",
+      "duree": 6,
+      "boucle": true,
+      "pistes": {
+        "corps": {
+          "y": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 2.7,
+              "v": -0.8
+            },
+            {
+              "t": 4.3,
+              "v": 0
+            }
+          ],
+          "rot": [
+            {
+              "t": 0,
+              "v": -0.096
+            },
+            {
+              "t": 3,
+              "v": 0.128
+            }
+          ]
+        }
+      },
+      "procedural": [
+        {
+          "type": "sinus",
+          "os": "tete",
+          "canal": "rot",
+          "amplitude": 0.192,
+          "periode": 3,
+          "phase": 0.12
+        },
+        {
+          "type": "bruit",
+          "os": "tete",
+          "canal": "rot",
+          "amplitude": 0.112,
+          "periode": 2,
+          "graine": 11
+        },
+        {
+          "type": "ressort",
+          "os": [
+            "oreille_g"
+          ],
+          "source": "tete",
+          "frequence": 2,
+          "amortissement": 0.3,
+          "gain": 1,
+          "gainY": 0.05,
+          "decalage": 0.05,
+          "amplitude": null
+        },
+        {
+          "type": "sinus",
+          "os": "oreille_g",
+          "canal": "rot",
+          "amplitude": 0.48,
+          "periode": 2,
+          "phase": 0
+        },
+        {
+          "type": "ressort",
+          "os": [
+            "oreille_d"
+          ],
+          "source": "tete",
+          "frequence": 2.3,
+          "amortissement": 0.3,
+          "gain": 1,
+          "gainY": 0.05,
+          "decalage": 0.05,
+          "amplitude": null
+        },
+        {
+          "type": "sinus",
+          "os": "oreille_d",
+          "canal": "rot",
+          "amplitude": 0.64,
+          "periode": 3,
+          "phase": 0.17
+        },
+        {
+          "type": "ressort",
+          "os": [
+            "flamme"
+          ],
+          "source": "corps",
+          "frequence": 2.6,
+          "amortissement": 0.3,
+          "gain": 1,
+          "gainY": 0.05,
+          "decalage": 0.05,
+          "amplitude": null
+        },
+        {
+          "type": "sinus",
+          "os": "flamme",
+          "canal": "rot",
+          "amplitude": 0.48,
+          "periode": 2,
+          "phase": 0.34
+        },
+        {
+          "type": "ressort",
+          "os": [
+            "queue"
+          ],
+          "source": "corps",
+          "frequence": 2,
+          "amortissement": 0.3,
+          "gain": 1,
+          "gainY": 0.05,
+          "decalage": 0.05,
+          "amplitude": null
+        },
+        {
+          "type": "sinus",
+          "os": "queue",
+          "canal": "rot",
+          "amplitude": 0.64,
+          "periode": 3,
+          "phase": 0.51
+        }
+      ]
+    },
+    "hitting": {
+      "description": "Il se ramasse, s'élance vers l'adversaire, puis revient en place.",
+      "duree": 0.9,
+      "boucle": false,
+      "pistes": {
+        "corps": {
+          "x": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.22,
+              "v": 0.84,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.4,
+              "v": -3.48,
+              "courbe": "entree"
+            },
+            {
+              "t": 0.9,
+              "v": 0
+            }
+          ],
+          "y": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.22,
+              "v": 0,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.4,
+              "v": 0,
+              "courbe": "entree"
+            },
+            {
+              "t": 0.9,
+              "v": 0
+            }
+          ],
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.22,
+              "v": 0.15
+            },
+            {
+              "t": 0.4,
+              "v": -0.21
+            },
+            {
+              "t": 0.9,
+              "v": 0
+            }
+          ]
+        },
+        "tete": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.22,
+              "v": 0.24
+            },
+            {
+              "t": 0.4,
+              "v": -0.36
+            },
+            {
+              "t": 0.9,
+              "v": 0
+            }
+          ]
+        }
+      },
+      "procedural": [
+        {
+          "type": "ressort",
+          "os": [
+            "oreille_g"
+          ],
+          "source": "tete",
+          "frequence": 2.2,
+          "amortissement": 0.3,
+          "gain": 1.4,
+          "gainX": 0,
+          "gainY": 0.05,
+          "decalage": 0.04,
+          "amplitude": null
+        },
+        {
+          "type": "ressort",
+          "os": [
+            "oreille_d"
+          ],
+          "source": "tete",
+          "frequence": 2.2,
+          "amortissement": 0.3,
+          "gain": 1.4,
+          "gainX": 0,
+          "gainY": 0.05,
+          "decalage": 0.05,
+          "amplitude": null
+        },
+        {
+          "type": "ressort",
+          "os": [
+            "flamme"
+          ],
+          "source": "corps",
+          "frequence": 2.2,
+          "amortissement": 0.3,
+          "gain": 1.4,
+          "gainX": 0,
+          "gainY": 0.05,
+          "decalage": 0.04,
+          "amplitude": null
+        },
+        {
+          "type": "ressort",
+          "os": [
+            "queue"
+          ],
+          "source": "corps",
+          "frequence": 2.2,
+          "amortissement": 0.3,
+          "gain": 1.4,
+          "gainX": 0,
+          "gainY": 0.05,
+          "decalage": 0.05,
+          "amplitude": null
+        }
+      ]
+    },
+    "taking_damage": {
+      "description": "Il encaisse : un sursaut en arrière, la tête qui part de côté, puis il se reprend.",
+      "duree": 0.7,
+      "boucle": false,
+      "pistes": {
+        "corps": {
+          "x": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.1,
+              "v": 3.9,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.3,
+              "v": 1.2
+            },
+            {
+              "t": 0.7,
+              "v": 0
+            }
+          ],
+          "y": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.1,
+              "v": 0,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.3,
+              "v": 0
+            },
+            {
+              "t": 0.7,
+              "v": 0
+            }
+          ],
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.1,
+              "v": 0.525,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.3,
+              "v": -0.18
+            },
+            {
+              "t": 0.7,
+              "v": 0
+            }
+          ]
+        },
+        "tete": {
+          "rot": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.1,
+              "v": -1.05,
+              "courbe": "sortie"
+            },
+            {
+              "t": 0.3,
+              "v": 0.375
+            },
+            {
+              "t": 0.7,
+              "v": 0
+            }
+          ]
+        }
+      },
+      "procedural": [
+        {
+          "type": "ressort",
+          "os": [
+            "oreille_g"
+          ],
+          "source": "tete",
+          "frequence": 2.6,
+          "amortissement": 0.3,
+          "gain": 1.3,
+          "gainX": 0,
+          "gainY": 0.04,
+          "decalage": 0.04,
+          "amplitude": null
+        },
+        {
+          "type": "ressort",
+          "os": [
+            "oreille_d"
+          ],
+          "source": "tete",
+          "frequence": 2.6,
+          "amortissement": 0.3,
+          "gain": 1.3,
+          "gainX": 0,
+          "gainY": 0.04,
+          "decalage": 0.04,
+          "amplitude": null
+        },
+        {
+          "type": "ressort",
+          "os": [
+            "flamme"
+          ],
+          "source": "corps",
+          "frequence": 2.6,
+          "amortissement": 0.3,
+          "gain": 1.3,
+          "gainX": 0,
+          "gainY": 0.04,
+          "decalage": 0.04,
+          "amplitude": null
+        },
+        {
+          "type": "ressort",
+          "os": [
+            "queue"
+          ],
+          "source": "corps",
+          "frequence": 2.6,
+          "amortissement": 0.3,
+          "gain": 1.3,
+          "gainX": 0,
+          "gainY": 0.04,
+          "decalage": 0.04,
+          "amplitude": null
+        }
+      ]
+    }
+  }
+}
