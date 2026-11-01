@@ -209,6 +209,9 @@ export const BALANCE = {
     // qui encaisse — l'ecran de combat descale les vignettes pour que tout tienne sans
     // defilement. Remettre un nombre ici retablit le plafond partout (pose, invocation,
     // jouabilite) sans toucher au moteur.
+    // LES PV D'UNE EQUIPE : `pvBase` + ce que chaque heros ajoute AU-DESSUS de `pvBase` (ses « boosts »). Trois heros a 20 PV
+    // font 20, pas 60 ; un heros a 24 PV ajoute 4. (`pvDeLEquipe`, config/characters.js, est le seul endroit qui additionne.)
+    pvBase: 20,
     boardSize: 0,
     // COMBIEN DE CARTES TIENNENT EN MAIN. 0 = pas de limite (meme convention que
     // `boardSize`) : une pioche, une creation ou un retour en main ne rate plus faute de

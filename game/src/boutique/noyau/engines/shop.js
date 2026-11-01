@@ -1,7 +1,7 @@
 // GÉNÉRÉ par scripts/gen-boutique.mjs depuis le noyau de la boutique : ne pas éditer ici.
 // Le plan de la boutique : une grille, des meubles posés dessus, une zone réservée aux enchères et un passage devant la porte.
 // Un présentoir porte une vitrine, une table de jeu fait monter la tolérance des acheteurs : acheter un meuble change donc
-// l'économie. Les slots donnés par la progression arrivent avec leur meuble offert (`syncBaseFurniture`) ; un meuble acheté
+// l'économie. Les niveaux de boutique (chaque agrandissement) offrent leurs objets, posés d'office (`syncBaseFurniture`) ; un meuble acheté
 // s'y ajoute. Le reste est du décor.
 
                                                                                                          
@@ -70,16 +70,44 @@ function countEffect(state           , effect        , ctx     , offert         
   return n;
 }
 
-/** La progression donne des slots : chacun arrive avec son meuble offert. */
+/** Le niveau de la boutique : 1 au départ, +1 par agrandissement. */
+export function shopLevel(shop           , cfg            )         {
+  const { startWidth, startHeight, expandStep } = cfg.shopLayout;
+  return 1 + Math.round((shop.width - startWidth + shop.height - startHeight) / expandStep);
+}
+
+/** Ce que les niveaux atteints ont offert en tout : `{ idDuMeuble: nombre }`. */
+export function offeredTotals(level        , cfg            )                         {
+  const total                         = {};
+  for (const set of cfg.shopLayout.expansionSets.slice(0, level)) {
+    for (const [id, n] of Object.entries(set)) total[id] = (total[id] ?? 0) + n;
+  }
+  return total;
+}
+
+/**
+ * Les niveaux de boutique donnent des objets (\`expansionSets\`) : chacun arrive posé, gratuit, et se déplace (il ne se vend pas).
+ * Les vitrines, les tables et les lots d'enchères qui en découlent sont recalculés ici.
+ */
 export function syncBaseFurniture(state           , ctx     )       {
-  const baseVitrine = ctx.cfg.shopLayout.furniture.find((f) => f.effect === 'vitrine');
-  const baseTable = ctx.cfg.shopLayout.furniture.find((f) => f.effect === 'table');
-  while (baseVitrine && countEffect(state, 'vitrine', ctx, true) < state.progression.showcaseSlots) {
-    if (!place(state, baseVitrine, true, ctx)) break;
+  const totals = offeredTotals(shopLevel(state.shop, ctx.cfg), ctx.cfg);
+  for (const [id, wanted] of Object.entries(totals)) {
+    const def = furnitureDef(id, ctx);
+    if (!def) continue;
+    while (state.shop.items.filter((it) => it.type === id && it.offert).length < wanted) {
+      if (!place(state, def, true, ctx)) break;
+    }
   }
-  while (baseTable && countEffect(state, 'table', ctx, true) < state.progression.tables) {
-    if (!place(state, baseTable, true, ctx)) break;
-  }
+  const effectTotal = (effect        )         =>
+    Object.entries(totals).reduce((n, [id, k]) => n + (furnitureDef(id, ctx)?.effect === effect ? k : 0), 0);
+  state.progression.showcaseSlots = effectTotal('vitrine');
+  state.progression.auctionSlots = effectTotal('estrade');
+  state.progression.tables = effectTotal('table');
+}
+
+/** Boosters qu'on peut stocker : la base, plus un bonus par rayon posé. */
+export function boosterCap(state           , ctx     )         {
+  return ctx.cfg.boosters.storageCap + countEffect(state, 'rayon', ctx) * ctx.cfg.shopLayout.rayonBonus;
 }
 
 /** Slots de vitrine : ceux de la progression, plus les présentoirs achetés. */
@@ -111,6 +139,7 @@ export function furniturePrice(type        , state           , ctx     )        
 export function buyFurniture(state           , type        , ctx     )                   {
   const def = furnitureDef(type, ctx);
   if (!def) return { ok: false, reason: `Meuble inconnu : ${type}.` };
+  if (def.offertSeul) return { ok: false, reason: 'Cet objet vient avec l’agrandissement de la boutique.' };
   const price = furniturePrice(type, state, ctx);
   if (state.gold < price) return { ok: false, reason: 'Or insuffisant.' };
   const item = place(state, def, false, ctx);
@@ -147,22 +176,32 @@ export function sellFurniture(state           , id        , ctx     )           
 }
 
 export function expandCost(state           , cfg            )         {
-  const { expandBaseCost, expandGrowth, expandStep, startWidth } = cfg.shopLayout;
-  const done = Math.round((state.shop.width - startWidth) / expandStep);
-  return Math.round(expandBaseCost * Math.pow(expandGrowth, done));
+  const { expandBaseCost, expandGrowth } = cfg.shopLayout;
+  return Math.round(expandBaseCost * Math.pow(expandGrowth, shopLevel(state.shop, cfg) - 1));
 }
 
-export const canExpand = (state           , cfg            )          =>
-  state.shop.width < cfg.shopLayout.maxWidth || state.shop.height < cfg.shopLayout.maxHeight;
+/** Un agrandissement par niveau de boutique (`expansionSets`), dans la direction qu'on veut tant qu'elle n'est pas au maximum. */
+export function canExpand(state           , cfg            , axis                   = null)          {
+  const { maxWidth, maxHeight } = cfg.shopLayout;
+  if (shopLevel(state.shop, cfg) >= cfg.shopLayout.expansionSets.length) return false;
+  if (axis === 'x') return state.shop.width < maxWidth;
+  if (axis === 'y') return state.shop.height < maxHeight;
+  return state.shop.width < maxWidth || state.shop.height < maxHeight;
+}
 
-/** Agrandit la boutique d'une bande sur chaque côté libre. Les meubles ne bougent pas. */
-export function expandShop(state           , ctx     )                 {
+/**
+ * Agrandit la boutique d'une bande de `expandStep` cases, du côté de l'axe choisi (`x` : vers la droite de l'écran, `y` : vers la gauche).
+ * Les meubles ne bougent pas, et le niveau suivant offre son set.
+ */
+export function expandShop(state           , ctx     , axis            = 'x')                 {
   const { expandStep, maxWidth, maxHeight } = ctx.cfg.shopLayout;
   if (!canExpand(state, ctx.cfg)) return { ok: false, reason: 'La boutique est à sa taille maximale.' };
+  if (!canExpand(state, ctx.cfg, axis)) return { ok: false, reason: 'La boutique ne peut plus grandir de ce côté.' };
   const price = expandCost(state, ctx.cfg);
   if (state.gold < price) return { ok: false, reason: 'Or insuffisant.' };
   state.gold -= price;
-  state.shop.width = Math.min(maxWidth, state.shop.width + expandStep);
-  state.shop.height = Math.min(maxHeight, state.shop.height + expandStep);
+  if (axis === 'x') state.shop.width = Math.min(maxWidth, state.shop.width + expandStep);
+  else state.shop.height = Math.min(maxHeight, state.shop.height + expandStep);
+  syncBaseFurniture(state, ctx);
   return { ok: true, value: price };
 }

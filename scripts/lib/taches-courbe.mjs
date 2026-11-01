@@ -4,7 +4,7 @@
 // La partie se joue exactement comme avant la parallelisation : le joueur commence
 // toujours, le bot joue son niveau par defaut, la rencontre le sien (les boss jouent
 // serre) — la simulation doit voir la meme difficulte que le joueur, sinon elle ment.
-import { CHAR_BY_ID, resolveCard } from '../../game/src/config/characters.js';
+import { CHAR_BY_ID, resolveCard, pvDeLEquipe } from '../../game/src/config/characters.js';
 import { ENCOUNTERS } from '../../game/src/config/world.js';
 import { coteEnnemi } from '../../game/src/config/ennemis.js';
 import { createBattle } from '../../game/src/combat/engine.js';
@@ -18,7 +18,7 @@ function playerSide(teamIds, level) {
   return {
     name: chars.map(c => c.name).join('&'),
     sprite: chars[0].sprite,
-    hp: chars.reduce((a, c) => a + c.stats.hp, 0),
+    hp: pvDeLEquipe(chars),
     mana: Math.max(...chars.map(c => c.stats.mana)),
     hand: Math.max(...chars.map(c => c.stats.hand)),
     deck

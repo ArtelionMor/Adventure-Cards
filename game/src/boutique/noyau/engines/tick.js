@@ -9,10 +9,12 @@ import { settleAuctions } from './auction.js';
 import { settleBulk } from './bulk.js';
 import { settleGrading } from './grading.js';
 import { settleMarket } from './market.js';
+import { boosterCap } from './shop.js';
 import { settleShowcase } from './showcase.js';
 
 function produceBoosters(state           , dtMs        , ctx     )       {
-  const { intervalMinutes, storageCap } = ctx.cfg.boosters;
+  const { intervalMinutes } = ctx.cfg.boosters;
+  const storageCap = boosterCap(state, ctx);
   const b = state.boosters;
   // Stock plein : la production est à l'arrêt et son compteur reste à zéro.
   if (b.stock >= storageCap) {

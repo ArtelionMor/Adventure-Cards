@@ -11,6 +11,7 @@ import { SPRITES } from '../../data/sprites.js';
 import { AMPLIFIABLE, TRIGGERS, amplify, effectParams, eachSubEffect, listeEffets, branchesDe } from './mechanics.js';
 import { appliqueHeros } from './feuille.js';
 import { repareImages } from './images.js';
+import { BALANCE } from './balance.js';
 
 // La Google Sheet (onglet « heroes ») commande les statistiques des heros et des adversaires : nom, image, PV,
 // mana max, archetype (config/feuille.js). Posee une fois, ici, sur les donnees du builder — tout ce qui importe
@@ -190,6 +191,9 @@ export function niveauDePalier(heros, niveau) {
 
 /** Le niveau (nouveau) d'un heros qui avait l'ancien niveau `L` : toutes les etapes de palier <= L faites. */
 export const niveauDepuisAncien = (heros, L) => 1 + etapesDe(heros).filter(e => e.lvl <= L).length;
+
+/** Les PV d'une equipe de heros : la base (BALANCE.combat.pvBase) + le surplus de chacun au-dessus de cette base. */
+export const pvDeLEquipe = chars => BALANCE.combat.pvBase + chars.reduce((a, c) => a + Math.max(0, c.stats.hp - BALANCE.combat.pvBase), 0);
 
 /** Les 5 cartes effectives d'un personnage, en tenant compte des switch equipes. */
 export function characterDeck(charId, save) {

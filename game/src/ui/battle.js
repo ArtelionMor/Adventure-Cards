@@ -1,7 +1,7 @@
 // Ecran de combat. Le mode auto est l'etat par defaut : le jeu est idle d'abord,
 // le mode manuel est une reprise en main volontaire (GDD).
 import { BALANCE } from '../config/balance.js';
-import { CHAR_BY_ID, CHARACTERS, characterDeck, resolveCard } from '../config/characters.js';
+import { CHAR_BY_ID, CHARACTERS, characterDeck, resolveCard, pvDeLEquipe } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist, gagneXp, noteCombatArene, etatArene, signale } from '../state.js';
 import { noteVictoireBoutique, donneBoosterPremium } from '../boutique/partie.js';
@@ -47,6 +47,8 @@ import { ligneSource, lignesDeRenforts, teteFiche, blocFait, ficheDeCarte, montr
 import { skinCourant, skinSuivant, ecouteSkin, fondDuCombat } from './skin.js';   // l'habillage du combat (skins/*.css), AC.skin(), son fond
 
 let B = null;
+/** Le combat en cours (pour la console de debug et les mesures de perf : `(await import('/game/src/ui/battle.js')).combatEnCours()`). */
+export const combatEnCours = () => B;
 let auto = true;
 let guide = null;   // le COMBAT GUIDE (ui/guide.js) : ses bulles, quand la quete en cours le demande
 let timer = null;
@@ -126,7 +128,7 @@ export function buildPlayerSide() {
   return {
     name: chars.map(c => c.name).join(' & '),
     sprite: chars[0].sprite,
-    hp: chars.reduce((a, c) => a + c.stats.hp, 0) + m.hp,
+    hp: pvDeLEquipe(chars) + m.hp,
     mana: Math.max(...chars.map(c => c.stats.mana)) + m.mana,
     hand: Math.max(...chars.map(c => c.stats.hand)) + m.hand,
     startArmor: m.armor,
@@ -141,7 +143,7 @@ function buildDefiSide(defi) {
   return {
     name: defi.nom,
     sprite: chars[0].sprite,
-    hp: chars.reduce((a, c) => a + c.stats.hp, 0),
+    hp: pvDeLEquipe(chars),
     mana: Math.max(...chars.map(c => c.stats.mana)),
     hand: Math.max(...chars.map(c => c.stats.hand)),
     startArmor: 0,

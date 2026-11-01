@@ -9,7 +9,7 @@
 // compteur d'unites du moteur), une partie sur deux a le journal de decisions allume — puis il les rejoue apres un
 // passage par JSON (comme le stockage) et compare : vainqueur, tours, PV, plateaux, mains, defausses, recit.
 // Il verifie aussi qu'un rejeu coupe au debut d'un tour puis continue finit pareil (les fleches de l'ecran).
-import { CHAR_BY_ID, resolveCard } from '../game/src/config/characters.js';
+import { CHAR_BY_ID, resolveCard, pvDeLEquipe } from '../game/src/config/characters.js';
 import { CHARACTER_DATA } from '../game/data/characters.data.js';
 import { ENCOUNTERS } from '../game/src/config/world.js';
 import { createBattle, cloneBattle } from '../game/src/combat/engine.js';
@@ -34,7 +34,7 @@ function campHeros(ids, niveau) {
   const chars = ids.map(id => CHAR_BY_ID[id]).filter(Boolean);
   return {
     name: chars.map(c => c.name).join('&'), sprite: chars[0].sprite,
-    hp: chars.reduce((a, c) => a + c.stats.hp, 0),
+    hp: pvDeLEquipe(chars),
     mana: Math.max(...chars.map(c => c.stats.mana)),
     hand: Math.max(...chars.map(c => c.stats.hand)),
     deck: chars.flatMap(ch => ch.cards.map(c => ({ ...resolveCard(c, niveau), sprite: ch.sprite })))

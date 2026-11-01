@@ -10,7 +10,7 @@
 // Il joue des parties bot contre bot avec le journal allume et verifie, fichier par
 // fichier, les criteres d'acceptation de la spec. Il ne joue PAS de serie de mesure :
 // c'est un test, il reste sur cette machine (cf. le banc du partage).
-import { CHAR_BY_ID, resolveCard } from '../game/src/config/characters.js';
+import { CHAR_BY_ID, resolveCard, pvDeLEquipe } from '../game/src/config/characters.js';
 import { CHARACTER_DATA } from '../game/data/characters.data.js';
 import { ENCOUNTERS } from '../game/src/config/world.js';
 import { createBattle } from '../game/src/combat/engine.js';
@@ -46,7 +46,7 @@ function campHeros(ids, niveau) {
   return {
     name: chars.map(c => c.name).join('&'),
     sprite: chars[0].sprite,
-    hp: chars.reduce((a, c) => a + c.stats.hp, 0),
+    hp: pvDeLEquipe(chars),
     mana: Math.max(...chars.map(c => c.stats.mana)),
     hand: Math.max(...chars.map(c => c.stats.hand)),
     deck: chars.flatMap(ch => ch.cards.map(c => ({ ...resolveCard(c, niveau), sprite: ch.sprite })))

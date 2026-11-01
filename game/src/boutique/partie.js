@@ -124,6 +124,7 @@ export function demarreBoutique() {
       etat.showcase.forEach((l, i) => { l.displayId = presentoirs[i]?.id ?? null; });
     }
     metAJour(etat);
+    syncBaseFurniture(etat, ctx);   // les objets des niveaux de boutique deja atteints (une ancienne sauvegarde les recoit)
   } else etat = { ...createState(ctx), vues: {}, version: 4 };
   lieLaBourse(etat);
   persist();

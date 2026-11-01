@@ -4,10 +4,10 @@
 import { BOUTIQUE } from '../config/boutique.js';
 import { buyerMultiplier } from '../boutique/noyau/engines/buyers.js';
 import { buyerReaction } from '../boutique/noyau/engines/pricing.js';
-import { doorX, footprint, isFree } from '../boutique/noyau/engines/shop.js';
+import { canExpand, doorX, expandCost, footprint, isFree } from '../boutique/noyau/engines/shop.js';
 import { ctx, ecoute, partie } from '../boutique/partie.js';
 import { urlIcone } from './icones.js';
-import { asset } from './shell.js';
+import { asset, court } from './shell.js';
 
 const R = BOUTIQUE.scene;
 const [TW, TH] = R.case;
@@ -24,7 +24,8 @@ let clients = [], gains = [];
 let raf = 0, avant = 0, horloge = 0, prochaineAmbiance = 0, prochainCri = 0, dernierPlan = 0;
 let desabonne = null;
 let actions = {};
-let deco = { actif: false, choisi: null, fantome: null };
+// `choisi` : le meuble selectionne (on le deplace en le glissant, on le tourne avec son bouton) ; `fantome` : ou il tombera.
+let deco = { actif: true, choisi: null, fantome: null };
 let visuelDeCarte = () => null;
 
 // ------------------------------------------------------------------ images
@@ -441,6 +442,7 @@ function dessineMeuble(it, alpha = 1) {
   if (v.fichier) dessineFichier(im, cx, cy, TW * (f.w + f.h) / 2 * v.echelle);
   else if (v.plat) c2d.drawImage(im, cx - w / 2, cy - h / 2, w, h);
   else c2d.drawImage(im, cx - w / 2, cy + TH * 0.22 - h, w, h);
+  if (v.badge && def.effect !== 'estrade') { c2d.font = '22px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle'; c2d.fillText(v.badge, cx, cy - (v.dessus || 70)); }
   c2d.restore();
 }
 
@@ -514,6 +516,29 @@ function bullePlus(it) {
   c2d.fillText('+', cx, y - 15);
 }
 
+/** Les estrades, dans l'ordre : la n-ieme porte la n-ieme enchere en cours (le noyau ne les lie pas autrement). */
+const estrades = S => S.shop.items.filter(i => defDe(i.type)?.effect === 'estrade');
+const hautEstrade = it => versEcran(it.x + 0.5, it.y + 0.5)[1] - (BOUTIQUE.meubles[it.type].dessus || 70) - 6;
+
+/** La bulle d'une estrade : un marteau quand elle est libre, le prix qui monte quand une enchere y passe. */
+function bulleEstrade(it, a) {
+  const [cx] = versEcran(it.x + 0.5, it.y + 0.5), y = hautEstrade(it);
+  if (!a) {
+    bulle(cx, y, 38, 34, '#e7f53a');
+    c2d.font = '20px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle'; c2d.fillStyle = '#2b1c1f';
+    c2d.fillText('🔨', cx, y - 16);
+    return;
+  }
+  const texte = String(Math.round(a.price));
+  c2d.font = '800 15px sans-serif';
+  const w = c2d.measureText(texte).width + 34;
+  bulle(cx, y, w, 26, '#ffffff');
+  c2d.fillStyle = '#2b1c1f'; c2d.textAlign = 'left'; c2d.textBaseline = 'middle';
+  c2d.fillText(texte, cx - w / 2 + 8, y - 13);
+  const piece = image(urlIcone('Coin'));
+  if (piece) c2d.drawImage(piece, cx + w / 2 - 22, y - 21, 16, 16);
+}
+
 function bulleDefi(c, t) {
   const [sx, sy] = versEcran(c.x, c.y);
   const k = 1 + 0.08 * Math.sin(t / 220);
@@ -583,15 +608,43 @@ function dessineBoite(S) {
 
 function dessineDeco() {
   const s = partie().shop;
-  c2d.strokeStyle = '#ffffff40'; c2d.lineWidth = 1;
-  for (let y = 0; y < s.height; y++) for (let x = 0; x < s.width; x++) { losange(x, y, 1, 1); c2d.stroke(); }
   const it = deco.choisi !== null ? itemDe(deco.choisi) : null;
   if (!it) return;
+  c2d.strokeStyle = '#ffffff40'; c2d.lineWidth = 1;
+  for (let y = 0; y < s.height; y++) for (let x = 0; x < s.width; x++) { losange(x, y, 1, 1); c2d.stroke(); }
   const p = deco.fantome || it, f = footprint(defDe(it.type), p.dir);
   const libre = isFree(s, p.x, p.y, f.w, f.h, cfg, it.id);
   losange(p.x, p.y, f.w, f.h);
   c2d.fillStyle = libre ? '#39d36a70' : '#e8352e70'; c2d.fill();
   c2d.strokeStyle = libre ? '#39d36a' : '#e8352e'; c2d.lineWidth = 3; c2d.stroke();
+}
+
+// Un bouton rond pose dans le monde : sous le meuble choisi (tourner), au bord de la boutique (agrandir).
+function rond(x, y, couleur, glyphe, sous = '') {
+  c2d.fillStyle = couleur; c2d.strokeStyle = '#2b1c1f'; c2d.lineWidth = 3;
+  c2d.beginPath(); c2d.arc(x, y, 22, 0, Math.PI * 2); c2d.fill(); c2d.stroke();
+  c2d.fillStyle = '#2b1c1f'; c2d.font = '900 24px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle';
+  c2d.fillText(glyphe, x, y + 1);
+  if (sous) {
+    c2d.font = '800 12px sans-serif'; c2d.lineWidth = 4; c2d.strokeStyle = '#2b1c1f'; c2d.fillStyle = '#fff';
+    c2d.strokeText(sous, x, y + 36); c2d.fillText(sous, x, y + 36);
+  }
+}
+
+/** Ou est le bouton « tourner » du meuble choisi (px du monde), ou null. */
+function posTourner() {
+  const it = deco.choisi !== null ? itemDe(deco.choisi) : null;
+  if (!it || deco.fantome) return null;
+  const f = footprint(defDe(it.type), it.dir);
+  const [x, y] = versEcran(it.x + f.w, it.y + f.h);
+  return [x, y + 30];
+}
+
+/** Ou est le bouton d'agrandissement d'un cote (`x` : le bord de droite, `y` : celui de gauche), ou null s'il ne peut plus grandir. */
+function posAgrandir(axe) {
+  const s = partie().shop;
+  if (!canExpand(partie(), cfg, axe)) return null;
+  return axe === 'x' ? versEcran(s.width + 1.1, s.height / 2) : versEcran(s.width * 0.2, s.height + 1.1);
 }
 
 function dessine(t) {
@@ -603,7 +656,7 @@ function dessine(t) {
   dessineSol(s);
   dessineMurs(s);
   dessineTableau(t);
-  if (deco.actif) dessineDeco();
+  dessineDeco();
   for (const it of s.items) if (defDe(it.type)?.effect === 'tapis') dessineMeuble(it);
 
   // Du plus loin au plus proche : les pieds de chacun disent qui passe devant.
@@ -636,7 +689,14 @@ function dessine(t) {
     if (defDe(it.type)?.effect !== 'vitrine') continue;
     const l = S.showcase.find(x => x.displayId === it.id);
     if (l) bulleDePrix(l, it);
-    else if (!deco.actif) bullePlus(it);
+    else bullePlus(it);
+  }
+  estrades(S).forEach((it, i) => bulleEstrade(it, S.auctions[i]));
+  const tourne = posTourner();
+  if (tourne) rond(tourne[0], tourne[1], '#ffe14d', '↻');
+  for (const axe of ['x', 'y']) {
+    const p = posAgrandir(axe);
+    if (p) rond(p[0], p[1], '#e7f53a', '+', court(expandCost(S, cfg)));
   }
   for (const c of clients) if (c.bulle) bulleClient(c);
   for (const c of clients) if (c.defi && c.assis && !c.defiEnCours) bulleDefi(c, t);
@@ -718,33 +778,49 @@ function surCase(sx, sy) {
   return null;
 }
 
+/** Une bulle au-dessus d'une vitrine : ou touche-t-on ? `yb` : le pied de la bulle (px du monde). */
+const surBulle = (mx, my, cx, yb) => Math.abs(mx - cx) < 28 && my > yb - 44 && my < yb + 8;
+
+/**
+ * Toucher la boutique. Un objet qu'on peut utiliser MAINTENANT s'utilise (la table ou un defieur attend) ; une bulle ouvre son widget
+ * (la vitrine : la collection et le prix ; les encheres : leur page) ; sinon on selectionne le meuble, qu'on deplace en le glissant
+ * et qu'on tourne avec son bouton. Le vide deselectionne.
+ */
 function touche(sx, sy) {
   const [fx, fy] = versGrille(sx, sy);
-  const it = surCase(sx, sy);
-  if (deco.actif) {
-    deco.choisi = it ? it.id : null;
-    deco.fantome = null;
-    actions.choix?.(it);
-    return;
-  }
-  if (it && defDe(it.type)?.effect === 'vitrine') {
-    actions.vitrine?.(partie().showcase.find(l => l.displayId === it.id) || null);
-    return;
-  }
-  // Un defieur : toucher sa bulle (ou lui) ouvre le defi.
   const mx = (sx - cam.x) / cam.z, my = (sy - cam.y) / cam.z;
+  const it = surCase(sx, sy);
+  // Un defieur : toucher sa bulle, lui, ou sa table ouvre le defi.
   const defieur = clients.find(c => {
     if (!c.defi || !c.assis || c.defiEnCours) return false;
     const [ex, ey] = versEcran(c.x, c.y);
-    return Math.abs(mx - ex) < 34 && my > ey - 140 && my < ey + 12;
+    return (Math.abs(mx - ex) < 34 && my > ey - 140 && my < ey + 12) || (it && c.table?.id === it.id);
   });
   if (defieur) { actions.defi?.(defieur); return; }
+  const tourne = posTourner();
+  if (tourne && Math.hypot(mx - tourne[0], my - tourne[1]) < 26) { actions.tourne?.(deco.choisi); return; }
+  for (const axe of ['x', 'y']) {
+    const p = posAgrandir(axe);
+    if (p && Math.hypot(mx - p[0], my - p[1]) < 30) { actions.agrandit?.(axe); return; }
+  }
+  const S = partie();
+  for (const v of S.shop.items) {
+    if (defDe(v.type)?.effect !== 'vitrine') continue;
+    const m = BOUTIQUE.meubles[v.type], [cx, cy] = versEcran(v.x + 0.5, v.y + 0.5);
+    const l = S.showcase.find(x => x.displayId === v.id);
+    if (surBulle(mx, my, cx, l ? cy - m.dessus - R.tailleCarte + 4 : cy - m.dessus + 2)) { actions.vitrine?.(l || null, v); return; }
+  }
+  const es = estrades(S);
+  for (let i = 0; i < es.length; i++) {
+    if (surBulle(mx, my, versEcran(es[i].x + 0.5, es[i].y + 0.5)[0], hautEstrade(es[i]))) { actions.estrade?.(i); return; }
+  }
   if (Math.floor(fx) === R.boite[0] && Math.floor(fy) === R.boite[1]) { actions.bulk?.(); return; }
   const z = cfg.shopLayout.auctionZone;
   const [cx, cy] = versEcran(z.x + z.w / 2, 0);
-  const wx = (sx - cam.x) / cam.z, wy = (sy - cam.y) / cam.z;
-  const surTableau = Math.abs(wx - cx) < 80 && wy > cy - R.hauteurMur - 4 && wy < cy - R.hauteurMur + 100;
-  if (surTableau || (fx >= z.x && fx < z.x + z.w && fy >= z.y && fy < z.y + z.h)) actions.encheres?.();
+  const surTableau = Math.abs(mx - cx) < 80 && my > cy - R.hauteurMur - 4 && my < cy - R.hauteurMur + 100;
+  if (surTableau) { actions.encheres?.(); return; }
+  deco.choisi = it ? it.id : null;
+  deco.fantome = null;
 }
 
 function debut(e) {
@@ -755,10 +831,10 @@ function debut(e) {
     geste = { type: 'pince', d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: cam.z };
     return;
   }
-  // En mode Decorer, on attrape n'importe quel meuble directement : il devient le meuble choisi.
-  const it = deco.actif ? surCase(e.offsetX, e.offsetY) : null;
-  if (it && it.id !== deco.choisi) { deco.choisi = it.id; deco.fantome = null; actions.choix?.(it); }
-  geste = { type: it ? 'meuble' : 'vue', x: e.offsetX, y: e.offsetY, cx: cam.x, cy: cam.y, bouge: false };
+  // Le meuble choisi se glisse ; partout ailleurs le doigt deplace la vue.
+  const it = surCase(e.offsetX, e.offsetY);
+  const choisi = it && it.id === deco.choisi;
+  geste = { type: choisi ? 'meuble' : 'vue', x: e.offsetX, y: e.offsetY, cx: cam.x, cy: cam.y, bouge: false };
 }
 
 function zoomVers(sx, sy, z) {
@@ -839,11 +915,6 @@ export function arreteScene() {
 
 // Le panneau vient de changer la hauteur de la scene : on recadre au prochain dessin, une fois la mise en page refaite.
 const recadre = f => requestAnimationFrame(() => { if (canvas) { mesure(); f(); } });
-
-export function modeDeco(actif) {
-  deco = { actif, choisi: null, fantome: null };
-  if (actif) recadre(centre);
-}
 
 /** Choisit un meuble et l'amene au milieu de la vue : un meuble qu'on vient d'acheter ne doit pas tomber sous le panneau. */
 export function choisisMeuble(id) {

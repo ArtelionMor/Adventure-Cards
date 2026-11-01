@@ -8,6 +8,8 @@ import { NIVEAU_MAX_PROFIL, recompensesDuNiveau } from '../config/profil.js';
 import { FONDS } from '../config/arenes.js';
 import { t } from '../config/textes.js';
 import { save, xpPourSuivant, puissanceJoueur, fondsDebloques, choisitFond } from '../state.js';
+import { BOUTIQUE } from '../config/boutique.js';
+import { change, partie } from '../boutique/partie.js';
 import { el, asset, modal, closeModal } from './shell.js';
 
 /** Une recompense en une ligne (et l'image du heros quand c'en est un). */
@@ -46,6 +48,23 @@ function choixDuFond() {
   return zone;
 }
 
+/** LES COULEURS DE LA BOUTIQUE (sol et murs) : quatre choix gratuits chacun, la scene les relit toute seule. */
+function choixDeLaBoutique() {
+  const zone = el('<div class="pf-fonds"><h3>Boutique</h3><div class="pf-boutique"></div></div>');
+  const S = partie();
+  for (const [nom, liste, champ] of [['Sol', BOUTIQUE.sols, 'floor'], ['Murs', BOUTIQUE.murs, 'wall']]) {
+    const ligne = el(`<div class="btq-ligne"><span>${nom}</span><div class="btq-nuances"></div></div>`);
+    const nuances = ligne.querySelector('.btq-nuances');
+    liste.forEach((c, i) => {
+      const b = el(`<button class="${S.shop[champ] === i ? 'on' : ''}" style="background:linear-gradient(135deg, ${c[0]} 50%, ${c[1]} 50%)" aria-label="${nom} ${i + 1}"></button>`);
+      b.onclick = () => { S.shop[champ] = i; change(); nuances.querySelectorAll('button').forEach((x, k) => x.classList.toggle('on', k === i)); };
+      nuances.appendChild(b);
+    });
+    zone.querySelector('.pf-boutique').appendChild(ligne);
+  }
+  return zone;
+}
+
 export function ouvreProfil() {
   const p = save.profil;
   const besoin = xpPourSuivant();
@@ -73,6 +92,7 @@ export function ouvreProfil() {
     arbre.appendChild(el(`<li class="pf-n ${etat}"><span class="pf-rond">${n}</span>${recompensesDuNiveau(n).map(ligneRecompense).join('')}</li>`));
   }
   box.insertBefore(choixDuFond(), arbre);
+  if (partie()) box.insertBefore(choixDeLaBoutique(), arbre);
   const sac = el(`<button class="btn ghost">${t('profil.sac')}</button>`);
   sac.onclick = ouvreSac;
   box.appendChild(sac);

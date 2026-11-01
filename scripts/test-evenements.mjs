@@ -14,7 +14,7 @@
 //      un Hibou 2/5 : 5 → 2 d'un cote, 3 → 1 de l'autre) et un rale d'agonie en chaine ;
 //   4. la COMPLETUDE sur des parties entieres : rejouer les evenements redonne les PV de fin,
 //      et toute unite qui meurt ou qui reste en jeu est nee d'un evenement.
-import { CHAR_BY_ID, resolveCard } from '../game/src/config/characters.js';
+import { CHAR_BY_ID, resolveCard, pvDeLEquipe } from '../game/src/config/characters.js';
 import { CHARACTER_DATA } from '../game/data/characters.data.js';
 import { ENCOUNTERS } from '../game/src/config/world.js';
 import { createBattle, cloneBattle } from '../game/src/combat/engine.js';
@@ -54,7 +54,7 @@ function campHeros(ids, niveau) {
   const chars = ids.map(id => CHAR_BY_ID[id]).filter(Boolean);
   return {
     name: chars.map(c => c.name).join('&'), sprite: chars[0].sprite,
-    hp: chars.reduce((a, c) => a + c.stats.hp, 0),
+    hp: pvDeLEquipe(chars),
     mana: Math.max(...chars.map(c => c.stats.mana)),
     hand: Math.max(...chars.map(c => c.stats.hand)),
     deck: chars.flatMap(ch => ch.cards.map(c => ({ ...resolveCard(c, niveau), sprite: ch.sprite })))

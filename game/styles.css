@@ -1141,7 +1141,6 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
    navigation, qui depasse vers le haut. */
 .btq .ong { flex: none; height: calc(46% + 72px); }
 .btq .ong.replie { height: auto; }
-.btq .ong:has(.ong-tab.on[data-id="deco"]) { height: calc(36% + 72px); }   /* on decore en regardant la boutique */
 .btq .ong-page { border-width: 3px 0; border-radius: 0; }
 .btq .ong-barre { gap: 3px; padding: 0 4px 34px; }
 .btq .ong.replie .ong-barre { margin-top: 0; }
@@ -1245,6 +1244,19 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 .btq-fiche-haut > .btq-c { flex: 0 0 84px; width: 84px; }
 .btq-fiche-haut h2 { margin: 0; }
 .btq-fiche-haut p { margin: 2px 0; }
+/* le widget d'une vitrine : la rangée de doubles, puis la fiche de prix de celui qu'on a choisi */
+.btq-rangee { display: flex; gap: 8px; overflow-x: auto; padding: 6px 6px 10px; }
+.btq-rangee > .btq-case-c { flex: 0 0 62px; border-radius: 8px; outline: 3px solid transparent; outline-offset: 1px; }
+.btq-rangee > .btq-case-c.on { outline-color: #ffc94a; }
+.btq-nomc { margin: 4px 0 8px; font-size: 14px; }
+.btq-fiche input[type=range].btq-gros { -webkit-appearance: none; appearance: none; background: transparent; height: 44px; margin: 4px 0; }
+.btq-gros::-webkit-slider-runnable-track { height: 16px; background: #d9c59c; border: 2px solid #4a342a; border-radius: 10px; }
+.btq-gros::-webkit-slider-thumb { -webkit-appearance: none; width: 38px; height: 38px; margin-top: -12px; background: #ffc94a; border: 3px solid #4a342a; border-radius: 50%; }
+.btq-prix-gros { font-size: 22px; font-weight: 800; }
+.btq-visages { display: flex; flex-wrap: wrap; gap: 6px 4px; margin: 8px 0 12px; justify-content: center; }
+.btq-visage { position: relative; width: 52px; height: 52px; border: 3px solid var(--c); border-radius: 50%; background: #fff3d8; }
+.btq-visage img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+.btq-visage i { position: absolute; right: -6px; bottom: -6px; font-style: normal; font-size: 20px; line-height: 1; filter: drop-shadow(0 1px 0 #fff); }
 
 /* ---------------------------------------------------- la ligne de combats (ui/arene.js) */
 #screen-arene { overflow: hidden; }

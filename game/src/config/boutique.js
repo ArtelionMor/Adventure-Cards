@@ -25,7 +25,11 @@ export const BOUTIQUE = {
   logosGrading: { owl: H('Hero Owl 1'), frog: H('Hero Frog 1'), rabbit: H('Hero Rabbit 1') },
   dossierPoses: 'Decor/Kenney Toon Characters/',
   // Un client dessiné par le game designer vit dans son propre dossier (poses `<tête>_<pose>.png`, 96 × 128, pieds en bas).
-  dossierDe: Object.fromEntries(['ada', 'barnaby', 'boris', 'brock', 'cipher', 'jenna', 'richie', 'rook', 'spike', 'timmy'].map(t => [t, 'Graphical Assets/Clients/'])),
+  // (un sous-dossier par client, rangé par le game designer le 2 nov. 2026 ; « Jena » est celui de Jenna)
+  dossierDe: Object.fromEntries(['ada', 'barnaby', 'boris', 'brock', 'cipher', 'jenna', 'richie', 'rook', 'spike', 'timmy']
+    .map(t => [t, `Graphical Assets/Clients/${t === 'jenna' ? 'Jena' : t[0].toUpperCase() + t.slice(1)}/`])),
+  // Le visage de chaque client (fiche de prix) : `Graphical Assets/Clients/Clients Thumbnails/`, allégé en 160 px par python (voir scripts/CLAUDE.md).
+  visage: tete => `/game/vignettes/Clients/${tete}.webp`,
   // Nombre d'images du cycle de marche d'un client dessine (8 par defaut, comme les Kenney) : on en a retire qui boitaient.
   imagesDeMarche: { ada: 5, barnaby: 7, boris: 7, brock: 4, cipher: 7, jenna: 7, richie: 7, rook: 6, spike: 7, timmy: 5 },
   dossierMeubles: 'Decor/Kenney Furniture Kit/',
@@ -73,6 +77,13 @@ export const BOUTIQUE = {
         { fichier: 'Graphical Assets/Furnitures/Rectifies/chaise.png', assise: 'Graphical Assets/Furnitures/Rectifies/chaise-assise.png', dossier: 'Graphical Assets/Furnitures/Rectifies/chaise-dossier.png', echelle: 0.25, x: 1.0, y: 0.5, dy: 12, devant: true, sens: -1, acces: [1, 0] }
       ]
     },
+    // Les objets de l'agrandissement (sprites provisoires : un meuble Kenney et un repere (`badge`), en attendant ceux du game designer).
+    estrade: { image: 'tableRound', echelle: 0.9, badge: '🔨' },
+    rayon: { image: 'bookcaseOpen', echelle: 0.84, badge: '📦' },
+    posteGrading: { image: 'cabinetTelevision', echelle: 0.84, badge: '⭐' },
+    affiche: { image: 'books', echelle: 0.9, badge: '📢' },
+    cafe: { image: 'kitchenBar', echelle: 0.9, badge: '☕' },
+    defis: { image: 'televisionModern', echelle: 0.8, badge: '⚔️' },
     etagere: { image: 'bookcaseOpen', echelle: 0.84 },
     etagereBasse: { image: 'bookcaseOpenLow', echelle: 0.84 },
     comptoir: { image: 'kitchenBar', echelle: 0.9 },
