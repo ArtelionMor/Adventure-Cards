@@ -100,6 +100,7 @@ export function createBattle(playerCfg, enemyCfg, meta = {}) {
     e: makeSide({ ...enemyCfg, key: 'e' }),
     turn: 'p',
     turnNo: 0,
+    mortes: 0,   // unites mortes depuis le debut du combat, les deux camps (compteur `unitesMortes`)
     log: [],
     // COMBIEN DE LIGNES ONT ETE ECRITES DEPUIS LE DEBUT, `B.log` fut-il tronque. Le
     // journal de decisions decoupe le texte en tranches (« ce qui s'est dit depuis la
@@ -873,7 +874,7 @@ export function refresh(B) {
       let socleAtk = u.baseAtk, socleHp = u.baseHp;
       const varia = variableDe(u);
       if (varia) {
-        const x = Math.max(0, counterValue(varia.src, B, k, u, varia.arg) + (+varia.plus || 0));
+        const x = Math.max(0, counterValue(varia.src, B, k, u, varia.arg) * (+varia.fois || 1) + (+varia.plus || 0));
         // Les renforts encaisses depuis l'arrivee restent acquis : x + ce qui a ete gagne.
         if (varia.stat === 'atk' || varia.stat === 'both') socleAtk = x + (u.baseAtk - u.printedAtk);
         if (varia.stat === 'hp' || varia.stat === 'both') socleHp = x + (u.baseHp - u.printedHp);
@@ -952,6 +953,7 @@ function resolveDeaths(B, depth = 0) {
     s.board = s.board.filter(u => u.hp > 0);
   }
   if (!dead.length) return;
+  B.mortes = (B.mortes || 0) + dead.length;
 
   // LA TOXINE SAUTE (V3, 4.4). Une fois TOUS les morts du lot retires du plateau — c'est fait au-dessus —,
   // les marqueurs de chacun passent sur une survivante du MEME camp, au hasard ; s'il n'y en a plus, ils
@@ -1720,8 +1722,11 @@ function applyEffects(B, k, effects, target, source, choix, depart) {
         renforceCartes(B, pris.map(x => x.carte), e);
         const arrivees = [];
         for (const { camp, carte } of pris) {
-          const u = depose(B, camp, carte, vers);
-          if (u) arrivees.push({ kind: 'unit', side: camp, unit: u });
+          // `chez_moi` : une reanimation chez l'adversaire arrive de MON cote, et la carte reste a lui.
+          const chezMoi = vers === 'plateau' && e.chez_moi && camp !== k;
+          const u = depose(B, chezMoi ? k : camp, carte, vers);
+          if (u && chezMoi) u.owner = camp;
+          if (u) arrivees.push({ kind: 'unit', side: chezMoi ? k : camp, unit: u });
         }
         // Les unites qui viennent d'arriver deviennent le « Lui » de l'effet suivant.
         if (arrivees.length) last = arrivees;

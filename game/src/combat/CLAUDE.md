@@ -385,6 +385,18 @@ marqueur. À sa mort, ses marqueurs sautent sur une autre unité du même camp. 
 - **L'écran** : `.tox` (gemme verte, `majUnite`) ; la fiche dit « perdra N PV au début de son tour — et en mourra » ou « son
   bouclier absorbera le premier tour » ; le journal écrit `toxine` / `toxineSaut` ; `refUnite` et `uniteJson` portent `tox`.
 
+## La pile de fatigue : le principe  (1er novembre 2026, 14 cartes — `scripts/gen-fatigue.mjs`)
+Une carte de fatigue est **payée** comme les autres (son coût en mana) et la pile est **symétrique** (chaque camp tire dans la sienne). Elle n'est pas
+une ressource gratuite : elle est **plus faible qu'une carte de deck** tant que la partie est jeune (jusqu'à l'entrée en fatigue, tour 15 au plus tard
+sans pioche), puis **grossit avec la partie** pour devenir un moyen de la **terminer progressivement**, jamais un « plus de cartes, tu es mort ».
+Chaque espèce grossit sur **son** axe (pool diversifié) : tours joués (Chien, Faucon, Paresseux, Rouge-gorge, Lapin, Souris), unités mortes (Loup),
+défausse (Pieuvre, Corbeau), sorts (Chat), alliés en jeu (Grenouille) ; les réponses sont la Chouette (détruit), le Caméléon (copie une unité en jeu
+ou de la défausse) et la Chèvre (réanime depuis **n'importe quelle** défausse, la sienne ou celle de l'adversaire).
+- **Nouveautés moteur** : le compteur `unitesMortes` (`B.mortes`, les deux camps, incrémenté par `resolveDeaths`), le 5ᵉ champ `fois` de
+  `characteristique_variable` (« vie = 2 × tes tours » ; `ai.js` l'applique aussi à `estimee`), et `chez_moi` sur `pose_sur_le_plateau` (la carte prise dans la
+  défausse adverse arrive de **ton** côté, `u.owner` = son camp d'origine : morte, elle y retourne, comme une unité volée).
+- Premier jet : coûts 4 à 8 et décalages « tours − k » à régler par la mesure. 300 parties à pioche vide (fatigue seule) : aucune partie bloquée, 22,6 tours.
+
 ## Ex-libris et la pile de fatigue par camp  (V3, 11 octobre 2026 — `docs/V3-HEROS.md`, 4.5)
 Une carte qui **arrive dans ta défausse** — jouée, morte, meulée, défaussée, par n'importe quel chemin — laisse **un exemplaire**
 dans ta pile de fatigue, une seule fois par carte. La pile devient **propre à chaque camp**.

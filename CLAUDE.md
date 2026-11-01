@@ -267,7 +267,7 @@ game config : `BALANCE.simulation`. `--paliers 1,2,3` les surcharge le temps d'u
 Après un changement de **cartes**, faire tourner `node scripts/check-decks.mjs` (les
 erreurs) et `node scripts/matchups.mjs` (l'équilibre entre decks) — voir « Outils ».
 Après toute modification de `game/src/combat/`, faire tourner **les trois bancs** :
-`node scripts/test-triggers.mjs` (769 tests ; ce qu'ils couvrent : `scripts/CLAUDE.md`), `node scripts/test-ai.mjs` (53 tests : le bot
+`node scripts/test-triggers.mjs` (779 tests ; ce qu'ils couvrent : `scripts/CLAUDE.md`), `node scripts/test-ai.mjs` (53 tests : le bot
 valorise-t-il ces mécaniques) et `node scripts/simulate.mjs` (la courbe de difficulté) — plus `node scripts/test-rejeu.mjs`
 (« Revoir le combat » rejoue un combat à l'identique : un moteur qui tire au hasard hors de `joue()` le casserait).
 

@@ -4622,5 +4622,58 @@ const typed = (name, types, extra = {}) => ally(name, 1, 1, { keys: types.map(t 
     validateData(DBf, ALL_EFFECTS, ALL_KEYWORDS).some(i => i.msg.includes('sans carte choisie')), false);
 }
 
+// ---------------------------------------------------------------------------
+// LA PILE DE FATIGUE (1er nov. 2026) : le compteur des unites mortes, le multiplicateur d'une
+// caracteristique variable, la reanimation de MON cote depuis la defausse adverse (`chez_moi`),
+// puis quelques cartes de la pile telles qu'elles sont ecrites.
+console.log('\nPile de fatigue : compteur, multiplicateur, reanimation chez l adversaire');
+{
+  const loup = ally('Loup', 0, 0, { keys: ['characteristique_variable:both:unitesMortes::1'] });
+  const B = setup([loup, ally('Victime', 1, 1)], [frappe(99)]);
+  play(B, 'p', 'Victime');
+  play(B, 'p', 'Loup');
+  check('aucune mort : le Loup vaut le +1 a plat', board(B, 'p'), ['Victime 1/1', 'Loup 1/1']);
+  tuer(B, 'e', 'p', 'Victime');
+  check('une mort (des deux camps) : il grossit', [B.mortes, board(B, 'p')], [1, ['Loup 2/2']]);
+}
+{
+  const paresseux = ally('Paresseux', 1, 0, { keys: ['characteristique_variable:hp:ownTurns:::2'] });
+  const B = setup([paresseux]);
+  endTurn(B); endTurn(B);
+  play(B, 'p', 'Paresseux');
+  check('vie = 2 x tes tours joues', board(B, 'p'), ['Paresseux 1/4']);
+  check('le libelle dit le multiplicateur', keyLabel('characteristique_variable:hp:ownTurns:::2'), 'Vie = 2 × tes tours joués');
+}
+{
+  const rea = { id: 'rea2', name: 'Chevre', type: 'spell', cost: 1, keys: [], text: '', tiers: [],
+    play: [{ op: 'pose_sur_le_plateau', d_ou: 'defausse', qui: 'adversaire', quoi: 'ally', n: 1, chez_moi: true }] };
+  const colosse = { ...ally('Colosse', 5, 5), cost: 7 };
+  const B = setup([rea], [frappe(99)]);
+  B.e.discard = [{ ...colosse }];
+  play(B, 'p', 'Chevre');
+  check('le Colosse adverse sert de MON cote', [board(B, 'p'), board(B, 'e')], [['Colosse 5/5'], []]);
+  check('... et la defausse adverse s est vidée', B.e.discard.length, 0);
+  tuer(B, 'e', 'p', 'Colosse');
+  check('mort, il retourne dans la defausse de son proprietaire', [B.e.discard.some(c => c.name === 'Colosse'), B.p.discard.some(c => c.name === 'Colosse')], [true, false]);
+}
+{
+  const par = cardById('fat_paresseux');
+  const B = setup([{ ...par }], [frappe(99)]);
+  endTurn(B); endTurn(B); endTurn(B); endTurn(B);   // 3 tours joues par le joueur au moment de jouer
+  play(B, 'p', par.name);
+  const t = B.p.turns;
+  check('Paresseux de la fatigue : Provocation, vie = 2 x tours', [board(B, 'p')[0], B.p.board[0].keys.includes("Taunt")], [`${par.name} 1/${2 * t}`, true]);
+  tuer(B, 'e', 'p', par.name);
+  check('... et il laisse X d armure en mourant', B.p.armor, t);
+}
+{
+  const pieuvre = cardById('fat_pieuvre');
+  const B = setup([{ ...pieuvre }]);
+  B.p.discard = [ally('A', 1, 1), ally('B', 1, 1), ally('C', 1, 1)];
+  play(B, 'p', pieuvre.name);
+  endTurn(B);
+  check('Pieuvre de la fatigue : +X/+X a la fin de ton tour, X = ta defausse', board(B, 'p'), [`${pieuvre.name} ${1 + B.p.discard.length}/${1 + B.p.discard.length}`]);
+}
+
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);

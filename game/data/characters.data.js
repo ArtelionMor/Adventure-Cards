@@ -25,11 +25,7 @@ export const CHARACTER_DATA = {
   ],
   "fatigue": [
     {
-      "card": "card_4hz1f1",
-      "n": 1
-    },
-    {
-      "card": "card_l7cd1z",
+      "card": "card_njt2j1",
       "n": 1
     },
     {
@@ -37,7 +33,19 @@ export const CHARACTER_DATA = {
       "n": 1
     },
     {
-      "card": "card_njt2j1",
+      "card": "card_l7cd1z",
+      "n": 1
+    },
+    {
+      "card": "card_9g5803",
+      "n": 1
+    },
+    {
+      "card": "card_fhdq9s",
+      "n": 1
+    },
+    {
+      "card": "card_4hz1f1",
       "n": 1
     },
     {
@@ -45,7 +53,31 @@ export const CHARACTER_DATA = {
       "n": 1
     },
     {
-      "card": "card_9g5803",
+      "card": "fat_loup",
+      "n": 1
+    },
+    {
+      "card": "fat_paresseux",
+      "n": 1
+    },
+    {
+      "card": "fat_pieuvre",
+      "n": 1
+    },
+    {
+      "card": "fat_lapin",
+      "n": 1
+    },
+    {
+      "card": "fat_souris",
+      "n": 1
+    },
+    {
+      "card": "fat_cameleon",
+      "n": 1
+    },
+    {
+      "card": "fat_chevre",
       "n": 1
     }
   ],
@@ -460,7 +492,7 @@ export const CHARACTER_DATA = {
       "atk": 1,
       "hp": 1,
       "statics": [],
-      "sprite": "Graphical Assets/Characters/Dog/Dog German Shepherd.png"
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Dog.png"
     },
     {
       "id": "card_kgwz53",
@@ -486,7 +518,7 @@ export const CHARACTER_DATA = {
       "atk": 2,
       "hp": 2,
       "statics": [],
-      "sprite": "Graphical Assets/Characters/Cat/Cat Menkoun.png"
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Cat.png"
     },
     {
       "id": "card_l7cd1z",
@@ -521,32 +553,38 @@ export const CHARACTER_DATA = {
       "atk": 1,
       "hp": 1,
       "statics": [],
-      "sprite": "Graphical Assets/Characters/Crow/Crow Three Eyes.png"
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Raven.png"
     },
     {
       "id": "card_4hz1f1",
       "name": "Grenouille de la fatigue",
       "type": "ally",
-      "cost": 4,
+      "cost": 5,
       "keys": [
-        "elusif",
-        "Venin"
+        "elusif"
       ],
-      "text": "Venin. Donne +2/+2 à un allié et Venin.",
+      "text": "Elusif. Cri de guerre : donne +X/+X à un allié, X est le nombre de tes alliés en jeu.",
       "play": [
         {
           "op": "buff",
           "t": "allyUnit",
-          "atk": 2,
-          "hp": 2,
-          "key": "Venin"
+          "atk": {
+            "src": "allyUnits",
+            "arg": "",
+            "plus": 0
+          },
+          "hp": {
+            "src": "allyUnits",
+            "arg": "",
+            "plus": 0
+          }
         }
       ],
       "tiers": [],
       "atk": 2,
       "hp": 2,
       "statics": [],
-      "sprite": "Graphical Assets/Characters/Frog/Frog Toad.png"
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Toad.png"
     },
     {
       "id": "card_r7qoup",
@@ -565,56 +603,51 @@ export const CHARACTER_DATA = {
       "atk": 2,
       "hp": 2,
       "statics": [],
-      "sprite": "Graphical Assets/Characters/Owl/Owl Snow.png"
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Owl.png"
     },
     {
       "id": "card_fhdq9s",
       "name": "Faucon de la fatigue",
       "type": "ally",
       "cost": 5,
-      "keys": [],
-      "text": "Cri de guerre : Remélange une carte de votre défausse à votre deck, lui donne +2/+2",
-      "play": [
-        {
-          "op": "melange_a_la_pioche",
-          "d_ou": "defausse",
-          "choix": "precise",
-          "carte": "",
-          "quoi": "all",
-          "t": "enemyUnit",
-          "qui": "toi",
-          "n": 1,
-          "atk": 2,
-          "hp": 2
-        }
+      "keys": [
+        "Charge",
+        "type:Faucon",
+        "characteristique_variable:atk:ownTurns::-4"
       ],
+      "text": "Charge. Attaque = tes tours joués − 4.",
+      "play": [],
       "tiers": [],
-      "atk": 2,
-      "hp": 2,
+      "atk": 0,
+      "hp": 3,
       "statics": [],
-      "sprite": "Graphical Assets/Characters/Birds/Falcon.png"
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Falcon.png"
     },
     {
       "id": "card_9g5803",
       "name": "Rouge Gorge de la Fatigue",
       "type": "ally",
-      "cost": 3,
+      "cost": 5,
       "keys": [
         "Charge"
       ],
-      "text": "Quand tu attaques avec une unité, pioche une carte.",
-      "play": [],
+      "text": "Charge. Cri de guerre : inflige X blessures au héros adverse, X = tes tours joués − 6.",
+      "play": [
+        {
+          "op": "dmg",
+          "t": "enemyHero",
+          "v": {
+            "src": "ownTurns",
+            "arg": "",
+            "plus": -6
+          }
+        }
+      ],
       "tiers": [],
-      "atk": 2,
+      "atk": 5,
       "hp": 1,
       "statics": [],
-      "sprite": "Graphical Assets/Characters/Birds/Robin.png",
-      "on_attack_self": [
-        {
-          "op": "draw",
-          "v": 1
-        }
-      ]
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Robin.png"
     },
     {
       "id": "card_80uilg",
@@ -2936,6 +2969,247 @@ export const CHARACTER_DATA = {
       ],
       "statics": [],
       "sprite": "Graphical Assets/Cards/Opponents/Opponent Mouse/Sabotage.png"
+    },
+    {
+      "id": "fat_loup",
+      "name": "Loup de la fatigue",
+      "type": "ally",
+      "cost": 5,
+      "keys": [
+        "type:Loup",
+        "characteristique_variable:both:unitesMortes::1"
+      ],
+      "text": "Attaque et vie = les unités mortes dans la partie (les deux camps), +1.",
+      "play": [],
+      "tiers": [],
+      "atk": 0,
+      "hp": 0,
+      "statics": [],
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Wolf.png"
+    },
+    {
+      "id": "fat_paresseux",
+      "name": "Paresseux de la fatigue",
+      "type": "ally",
+      "cost": 6,
+      "keys": [
+        "Taunt",
+        "type:Paresseux",
+        "characteristique_variable:hp:ownTurns:::2"
+      ],
+      "text": "Provocation. Vie = 2 × tes tours joués. Râle d'agonie : gagne X d'armure, X est le nombre de tes tours joués.",
+      "play": [],
+      "tiers": [],
+      "atk": 1,
+      "hp": 0,
+      "statics": [],
+      "death": [
+        {
+          "op": "armor",
+          "v": {
+            "src": "ownTurns",
+            "arg": "",
+            "plus": 0
+          }
+        }
+      ],
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Sloth.png"
+    },
+    {
+      "id": "fat_pieuvre",
+      "name": "Pieuvre de la fatigue",
+      "type": "ally",
+      "cost": 6,
+      "keys": [
+        "type:Pieuvre"
+      ],
+      "text": "Fin de ton tour : gagne +X/+X, X est le nombre de cartes dans ta défausse.",
+      "play": [],
+      "tiers": [],
+      "atk": 1,
+      "hp": 1,
+      "statics": [],
+      "turnEnd": [
+        {
+          "op": "buff",
+          "t": "self",
+          "atk": {
+            "src": "discardCards",
+            "arg": "",
+            "plus": 0
+          },
+          "hp": {
+            "src": "discardCards",
+            "arg": "",
+            "plus": 0
+          }
+        }
+      ],
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Octopus.png"
+    },
+    {
+      "id": "fat_lapin",
+      "name": "Lapin de la fatigue",
+      "type": "ally",
+      "cost": 8,
+      "keys": [
+        "type:Lapin"
+      ],
+      "text": "Cri de guerre : invoque 3 Lapins dont l'attaque et la vie valent tes tours joués − 10.",
+      "play": [
+        {
+          "op": "summon",
+          "n": 3,
+          "unit": {
+            "name": "Lapin de la fatigue",
+            "atk": 0,
+            "hp": 0,
+            "keys": [
+              "type:Lapin",
+              "characteristique_variable:both:ownTurns::-10"
+            ],
+            "statics": []
+          }
+        }
+      ],
+      "tiers": [],
+      "atk": 2,
+      "hp": 2,
+      "statics": [],
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Rabbit.png"
+    },
+    {
+      "id": "fat_souris",
+      "name": "Souris de la fatigue",
+      "type": "ally",
+      "cost": 6,
+      "keys": [
+        "type:Souris"
+      ],
+      "text": "Cri de guerre : invoque X Souris 1/1, X = tes tours joués − 4.",
+      "play": [
+        {
+          "op": "summon",
+          "n": {
+            "src": "ownTurns",
+            "arg": "",
+            "plus": -4
+          },
+          "unit": {
+            "name": "Souris",
+            "atk": 1,
+            "hp": 1,
+            "keys": [
+              "type:Souris"
+            ],
+            "statics": []
+          }
+        }
+      ],
+      "tiers": [],
+      "atk": 1,
+      "hp": 1,
+      "statics": [],
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Mice.png"
+    },
+    {
+      "id": "fat_cameleon",
+      "name": "Caméléon de la fatigue",
+      "type": "ally",
+      "cost": 5,
+      "keys": [
+        "type:Cameleon"
+      ],
+      "text": "Cri de guerre, au choix : devient une copie d'une unité en jeu, ou d'une unité au hasard de ta défausse.",
+      "play": [
+        {
+          "op": "choisir",
+          "a": [
+            {
+              "op": "copie",
+              "t": "self",
+              "d_ou": "plateau",
+              "choix": "precise",
+              "carte": "",
+              "quoi": "all",
+              "argCard": "",
+              "tm": "anyUnit",
+              "qui": "toi",
+              "ordre": "hasard"
+            }
+          ],
+          "b": [
+            {
+              "op": "copie",
+              "t": "self",
+              "d_ou": "defausse",
+              "choix": "precise",
+              "carte": "",
+              "quoi": "ally",
+              "argCard": "",
+              "tm": "anyUnit",
+              "qui": "toi",
+              "ordre": "hasard"
+            }
+          ],
+          "c": []
+        }
+      ],
+      "tiers": [],
+      "atk": 1,
+      "hp": 1,
+      "statics": [],
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Cameleon.png"
+    },
+    {
+      "id": "fat_chevre",
+      "name": "Chèvre de la fatigue",
+      "type": "ally",
+      "cost": 6,
+      "keys": [
+        "type:Chèvre"
+      ],
+      "text": "Cri de guerre, au choix : réanime une unité au hasard de ta défausse, ou de la défausse adverse (elle sert de ton côté, puis retourne chez son propriétaire).",
+      "play": [
+        {
+          "op": "choisir",
+          "a": [
+            {
+              "op": "pose_sur_le_plateau",
+              "d_ou": "defausse",
+              "choix": "precise",
+              "carte": "",
+              "quoi": "ally",
+              "t": "enemyUnit",
+              "qui": "toi",
+              "n": 1,
+              "atk": 0,
+              "hp": 0
+            }
+          ],
+          "b": [
+            {
+              "op": "pose_sur_le_plateau",
+              "d_ou": "defausse",
+              "choix": "precise",
+              "carte": "",
+              "quoi": "ally",
+              "t": "enemyUnit",
+              "qui": "adversaire",
+              "n": 1,
+              "atk": 0,
+              "hp": 0,
+              "chez_moi": true
+            }
+          ],
+          "c": []
+        }
+      ],
+      "tiers": [],
+      "atk": 3,
+      "hp": 3,
+      "statics": [],
+      "sprite": "Graphical Assets/Cards/Fatigue/Fatigue Goat.png"
     }
   ],
   "npcs": [

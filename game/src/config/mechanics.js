@@ -440,7 +440,12 @@ export const EFFECTS = {
     // pose » ne part pas — meme regle que pour un jeton invoque.
     label: 'Pose sur le plateau',
     desc: 'Fait arriver des allies directement en jeu, sans les payer. Depuis la defausse c\'est une reanimation, depuis la main une triche de cout. « A la pose » ne se declenche pas (la carte n\'est pas jouee), et les sorts sont ignores.',
-    params: paramsZone('defausse'),
+    params: [
+      ...paramsZone('defausse'),
+      // REANIMER CHEZ L'ADVERSAIRE (la Chevre de la fatigue) : la carte prise dans SA defausse arrive de TON cote.
+      // Elle reste a lui : morte, elle retourne dans sa defausse (meme regle que Prendre le controle).
+      { k: 'chez_moi', type: 'bool', label: 'Arrive de mon côté (même prise chez l’adversaire)', def: false, si: ({ d_ou }) => !(ZONES[d_ou] || {}).cible && !(ZONES[d_ou] || {}).carte }
+    ],
     implemented: true
   },
   met_a_la_defausse: {
@@ -1136,6 +1141,8 @@ const compte = (list, t) => (list || []).filter(x => estDuType(x, t)).length;
 export const COUNTERS = {
   ownTurns: { label: 'Tes tours joués', compute: (B, k) => B[k].turns || 0 },
   turnTotal: { label: 'Tours joués (les deux camps)', compute: B => B.turnNo || 0 },
+  // Les deux camps confondus : une mort est une mort (le Loup de la fatigue grossit de toutes).
+  unitesMortes: { label: 'Unités mortes dans la partie (les deux camps)', compute: B => B.mortes || 0 },
   spellsGame: { label: 'Tes sorts joués cette partie', compute: (B, k) => B[k].spellsGame || 0 },
   spellsTurn: { label: 'Tes sorts joués ce tour', compute: (B, k) => B[k].spellsTurn || 0 },
   allyUnits: { label: 'Tes alliés en jeu (celui-ci compris)', compute: (B, k) => B[k].board.length },
@@ -1411,15 +1418,18 @@ export const KEYWORDS = {
       // UN BONUS A PLAT, comme `plus` dans un montant variable : « attaque = les cartes de ta
       // main + 1 ». Sans lui, une carte dont la valeur peut tomber a 0 ne peut pas promettre
       // « au moins 1 ». Absent des cartes ecrites avant lui, il vaut 0 : rien ne bouge.
-      { k: 'plus', type: 'number', label: 'Bonus à plat', def: 0 }
+      { k: 'plus', type: 'number', label: 'Bonus à plat', def: 0 },
+      // MULTIPLICATEUR du compteur (avant le bonus) : « vie = 2 × tes tours ». Absent des cartes écrites avant lui, il vaut 1.
+      { k: 'fois', type: 'number', label: 'Multiplicateur', def: 1 }
     ],
     /** Ce que la carte affiche : « Attaque = tes tours joues ». Recoit les parametres
      *  deja completes par leurs valeurs par defaut, jamais des trous. */
-    text: ({ stat, src, arg, plus }) => {
+    text: ({ stat, src, arg, plus, fois }) => {
       const quoi = stat === 'hp' ? 'Vie' : stat === 'both' ? 'Attaque et vie' : 'Attaque';
       const cpt = COUNTERS[src];
       const bonus = +plus ? ` ${+plus > 0 ? '+' : '-'} ${Math.abs(+plus)}` : '';
-      return `${quoi} = ${cpt ? cpt.label.toLowerCase() : '?'}${cpt && cpt.needsArg ? ' « ' + (arg || '?') + ' »' : ''}${bonus}`;
+      const mult = +fois && +fois !== 1 ? `${+fois} × ` : '';
+      return `${quoi} = ${mult}${cpt ? cpt.label.toLowerCase() : '?'}${cpt && cpt.needsArg ? ' « ' + (arg || '?') + ' »' : ''}${bonus}`;
     },
     implemented: true
   }

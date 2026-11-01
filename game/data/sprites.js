@@ -39,7 +39,20 @@ export const SPRITES = {
     "Opponent Veniomus Frog.png"
   ],
   "Graphical Assets/Cards": [
-    "Commander Rouge-Gorge.png",
+    "Fatigue/Fatigue Cameleon.png",
+    "Fatigue/Fatigue Cat.png",
+    "Fatigue/Fatigue Dog.png",
+    "Fatigue/Fatigue Falcon.png",
+    "Fatigue/Fatigue Goat.png",
+    "Fatigue/Fatigue Mice.png",
+    "Fatigue/Fatigue Octopus.png",
+    "Fatigue/Fatigue Owl.png",
+    "Fatigue/Fatigue Rabbit.png",
+    "Fatigue/Fatigue Raven.png",
+    "Fatigue/Fatigue Robin.png",
+    "Fatigue/Fatigue Sloth.png",
+    "Fatigue/Fatigue Toad.png",
+    "Fatigue/Fatigue Wolf.png",
     "Heroes Deck/Cameleon Decks/Cameleon Deck 1/Cameleon.png",
     "Heroes Deck/Cameleon Decks/Cameleon Deck 1/Coup de Langue.png",
     "Heroes Deck/Cameleon Decks/Cameleon Deck 1/Découverte.png",
@@ -320,6 +333,9 @@ export const SPRITES = {
     "Opponents/Opponent Raven/Jeune Faucon.png",
     "Opponents/Opponent Raven/Nuée de Cobeaux.png",
     "Opponents/Opponent Raven/Rire Moqueur.png",
+    "Opponents/Opponent Robin/Commander Rouge-Gorge.png",
+    "Opponents/Opponent Robin/Pilote Rouge-Gorge.png",
+    "Opponents/Opponent Robin/Reparateur Rouge-Gorge.png",
     "Opponents/Opponent Sloth/Grande Sieste.png",
     "Opponents/Opponent Sloth/Paraisseux Avocat.png",
     "Opponents/Opponent Sloth/Paraisseux Colosse.png",
@@ -338,9 +354,7 @@ export const SPRITES = {
     "Opponents/Opponent Venimous Frog/Lapin Colosse.png",
     "Opponents/Opponent Venimous Frog/Princesse Venimeuse.png",
     "Opponents/Opponent Venimous Frog/Têtard Démoniaque.png",
-    "Pilote Rouge-Gorge.png",
-    "Rabbit Token 2.png",
-    "Reparateur Rouge-Gorge.png"
+    "Opponents/Rabbit Token 2.png"
   ],
   "Graphical Assets/Buildings": [
     "Bottle Maker.png",

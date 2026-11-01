@@ -660,7 +660,7 @@ function estimee(B, k, card) {
   const f = keyFields(cle);
   // La carte est son propre porteur tant qu'elle est en main : c'est ce qui permet a
   // « X = ton niveau » d'etre lu avant meme d'etre pose.
-  let x = counterValue(f.src, B, k, card, f.arg) + (+f.plus || 0);
+  let x = counterValue(f.src, B, k, card, f.arg) * (+f.fois || 1) + (+f.plus || 0);
   // Elle n'est pas encore sur le plateau : les compteurs qui comptent les allies
   // vaudront un de plus une fois qu'elle sera posee.
   if (f.src === 'allyUnits') x += 1;
