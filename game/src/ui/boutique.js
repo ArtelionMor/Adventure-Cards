@@ -396,10 +396,10 @@ function panneauDeco() {
   for (const c of [...new Set(cfg.shopLayout.furniture.map(f => f.category))]) {
     cat.appendChild(el(`<h3>${c}</h3>`));
     const grille = el('<div class="btq-meubles"></div>');
-    for (const def of cfg.shopLayout.furniture.filter(f => f.category === c)) {
+    for (const def of cfg.shopLayout.furniture.filter(f => f.category === c && !BOUTIQUE.meublesRetires?.includes(f.id))) {
       const v = BOUTIQUE.meubles[def.id];
       const prix = furniturePrice(def.id, S, ctx);
-      const n = el(`<button class="btq-meuble"><img src="${asset(`${BOUTIQUE.dossierMeubles}${v.image}_SE.png`)}" alt=""><span>${def.name}</span><b>${court(prix)}</b></button>`);
+      const n = el(`<button class="btq-meuble"><img src="${asset(v.fichier || `${BOUTIQUE.dossierMeubles}${v.image}_SE.png`)}" alt=""><span>${def.name}</span><b>${court(prix)}</b></button>`);
       n.onclick = () => {
         const r = buyFurniture(S, def.id, ctx);
         if (!r.ok) { toast(r.reason); return; }

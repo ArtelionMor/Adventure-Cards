@@ -24,8 +24,17 @@ export const BOUTIQUE = {
   // Le logo de chaque entreprise de grading, en attendant ceux du game designer. Leur nom et leur facon de noter vivent dans le noyau.
   logosGrading: { owl: H('Hero Owl 1'), frog: H('Hero Frog 1'), rabbit: H('Hero Rabbit 1') },
   dossierPoses: 'Decor/Kenney Toon Characters/',
+  // Un client dessiné par le game designer vit dans son propre dossier (poses `<tête>_<pose>.png`, 96 × 128, pieds en bas).
+  dossierDe: Object.fromEntries(['ada', 'barnaby', 'boris', 'brock', 'cipher', 'jenna', 'richie', 'rook', 'spike', 'timmy'].map(t => [t, 'Graphical Assets/Clients/'])),
+  // Nombre d'images du cycle de marche d'un client dessine (8 par defaut, comme les Kenney) : on en a retire qui boitaient.
+  imagesDeMarche: { ada: 5, barnaby: 7, boris: 7, brock: 4, cipher: 7, jenna: 7, richie: 7, rook: 6, spike: 7, timmy: 5 },
   dossierMeubles: 'Decor/Kenney Furniture Kit/',
+  // Retires du catalogue (leurs chaises sont maintenant celles de la table de jeu) ; un exemplaire deja pose reste dessine.
+  meublesRetires: ['banc'],
   scene: {
+    poseAssise: null,         // le nom d'une pose assise `<tete>_<nom>.png` quand le game designer en dessine une (Kenney : `duck`) ; sinon mains devant (`hold`)
+    assis: -18,               // un client assis est decale de ce nombre de px vers le bas (negatif : releve, comme pose sur la chaise)
+    largeurCaseImage: 440,    // largeur de la case dans un dessin rectifie (scripts/rectifie-meuble.py, `--largeur`)
     case: [110, 55],          // largeur et hauteur d'une case en isometrie (px, zoom 1)
     hauteurMur: 118,
     zoom: { depart: 0.52, min: 0.36, max: 1.5 },
@@ -44,14 +53,24 @@ export const BOUTIQUE = {
     boite: [3, 2],            // la boite de bulk, dans la zone reservee
     tapisEntree: 'rugDoormat'
   },
-  // Les meubles : leur image Kenney, leur echelle, et la hauteur de leur plateau (ou se pose une carte).
+  // Les meubles : leur image Kenney (`image` : une par orientation) ou un dessin du game designer (`fichier` : une seule image pour
+  // toutes les orientations, rectifiee par scripts/rectifie-meuble.py, bas = coin avant de la case), leur echelle, et la hauteur de leur plateau (ou se pose une carte).
+  // Echelle d'un dessin rectifie : 1 = il remplit sa case (une table) ; une chaise est plus petite que sa case (0.33, d'apres la maquette du game designer). `dessus` : hauteur du plateau au-dessus du sol.
   meubles: {
-    presentoir: { image: 'tableCloth', echelle: 0.82, dessus: 56 },
-    tableJeu: { image: 'table', echelle: 0.82, dessus: 56 },
+    presentoir: { fichier: 'Graphical Assets/Furnitures/Rectifies/table-presentoir.png', echelle: 1, dessus: 38 },
+    tableJeu: {
+      fichier: 'Graphical Assets/Furnitures/Rectifies/table-jeu.png', echelle: 1, dessus: 38,
+      // Ses deux chaises (maquette « Playing Table ») : `x`, `y` = leur place dans la case de la table, `devant` = dessinee APRES le
+      // client assis (la chaise du bas), `miroir`, `sens` = le cote ou le client regarde (1 = vers la droite de l'ecran), `acces` = la case d'ou il vient s'asseoir.
+      sieges: [
+        { fichier: 'Graphical Assets/Furnitures/Rectifies/chaise-top-down.png', echelle: 0.33, x: 0.0, y: 0.5, sens: 1, acces: [-1, 0] },
+        { fichier: 'Graphical Assets/Furnitures/Rectifies/chaise.png', echelle: 0.33, x: 1.0, y: 0.5, devant: true, sens: -1, acces: [1, 0] }
+      ]
+    },
     etagere: { image: 'bookcaseOpen', echelle: 0.84 },
     etagereBasse: { image: 'bookcaseOpenLow', echelle: 0.84 },
     comptoir: { image: 'kitchenBar', echelle: 0.9 },
-    banc: { image: 'benchCushion', echelle: 0.9 },
+    banc: { fichier: 'Graphical Assets/Furnitures/Rectifies/chaise.png', echelle: 0.33 },
     canape: { image: 'loungeSofa', echelle: 0.8 },
     plante: { image: 'pottedPlant', echelle: 1 },
     lampe: { image: 'lampSquareFloor', echelle: 1 },
@@ -66,9 +85,9 @@ export const BOUTIQUE = {
   tapisEncheres: ['#a7443f', '#973b37'],
   // Chaque profil a ses tetes et sa couleur.
   profils: {
-    Timmy: { lettre: 'T', couleur: '#e4572e', tetes: ['maleAdventurer', 'femaleAdventurer'] },
-    Johnny: { lettre: 'J', couleur: '#8e5bd0', tetes: ['femalePerson', 'maleAdventurer'] },
-    Spike: { lettre: 'S', couleur: '#2f80c9', tetes: ['malePerson', 'femalePerson'] }
+    Timmy: { lettre: 'T', couleur: '#e4572e', tetes: ['boris', 'spike', 'timmy'] },
+    Johnny: { lettre: 'J', couleur: '#8e5bd0', tetes: ['jenna', 'rook', 'barnaby'] },
+    Spike: { lettre: 'S', couleur: '#2f80c9', tetes: ['cipher', 'ada', 'richie', 'brock'] }
   },
   // Ce que les clients disent d'un prix (le seuil vit dans le noyau). Des emoji en attendant les icones du game designer.
   reactions: {

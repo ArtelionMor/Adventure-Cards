@@ -37,7 +37,7 @@ function image(chemin) {
   }
   return i.complete && i.naturalWidth ? i : null;
 }
-const pose = (tete, nom) => image(`${BOUTIQUE.dossierPoses}${tete}_${nom}.png`);
+const pose = (tete, nom) => image(`${BOUTIQUE.dossierDe?.[tete] || BOUTIQUE.dossierPoses}${tete}_${nom}.png`);
 const ANGLES = ['SE', 'SW', 'NW', 'NE'];
 const imageMeuble = (nom, dir = 0) => image(`${BOUTIQUE.dossierMeubles}${nom}_${ANGLES[dir % 4]}.png`);
 
@@ -124,6 +124,11 @@ const finDeVisite = () => ({ partir: true });
 
 function sortie(c, prises) {
   const s = partie().shop;
+  if (c.apres) {                    // il se leve : il repasse par la case d'acces de sa chaise, pas a travers la table
+    const [ax, ay] = c.apres;
+    c.apres = null;
+    return [{ aller: [ax + 0.5, ay + 0.5] }, ...marcheVers(entree(), prises, [ax, ay]), { aller: [doorX(s) + 0.5, s.height + 0.9] }];
+  }
   const ici = [Math.max(0, Math.min(s.width - 1, Math.floor(c.x))), Math.max(0, Math.min(s.height - 1, Math.floor(c.y)))];
   return [...marcheVers(entree(), prises, ici), { aller: [doorX(s) + 0.5, s.height + 0.9] }];
 }
@@ -178,13 +183,23 @@ function ambiance(t, prises) {
   if (!prises.has(`${x},${y}`)) nouveauClient(profil, [...marcheVers([x, y], prises), { pause: 1.5, pose: 'think' }, finDeVisite()]);
 }
 
-// Les tables : deux joueurs par table, qui jouent un moment, puis repartent.
+// Les tables : deux joueurs par table, assis sur ses chaises (`sieges`), qui jouent un moment, puis repartent.
 function tables(prises) {
   for (const it of partie().shop.items) {
     if (defDe(it.type)?.effect !== 'table') continue;
+    const places = siegesDe(it), s = partie().shop;
     for (const siege of [0, 1]) {
       const cle = `${it.id}:${siege}`;
       if (clients.some(c => c.siege === cle) || clients.length >= R.clientsMax) continue;
+      const sg = places[siege];
+      if (sg) {
+        // Il marche jusqu'a la case d'acces, puis s'assoit sur la chaise (un point dans la case de la table).
+        const ax = it.x + sg.acces[0], ay = it.y + sg.acces[1];
+        if (ax < 0 || ay < 0 || ax >= s.width || ay >= s.height || prises.has(`${ax},${ay}`)) continue;
+        const pas = marcheVers([ax, ay], prises);
+        if (pas.length) nouveauClient(parmi(PROFILS), [...pas, { aller: pointSiege(it, sg) }, { pause: hasard(R.tableS), jeu: it.id, assis: true, sens: sg.sens }, finDeVisite()], { siege: cle, apres: [ax, ay], table: { id: it.id, x: it.x, y: it.y } });
+        continue;
+      }
       const pris = clients.filter(c => String(c.siege).startsWith(`${it.id}:`)).map(c => c.placeSiege);
       const v = caseVoisine(it, prises, pris);
       if (!v) continue;
@@ -237,6 +252,14 @@ function dit(c, inst, l, t) {
 // ------------------------------------------------------------------ le pas du monde
 function avanceClients(dt, t, prises) {
   for (const c of [...clients]) {
+    // Sa table a ete deplacee ou retiree (le plan se retouche en direct) : il ne joue plus a une table qui n'est plus la, il repart.
+    if (c.apres) {
+      const t0 = itemDe(c.table.id);
+      if (!t0 || t0.x !== c.table.x || t0.y !== c.table.y) {
+        c.apres = null; c.assis = false; c.poseFixe = null;
+        c.etapes = [{ partir: true }];
+      }
+    }
     const e = c.etapes[0];
     c.marche = false;
     if (!e) { clients = clients.filter(x => x !== c); continue; }
@@ -258,8 +281,12 @@ function avanceClients(dt, t, prises) {
       c.poseFixe = 'think';
       if (!partie().showcase.some(l => l.instanceId === c.vente)) { c.poseFixe = null; c.etapes.shift(); }
     } else if (e.pause !== undefined) {
-      c.poseFixe = e.jeu ? (Math.sin(t / 1500 + c.phase) > 0 ? 'talk' : 'think') : e.pose || null;
-      if ((e.pause -= dt) <= 0) { c.poseFixe = null; c.etapes.shift(); }
+      // Assis : les mains devant (il tient ses cartes), de temps en temps il reflechit ; `sens` : le cote ou il regarde, fixe, pour que
+      // les deux joueurs d'une table se fassent face quel que soit le chemin pris pour s'asseoir.
+      c.poseFixe = e.assis ? (Math.sin(t / 1500 + c.phase) > 0.6 ? 'think' : 'hold') : e.jeu ? (Math.sin(t / 1500 + c.phase) > 0 ? 'talk' : 'think') : e.pose || null;
+      c.assis = !!e.assis;
+      if (e.sens) c.sens = e.sens;
+      if ((e.pause -= dt) <= 0) { c.poseFixe = null; c.assis = false; c.etapes.shift(); }
     }
     if (c.bulle && t > c.bulle.fin) c.bulle = null;
   }
@@ -267,9 +294,10 @@ function avanceClients(dt, t, prises) {
 }
 
 function nomDePose(c, t) {
-  if (c.marche) return `walk${Math.floor(t / 80 + c.phase) % 8}`;
+  if (c.marche) return `walk${Math.floor(t / 80 + c.phase) % (BOUTIQUE.imagesDeMarche?.[c.tete] || 8)}`;
   if (c.foule && c.etapes[0]?.foule) return t < (c.criJusqua || 0) ? `cheer${Math.floor(t / 200) % 2}` : Math.sin(t / 900 + c.phase) > 0.4 ? 'hold' : 'idle';
   if (c.carte) return 'hold';
+  if (c.assis && R.poseAssise) return R.poseAssise;
   return c.poseFixe || 'idle';
 }
 
@@ -333,17 +361,43 @@ function dessineMurs(s) {
   }
 }
 
+/** Un dessin rectifie (scripts/rectifie-meuble.py) : sa case fait `largeurCaseImage` px dans l'image ; on la pose en losange de
+ *  `largeurCase` px de large centre sur (cx, cy), le bas de l'image sur son coin avant. `miroir` : retourne le dessin (axe de la case). */
+function dessineFichier(im, cx, cy, largeurCase, miroir = false) {
+  const k = largeurCase / R.largeurCaseImage, w = im.naturalWidth * k, h = im.naturalHeight * k;
+  c2d.save();
+  c2d.translate(cx, cy + largeurCase / 4);
+  if (miroir) c2d.scale(-1, 1);
+  c2d.drawImage(im, -w / 2, -h, w, h);
+  c2d.restore();
+}
+
+// Les sieges d'un meuble (la table de jeu et ses deux chaises) : un point DANS l'emprise (x, y en cases), la case d'ou l'on y vient.
+const siegesDe = it => BOUTIQUE.meubles[it.type]?.sieges || [];
+const pointSiege = (it, sg) => [it.x + sg.x, it.y + sg.y];
+
+function dessineSiege(it, sg, alpha = 1) {
+  const im = image(sg.fichier);
+  if (!im) return;
+  const [px, py] = versEcran(...pointSiege(it, sg));
+  c2d.save();
+  c2d.globalAlpha = alpha;
+  dessineFichier(im, px, py, TW * sg.echelle, !!sg.miroir);
+  c2d.restore();
+}
+
 function dessineMeuble(it, alpha = 1) {
   const def = defDe(it.type), v = BOUTIQUE.meubles[it.type];
   if (!def || !v) return;
   const f = footprint(def, it.dir);
   const [cx, cy] = versEcran(it.x + f.w / 2, it.y + f.h / 2);
-  const im = imageMeuble(v.image, it.dir);
+  const im = v.fichier ? image(v.fichier) : imageMeuble(v.image, it.dir);
   if (!im) return;
   const w = im.naturalWidth * v.echelle, h = im.naturalHeight * v.echelle;
   c2d.save();
   c2d.globalAlpha = alpha;
-  if (v.plat) c2d.drawImage(im, cx - w / 2, cy - h / 2, w, h);
+  if (v.fichier) dessineFichier(im, cx, cy, TW * (f.w + f.h) / 2 * v.echelle);
+  else if (v.plat) c2d.drawImage(im, cx - w / 2, cy - h / 2, w, h);
   else c2d.drawImage(im, cx - w / 2, cy + TH * 0.22 - h, w, h);
   c2d.restore();
 }
@@ -374,7 +428,7 @@ function dessineClient(c, t) {
   if (!im) return;
   const w = im.naturalWidth * R.echelleClient, h = im.naturalHeight * R.echelleClient;
   c2d.save();
-  c2d.translate(sx, sy + 4);
+  c2d.translate(sx, sy + 4 + (c.assis ? R.assis : 0));
   c2d.scale(c.sens, 1);
   c2d.drawImage(im, -w / 2, -h, w, h);
   c2d.restore();
@@ -513,6 +567,10 @@ function dessine(t) {
       const l = S.showcase.find(x => x.displayId === it.id);
       if (l) dessineCartePosee(l, montre);
     } });
+    // Une chaise passe derriere celui qui s'y assoit (donc devant la table) ou devant lui : le client est ENTRE la chaise et la table.
+    for (const sg of siegesDe(montre)) {
+      scene.push({ p: montre.x + montre.y + sg.x + sg.y + (sg.devant ? 0.02 : -0.02), f: () => dessineSiege(montre, sg, deco.choisi === it.id ? 0.8 : 1) });
+    }
   }
   scene.push({ p: R.boite[0] + R.boite[1] + 1, f: () => dessineBoite(S) });
   for (const c of clients) scene.push({ p: c.x + c.y, f: () => dessineClient(c, t) });
