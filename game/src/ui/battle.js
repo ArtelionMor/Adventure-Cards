@@ -4,7 +4,7 @@ import { BALANCE } from '../config/balance.js';
 import { CHAR_BY_ID, CHARACTERS, characterDeck, resolveCard } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist, gagneXp, noteCombatArene, etatArene, signale } from '../state.js';
-import { noteVictoireBoutique } from '../boutique/partie.js';
+import { noteVictoireBoutique, donneBoosterPremium } from '../boutique/partie.js';
 import { t } from '../config/textes.js';
 import { coteEnnemi } from '../config/ennemis.js';
 import { relicMods } from '../config/relics.js';
@@ -134,6 +134,22 @@ export function buildPlayerSide() {
   };
 }
 
+/** Le camp d'un CLIENT qui lance un defi (ui/defi.js) : des heros tires au sort, chacun a son niveau, comme une equipe du joueur. */
+function buildDefiSide(defi) {
+  const fake = { chars: Object.fromEntries(defi.heros.map(h => [h.id, { level: h.niveau, switches: CHAR_BY_ID[h.id].cards.map(() => false) }])) };
+  const chars = defi.heros.map(h => CHAR_BY_ID[h.id]);
+  return {
+    name: defi.nom,
+    sprite: chars[0].sprite,
+    hp: chars.reduce((a, c) => a + c.stats.hp, 0),
+    mana: Math.max(...chars.map(c => c.stats.mana)),
+    hand: Math.max(...chars.map(c => c.stats.hand)),
+    startArmor: 0,
+    startMana: 0,
+    deck: defi.heros.flatMap(h => characterDeck(h.id, fake))
+  };
+}
+
 // `niveau` : celui de l'arene (config/ennemis.js applique le profil de progression de l'ennemi jusque-la).
 function buildEnemySide(encId, niveau = 1) {
   const enc = niveau > 1 ? { ...ENCOUNTERS[encId], ...coteEnnemi(encId, niveau) } : ENCOUNTERS[encId];
@@ -227,13 +243,13 @@ export function openBattle(node, done, { rejeu: donnees = null, apres = null } =
     // UN VRAI COMBAT : les camps vont au moteur tels quels, l'enregistrement en garde une copie prise AVANT (createBattle
     // les touche), et le combat nait sous la graine — sa main de depart se rejouera a l'identique.
     rejeu = null;
-    const depart = { p: buildPlayerSide(), e: buildEnemySide(node.enemy, node.niveau || 1) };
+    const depart = { p: buildPlayerSide(), e: node.defi ? buildDefiSide(node.defi) : buildEnemySide(node.enemy, node.niveau || 1) };
     const opts = { node, evenements: true };
     enreg = enregistre(depart, opts);
     B = sousGraine(enreg.rng, () => createBattle(depart.p, depart.e, opts));
   }
   if (!rejeu && enregistreLesCombats()) {
-    const enc = ENCOUNTERS[node.enemy] || {};
+    const enc = node.defi ? { name: node.defi.nom } : ENCOUNTERS[node.enemy] || {};
     ouvreJournal(B, {
       source: 'jeu',
       rencontre: { id: node.id, nom: enc.name || node.enemy, adversaire: node.enemy },
@@ -1708,7 +1724,8 @@ function finish() {
   // Le journal se ferme avec le combat : c'est la derniere ligne (`fin`) qui rend le
   // fichier verifiable — nombre de decisions, etat final, vainqueur.
   if (B.journal && dernierJournal) dernierJournal.texte = fermeJournal(B);
-  const enc = ENCOUNTERS[ctx.enemy];
+  const defi = ctx.defi;     // un defi de client : pas de rencontre, sa recompense est un booster premium
+  const enc = defi ? { name: defi.nom, rewards: {} } : ENCOUNTERS[ctx.enemy];
   const win = B.winner === 'p';
   const r = enc.rewards;
   // Le combat est GARDE (les derniers) : c'est lui qu'on rouvre en AFK pour comprendre.
@@ -1725,9 +1742,14 @@ function finish() {
   if (win) {
     // Monnaie A : recompense d'exploration. Monnaie B : collecte encore a trancher
     // dans le GDD ("butin de combat" = hypothese) — c'est ce qu'on teste ici.
-    gain('A', r.A);
-    gain('B', r.B);
-    recompenses.push({ label: 'Fanions', n: r.A }, { label: 'Sceaux', n: r.B });
+    if (defi) {
+      donneBoosterPremium(defi.recompense.booster, defi.recompense.n);
+      recompenses.push({ label: 'Booster premium', n: defi.recompense.n });
+    } else {
+      gain('A', r.A);
+      gain('B', r.B);
+      recompenses.push({ label: 'Fanions', n: r.A }, { label: 'Sceaux', n: r.B });
+    }
     // L'XP du PROFIL DU JOUEUR (config/profil.js) : un niveau atteint donne ses recompenses tout de suite.
     if (r.xp) {
       const p = gagneXp(r.xp);
@@ -1741,7 +1763,7 @@ function finish() {
       save.chars[ctx.unlocks].bossBeaten = true;
       notes.push(`${CHAR_BY_ID[ctx.unlocks].name} peut désormais être acheté avec des Fanions.`);
     }
-    save.world.cleared[ctx.id] = true;
+    if (!defi) save.world.cleared[ctx.id] = true;
     persist();
   }
   // Une ARENE monte d'un niveau a chaque victoire (state.js) ; la fiche montre le prochain.

@@ -16,6 +16,7 @@ import { avanceDeMinutes, change, ctx, partie, sauve, simuleAbsence } from '../b
 import { el, closeModal, CURRENCY_NAME } from './shell.js';
 import { icone } from './icones.js';
 import { openBattle } from './battle.js';
+import { defiMaintenant } from './boutique-scene.js';
 import { noeudDeLArene, ouvreFicheArene } from './arene.js';
 
 const MONNAIES = [['C', 100], ['C', 1000], ['G', 10], ['A', 50], ['B', 50]];
@@ -110,6 +111,7 @@ export function installeTriche(nav) {
   // -------------------------------------------------------------- la boutique
   titre('Boutique');
   boutique('+5 boosters', () => { const b = partie().boosters; b.stock += 5; return `${b.stock} boosters`; });
+  boutique('Défi d’un client', () => (defiMaintenant() ? 'Un client arrive' : 'Les tables se vident, il arrive'));
   boutique('+1 premium', () => {
     const { premium } = partie().boosters, id = ctx.cfg.premium.boosters[0].id;
     premium[id] = (premium[id] ?? 0) + 1;

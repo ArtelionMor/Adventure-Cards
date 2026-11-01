@@ -31,9 +31,15 @@ export const BOUTIQUE = {
   dossierMeubles: 'Decor/Kenney Furniture Kit/',
   // Retires du catalogue (leurs chaises sont maintenant celles de la table de jeu) ; un exemplaire deja pose reste dessine.
   meublesRetires: ['banc'],
+  // Le DEFI d'un client : de temps en temps, un client s'assoit a une table vide, une bulle au-dessus de la tete, et attend un adversaire.
+  defi: {
+    delaiS: [180, 720],       // entre la fin d'un defi (relevé ou parti) et le suivant : 3 a 12 minutes, au hasard
+    attenteS: 300,            // il attend ce temps avant de repartir, defi sans reponse
+    recompense: { booster: 'premium_standard', n: 1 }
+  },
   scene: {
-    poseAssise: null,         // le nom d'une pose assise `<tete>_<nom>.png` quand le game designer en dessine une (Kenney : `duck`) ; sinon mains devant (`hold`)
-    assis: -18,               // un client assis est decale de ce nombre de px vers le bas (negatif : releve, comme pose sur la chaise)
+    poseAssise: 'sit',        // la pose assise `<tete>_sit.png` (scripts/gen-clients-assis.py, depuis les "<Nom> Sitted" du game designer) ; null : mains devant (`hold`)
+    assis: 0,                 // un client assis est decale de ce nombre de px vers le bas (negatif : releve) ; 0 depuis qu'il a sa pose assise
     largeurCaseImage: 440,    // largeur de la case dans un dessin rectifie (scripts/rectifie-meuble.py, `--largeur`)
     case: [110, 55],          // largeur et hauteur d'une case en isometrie (px, zoom 1)
     hauteurMur: 118,
@@ -63,14 +69,14 @@ export const BOUTIQUE = {
       // Ses deux chaises (maquette « Playing Table ») : `x`, `y` = leur place dans la case de la table, `devant` = dessinee APRES le
       // client assis (la chaise du bas), `miroir`, `sens` = le cote ou le client regarde (1 = vers la droite de l'ecran), `acces` = la case d'ou il vient s'asseoir.
       sieges: [
-        { fichier: 'Graphical Assets/Furnitures/Rectifies/chaise-top-down.png', echelle: 0.33, x: 0.0, y: 0.5, sens: 1, acces: [-1, 0] },
-        { fichier: 'Graphical Assets/Furnitures/Rectifies/chaise.png', echelle: 0.33, x: 1.0, y: 0.5, devant: true, sens: -1, acces: [1, 0] }
+        { fichier: 'Graphical Assets/Furnitures/Rectifies/chaise-top-down.png', echelle: 0.33, x: 0.0, y: 0.5, sens: 1, leve: -14, acces: [-1, 0] },
+        { fichier: 'Graphical Assets/Furnitures/Rectifies/chaise.png', assise: 'Graphical Assets/Furnitures/Rectifies/chaise-assise.png', dossier: 'Graphical Assets/Furnitures/Rectifies/chaise-dossier.png', echelle: 0.25, x: 1.0, y: 0.5, dy: 12, devant: true, sens: -1, acces: [1, 0] }
       ]
     },
     etagere: { image: 'bookcaseOpen', echelle: 0.84 },
     etagereBasse: { image: 'bookcaseOpenLow', echelle: 0.84 },
     comptoir: { image: 'kitchenBar', echelle: 0.9 },
-    banc: { fichier: 'Graphical Assets/Furnitures/Rectifies/chaise.png', echelle: 0.33 },
+    banc: { fichier: 'Graphical Assets/Furnitures/Rectifies/chaise.png', echelle: 0.25 },
     canape: { image: 'loungeSofa', echelle: 0.8 },
     plante: { image: 'pottedPlant', echelle: 1 },
     lampe: { image: 'lampSquareFloor', echelle: 1 },

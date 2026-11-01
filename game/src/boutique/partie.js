@@ -50,6 +50,12 @@ export function sauve() {
   try { localStorage.setItem(CLE, JSON.stringify({ etat, rng: ctx.rng.state, quand: dernier })); } catch { /* stockage plein : on retentera */ }
 }
 
+/** Des boosters premium offerts (la recompense d'un defi de client). */
+export function donneBoosterPremium(id, n = 1) {
+  etat.boosters.premium[id] = (etat.boosters.premium[id] ?? 0) + n;
+  change();
+}
+
 /** A appeler apres une action du joueur : previent les ecrans et sauvegarde. */
 export function change() {
   sauve();

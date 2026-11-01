@@ -14,6 +14,7 @@ const [TW, TH] = R.case;
 const hasard = ([a, b]) => a + Math.random() * (b - a);
 const parmi = l => l[Math.floor(Math.random() * l.length)];
 const cfg = ctx.cfg;
+const D = BOUTIQUE.defi;
 const defDe = type => cfg.shopLayout.furniture.find(f => f.id === type);
 const PROFILS = Object.keys(BOUTIQUE.profils);
 
@@ -185,19 +186,21 @@ function ambiance(t, prises) {
 
 // Les tables : deux joueurs par table, assis sur ses chaises (`sieges`), qui jouent un moment, puis repartent.
 function tables(prises) {
+  if (defiEtat.cherche) return;      // un defi attend une table vide : les tables se vident, personne de nouveau ne s'y assoit
   for (const it of partie().shop.items) {
     if (defDe(it.type)?.effect !== 'table') continue;
     const places = siegesDe(it), s = partie().shop;
     for (const siege of [0, 1]) {
       const cle = `${it.id}:${siege}`;
       if (clients.some(c => c.siege === cle) || clients.length >= R.clientsMax) continue;
+      if (clients.some(c => c.defi && String(c.siege).startsWith(`${it.id}:`))) continue;   // un defieur attend : personne ne s'assoit en face
       const sg = places[siege];
       if (sg) {
         // Il marche jusqu'a la case d'acces, puis s'assoit sur la chaise (un point dans la case de la table).
         const ax = it.x + sg.acces[0], ay = it.y + sg.acces[1];
         if (ax < 0 || ay < 0 || ax >= s.width || ay >= s.height || prises.has(`${ax},${ay}`)) continue;
         const pas = marcheVers([ax, ay], prises);
-        if (pas.length) nouveauClient(parmi(PROFILS), [...pas, { aller: pointSiege(it, sg) }, { pause: hasard(R.tableS), jeu: it.id, assis: true, sens: sg.sens }, finDeVisite()], { siege: cle, apres: [ax, ay], table: { id: it.id, x: it.x, y: it.y } });
+        if (pas.length) nouveauClient(parmi(PROFILS), [...pas, { aller: pointSiege(it, sg) }, { pause: hasard(R.tableS), jeu: it.id, assis: true, sens: sg.sens, leve: sg.leve || 0 }, finDeVisite()], { siege: cle, apres: [ax, ay], table: { id: it.id, x: it.x, y: it.y } });
         continue;
       }
       const pris = clients.filter(c => String(c.siege).startsWith(`${it.id}:`)).map(c => c.placeSiege);
@@ -208,6 +211,45 @@ function tables(prises) {
     }
   }
 }
+
+// Le DEFI d'un client (BOUTIQUE.defi) : de temps en temps, un client s'assoit seul a une table vide, une bulle au-dessus de la tete.
+// Le joueur la touche pour relever le defi (ui/defi.js) ; sans reponse, il repart. Puis le delai repart de zero.
+let defiEtat = { prochain: 0, vu: false, cherche: false };
+const delaiDefi = () => hasard(D.delaiS) * 1000;
+
+function defis(t, prises) {
+  if (clients.some(c => c.defi)) { defiEtat.vu = true; return; }
+  if (defiEtat.vu) { defiEtat.vu = false; defiEtat.prochain = t + delaiDefi(); return; }
+  if (t >= defiEtat.prochain || defiEtat.cherche) defiEtat.cherche = !lanceDefi(prises);
+}
+
+function lanceDefi(prises) {
+  const s = partie().shop;
+  const libres = s.items.filter(it => defDe(it.type)?.effect === 'table' && siegesDe(it).length === 2 && !clients.some(c => String(c.siege).startsWith(`${it.id}:`)));
+  for (const it of libres.sort(() => Math.random() - 0.5)) {
+    const places = siegesDe(it);
+    for (const siege of [0, 1].sort(() => Math.random() - 0.5)) {
+      const sg = places[siege], ax = it.x + sg.acces[0], ay = it.y + sg.acces[1];
+      if (ax < 0 || ay < 0 || ax >= s.width || ay >= s.height || prises.has(`${ax},${ay}`)) continue;
+      const pas = marcheVers([ax, ay], prises);
+      if (!pas.length) continue;
+      nouveauClient(parmi(PROFILS), [...pas, { aller: pointSiege(it, sg) }, { pause: D.attenteS, jeu: it.id, assis: true, sens: sg.sens, leve: sg.leve || 0 }, finDeVisite()],
+        { defi: true, siege: `${it.id}:${siege}`, apres: [ax, ay], table: { id: it.id, x: it.x, y: it.y } });
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Le defi est joue (ou refuse) : le client se leve et repart. */
+export function finDefi(c) {
+  c.defi = false;
+  c.defiEnCours = false;
+  c.etapes = [{ partir: true }];
+}
+
+/** Console : lance un defi tout de suite (s'il y a une table libre). */
+export function defiMaintenant() { const ok = lanceDefi(casesPrises()); defiEtat.cherche = !ok; return ok; }
 
 // La foule des encheres : elle grossit avec le nombre d'encheres et se presse sur les dernieres minutes.
 function foule(t, prises) {
@@ -284,7 +326,7 @@ function avanceClients(dt, t, prises) {
       // Assis : les mains devant (il tient ses cartes), de temps en temps il reflechit ; `sens` : le cote ou il regarde, fixe, pour que
       // les deux joueurs d'une table se fassent face quel que soit le chemin pris pour s'asseoir.
       c.poseFixe = e.assis ? (Math.sin(t / 1500 + c.phase) > 0.6 ? 'think' : 'hold') : e.jeu ? (Math.sin(t / 1500 + c.phase) > 0 ? 'talk' : 'think') : e.pose || null;
-      c.assis = !!e.assis;
+      c.assis = !!e.assis; c.leve = e.leve || 0;
       if (e.sens) c.sens = e.sens;
       if ((e.pause -= dt) <= 0) { c.poseFixe = null; c.assis = false; c.etapes.shift(); }
     }
@@ -376,10 +418,10 @@ function dessineFichier(im, cx, cy, largeurCase, miroir = false) {
 const siegesDe = it => BOUTIQUE.meubles[it.type]?.sieges || [];
 const pointSiege = (it, sg) => [it.x + sg.x, it.y + sg.y];
 
-function dessineSiege(it, sg, alpha = 1) {
-  const im = image(sg.fichier);
+function dessineSiege(it, sg, alpha = 1, fichier = sg.fichier) {
+  const im = image(fichier);
   if (!im) return;
-  const [px, py] = versEcran(...pointSiege(it, sg));
+  const [px, py0] = versEcran(...pointSiege(it, sg)), py = py0 + (sg.dy || 0);
   c2d.save();
   c2d.globalAlpha = alpha;
   dessineFichier(im, px, py, TW * sg.echelle, !!sg.miroir);
@@ -428,7 +470,7 @@ function dessineClient(c, t) {
   if (!im) return;
   const w = im.naturalWidth * R.echelleClient, h = im.naturalHeight * R.echelleClient;
   c2d.save();
-  c2d.translate(sx, sy + 4 + (c.assis ? R.assis : 0));
+  c2d.translate(sx, sy + 4 + (c.assis ? R.assis + (c.leve || 0) : 0));
   c2d.scale(c.sens, 1);
   c2d.drawImage(im, -w / 2, -h, w, h);
   c2d.restore();
@@ -438,11 +480,6 @@ function dessineClient(c, t) {
     c2d.beginPath(); c2d.roundRect(x, sy - 46, 24, 24, 4); c2d.fill(); c2d.stroke();
     if (vis) c2d.drawImage(vis, x + 1, sy - 45, 22, 22);
   }
-  const p = BOUTIQUE.profils[c.profil];
-  c2d.fillStyle = p.couleur;
-  c2d.beginPath(); c2d.arc(sx + 17, sy - h + 12, 7, 0, Math.PI * 2); c2d.fill();
-  c2d.fillStyle = '#fff'; c2d.font = '800 9px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle';
-  c2d.fillText(p.lettre, sx + 17, sy - h + 12.5);
 }
 
 function bulle(x, y, l, h, fond) {
@@ -475,6 +512,18 @@ function bullePlus(it) {
   bulle(cx, y, 34, 32, '#e7f53a');
   c2d.fillStyle = '#2b1c1f'; c2d.font = '900 24px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle';
   c2d.fillText('+', cx, y - 15);
+}
+
+function bulleDefi(c, t) {
+  const [sx, sy] = versEcran(c.x, c.y);
+  const k = 1 + 0.08 * Math.sin(t / 220);
+  c2d.save();
+  c2d.translate(sx, sy - 128);
+  c2d.scale(k, k);
+  bulle(0, 0, 42, 40, '#ff6a3d');
+  c2d.font = '22px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle'; c2d.fillStyle = '#fff';
+  c2d.fillText('⚔️', 0, -20);
+  c2d.restore();
 }
 
 function bulleClient(c) {
@@ -568,9 +617,14 @@ function dessine(t) {
       if (l) dessineCartePosee(l, montre);
     } });
     // Une chaise passe derriere celui qui s'y assoit (donc devant la table) ou devant lui : le client est ENTRE la chaise et la table.
-    for (const sg of siegesDe(montre)) {
-      scene.push({ p: montre.x + montre.y + sg.x + sg.y + (sg.devant ? 0.02 : -0.02), f: () => dessineSiege(montre, sg, deco.choisi === it.id ? 0.8 : 1) });
-    }
+    // Une chaise a deux calques (`assise` derriere celui qui s'y assoit, `dossier` devant lui) ; vide, c'est la chaise entiere (`fichier`).
+    siegesDe(montre).forEach((sg, i) => {
+      const al = deco.choisi === it.id ? 0.8 : 1, base = montre.x + montre.y + sg.x + sg.y;
+      if (sg.dossier && clients.some(c => c.assis && c.siege === `${it.id}:${i}`)) {
+        scene.push({ p: base - 0.02, f: () => dessineSiege(montre, sg, al, sg.assise) });
+        scene.push({ p: base + 0.02, f: () => dessineSiege(montre, sg, al, sg.dossier) });
+      } else scene.push({ p: base + (sg.devant ? 0.02 : -0.02), f: () => dessineSiege(montre, sg, al) });
+    });
   }
   scene.push({ p: R.boite[0] + R.boite[1] + 1, f: () => dessineBoite(S) });
   for (const c of clients) scene.push({ p: c.x + c.y, f: () => dessineClient(c, t) });
@@ -585,6 +639,7 @@ function dessine(t) {
     else if (!deco.actif) bullePlus(it);
   }
   for (const c of clients) if (c.bulle) bulleClient(c);
+  for (const c of clients) if (c.defi && c.assis && !c.defiEnCours) bulleDefi(c, t);
   for (const g of gains) {
     const a = 1 - (g.fin - t) / 1400;
     const [gx, gy] = versEcran(g.x, g.y);
@@ -619,6 +674,7 @@ function boucle(t) {
   if (t - dernierPlan > 1000) {
     dernierPlan = t;
     acheteurs(prises);
+    defis(t, prises);
     tables(prises);
     foule(t, prises);
   }
@@ -675,6 +731,14 @@ function touche(sx, sy) {
     actions.vitrine?.(partie().showcase.find(l => l.displayId === it.id) || null);
     return;
   }
+  // Un defieur : toucher sa bulle (ou lui) ouvre le defi.
+  const mx = (sx - cam.x) / cam.z, my = (sy - cam.y) / cam.z;
+  const defieur = clients.find(c => {
+    if (!c.defi || !c.assis || c.defiEnCours) return false;
+    const [ex, ey] = versEcran(c.x, c.y);
+    return Math.abs(mx - ex) < 34 && my > ey - 140 && my < ey + 12;
+  });
+  if (defieur) { actions.defi?.(defieur); return; }
   if (Math.floor(fx) === R.boite[0] && Math.floor(fy) === R.boite[1]) { actions.bulk?.(); return; }
   const z = cfg.shopLayout.auctionZone;
   const [cx, cy] = versEcran(z.x + z.w / 2, 0);
@@ -751,6 +815,7 @@ export function lanceScene(noeud, { visuelCarte, ...gestes }) {
   visuelDeCarte = id => { const u = visuelCarte(id); return u ? image(u) : null; };
   avant = performance.now();
   prochaineAmbiance = avant + 600;
+  if (!defiEtat.prochain) defiEtat = { prochain: avant + delaiDefi(), vu: false, cherche: false };   // le delai d'un defi survit a un changement d'ecran
   desabonne = ecoute(surEvenement);
   canvas.addEventListener('pointerdown', debut);
   canvas.addEventListener('pointermove', bouge);
@@ -765,7 +830,7 @@ export function arreteScene() {
   raf = 0;
   desabonne?.();
   desabonne = null;
-  clients = [];
+  // Les clients restent en memoire : revenir a la boutique les retrouve la ou ils etaient (la scene est gelee entre-temps).
   gains = [];
   doigts.clear();
   geste = null;

@@ -17,6 +17,7 @@ import { checkSellable, hasFeature, swapCollectionOccupant } from '../boutique/n
 import { adversaireCourant, avanceDeMinutes, change, ctx, ecoute, partie } from '../boutique/partie.js';
 import { save } from '../state.js';
 import { arreteScene, choisisMeuble, lanceScene, modeDeco } from './boutique-scene.js';
+import { ouvreDefi } from './defi.js';
 import { t } from '../config/textes.js';
 import { icone } from './icones.js';
 import { creeOnglets } from './onglets.js';
@@ -499,6 +500,7 @@ export function renderBoutique() {
     vitrine: l => { if (l) ficheVitrine(l.instanceId); else onglets.va('stock'); },
     encheres: () => document.querySelector('#nav [data-go=encheres]').click(),
     bulk: () => onglets.va('ventes'),
+    defi: ouvreDefi,
     choix: it => { meubleChoisi = it ? it.id : null; onglets.redessine(); },
     deplace: (id, x, y, dir) => { const r = moveFurniture(partie(), id, x, y, dir, ctx); if (!r.ok) toast(r.reason); else change(); }
   });
