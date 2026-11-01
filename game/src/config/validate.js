@@ -445,7 +445,7 @@ function verifieCarte(card, proprio, ctx) {
   // autres (pioche, sort, PV perdus, unite perdue) `gardePasse` ne trouve aucun sujet et
   // refuse TOUJOURS : le moment ne partira jamais, et rien sur la carte ne le laisse voir.
   for (const [slot, g] of Object.entries(card.gardes || {})) {
-    if (!g || keyId(g) === 'tous') continue;
+    if (!g || keyId(g) === 'tous' || keyId(g) === 'sonTour') continue;   // « son tour » regarde le tour, pas un sujet
     const m = /^on_(.+)_(self|foe|any)$/.exec(slot);
     if (m && EVENTS[m[1]] && !EVENTS[m[1]].sujet)
       out.push({ bad: true, msg: `${proprio} · ${card.name} — « ${(TRIGGERS[slot] || {}).label || slot} » n'a pas de sujet à regarder : une garde (« seulement si… ») n'y laisse jamais rien passer, le moment ne partira jamais. Retire la garde.` });

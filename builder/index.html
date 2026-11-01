@@ -1725,7 +1725,8 @@ function triggerFields(box, holder, slots, opts) {
     </div>`);
     // « Seulement si... » : la garde ne se pose que sur un evenement QUI A UN SUJET a
     // regarder (l'unite qui attaque, l'allie qu'on pose). Une pioche n'en a pas.
-    if (def.event && (EVENTS[def.ev] || {}).sujet) field.appendChild(gardeField(holder, slot));
+    // Seule la garde « pendant son tour » n'a pas besoin de sujet : elle regarde le tour.
+    if (def.event) field.appendChild(gardeField(holder, slot, !!(EVENTS[def.ev] || {}).sujet));
     effectList(field, holder[slot], opts);
     // Un moment d'evenement se retire entierement : sinon il resterait une liste vide
     // impossible a faire disparaitre.
@@ -1745,12 +1746,13 @@ function triggerFields(box, holder, slots, opts) {
  * s'ecrit « id:valeur » comme un mot-cle — l'identifiant du moment est une cle du
  * registre, on ne peut rien ecrire dedans.
  */
-function gardeField(holder, slot) {
+function gardeField(holder, slot, avecSujet = true) {
   const g = (holder.gardes || {})[slot] || 'tous';
   const id = keyId(g);
   const box = elt(`<div class="toolbar" style="margin-bottom:6px">
-    <span style="font-size:11px;color:var(--muted)">Seulement si l'unité concernée est</span>
+    <span style="font-size:11px;color:var(--muted)">${avecSujet ? 'Seulement si l\'unité concernée est' : 'Seulement :'}</span>
     <select class="select js-garde" style="width:auto">${Object.entries(EVENT_GARDES)
+      .filter(([k]) => avecSujet || k === 'tous' || k === 'sonTour')
       .map(([k, d]) => `<option value="${k}" ${id === k ? 'selected' : ''}>${esc(d.label)}</option>`).join('')}</select>
   </div>`);
   const ecrit = valeur => {

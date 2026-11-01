@@ -1086,10 +1086,11 @@ function fireTrigger(B, k, slot, label) {
  * moment part toujours — c'est le cas de toutes les cartes ecrites jusqu'ici. Avec une
  * garde et sans sujet a regarder, il ne part pas : la condition ne peut pas etre vraie.
  */
-function gardePasse(u, slot, sujets) {
+function gardePasse(B, acteur, u, slot, sujets) {
   const g = (u.gardes || {})[slot];
   const id = keyId(g);
   if (!g || id === 'tous' || !EVENT_GARDES[id]) return true;
+  if (id === 'sonTour') return B.turn === acteur;   // le tour de celui qui agit, pas celui du porteur
   const vus = sujets || [];
   if (!vus.length) return false;
   if (id === 'moi') return vus.includes(u);
@@ -1139,7 +1140,7 @@ function fireEvent(B, acteur, ev, sujets = null, carteSujet = null) {
           if (B.over) return;
           if (!u[slot] || !u[slot].length) continue;
           if (!B[k].board.includes(u)) continue;   // deja partie entre-temps
-          if (!gardePasse(u, slot, sujets)) continue;   // « seulement si... »
+          if (!gardePasse(B, acteur, u, slot, sujets)) continue;   // « seulement si... »
           B.fired[slot] = (B.fired[slot] || 0) + 1;
           say(B, `${TRIGGERS[slot].label} — ${u.name}.`);
           const dec = B.evts ? evt(B, { t: 'declenche', moment: slot, evenement: ev, camp: k, src: refUnite(u, k) }) : -1;

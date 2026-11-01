@@ -6996,7 +6996,10 @@ export const CHARACTER_DATA = {
           "keys": [
             "type:Oiseau"
           ],
-          "text": "Quand l'adversaire pioche une carte, vous aussi.",
+          "text": "Quand l'adversaire pioche une carte pendant son tour, vous aussi.",
+          "gardes": {
+            "on_draw_foe": "sonTour"
+          },
           "play": [],
           "tiers": [
             {

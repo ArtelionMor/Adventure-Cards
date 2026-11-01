@@ -802,7 +802,11 @@ export const EVENT_GARDES = {
   tous: { label: 'N’importe laquelle' },
   moi: { label: 'Cette unité (le porteur)' },
   type: { label: 'Une unité d’un type', arg: 'Chien' },
-  memeType: { label: 'Une unité du même type que le porteur' }
+  memeType: { label: 'Une unité du même type que le porteur' },
+  // Ne regarde pas le sujet mais le TOUR : le moment ne part que si c'est le tour de celui qui agit
+  // (« quand l'adversaire pioche pendant son tour »). C'est ce qui ferme la boucle de deux Grands Corbeaux :
+  // la pioche de réaction tombe pendant le tour de l'autre, donc elle ne réveille pas le Corbeau d'en face.
+  sonTour: { label: 'Pendant son tour' }
 };
 
 /** « (Chien seulement) » : ce que la garde ajoute au libelle du moment. */

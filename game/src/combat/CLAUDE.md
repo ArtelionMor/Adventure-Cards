@@ -160,6 +160,12 @@ pour le renfort seulement (« quand CETTE unité reçoit du renfort »), d'où l
 drapeau `ecouteLeSujet`. Sans cette distinction, « quand tu joues un allié » ne serait
 entendu que par l'allié qu'on vient de poser, c'est-à-dire par personne d'utile.
 
+⚠ **Une garde peut regarder le TOUR** et non le sujet : `sonTour` (« pendant son tour ») ne laisse partir le moment que si
+c'est le tour de **celui qui agit** (`B.turn === acteur`), sujet ou pas. Elle est permise sur un événement sans sujet (la
+pioche) — c'est la seule. C'est ce qui ferme la boucle de deux **Grands Corbeaux** (« quand l'adversaire pioche pendant son
+tour, vous aussi ») : la pioche de réaction tombe pendant le tour de l'autre, donc elle ne réveille pas le Corbeau d'en
+face. Une règle de carte lisible, pas un plafond ; le garde-fou ci-dessous reste le dernier recours.
+
 Le garde-fou `B.eventDepth` (4 rebonds) est obligatoire : « quand tu pioches, pioche » se
 rappellerait sans fin. Au-delà, la chaîne est coupée et le journal le dit. Un test du banc
 vérifie que le combat ne se fige pas.

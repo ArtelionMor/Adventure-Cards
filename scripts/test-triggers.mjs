@@ -4674,6 +4674,29 @@ console.log('\nPile de fatigue : compteur, multiplicateur, reanimation chez l ad
   endTurn(B);
   check('Pieuvre de la fatigue : +X/+X a la fin de ton tour, X = ta defausse', board(B, 'p'), [`${pieuvre.name} ${1 + B.p.discard.length}/${1 + B.p.discard.length}`]);
 }
+// ---------------------------------------------------------------------------
+console.log('\nDeux Grands Corbeaux face a face');
+{
+  // « Quand l'adversaire pioche pendant son tour, vous aussi » : la pioche de reaction tombe pendant le tour de
+  // l'AUTRE, donc elle ne reveille pas le Corbeau d'en face. Chaque pioche normale en donne UNE a l'adversaire.
+  const corbeau = cardById('crow_raven');
+  const B = setup([{ ...corbeau }], [{ ...corbeau }]);
+  play(B, 'p', corbeau.name);
+  B.turn = 'e'; play(B, 'e', corbeau.name); B.turn = 'p';
+  const mains = () => [B.p.hand.length, B.e.hand.length];
+  const avant = mains();
+  draw(B, 'p');   // mon tour : je pioche, l'adversaire aussi, et ca s'arrete la
+  check('mon tour : une pioche chacun, pas de boucle', mains().map((n, k) => n - avant[k]), [1, 1]);
+  B.turn = 'e';
+  const apres = mains();
+  draw(B, 'e');
+  check('son tour : une pioche chacun', mains().map((n, k) => n - apres[k]), [1, 1]);
+  B.turn = 'p';
+  const seul = mains();
+  draw(B, 'e');   // il pioche pendant MON tour (un effet) : mon Corbeau ne dit rien
+  check('pioche adverse pendant mon tour : mon Corbeau reste muet', mains().map((n, k) => n - seul[k]), [0, 1]);
+}
+
 
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);
