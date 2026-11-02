@@ -8,6 +8,7 @@ import { canExpand, doorX, expandCost, footprint, isFree } from '../boutique/noy
 import { ctx, ecoute, partie } from '../boutique/partie.js';
 import { urlIcone } from './icones.js';
 import { texteDePrix } from './prix.js';
+import { etatTournoi } from '../boutique/tournoi.js';
 import { asset, court } from './shell.js';
 
 const R = BOUTIQUE.scene;
@@ -430,6 +431,25 @@ function dessineSiege(it, sg, alpha = 1, fichier = sg.fichier) {
   c2d.restore();
 }
 
+/** Les images de l'animation d'un duel (voir `BOUTIQUE.duel`). */
+const DU = BOUTIQUE.duel;
+const imageDuel = n => image(`${DU.dossier}${n}.webp`);
+
+/** Deux clients jouent a cette table (pas un defieur seul) : on montre leur duel sur le plateau, image par image, en boucle. */
+function dessineDuel(it, t) {
+  const joueurs = clients.filter(c => c.assis && !c.defi && c.siege?.startsWith(`${it.id}:`)).length;
+  if (joueurs < 2) return;
+  const cycle = DU.images * DU.msParImage + DU.pauseMs;
+  const n = Math.floor(((t + it.id * 977) % cycle) / DU.msParImage);
+  if (n >= DU.images) return;
+  const im = imageDuel(n + 1);
+  if (!im) return;
+  const f = footprint(defDe(it.type), it.dir);
+  const [cx, cy] = versEcran(it.x + f.w / 2, it.y + f.h / 2);
+  const w = im.naturalWidth * DU.echelle, h = im.naturalHeight * DU.echelle;
+  c2d.drawImage(im, cx + DU.dx - w / 2, cy + DU.dy - h / 2, w, h);
+}
+
 function dessineMeuble(it, alpha = 1) {
   const def = defDe(it.type), v = BOUTIQUE.meubles[it.type];
   if (!def || !v) return;
@@ -443,7 +463,7 @@ function dessineMeuble(it, alpha = 1) {
   if (v.fichier) dessineFichier(im, cx, cy, TW * (f.w + f.h) / 2 * v.echelle);
   else if (v.plat) c2d.drawImage(im, cx - w / 2, cy - h / 2, w, h);
   else c2d.drawImage(im, cx - w / 2, cy + TH * 0.22 - h, w, h);
-  if (v.badge && def.effect !== 'estrade') { c2d.font = '22px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle'; c2d.fillText(v.badge, cx, cy - (v.dessus || 70)); }
+  if (v.badge && def.effect !== 'estrade' && def.effect !== 'defis') { c2d.font = '22px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle'; c2d.fillText(v.badge, cx, cy - (v.dessus || 70)); }
   c2d.restore();
 }
 
@@ -538,6 +558,35 @@ function bulleEstrade(it, a) {
   c2d.fillText(texte, cx - w / 2 + 8, y - 13);
   const piece = image(urlIcone('Coin'));
   if (piece) c2d.drawImage(piece, cx + w / 2 - 22, y - 21, 16, 16);
+}
+
+/** La bulle du tableau des defis : le tournoi (gris : pas encore ; vert qui bat : inscriptions ouvertes ; orange : a toi de jouer). */
+function bulleTournoi(it, t) {
+  const e = etatTournoi();
+  const [cx, cy] = versEcran(it.x + 0.5, it.y + 0.5), y = cy - (BOUTIQUE.meubles[it.type].dessus || 70) - 4;
+  const k = e.etat === 'attente' ? 1 : 1 + 0.07 * Math.sin(t / 240);
+  c2d.save();
+  c2d.translate(cx, y); c2d.scale(k, k);
+  bulle(0, 0, 38, 34, e.etat === 'attente' ? '#b8b0a4' : e.etat === 'ouvert' ? '#5fd26a' : '#ff9a3d');
+  c2d.font = '20px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle'; c2d.fillStyle = '#2b1c1f';
+  c2d.fillText(e.etat === 'inscrit' ? '⚔' : '🏆', 0, -16);
+  c2d.restore();
+}
+
+/** Ou en es-tu aux encheres : au-dessus du tableau du mur, le lot ou tu es engage le plus urgent (rouge s'il t'a depasse, vert si tu es en tete). */
+function bulleEncheres(S) {
+  const lots = S.market.lots.filter(l => l.engaged && S.nowMs < l.endMs);
+  if (!lots.length) return;
+  const lot = lots.sort((a, b) => (a.holder === 'player') - (b.holder === 'player') || a.endMs - b.endMs)[0];
+  const moi = lot.holder === 'player', z = cfg.shopLayout.auctionZone;
+  const [cx, cy] = versEcran(z.x + z.w / 2, 0), y = cy - R.hauteurMur - 6;
+  const reste = Math.max(0, Math.ceil((lot.endMs - S.nowMs) / 1000));
+  const texte = `${moi ? 'En tête' : 'Dépassé !'} · ${texteDePrix(lot.price)} · ${reste >= 3600 ? `${Math.floor(reste / 3600)} h` : `${Math.floor(reste / 60)}:${String(reste % 60).padStart(2, '0')}`}`;
+  c2d.font = '800 14px sans-serif';
+  const w = c2d.measureText(texte).width + 26;
+  bulle(cx, y, w, 28, moi ? '#7be08a' : '#ff6b5e');
+  c2d.fillStyle = '#2b1c1f'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle';
+  c2d.fillText(texte, cx, y - 14);
 }
 
 function bulleDefi(c, t) {
@@ -667,6 +716,7 @@ function dessine(t) {
     const montre = deco.fantome && deco.choisi === it.id ? { ...it, ...deco.fantome } : it;
     scene.push({ p: montre.x + montre.y + 1, f: () => {
       dessineMeuble(montre, deco.choisi === it.id ? 0.8 : 1);
+      if (defDe(montre.type)?.effect === 'table') dessineDuel(montre, t);
       const l = S.showcase.find(x => x.displayId === it.id);
       if (l) dessineCartePosee(l, montre);
     } });
@@ -693,6 +743,8 @@ function dessine(t) {
     else bullePlus(it);
   }
   estrades(S).forEach((it, i) => bulleEstrade(it, S.auctions[i]));
+  for (const it of s.items) if (defDe(it.type)?.effect === 'defis') bulleTournoi(it, t);
+  bulleEncheres(S);
   const tourne = posTourner();
   if (tourne) rond(tourne[0], tourne[1], '#ffe14d', '↻');
   for (const axe of ['x', 'y']) {
@@ -810,6 +862,11 @@ function touche(sx, sy) {
     const m = BOUTIQUE.meubles[v.type], [cx, cy] = versEcran(v.x + 0.5, v.y + 0.5);
     const l = S.showcase.find(x => x.displayId === v.id);
     if (surBulle(mx, my, cx, l ? cy - m.dessus - R.tailleCarte + 4 : cy - m.dessus + 2)) { actions.vitrine?.(l || null, v); return; }
+  }
+  for (const v of S.shop.items) {
+    if (defDe(v.type)?.effect !== 'defis') continue;
+    const [bx] = versEcran(v.x + 0.5, v.y + 0.5), by = versEcran(v.x + 0.5, v.y + 0.5)[1] - (BOUTIQUE.meubles[v.type].dessus || 70) - 4;
+    if (surBulle(mx, my, bx, by)) { actions.tournoi?.(); return; }
   }
   const es = estrades(S);
   for (let i = 0; i < es.length; i++) {

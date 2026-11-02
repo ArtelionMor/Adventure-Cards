@@ -11,6 +11,11 @@ import { couleurDuType } from '../config/familles.js';
 import { icone } from './icones.js';
 import { $, el, asset } from './shell.js';
 import { iconeDeCle, iconeDeOp, iconeDeMoment } from './pictos.js';
+import { BOUTIQUE } from '../config/boutique.js';
+import { BALANCE } from '../config/balance.js';
+import { ctx as ctxBoutique, partie } from '../boutique/partie.js';
+import { instanceRef } from '../boutique/noyau/engines/pricing.js';
+import { metaMultiplier } from '../boutique/noyau/engines/meta.js';
 
 const div = (cl, html) => {
   const d = document.createElement('div');
@@ -120,6 +125,7 @@ export function blocFait(x, texte) {
 /** La fiche d'une CARTE : `cout` est celui du moment (en combat, `cardCost` ; hors combat, le cout imprime). */
 export function ficheDeCarte(c, { cout = c.cost, adverse = false } = {}) {
   const box = el('<div class="insp fiche"></div>');
+  if (c.id) box.dataset.carte = c.id;    // l'onglet « Shop » de la fiche retrouve la carte dans la boutique par son identifiant
   box.appendChild(teteFiche({
     nom: c.name, sprite: c.sprite, cout, coutBase: c.cost, sort: c.type !== 'ally', atk: c.atk, hp: c.hp, maxHp: null,
     types: typesOf(c), note: '', adverse
@@ -129,25 +135,155 @@ export function ficheDeCarte(c, { cout = c.cost, adverse = false } = {}) {
   return box;
 }
 
+// ------------------------------------------------------------------ l'onglet « Shop » (maquette du 2 nov. 2026)
+// Une fiche a deux onglets : « Game » (ce que la carte fait, le contenu qu'on donne) et « Shop » (ce qu'elle vaut : son prix de reference,
+// et ce que chaque client — Timmy, Johnny, Spike — en pense : une phrase ; le tenir montre sa matrice 2 x 2 et le detail). Il n'existe que pour une carte de la boutique.
+const COULEURS_AVIS = ['#ff6a4a', '#ffa23a', '#ffe14d', '#cfff5a', '#8bff3a'];   // du pire au meilleur
+const couleurDeTon = t => COULEURS_AVIS[Math.max(0, Math.min(COULEURS_AVIS.length - 1, Math.round(t * (COULEURS_AVIS.length - 1))))];
+const entre01 = v => Math.max(0, Math.min(1, v));
+
 /**
- * LE PANNEAU DE LECTURE : flotte au-dessus de tout, y compris d'une fenetre, ne recoit aucun toucher (le doigt qui lit
- * reste sur sa carte). Partage par le combat et l'ecran Deck.
+ * LES AXES D'UN CLIENT (`BOUTIQUE.avisClients`, a regler dans la game config) : chaque axe nomme une de ces mesures, de 0 a 1.
+ * Ajouter une mesure = une ligne ici, puis le game designer la cite dans la config d'un client.
  */
-export function montreLecture(contenu) {
+const METRIQUES = {
+  cout: (card, finish, grade, S) => (ctxBoutique.index.maxCost > 0 ? (card.cost ?? 0) / ctxBoutique.index.maxCost : 0),
+  rarete: (card) => (ctxBoutique.index.rarityRank.get(card.rarity) ?? 0) / Math.max(1, ctxBoutique.cfg.rarities.length - 1),
+  meta: (card, finish, grade, S) => entre01(0.5 + (metaMultiplier(card, S, ctxBoutique) - 1) * 2),
+  variante: (card, finish, grade) => (grade ? 0.5 : 0) + (finish === 'foil' ? 0.5 : 0),
+  extension: (card, finish, grade, S) => { const e = S.progression.extensions; return e.length > 1 ? Math.max(0, e.indexOf(card.extension)) / (e.length - 1) : 0; },
+  prix: (card, finish, grade, S) => entre01(instanceRef({ cardId: card.id, finish, grade: grade ?? null, slab: null }, S, ctxBoutique) / Math.max(...ctxBoutique.cfg.rarities.map(r => r.priceCeil)))
+};
+
+/**
+ * Ce qu'UN client pense de la carte : ses deux axes la placent dans une matrice 2 x 2 (haut / bas sur chacun), et chaque zone a sa phrase
+ * (`BOUTIQUE.avisClients[client]` : `axes: [{ id, nom, seuil }, { … }]`, `phrases: { 'haut-bas': '…' }` — le premier mot est la zone du premier
+ * axe —, `tons` facultatif : 0 mauvais … 1 excellent, par zone). Rend `{ zone, phrase, ton, tons, axes }` ou `null` (client sans config).
+ */
+function avisDuClient(profil, card, finish, grade, S) {
+  const c = BOUTIQUE.avisClients?.[profil.id];
+  if (!c) return null;
+  const [ax, ay] = c.axes;
+  const v = a => (METRIQUES[a.id] ? METRIQUES[a.id](card, finish, grade, S) : 0.5);
+  const haut = (a) => v(a) >= (a.seuil ?? 0.5);
+  const zone = `${haut(ax) ? 'haut' : 'bas'}-${haut(ay) ? 'haut' : 'bas'}`;
+  const tonDe = z => c.tons?.[z] ?? ((z.startsWith('haut') ? 0.5 : 0) + (z.endsWith('haut') ? 0.5 : 0));
+  const tons = Object.fromEntries(['bas-bas', 'haut-bas', 'bas-haut', 'haut-haut'].map(z => [z, tonDe(z)]));
+  return { zone, phrase: c.phrases?.[zone] ?? '…', ton: tons[zone], tons, axes: [ax, ay], valeurs: [v(ax), v(ay)] };
+}
+
+/** La matrice 2 x 2 d'un client : l'axe 1 va vers la droite, l'axe 2 vers le haut. Chaque zone a sa couleur pleine ; celle de la carte est cernee et porte un point. */
+function matrice(a) {
+  const cases = [['bas-haut', 0, 0], ['haut-haut', 52, 0], ['bas-bas', 0, 52], ['haut-bas', 52, 52]];
+  return `<svg class="fc-mat" viewBox="0 0 108 108" aria-label="${echappe(a.axes[0].nom)} × ${echappe(a.axes[1].nom)}">${cases.map(([z, x, y]) => {
+    const c = couleurDeTon(a.tons[z]), ici = z === a.zone;
+    return `<rect x="${x + 2}" y="${y + 2}" width="52" height="52" rx="9" style="fill:${ici ? c : `color-mix(in srgb, ${c} 55%, #fff3d8)`}" stroke="#170b12" stroke-width="${ici ? 4 : 2.5}"/>${ici ? `<circle cx="${x + 28}" cy="${y + 28}" r="12" style="fill:${c}" stroke="#170b12" stroke-width="4"/><circle cx="${x + 28}" cy="${y + 28}" r="5" fill="#fff"/>` : ''}`;
+  }).join('')}</svg>`;
+}
+const echappe = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/** Le detail d'un client, montre tant qu'on tient son visage : qui il est, sa matrice, la place de la carte sur chacun de ses axes, sa phrase. */
+function detailClient(profil, a, tete) {
+  const c = BOUTIQUE.avisClients?.[profil.id] ?? {};
+  const pct = v => Math.round(entre01(v) * 100);
+  const [x, y] = a.valeurs;
+  return el(`<div class="fc-detail" style="--c:${couleurDeTon(a.ton)}">
+    <div class="fc-d-tete">${tete ? `<img class="fc-face" src="${BOUTIQUE.visage(tete)}" alt="">` : ''}<div><b>${echappe(profil.id)}</b><span>${echappe(c.qui ?? '')}</span></div></div>
+    <div class="fc-d-corps">${matrice(a)}<ul>
+      <li><b>${echappe(a.axes[0].nom)}</b> (→) <em>${pct(x)} %</em></li>
+      <li><b>${echappe(a.axes[1].nom)}</b> (↑) <em>${pct(y)} %</em></li>
+    </ul></div>
+    <p class="fc-d-phrase">${echappe(a.phrase)}</p></div>`);
+}
+
+/** Le contenu de l'onglet « Shop » : le nom, puis une phrase par client (son visage, ce qu'il en dit). Tenir un visage montre son detail. `null` hors boutique. */
+function ongletShop(cardId, finish, grade, nom) {
+  const S = partie();
+  const card = S && ctxBoutique.index.cardById.get(cardId);
+  if (!card) return null;
+  const prix = Math.round(instanceRef({ cardId, finish, grade: grade ?? null, slab: null }, S, ctxBoutique));
+  const box = el('<div class="insp fiche fi-shop"></div>');
+  box.appendChild(el(`<div class="fc-nom">${echappe(nom)}</div>`));
+  const avis = el('<div class="fc-avis"></div>');
+  for (const profil of ctxBoutique.cfg.buyers.profiles) {
+    const a = avisDuClient(profil, card, finish, grade, S);
+    if (!a) continue;
+    const tete = BOUTIQUE.profils[profil.id]?.tetes[0];
+    const l = el(`<div class="fc-avis-l" style="--c:${couleurDeTon(a.ton)}">
+      ${tete ? `<img class="fc-face" src="${BOUTIQUE.visage(tete)}" alt="${profil.id}" draggable="false">` : ''}
+      <p class="fc-phrase">${echappe(a.phrase)}</p><span class="fc-i" aria-hidden="true">i</span></div>`);
+    const detail = detailClient(profil, a, tete);
+    let t = null;
+    const ferme = () => { clearTimeout(t); detail.remove(); };
+    {
+      const face = l;                               // toute la ligne se tient, pas seulement le visage
+      face.addEventListener('pointerdown', () => { clearTimeout(t); t = setTimeout(() => box.appendChild(detail), BALANCE.ui.appuiLongMs); });
+      for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) face.addEventListener(ev, ferme);
+      face.addEventListener('contextmenu', e => e.preventDefault());
+    }
+    avis.appendChild(l);
+  }
+  box.appendChild(avis);
+  return { box, prix };
+}
+
+/**
+ * LE PANNEAU DE LECTURE (combat, ecran Deck, boutique) : flotte au-dessus de tout, y compris d'une fenetre. Maquette du 2 nov. 2026 : la carte en
+ * GRAND deborde a gauche, le panneau a droite, et ses deux onglets « Game » et « Shop » debordent au-dessus (le dernier ouvert est retenu ; le
+ * badge de la carte montre son cout, ou son prix sur « Shop »). Il RESTE ouvert quand le doigt se leve : il se ferme au prochain appui AILLEURS sur
+ * l'ecran (cet appui est avale : il ne joue rien dessous) ; les onglets, eux, se touchent. `surFerme` : appele quand l'appui le ferme (l'ecran
+ * qui le tient oublie sa lecture). `cardId`, `finish`, `grade` : de quoi retrouver la carte pour « Shop » (par defaut `contenu.dataset.carte`).
+ */
+let ongletFiche = 'jeu';
+let ecouteFermeture = null;
+export function montreLecture(contenu, { cardId = contenu.dataset?.carte, finish = 'normal', grade = null, surFerme = null } = {}) {
   let p = $('#lecture');
   if (!p) {
     p = el('<div id="lecture" class="lecture hidden"></div>');
     $('#app').appendChild(p);
   }
   const sheet = el('<div class="sheet"></div>');
-  sheet.appendChild(contenu);
+  const art = contenu.querySelector?.('.fi-carte');
+  const shop = cardId && art ? ongletShop(cardId, finish, grade, contenu.querySelector('.nm')?.textContent ?? '') : null;
+  if (shop) {
+    sheet.classList.add('fc');
+    const badge = art.querySelector('.cost');
+    const coutImprime = badge?.innerHTML;
+    const onglets = el('<div class="fc-onglets"><button data-o="jeu">Game</button><button data-o="shop">Shop</button></div>');
+    const corps = el('<div class="fc-corps"></div>');
+    const va = o => {
+      ongletFiche = o;
+      corps.replaceChildren(o === 'shop' ? shop.box : contenu);
+      if (badge) { badge.classList.toggle('prix', o === 'shop'); badge.innerHTML = o === 'shop' ? `${shop.prix}${icone('Coin', 20)}` : coutImprime; }
+      for (const b of onglets.children) b.classList.toggle('on', b.dataset.o === o);
+    };
+    for (const b of onglets.children) b.onclick = () => va(b.dataset.o);
+    const panneau = el('<div class="fc-panneau"></div>');
+    panneau.append(onglets, corps);
+    const gauche = el('<div class="fc-art"></div>');
+    gauche.appendChild(art);                         // la carte quitte l'en-tete du « Game » : elle est a gauche, en grand
+    sheet.append(gauche, panneau);
+    va(ongletFiche);
+  } else sheet.appendChild(contenu);
   p.replaceChildren(sheet);
   p.classList.remove('hidden');
+  p.classList.add('persiste');
+  // Le prochain appui hors de la fiche la ferme et ne va pas plus loin. Pose au tour suivant : l'appui qui l'ouvre n'est pas le prochain.
+  if (ecouteFermeture) document.removeEventListener('pointerdown', ecouteFermeture, true);
+  ecouteFermeture = ev => {
+    if (ev.target.closest?.('#lecture .sheet')) return;
+    ev.stopPropagation();
+    ev.preventDefault();
+    cacheLecture();
+    surFerme?.();
+  };
+  setTimeout(() => { if (ecouteFermeture) document.addEventListener('pointerdown', ecouteFermeture, true); }, 0);
 }
 
 export function cacheLecture() {
+  if (ecouteFermeture) { document.removeEventListener('pointerdown', ecouteFermeture, true); ecouteFermeture = null; }
   const p = $('#lecture');
-  if (p) { p.classList.add('hidden'); p.replaceChildren(); }
+  if (p) { p.classList.add('hidden'); p.classList.remove('persiste'); p.replaceChildren(); }
 }
 
 /** Une fiche ouverte d'un toucher (pas d'un appui) : elle se ferme au prochain toucher, ou qu'il tombe. */

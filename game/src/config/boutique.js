@@ -35,6 +35,21 @@ export const BOUTIQUE = {
   dossierMeubles: 'Decor/Kenney Furniture Kit/',
   // Retires du catalogue (leurs chaises sont maintenant celles de la table de jeu) ; un exemplaire deja pose reste dessine.
   meublesRetires: ['banc'],
+  // L'ANIMATION D'UN DUEL de deux clients a une table de jeu (`Graphical Assets/Furnitures/Duel Animation/1…7.png`, 2305 x 2180 chacune,
+  // decoupees autour des cartes par `scripts/gen-duel-frames.py` dans `game/vignettes/Duel/`). Les images se jouent dans l'ordre, une pause
+  // table nue, puis ca recommence. `echelle` : px du monde par px d'image ; `dx`, `dy` : decalage du centre du tas de cartes par rapport au
+  // centre de la case de la table (a regler a l'oeil si le dessin ne tombe pas au milieu du plateau).
+  duel: { images: 7, dossier: '/game/vignettes/Duel/', echelle: 0.09, dx: 10, dy: -26, msParImage: 380, pauseMs: 2200 },
+  // LE TOURNOI du tableau des defis (`boutique/tournoi.js`) : un tournoi a quatre, s'ouvre de temps en temps. Delais en secondes.
+  tournoi: {
+    premierS: [60, 240],       // avant le premier tournoi d'une partie
+    delaiS: [600, 1500],       // entre la fin d'un tournoi (ou des inscriptions manquees) et le suivant
+    inscriptionS: 900,         // les inscriptions restent ouvertes ce temps
+    // Le gain depend du tour atteint : demi-finale perdue, finale perdue, tournoi gagne.
+    recompenses: { perdu1: { booster: 'premium_standard', n: 0 }, finale: { booster: 'premium_standard', n: 1 }, victoire: { booster: 'premium_standard', n: 2 } }
+  },
+  // LE CARRE DE MISE (`ui/encheres-mini.js`) : le panneau pose sur le bord de l'ecran pour surencherir sans ouvrir les encheres.
+  encheresMini: { lots: 3 },
   // Le DEFI d'un client : de temps en temps, un client s'assoit a une table vide, une bulle au-dessus de la tete, et attend un adversaire.
   defi: {
     delaiS: [180, 720],       // entre la fin d'un defi (relevé ou parti) et le suivant : 3 a 12 minutes, au hasard
@@ -108,6 +123,28 @@ export const BOUTIQUE = {
   },
   // La couleur de chaque rang de la wishlist des heros (la tier list de reference du game designer).
   rangs: { S: '#ff7f7f', A: '#ffbf7f', B: '#ffff7f', C: '#7fff7f', D: '#7fbfff', N: '#cdb88f' },
+  // CE QUE LES CLIENTS PENSENT D'UNE CARTE (onglet « Shop » de la fiche, `ui/fiche.js`). Chaque client juge sur DEUX axes qui lui sont propres :
+  // la carte tombe dans une matrice 2 x 2 (haut / bas sur chaque axe, au `seuil` de l'axe, 0,5 par defaut) et chaque zone a SA phrase.
+  // `axes` : deux de `cout`, `rarete`, `meta` (la performance de la carte dans la meta), `variante` (gradee / foil), `extension` (recente ?), `prix` ;
+  // `nom` est ce qui s'affiche. `phrases` : la cle est `<zone du 1er axe>-<zone du 2e>` (`haut-bas` : haut sur le 1er, bas sur le 2e) ; `tons`
+  // (facultatif) : 0 (il deteste) a 1 (il adore) par zone — la couleur —, sinon 0 / 0,5 / 1 selon les deux zones hautes. PHRASES PROVISOIRES.
+  avisClients: {
+    Timmy: {
+      qui: 'Veut des gros tours qui racontent une histoire. (A COMPLETER : qui est cet acheteur)',
+      axes: [{ id: 'cout', nom: 'Coût' }, { id: 'rarete', nom: 'Rareté' }],
+      phrases: { 'haut-haut': 'Énorme ET rare : la carte d\'un tour de légende !', 'haut-bas': 'Un gros coût, mais banale… ça peut faire du bruit.', 'bas-haut': 'Rare, mais toute petite : pas de spectacle.', 'bas-bas': 'Petite et commune : rien à raconter.' }
+    },
+    Johnny: {
+      qui: 'Cherche les cartes qui feront un combo. (A COMPLETER : qui est cet acheteur)',
+      axes: [{ id: 'meta', nom: 'Performance', seuil: 0.5 }, { id: 'cout', nom: 'Coût' }],
+      phrases: { 'haut-haut': 'Trop évidente, mais costaude : pas pour mes combos.', 'haut-bas': 'Efficace et légère : une pièce de plus pour mon moteur.', 'bas-haut': 'Délaissée par la méta et chère : un défi pour moi !', 'bas-bas': 'Personne n\'en veut… moi, je lui trouve un usage.' }
+    },
+    Spike: {
+      qui: 'Joue pour gagner, achete ce qui performe. (A COMPLETER : qui est cet acheteur)',
+      axes: [{ id: 'meta', nom: 'Performance' }, { id: 'rarete', nom: 'Rareté' }],
+      phrases: { 'haut-haut': 'Forte ET rare : je la prends au prix fort.', 'haut-bas': 'Forte et facile à trouver : je la veux en plusieurs exemplaires.', 'bas-haut': 'Rare, mais faible : je laisse aux collectionneurs.', 'bas-bas': 'Faible et commune : aucun intérêt.' }
+    }
+  },
   // Ce que les clients disent d'un prix (le seuil vit dans le noyau). Des emoji en attendant les icones du game designer.
   reactions: {
     bonneAffaire: { signe: '🤩', texte: 'Bonne affaire !', fond: '#34c759' },

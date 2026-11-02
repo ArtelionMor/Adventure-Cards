@@ -944,6 +944,35 @@ http.createServer((req, res) => {
     }
   }
 
+  // LES RAPPELS DU JEU (scripts/lib/rappels-jeu.mjs) : l'abonnement du telephone au jeu, ses echeances (fin d'enchere, grading, tournoi) et
+  // un message d'essai. Le jeu envoie la liste complete a chaque changement ; le serveur pousse la notification a l'heure, jeu ferme.
+  if (urlPath.startsWith('/api/jeu/')) {
+    const action = urlPath.slice('/api/jeu/'.length);
+    if (req.method === 'GET' && action === 'push/cle') {
+      push().then(p => json(res, 200, { cle: p.clePublique(), abonnes: p.abonnes('jeu') }))
+        .catch(e => json(res, 500, { erreur: e.message }));
+      return;
+    }
+    if (req.method === 'POST' && ['push/abonne', 'push/desabonne', 'push/test', 'rappels'].includes(action)) {
+      let body = '';
+      req.setEncoding('utf8');
+      req.on('data', c => { if (body.length < 64 * 1024) body += c; });
+      req.on('end', async () => {
+        try {
+          const p = await push();
+          const d = body ? JSON.parse(body) : {};
+          if (action === 'push/abonne') { p.abonne({ ...d, app: 'jeu' }); json(res, 200, { ok: true, abonnes: p.abonnes('jeu') }); }
+          else if (action === 'push/desabonne') { p.desabonne(d.endpoint); json(res, 200, { ok: true, abonnes: p.abonnes('jeu') }); }
+          else if (action === 'rappels') { const r = await import('./lib/rappels-jeu.mjs'); json(res, 200, { ok: true, rappels: r.remplaceRappels(d.rappels) }); }
+          else json(res, 200, await p.notifie({ titre: 'Adventure Card', corps: 'Les notifications du jeu marchent : tu seras prévenu pour tes enchères et tes tournois.', tag: 'jeu-test', bruyante: true, url: '/game/index.html' }, { urgence: 'high', app: 'jeu' }));
+        } catch (e) {
+          json(res, 400, { erreur: e.message });
+        }
+      });
+      return;
+    }
+  }
+
   // ---- LA FEUILLE GOOGLE : la game config se synchronise avec « Config Adventure-Cards » ----
   // GET = apercu (ce qui changerait), POST = ecrit game/data/feuille.data.js. Le jeu servi par ce serveur
   // voit la nouvelle valeur au prochain rechargement ; pour la rapatrier sur le PC : commit + git pull.
@@ -1066,6 +1095,7 @@ http.createServer((req, res) => {
     res.end(buf);
   });
 }).listen(PORT, HOTE, () => {
+  import('./lib/rappels-jeu.mjs').then(r => r.demarreRappels()).catch(e => console.log('rappels du jeu impossibles : ' + e.message));
   // AdventureCard.exe annonce deja ces adresses, et mieux que nous (il sait s'il a pu
   // nous lancer) : sous ADVENTURE_DISCRET on ne dit plus que « je suis la », sinon la
   // console du launcher listait le builder et l'Atelier deux fois.

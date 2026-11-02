@@ -142,7 +142,8 @@ function buildDefiSide(defi) {
   const chars = defi.heros.map(h => CHAR_BY_ID[h.id]);
   return {
     name: defi.nom,
-    sprite: chars[0].sprite,
+    // Dans le cercle de l'adversaire : le VISAGE du client qui te defie (pas le portrait de l'un de ses heros).
+    sprite: defi.tete ? `Graphical Assets/Clients/Clients Thumbnails/Thumbnail ${defi.nom}.png` : chars[0].sprite,
     hp: pvDeLEquipe(chars),
     mana: Math.max(...chars.map(c => c.stats.mana)),
     hand: Math.max(...chars.map(c => c.stats.hand)),
@@ -1349,7 +1350,7 @@ function reprendLaMain() {
 function tape(n) {
   // Une carte du JOURNAL : un toucher n'y a rien d'autre a faire, il ouvre donc sa fiche, qui reste jusqu'au toucher
   // suivant (et ne rend pas la main en Auto : on lit le combat qu'on regarde).
-  if (n.dataset.geste === 'journal') { lisCe(n); fermeAuProchainToucher(fermeLecture); return; }
+  if (n.dataset.geste === 'journal') { lisCe(n); return; }
   if (reprendLaMain()) return;
   const d = n.dataset;
   if (d.geste === 'unit') tapeUnite(d.side, d.uid);
@@ -1521,7 +1522,8 @@ function lacheTir(ev, annuleGeste) {
 function poseLesGestes() {
   if (gestesPoses) return;
   gestesPoses = true;
-  const gestes = { tap: tape, lire: lisCe, finLire: fermeLecture };
+  // La lecture RESTE quand le doigt se leve : elle se ferme au prochain appui ailleurs (`montreLecture`, fiche.js).
+  const gestes = { tap: tape, lire: lisCe, finLire: () => {} };
   installeGestes($('#battle'), { ...gestes, glisse: { debut: debutTir, bouge: bougeTir, lache: lacheTir } });
   installeGestes($('#modal'), gestes);
   // Toucher le fond (ni une carte, ni une unite, ni un bouton) annule l'action engagee — ou,
@@ -1710,7 +1712,7 @@ function renderLecture() {
     contenu = ficheCarte(lecture.carte, lecture.camp);
   }
   if (!contenu) { fermeLecture(); return; }
-  montreLecture(contenu);
+  montreLecture(contenu, { cardId: lecture.kind === 'unit' ? B[lecture.side].board.find(x => x.uid === lecture.uid)?.card?.id : lecture.carte?.id, surFerme: () => { lecture = null; } });
 }
 
 // --------------------------------------------------------------- fin de combat
@@ -1745,8 +1747,11 @@ function finish() {
     // Monnaie A : recompense d'exploration. Monnaie B : collecte encore a trancher
     // dans le GDD ("butin de combat" = hypothese) — c'est ce qu'on teste ici.
     if (defi) {
-      donneBoosterPremium(defi.recompense.booster, defi.recompense.n);
-      recompenses.push({ label: 'Booster premium', n: defi.recompense.n });
+      // Un match de tournoi ne paie rien : le gain vient a la fin du tournoi (`boutique/tournoi.js`).
+      if (defi.recompense.n > 0) {
+        donneBoosterPremium(defi.recompense.booster, defi.recompense.n);
+        recompenses.push({ label: 'Booster premium', n: defi.recompense.n });
+      }
     } else {
       gain('A', r.A);
       gain('B', r.B);
@@ -1793,7 +1798,7 @@ function finish() {
   const enchaine = win && ctx.enchaine;
   // Perdre ne coute rien : on relance tout de suite la meme rencontre (la victoire, elle, paie
   // des recompenses — la rejouer en boucle est une question d'economie, pas d'interface).
-  if (!win) boutons.push({ texte: 'Réessayer', primaire: true, onClick: () => { const n = ctx, d = onDone; B = null; openBattle(n, d); } });
+  if (!win && !(defi && defi.recompense.n === 0)) boutons.push({ texte: 'Réessayer', primaire: true, onClick: () => { const n = ctx, d = onDone; B = null; openBattle(n, d); } });
   boutons.push({ texte: enchaine ? t('ligne.suivant') : win ? 'Continuer' : 'Retour', primaire: win, onClick: () => ferme() });
   if (enchaine) boutons.push({ texte: t('ligne.arreter'), onClick: () => ferme(false) });
   // « Revoir le combat » le REJOUE devant le joueur ; « Continuer » au bout du rejeu reprend ou celui-ci s'arretait.

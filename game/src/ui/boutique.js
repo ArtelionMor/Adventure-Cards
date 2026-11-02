@@ -1,4 +1,4 @@
-// L'ECRAN DE LA BOUTIQUE : la scene (ui/boutique-scene.js) prend l'ecran, cinq onglets (ui/onglets.js) ouvrent un panneau sous elle. Toute regle vient du noyau
+// L'ECRAN DE LA BOUTIQUE : la scene (ui/boutique-scene.js) prend tout l'ecran. Toute regle vient du noyau
 // (`boutique/noyau/`, genere par scripts/gen-boutique.mjs) : cet ecran affiche et appelle ses moteurs, il ne calcule rien.
 import { BOUTIQUE } from '../config/boutique.js';
 import { CHAR_BY_ID } from '../config/characters.js';
@@ -16,15 +16,15 @@ import { adversaireCourant, avanceDeMinutes, change, ctx, ecoute, partie } from 
 import { save } from '../state.js';
 import { arreteScene, choisisMeuble, lanceScene } from './boutique-scene.js';
 import { ouvreDefi } from './defi.js';
+import { ouvreTournoi } from './tournoi.js';
+import { demandeNotifs } from './notifs.js';
 import { t } from '../config/textes.js';
 import { icone } from './icones.js';
-import { creeOnglets } from './onglets.js';
 import { curseurPrix, texteDePrix } from './prix.js';
 import { $, asset, closeModal, court, el, fmtTime, modal, toast } from './shell.js';
 
 const cfg = ctx.cfg;
-const ONGLETS = [['stock', 'Stock'], ['ventes', 'Ventes']];
-let onglets = null;
+// Plus d'onglets : le stock est la collection (ecran des Packs, ui/packs.js) et les ventes se lisent sur la scene (bulles des vitrines, bulk).
 let racine = null;
 let desabonne = null;
 
@@ -45,7 +45,7 @@ export const spriteDeHeros = hero => SPRITES_HEROS.get(cleHeros(hero));
 export function carteHtml(cardId, finish = 'normal', grade = null, classe = '') {
   const c = carteDef(cardId);
   const couleur = BOUTIQUE.couleursRaretes[c.rarity] || '#999';
-  return `<div class="btq-c ${finish === 'foil' ? 'foil' : ''} ${classe}" data-r="${c.rarity}" style="--r:${couleur}"><img src="${asset(SPRITES.get(cardId))}" alt="${c.name}">${grade ? `<b class="btq-note">${grade}</b>` : ''}</div>`;
+  return `<div class="btq-c ${finish === 'foil' ? 'foil' : ''} ${classe}" data-r="${c.rarity}" data-carte-id="${cardId}" data-finish="${finish}"${grade ? ` data-grade="${grade}"` : ''} style="--r:${couleur}"><img src="${asset(SPRITES.get(cardId))}" alt="${c.name}">${grade ? `<b class="btq-note">${grade}</b>` : ''}</div>`;
 }
 const or = n => `${icone('Coin', 14)}<b>${texteDePrix(n)}</b>`;
 
@@ -86,7 +86,7 @@ function majBarre() {
 // La scene se redessine toute seule (ui/boutique-scene.js) : elle lit l'etat a chaque image.
 
 // ------------------------------------------------------------------ onglet Stock
-function panneauStock(surChoix = null) {
+export function panneauStock(surChoix = null) {
   const S = partie();
   const stock = Object.values(S.instances).filter(i => i.location === 'stock').sort((a, b) => instanceRef(b, S, ctx) - instanceRef(a, S, ctx));
   const box = el(`<div><div class="btq-ligne"><h3>${stock.length} doubles</h3><span class="muted">${Object.keys(S.collection).length} / ${ctx.index.cardById.size} découvertes · ${Object.keys(S.foilCollection).length} foils</span></div><div class="btq-grille"></div></div>`);
@@ -206,29 +206,6 @@ function ficheVitrine(id) {
   modal(box);
 }
 
-// ------------------------------------------------------------------ onglet Ventes
-function panneauVentes() {
-  const S = partie();
-  const box = el(`<div>
-    <h3>Vitrines ${S.showcase.length}/${showcaseCapacity(S, ctx)}</h3><div class="btq-liste" id="lV"></div>
-    <div id="lG"></div>
-    <h3>Bulk</h3><p class="muted">${S.bulkBox.length} cartes · ${cfg.bulk.salesPerHour} ventes par heure${S.bulkBox.length ? ` · vide dans ${formatDuration(bulkClearHours(S, ctx) * 60)}` : ''}</p>
-  </div>`);
-  for (const l of S.showcase) {
-    const inst = S.instances[l.instanceId];
-    if (!inst) continue;
-    const n = el(`<button class="btq-rang">${carteHtml(inst.cardId, inst.finish, inst.grade)}<span>${or(l.price)}</span><em>${formatDuration(Math.max(0, l.sellAtMs - S.nowMs) / 60000)}</em></button>`);
-    n.onclick = () => ficheVitrine(l.instanceId);
-    box.querySelector('#lV').appendChild(n);
-  }
-  if (S.gradingQueue.length) box.querySelector('#lG').appendChild(el(`<h3>${t('grading.titre')}</h3>`));
-  for (const g of S.gradingQueue) {
-    const inst = S.instances[g.instanceId];
-    if (inst) box.querySelector('#lG').appendChild(el(`<div class="btq-rang">${carteHtml(inst.cardId, inst.finish)}<span>${carteDef(inst.cardId).name}</span><em>${formatDuration(Math.max(0, g.doneMs - S.nowMs) / 60000)}</em></div>`));
-  }
-  return box;
-}
-
 // ------------------------------------------------------------------ l'ecran des encheres
 // D'abord ACHETER (ouvert des le depart), puis VENDRE, qui se debloque en avancant dans la ligne de combats (economy.json). Acheter,
 // c'est se placer sur un lot : la mise part de la bourse et revient si un concurrent passe devant ; a la fin du temps, le dernier
@@ -272,7 +249,7 @@ function carteDeLot(S, lot) {
   const miser = n.querySelector('button');
   if (miser) miser.onclick = () => {
     const r = placeBid(S, lot.id, ctx);
-    if (!r.ok) toast(r.reason); else change();
+    if (!r.ok) toast(r.reason); else { change(); demandeNotifs(); }
   };
   return n;
 }
@@ -497,24 +474,6 @@ function ouvreWidgetEncheres() {
 // (L'ex-onglet Heros est devenu la wishlist des Packs : ui/souhaits.js.)
 
 // ------------------------------------------------------------------ l'ecran
-const PANNEAUX = { stock: panneauStock, ventes: panneauVentes };
-
-// Un onglet ouvre son panneau sous la scene ; le retoucher le ferme et rend toute la vue (`fermable`).
-function creeOngletsBoutique() {
-  return creeOnglets({
-    fermable: true,
-    onglets: ONGLETS.map(([id, nom]) => ({
-      id, nom,
-      rendu: corps => {
-        const p = el('<div class="btq-panneau"></div>');
-        p.appendChild(PANNEAUX[id]());
-        corps.appendChild(p);
-      }
-    })),
-    surChange: () => {}
-  });
-}
-
 // L'INVENTAIRE : les objets offerts par l'agrandissement et pas encore poses, en pastilles au bas de la scene (icone ronde + nom, une
 // rangee qui defile). Chacun est « NEW » tant qu'il attend ; en toucher un le pose a la premiere place libre et le selectionne.
 function majInventaire() {
@@ -541,11 +500,9 @@ function surEvenement(e) {
   if (!racine?.isConnected) return;
   if (e.t === 'seconde') {
     majBarre();
-    if (onglets.courant() === 'ventes') onglets.redessine();
   } else if (e.t === 'change') {
     majBarre();
     majInventaire();
-    onglets.redessine();
   } else if (e.t === 'sale') {
     // Le noyau annonce la vente avant de retirer la carte : on lit l'etat juste apres.
     setTimeout(() => { if (racine?.isConnected) majBarre(); }, 0);
@@ -559,8 +516,6 @@ export function renderBoutique() {
     <div class="btq-barre"><span id="btqGems"></span><span id="btqEchelle"></span></div>
     <div class="btq-monde"><canvas id="btqCanvas"></canvas><div class="btq-inv"></div></div>
   </div>`);
-  onglets = creeOngletsBoutique();
-  racine.appendChild(onglets.node);
   ecran.appendChild(racine);
   majBarre();
   majInventaire();
@@ -569,6 +524,7 @@ export function renderBoutique() {
   lanceScene($('#btqCanvas'), {
     visuelCarte: id => SPRITES.get(id),
     estrade: ouvreWidgetEstrade,
+    tournoi: ouvreTournoi,
     vitrine: (l, v) => { if (l) ficheVitrine(l.instanceId); else ouvreWidgetVitrine(v.id); },
     encheres: ouvreWidgetEncheres,
     agrandit: ouvreAgrandir,
@@ -578,7 +534,8 @@ export function renderBoutique() {
       const r = moveFurniture(S, it.id, it.x, it.y, (it.dir + 1) % 4, ctx);
       if (!r.ok) toast(r.reason); else change();
     },
-    bulk: () => onglets.va('ventes'),
+    // La boite de bulk de la scene : combien de cartes elle garde, et quand elle sera vide.
+    bulk: () => { const S = partie(); toast(S.bulkBox.length ? `Bulk : ${S.bulkBox.length} cartes · ${cfg.bulk.salesPerHour} ventes par heure · vide dans ${formatDuration(bulkClearHours(S, ctx) * 60)}` : 'Le bulk est vide.'); },
     defi: ouvreDefi,
     deplace: (id, x, y, dir) => { const r = moveFurniture(partie(), id, x, y, dir, ctx); if (!r.ok) toast(r.reason); else change(); }
   });

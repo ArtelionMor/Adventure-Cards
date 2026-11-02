@@ -13,11 +13,15 @@ import { ouvreProfil } from './ui/profil.js';
 import { chargeLeJeu } from './ui/chargement.js';
 import { openBattle } from './ui/battle.js';
 import { installeQuetes } from './ui/quetes.js';
+import { installeEncheresMini } from './ui/encheres-mini.js';
+import { installeNotifications } from './ui/notifs.js';
+import { installeLectureCartes } from './ui/lecture-cartes.js';
 import { installeTriche } from './ui/triche.js';
 import { renderBoutique, quitteBoutique, renderEncheres, quitteEncheres, montreResumeBoutique, consoleBoutique, alerteBoutique, encheresADefendre } from './ui/boutique.js';
 import { demarreBoutique, ecoute, surRetour } from './boutique/partie.js';
 
 let current = 'arene';
+let majMini = () => {};   // le carre de mise (ui/encheres-mini.js) : visible partout sauf sur l'ecran des encheres
 
 function go(screen) {
   current = screen;
@@ -31,6 +35,7 @@ function go(screen) {
   if (screen === 'boutique') renderBoutique(); else quitteBoutique();
   if (screen === 'encheres') renderEncheres(); else quitteEncheres();
   refreshTop();
+  majMini();
 }
 
 function refreshTop() {
@@ -123,6 +128,10 @@ function boot() {
 
   // Le TUTORIEL n'est plus une fenetre : c'est le debut du fil de quetes (config/quetes.js), dans le bandeau sous la
   // barre du haut. Son toucher emmene ou il faut ; « rafraichit » redessine l'ecran courant (une place, un heros recus).
+  majMini = installeEncheresMini({ ecranCourant: () => current }).maj;
+  majMini();
+  installeNotifications();
+  installeLectureCartes();
   installeQuetes({ go, rafraichit: () => go(current) });
   // La CONSOLE DE TRICHE hors combat (ui/triche.js) : son bouton dans la barre du haut (`BALANCE.triche.bouton`).
   window.AC.console = installeTriche({ go, rafraichit: () => go(current) });

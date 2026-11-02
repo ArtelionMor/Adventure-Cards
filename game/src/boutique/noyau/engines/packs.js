@@ -290,9 +290,14 @@ export function openPremium(state           , id        , ctx     , opts        
 }
 
 /** Achat sur le marché premium : le validateur garantit qu'il ne s'arbitre pas aux enchères. */
+/** Le prix d'un booster premium au marché (ce que montre le bouton « Buy for »). */
+export function premiumShopPrice(state           , id        , ctx     )         {
+  return Math.ceil(premiumRef(id, state, ctx) * ctx.cfg.premium.marketBuyMultiplier);
+}
+
 export function buyPremium(state           , id        , ctx     )                 {
   if (!hasFeature(state, 'premiumMarket')) return { ok: false, reason: 'Marché premium pas encore débloqué.' };
-  const price = Math.ceil(premiumRef(id, state, ctx) * ctx.cfg.premium.marketBuyMultiplier);
+  const price = premiumShopPrice(state, id, ctx);
   if (state.gold < price) return { ok: false, reason: 'Or insuffisant.' };
   state.gold -= price;
   state.boosters.premium[id] = (state.boosters.premium[id] ?? 0) + 1;

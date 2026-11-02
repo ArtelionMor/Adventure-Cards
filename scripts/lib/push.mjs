@@ -44,14 +44,17 @@ function charge() {
 }
 
 export function clePublique() { return charge().cle.publique; }
-export function abonnes() { return charge().abonnements.length; }
+// Un abonnement appartient a une application : l'Atelier (`builder/sw.js`, par defaut : les anciens abonnements n'ont pas de champ) ou le jeu
+// (`game/sw.js`). Un message ne part que vers les abonnes de SON application : chacun a son service worker, son affichage.
+const deLApp = (a, app) => (a.app || 'atelier') === app;
+export function abonnes(app) { const l = charge().abonnements; return app ? l.filter(a => deLApp(a, app)).length : l.length; }
 
 export function abonne(a) {
   if (!a || typeof a.endpoint !== 'string' || !a.endpoint.startsWith('https://') || !a.keys || !a.keys.p256dh || !a.keys.auth)
     throw new Error('Abonnement invalide');
   const e = charge();
   e.abonnements = e.abonnements.filter(x => x.endpoint !== a.endpoint);
-  e.abonnements.push({ endpoint: a.endpoint, keys: { p256dh: a.keys.p256dh, auth: a.keys.auth }, depuis: Date.now() });
+  e.abonnements.push({ endpoint: a.endpoint, keys: { p256dh: a.keys.p256dh, auth: a.keys.auth }, depuis: Date.now(), ...(a.app === 'jeu' ? { app: 'jeu' } : {}) });
   sauve();
 }
 
@@ -107,12 +110,12 @@ export function chiffre(message, keys, essai = {}) {
  * rafale. Un abonnement que le service push declare mort (404, 410) est oublie. Rend ce
  * qui s'est passe, pour que le bouton « Tester » puisse le dire.
  */
-export async function notifie(donnees, { urgence = 'normal', sujet } = {}) {
+export async function notifie(donnees, { urgence = 'normal', sujet, app = 'atelier' } = {}) {
   const e = charge();
   const message = JSON.stringify(donnees);
   const bilan = { envoyees: 0, erreurs: [] };
   const morts = [];
-  await Promise.all(e.abonnements.map(async a => {
+  await Promise.all(e.abonnements.filter(a => deLApp(a, app)).map(async a => {
     try {
       const r = await fetch(a.endpoint, {
         method: 'POST',

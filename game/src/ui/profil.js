@@ -11,6 +11,7 @@ import { save, xpPourSuivant, puissanceJoueur, fondsDebloques, choisitFond } fro
 import { BOUTIQUE } from '../config/boutique.js';
 import { change, partie } from '../boutique/partie.js';
 import { el, asset, modal, closeModal } from './shell.js';
+import { blocNotifs } from './notifs.js';
 
 /** Une recompense en une ligne (et l'image du heros quand c'en est un). */
 function ligneRecompense(r) {
@@ -92,7 +93,7 @@ export function ouvreProfil() {
     arbre.appendChild(el(`<li class="pf-n ${etat}"><span class="pf-rond">${n}</span>${recompensesDuNiveau(n).map(ligneRecompense).join('')}</li>`));
   }
   box.insertBefore(choixDuFond(), arbre);
-  if (partie()) box.insertBefore(choixDeLaBoutique(), arbre);
+  if (partie()) { box.insertBefore(choixDeLaBoutique(), arbre); box.insertBefore(blocNotifs(), arbre); }
   const sac = el(`<button class="btn ghost">${t('profil.sac')}</button>`);
   sac.onclick = ouvreSac;
   box.appendChild(sac);

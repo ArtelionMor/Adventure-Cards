@@ -12,13 +12,14 @@ const COULEURS = ['#ffc46b', '#7fd6a6', '#6ec1ff', '#ff6f7f', '#d6a8ff'];
 
 /**
  * `issue` : 'victoire', 'defaite' ou 'nul'. `recompenses` : [{ label, n }]. `notes` : lignes en retrait.
+ * `titre` : remplace « Victoire » / « Défaite » (le tournoi : « Champion ! ») ; `classe` : une classe de plus sur le calque (son habillage).
  * `boutons` : [{ texte, primaire, onClick }]. `enchaine` : appele seul apres `fin.enchaineMs`, sauf si le joueur touche l'ecran.
  */
-export function montreFin({ racine, issue, sousTitre, recompenses = [], notes = [], boutons = [], enchaine = null }) {
+export function montreFin({ racine, issue, titre: titreFixe, classe = '', sousTitre, recompenses = [], notes = [], boutons = [], enchaine = null }) {
   const f = BALANCE.ui.fx.fin;
-  const titre = { victoire: 'Victoire', defaite: 'Défaite', nul: 'Match nul' }[issue];
+  const titre = titreFixe || { victoire: 'Victoire', defaite: 'Défaite', nul: 'Match nul' }[issue];
   const calque = el(`
-    <div class="fin ${issue}">
+    <div class="fin ${issue} ${classe}">
       <div class="fin-rayons"></div>
       <div class="fin-contenu">
         <div class="fin-titre">${titre}</div>

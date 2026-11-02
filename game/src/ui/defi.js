@@ -17,7 +17,7 @@ function equipeDe(c) {
     const mes = Object.keys(save.chars).filter(possede);
     const n = Math.max(1, Math.min(save.rosterSlots, mes.length));
     const e = equipeDefi(mes.map(id => save.chars[id].level), n);
-    c.defiEquipe = { ...e, nom: `${c.tete[0].toUpperCase()}${c.tete.slice(1)}`, recompense: BOUTIQUE.defi.recompense };
+    c.defiEquipe = { ...e, tete: c.tete, nom: `${c.tete[0].toUpperCase()}${c.tete.slice(1)}`, recompense: BOUTIQUE.defi.recompense };
   }
   return c.defiEquipe;
 }

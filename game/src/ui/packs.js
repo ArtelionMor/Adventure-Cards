@@ -6,12 +6,13 @@ import { BOUTIQUE } from '../config/boutique.js';
 import { CHAR_BY_ID } from '../config/characters.js';
 import { t } from '../config/textes.js';
 import { sendToBulk, setBulkFilter, setBulkFilterProtectsVariants } from '../boutique/noyau/engines/bulk.js';
-import { boosterShopPrice, buyBooster, bulkEligible, openBooster, openPremium } from '../boutique/noyau/engines/packs.js';
+import { buyPremium, bulkEligible, openBooster, openPremium, premiumShopPrice } from '../boutique/noyau/engines/packs.js';
+import { hasFeature } from '../boutique/noyau/state.js';
 import { instanceRef } from '../boutique/noyau/engines/pricing.js';
 import { listShowcase } from '../boutique/noyau/engines/showcase.js';
 import { change, ctx, ecoute, partie } from '../boutique/partie.js';
 import { DOS_DE_CARTE } from './battle.js';
-import { carteDef, carteHtml, spriteDeCarte } from './boutique.js';
+import { carteDef, carteHtml, panneauStock, spriteDeCarte } from './boutique.js';
 import { ouvreSouhaits } from './souhaits.js';
 import { $, asset, court, el, toast } from './shell.js';
 
@@ -288,18 +289,7 @@ function ouvre(premiumId = null) {
   function resume(tirage) {
     racine.onclick = racine.onpointerdown = racine.onpointermove = racine.onpointerup = racine.onpointercancel = null;
     for (const c of ['.pk-plan', '.pk-rang', '.pk-aide', '.pk-cote']) racine.querySelector(c).remove();
-    racine.querySelector('.pk-bandeau').textContent = t('packs.resume');
-    const bas = racine.querySelector('.pk-bas-ecran');
-    const grille = el(`<div class="pk-resume ${tirage.length > 3 ? 'large' : ''}"></div>`);
-    tirage.forEach((x, i) => grille.appendChild(el(`<div class="btq-revele" style="animation-delay:${i * .12}s">
-      ${carteHtml(x.cardId, x.finish)}${x.neuve ? `<em>${t('packs.nouvelle')}</em>` : ''}${x.sort === 'bulk' ? `<em class="b">${t('packs.bulk')}</em>` : ''}${x.sort === 'vitrine' ? `<em class="b">${t('packs.vitrine')}</em>` : ''}</div>`)));
-    bas.before(grille);
-    const encore = el(`<button class="btn">${t('packs.encore')}</button>`);
-    encore.disabled = partie().boosters.stock <= 0;
-    encore.onclick = () => { ferme(); ouvre(); };
-    const fini = el(`<button class="btn alt">${t('packs.terminer')}</button>`);
-    fini.onclick = ferme;
-    bas.append(encore, fini);
+    montreResume(racine, tirage, { ferme, encore: () => { ferme(); ouvre(); }, tous: () => { ferme(); ouvreTous(); } });
   }
 
   function ferme() {
@@ -309,19 +299,154 @@ function ouvre(premiumId = null) {
   }
 }
 
+/**
+ * Le resume d'un tirage dans `racine` (qui porte un `.pk-bandeau` et un `.pk-bas-ecran`) : la grille des cartes, puis « Encore un »,
+ * « Ouvrir tous (N) » (s'il reste au moins deux boosters) et « Terminer ». `x.sort` dit ce que la carte est devenue (bulk, vitrine).
+ */
+function montreResume(racine, tirage, { ferme, encore, tous, titre = t('packs.resume') }) {
+  racine.querySelector('.pk-bandeau').textContent = titre;
+  const bas = racine.querySelector('.pk-bas-ecran');
+  const grille = el(`<div class="pk-resume ${tirage.length > 6 ? 'beaucoup' : tirage.length > 3 ? 'large' : ''}"></div>`);
+  tirage.forEach((x, i) => grille.appendChild(el(`<div class="btq-revele" style="animation-delay:${Math.min(i, 24) * .06}s">
+    ${carteHtml(x.cardId, x.finish)}${x.neuve ? `<em>${t('packs.nouvelle')}</em>` : ''}${x.sort === 'bulk' ? `<em class="b">${t('packs.bulk')}</em>` : ''}${x.sort === 'vitrine' ? `<em class="b">${t('packs.vitrine')}</em>` : ''}</div>`)));
+  bas.before(grille);
+  const reste = partie().boosters.stock;
+  const un = el(`<button class="btn">${t('packs.encore')}</button>`);
+  un.disabled = reste <= 0;
+  un.onclick = encore;
+  bas.appendChild(un);
+  if (reste >= 2) {
+    const b = el(`<button class="btn alt">${t('packs.ouvrirTous', { n: reste })}</button>`);
+    b.onclick = tous;
+    bas.appendChild(b);
+  }
+  const fini = el(`<button class="btn ghost">${t('packs.terminer')}</button>`);
+  fini.onclick = ferme;
+  bas.appendChild(fini);
+}
+
+/**
+ * OUVRIR TOUS : tous les boosters du stock d'un coup, sans la mise en scene. Les cartes ne se rangent pas une par une : le filtre de bulk
+ * (le curseur de l'ecran des Packs) envoie ce qu'il doit au bulk, le reste reste dans la collection. Le resume montre tout, la plus rare d'abord.
+ */
+function ouvreTous() {
+  if (ouverture) return;
+  const S = partie();
+  const n = S.boosters.stock;
+  if (n <= 0) { toast(t('packs.vide')); return; }
+  const rang = id => cfg.rarities.findIndex(r => r.id === id);
+  const tirage = [];
+  let ouverts = 0;
+  for (let k = 0; k < n; k++) {
+    if (!openBooster(S, ctx).ok) break;   // le filtre de bulk s'applique tout seul
+    ouverts++;
+    for (const x of lisTirage(cfg.boosters.cardsPerBooster)) { x.sort = x.bulk ? 'bulk' : undefined; tirage.push(x); }
+  }
+  change();
+  tirage.sort((a, b) => rang(b.def.rarity) - rang(a.def.rarity) || (b.finish === 'foil') - (a.finish === 'foil'));
+  const racine = el('<div class="pk-ouv"><div class="pk-bandeau"></div><div class="pk-bas-ecran"></div></div>');
+  ouverture = racine;
+  $('#app').appendChild(racine);
+  const ferme = () => { racine.remove(); ouverture = null; if (ecran) dessine(); };
+  montreResume(racine, tirage, { ferme, encore: () => { ferme(); ouvre(); }, tous: () => { ferme(); ouvreTous(); }, titre: t('packs.tirageDe', { n: ouverts }) });
+}
+
 // ------------------------------------------------------------------ l'ecran
 let ecran = null;
 let quitte = null;
 
-// Chaque seconde, seuls le compteur et les boutons changent : le booster reste en place.
+// LE CARROUSEL DES BOOSTERS (maquette du 2 nov. 2026) : le booster de base, puis le premium ; des fleches (ou un glissé) passent de l'un a
+// l'autre. Un booster en stock s'ouvre en le touchant ; sans stock, une case en pointilles compte le temps avant le suivant ; un premium
+// qu'on n'a pas se rachete (« Buy for »). Sous le carrousel, la COLLECTION (les doubles : l'ex-onglet Stock de la boutique).
+let courant = 0;           // l'indice du booster montre
+let aDuStock = null;       // le booster de base est-il en stock ? (le carrousel se redessine quand ca change)
+
+const listeBoosters = () => [{ premium: null }, ...cfg.premium.boosters.map(p => ({ premium: p.id }))];
+const mmss = s => `${Math.floor(s / 60)}min${String(s % 60).padStart(2, '0')}`;
+
+/** Un booster du carrousel : le paquet (a toi : on le touche pour l'ouvrir), la case en pointillés (plus de stock) ou le paquet a racheter. */
+function slideDe(b) {
+  const S = partie();
+  const possede = b.premium ? (S.boosters.premium[b.premium] ?? 0) : S.boosters.stock;
+  if (possede > 0) {
+    const n = el(`<div class="pk-vitrine" role="button" aria-label="${t('packs.ouvrir')}">${paquet(!!b.premium)}${b.premium ? `<b class="pk-n">${possede}</b>` : ''}</div>`);
+    n.onclick = () => { if (!glisse) ouvre(b.premium); };
+    return n;
+  }
+  if (!b.premium) return el('<div class="pk-vide"><b id="pkSuivant"></b></div>');
+  const n = el(`<div class="pk-vitrine achat">${paquet(true)}<button class="pk-achete"></button></div>`);
+  const x = n.querySelector('.pk-achete');
+  const debloque = hasFeature(S, 'premiumMarket');
+  x.textContent = debloque ? t('packs.achetePremium', { n: court(premiumShopPrice(S, b.premium, ctx)) }) : t('packs.premiumBientot');
+  x.disabled = !debloque;
+  x.onclick = () => { const r = buyPremium(S, b.premium, ctx); if (!r.ok) toast(r.reason); else { change(); dessineCarrousel(); majCompteur(); } };
+  return n;
+}
+
+/** Tous les boosters sont posés côte à côte : celui du milieu en plein, ses voisins qui dépassent, plus petits et assombris. */
+function dessineCarrousel() {
+  const S = partie(), liste = listeBoosters();
+  courant = Math.min(courant, liste.length - 1);
+  const zone = ecran.querySelector('.pk-carrousel');
+  zone.innerHTML = '';
+  aDuStock = S.boosters.stock > 0;
+  liste.forEach((b, i) => {
+    const slide = el('<div class="pk-slide"></div>');
+    slide.appendChild(slideDe(b));
+    slide.onclick = ev => { if (i !== courant && !glisse) { ev.stopPropagation(); va(i); } };
+    zone.appendChild(slide);
+  });
+  for (const [sens, glyphe] of [[-1, '‹'], [1, '›']]) {
+    const f = el(`<button class="pk-fleche ${sens < 0 ? 'g' : 'd'}" aria-label="${sens < 0 ? 'Précédent' : 'Suivant'}">${glyphe}</button>`);
+    f.onclick = () => va(courant + sens);
+    zone.appendChild(f);
+  }
+  place();
+  majCompteur();
+}
+
+/** Place chaque booster par rapport au courant (le CSS anime le changement) ; le fond de l'écran suit. */
+function place() {
+  const zone = ecran?.querySelector('.pk-carrousel');
+  if (!zone) return;
+  const liste = listeBoosters();
+  [...zone.querySelectorAll('.pk-slide')].forEach((s, i) => {
+    s.style.setProperty('--i', i - courant);
+    s.classList.toggle('centre', i === courant);
+  });
+  zone.querySelector('.pk-fleche.g').hidden = courant <= 0;
+  zone.querySelector('.pk-fleche.d').hidden = courant >= liste.length - 1;
+  $('#screen-packs').dataset.fond = liste[courant].premium ? 'premium' : 'base';
+}
+
+function va(n) {
+  const nouveau = Math.max(0, Math.min(listeBoosters().length - 1, n));
+  if (nouveau === courant) return;
+  courant = nouveau;
+  place();
+}
+
+// Chaque seconde, seuls le compteur et le temps avant le prochain booster changent : le booster reste en place.
 function majCompteur() {
   const S = partie(), b = S.boosters;
   if (!ecran) return;
+  if ((b.stock > 0) !== aDuStock) { dessineCarrousel(); return; }
   ecran.querySelector('#pkStock').textContent = t('packs.stock', { n: b.stock, max: cfg.boosters.storageCap });
-  ecran.querySelector('#pkProchain').textContent = b.stock >= cfg.boosters.storageCap ? t('packs.plein')
-    : t('packs.prochain', { n: Math.ceil((cfg.boosters.intervalMinutes * 60000 - b.progressMs) / 1000) });
-  ecran.querySelector('#pkOuvre').disabled = b.stock <= 0;
-  ecran.querySelector('#pkAchete').textContent = t('packs.acheter', { n: court(boosterShopPrice(S, ctx)) });
+  const reste = Math.ceil((cfg.boosters.intervalMinutes * 60000 - b.progressMs) / 1000);
+  ecran.querySelector('#pkProchain').textContent = b.stock >= cfg.boosters.storageCap ? t('packs.plein') : t('packs.prochain', { n: reste });
+  const tous = ecran.querySelector('#pkTous');
+  tous.hidden = b.stock < 2 || courant !== 0;
+  tous.textContent = t('packs.ouvrirTous', { n: b.stock });
+  const v = ecran.querySelector('#pkSuivant');
+  if (v) v.textContent = t('packs.suivant', { t: mmss(reste) });
+}
+
+/** La collection sous le carrousel : les doubles, comme l'ancien onglet Stock (toucher une carte ouvre sa fiche : vitrine, bulk, grading…). */
+function dessineCollection() {
+  if (!ecran) return;
+  const zone = ecran.querySelector('.pk-collection');
+  zone.innerHTML = '';
+  zone.appendChild(panneauStock());
 }
 
 function dessine() {
@@ -331,41 +456,49 @@ function dessine() {
   ecran = el(`<div class="pk">
     <div class="pk-compte"><b id="pkStock"></b><span id="pkProchain"></span></div>
     <button class="pk-souhaits" id="pkSouhaits" aria-label="Souhaits">★</button>
-    <div class="pk-vitrine" role="button" aria-label="${t('packs.ouvrir')}">${paquet(false)}</div>
+    <div class="pk-carrousel"></div>
+    <button class="pk-tous" id="pkTous" hidden></button>
+    <div class="pk-collection"></div>
     <div class="pk-actions">
-      <button class="btn" id="pkOuvre">${t('packs.ouvrir')}</button>
-      <button class="btn alt" id="pkAchete"></button>
-      <div id="pkPremium"></div>
       <label class="btq-filtre">${t('packs.filtre')} <b id="pkSeuilV">${S.settings.bulkFilterThreshold}</b>
         <input type="range" id="pkSeuil" min="0" max="60" value="${S.settings.bulkFilterThreshold}"></label>
       <label class="btq-case"><input type="checkbox" id="pkProtege" ${S.settings.bulkFilterProtectVariants ? 'checked' : ''}> ${t('packs.garderFoils')}</label>
     </div>
   </div>`);
   racine.appendChild(ecran);
-  ecran.querySelector('.pk-vitrine').onclick = () => ouvre();
   ecran.querySelector('#pkSouhaits').onclick = ouvreSouhaits;
-  ecran.querySelector('#pkOuvre').onclick = () => ouvre();
-  ecran.querySelector('#pkAchete').onclick = () => {
-    const r = buyBooster(S, ctx);
-    if (!r.ok) toast(r.reason); else { change(); majCompteur(); }
-  };
+  ecran.querySelector('#pkTous').onclick = ouvreTous;
   ecran.querySelector('#pkSeuil').oninput = e => { setBulkFilter(S, Number(e.target.value)); ecran.querySelector('#pkSeuilV').textContent = e.target.value; };
   ecran.querySelector('#pkProtege').onchange = e => setBulkFilterProtectsVariants(S, e.target.checked);
-  for (const [id, n] of Object.entries(S.boosters.premium)) {
-    if (n <= 0) continue;
-    const b = el(`<button class="btn alt">${t('packs.ouvrirPremium', { n })}</button>`);
-    b.onclick = () => ouvre(id);
-    ecran.querySelector('#pkPremium').appendChild(b);
-  }
-  majCompteur();
+  // Glisser le carrousel passe au booster voisin ; un glissé n'ouvre pas le booster (`glisse`).
+  const zone = ecran.querySelector('.pk-carrousel');
+  let x0 = null;
+  zone.onpointerdown = ev => { x0 = ev.clientX; glisse = false; };
+  zone.onpointermove = ev => { if (x0 !== null && Math.abs(ev.clientX - x0) > 12) glisse = true; };
+  zone.onpointerup = ev => {
+    if (x0 === null) return;
+    const dx = ev.clientX - x0;
+    x0 = null;
+    if (Math.abs(dx) < 50) { setTimeout(() => { glisse = false; }, 0); return; }
+    const n = Math.max(0, Math.min(listeBoosters().length - 1, courant + (dx < 0 ? 1 : -1)));
+    va(n);
+    setTimeout(() => { glisse = false; }, 0);
+  };
+  zone.onpointercancel = () => { x0 = null; glisse = false; };
+  dessineCarrousel();
+  dessineCollection();
 }
+let glisse = false;
 
 export function renderPacks() {
   // Les particules se chargent d'avance : la premiere gerbe ne doit pas sortir vide.
   for (const nom of O.particules) new Image().src = texture(nom);
   dessine();
   quitte?.();
-  quitte = ecoute(e => { if (e.t === 'seconde' && !ouverture) majCompteur(); });
+  quitte = ecoute(e => {
+    if (e.t === 'seconde' && !ouverture) majCompteur();
+    else if (e.t === 'change' && !ouverture) { dessineCollection(); if (ecran) majCompteur(); }
+  });
 }
 
 export function quittePacks() {

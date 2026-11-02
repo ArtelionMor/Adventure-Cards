@@ -289,23 +289,15 @@ function pageDeck(corps, id, echange) {
   corps.appendChild(grille);
 
   const lis = n => montreLecture(ficheDeCarte(carteDeFace(heros, +n.closest('.dk-paire').dataset.slot, n.dataset.face)));
-  // Le toucher qui referme une fiche ouverte d'un toucher ne doit pas rouvrir celle de la carte sur laquelle il tombe.
-  let avale = false;
-  const referme = () => {
-    cacheLecture();
-    avale = true;
-    setTimeout(() => { avale = false; }, BALANCE.ui.appuiLongMs);
-  };
+  // La fiche reste ouverte et se ferme au prochain appui ailleurs (cet appui est avale par `montreLecture`) : plus de « avale » ici.
   installeGestes(grille, {
     cible: '.dk-face',
     tap: n => {
-      if (avale) return;
       if (n.classList.contains('derriere')) { echangeFaces(heros, n.closest('.dk-paire')); return; }
       lis(n);
-      fermeAuProchainToucher(referme);
     },
     lire: lis,
-    finLire: cacheLecture
+    finLire: () => {}
   });
   if (echange != null) joueEchange(grille.querySelector(`.dk-paire[data-slot="${echange}"]`));
   const vues = nouvellesDe(id);
