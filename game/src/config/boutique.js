@@ -106,6 +106,8 @@ export const BOUTIQUE = {
     Johnny: { lettre: 'J', couleur: '#8e5bd0', tetes: ['jenna', 'rook', 'barnaby'] },
     Spike: { lettre: 'S', couleur: '#2f80c9', tetes: ['cipher', 'ada', 'richie', 'brock'] }
   },
+  // La couleur de chaque rang de la wishlist des heros (la tier list de reference du game designer).
+  rangs: { S: '#ff7f7f', A: '#ffbf7f', B: '#ffff7f', C: '#7fff7f', D: '#7fbfff', N: '#cdb88f' },
   // Ce que les clients disent d'un prix (le seuil vit dans le noyau). Des emoji en attendant les icones du game designer.
   reactions: {
     bonneAffaire: { signe: '🤩', texte: 'Bonne affaire !', fond: '#34c759' },
@@ -117,6 +119,9 @@ export const BOUTIQUE = {
   // arrivent de face, sans rien. `particules` : leur nombre ; `portee` : jusqu'ou elles volent (px).
   ouverture: {
     heros: { base: 'dog', premium: 'crow' },     // le dessin sur le booster, en attendant le sien
+    bordTapPart: 0.3,                            // un toucher dans ce dernier tiers de l'ecran, de chaque cote, va de ce cote ; au milieu : collection
+    veilleMs: 2000,                              // sans geste, la carte retournee se balance entre « collection » et « vente »
+    balanceMs: 2400,                             // un aller-retour du balancement
     ligneDechirure: 14,                          // ou le haut se detache, en % de la hauteur
     seuilDechirure: .55,                         // le doigt a parcouru cette part de la largeur : le booster s'ouvre
     gerbeDechirure: 18,

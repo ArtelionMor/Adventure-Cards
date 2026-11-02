@@ -30,6 +30,19 @@ export function setHeroTier(state           , hero        , tier        , ctx   
   const h = state.heroes[hero];
   if (!h) return { ok: false, reason: `Héros inconnu : ${hero}.` };
   if (!ctx.index.tierWeight.has(tier)) return { ok: false, reason: `Tier inconnu : ${tier}.` };
+  const limit = ctx.cfg.tiers.list.find((t) => t.id === tier)?.limit;
+  if (limit !== undefined && h.tier !== tier) {
+    const pris = Object.values(state.heroes).filter((x) => x.tier === tier).length;
+    if (pris >= limit) return { ok: false, reason: `Le rang ${tier} est plein (${limit}).` };
+  }
   h.tier = tier;
   return { ok: true, value: undefined };
+}
+
+/** Les chances de chaque héros d'être celui de la prochaine carte tirée, en % (poids de son rang sur la somme) : la wishlist les affiche. */
+export function heroPercents(state           , ctx     )                         {
+  const weightOf = (hero        )         => ctx.index.tierWeight.get(state.heroes[hero]?.tier ?? ctx.cfg.tiers.defaultTier) ?? 0;
+  const heroes = Object.keys(state.heroes);
+  const total = heroes.reduce((n, h) => n + weightOf(h), 0);
+  return Object.fromEntries(heroes.map((h) => [h, total > 0 ? (100 * weightOf(h)) / total : 0]));
 }

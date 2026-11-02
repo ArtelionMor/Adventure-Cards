@@ -6,25 +6,24 @@ import { ENCOUNTERS } from '../config/world.js';
 import { auctionMeanPrice, listAuction } from '../boutique/noyau/engines/auction.js';
 import { bulkClearHours, sendToBulk } from '../boutique/noyau/engines/bulk.js';
 import { breakGrade, gradeCard, gradingCompany } from '../boutique/noyau/engines/grading.js';
-import { requiredCards, setHeroTier } from '../boutique/noyau/engines/heroUnlock.js';
-import { upgradeCost, upgradeHero } from '../boutique/noyau/engines/heroUpgrade.js';
 import { nextBid, placeBid } from '../boutique/noyau/engines/market.js';
 import { buyPremium, premiumRef } from '../boutique/noyau/engines/packs.js';
 import { betterCopyFor, buyerReaction, instanceRef, instanceRefMax } from '../boutique/noyau/engines/pricing.js';
 import { cancelShowcase, formatDuration, listShowcase, repriceShowcase, showcasePriceCap } from '../boutique/noyau/engines/showcase.js';
-import { buyFurniture, canExpand, expandCost, expandShop, furniturePrice, moveFurniture, sellFurniture, shopLevel, showcaseCapacity } from '../boutique/noyau/engines/shop.js';
+import { buyFurniture, canExpand, expandCost, expandShop, furniturePrice, inventaire, moveFurniture, poseOffert, sellFurniture, shopLevel, showcaseCapacity } from '../boutique/noyau/engines/shop.js';
 import { checkSellable, hasFeature, swapCollectionOccupant } from '../boutique/noyau/state.js';
 import { adversaireCourant, avanceDeMinutes, change, ctx, ecoute, partie } from '../boutique/partie.js';
 import { save } from '../state.js';
-import { arreteScene, lanceScene } from './boutique-scene.js';
+import { arreteScene, choisisMeuble, lanceScene } from './boutique-scene.js';
 import { ouvreDefi } from './defi.js';
 import { t } from '../config/textes.js';
 import { icone } from './icones.js';
 import { creeOnglets } from './onglets.js';
+import { curseurPrix, texteDePrix } from './prix.js';
 import { $, asset, closeModal, court, el, fmtTime, modal, toast } from './shell.js';
 
 const cfg = ctx.cfg;
-const ONGLETS = [['stock', 'Stock'], ['ventes', 'Ventes'], ['heros', 'Héros']];
+const ONGLETS = [['stock', 'Stock'], ['ventes', 'Ventes']];
 let onglets = null;
 let racine = null;
 let desabonne = null;
@@ -40,13 +39,22 @@ for (const c of Object.values(CHAR_BY_ID)) {
 }
 export const carteDef = id => ctx.index.cardById.get(id);
 export const spriteDeCarte = id => SPRITES.get(id);
+/** Le portrait d'un heros du noyau (« Felix ») : le catalogue du jeu l'ecrit parfois autrement (« Félix »). */
+export const spriteDeHeros = hero => SPRITES_HEROS.get(cleHeros(hero));
 
 export function carteHtml(cardId, finish = 'normal', grade = null, classe = '') {
   const c = carteDef(cardId);
   const couleur = BOUTIQUE.couleursRaretes[c.rarity] || '#999';
   return `<div class="btq-c ${finish === 'foil' ? 'foil' : ''} ${classe}" data-r="${c.rarity}" style="--r:${couleur}"><img src="${asset(SPRITES.get(cardId))}" alt="${c.name}">${grade ? `<b class="btq-note">${grade}</b>` : ''}</div>`;
 }
-const or = n => `${icone('Coin', 14)}<b>${court(Math.round(n))}</b>`;
+const or = n => `${icone('Coin', 14)}<b>${texteDePrix(n)}</b>`;
+
+/** Le curseur de prix a la place de `place` ; `maj(prix)` est rappelee a chaque changement. */
+function poseCurseur(place, cap, valeur, maj) {
+  const c = curseurPrix({ cap, valeur, surChange: maj });
+  place.replaceWith(c.el);
+  return c;
+}
 
 // LE BOITIER D'UNE CARTE GRADEE (maquette du 31 octobre 2026) : l'entreprise, la carte, qui l'a fait grader et quand, et la note.
 const rivalDe = n => BOUTIQUE.rivaux[n % BOUTIQUE.rivaux.length];
@@ -103,8 +111,8 @@ function ficheCopie(id, displayId = null) {
     <div class="btq-fiche-haut">${visuel(inst)}
       <div><h2>${c.name}</h2><p class="muted">${c.hero} · ${ctx.index.rarityById.get(c.rarity).name}${inst.finish === 'foil' ? ' · Foil' : ''}${inst.grade ? ` · Note ${inst.grade}` : ''}</p><p>Référence ${or(instanceRef(inst, S, ctx))}</p></div></div>
     <h3>Vitrine</h3>
-    <input type="range" id="fPrix" min="1" max="${Math.max(1, Math.round(cap))}" value="${Math.round(prixBase)}">
-    <div class="btq-ligne"><span id="fPrixV"></span></div>
+    <div id="fPrix"></div>
+    <div class="btq-ligne"><span id="fPrixV" class="btq-prix-gros"></span></div>
     <div class="btq-avis-liste" id="fAvis"></div>
     <button class="btn" id="fVitrine">Mettre en vitrine</button>
     <div id="fEncheres"><h3>Enchères</h3><div class="btq-puces" id="fDurees"></div></div>
@@ -113,16 +121,13 @@ function ficheCopie(id, displayId = null) {
     <div class="btq-puces" id="fAutres"></div>
   </div>`);
 
-  const prix = box.querySelector('#fPrix');
-  const maj = () => {
-    box.querySelector('#fPrixV').innerHTML = or(Number(prix.value));
-    box.querySelector('#fAvis').innerHTML = avisHtml(inst, Number(prix.value));
-  };
-  prix.oninput = maj;
-  maj();
+  const prix = poseCurseur(box.querySelector('#fPrix'), cap, prixBase, v => {
+    box.querySelector('#fPrixV').innerHTML = or(v);
+    box.querySelector('#fAvis').innerHTML = avisHtml(inst, v);
+  });
   const agit = r => { if (!r.ok) { toast(r.reason); return; } closeModal(); change(); };
   box.querySelector('#fVitrine').onclick = () => {
-    const r = listShowcase(S, id, Number(prix.value), ctx);
+    const r = listShowcase(S, id, prix.prix(), ctx);
     // La carte va sur la vitrine dont on a touche la bulle (listShowcase prend la premiere libre).
     if (r.ok && displayId) { const l = S.showcase.find(x => x.instanceId === id); if (l) l.displayId = displayId; }
     agit(r);
@@ -185,22 +190,18 @@ function ficheVitrine(id) {
     <div class="btq-fiche-haut">${visuel(inst)}
       <div><h2>${c.name}</h2><p class="muted">En vitrine à ${court(Math.round(l.price))}</p></div></div>
     <h3>Nouveau prix</h3>
-    <input type="range" class="btq-gros" id="fPrix" min="1" max="${Math.max(1, Math.round(cap))}" value="${Math.round(l.price)}">
+    <div id="fPrix"></div>
     <div class="btq-ligne"><span id="fPrixV" class="btq-prix-gros"></span></div>
     <div class="btq-visages" id="fAvis"></div>
     <button class="btn" id="fChange">Changer le prix</button>
     <button class="btn alt" id="fRetire">Retirer de la vitrine</button>
   </div>`);
-  const prix = box.querySelector('#fPrix');
-  const maj = () => {
-    const v = Number(prix.value);
+  const prix = poseCurseur(box.querySelector('#fPrix'), cap, l.price, v => {
     box.querySelector('#fPrixV').innerHTML = or(v);
     box.querySelector('#fAvis').innerHTML = visagesHtml(inst, v);
-  };
-  prix.oninput = maj;
-  maj();
+  });
   const agit = r => { if (!r.ok) { toast(r.reason); return; } closeModal(); change(); };
-  box.querySelector('#fChange').onclick = () => agit(repriceShowcase(S, id, Number(prix.value), ctx));
+  box.querySelector('#fChange').onclick = () => agit(repriceShowcase(S, id, prix.prix(), ctx));
   box.querySelector('#fRetire').onclick = () => agit(cancelShowcase(S, id));
   modal(box);
 }
@@ -404,24 +405,20 @@ function ouvreWidgetVitrine(displayId) {
     for (const n of rangee.children) n.classList.toggle('on', n.dataset.id === inst.id);
     const c = carteDef(inst.cardId);
     const refMax = instanceRefMax(inst, S, ctx);
-    const cap = Math.max(1, Math.round(showcasePriceCap(cfg, refMax)));
+    const cap = showcasePriceCap(cfg, refMax);
     detail.innerHTML = `<p class="btq-nomc"><b>${c.name}</b> <span class="muted">${c.hero} · ${ctx.index.rarityById.get(c.rarity).name}${inst.finish === 'foil' ? ' · Foil' : ''}${inst.grade ? ` · Note ${inst.grade}` : ''} · Référence ${or(instanceRef(inst, S, ctx))}</span></p>
-      <input type="range" class="btq-gros" min="1" max="${cap}" value="${Math.round(Math.min(refMax, cap))}">
+      <div class="btq-place"></div>
       <div class="btq-ligne"><span class="btq-prix-gros"></span></div>
       <div class="btq-visages"></div>
       <button class="btn" id="fVitrine">Mettre en vitrine</button>`;
-    const prix = detail.querySelector('input');
-    const maj = () => {
-      const v = Number(prix.value);
+    const prix = poseCurseur(detail.querySelector('.btq-place'), cap, Math.min(refMax, cap), v => {
       detail.querySelector('.btq-prix-gros').innerHTML = or(v);
       detail.querySelector('.btq-visages').innerHTML = visagesHtml(inst, v);
-    };
-    prix.oninput = maj;
-    maj();
+    });
     const b = detail.querySelector('#fVitrine');
     b.disabled = !checkSellable(S, inst.id).ok;
     b.onclick = () => {
-      const r = listShowcase(S, inst.id, Number(prix.value), ctx);
+      const r = listShowcase(S, inst.id, prix.prix(), ctx);
       if (!r.ok) { toast(r.reason); return; }
       // La carte va sur la vitrine dont on a touche la bulle (listShowcase prend la premiere libre).
       const l = S.showcase.find(x => x.instanceId === inst.id);
@@ -497,34 +494,10 @@ function ouvreWidgetEncheres() {
   modal(conteneur, stop);
 }
 
-// ------------------------------------------------------------------ onglet Heros
-function panneauHeros() {
-  const S = partie();
-  const box = el('<div class="btq-heros"></div>');
-  for (const hero of ctx.index.heroes) {
-    const h = S.heroes[hero];
-    const requises = requiredCards(hero, ctx);
-    const faites = requises.filter(c => S.collection[c.id] !== undefined).length;
-    const n = el(`<div class="btq-rang ${h.unlocked ? '' : 'verrou'}"><img src="${asset(SPRITES_HEROS.get(cleHeros(hero)))}" alt="">
-      <div class="btq-nom"><b>${hero}</b><span class="muted">${h.unlocked ? `Niveau ${h.level}` : `${faites}/${requises.length} cartes`}</span></div>
-      <div class="btq-tiers"></div></div>`);
-    for (const t of cfg.tiers.list) {
-      const b = el(`<button class="${h.tier === t.id ? 'on' : ''}">${t.id}</button>`);
-      b.onclick = () => { setHeroTier(S, hero, t.id, ctx); change(); };
-      n.querySelector('.btq-tiers').appendChild(b);
-    }
-    if (h.unlocked && h.level < cfg.heroes.maxLevel) {
-      const b = el(`<button class="btq-puce">${court(upgradeCost(cfg, h.level))}</button>`);
-      b.onclick = () => { const r = upgradeHero(S, hero, ctx); if (!r.ok) toast(r.reason); else change(); };
-      n.appendChild(b);
-    }
-    box.appendChild(n);
-  }
-  return box;
-}
+// (L'ex-onglet Heros est devenu la wishlist des Packs : ui/souhaits.js.)
 
 // ------------------------------------------------------------------ l'ecran
-const PANNEAUX = { stock: panneauStock, ventes: panneauVentes, heros: panneauHeros };
+const PANNEAUX = { stock: panneauStock, ventes: panneauVentes };
 
 // Un onglet ouvre son panneau sous la scene ; le retoucher le ferme et rend toute la vue (`fermable`).
 function creeOngletsBoutique() {
@@ -542,6 +515,28 @@ function creeOngletsBoutique() {
   });
 }
 
+// L'INVENTAIRE : les objets offerts par l'agrandissement et pas encore poses, en pastilles au bas de la scene (icone ronde + nom, une
+// rangee qui defile). Chacun est « NEW » tant qu'il attend ; en toucher un le pose a la premiere place libre et le selectionne.
+function majInventaire() {
+  const zone = racine?.querySelector('.btq-inv');
+  if (!zone) return;
+  const reste = Object.entries(inventaire(partie(), ctx));
+  zone.hidden = !reste.length;
+  zone.innerHTML = '';
+  for (const [type, n] of reste) {
+    const v = BOUTIQUE.meubles[type], nom = cfg.shopLayout.furniture.find(f => f.id === type)?.name ?? type;
+    const src = v?.fichier ? asset(v.fichier) : v ? asset(`${BOUTIQUE.dossierMeubles}${v.image}_SE.png`) : '';
+    const b = el(`<button class="btq-pi"><i class="btq-new">NEW</i><span class="btq-pi-ico"><img src="${src}" alt=""></span><span>${nom}${n > 1 ? ` ×${n}` : ''}</span></button>`);
+    b.onclick = () => {
+      const r = poseOffert(partie(), type, ctx);
+      if (!r.ok) { toast(r.reason); return; }
+      change();
+      choisisMeuble(r.value.id);
+    };
+    zone.appendChild(b);
+  }
+}
+
 function surEvenement(e) {
   if (!racine?.isConnected) return;
   if (e.t === 'seconde') {
@@ -549,6 +544,7 @@ function surEvenement(e) {
     if (onglets.courant() === 'ventes') onglets.redessine();
   } else if (e.t === 'change') {
     majBarre();
+    majInventaire();
     onglets.redessine();
   } else if (e.t === 'sale') {
     // Le noyau annonce la vente avant de retirer la carte : on lit l'etat juste apres.
@@ -561,12 +557,13 @@ export function renderBoutique() {
   ecran.innerHTML = '';
   racine = el(`<div class="btq">
     <div class="btq-barre"><span id="btqGems"></span><span id="btqEchelle"></span></div>
-    <div class="btq-monde"><canvas id="btqCanvas"></canvas></div>
+    <div class="btq-monde"><canvas id="btqCanvas"></canvas><div class="btq-inv"></div></div>
   </div>`);
   onglets = creeOngletsBoutique();
   racine.appendChild(onglets.node);
   ecran.appendChild(racine);
   majBarre();
+  majInventaire();
   desabonne?.();
   desabonne = ecoute(surEvenement);
   lanceScene($('#btqCanvas'), {

@@ -96,7 +96,11 @@ function metAJour(e) {
       if (l.holder) l.bids.push({ who: l.holder === 'player' ? 'player' : l.rival, amount: l.price });
     }
   }
-  e.version = 4;
+  // La wishlist (2 nov. 2026) : le rang par defaut s'appelle « N » (sans rang) ; « C » devient un vrai rang, a 7 places.
+  if ((e.version ?? 1) < 5) {
+    for (const h of Object.values(e.heroes)) if (h.tier === 'C') h.tier = CONFIG.tiers.defaultTier;
+  }
+  e.version = 5;
 }
 
 function avance() {
@@ -125,7 +129,7 @@ export function demarreBoutique() {
     }
     metAJour(etat);
     syncBaseFurniture(etat, ctx);   // les objets des niveaux de boutique deja atteints (une ancienne sauvegarde les recoit)
-  } else etat = { ...createState(ctx), vues: {}, version: 4 };
+  } else etat = { ...createState(ctx), vues: {}, version: 5 };
   lieLaBourse(etat);
   persist();
 

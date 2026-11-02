@@ -86,23 +86,42 @@ export function offeredTotals(level        , cfg            )                   
 }
 
 /**
- * Les niveaux de boutique donnent des objets (\`expansionSets\`) : chacun arrive posé, gratuit, et se déplace (il ne se vend pas).
- * Les vitrines, les tables et les lots d'enchères qui en découlent sont recalculés ici.
+ * Les niveaux de boutique donnent des objets (\`expansionSets\`), gratuits : le set de départ arrive posé, les suivants attendent dans
+ * l'INVENTAIRE (`inventaire`) que le joueur les pose (`poseOffert`), sinon l'écran serait encombré d'objets mal placés.
+ * Un objet offert se déplace, il ne se vend pas ; il ne sert qu'une fois posé : les vitrines, les tables et les lots d'enchères
+ * qui en découlent sont recalculés ici sur les objets POSÉS.
  */
 export function syncBaseFurniture(state           , ctx     )       {
-  const totals = offeredTotals(shopLevel(state.shop, ctx.cfg), ctx.cfg);
-  for (const [id, wanted] of Object.entries(totals)) {
+  for (const [id, wanted] of Object.entries(offeredTotals(1, ctx.cfg))) {
     const def = furnitureDef(id, ctx);
     if (!def) continue;
     while (state.shop.items.filter((it) => it.type === id && it.offert).length < wanted) {
       if (!place(state, def, true, ctx)) break;
     }
   }
-  const effectTotal = (effect        )         =>
-    Object.entries(totals).reduce((n, [id, k]) => n + (furnitureDef(id, ctx)?.effect === effect ? k : 0), 0);
-  state.progression.showcaseSlots = effectTotal('vitrine');
-  state.progression.auctionSlots = effectTotal('estrade');
-  state.progression.tables = effectTotal('table');
+  state.progression.showcaseSlots = countEffect(state, 'vitrine', ctx, true);
+  state.progression.auctionSlots = countEffect(state, 'estrade', ctx, true);
+  state.progression.tables = countEffect(state, 'table', ctx, true);
+}
+
+/** Les objets offerts par les niveaux atteints et pas encore posés : `{ idDuMeuble: nombre }`. */
+export function inventaire(state           , ctx     )                         {
+  const reste                         = {};
+  for (const [id, offered] of Object.entries(offeredTotals(shopLevel(state.shop, ctx.cfg), ctx.cfg))) {
+    const posed = state.shop.items.filter((it) => it.type === id && it.offert).length;
+    if (offered > posed) reste[id] = offered - posed;
+  }
+  return reste;
+}
+
+/** Sort un objet de l'inventaire et le pose à la première place libre ; le joueur le déplace ensuite. */
+export function poseOffert(state           , type        , ctx     )                   {
+  const def = furnitureDef(type, ctx);
+  if (!def || !(inventaire(state, ctx)[type] > 0)) return { ok: false, reason: 'Plus d’exemplaire à poser.' };
+  const item = place(state, def, true, ctx);
+  if (!item) return { ok: false, reason: 'Plus de place : agrandis la boutique.' };
+  syncBaseFurniture(state, ctx);
+  return { ok: true, value: item };
 }
 
 /** Boosters qu'on peut stocker : la base, plus un bonus par rayon posé. */

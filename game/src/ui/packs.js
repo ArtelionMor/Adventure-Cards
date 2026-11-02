@@ -5,11 +5,14 @@
 import { BOUTIQUE } from '../config/boutique.js';
 import { CHAR_BY_ID } from '../config/characters.js';
 import { t } from '../config/textes.js';
-import { setBulkFilter, setBulkFilterProtectsVariants } from '../boutique/noyau/engines/bulk.js';
-import { boosterShopPrice, buyBooster, openBooster, openPremium } from '../boutique/noyau/engines/packs.js';
+import { sendToBulk, setBulkFilter, setBulkFilterProtectsVariants } from '../boutique/noyau/engines/bulk.js';
+import { boosterShopPrice, buyBooster, bulkEligible, openBooster, openPremium } from '../boutique/noyau/engines/packs.js';
+import { instanceRef } from '../boutique/noyau/engines/pricing.js';
+import { listShowcase } from '../boutique/noyau/engines/showcase.js';
 import { change, ctx, ecoute, partie } from '../boutique/partie.js';
 import { DOS_DE_CARTE } from './battle.js';
 import { carteDef, carteHtml, spriteDeCarte } from './boutique.js';
+import { ouvreSouhaits } from './souhaits.js';
 import { $, asset, court, el, toast } from './shell.js';
 
 const cfg = ctx.cfg;
@@ -100,6 +103,7 @@ function ouvre(premiumId = null) {
       <div class="pk-guide"><i></i></div>
     </div>
     <div class="pk-aide">${t('packs.aideDechire')}</div>
+    <b class="pk-cote g">‹ ${t('packs.versCollection')}</b><b class="pk-cote d">${t('packs.versVente')} ›</b>
     <div class="pk-bas-ecran"></div>
   </div>`);
   ouverture = racine;
@@ -131,7 +135,8 @@ function ouvre(premiumId = null) {
     fait = true;
     plan.onpointerdown = plan.onpointermove = plan.onpointerup = plan.onpointercancel = null;
     const n = premiumId ? cfg.premium.boosters.find(p => p.id === premiumId).slots.length : cfg.boosters.cardsPerBooster;
-    const r = premiumId ? openPremium(S, premiumId, ctx) : openBooster(S, ctx);
+    // Les doubles restent en stock : c'est le joueur qui choisit leur sort, carte par carte (`decide`).
+    const r = premiumId ? openPremium(S, premiumId, ctx, { autoBulk: false }) : openBooster(S, ctx, { autoBulk: false });
     if (!r.ok) { toast(r.reason); ferme(); return; }
     const tirage = lisTirage(n);
     change();
@@ -159,7 +164,7 @@ function ouvre(premiumId = null) {
     const rang = racine.querySelector('.pk-rang');
     const rayons = racine.querySelector('.pk-rayons');
 
-    const revele = () => {
+    let revele = () => {
       const n = carte(), r = tirage[i].def.rarity;
       const effet = O.raretes[r], couleur = BOUTIQUE.couleursRaretes[r];
       occupe = true;
@@ -175,35 +180,119 @@ function ouvre(premiumId = null) {
       };
     };
 
-    const suivante = () => {
+    // --- le sort de la carte : a gauche elle reste a toi, a droite elle part a la vente (bulk si elle y est eligible, sinon vitrine
+    // libre au prix de reference). Une carte NOUVELLE reste toujours dans la collection : c'est sa seule copie.
+    const cotes = [...racine.querySelectorAll('.pk-cote')];
+    const decide = choix => {
+      const x = tirage[i], S = partie(), inst = S.instances[x.id];
+      let sort = 'collection';
+      if (choix === 'vente') {
+        if (x.neuve || !inst) toast(t('packs.nouvelleReste'));
+        else if (bulkEligible(S, inst, ctx)) { sendToBulk(S, x.id); sort = 'bulk'; }
+        else {
+          const r = listShowcase(S, x.id, Math.max(1, Math.round(instanceRef(inst, S, ctx))), ctx);
+          if (r.ok) sort = 'vitrine'; else toast(t('packs.pasDePlace'));
+        }
+      }
+      x.sort = sort;
+      change();
+      suivante(sort === 'collection' ? -1 : 1);
+    };
+
+    const suivante = sens => {
       const n = carte();
       occupe = true;
+      calme();
       rang.classList.remove('vu');
       rayons.classList.remove('on');
-      n.animate([{ transform: 'none' }, { transform: `translate(${i % 2 ? 130 : -130}%, -12%) rotate(${i % 2 ? 14 : -14}deg)`, opacity: .2 }],
+      n.animate([{ transform: n.style.transform || 'none' }, { transform: `translate(${sens * 130}%, -12%) rotate(${sens * 14}deg)`, opacity: .2 }],
         { duration: O.jetteMs, easing: 'ease-in', fill: 'forwards' }).onfinish = () => {
         n.remove();
         occupe = false;
         i++;
+        racine.querySelector('.pk-aide').textContent = t('packs.aidePasse');
         if (i >= tirage.length) resume(tirage);
       };
     };
 
-    racine.onclick = () => {
-      if (occupe || i >= tirage.length) return;
-      if (carte().classList.contains('cachee')) revele(); else suivante();
+    // Sans geste pendant `O.veilleMs`, la carte se balance de gauche a droite et nomme chaque cote.
+    let veille = 0, balance = [];
+    const calme = () => {
+      clearTimeout(veille);
+      for (const a of balance) a.cancel();
+      balance = [];
+      for (const c of cotes) c.style.opacity = 0;
     };
+    const arme = () => {
+      calme();
+      if (occupe || i >= tirage.length || !carte() || carte().classList.contains('cachee')) return;
+      veille = setTimeout(() => {
+        const n = carte();
+        if (!n) return;
+        balance = [
+          n.animate([{ transform: 'none' }, { transform: 'translateX(-22%) rotate(-7deg)', offset: .25 }, { transform: 'none', offset: .5 },
+            { transform: 'translateX(22%) rotate(7deg)', offset: .75 }, { transform: 'none' }], { duration: O.balanceMs, iterations: Infinity, easing: 'ease-in-out' }),
+          cotes[0].animate([{ opacity: 0 }, { opacity: 1, offset: .25 }, { opacity: 0, offset: .5 }, { opacity: 0 }], { duration: O.balanceMs, iterations: Infinity, fill: 'both' }),
+          cotes[1].animate([{ opacity: 0 }, { opacity: 0, offset: .5 }, { opacity: 1, offset: .75 }, { opacity: 0 }], { duration: O.balanceMs, iterations: Infinity, fill: 'both' })
+        ];
+      }, O.veilleMs);
+    };
+
+    // Toucher une carte cachee la retourne ; une carte retournee se glisse (a gauche : collection, a droite : vente) ou se touche d'un cote.
+    let doigt = null;
+    racine.onpointerdown = ev => {
+      if (occupe || i >= tirage.length) return;
+      calme();
+      doigt = { x: ev.clientX, dx: 0 };
+    };
+    racine.onpointermove = ev => {
+      if (!doigt || !carte() || carte().classList.contains('cachee')) return;
+      doigt.dx = ev.clientX - doigt.x;
+      carte().style.transform = `translateX(${doigt.dx}px) rotate(${doigt.dx / 18}deg)`;
+      cotes[0].style.opacity = Math.max(0, Math.min(1, -doigt.dx / 90));
+      cotes[1].style.opacity = Math.max(0, Math.min(1, doigt.dx / 90));
+    };
+    const lache = ev => {
+      if (!doigt) return;
+      const { dx } = doigt;
+      doigt = null;
+      const n = carte();
+      if (!n || occupe) return;
+      if (n.classList.contains('cachee')) { if (ev.type === 'pointerup') revele(); return; }
+      if (Math.abs(dx) > 70) { decide(dx < 0 ? 'collection' : 'vente'); return; }
+      // Un toucher : sur un BORD il va de ce cote (a droite la vente, a gauche la collection), au MILIEU il va a la collection.
+      if (Math.abs(dx) < 10 && ev.type === 'pointerup') {
+        const f = (ev.clientX - racine.getBoundingClientRect().left) / racine.offsetWidth;
+        decide(f > 1 - O.bordTapPart ? 'vente' : 'collection');
+        return;
+      }
+      n.animate([{ transform: n.style.transform }, { transform: 'none' }], { duration: 160 });
+      n.style.transform = '';
+      arme();
+    };
+    racine.onpointerup = lache;
+    racine.onpointercancel = lache;
+    racine.onclick = null;
+    // Une carte retournee : l'aide change, et la veille commence.
+    const retourne = revele;
+    revele = () => {
+      retourne();
+      racine.querySelector('.pk-aide').textContent = t('packs.aideChoix');
+      setTimeout(arme, O.retourneMs + 200);
+    };
+    // Une carte sans effet de rarete n'a pas de dos : elle est deja visible.
+    if (!carte().classList.contains('cachee')) { racine.querySelector('.pk-aide').textContent = t('packs.aideChoix'); arme(); }
   }
 
   // --- le resume : tout le tirage d'un coup d'oeil
   function resume(tirage) {
-    racine.onclick = null;
-    for (const c of ['.pk-plan', '.pk-rang', '.pk-aide']) racine.querySelector(c).remove();
+    racine.onclick = racine.onpointerdown = racine.onpointermove = racine.onpointerup = racine.onpointercancel = null;
+    for (const c of ['.pk-plan', '.pk-rang', '.pk-aide', '.pk-cote']) racine.querySelector(c).remove();
     racine.querySelector('.pk-bandeau').textContent = t('packs.resume');
     const bas = racine.querySelector('.pk-bas-ecran');
     const grille = el(`<div class="pk-resume ${tirage.length > 3 ? 'large' : ''}"></div>`);
     tirage.forEach((x, i) => grille.appendChild(el(`<div class="btq-revele" style="animation-delay:${i * .12}s">
-      ${carteHtml(x.cardId, x.finish)}${x.neuve ? `<em>${t('packs.nouvelle')}</em>` : ''}${x.bulk ? `<em class="b">${t('packs.bulk')}</em>` : ''}</div>`)));
+      ${carteHtml(x.cardId, x.finish)}${x.neuve ? `<em>${t('packs.nouvelle')}</em>` : ''}${x.sort === 'bulk' ? `<em class="b">${t('packs.bulk')}</em>` : ''}${x.sort === 'vitrine' ? `<em class="b">${t('packs.vitrine')}</em>` : ''}</div>`)));
     bas.before(grille);
     const encore = el(`<button class="btn">${t('packs.encore')}</button>`);
     encore.disabled = partie().boosters.stock <= 0;
@@ -241,6 +330,7 @@ function dessine() {
   racine.innerHTML = '';
   ecran = el(`<div class="pk">
     <div class="pk-compte"><b id="pkStock"></b><span id="pkProchain"></span></div>
+    <button class="pk-souhaits" id="pkSouhaits" aria-label="Souhaits">★</button>
     <div class="pk-vitrine" role="button" aria-label="${t('packs.ouvrir')}">${paquet(false)}</div>
     <div class="pk-actions">
       <button class="btn" id="pkOuvre">${t('packs.ouvrir')}</button>
@@ -253,6 +343,7 @@ function dessine() {
   </div>`);
   racine.appendChild(ecran);
   ecran.querySelector('.pk-vitrine').onclick = () => ouvre();
+  ecran.querySelector('#pkSouhaits').onclick = ouvreSouhaits;
   ecran.querySelector('#pkOuvre').onclick = () => ouvre();
   ecran.querySelector('#pkAchete').onclick = () => {
     const r = buyBooster(S, ctx);

@@ -128,8 +128,21 @@ function drawFinish(ctx     )         {
   return rate > 0 && ctx.rng.next() < rate ? 'foil' : 'normal';
 }
 
+/** Un double part-il au bulk d'après le filtre du joueur ? (carte « bulk » du catalogue, ou valeur sous le seuil ; un foil protégé reste.) */
+export function bulkEligible(state           , inst                                                              , ctx     )          {
+  const card = ctx.index.cardById.get(inst.cardId);
+  const threshold = state.settings.bulkFilterThreshold;
+  const protectedVariant = state.settings.bulkFilterProtectVariants && inst.finish === 'foil';
+  return !!card && !protectedVariant && (card.isBulk || (threshold > 0 && instanceRef(inst         , state, ctx) < threshold));
+}
+
+/** Options d'ouverture : `autoBulk: false` laisse les doubles en stock (le joueur choisit leur sort carte par carte, à l'ouverture). */
+                              
+                     
+ 
+
 /** Reçoit une carte tirée : découverte, héros, filtre de bulk. Seul un double peut partir au bulk. */
-function receiveCard(state           , ctx     , card         , pity         )             {
+function receiveCard(state           , ctx     , card         , pity         , autoBulk = true)             {
   const finish = drawFinish(ctx);
   const { id, isNew } = addCopy(state, card.id, finish);
   if (finish === 'foil') state.foilCollection[card.id] = true;
@@ -139,16 +152,14 @@ function receiveCard(state           , ctx     , card         , pity         )  
     return id;
   }
   const inst = state.instances[id];
-  const threshold = state.settings.bulkFilterThreshold;
-  const protectedVariant = state.settings.bulkFilterProtectVariants && inst?.finish === 'foil';
-  if (inst && !protectedVariant && (card.isBulk || (threshold > 0 && instanceRef(inst, state, ctx) < threshold))) {
+  if (autoBulk && inst && bulkEligible(state, inst         , ctx)) {
     inst.location = 'bulk';
     state.bulkBox.push({ instanceId: id, addedAtMs: state.nowMs });
   }
   return id;
 }
 
-export function openBooster(state           , ctx     )                   {
+export function openBooster(state           , ctx     , opts              = {})                   {
   if (state.boosters.stock <= 0) return { ok: false, reason: 'Aucun booster en stock.' };
   const tables = getPackTables(state, ctx);
   const n = ctx.cfg.boosters.cardsPerBooster;
@@ -163,7 +174,7 @@ export function openBooster(state           , ctx     )                   {
     const force = canForce && !hit && i === n - 1 && state.boosters.pity + 1 >= pityAt;
     const card = force ? drawPity(tables, ctx) : drawCard(tables, ctx);
     if (isTopObjective(card, tables)) hit = true;
-    receiveCard(state, ctx, card, force);
+    receiveCard(state, ctx, card, force, opts.autoBulk ?? true);
     opened.push(card.id);
   }
   state.boosters.pity = hit ? 0 : state.boosters.pity + 1;
@@ -244,7 +255,7 @@ function nextRarityTable(rarity          , tables            , ctx     )        
   return tables.rarities.find((t) => (ctx.index.rarityRank.get(t.rarity) ?? 0) > rank);
 }
 
-export function openPremium(state           , id        , ctx     )                   {
+export function openPremium(state           , id        , ctx     , opts              = {})                   {
   const def = premiumDef(id, ctx);
   if (!def) return { ok: false, reason: `Premium inconnu : ${id}.` };
   if ((state.boosters.premium[id] ?? 0) <= 0) return { ok: false, reason: 'Aucun booster premium en stock.' };
@@ -274,7 +285,7 @@ export function openPremium(state           , id        , ctx     )             
   }
 
   state.boosters.premium[id] = (state.boosters.premium[id] ?? 0) - 1;
-  for (const c of cards) receiveCard(state, ctx, c, false);
+  for (const c of cards) receiveCard(state, ctx, c, false, opts.autoBulk ?? true);
   return { ok: true, value: cards.map((c) => c.id) };
 }
 

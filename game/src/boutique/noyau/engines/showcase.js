@@ -14,9 +14,11 @@ import { instanceRef, instanceRefMax } from './pricing.js';
 import { freeDisplay, showcaseCapacity } from './shop.js';
 
 export function meanWaitMinutes(cfg            , r        )         {
-  return cfg.showcase.baseMinutes * Math.exp(r);
+  // Un prix démesuré n'est pas refusé : la carte ne se vend simplement jamais (au plus `maxWaitMinutes`, un an par défaut).
+  return Math.min(cfg.showcase.maxWaitMinutes ?? 525600, cfg.showcase.baseMinutes * Math.exp(r));
 }
 
+/** La zone « raisonnable » du prix : la fin des 75 % du curseur, pas une limite. */
 export function showcasePriceCap(cfg            , refMax        )         {
   return cfg.showcase.rMax * refMax;
 }
@@ -51,13 +53,13 @@ function drawWaitMinutes(rng     , cfg            , mean        , r        )    
                 
  
 
-/** Devis affiché à côté du curseur : toute valeur au-delà du plafond y est ramenée. */
+/** Devis du prix voulu. Plus de plafond : le joueur peut afficher n'importe quel prix (l'attente suit, exponentielle). */
 export function quoteShowcase(state           , id            , wanted        , ctx     )                        {
   const inst = state.instances[id];
   if (!inst) return { ok: false, reason: 'Exemplaire inconnu.' };
   if (!(wanted > 0)) return { ok: false, reason: 'Le prix doit être positif.' };
   const refMax = instanceRefMax(inst, state, ctx);
-  const price = Math.min(wanted, showcasePriceCap(ctx.cfg, refMax));
+  const price = wanted;
   const r = price / refMax;
   const meanMinutes = meanWaitMinutes(ctx.cfg, r);
   return { ok: true, value: { price, refMax, r, meanMinutes, label: formatDuration(meanMinutes) } };

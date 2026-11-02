@@ -7,6 +7,7 @@ import { buyerReaction } from '../boutique/noyau/engines/pricing.js';
 import { canExpand, doorX, expandCost, footprint, isFree } from '../boutique/noyau/engines/shop.js';
 import { ctx, ecoute, partie } from '../boutique/partie.js';
 import { urlIcone } from './icones.js';
+import { texteDePrix } from './prix.js';
 import { asset, court } from './shell.js';
 
 const R = BOUTIQUE.scene;
@@ -497,7 +498,7 @@ function bulleDePrix(l, it) {
   const v = BOUTIQUE.meubles[it.type];
   const [cx, cy] = versEcran(it.x + 0.5, it.y + 0.5);
   const y = cy - v.dessus - R.tailleCarte + 4;
-  const texte = String(Math.round(l.price));
+  const texte = texteDePrix(l.price);
   c2d.font = '800 15px sans-serif';
   const w = c2d.measureText(texte).width + 34;
   bulle(cx, y, w, 26, '#ffffff');
@@ -529,7 +530,7 @@ function bulleEstrade(it, a) {
     c2d.fillText('🔨', cx, y - 16);
     return;
   }
-  const texte = String(Math.round(a.price));
+  const texte = texteDePrix(a.price);
   c2d.font = '800 15px sans-serif';
   const w = c2d.measureText(texte).width + 34;
   bulle(cx, y, w, 26, '#ffffff');
