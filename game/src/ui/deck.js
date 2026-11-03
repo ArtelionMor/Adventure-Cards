@@ -157,16 +157,17 @@ function joueLeLot(evts, bouton) {
   for (const e of ordre) if (!(e.id in premier)) { premier[e.id] = e.niv; const p = vig(e.id)?.querySelector('.dk-pastille'); if (p) p.textContent = e.niv - 1; }
   const barre = document.querySelector('#topbar');
   const src = document.querySelector('#screen-deck .dk-lot-bouton') || bouton;
-  if (barre && src) piecesQuiVolent(src, barre, { src: urlIcone('Coin') });
+  if (barre && src?.isConnected) piecesQuiVolent(src, barre, { src: urlIcone('Coin') });
   vibre(fx.vibration);
   ordre.forEach((e, i) => setTimeout(() => {
     const n = vig(e.id);
     if (!n) return;
     vibre(fx.lotVibrationMs);
+    n.querySelector('.up-flash')?.remove();   // un heros qui monte de beaucoup : chaque niveau remplace l'indication d'avant
     const p = n.querySelector('.dk-pastille');
     if (p) { p.textContent = e.niv; pop(p, { fort: 2.3, ms: 700 }); }
     secoue(n, { ms: 300, px: 6 });
-    explose(n, { n: 14, ms: 650 });
+    explose(n, { n: ordre.length > 10 ? 7 : 14, ms: 650 });
     brille(n, { ms: 700 });
     pop(n, { fort: 1.1, ms: 420 });
     const f = el(e.flash);
@@ -191,7 +192,10 @@ function proposeLOffre() {
   const oui = el(`<button class="upg-bouton ${save.cur.C < o.cout ? 'pauvre' : ''}"><span>${t('deck.offreAccepter')}</span>${icone('Coin', 23)}<b>${court(o.cout)}</b></button>`);
   oui.onclick = () => {
     if (accepteOffre() !== 'ok') { toast(t('deck.offrePauvre')); return; }
+    // Les niveaux gagnes se jouent sur la grille, comme ceux du lot (l'offre peut en monter beaucoup d'un coup).
+    const evts = evenementsDuLot();
     closeModal(); refreshTop(); renderDeck();
+    joueLeLot(evts, oui);
   };
   const non = el(`<button class="btn ghost">${t('deck.offreRefuser')}</button>`);
   non.onclick = () => { refuseOffre(); closeModal(); proposeLOffre(); };

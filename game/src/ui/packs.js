@@ -289,7 +289,8 @@ function ouvre(premiumId = null) {
   function resume(tirage) {
     racine.onclick = racine.onpointerdown = racine.onpointermove = racine.onpointerup = racine.onpointercancel = null;
     for (const c of ['.pk-plan', '.pk-rang', '.pk-aide', '.pk-cote']) racine.querySelector(c).remove();
-    montreResume(racine, tirage, { ferme, encore: () => { ferme(); ouvre(); }, tous: () => { ferme(); ouvreTous(); } });
+    const reste = premiumId ? (partie().boosters.premium[premiumId] ?? 0) : partie().boosters.stock;
+    montreResume(racine, tirage, { ferme, reste, premium: !!premiumId, encore: () => { ferme(); ouvre(premiumId); }, tous: () => { ferme(); ouvreTous(premiumId); } });
   }
 
   function ferme() {
@@ -303,16 +304,16 @@ function ouvre(premiumId = null) {
  * Le resume d'un tirage dans `racine` (qui porte un `.pk-bandeau` et un `.pk-bas-ecran`) : la grille des cartes, puis « Encore un »,
  * « Ouvrir tous (N) » (s'il reste au moins deux boosters) et « Terminer ». `x.sort` dit ce que la carte est devenue (bulk, vitrine).
  */
-function montreResume(racine, tirage, { ferme, encore, tous, titre = t('packs.resume') }) {
+function montreResume(racine, tirage, { ferme, encore, tous, reste, premium = false, titre = t('packs.resume') }) {
   racine.querySelector('.pk-bandeau').textContent = titre;
   const bas = racine.querySelector('.pk-bas-ecran');
   const grille = el(`<div class="pk-resume ${tirage.length > 6 ? 'beaucoup' : tirage.length > 3 ? 'large' : ''}"></div>`);
   tirage.forEach((x, i) => grille.appendChild(el(`<div class="btq-revele" style="animation-delay:${Math.min(i, 24) * .06}s">
     ${carteHtml(x.cardId, x.finish)}${x.neuve ? `<em>${t('packs.nouvelle')}</em>` : ''}${x.sort === 'bulk' ? `<em class="b">${t('packs.bulk')}</em>` : ''}${x.sort === 'vitrine' ? `<em class="b">${t('packs.vitrine')}</em>` : ''}</div>`)));
   bas.before(grille);
-  const reste = partie().boosters.stock;
+  reste ??= partie().boosters.stock;
   // Les trois actions (3 nov. 2026, boutons refaits) : un gros bouton dore « Open another », puis « Open all (N) » en vert et « Done » en creme, cote a cote.
-  const un = el(`<button class="pk-b pk-b-or"><span>${t('packs.encore')}</span><small>${reste} / ${partie().boosters.stock + 0 > 0 ? cfg.boosters.storageCap : cfg.boosters.storageCap}</small></button>`);
+  const un = el(`<button class="pk-b pk-b-or"><span>${t('packs.encore')}</span><small>${premium ? reste : `${reste} / ${cfg.boosters.storageCap}`}</small></button>`);
   un.disabled = reste <= 0;
   un.onclick = encore;
   const ligne = el('<div class="pk-b-ligne"></div>');
@@ -331,18 +332,19 @@ function montreResume(racine, tirage, { ferme, encore, tous, titre = t('packs.re
  * OUVRIR TOUS : tous les boosters du stock d'un coup, sans la mise en scene. Les cartes ne se rangent pas une par une : le filtre de bulk
  * (le curseur de l'ecran des Packs) envoie ce qu'il doit au bulk, le reste reste dans la collection. Le resume montre tout, la plus rare d'abord.
  */
-function ouvreTous() {
+function ouvreTous(premiumId = null) {
   if (ouverture) return;
   const S = partie();
-  const n = S.boosters.stock;
+  const n = premiumId ? (S.boosters.premium[premiumId] ?? 0) : S.boosters.stock;
   if (n <= 0) { toast(t('packs.vide')); return; }
+  const parBooster = premiumId ? cfg.premium.boosters.find(p => p.id === premiumId).slots.length : cfg.boosters.cardsPerBooster;
   const rang = id => cfg.rarities.findIndex(r => r.id === id);
   const tirage = [];
   let ouverts = 0;
   for (let k = 0; k < n; k++) {
-    if (!openBooster(S, ctx).ok) break;   // le filtre de bulk s'applique tout seul
+    if (!(premiumId ? openPremium(S, premiumId, ctx) : openBooster(S, ctx)).ok) break;   // le filtre de bulk s'applique tout seul
     ouverts++;
-    for (const x of lisTirage(cfg.boosters.cardsPerBooster)) { x.sort = x.bulk ? 'bulk' : undefined; tirage.push(x); }
+    for (const x of lisTirage(parBooster)) { x.sort = x.bulk ? 'bulk' : undefined; tirage.push(x); }
   }
   change();
   tirage.sort((a, b) => rang(b.def.rarity) - rang(a.def.rarity) || (b.finish === 'foil') - (a.finish === 'foil'));
@@ -350,7 +352,8 @@ function ouvreTous() {
   ouverture = racine;
   $('#app').appendChild(racine);
   const ferme = () => { racine.remove(); ouverture = null; if (ecran) dessine(); };
-  montreResume(racine, tirage, { ferme, encore: () => { ferme(); ouvre(); }, tous: () => { ferme(); ouvreTous(); }, titre: t('packs.tirageDe', { n: ouverts }) });
+  const reste = premiumId ? (S.boosters.premium[premiumId] ?? 0) : S.boosters.stock;
+  montreResume(racine, tirage, { ferme, reste, premium: !!premiumId, encore: () => { ferme(); ouvre(premiumId); }, tous: () => { ferme(); ouvreTous(premiumId); }, titre: t('packs.tirageDe', { n: ouverts }) });
 }
 
 // ------------------------------------------------------------------ l'ecran
@@ -426,6 +429,7 @@ function va(n) {
   if (nouveau === courant) return;
   courant = nouveau;
   place();
+  majCompteur();
 }
 
 // Chaque seconde, seuls le compteur et le temps avant le prochain booster changent : le booster reste en place.
@@ -437,8 +441,10 @@ function majCompteur() {
   const reste = Math.ceil((cfg.boosters.intervalMinutes * 60000 - b.progressMs) / 1000);
   ecran.querySelector('#pkProchain').textContent = b.stock >= cfg.boosters.storageCap ? t('packs.plein') : t('packs.prochain', { n: reste });
   const tous = ecran.querySelector('#pkTous');
-  tous.hidden = b.stock < 2 || courant !== 0;
-  tous.textContent = t('packs.ouvrirTous', { n: b.stock });
+  const ici = listeBoosters()[courant];   // le booster montre : « Ouvrir tous » vaut pour lui (le premium aussi)
+  const nIci = ici.premium ? (b.premium[ici.premium] ?? 0) : b.stock;
+  tous.hidden = nIci < 2;
+  tous.textContent = t('packs.ouvrirTous', { n: nIci });
   const v = ecran.querySelector('#pkSuivant');
   if (v) v.textContent = t('packs.suivant', { t: mmss(reste) });
 }
@@ -469,7 +475,7 @@ function dessine() {
   </div>`);
   racine.appendChild(ecran);
   ecran.querySelector('#pkSouhaits').onclick = ouvreSouhaits;
-  ecran.querySelector('#pkTous').onclick = ouvreTous;
+  ecran.querySelector('#pkTous').onclick = () => ouvreTous(listeBoosters()[courant].premium);
   ecran.querySelector('#pkSeuil').oninput = e => { setBulkFilter(S, Number(e.target.value)); ecran.querySelector('#pkSeuilV').textContent = e.target.value; };
   ecran.querySelector('#pkProtege').onchange = e => setBulkFilterProtectsVariants(S, e.target.checked);
   // Glisser le carrousel passe au booster voisin ; un glissé n'ouvre pas le booster (`glisse`).
