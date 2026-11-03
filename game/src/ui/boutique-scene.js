@@ -20,10 +20,16 @@ const cfg = ctx.cfg;
 const D = BOUTIQUE.defi;
 const defDe = type => cfg.shopLayout.furniture.find(f => f.id === type);
 // Les visiteurs sont les clients ARRIVES (la progression les amene un a un) ; Brock, lui, ne vient qu'apres une partie a une table (le noyau).
-function profilsDispo() {
+function arrivesTous() {
   const S = partie();
   const arrives = S ? S.progression.clients.filter(id => BOUTIQUE.profils[id] && !BOUTIQUE.clients?.[id]?.apresTable) : [];
   return arrives.length ? arrives : ['Timmy'];
+}
+// Un client n'entre dans la boutique que pour ACHETER : tant qu'il n'a pas fait son entree (la scene d'introduction, au premier achat qu'on lui vend),
+// il ne rode pas parmi les visiteurs. Ceux-ci sont donc les clients deja presentes (`clientsVus`).
+function profilsDispo() {
+  const vus = partie()?.clientsVus ?? [];
+  return arrivesTous().filter(id => vus.includes(id));
 }
 
 let canvas = null, c2d = null, largeur = 0, hauteur = 0;
@@ -122,6 +128,7 @@ function caseVoisine(it, prises, deja = []) {
 
 // ------------------------------------------------------------------ les clients
 function nouveauClient(profil, etapes, extra = {}) {
+  if (!profil || !BOUTIQUE.profils[profil]) return null;   // aucun client presente : pas de visiteur de decor
   const s = partie().shop;
   const c = { x: doorX(s) + 0.5, y: s.height + 0.9, profil, tete: parmi(BOUTIQUE.profils[profil].tetes), etapes, sens: 1, phase: Math.random() * 8, poseFixe: null, bulle: null, carte: null, marche: false, ...extra };
   clients.push(c);
@@ -153,8 +160,31 @@ function acheteurs(prises) {
     const it = itemDe(l.displayId);
     const v = it && caseVoisine(it, prises);
     if (!v) continue;
-    nouveauClient(l.buyer || parmi(profilsDispo()), [...marcheVers(v, prises), { avis: l.instanceId }, { attendVente: true }, finDeVisite()], { vente: l.instanceId });
+    const c = nouveauClient(l.buyer || parmi(profilsDispo()) || parmi(arrivesTous()), [...marcheVers(v, prises), { avis: l.instanceId }, { attendVente: true }, finDeVisite()], { vente: l.instanceId });
+    if (c) surClientNeuf?.(c);   // un vrai acheteur : si c'est sa premiere venue, l'ecran d'introduction s'ouvre (ui/client-intro.js)
   }
+}
+
+// ------------------------------------------------------------------ le zoom sur un client (son entree)
+let surClientNeuf = null;
+/** Branche l'ecoute des clients qui entrent pour acheter (`f(client)`). */
+export const ecouteClientNeuf = f => { surClientNeuf = f; };
+let focus = null;   // { c, avant: { x, y, z }, relache }
+/** La vue vient sur `c` et zoome ; elle le suit jusqu'a `lacheLeClient()`, puis revient d'ou elle etait. */
+export function zoomeSurClient(c) { if (!focus) focus = { c, avant: { ...cam }, relache: false }; else { focus.c = c; focus.relache = false; } }
+export function lacheLeClient() { if (focus) focus.relache = true; }
+function suitLeFocus(dt) {
+  if (!focus) return;
+  let cible;
+  if (focus.relache) cible = focus.avant;
+  else {
+    const [sx, sy] = versEcran(focus.c.x, focus.c.y);
+    const z = R.zoom.max;
+    cible = { z, x: largeur / 2 - sx * z, y: hauteur / 2 - (sy - 40) * z };
+  }
+  const k = 1 - Math.exp(-dt * 5);
+  cam.z += (cible.z - cam.z) * k; cam.x += (cible.x - cam.x) * k; cam.y += (cible.y - cam.y) * k;
+  if (focus.relache && Math.abs(cible.z - cam.z) < .005 && Math.abs(cible.x - cam.x) < 1) { Object.assign(cam, cible); focus = null; }
 }
 
 // Un visiteur va vers la carte qui correspond le mieux a son plan de jeu.
@@ -628,7 +658,7 @@ function bulleClient(c) {
 }
 
 // Le tableau des encheres, sur le mur du fond : la carte en vente, son prix qui monte, le temps qui reste.
-function dessineTableau(t) {
+function dessineTableau(temps) {
   const S = partie(), z = cfg.shopLayout.auctionZone;
   const [cx, cy] = versEcran(z.x + z.w / 2, 0);
   const W = 150, H = 92, x = cx - W / 2, y = cy - R.hauteurMur + 2;
@@ -636,7 +666,7 @@ function dessineTableau(t) {
   c2d.beginPath(); c2d.roundRect(x, y, W, H, 8); c2d.fill(); c2d.stroke();
   c2d.fillStyle = '#ffd76a'; c2d.font = '800 12px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle';
   c2d.fillText(t('ui.auctionsCaps'), cx, y + 13);
-  const a = S.auctions.length ? S.auctions[Math.floor(t / 4000) % S.auctions.length] : null;
+  const a = S.auctions.length ? S.auctions[Math.floor(temps / 4000) % S.auctions.length] : null;
   if (!a) {
     c2d.fillStyle = '#e8d5b5'; c2d.font = '700 10px sans-serif';
     c2d.fillText('Aucune vente en cours', cx, y + 52);
@@ -800,6 +830,7 @@ function boucle(t) {
   ambiance(t, prises);
   criEnchere(t);
   avanceClients(dt, t, prises);
+  suitLeFocus(dt);
   dessine(t);
 }
 

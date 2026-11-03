@@ -3,7 +3,8 @@
 // d'arrivee ; elle attend la fin d'un combat ou d'une fenetre ouverte. Les textes sont dans `BOUTIQUE.clients` (config/boutique.js) et `textes.js`.
 import { BOUTIQUE } from '../config/boutique.js';
 import { t } from '../config/textes.js';
-import { clientsAIntroduire, marqueClientVu, ecoute } from '../boutique/partie.js';
+import { clientsAIntroduire, marqueClientVu } from '../boutique/partie.js';
+import { ecouteClientNeuf, zoomeSurClient, lacheLeClient } from './boutique-scene.js';
 import { $, el, modal, closeModal } from './shell.js';
 
 const ZOOM_MS = 1400;   // le temps du zoom avant que la carte arrive (un toucher l'avance)
@@ -24,23 +25,25 @@ function montre(id) {
   </div>`);
   let carte = false;
   const montreLaCarte = () => { if (!carte) { carte = true; box.classList.add('carte'); } };
-  const fin = () => { marqueClientVu(id); closeModal(); };
+  const fin = () => { marqueClientVu(id); lacheLeClient(); closeModal(); };
   box.querySelector('.cl-ok').onclick = fin;
   box.addEventListener('click', ev => { if (!ev.target.closest('.cl-ok')) montreLaCarte(); });
-  const m = modal(box, () => marqueClientVu(id));
+  const m = modal(box, () => { marqueClientVu(id); lacheLeClient(); });
   m.classList.add('cl-feuille');
   setTimeout(montreLaCarte, ZOOM_MS);
 }
 
-/** Installe l'ecoute : a chaque seconde de la boutique, si rien ne gene, la scene du prochain client arrive. */
+/**
+ * Installe l'ecoute : un client qui entre dans la BOUTIQUE pour acheter quelque chose, et que le joueur n'a jamais vu, fait son entree — la vue zoome sur
+ * lui (il illustre ce qu'il vient faire), puis l'ecran d'introduction s'ouvre. Rien n'arrive ailleurs que dans la boutique (la scene n'y tourne que la).
+ */
 export function installeIntroClients() {
-  const essaie = () => {
-    const [id] = clientsAIntroduire();
-    if (!id) return;
+  ecouteClientNeuf(c => {
+    if (!clientsAIntroduire().includes(c.profil)) return;
     const combat = $('#battle');
     if (combat && !combat.classList.contains('hidden')) return;
     if (!$('#modal').classList.contains('hidden')) return;
-    montre(id);
-  };
-  ecoute(e => { if (e.t === 'seconde') essaie(); });
+    zoomeSurClient(c);
+    setTimeout(() => { if (clientsAIntroduire().includes(c.profil) && $('#modal').classList.contains('hidden')) montre(c.profil); else lacheLeClient(); }, 900);
+  });
 }
