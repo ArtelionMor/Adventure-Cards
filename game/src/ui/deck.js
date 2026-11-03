@@ -59,17 +59,23 @@ export function renderDeck() {
     if (filtre.size === familles.length) filtre.clear();
   });
 
-  for (const f of familles) {
-    if (filtre.size && !filtre.has(f.id)) continue;
-    const sec = el(`<div class="dk-dossier"><h3 class="dk-onglet">${f.nom}</h3><div class="dk-grille"></div></div>`);
-    const grille = sec.querySelector('.dk-grille');
-    for (const c of visibles.filter(c => familleDe(c) === f)) {
-      const n = vignette(c, [], false);   // l'equipe ne se montre plus ici
-      n.onclick = () => (possede(c.id) ? ficheHeros(c.id) : unlockSheet(c.id));
-      grille.appendChild(n);
-    }
-    coll.appendChild(sec);
+  // Plus de dossiers par famille (3 nov. 2026) : tous les heros dans une seule grille, du plus haut niveau au plus bas ; les heros
+  // grises suivent, du plus avance dans la decouverte de ses cartes au moins avance. Les puces ne font que filtrer.
+  const rang = c => {
+    if (possede(c.id)) return [0, -save.chars[c.id].level];
+    const p = progresDecouverte(c.id);
+    return [1, -(p.sur ? p.n / p.sur : 0)];
+  };
+  const montres = visibles
+    .filter(c => !filtre.size || filtre.has(familleDe(c).id))
+    .sort((a, b) => { const x = rang(a), y = rang(b); return x[0] - y[0] || x[1] - y[1] || CHARACTERS.indexOf(a) - CHARACTERS.indexOf(b); });
+  const grille = el('<div class="dk-grille"></div>');
+  for (const c of montres) {
+    const n = vignette(c, [], false);   // l'equipe ne se montre plus ici
+    n.onclick = () => (possede(c.id) ? ficheHeros(c.id) : unlockSheet(c.id));
+    grille.appendChild(n);
   }
+  coll.appendChild(grille);
   wrap.appendChild(coll);
   // Le bouton flottant : un seul, « Level up heroes behind », qui devient « Level up all » quand plus personne n'est en retard.
   if (lotDebloque()) wrap.appendChild(boutonDuLot());
