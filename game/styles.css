@@ -1568,3 +1568,6 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 /* Une fonction pas encore debloquee (le mode Auto, le lot d'ameliorations) : grisee, avec un cadenas. */
 .autochip.verrou, .dk-lot-bouton.verrou { filter: grayscale(1); opacity: .55; }
 .dk-lot-bouton.verrou { background: #9aa39a; }
+
+/* La pastille rouge d'une carte nouvelle ne couvre plus le niveau du heros (en haut a droite) : elle passe en haut a gauche. */
+.dk-vig .pastille { top: -5px; left: -5px; right: auto; }
