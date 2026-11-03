@@ -275,7 +275,9 @@ export function noteTablePartie() {
 // L'ENTREE DES CLIENTS : ceux qui sont arrives et n'ont pas encore eu leur scene d'intro (un zoom sur le client, puis sa carte).
 export const clientsAIntroduire = () => (etat ? etat.progression.clients.filter(id => !(etat.clientsVus ?? []).includes(id)) : []);
 export function marqueClientVu(id) {
-  (etat.clientsVus ??= []).push(id);
+  const vus = (etat.clientsVus ??= []);
+  if (vus.includes(id)) return;   // la fermeture de la fenetre et le bouton le marquent tous deux
+  vus.push(id);
   change();
 }
 
