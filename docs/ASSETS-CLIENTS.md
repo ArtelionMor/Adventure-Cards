@@ -40,7 +40,7 @@ Timmy, Jenna (dossier `Jena/`), Spike, Ada, Barnaby, Boris, Cipher, Brock, Rook,
 | Tous | une pose **assise en train de jouer** (carte jouée sur la table, `sit` + `show`) | les deux clients qui jouent à une table de jeu |
 
 ### 5. Teliau (lot 5)
-La bulle utilise aujourd'hui `Thumbnail Teliau.png`. À produire : portraits expressifs (conseille, inquiet, encourageant, joueur), pose « fait signe », icône pour la barre, et son visage en duel (cercle de l'adversaire).
+La bulle utilise aujourd'hui `Thumbnail Teliau.png`. La vignette `game/vignettes/Clients/teliau.webp` (160 px) est faite à partir de ce fichier. À produire : portraits expressifs (conseille, inquiet, encourageant, joueur), pose « fait signe », icône pour la barre, et son visage en duel (cercle de l'adversaire).
 
 ## Ce que le jeu fera du reste
 Les dix têtes sont déjà branchées (`BOUTIQUE.profils`, `tetes`), les poses de scène aussi ; un client sans asset retombe sur sa vignette. Rien de
