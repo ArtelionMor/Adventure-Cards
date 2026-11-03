@@ -95,6 +95,19 @@ verifie('une offre acceptee ne revient pas', H.offreEnAttente() === null);
 for (let i = etat.progression.opponentIndex; i < BALANCE.heros.auto.apresVictoires; i++) recordWin(etat, P.ctx);
 verifie('Auto debloque au rang voulu', H.autoDebloque());
 
+// ------------------------------------------------------------------ la ligne de combats (lot 3)
+const { LIGNE } = await import('../game/src/config/ligne.js');
+const { CONFIG } = await import('../game/src/boutique/noyau/donnees.js');
+const { ENCOUNTERS } = await import('../game/src/config/world.js');
+const nbOpp = CONFIG.meta.opponents.length;
+verifie('la ligne a un combat par adversaire et par tour', LIGNE.length === BALANCE.ligne.tours * nbOpp, String(LIGNE.length));
+verifie('chaque combat de la ligne est un adversaire du jeu, dans l’ordre de la liste', LIGNE.every((l, i) => l.arene === CONFIG.meta.opponents[i % nbOpp].id && ENCOUNTERS[l.arene]));
+verifie('le niveau d’adversaire reste dans les bornes de l’arene', LIGNE.every(l => l.niveau >= 1 && l.niveau <= BALANCE.arenes.niveauMax));
+verifie('le Power requis ne baisse jamais d’un combat a l’autre', LIGNE.every((l, i) => i === 0 || l.puissance >= LIGNE[i - 1].puissance));
+verifie('le dernier combat demande plus de Power que le premier', LIGNE[LIGNE.length - 1].puissance > LIGNE[0].puissance * 5);
+verifie('combatDeLaLigne lit la ligne mesuree', (() => { const c = P.combatDeLaLigne(10); return c.arene === LIGNE[10].arene && c.niveau === LIGNE[10].niveau && c.puissance === LIGNE[10].puissance; })());
+verifie('un combat par adversaire : une victoire fait avancer la ligne', BALANCE.ligne.tours * nbOpp === P.longueurLigne());
+
 console.log(`${passes} test(s) passe(s), ${echecs.length} echec(s).`);
 for (const e of echecs) console.log('  ECHEC ' + e);
 process.exit(echecs.length ? 1 : 0);

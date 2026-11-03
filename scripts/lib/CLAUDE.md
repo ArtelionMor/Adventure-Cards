@@ -9,6 +9,7 @@
 | `ouvrier.mjs` | Un worker du pool : charge le module de tâches, le prépare une fois, joue les tâches reçues. |
 | `renforts.mjs` | Côté Pi : la liste des machines, leur sondage, l'**empreinte du code** (`empreinte()`, fichiers `.js` de `game/src/{combat,config,tools}` + `taches-*.mjs` + `game/data/feuille.data.js`, qui change les PV et le mana), l'envoi des paquets (`joueLot`). |
 | `renfort-lot.mjs` | Côté renfort : un paquet joué dans un processus neuf, avec le crochet du brouillon. |
+| `taches-power.mjs` | Les cases de `calibre-power.mjs` : un trio de héros au niveau du jeu (`characterDeck`) contre un adversaire de la ligne à son niveau d'arène. |
 | `taches-matchups.mjs` / `taches-courbe.mjs` / `taches-analyse.mjs` / `taches-controle.mjs` | Les **modules de tâches** (`prepare(contexte)` + `joue(tâche)`, résultat en JSON) de `matchups`, `simulate`, `analyse-cartes`, `check-decks`. Un nouveau `taches-*.mjs` est reconnu tout seul par les renforts. |
 | `progression.mjs` | La barre de progression d'un calcul (terminal, ou ligne-marqueur `@@progression` pour le serveur). |
 | `brouillon.mjs` | Crochet de chargement : fait mesurer le **brouillon du builder** aux outils sans les modifier (`ADVENTURE_BROUILLON`). |

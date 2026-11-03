@@ -15,6 +15,7 @@
 |---|---|
 | `matchups.mjs` | Matrice deck contre deck (`--taille 3`/`--trio`, `--pnj`, `--adversaires`, `--archetypes`, `--mix`, `--fort`…). |
 | `simulate.mjs` | **Courbe de difficulté** : toutes les équipes contre chaque rencontre du monde (`--paliers 3,3,3`). `--niveau 1` force le niveau des héros sur tous les paliers (« toutes les arènes faisables au niveau 1 ») ; `--arene N` joue les ennemis au niveau d'arène N (profil de `config/ennemis.js`). |
+| `calibre-power.mjs` | **La calibration du Power** (lot 3, 3 nov. 2026) : pour chaque adversaire et chaque niveau d'adversaire, des trios au hasard à chaque niveau de héros (niveau du jeu, celui que compte le Power) ; sort le **niveau de héros à 50 % de victoires** (L50) et, avec `--ligne`, écrit `game/src/config/ligne.js` (combat, niveau, Power requis = 10 × 3 × L50, rampe `BALANCE.ligne`, jamais en baisse). Parties par `lib/taches-power.mjs` (file commune). Mesures dans `art-sortie/power/calibration.json` (ignoré par git). À refaire après un changement de cartes, de niveaux de héros ou de profils d'adversaires. |
 | `check-decks.mjs` | **Les erreurs** : règles de `config/validate.js` puis vraies parties (carte jamais jouée, moment jamais déclenché). |
 | `analyse-cartes.mjs` | Ce que le bot a préféré, par carte, et pourquoi (écart contre le meilleur coup). |
 | `audit-paliers.mjs` | Audit des paliers de niveau (aucune partie jouée) — voir `docs/GRAMMAIRE-DES-PALIERS.md`. |

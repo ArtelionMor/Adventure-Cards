@@ -4,6 +4,7 @@ import { BOUTIQUE } from '../config/boutique.js';
 import { BALANCE } from '../config/balance.js';
 import { persist, sauvegardeFigee, save, brancheCartes } from '../state.js';
 import { CHARACTERS } from '../config/characters.js';
+import { LIGNE } from '../config/ligne.js';
 import { createContext } from './noyau/context.js';
 import { CARTES, CONFIG } from './noyau/donnees.js';
 import { recordWin, startProgression } from './noyau/engines/progression.js';
@@ -212,14 +213,20 @@ export function indexCourant() {
   return ((p.level - 1) * nbAdversaires() + p.opponentIndex) * parAdversaire() + p.wins;
 }
 
-/** Le combat n° `i` de la ligne (0 = le premier). `niveau` : le niveau de l'adversaire a ce combat. */
+/**
+ * Le combat n° `i` de la ligne (0 = le premier). `niveau` : le niveau de l'adversaire a ce combat ; `puissance` : le Power requis, celui
+ * d'un trio qui le bat une fois sur deux. Ils viennent de `config/ligne.js` (mesures, `scripts/calibre-power.mjs`) ; sans ligne ecrite,
+ * l'adversaire est celui de `meta.opponents` et son niveau monte d'un cran a chaque tour de la liste.
+ */
 export function combatDeLaLigne(i) {
   const w = parAdversaire(), n = nbAdversaires();
   const parPalier = n * w;
   const palier = Math.floor(i / parPalier) + 1;
   const dans = i % parPalier;
+  const mesure = LIGNE[i];
   const opponent = CONFIG.meta.opponents[Math.floor(dans / w)];
-  return { i, palier, arene: opponent.id, niveau: (palier - 1) * w + (dans % w) + 1 };
+  if (mesure) return { i, palier, arene: opponent.id, niveau: mesure.niveau, puissance: mesure.puissance };
+  return { i, palier, arene: opponent.id, niveau: (palier - 1) * w + (dans % w) + 1, puissance: null };
 }
 
 /** Une victoire fait avancer la ligne si c'est le combat courant : rejouer un combat passe ne compte pas. */

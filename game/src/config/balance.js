@@ -310,6 +310,12 @@ export const BALANCE = {
     auto: { apresVictoires: 10 }
   },
 
+  // LA LIGNE DE COMBATS (refonte boutique, lot 3, 3 nov. 2026) : battre un adversaire = une victoire ; chaque combat est plus fort que le
+  // precedent. `game/src/config/ligne.js` (GENERE par `scripts/calibre-power.mjs --ligne`) donne, combat par combat, l'adversaire, son
+  // niveau et le Power requis. Ici, la RAMPE visee : un trio de niveau `heroDepart` bat le premier, de niveau `heroFin` le dernier, `tours`
+  // fois la liste des adversaires (la meme que `core/config/meta.json`). `rang` = les heros d'un trio. PROVISOIRE.
+  ligne: { tours: 4, rang: 3, heroDepart: 1, heroFin: 30 },
+
   // LA FERME est hors du jeu pour l'instant (31 oct. 2026) : son ecran et son code restent, mais rien n'y mene, elle ne tourne
   // plus et ses quetes se sautent. Remettre a true pour la rebrancher (et son bouton dans game/index.html).
   fermeActive: false,

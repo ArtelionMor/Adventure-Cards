@@ -39,12 +39,12 @@ const echappe = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<
  * `apres(gagne)` au retour du combat — ou a la fermeture de la fiche sans combattre (`gagne` = null).
  * `niveau` : le niveau a jouer (celui du combat touche dans la ligne) ; le niveau courant sinon.
  */
-export function ouvreFicheArene(n, { avant = () => {}, apres = () => {}, niveau = null, enchaine = false } = {}) {
+export function ouvreFicheArene(n, { avant = () => {}, apres = () => {}, niveau = null, enchaine = false, puissance = null } = {}) {
   const a = areneDe(n);
   if (!a) return;
   save.world.seen[n.id] = true;
   persist();
-  presentation(n, a, { avant, apres, niveau, enchaine });
+  presentation(n, a, { avant, apres, niveau, enchaine, puissance });
 }
 
 /** Le niveau que la fiche fera jouer. */
@@ -72,7 +72,7 @@ function presentation(n, a, cb) {
       ${heros.length ? `<div class="ar-heros">${heros.map(h => `<div class="ar-h ${possede(h.id) ? '' : 'absent'}"><img src="${asset(h.sprite)}" alt=""><span>${echappe(h.name)}</span></div>`).join('')}</div>`
         : `<p class="muted">${t('arene.tousConseilles')}</p>`}
     </div>
-    ${n.reqPower != null ? `<p class="ar-puissance">${t('arene.puissance', { r: n.reqPower, p: puissanceEquipe() })}</p>` : ''}
+    ${(cb.puissance ?? n.reqPower) != null ? `<p class="ar-puissance">${t('arene.puissance', { r: cb.puissance ?? n.reqPower, p: puissanceEquipe() })}</p>` : ''}
     ${a.textesValides ? '' : `<p class="ar-note">${t('arene.provisoire')}</p>`}
     <div class="ar-boutons"><button class="btn ghost" data-k="fermer">${t('arene.fermer')}</button><button class="btn" data-k="equipe">${t('arene.choisirEquipe')}</button></div>
   </div>`);
@@ -206,7 +206,7 @@ function dessineLigne() {
       <div class="lg-num">${t('ligne.combat', { n: i + 1 })} / ${total}</div>
       <h2>${echappe(n?.name || c.arene)}</h2>
       <div class="ar-puces"><span class="ar-puce arch">${a ? echappe(libelleArchetype(a)) : ''}</span><span class="ar-puce">${t('arene.niveau', { n: c.niveau })}</span></div>
-      <div class="lg-stats">${ennemi.hp ?? '?'} PV · ${(ennemi.deck || []).length} cartes</div>
+      <div class="lg-stats">${ennemi.hp ?? '?'} PV · ${(ennemi.deck || []).length} cartes${c.puissance ? ` · ${t('ligne.puissance', { r: c.puissance })}` : ''}</div>
       ${a?.signature ? `<div class="lg-sig">${icone(a.signature.icone, 22)}<span>${echappe(a.signature.texte)}</span></div>` : ''}
       <button class="btn lg-go" ${avenir || !n ? 'disabled' : ''}>${avenir ? t('ligne.verrou') : i < cur ? t('ligne.rejouer') : t('ligne.jouer')}</button>
     </div>
@@ -218,6 +218,7 @@ function dessineLigne() {
   if (n && !avenir) {
     ecran.querySelector('.lg-go').onclick = () => ouvreFicheArene(n, {
       niveau: c.niveau,
+      puissance: c.puissance,
       enchaine: i === cur,
       apres: g => { choisi = null; if (g && i === cur) combatSuivant(); else renderArene(); }
     });
