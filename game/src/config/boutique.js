@@ -117,9 +117,29 @@ export const BOUTIQUE = {
   tapisEncheres: ['#a7443f', '#973b37'],
   // Chaque profil a ses tetes et sa couleur.
   profils: {
-    Timmy: { lettre: 'T', couleur: '#e4572e', tetes: ['boris', 'spike', 'timmy'] },
-    Johnny: { lettre: 'J', couleur: '#8e5bd0', tetes: ['jenna', 'rook', 'barnaby'] },
-    Spike: { lettre: 'S', couleur: '#2f80c9', tetes: ['cipher', 'ada', 'richie', 'brock'] }
+    Timmy: { lettre: 'T', couleur: '#e4572e', tetes: ['timmy'] },
+    Jenna: { lettre: 'J', couleur: '#8e5bd0', tetes: ['jenna'] },
+    Spike: { lettre: 'S', couleur: '#2f80c9', tetes: ['spike'] },
+    Ada: { lettre: 'A', couleur: '#e8a21c', tetes: ['ada'] },
+    Barnaby: { lettre: 'B', couleur: '#3aa76d', tetes: ['barnaby'] },
+    Boris: { lettre: 'O', couleur: '#7a5a3a', tetes: ['boris'] },
+    Cipher: { lettre: 'C', couleur: '#2aa7c9', tetes: ['cipher'] },
+    Brock: { lettre: 'K', couleur: '#c94a6a', tetes: ['brock'] },
+    Rook: { lettre: 'R', couleur: '#6a6a78', tetes: ['rook'] },
+    Richie: { lettre: 'H', couleur: '#d4af37', tetes: ['richie'] }
+  },
+  // LES DIX CLIENTS, a leur arrivee (ui/client-intro.js) : « ce qu'il cherche » et « ce qu'il achete en priorite » ; rien sur le bulk. `apresTable` : Brock.
+  clients: {
+    Timmy: { cherche: 'Big, spectacular cards', prioritaire: 'Anything: he is not picky' },
+    Jenna: { cherche: 'Combo pieces and odd finds', prioritaire: 'The cards flagged for her' },
+    Spike: { cherche: 'Cards that win games', prioritaire: 'Strong cards of the current meta' },
+    Ada: { cherche: 'The power of your best hero', prioritaire: 'Cards of your highest-level hero' },
+    Barnaby: { cherche: 'The latest products', prioritaire: 'Cards of the newest set you unlocked' },
+    Boris: { cherche: 'Old school', prioritaire: 'Cards of the oldest products' },
+    Cipher: { cherche: 'What you actually play', prioritaire: 'The cards you play the most' },
+    Brock: { cherche: 'A game, then a deal', prioritaire: 'Buys right after a game at a table', apresTable: true },
+    Rook: { cherche: 'The heroes you neglect', prioritaire: 'Cards of your least upgraded heroes' },
+    Richie: { cherche: 'Shiny and rare', prioritaire: 'Foils and rare cards' }
   },
   // La couleur de chaque rang de la wishlist des heros (la tier list de reference du game designer).
   rangs: { S: '#ff7f7f', A: '#ffbf7f', B: '#ffff7f', C: '#7fff7f', D: '#7fbfff', N: '#cdb88f' },
@@ -134,7 +154,7 @@ export const BOUTIQUE = {
       axes: [{ id: 'cout', nom: 'Coût' }, { id: 'rarete', nom: 'Rareté' }],
       phrases: { 'haut-haut': 'Énorme ET rare : la carte d\'un tour de légende !', 'haut-bas': 'Un gros coût, mais banale… ça peut faire du bruit.', 'bas-haut': 'Rare, mais toute petite : pas de spectacle.', 'bas-bas': 'Petite et commune : rien à raconter.' }
     },
-    Johnny: {
+    Jenna: {
       qui: 'Cherche les cartes qui feront un combo. (A COMPLETER : qui est cet acheteur)',
       axes: [{ id: 'meta', nom: 'Performance', seuil: 0.5 }, { id: 'cout', nom: 'Coût' }],
       phrases: { 'haut-haut': 'Trop évidente, mais costaude : pas pour mes combos.', 'haut-bas': 'Efficace et légère : une pièce de plus pour mon moteur.', 'bas-haut': 'Délaissée par la méta et chère : un défi pour moi !', 'bas-bas': 'Personne n\'en veut… moi, je lui trouve un usage.' }
@@ -143,6 +163,42 @@ export const BOUTIQUE = {
       qui: 'Joue pour gagner, achete ce qui performe. (A COMPLETER : qui est cet acheteur)',
       axes: [{ id: 'meta', nom: 'Performance' }, { id: 'rarete', nom: 'Rareté' }],
       phrases: { 'haut-haut': 'Forte ET rare : je la prends au prix fort.', 'haut-bas': 'Forte et facile à trouver : je la veux en plusieurs exemplaires.', 'bas-haut': 'Rare, mais faible : je laisse aux collectionneurs.', 'bas-bas': 'Faible et commune : aucun intérêt.' }
+    }
+,
+    Ada: {
+      qui: 'Follows your best hero.',
+      axes: [{ id: 'nivHeros', nom: 'Hero level' }, { id: 'rarete', nom: 'Rarity' }],
+      phrases: { 'haut-haut': 'My best hero\u2019s rare card? Sold.', 'haut-bas': 'A common, but my best hero uses it.', 'bas-haut': 'Rare, but not for my best hero.', 'bas-bas': 'Not my hero, not rare. Pass.' }
+    },
+    Barnaby: {
+      qui: 'Wants the newest product.',
+      axes: [{ id: 'nouveaute', nom: 'Newness' }, { id: 'prix', nom: 'Price', seuil: 0.3 }],
+      phrases: { 'haut-haut': 'Brand new and valuable!', 'haut-bas': 'New and cheap: I\u2019ll take a few.', 'bas-haut': 'Old and pricey: no thanks.', 'bas-bas': 'Old and cheap: not for me.' }
+    },
+    Boris: {
+      qui: 'Old school: the oldest products.',
+      axes: [{ id: 'anciennete', nom: 'Age' }, { id: 'rarete', nom: 'Rarity' }],
+      phrases: { 'haut-haut': 'A rare classic. Now we\u2019re talking.', 'haut-bas': 'An old common, with a story.', 'bas-haut': 'Rare, but too new for me.', 'bas-bas': 'New and common. Never.' }
+    },
+    Cipher: {
+      qui: 'Buys what you play.',
+      axes: [{ id: 'joue', nom: 'Played' }, { id: 'meta', nom: 'Performance', seuil: 0.5 }],
+      phrases: { 'haut-haut': 'You play it, it wins: I need it.', 'haut-bas': 'You play it a lot, even if it is weak.', 'bas-haut': 'Strong, but you never play it.', 'bas-bas': 'Unplayed and weak.' }
+    },
+    Brock: {
+      qui: 'Shops after a game at a table.',
+      axes: [{ id: 'cout', nom: 'Cost' }, { id: 'meta', nom: 'Performance', seuil: 0.5 }],
+      phrases: { 'haut-haut': 'Big and strong: a great table card.', 'haut-bas': 'Big but weak: fun at a table.', 'bas-haut': 'Cheap and strong: easy to learn.', 'bas-bas': 'Cheap and weak: filler.' }
+    },
+    Rook: {
+      qui: 'Buys for the heroes you neglect.',
+      axes: [{ id: 'retard', nom: 'Neglect' }, { id: 'rarete', nom: 'Rarity' }],
+      phrases: { 'haut-haut': 'A rare card of a hero nobody levels!', 'haut-bas': 'A neglected hero\u2019s card: fair.', 'bas-haut': 'Rare, but the hero is already strong.', 'bas-bas': 'No interest.' }
+    },
+    Richie: {
+      qui: 'Foils and rares only.',
+      axes: [{ id: 'rarete', nom: 'Rarity' }, { id: 'variante', nom: 'Foil / graded', seuil: 0.5 }],
+      phrases: { 'haut-haut': 'Rare AND shiny: take my money.', 'haut-bas': 'Rare, but plain. Meh.', 'bas-haut': 'Shiny, but too common.', 'bas-bas': 'Plain and common: no.' }
     }
   },
   // Ce que les clients disent d'un prix (le seuil vit dans le noyau). Des emoji en attendant les icones du game designer.

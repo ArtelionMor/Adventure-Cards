@@ -14,6 +14,7 @@ import { chargeLeJeu } from './ui/chargement.js';
 import { openBattle } from './ui/battle.js';
 import { installeQuetes } from './ui/quetes.js';
 import { installeEncheresMini } from './ui/encheres-mini.js';
+import { installeIntroClients } from './ui/client-intro.js';
 import { installeNotifications } from './ui/notifs.js';
 import { installeLectureCartes } from './ui/lecture-cartes.js';
 import { installeTriche } from './ui/triche.js';
@@ -130,6 +131,7 @@ function boot() {
   // barre du haut. Son toucher emmene ou il faut ; « rafraichit » redessine l'ecran courant (une place, un heros recus).
   majMini = installeEncheresMini({ ecranCourant: () => current }).maj;
   majMini();
+  installeIntroClients();
   installeNotifications();
   installeLectureCartes();
   installeQuetes({ go, rafraichit: () => go(current) });

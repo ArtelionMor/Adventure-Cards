@@ -123,6 +123,17 @@ test('enchères : la plus basse victoire sur un double coûte plus qu’une reve
   assert.ok(plusBas >= meilleure, `${plusBas} < ${meilleure}`);
 });
 
+test('dix clients : Timmy seul au depart, les autres arrivent avec la progression, leurs regles sont connues', () => {
+  assert.equal(CONFIG.buyers.profiles.length, 10);
+  assert.deepEqual(CONFIG.buyers.profiles.map(b => b.id), ['Timmy', 'Jenna', 'Spike', 'Ada', 'Barnaby', 'Boris', 'Cipher', 'Brock', 'Rook', 'Richie']);
+  assert.ok(CONFIG.buyers.profiles.every(b => b.unlock && b.rule && b.spawnWeight > 0));
+  const poids = Object.fromEntries(CONFIG.buyers.profiles.map(b => [b.id, b.spawnWeight]));
+  assert.ok(poids.Richie < poids.Timmy, 'population segmentee : Richie moins frequent que Timmy');
+  const { etat } = neuf();
+  assert.deepEqual(etat.progression.clients, ['Timmy']);
+  assert.ok(CARTES.some(c => c.flags?.includes('timmy')) && CARTES.some(c => c.flags?.includes('jenna')) && CARTES.some(c => c.flags?.includes('spike')), 'cartes flaguees a leur nom');
+});
+
 test('le profil de référence : deux sessions de 30 minutes, à 8 h et à 19 h', () => {
   assert.deepEqual(CONFIG.profiles.reference.sessions, [{ startMinute: 480, durationMinutes: 30 }, { startMinute: 1140, durationMinutes: 30 }]);
 });

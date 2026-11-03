@@ -1535,3 +1535,20 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 #screen-deck .dk-coll { max-width: none; }
 #screen-deck .dk-coll .dk-grille { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 12px 10px; justify-content: stretch; }
 #screen-deck .dk-coll .dk-vig { width: 100%; height: auto; aspect-ratio: 92 / 106; }
+
+/* ---------- l'entree d'un client (ui/client-intro.js, lot 4) : un zoom sur son visage, puis sa carte ---------- */
+.cl-intro { position: relative; display: grid; justify-items: center; gap: 12px; padding: 18px 10px 14px; min-height: 340px; text-align: center; }
+.cl-zoom { width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 4px solid var(--c); background: #fff3d8; box-shadow: 0 0 0 4px #170b12, 0 6px 0 4px #170b12; animation: cl-zoom 1.2s cubic-bezier(.2, 1.4, .4, 1) both; }
+.cl-zoom img { width: 100%; height: 100%; object-fit: cover; image-rendering: auto; }
+.cl-nom { font-size: 26px; color: #fff; text-shadow: 0 3px 0 #170b12; -webkit-text-stroke: 1px #170b12; }
+.cl-carte { display: none; width: 100%; box-sizing: border-box; background: #fff3d8; border: 3px solid #170b12; border-radius: 12px; padding: 12px; box-shadow: 0 5px 0 #170b12; text-align: left; }
+.cl-carte h2 { margin: 0 0 8px; color: var(--c); }
+.cl-ligne { display: grid; gap: 2px; margin-bottom: 8px; }
+.cl-ligne span { font-size: 13px; opacity: .65; text-transform: uppercase; letter-spacing: .04em; }
+.cl-ligne b { font-size: 18px; }
+.cl-ok { margin-top: 6px; width: 100%; }
+.cl-intro.carte .cl-zoom { width: 84px; height: 84px; animation: none; }
+.cl-intro.carte .cl-nom { display: none; }
+.cl-intro.carte .cl-carte { display: block; animation: cl-carte .35s ease-out both; }
+@keyframes cl-zoom { from { transform: scale(.2) rotate(-12deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+@keyframes cl-carte { from { transform: translateY(24px) scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }

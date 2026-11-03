@@ -2,7 +2,7 @@
 // Pas de DOM. Les ecrans lisent `partie()` et appellent les moteurs du noyau avec `ctx`, puis `change()`.
 import { BOUTIQUE } from '../config/boutique.js';
 import { BALANCE } from '../config/balance.js';
-import { persist, sauvegardeFigee, save, brancheCartes } from '../state.js';
+import { persist, sauvegardeFigee, save, brancheCartes, brancheAmelioration } from '../state.js';
 import { CHARACTERS } from '../config/characters.js';
 import { LIGNE } from '../config/ligne.js';
 import { createContext } from './noyau/context.js';
@@ -11,6 +11,7 @@ import { recordWin, startProgression } from './noyau/engines/progression.js';
 import { tick } from './noyau/engines/tick.js';
 import { createShop, syncBaseFurniture } from './noyau/engines/shop.js';
 import { createState, recordDeckPlayed } from './noyau/state.js';
+import { unlockClients, noteTableGame } from './noyau/engines/buyers.js';
 
 const CLE = BALANCE.save.cleBoutique;
 const ecouteurs = new Set();
@@ -134,7 +135,21 @@ function metAJour(e) {
     delete e.lockedByDeck;
     for (const l of e.market.lots) l.owned = e.collection[l.cardId] !== undefined;
   }
-  e.version = 6;
+  // Les dix clients (3 nov. 2026) : Johnny devient Jenna ; les clients deja arrives se recalculent d'apres les paliers passes, les tables posees et
+  // les ameliorations faites ; les produits se relisent dans l'ordre des extensions (la phase A, puis la B).
+  if ((e.version ?? 1) < 7) {
+    const p = e.progression;
+    p.products = [...p.extensions.map(x => `${x}:A`), ...p.switchExtensions.map(x => `${x}:B`)];
+    p.clients = [];
+    e.tableAtMs = null;
+    unlockClients(e, ctx, 'start');
+    for (const s of CONFIG.progression.steps.slice(0, p.stepIndex)) unlockClients(e, ctx, 'step', s.id);
+    if (e.shop.items.some(i => i.type === 'tableJeu')) unlockClients(e, ctx, 'table');
+    if (CHARACTERS.some(c => (save.chars[c.id]?.level ?? 1) > 1)) unlockClients(e, ctx, 'heroUpgrade');
+    for (const l of e.showcase) if (l.buyer === 'Johnny') l.buyer = 'Jenna';
+    e.clientsVus = [...p.clients];   // les clients deja la ne refont pas leur entree
+  }
+  e.version = 7;
 }
 
 function avance() {
@@ -163,10 +178,11 @@ export function demarreBoutique() {
     }
     metAJour(etat);
     syncBaseFurniture(etat, ctx);   // les objets des niveaux de boutique deja atteints (une ancienne sauvegarde les recoit)
-  } else etat = { ...createState(ctx), vues: {}, version: 6 };
+  } else etat = { ...createState(ctx), vues: {}, version: 7, clientsVus: [] };
   lieLaBourse(etat);
   // Un héros dont toutes les cartes de base sont découvertes est à toi (`possede`, state.js).
   brancheCartes(id => !!etat?.heroes[nomEconomique(id)]?.unlocked);
+  brancheAmelioration(() => { if (etat) unlockClients(etat, ctx, 'heroUpgrade'); });
   persist();
 
   const absence = Date.now() - dernier;
@@ -235,6 +251,20 @@ export function noteVictoireBoutique(arene, niveau) {
   const c = combatDeLaLigne(indexCourant());
   if (arene !== c.arene || niveau !== c.niveau) return;
   recordWin(etat, ctx);
+  change();
+}
+
+/** Un client vient de jouer une partie a une table : Brock passe acheter juste apres. */
+export function noteTablePartie() {
+  if (!etat) return;
+  noteTableGame(etat, ctx);
+  change();
+}
+
+// L'ENTREE DES CLIENTS : ceux qui sont arrives et n'ont pas encore eu leur scene d'intro (un zoom sur le client, puis sa carte).
+export const clientsAIntroduire = () => (etat ? etat.progression.clients.filter(id => !(etat.clientsVus ?? []).includes(id)) : []);
+export function marqueClientVu(id) {
+  (etat.clientsVus ??= []).push(id);
   change();
 }
 

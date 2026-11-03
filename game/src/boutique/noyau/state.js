@@ -5,6 +5,7 @@
 
 import { startProgression } from './engines/progression.js';
 import { createShop } from './engines/shop.js';
+import { unlockClients } from './engines/buyers.js';
                                                                                                           
 
 export function createState(ctx     )            {
@@ -22,6 +23,7 @@ export function createState(ctx     )            {
     collection: {},
     plays: {},
     lastDeck: null,
+    tableAtMs: null,
     heroes,
     boosters: { stock: cfg.boosters.startStock, progressMs: 0, opened: 0, pity: 0, pityByExtension: {}, premium: {} },
     showcase: [],
@@ -43,11 +45,14 @@ export function createState(ctx     )            {
       tables: 0,
       extensions: [],
       switchExtensions: [],
+      products: [],
+      clients: [],
       opponents: [],
       features: [],
     },
     meta: { archetypeMul: {}, cardScore: {} },
   };
+  unlockClients(state, ctx, 'start');
   startProgression(state, ctx);
   return state;
 }

@@ -170,7 +170,7 @@ function ficheCopie(id, displayId = null) {
 // Ce que chaque profil penserait de ce prix : le joueur le voit avant de valider.
 function avisHtml(inst, prix) {
   const S = partie();
-  return cfg.buyers.profiles.map(b => {
+  return cfg.buyers.profiles.filter(b => S.progression.clients.includes(b.id)).map(b => {
     const r = BOUTIQUE.reactions[buyerReaction(b, inst, prix, S, ctx)];
     const p = BOUTIQUE.profils[b.id];
     return `<span class="btq-avis"><i style="background:${p.couleur}">${p.lettre}</i>${r.signe} ${r.texte}</span>`;
@@ -457,7 +457,7 @@ function ouvreWidgetEstrade(i) {
 /** Tous les visages de clients, chacun avec ce qu'il penserait de ce prix (son profil décide). */
 function visagesHtml(inst, prix) {
   const S = partie();
-  return cfg.buyers.profiles.map(b => {
+  return cfg.buyers.profiles.filter(b => S.progression.clients.includes(b.id)).map(b => {
     const p = BOUTIQUE.profils[b.id];
     const r = BOUTIQUE.reactions[buyerReaction(b, inst, prix, S, ctx)];
     return (p?.tetes || []).map(tete => `<span class="btq-visage" title="${r.texte}" style="--c:${p.couleur}"><img src="${BOUTIQUE.visage(tete)}" alt=""><i>${r.signe}</i></span>`).join('');

@@ -2,6 +2,7 @@
 // Amélioration des héros : le puits d'or de fin de collection.
 
                                                                               
+import { unlockClients } from './buyers.js';
 
 /** Coût pour passer du niveau `level` à `level + 1`. */
 export function upgradeCost(cfg            , level        )         {
@@ -17,5 +18,6 @@ export function upgradeHero(state           , hero        , ctx     )           
   if (state.gold < cost) return { ok: false, reason: 'Or insuffisant.' };
   state.gold -= cost;
   h.level++;
+  unlockClients(state, ctx, 'heroUpgrade');
   return { ok: true, value: cost };
 }

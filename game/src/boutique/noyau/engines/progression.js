@@ -6,6 +6,7 @@
 // boosters premium.
 
                                                                    
+import { unlockClients } from './buyers.js';
 import { positionReached, refreshMeta } from './meta.js';
 import { syncBaseFurniture } from './shop.js';
 
@@ -15,10 +16,13 @@ function reachOpponent(state           , ctx     )       {
   if (opponent && !p.opponents.includes(opponent.id)) p.opponents.push(opponent.id);
 }
 
-function applyStep(state           , step                 )       {
+function applyStep(state           , step                 , ctx     )       {
   const p = state.progression;
   p.extensions.push(...step.extensions);
   p.switchExtensions.push(...step.switchExtensions);
+  for (const e of step.extensions) p.products.push(`${e}:A`);
+  for (const e of step.switchExtensions) p.products.push(`${e}:B`);
+  unlockClients(state, ctx, 'step', step.id);
   p.features.push(...step.features);
   state.gems += step.gems;
   for (const [id, n] of Object.entries(step.premiumBoosters)) {
@@ -32,7 +36,7 @@ function applyReachedSteps(state           , ctx     )       {
   while (p.stepIndex < steps.length) {
     const step = steps[p.stepIndex];
     if (!step || !positionReached(step.unlockAt, state, ctx)) break;
-    applyStep(state, step);
+    applyStep(state, step, ctx);
     p.stepIndex++;
   }
   syncBaseFurniture(state, ctx);

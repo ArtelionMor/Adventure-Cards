@@ -5,7 +5,7 @@ import { BOUTIQUE } from '../config/boutique.js';
 import { buyerMultiplier } from '../boutique/noyau/engines/buyers.js';
 import { buyerReaction } from '../boutique/noyau/engines/pricing.js';
 import { canExpand, doorX, expandCost, footprint, isFree } from '../boutique/noyau/engines/shop.js';
-import { ctx, ecoute, partie } from '../boutique/partie.js';
+import { ctx, ecoute, partie, noteTablePartie } from '../boutique/partie.js';
 import { urlIcone } from './icones.js';
 import { texteDePrix } from './prix.js';
 import { etatTournoi } from '../boutique/tournoi.js';
@@ -18,7 +18,12 @@ const parmi = l => l[Math.floor(Math.random() * l.length)];
 const cfg = ctx.cfg;
 const D = BOUTIQUE.defi;
 const defDe = type => cfg.shopLayout.furniture.find(f => f.id === type);
-const PROFILS = Object.keys(BOUTIQUE.profils);
+// Les visiteurs sont les clients ARRIVES (la progression les amene un a un) ; Brock, lui, ne vient qu'apres une partie a une table (le noyau).
+function profilsDispo() {
+  const S = partie();
+  const arrives = S ? S.progression.clients.filter(id => BOUTIQUE.profils[id] && !BOUTIQUE.clients?.[id]?.apresTable) : [];
+  return arrives.length ? arrives : ['Timmy'];
+}
 
 let canvas = null, c2d = null, largeur = 0, hauteur = 0;
 let cam = { x: 0, y: 0, z: R.zoom.depart };
@@ -147,7 +152,7 @@ function acheteurs(prises) {
     const it = itemDe(l.displayId);
     const v = it && caseVoisine(it, prises);
     if (!v) continue;
-    nouveauClient(l.buyer || parmi(PROFILS), [...marcheVers(v, prises), { avis: l.instanceId }, { attendVente: true }, finDeVisite()], { vente: l.instanceId });
+    nouveauClient(l.buyer || parmi(profilsDispo()), [...marcheVers(v, prises), { avis: l.instanceId }, { attendVente: true }, finDeVisite()], { vente: l.instanceId });
   }
 }
 
@@ -168,7 +173,7 @@ function ambiance(t, prises) {
   if (t < prochaineAmbiance || clients.length >= R.clientsMax) return;
   prochaineAmbiance = t + hasard(R.ambianceS) * 1000;
   const S = partie();
-  const profil = parmi(PROFILS);
+  const profil = parmi(profilsDispo());
   if (S.bulkBox.length && Math.random() < 0.3) {
     const pas = marcheVers([R.boite[0] - 1, R.boite[1]], prises);
     if (pas.length) nouveauClient(profil, [...pas, { pause: hasard(R.fouilleBulkS), pose: 'interact' }, finDeVisite()]);
@@ -203,14 +208,14 @@ function tables(prises) {
         const ax = it.x + sg.acces[0], ay = it.y + sg.acces[1];
         if (ax < 0 || ay < 0 || ax >= s.width || ay >= s.height || prises.has(`${ax},${ay}`)) continue;
         const pas = marcheVers([ax, ay], prises);
-        if (pas.length) nouveauClient(parmi(PROFILS), [...pas, { aller: pointSiege(it, sg) }, { pause: hasard(R.tableS), jeu: it.id, assis: true, sens: sg.sens, leve: sg.leve || 0 }, finDeVisite()], { siege: cle, apres: [ax, ay], table: { id: it.id, x: it.x, y: it.y } });
+        if (pas.length) nouveauClient(parmi(profilsDispo()), [...pas, { aller: pointSiege(it, sg) }, { pause: hasard(R.tableS), jeu: it.id, assis: true, sens: sg.sens, leve: sg.leve || 0 }, finDeVisite()], { siege: cle, apres: [ax, ay], table: { id: it.id, x: it.x, y: it.y } });
         continue;
       }
       const pris = clients.filter(c => String(c.siege).startsWith(`${it.id}:`)).map(c => c.placeSiege);
       const v = caseVoisine(it, prises, pris);
       if (!v) continue;
       const pas = marcheVers(v, prises);
-      if (pas.length) nouveauClient(parmi(PROFILS), [...pas, { pause: hasard(R.tableS), jeu: it.id }, finDeVisite()], { siege: cle, placeSiege: v });
+      if (pas.length) nouveauClient(parmi(profilsDispo()), [...pas, { pause: hasard(R.tableS), jeu: it.id }, finDeVisite()], { siege: cle, placeSiege: v });
     }
   }
 }
@@ -236,7 +241,7 @@ function lanceDefi(prises) {
       if (ax < 0 || ay < 0 || ax >= s.width || ay >= s.height || prises.has(`${ax},${ay}`)) continue;
       const pas = marcheVers([ax, ay], prises);
       if (!pas.length) continue;
-      nouveauClient(parmi(PROFILS), [...pas, { aller: pointSiege(it, sg) }, { pause: D.attenteS, jeu: it.id, assis: true, sens: sg.sens, leve: sg.leve || 0 }, finDeVisite()],
+      nouveauClient(parmi(profilsDispo()), [...pas, { aller: pointSiege(it, sg) }, { pause: D.attenteS, jeu: it.id, assis: true, sens: sg.sens, leve: sg.leve || 0 }, finDeVisite()],
         { defi: true, siege: `${it.id}:${siege}`, apres: [ax, ay], table: { id: it.id, x: it.x, y: it.y } });
       return true;
     }
@@ -271,7 +276,7 @@ function foule(t, prises) {
     if (libres.length) {
       const v = parmi(libres);
       const pas = marcheVers(v, prises);
-      if (pas.length) nouveauClient(parmi(PROFILS), [...pas, { foule: true }], { foule: true, placeFoule: v });
+      if (pas.length) nouveauClient(parmi(profilsDispo()), [...pas, { foule: true }], { foule: true, placeFoule: v });
     }
   }
   if (!S.auctions.length) for (const c of la) { c.foule = false; c.etapes = [finDeVisite()]; }
@@ -331,7 +336,7 @@ function avanceClients(dt, t, prises) {
       c.poseFixe = e.assis ? (Math.sin(t / 1500 + c.phase) > 0.6 ? 'think' : 'hold') : e.jeu ? (Math.sin(t / 1500 + c.phase) > 0 ? 'talk' : 'think') : e.pose || null;
       c.assis = !!e.assis; c.leve = e.leve || 0;
       if (e.sens) c.sens = e.sens;
-      if ((e.pause -= dt) <= 0) { c.poseFixe = null; c.assis = false; c.etapes.shift(); }
+      if ((e.pause -= dt) <= 0) { c.poseFixe = null; c.assis = false; if (e.jeu !== undefined) noteTablePartie(); c.etapes.shift(); }
     }
     if (c.bulle && t > c.bulle.fin) c.bulle = null;
   }

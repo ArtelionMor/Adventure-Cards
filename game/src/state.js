@@ -245,12 +245,17 @@ export function verrouDe(n) {
   return { ouvert: !n.reqLevel || actuel >= n.reqLevel, sorte: 'niveau', requis: n.reqLevel || 0, actuel };
 }
 
+// Les clients Ada et Rook arrivent avec la premiere amelioration d'un heros : `boutique/partie.js` branche ici ce qu'elle fait.
+let apresAmelioration = () => {};
+export const brancheAmelioration = f => { apresAmelioration = f; };
+
 export function upgradeChar(charId) {
   const st = save.chars[charId];
   if (st.level >= niveauMax(CHAR_BY_ID[charId])) return 'max';
   const cost = upgradeCost(charId);
   if (!spend('C', cost)) return 'poor';
   st.level++;
+  apresAmelioration(charId);
   signale('ameliore');
   persist();
   return 'ok';

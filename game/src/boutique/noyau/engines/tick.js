@@ -9,7 +9,8 @@ import { settleAuctions } from './auction.js';
 import { settleBulk } from './bulk.js';
 import { settleGrading } from './grading.js';
 import { settleMarket } from './market.js';
-import { boosterCap } from './shop.js';
+import { unlockClients } from './buyers.js';
+import { boosterCap, tableCount } from './shop.js';
 import { settleShowcase } from './showcase.js';
 
 function produceBoosters(state           , dtMs        , ctx     )       {
@@ -33,6 +34,8 @@ function produceBoosters(state           , dtMs        , ctx     )       {
 export function tick(state           , dtMs        , ctx     )       {
   if (dtMs <= 0) return;
   state.nowMs += dtMs;
+  // Brock arrive avec la première table de jeu posée.
+  if (!state.progression.clients.includes('Brock') && tableCount(state, ctx) >= 1) unlockClients(state, ctx, 'table');
   produceBoosters(state, dtMs, ctx);
   settleShowcase(state, ctx);
   settleAuctions(state, ctx);

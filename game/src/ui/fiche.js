@@ -152,6 +152,12 @@ const METRIQUES = {
   meta: (card, finish, grade, S) => entre01(0.5 + (metaMultiplier(card, S, ctxBoutique) - 1) * 2),
   variante: (card, finish, grade) => (grade ? 0.5 : 0) + (finish === 'foil' ? 0.5 : 0),
   extension: (card, finish, grade, S) => { const e = S.progression.extensions; return e.length > 1 ? Math.max(0, e.indexOf(card.extension)) / (e.length - 1) : 0; },
+  // Les mesures des clients qui suivent le jeu du joueur (3 nov. 2026).
+  nivHeros: (card, finish, grade, S) => { const m = Math.max(1, ...Object.values(S.heroes).filter(h => h.unlocked).map(h => h.level)); return entre01((S.heroes[card.hero]?.level ?? 1) / m); },
+  retard: (card, finish, grade, S) => 1 - METRIQUES.nivHeros(card, finish, grade, S),
+  nouveaute: (card, finish, grade, S) => { const p = S.progression.products; const i = p.findIndex(x => { const [e, ph] = x.split(':'); return card.extension === e && (ph === 'B') === card.isSwitch; }); return p.length > 1 && i >= 0 ? i / (p.length - 1) : (i >= 0 ? 1 : 0); },
+  anciennete: (card, finish, grade, S) => 1 - METRIQUES.nouveaute(card, finish, grade, S),
+  joue: (card, finish, grade, S) => { const m = Math.max(1, ...Object.values(S.plays ?? {})); return entre01(((S.plays ?? {})[card.id] ?? 0) / m); },
   prix: (card, finish, grade, S) => entre01(instanceRef({ cardId: card.id, finish, grade: grade ?? null, slab: null }, S, ctxBoutique) / Math.max(...ctxBoutique.cfg.rarities.map(r => r.priceCeil)))
 };
 
@@ -205,9 +211,14 @@ function ongletShop(cardId, finish, grade, nom) {
   const box = el('<div class="insp fiche fi-shop"></div>');
   box.appendChild(el(`<div class="fc-nom">${echappe(nom)}</div>`));
   const avis = el('<div class="fc-avis"></div>');
-  for (const profil of ctxBoutique.cfg.buyers.profiles) {
-    const a = avisDuClient(profil, card, finish, grade, S);
-    if (!a) continue;
+  // Les trois clients arrives aux avis les plus tranches : idealement deux positifs et un negatif (3 nov. 2026).
+  const donnes = ctxBoutique.cfg.buyers.profiles.filter(p => S.progression.clients.includes(p.id))
+    .map(profil => ({ profil, a: avisDuClient(profil, card, finish, grade, S) })).filter(x => x.a);
+  const tranche = x => Math.abs(x.a.ton - 0.5);
+  const par = (l) => [...l].sort((u, v) => tranche(v) - tranche(u));
+  const choisis = [...par(donnes.filter(x => x.a.ton > 0.5)).slice(0, 2), ...par(donnes.filter(x => x.a.ton < 0.5)).slice(0, 1)];
+  for (const x of par(donnes)) if (choisis.length < 3 && !choisis.includes(x)) choisis.push(x);
+  for (const { profil, a } of choisis) {
     const tete = BOUTIQUE.profils[profil.id]?.tetes[0];
     const l = el(`<div class="fc-avis-l" style="--c:${couleurDeTon(a.ton)}">
       ${tete ? `<img class="fc-face" src="${BOUTIQUE.visage(tete)}" alt="${profil.id}" draggable="false">` : ''}
