@@ -4,6 +4,8 @@
 // Google, comme les animations — voir config/feuille.js) ; les appelants n'ont rien a changer.
 // Pour l'instant : tout est en francais, et seuls les mots que l'ecran de combat affiche sans icone sont ici.
 export const TEXTES = {
+  'deck.switchVerrou': 'Find this switch card in a booster to unlock it.',
+  'deck.upgradeMax': 'Max level',
   'combat.tonTour': 'Ton tour',
   'combat.tourAdverse': 'Tour adverse',
   // L'ecran d'equipe et d'amelioration : les mots de la maquette (12 octobre 2026).

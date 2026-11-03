@@ -14,11 +14,12 @@ import { CHARACTERS, CHAR_BY_ID, resolveCard, etapesDe, niveauMax, niveauxDesCar
 import { keyLabel } from '../config/mechanics.js';
 import { FAMILLES, familleDe, rareteDe } from '../config/familles.js';
 import { t } from '../config/textes.js';
-import { cartesNouvelles, marqueVues } from '../boutique/partie.js';
+import { cartesNouvelles, marqueVues, partie } from '../boutique/partie.js';
+import { vibre, secoue, explose, pastilleGeante, texteQuiMonte, piecesQuiVolent, pop, brille } from './upgrade-fx.js';
 import { visibilite, progresDecouverte, lotDebloque, lotVisible, lotPrevu, ameliorerEnLot, reperesLesArrivees, offreEnAttente, accepteOffre, refuseOffre, prendAnimations } from '../boutique/heros.js';
 import { save, persist, upgradeCost, upgradeChar, toggleSwitch, setTeamSlot, puissance, puissanceJoueur, signale, possede } from '../state.js';
 import { $, el, asset, toast, modal, closeModal, court } from './shell.js';
-import { icone } from './icones.js';
+import { icone, urlIcone } from './icones.js';
 import { ligneDePictos, pictosDe, iconeDeCle, iconeDeOp } from './pictos.js';
 import { creeOnglets } from './onglets.js';
 import { installeGestes } from './gestes.js';
@@ -210,8 +211,10 @@ function ficheHeros(id, { onglet = ongletFiche, vue, echange } = {}) {
   const entete = el(`<div class="upg-haut">
     <div class="upg-tete">
       <img src="${asset(c.sprite)}" alt="">
-      <div><div class="upg-nom">${c.name}</div><div class="upg-espece">${c.species}</div></div>
-      <span class="upg-niv">${t('deck.niveau', { n: st.level })}</span>
+      <div class="upg-ident">
+        <div class="upg-ligne"><div class="upg-nom">${c.name}</div><span class="upg-niv">${t('deck.niveau', { n: st.level })}</span></div>
+        <div class="upg-ligne"><span class="upg-pill">${c.species}</span>${c.archetype ? `<span class="upg-pill arch ${c.archetype}">${c.archetype[0].toUpperCase()}${c.archetype.slice(1)}</span>` : ''}</div>
+      </div>
     </div>
     <div class="upg-sep"></div>
   </div>`);
@@ -280,10 +283,7 @@ function echangeFaces(heros, paire) {
   if (paire.classList.contains('echange')) return;
   const slot = +paire.dataset.slot;
   const st = save.chars[heros.id];
-  if (!st.switches[slot] && !aLaSwitch(heros.id, slot)) {
-    achatSwitch(heros.id, slot, () => ficheHeros(heros.id, { onglet: 'deck', echange: st.switches[slot] ? slot : null }));
-    return;
-  }
+  if (!st.switches[slot] && !aLaSwitch(heros.id, slot)) { toast(t('deck.switchVerrou')); return; }
   toggleSwitch(heros.id, slot);
   const devant = paire.querySelector('.dk-face.devant');
   const derriere = paire.querySelector('.dk-face.derriere');
@@ -325,11 +325,89 @@ function joueEchange(paire) {
   fin.onfinish = fin.oncancel = () => paire.classList.remove('echange');
 }
 
+/**
+ * LA CASE D'AMELIORATION (maquette « Level Up / Frame 7282827 »), la sixieme de la grille : la carte AVANT et la carte APRES (son niveau en rouge,
+ * l'icone de ce qu'elle gagne), le prix, « +10 power ». Verte tant que les pieces suffisent, grise sinon. Le toucher ameliore, et l'ecran EXPLOSE.
+ */
+function celluleUpgrade(heros, corps) {
+  const st = save.chars[heros.id];
+  if (st.level >= niveauMax(heros)) return el(`<div class="dk-upgrade max"><b>${t('deck.upgradeMax')}</b></div>`);
+  const e = etapesDe(heros)[st.level - 1];
+  const avant = niveauxDesCartes(heros, st.level)[e.face][e.slot];
+  const apres = niveauxDesCartes(heros, st.level + 1)[e.face][e.slot];
+  const def = e.face === 'switch' ? heros.switches[e.slot] : heros.cards[e.slot];
+  const cout = upgradeCost(heros.id);
+  const gain = puissance(heros.id, st.level + 1) - puissance(heros.id);
+  const mini = (lv, nouveau) => {
+    const c = resolveCard(def, lv);
+    return `<div class="up-mini"><img src="${asset(c.sprite || heros.sprite)}" alt="">${nouveau ? `<i class="up-nouv">${icone(iconeDePalier(e.paliers[0]), 16)}</i>` : ''}<b class="up-niv">${lv}</b></div>`;
+  };
+  const n = el(`<button class="dk-upgrade ${save.cur.C < cout ? 'pauvre' : ''}">
+    <div class="up-cartes">${mini(avant, false)}<span class="up-fleche">${icone('Next', 24)}</span>${mini(apres, true)}</div>
+    <div class="up-prix">${icone('Buff', 30)}<b>${court(cout)}</b>${icone('Coin', 28)}</div>
+    <div class="up-power">${t('deck.puissance', { n: gain })}</div>
+  </button>`);
+  n.onclick = () => monteDeNiveau(heros.id, corps, n);
+  return n;
+}
+
+/**
+ * LA MONTEE DE NIVEAU, avec tout le jus (config : `BALANCE.ui.upgradeFx`) : le bouton s'ecrase, le telephone vibre, la fiche tremble, les pieces partent
+ * vers la barre du haut ; puis la page se redessine et la carte amelioree EXPLOSE (flammes, etincelles, anneau), brille et gonfle, sa grosse pastille
+ * de niveau jaillit, « +10 power » monte, le niveau du heros fait un pop.
+ */
+function monteDeNiveau(id, corps, bouton) {
+  const heros = CHAR_BY_ID[id];
+  const st = save.chars[id];
+  const fx = BALANCE.ui.upgradeFx;
+  const e = etapesDe(heros)[st.level - 1];
+  const feuille = document.querySelector('#modal .upg-feuille') || document.querySelector('#modal .sheet');
+  const gain = puissance(id, st.level + 1) - puissance(id);
+  const r = upgradeChar(id);
+  if (r !== 'ok') {
+    bouton.classList.remove('non'); void bouton.offsetWidth; bouton.classList.add('non');
+    vibre(fx.vibrationRefus);
+    if (r === 'poor') toast(t('deck.lotPauvre'));
+    return;
+  }
+  const niveauCarte = niveauxDesCartes(heros, st.level)[e.face][e.slot];
+  vibre(fx.vibration);
+  secoue(feuille);
+  bouton.animate([{ scale: 1 }, { scale: .9, offset: .25 }, { scale: 1.08, offset: .6 }, { scale: 1 }], { duration: 360, easing: 'ease-out' });
+  const barre = document.querySelector('#topbar');
+  if (barre) piecesQuiVolent(bouton, barre, { src: urlIcone('Coin') });
+  refreshTop();
+  setTimeout(() => {
+    if (!corps.isConnected) return;
+    const defil = corps.scrollTop;
+    corps.replaceChildren();
+    pageDeck(corps, id);
+    corps.scrollTop = defil;
+    renderDeck();
+    const niv = document.querySelector('#modal .upg-niv');
+    if (niv) { niv.textContent = t('deck.niveau', { n: st.level }); pop(niv, { fort: 1.3, ms: 520 }); }
+    const paire = corps.querySelector(`.dk-paire[data-slot="${e.slot}"]`);
+    if (paire) {
+      explose(paire);
+      brille(paire);
+      pop(paire, { fort: 1.1 });
+      pastilleGeante(paire, niveauCarte);
+      const capa = paire.querySelector('.dk-face.devant .dk-bande');
+      if (capa) capa.animate([{ background: 'rgba(61,220,74,.0)' }, { background: 'rgba(61,220,74,.55)', offset: .3 }, { background: 'rgba(61,220,74,0)' }], { duration: 1200 });
+    }
+    const nouvelle = corps.querySelector('.dk-upgrade');
+    if (nouvelle) texteQuiMonte(nouvelle, t('deck.puissance', { n: gain }), { classe: 'puissance' });
+    else if (paire) texteQuiMonte(paire, t('deck.puissance', { n: gain }), { classe: 'puissance' });
+  }, fx.delaiMs);
+}
+
 /** Les cinq emplacements. Toucher ou maintenir une carte la lit ; toucher celle de derriere l'echange. */
 function pageDeck(corps, id, echange) {
   const heros = CHAR_BY_ID[id];
   const grille = el('<div class="dk-cartes"></div>');
   heros.cards.forEach((_, slot) => grille.appendChild(paireDeCartes(heros, slot)));
+  const case6 = celluleUpgrade(heros, corps);
+  if (case6) grille.appendChild(case6);
   corps.appendChild(grille);
 
   const lis = n => montreLecture(ficheDeCarte(carteDeFace(heros, +n.closest('.dk-paire').dataset.slot, n.dataset.face)));
@@ -440,7 +518,8 @@ function pageAmelioration(corps, id, vue) {
     </button>`);
     b.onclick = () => {
       const r = upgradeChar(id);
-      if (r !== 'ok') { b.classList.remove('non'); void b.offsetWidth; b.classList.add('non'); return; }
+      if (r !== 'ok') { b.classList.remove('non'); void b.offsetWidth; b.classList.add('non'); vibre(BALANCE.ui.upgradeFx.vibrationRefus); return; }
+      vibre(BALANCE.ui.upgradeFx.vibration);
       refreshTop(); renderDeck();
       ficheHeros(id, { onglet: 'amelioration' });
       const fait = document.querySelector(`#modal .upg-noeud[data-i="${faites}"]`);
@@ -502,7 +581,11 @@ function carteDEtape(heros, e, i, classes, centre) {
 function aLaSwitch(id, slot) {
   const st = save.chars[id];
   if (!st.bought) st.bought = [false, false, false, false, false];
-  return st.bought[slot];
+  if (st.bought[slot]) return true;
+  // Les cartes switch sortent des boosters (3 nov. 2026) : elle est a toi des qu'elle est decouverte.
+  const alt = CHAR_BY_ID[id].switches?.[slot];
+  const collection = partie()?.collection;
+  return !!(alt && collection && collection[alt.id] !== undefined);
 }
 
 function achatSwitch(id, slot, done) {

@@ -1571,3 +1571,33 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 
 /* La pastille rouge d'une carte nouvelle ne couvre plus le niveau du heros (en haut a droite) : elle passe en haut a gauche. */
 .dk-vig .pastille { top: -5px; left: -5px; right: auto; }
+
+/* ---------- la fiche d'un heros d'apres la maquette « Level Up » (3 nov. 2026) : en-tete a pastilles, cout bleu, case d'amelioration ---------- */
+.upg-tete { grid-template-columns: 79px 1fr; padding-right: 20px; }
+.upg-ident { display: grid; gap: 6px; min-width: 0; }
+.upg-ligne { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.upg-pill { display: inline-flex; align-items: center; height: 30px; padding: 0 16px; font-size: 20px; border-radius: 999px; background: #fff3d8; color: var(--dk-trait, #2b1c1f); border: 3px solid var(--dk-trait, #2b1c1f); box-shadow: 0 2px 0 var(--dk-trait, #2b1c1f); }
+.upg-pill.arch { color: #fff; background: #c1121f; text-shadow: 0 2px 0 rgba(0,0,0,.4); }
+.upg-pill.arch.control { background: #2f6fdd; }
+.upg-pill.arch.combo { background: #8e3fd0; }
+.dk-face .upg-cout { background: #2f8bff; color: #fff; }
+
+.dk-upgrade { position: relative; display: grid; align-content: center; justify-items: center; gap: 6px; align-self: center; min-height: 150px; padding: 10px 8px; border-radius: 16px; border: 3px solid #2b1c1f; background: #6ff03a; box-shadow: inset 4px 4px 0 rgba(255,255,255,.4), 0 5px 0 #2b1c1f; color: #2b1c1f; font: inherit; cursor: pointer; }
+.dk-upgrade.pauvre { background: #c9d6c3; filter: saturate(.55); }
+.dk-upgrade.max { background: #ffe9b0; cursor: default; font-size: 22px; }
+.dk-upgrade.non { animation: dk-non .3s; }
+.dk-upgrade .up-cartes { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.up-mini { position: relative; width: 56px; height: 62px; border: 3px solid #2b1c1f; border-radius: 9px; background: #fff3d8; box-shadow: 0 3px 0 #2b1c1f; }
+.up-mini img { position: absolute; inset: 2px; width: calc(100% - 4px); height: calc(100% - 4px); object-fit: contain; }
+.up-niv { position: absolute; right: -9px; bottom: -9px; min-width: 22px; height: 22px; padding: 0 3px; box-sizing: border-box; display: grid; place-items: center; border-radius: 50%; background: #ef4a5f; color: #fff; border: 2px solid #2b1c1f; font-size: 14px; }
+.up-nouv { position: absolute; left: -7px; top: -7px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: #3ddc4a; border: 2px solid #2b1c1f; }
+.up-fleche { display: grid; place-items: center; }
+.up-prix { display: flex; align-items: center; gap: 6px; font-size: 26px; }
+.up-prix b { font-weight: inherit; }
+.up-power { font-size: 14px; }
+
+/* La couche des effets de l'amelioration (ui/upgrade-fx.js). */
+.upg-fx { position: fixed; inset: 0; pointer-events: none; z-index: 9990; overflow: visible; }
+.upg-grosse { display: grid; place-items: center; border-radius: 50%; background: #f04f63; color: #fff; border: 5px solid #2b1c1f; box-shadow: inset 4px 4px 0 rgba(255,255,255,.35), 0 6px 0 #2b1c1f, 0 0 26px rgba(255,120,60,.9); -webkit-text-stroke: 2px #2b1c1f; paint-order: stroke fill; }
+.upg-monte { font-size: 26px; color: #6ff03a; -webkit-text-stroke: 2px #2b1c1f; paint-order: stroke fill; text-shadow: 0 3px 0 rgba(0,0,0,.45); white-space: nowrap; }
+.upg-piece { border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6b0, #ffc928 55%, #d98a00); border: 2px solid #8a5400; }

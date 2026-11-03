@@ -115,6 +115,11 @@ export const BALANCE = {
     rigsUnites: true,   // idem pour les cartes posees sur le plateau (leur illustration a un rig : `game/data/rigs/`)
     appuiLongMs: 400,       // au-dela de cette duree, le doigt pose LIT la carte au lieu d'agir
     toleranceDoigtPx: 10,   // un doigt qui glisse de plus que ca fait defiler, il ne lit ni n'agit
+    // L'AMELIORATION D'UN HEROS, « le plus satisfaisant possible » (3 nov. 2026, ui/upgrade-fx.js) : le tremblement de la fiche (`shakeMs`, `shakePx`),
+    // la vibration du telephone (motifs en ms : vibre, pause, vibre…), l'explosion (etincelles, duree), la grosse pastille du niveau, le texte qui monte, les
+    // pieces qui partent vers la barre du haut. `haptique` a false coupe toute vibration.
+    haptique: true,
+    upgradeFx: { shakeMs: 460, shakePx: 10, vibration: [20, 30, 50, 40, 110], vibrationRefus: [35, 40, 35], etincelles: 26, explosionMs: 800, pastilleMs: 1150, texteMs: 1100, pieces: 7, piecesMs: 800, delaiMs: 140 },
     echangeCarteMs: 520,    // l'ecran Deck : le temps qu'une carte passe devant l'autre (switch)
 
     // LES EFFETS DU COMBAT (ui/effets.js) : du ressenti, pas des regles. Tous les temps sont en
