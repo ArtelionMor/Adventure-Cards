@@ -88,13 +88,28 @@ function majBarre() {
 // La scene se redessine toute seule (ui/boutique-scene.js) : elle lit l'etat a chaque image.
 
 // ------------------------------------------------------------------ onglet Stock
+/**
+ * EMPILE les copies (4 nov. 2026) : une case par carte ET par finition (une foil n'est pas une normale), avec le nombre de copies ; une carte GRADEE est
+ * unique (sa note, son boitier) : chacune garde sa case. `stock` arrive trie ; chaque groupe garde sa premiere copie, la plus proche du haut du tri.
+ */
+function empile(stock) {
+  const groupes = new Map();
+  for (const inst of stock) {
+    const cle = inst.grade !== null && inst.grade !== undefined ? `g${inst.id}` : `${inst.cardId}|${inst.finish}`;
+    const g = groupes.get(cle);
+    if (g) g.n++; else groupes.set(cle, { inst, n: 1 });
+  }
+  return [...groupes.values()];
+}
+const nombreDe = n => (n > 1 ? `<em class="btq-n">x${n}</em>` : '');
+
 export function panneauStock(surChoix = null) {
   const S = partie();
   const stock = Object.values(S.instances).filter(i => i.location === 'stock').sort((a, b) => instanceRef(b, S, ctx) - instanceRef(a, S, ctx));
   const box = el(`<div><div class="btq-ligne"><h3>${t('ui.doubles', { n: stock.length })}</h3><span class="muted">${t('ui.discovered', { a: Object.keys(S.collection).length, b: ctx.index.cardById.size, c: Object.keys(S.foilCollection).length })}</span></div><div class="btq-grille"></div></div>`);
   if (!stock.length) box.querySelector('.btq-grille').appendChild(el(`<p class="muted">${t('ui.openBoostersForDoubles')}</p>`));
-  for (const inst of stock) {
-    const n = el(`<button class="btq-case-c">${carteHtml(inst.cardId, inst.finish, inst.grade)}<span>${court(Math.round(instanceRef(inst, S, ctx)))}</span></button>`);
+  for (const { inst, n: copies } of empile(stock)) {
+    const n = el(`<button class="btq-case-c">${carteHtml(inst.cardId, inst.finish, inst.grade)}${nombreDe(copies)}<span>${court(Math.round(instanceRef(inst, S, ctx)))}</span></button>`);
     n.onclick = () => (surChoix ? surChoix(inst.id) : ficheCopie(inst.id));
     box.querySelector('.btq-grille').appendChild(n);
   }
@@ -411,8 +426,8 @@ function ouvreWidgetVitrine(displayId) {
       closeModal(); change();
     };
   };
-  for (const inst of stock) {
-    const n = el(`<button class="btq-case-c" data-id="${inst.id}">${carteHtml(inst.cardId, inst.finish, inst.grade)}<span>${court(Math.round(instanceRef(inst, S, ctx)))}</span></button>`);
+  for (const { inst, n: copies } of empile(stock)) {
+    const n = el(`<button class="btq-case-c" data-id="${inst.id}">${carteHtml(inst.cardId, inst.finish, inst.grade)}${nombreDe(copies)}<span>${court(Math.round(instanceRef(inst, S, ctx)))}</span></button>`);
     n.onclick = () => choisit(inst);
     rangee.appendChild(n);
   }
@@ -453,8 +468,8 @@ function ouvreWidgetEstrade(i) {
       detail.querySelector('.btq-puces').appendChild(b);
     }
   };
-  for (const inst of stock) {
-    const n = el(`<button class="btq-case-c" data-id="${inst.id}">${carteHtml(inst.cardId, inst.finish, inst.grade)}<span>${court(Math.round(instanceRef(inst, S, ctx)))}</span></button>`);
+  for (const { inst, n: copies } of empile(stock)) {
+    const n = el(`<button class="btq-case-c" data-id="${inst.id}">${carteHtml(inst.cardId, inst.finish, inst.grade)}${nombreDe(copies)}<span>${court(Math.round(instanceRef(inst, S, ctx)))}</span></button>`);
     n.onclick = () => choisit(inst);
     rangee.appendChild(n);
   }

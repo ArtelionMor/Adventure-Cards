@@ -1658,3 +1658,7 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 .pk-tous:not([hidden]), .pk-b:not(:disabled), .pk-achete:not(:disabled) { animation: dk-pulse 1.2s ease-in-out infinite; }
 button.btn:not(.ghost):not(.rouge):not(:disabled):not(.non) { animation: dk-pulse 1.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .pk-tous, .pk-b, .pk-achete, button.btn { animation: none !important; } }
+
+/* Les copies empilees d'une carte (collection des Packs, vitrines, encheres) : « x3 » dans le coin de la case. */
+.btq-case-c { position: relative; }
+.btq-n { position: absolute; right: 2px; top: 2px; z-index: 3; min-width: 22px; padding: 1px 5px; border-radius: 999px; background: #2b1c1f; color: #ffd76a; font-style: normal; font-size: 12px; line-height: 1.3; border: 2px solid #ffd76a; pointer-events: none; }

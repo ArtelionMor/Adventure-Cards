@@ -213,8 +213,8 @@ export function placeBid(state           , lotId        , ctx     )             
   const lot = state.market.lots.find((l) => l.id === lotId);
   if (!lot || state.nowMs >= lot.endMs) return { ok: false, reason: 'Cette enchère est terminée.' };
   if (lot.holder === 'player') return { ok: false, reason: 'Tu es déjà en tête.' };
-  // Un lot tarifé pour une carte manquante, dont la carte est sortie d'un booster depuis : son prix n'est plus celui d'un double.
-  if (!lot.owned && state.collection[lot.cardId] !== undefined) return { ok: false, reason: 'Tu as obtenu cette carte entre-temps.' };
+  // On peut miser sur une carte qu'on a déjà (décision du game designer, 4 nov. 2026) : le lot, tarifé pour une carte manquante, coûte plus cher qu'un double — c'est
+  // le joueur qui paie l'écart, jamais un gain garanti ; la copie gagnée va dans les doubles.
   const price = nextBid(lot, ctx);
   if (state.gold < price) return { ok: false, reason: 'Or insuffisant.' };
   state.gold -= price;
