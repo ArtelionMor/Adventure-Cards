@@ -17,10 +17,11 @@ import { CHAR_BY_ID } from '../config/characters.js';
 import { t } from '../config/textes.js';
 import {
   save, persist, team, etatArene, areneDe, puissanceEquipe, tailleDuDeck, tailleMinDuDeck, retireCarte, rendCarte,
-  enregistreDeck, chargeDeck, supprimeDeck, possede
+  enregistreDeck, chargeDeck, supprimeDeck, possede, setTeamSlot
 } from '../state.js';
 import { CONFIG } from '../boutique/noyau/donnees.js';
-import { combatDeLaLigne, indexCourant, longueurLigne } from '../boutique/partie.js';
+import { combatDeLaLigne, indexCourant, longueurLigne, partie } from '../boutique/partie.js';
+import { autoDebloque } from '../boutique/heros.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
 import { panneauEquipe } from './deck.js';
 import { icone } from './icones.js';
@@ -172,8 +173,17 @@ function combatSuivant() {
   const cur = indexCourant();
   const c = combatDeLaLigne(cur);
   const n = noeudDeLArene(c.arene);
-  if (cur >= longueurLigne() || !n || tailleDuDeck() < tailleMinDuDeck()) { renderArene(); return; }
+  if (cur >= longueurLigne() || !n || tailleDuDeck() < tailleMinDuDeck() || !autoDebloque()) { renderArene(); return; }
+  remetLeDernierDeck();
   openBattle({ ...n, niveau: c.niveau, enchaine: true }, g => (g ? combatSuivant() : renderArene()));
+}
+
+/** Le mode Auto joue le dernier deck joue : les heros du dernier combat reprennent leur place (ceux qu'on possede encore). */
+function remetLeDernierDeck() {
+  const dernier = partie()?.lastDeck?.heroes;
+  if (!dernier || dernier.join() === team().join()) return;
+  if (!dernier.every(id => possede(id))) return;
+  dernier.forEach((id, i) => setTeamSlot(i, id));
 }
 
 function dessineLigne() {

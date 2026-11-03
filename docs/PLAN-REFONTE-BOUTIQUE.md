@@ -46,6 +46,9 @@ Noyau (`core/`, branche `refonte-boutique`, 56a21c1) puis régénération. Tests
 - **Limite connue** : l'écran des boosters ouvre encore « toutes extensions débloquées » ; **le choix du booster par extension dans l'UI n'est dans aucun lot** (à ajouter, lot 2 ou à part).
 - **Le simulateur** `scripts/sim-economie-boutique.mjs` est recréé (l'original est introuvable) ; ses paramètres sont lisibles dans la Sheet (`~boutique_simulation`), les marches de la ligne dans `~boutique_progression`.
 
+## 3 ter. Lot 2 — fait (3 nov. 2026)
+Écran Deck sans équipe, héros cachés / grisés, Power, bouton flottant à deux états (`BALANCE.heros.lot`), fiche d'amélioration qui souligne ce qui change, animations rejouées à l'ouverture du héros, offre d'arrivée (prix = 50 % du prix à la main, `BALANCE.heros.offre.remise`), mode Auto verrouillé jusqu'à 10 adversaires battus (`BALANCE.heros.auto`). Banc : `scripts/test-heros.mjs` (30 ✓). **Vérifié dans le navigateur à 375 × 812 seulement** ; l'offre, le verrou Auto en combat et les autres ratios ne l'ont pas été. **Valeurs proposées, à régler** : lot débloqué après 4 adversaires, niveau de référence = 3ᵉ meilleur héros, remise 50 %. Les puissances requises de la Sheet (`encounters`) et la fiche d'arène sont calibrées sur l'ancienne formule du Power : lot 3.
+
 ## 4. Questions ouvertes (réponse nécessaire avant le lot indiqué)
 
 1. **Lot 1 — `core/`** : OK pour commiter d'abord ses modifications en cours (ou me dire de les laisser) ?

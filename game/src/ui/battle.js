@@ -5,6 +5,7 @@ import { CHAR_BY_ID, CHARACTERS, characterDeck, resolveCard, pvDeLEquipe } from 
 import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist, gagneXp, noteCombatArene, etatArene, signale } from '../state.js';
 import { noteVictoireBoutique, noteCombatBoutique, donneBoosterPremium } from '../boutique/partie.js';
+import { autoDebloque } from '../boutique/heros.js';
 import { t } from '../config/textes.js';
 import { coteEnnemi } from '../config/ennemis.js';
 import { relicMods } from '../config/relics.js';
@@ -231,7 +232,8 @@ export function openBattle(node, done, { rejeu: donnees = null, apres = null } =
   fermeLecture();
   poseLesGestes();
   closeModal();
-  auto = true;
+  // Le mode Auto est verrouille au depart (BALANCE.heros.auto) : le combat se joue a la main jusqu'au rang qui le debloque.
+  auto = autoDebloque();
   enPause = false;
   dernierJournal = null;
   fx.remetVitesse();
@@ -979,6 +981,7 @@ function monteLaCoque(root) {
   for (const p of [c.def, c.defE.n, c.piocheP.n, c.piocheE.n, c.eventail]) p.onclick = ouvreDefausse;
   c.chip.onclick = () => {
     if (rejeu) { rejeu.pause = !rejeu.pause; render(); boucleRejeu(); return; }
+    if (!auto && !autoDebloque()) { toast(t('auto.verrouille', { n: BALANCE.heros.auto.apresVictoires })); return; }
     auto = !auto;
     reinitSelection();
     render();

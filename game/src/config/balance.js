@@ -292,7 +292,23 @@ export const BALANCE = {
   //     quete qui offre un heros se fait toujours, et les places d'equipe restent celles du tutoriel (la console de
   //     triche sait le passer).
   // La console de triche peut le couper le temps d'une session. Remettre a false quand la carte est la.
-  toutDebloque: true,
+  toutDebloque: false,
+
+  // LES HEROS, LEUR POWER ET LEURS AMELIORATIONS EN LOT (refonte boutique, 3 nov. 2026). Tout est provisoire : a regler ici (la Sheet,
+  // onglet ~boutique_simulation, en garde la copie lisible).
+  heros: {
+    // Le POWER remplace le niveau comme chiffre visible : 10 x la somme des niveaux des heros possedes (decision du 3 nov.).
+    power: { parNiveau: 10 },
+    // Le NIVEAU DE REFERENCE : le niveau du `rang`-ieme meilleur heros (3 = celui d'un trio). Un heros sous ce niveau est « en retard ».
+    reference: { rang: 3 },
+    // L'amelioration EN LOT se debloque quand la ligne de combats a avance de `apresVictoires` adversaires (le bouton flottant du Deck).
+    lot: { apresVictoires: 4 },
+    // L'OFFRE a l'arrivee d'un heros : le mettre au niveau de reference contre des pieces = `remise` x le prix des ameliorations a la main.
+    offre: { remise: 0.5 },
+    // Le mode AUTO (le bouton du combat et l'enchainement des combats) se debloque quand `apresVictoires` adversaires ont ete battus
+    // (le rang atteint dans la ligne) ; il rejoue le dernier deck joue. Le tutoriel garde son Auto (le combat guide l'enseigne).
+    auto: { apresVictoires: 10 }
+  },
 
   // LA FERME est hors du jeu pour l'instant (31 oct. 2026) : son ecran et son code restent, mais rien n'y mene, elle ne tourne
   // plus et ses quetes se sautent. Remettre a true pour la rebrancher (et son bouton dans game/index.html).

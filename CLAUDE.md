@@ -309,7 +309,7 @@ et `game/index.html` sont en LF dans git mais en CRLF dans un dossier de travail
 pas tant qu'on n'y touche pas, grâce à son cache de dates). La première édition y réécrit alors
 **tout le fichier** dans `git diff` : les remettre en LF avant de commiter.
 
-Après un changement du noyau de la boutique (`core/`, `gen-boutique.mjs`, `game/src/boutique/`), faire tourner `node scripts/test-boutique.mjs` (et, dans `core/`, `npm run check`, `node scripts/sim-arbitrage.ts`).
+Après un changement du noyau de la boutique (`core/`, `gen-boutique.mjs`, `game/src/boutique/`), faire tourner `node scripts/test-boutique.mjs` et `node scripts/test-heros.mjs` (et, dans `core/`, `npm run check`, `node scripts/sim-arbitrage.ts`).
 
 Après toute modification du fil de quêtes (`game/src/config/quetes.js`, ou des quêtes de `state.js`), faire tourner
 `node scripts/test-quetes.mjs` — il déroule le tutoriel sur une partie neuve et vérifie qu'une ancienne sauvegarde le saute.

@@ -2,7 +2,8 @@
 // Pas de DOM. Les ecrans lisent `partie()` et appellent les moteurs du noyau avec `ctx`, puis `change()`.
 import { BOUTIQUE } from '../config/boutique.js';
 import { BALANCE } from '../config/balance.js';
-import { persist, sauvegardeFigee, save } from '../state.js';
+import { persist, sauvegardeFigee, save, brancheCartes } from '../state.js';
+import { CHARACTERS } from '../config/characters.js';
 import { createContext } from './noyau/context.js';
 import { CARTES, CONFIG } from './noyau/donnees.js';
 import { recordWin, startProgression } from './noyau/engines/progression.js';
@@ -38,6 +39,12 @@ function recoit(e) {
 
 // Un retour merite un recapitulatif s'il a dure, et s'il y a quelque chose a dire.
 const aDire = r => r.absenceMs >= BOUTIQUE.resumeHorsLigneDesS * 1000 && (r.vendues.length || r.gagnees.length || r.perdues.length || r.gradees.length);
+
+// LE HEROS DU JEU ET LE HEROS DE L'ECONOMIE : les noms ne different que par les accents (Félix / Felix, Athéna / Athena).
+const sansAccent = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const NOM_ECO = new Map(CARTES.map(c => [sansAccent(c.hero), c.hero]));
+/** Le nom du héros dans le noyau de la boutique (`state.heroes`), à partir de l'identifiant du jeu (`lapin1`, `dog`…). */
+export const nomEconomique = id => NOM_ECO.get(sansAccent(CHARACTERS.find(c => c.id === id)?.name ?? ''));
 
 export const ctx = createContext(CONFIG, CARTES, Date.now() >>> 0, recoit);
 export const partie = () => etat;
@@ -157,6 +164,8 @@ export function demarreBoutique() {
     syncBaseFurniture(etat, ctx);   // les objets des niveaux de boutique deja atteints (une ancienne sauvegarde les recoit)
   } else etat = { ...createState(ctx), vues: {}, version: 6 };
   lieLaBourse(etat);
+  // Un héros dont toutes les cartes de base sont découvertes est à toi (`possede`, state.js).
+  brancheCartes(id => !!etat?.heroes[nomEconomique(id)]?.unlocked);
   persist();
 
   const absence = Date.now() - dernier;

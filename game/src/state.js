@@ -215,12 +215,11 @@ export function upgradeCost(charId) {
 
 /** La puissance d'un heros, et celle de l'equipe : `BALANCE.progression.puissance`. */
 export function puissance(charId, niveau = save.chars[charId].level) {
-  const p = BALANCE.progression.puissance;
-  return p.base + p.parAmelioration * (niveau - 1);
+  return BALANCE.heros.power.parNiveau * niveau;
 }
 // L'equipe alignee : chaque heros compte comme un heros debloque (`nouveauHeros`) plus ses ameliorations. C'est elle
 // que la fiche d'arene compare a la puissance conseillee.
-export const puissanceEquipe = () => team().reduce((n, id) => n + BALANCE.progression.puissance.gains.nouveauHeros + puissance(id), 0);
+export const puissanceEquipe = () => team().reduce((n, id) => n + puissance(id), 0);
 
 /**
  * LA PUISSANCE DU JOUEUR (annexe « puissance » de la spec du 16 octobre 2026) : part de 0 et ne fait que monter ;
@@ -230,14 +229,8 @@ export const puissanceEquipe = () => team().reduce((n, id) => n + BALANCE.progre
  * ne verrouille rien : la fiche d'arene la compare a la puissance conseillee.
  */
 export function puissanceJoueur() {
-  const p = BALANCE.progression.puissance;
-  const g = p.gains;
-  let n = p.base;
-  for (const id of Object.keys(save.chars)) if (save.chars[id].owned) n += g.nouveauHeros + puissance(id) - p.base;
-  n += g.nouveauTrinket * (save.relics || []).length;
-  for (let niv = 2; niv <= ((save.profil && save.profil.niveau) || 1); niv++) {
-    for (const r of recompensesDuNiveau(niv)) if (r.type !== 'heros') n += g.amelioration * (r.n || 1);
-  }
+  let n = 0;
+  for (const id of Object.keys(save.chars)) if (possede(id)) n += puissance(id);
   return n;
 }
 
@@ -285,7 +278,12 @@ export function toggleSwitch(charId, slot) {
  * la nouvelle carte : tous les heros), qui ne l'ECRIT PAS : remis a false, chaque partie retrouve les heros qu'elle a
  * gagnes. Le fil de quetes lit `owned`, pas ceci : une quete qui offre un heros se fait toujours. L'interface demande ici.
  */
-export const possede = id => !!(save.chars[id] && (save.chars[id].owned || BALANCE.toutDebloque));
+export const possede = id => !!(save.chars[id] && (save.chars[id].owned || BALANCE.toutDebloque || heroDebloqueParCartes(id)));
+
+// Un heros se debloque aussi quand toutes ses cartes de base sont decouvertes (regle du noyau de la boutique, 3 nov. 2026). state.js ne
+// connait pas la boutique (elle l'importe) : `boutique/partie.js` branche ici ce qu'elle sait.
+let heroDebloqueParCartes = () => false;
+export const brancheCartes = f => { heroDebloqueParCartes = f; };
 
 export function unlockChar(charId) {
   const st = save.chars[charId];

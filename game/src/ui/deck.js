@@ -15,7 +15,8 @@ import { keyLabel } from '../config/mechanics.js';
 import { FAMILLES, familleDe, rareteDe } from '../config/familles.js';
 import { t } from '../config/textes.js';
 import { cartesNouvelles, marqueVues } from '../boutique/partie.js';
-import { save, persist, upgradeCost, upgradeChar, toggleSwitch, unlockChar, setTeamSlot, puissance, signale, possede } from '../state.js';
+import { visibilite, progresDecouverte, lotDebloque, lotPrevu, ameliorerEnLot, reperesLesArrivees, offreEnAttente, accepteOffre, refuseOffre, prendAnimations } from '../boutique/heros.js';
+import { save, persist, upgradeCost, upgradeChar, toggleSwitch, setTeamSlot, puissance, puissanceJoueur, signale, possede } from '../state.js';
 import { $, el, asset, toast, modal, closeModal, court } from './shell.js';
 import { icone } from './icones.js';
 import { ligneDePictos, pictosDe, iconeDeCle, iconeDeOp } from './pictos.js';
@@ -38,12 +39,14 @@ export function renderDeck() {
   root.innerHTML = '';
   const wrap = el('<div class="deck"></div>');
 
-  // ------------------------------------------------------------- l'equipe
-  wrap.appendChild(panneauEquipe({ apres: () => { renderDeck(); refreshTop(); } }));
+  // Plus d'equipe ici (3 nov. 2026) : elle se choisit au combat (la fiche d'arene). Le Power est le chiffre visible.
+  wrap.appendChild(el(`<div class="dk-power">${icone('Buff', 22)}<b>${t('deck.power', { n: court(puissanceJoueur()) })}</b></div>`));
 
   // -------------------------------------------------------- la collection
   const coll = el('<div class="dk-panneau dk-coll"><div class="dk-puces"></div></div>');
-  const familles = FAMILLES.filter(f => CHARACTERS.some(c => familleDe(c) === f));
+  // Un heros dont aucune carte ne sort encore des boosters n'est pas montre : ni sa fiche, ni sa famille s'il est seul.
+  const visibles = CHARACTERS.filter(c => visibilite(c.id) !== 'cache');
+  const familles = FAMILLES.filter(f => visibles.some(c => familleDe(c) === f));
   const puces = coll.querySelector('.dk-puces');
   const puce = (nom, on, faire) => {
     const b = el(`<button class="dk-puce ${on ? 'on' : ''}">${nom}</button>`);
@@ -60,15 +63,58 @@ export function renderDeck() {
     if (filtre.size && !filtre.has(f.id)) continue;
     const sec = el(`<div class="dk-dossier"><h3 class="dk-onglet">${f.nom}</h3><div class="dk-grille"></div></div>`);
     const grille = sec.querySelector('.dk-grille');
-    for (const c of CHARACTERS.filter(c => familleDe(c) === f)) {
-      const n = vignette(c);
+    for (const c of visibles.filter(c => familleDe(c) === f)) {
+      const n = vignette(c, [], false);   // l'equipe ne se montre plus ici
       n.onclick = () => (possede(c.id) ? ficheHeros(c.id) : unlockSheet(c.id));
       grille.appendChild(n);
     }
     coll.appendChild(sec);
   }
   wrap.appendChild(coll);
+  // Le bouton flottant : un seul, « Level up heroes behind », qui devient « Level up all » quand plus personne n'est en retard.
+  if (lotDebloque()) wrap.appendChild(boutonDuLot());
   root.appendChild(wrap);
+  proposeLOffre();
+}
+
+/** Le bouton flottant des ameliorations en lot (maquette « Level Up / Deck Screen »). */
+function boutonDuLot() {
+  const { mode, cout } = lotPrevu();
+  const pauvre = save.cur.C < cout || cout <= 0;
+  const b = el(`<div class="dk-lot"><button class="dk-lot-bouton ${pauvre ? 'pauvre' : ''}" data-mode="${mode}">
+    <span class="dk-lot-texte">${t(mode === 'behind' ? 'deck.lotBehind' : 'deck.lotAll')}</span>
+    <span class="dk-lot-prix">${icone('Buff', 26)}<b>${court(cout)}</b>${icone('Coin', 26)}</span>
+  </button></div>`);
+  const bouton = b.querySelector('button');
+  bouton.onclick = () => {
+    const r = ameliorerEnLot();
+    if (!r.montees) { bouton.classList.remove('non'); void bouton.offsetWidth; bouton.classList.add('non'); toast(t('deck.lotPauvre')); return; }
+    refreshTop(); renderDeck();
+    toast(t('deck.lotFait', { n: r.montees }));
+  };
+  return b;
+}
+
+/** L'offre d'un heros qui arrive : le mettre au niveau de reference contre des pieces (une a la fois). */
+function proposeLOffre() {
+  reperesLesArrivees();
+  const o = offreEnAttente();
+  if (!o || document.querySelector('#modal .dk-offre')) return;
+  const c = CHAR_BY_ID[o.id];
+  const box = el(`<div class="dk-offre">
+    <img src="${asset(c.sprite)}" alt="">
+    <h2>${t('deck.offreTitre', { nom: c.name })}</h2>
+    <p>${t('deck.offreTexte', { nom: c.name, n: o.vers })}</p>
+  </div>`);
+  const oui = el(`<button class="upg-bouton ${save.cur.C < o.cout ? 'pauvre' : ''}"><span>${t('deck.offreAccepter')}</span>${icone('Coin', 23)}<b>${court(o.cout)}</b></button>`);
+  oui.onclick = () => {
+    if (accepteOffre() !== 'ok') { toast(t('deck.offrePauvre')); return; }
+    closeModal(); refreshTop(); renderDeck();
+  };
+  const non = el(`<button class="btn ghost">${t('deck.offreRefuser')}</button>`);
+  non.onclick = () => { refuseOffre(); closeModal(); proposeLOffre(); };
+  box.append(oui, non);
+  modal(box, () => {}).classList.add('dk-feuille');
 }
 
 /**
@@ -89,15 +135,15 @@ export function panneauEquipe({ conseilles = [], apres = () => {} } = {}) {
 }
 
 /** La vignette d'un heros : ciel de sa famille, liseré de sa rarete, niveau, coche s'il est dans l'equipe. */
-function vignette(c, conseilles = []) {
+function vignette(c, conseilles = [], equipe = true) {
   const st = save.chars[c.id];
   const f = familleDe(c);
-  const dans = save.team.includes(c.id);
+  const dans = equipe && save.team.includes(c.id);
   const a = possede(c.id);
   return el(`<div class="dk-vig ${a ? '' : 'verrou'} ${conseilles.includes(c.id) ? 'conseille' : ''}" style="--fond:${f.fond};--rar:${rareteDe(c)}">
     <img src="${asset(c.sprite)}" alt="">
     <div class="nm">${a ? c.name : t('deck.verrouille')}</div>
-    <span class="dk-pastille">${a ? st.level : '-'}</span>
+    <span class="dk-pastille">${a ? st.level : (p => `${p.n}/${p.sur}`)(progresDecouverte(c.id))}</span>
     ${a && dans ? `<span class="dk-coche">${icone('Check', 16)}</span>` : ''}
     ${a && nouvellesDe(c.id).length ? '<i class="pastille"></i>' : ''}
   </div>`);
@@ -124,27 +170,17 @@ function choisirPourLaPlace(place, { conseilles = [], apres = () => {} } = {}) {
   modal(box, apres).classList.add('dk-feuille');
 }
 
+// Un heros grise : ses cartes sortent des boosters, il se debloque quand toutes ses cartes de base sont decouvertes (plus d'achat).
 function unlockSheet(id) {
   const c = CHAR_BY_ID[id];
-  const st = save.chars[id];
-  const cost = BALANCE.costs.charUnlock;
-  const box = el(`<div>
+  const p = progresDecouverte(id);
+  const box = el(`<div class="dk-offre">
+    <img src="${asset(c.sprite)}" alt="" style="filter:grayscale(1)">
     <h2>${c.name}</h2>
-    <img src="${asset(c.sprite)}" style="width:110px;margin:0 auto;display:block">
-    <p class="muted">${c.role}</p>
-    <p class="muted">${st.bossBeaten
-      ? `Disponible a l'achat : <b>${save.cur.A}/${cost}</b> Fanions.`
-      : 'Bats son boss dans la ligne de combats pour rendre son achat possible.'}</p>
+    <p>${t('deck.decouvertes', { n: p.n, m: p.sur })}</p>
+    <p class="muted">${t('deck.decouvrir')}</p>
   </div>`);
-  const buy = el(`<button class="btn" ${st.bossBeaten ? '' : 'disabled'}>Recruter (${cost} Fanions)</button>`);
-  buy.onclick = () => {
-    const r = unlockChar(id);
-    if (r === 'poor') toast(`Il te manque ${cost - save.cur.A} Fanions.`);
-    else if (r === 'boss') toast('Son boss n’est pas encore vaincu.');
-    else { closeModal(); renderDeck(); toast(`${c.name} rejoint l’equipe !`); }
-  };
-  box.appendChild(buy);
-  const b = el('<button class="btn ghost">Fermer</button>');
+  const b = el(`<button class="btn ghost">${t('deck.fermer2')}</button>`);
   b.onclick = closeModal;
   box.appendChild(b);
   modal(box);
@@ -408,6 +444,23 @@ function pageAmelioration(corps, id, vue) {
 
   corps.appendChild(box);
   dessine();
+  joueLesAnimationsEnAttente(box, id, etapes, faites, i => { k = i; dessine(); });
+}
+
+/**
+ * Les montees faites hors de la fiche (amelioration en lot, offre d'un nouveau heros) se jouent a son ouverture : le carrousel passe
+ * sur chaque etape gagnee, son noeud de la frise s'allume (`gagne`). La file est videe : on ne les rejoue pas.
+ */
+function joueLesAnimationsEnAttente(box, id, etapes, faites, vaA) {
+  const niveaux = prendAnimations(id);
+  if (!niveaux.length) return;
+  const pas = BALANCE.ui.upgradeLotMs ?? 650;
+  niveaux.forEach((niv, j) => setTimeout(() => {
+    if (!box.isConnected) return;
+    const i = Math.min(etapes.length - 1, niv - 2);
+    vaA(i);
+    box.querySelector(`.upg-noeud[data-i="${i}"]`)?.classList.add('gagne');
+  }, 250 + j * pas));
 }
 
 /** Une etape en carte : la carte telle que ce palier la laisse, son nom, ce qu'il apporte, son niveau. */
@@ -417,12 +470,17 @@ function carteDEtape(heros, e, i, classes, centre) {
   // La face qu'on ne joue pas est pale ; c'est l'onglet Deck qui l'equipe.
   const equipee = (e.face === 'switch') === !!st.switches[e.slot];
   const p = e.paliers[0];
+  // Ce qui change : les chiffres de cette etape comparés a la carte telle que l'etape d'avant (ou le niveau 1) la laissait.
+  const etapes = etapesDe(heros);
+  const avant = etapes.slice(0, i).reverse().find(x => x.face === e.face && x.slot === e.slot);
+  const prec = resolveCard(e.carte, avant ? avant.lvl : 1);
+  const chg = (a, b) => (a !== b ? 'change' : '');
   return el(`<div class="upg-etape ${classes} ${equipee ? '' : 'hors'}">
     <div class="upg-face">
       <img src="${asset(carte.sprite || heros.sprite)}" alt="">
-      <span class="upg-cout">${carte.cost}</span>
+      <span class="upg-cout ${chg(carte.cost, prec.cost)}">${carte.cost}</span>
       <div class="upg-bas">
-        ${carte.type === 'ally' ? `<span class="upg-stats"><b class="a">${carte.atk}</b>${icone('Attack', 10)}<b class="h">${carte.hp}</b></span>` : ''}
+        ${carte.type === 'ally' ? `<span class="upg-stats"><b class="a ${chg(carte.atk, prec.atk)}">${carte.atk}</b>${icone('Attack', 10)}<b class="h ${chg(carte.hp, prec.hp)}">${carte.hp}</b></span>` : ''}
         ${ligneDePictos(carte, { taille: centre ? 22 : 14, max: centre ? 2 : 3 })}
       </div>
     </div>
