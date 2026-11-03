@@ -38,6 +38,14 @@ Chaque lot : résumé, tests, reste ; je m'arrête et j'attends le feu vert. Un 
 
 **Tâches Card Builder** (je ne touche pas à `characters.data.js`) : `docs/TACHES-CARD-BUILDER.md`, créé au lot 1 (raretés proposées, renommage des doublons de noms, mythiques = switch) puis complété.
 
+## 3 bis. Lot 1 — fait (3 nov. 2026)
+Noyau (`core/`, branche `refonte-boutique`, 56a21c1) puis régénération. Tests du noyau : 120 ✓. Banc du jeu : `scripts/test-boutique.mjs` (11 ✓).
+- **Fait** : plus de verrou de deck ; doublons misables aux enchères (garde-fou `arbitrage-doublon`, facteur `ownedBuyMultiplier` 2,1) ; `plays` et `lastDeck` (`recordDeckPlayed`, branché sur la fin de chaque combat, rejeux exclus) ; phases A/B (`progression.extensions` / `switchExtensions`), 6 déblocages, un booster par extension (`openBooster(…, { extension })`), pitié par extension ; mythiques = switch (catalogue du noyau) ; `legendary`/`mythic`/`Control` partout ; profil 2 × 30 ; `winsToAdvance` = 1 ; sauvegarde du jeu en v6 avec migration (rien n'est retiré à un joueur existant).
+- **Mesures** (`core/scripts/mesure-lot1.ts`) : extension 2 seule, phase A en **2,9 j** (neutre, réf. 3) et **4,6 j** avec un héros S (réf. 5–7), P90 8,2 j ; mythique du héros S en **5,9 j** médiane, **14 j** max (réf. 6–7 ; 14). Trio de départ : niveau **7,3 / 12 / 15,3 / 18** aux jours 7/14/30/60 (réf. 8 / 11 / 16 / 19). 70 boosters/jour.
+- **Aucun profit garanti** (`core/scripts/sim-arbitrage.ts`, 300 lots × 5 limites × 3 reventes) : revente brute **jamais rentable** (0 % de victoires rentables) ; vitrine jamais ; **grading** : pas de profit garanti (pire cas −2 329), mais **espérance positive vers un prix de 3× la référence** (+160 par victoire, 50 % rentables, 26 victoires sur 300) — à surveiller, pas bloquant.
+- **Limite connue** : l'écran des boosters ouvre encore « toutes extensions débloquées » ; **le choix du booster par extension dans l'UI n'est dans aucun lot** (à ajouter, lot 2 ou à part).
+- **Le simulateur** `scripts/sim-economie-boutique.mjs` est recréé (l'original est introuvable) ; ses paramètres sont lisibles dans la Sheet (`~boutique_simulation`), les marches de la ligne dans `~boutique_progression`.
+
 ## 4. Questions ouvertes (réponse nécessaire avant le lot indiqué)
 
 1. **Lot 1 — `core/`** : OK pour commiter d'abord ses modifications en cours (ou me dire de les laisser) ?
@@ -54,3 +62,6 @@ Chaque lot : résumé, tests, reste ; je m'arrête et j'attends le feu vert. Un 
 - **Renommage `legendaire/mythique`** : touche le noyau, la Sheet (`~boutique_raretes`), les données de cartes (`characters.data.js`, hors périmètre) et l'UI. Les cartes sont une tâche Card Builder ; tant qu'elles ne sont pas migrées, le jeu doit lire les deux (mapping de transition) — à décider au lot 1.
 - **Tout l'arbre de travail est sale** (assets, scripts du lot rig) : je ne commite que mes fichiers.
 - **Fins de ligne** : référence `i/` de `git ls-files --eol`.
+
+## 6. Décisions du 3 nov. 2026 (réponses du game designer)
+2. Mode Auto : débloqué au **rang d'arène atteint après 10 ennemis vaincus** (lot 2). 3. **Power = 10 × somme des niveaux des héros** ; prix de l'offre de mise à niveau : à proposer au lot 2. 4. La progression distribue le contenu : **une nouveauté à chaque marche** ; marches inconnues dans la Sheet (`~boutique_progression`, 4 marches sans rien : 11 à 14).

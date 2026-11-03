@@ -206,11 +206,11 @@ export function appliqueRencontres(nodes, lignes) {
 
 const sansAccent = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
-/** « Contrôle Pillow Fort » -> { archetype: 'Contrôle', sousArchetype: 'Pillow Fort' }. */
+/** « Contrôle Pillow Fort » -> { archetype: 'Control', sousArchetype: 'Pillow Fort' }. */
 function decoupeArchetype(v) {
   const mots = String(v).trim().split(/\s+/);
   const tete = sansAccent(mots[0]);
-  const archetype = tete.startsWith('control') ? 'Contrôle' : tete === 'aggro' ? 'Aggro' : tete === 'combo' ? 'Combo' : mots[0];
+  const archetype = tete.startsWith('control') ? 'Control' : tete === 'aggro' ? 'Aggro' : tete === 'combo' ? 'Combo' : mots[0];
   return { archetype, sousArchetype: mots.slice(1).join(' ') || null };
 }
 

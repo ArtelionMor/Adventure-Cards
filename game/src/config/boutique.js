@@ -170,9 +170,9 @@ export const BOUTIQUE = {
     raretes: {
       rare: { particules: 18, portee: 170 },
       epic: { particules: 34, portee: 210, rayons: true },
-      legendaire: { particules: 60, portee: 260, rayons: true, secousse: true },
-      mythique: { particules: 90, portee: 300, rayons: true, secousse: true }
+      legendary: { particules: 60, portee: 260, rayons: true, secousse: true },
+      mythic: { particules: 90, portee: 300, rayons: true, secousse: true }
     }
   },
-  couleursRaretes: { common: '#b9b2a3', rare: '#4f9bd9', epic: '#a35fd6', legendaire: '#eea82e', mythique: '#e4482e' }
+  couleursRaretes: { common: '#b9b2a3', rare: '#4f9bd9', epic: '#a35fd6', legendary: '#eea82e', mythic: '#e4482e' }
 };

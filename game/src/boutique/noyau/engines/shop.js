@@ -117,7 +117,7 @@ export function inventaire(state           , ctx     )                         {
 /** Sort un objet de l'inventaire et le pose à la première place libre ; le joueur le déplace ensuite. */
 export function poseOffert(state           , type        , ctx     )                   {
   const def = furnitureDef(type, ctx);
-  if (!def || !(inventaire(state, ctx)[type] > 0)) return { ok: false, reason: 'Plus d’exemplaire à poser.' };
+  if (!def || !((inventaire(state, ctx)[type] ?? 0) > 0)) return { ok: false, reason: 'Plus d’exemplaire à poser.' };
   const item = place(state, def, true, ctx);
   if (!item) return { ok: false, reason: 'Plus de place : agrandis la boutique.' };
   syncBaseFurniture(state, ctx);

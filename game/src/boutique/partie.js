@@ -5,10 +5,10 @@ import { BALANCE } from '../config/balance.js';
 import { persist, sauvegardeFigee, save } from '../state.js';
 import { createContext } from './noyau/context.js';
 import { CARTES, CONFIG } from './noyau/donnees.js';
-import { recordWin } from './noyau/engines/progression.js';
+import { recordWin, startProgression } from './noyau/engines/progression.js';
 import { tick } from './noyau/engines/tick.js';
 import { createShop, syncBaseFurniture } from './noyau/engines/shop.js';
-import { createState } from './noyau/state.js';
+import { createState, recordDeckPlayed } from './noyau/state.js';
 
 const CLE = BALANCE.save.cleBoutique;
 const ecouteurs = new Set();
@@ -100,7 +100,33 @@ function metAJour(e) {
   if ((e.version ?? 1) < 5) {
     for (const h of Object.values(e.heroes)) if (h.tier === 'C') h.tier = CONFIG.tiers.defaultTier;
   }
-  e.version = 5;
+  // Refonte du 3 nov. 2026 : extensions en deux phases (A : base, B : switch), plus de verrou de deck, parties jouees par carte, doublons aux
+  // encheres, identifiants en anglais (`Control`). Les paliers ont change de place : on les repose d'apres la position dans la ligne, sans
+  // rendre ni gems ni boosters premium deux fois, et sans rien retirer a un joueur (une extension deja ouverte garde ses switch).
+  if ((e.version ?? 1) < 6) {
+    const p = e.progression;
+    const { gems, premium } = { gems: e.gems, premium: { ...e.boosters.premium } };
+    const anciennes = [...p.extensions];
+    const fonctions = [...p.features];
+    p.stepIndex = 0;
+    p.extensions = [];
+    p.switchExtensions = [];
+    p.features = [];
+    startProgression(e, ctx);
+    e.gems = gems;
+    e.boosters.premium = premium;
+    for (const x of anciennes) {
+      if (!p.extensions.includes(x)) p.extensions.push(x);
+      if (!p.switchExtensions.includes(x)) p.switchExtensions.push(x);
+    }
+    p.features = [...new Set([...p.features, ...fonctions])];
+    e.boosters.pityByExtension = {};
+    e.plays = {};
+    e.lastDeck = null;
+    delete e.lockedByDeck;
+    for (const l of e.market.lots) l.owned = e.collection[l.cardId] !== undefined;
+  }
+  e.version = 6;
 }
 
 function avance() {
@@ -129,7 +155,7 @@ export function demarreBoutique() {
     }
     metAJour(etat);
     syncBaseFurniture(etat, ctx);   // les objets des niveaux de boutique deja atteints (une ancienne sauvegarde les recoit)
-  } else etat = { ...createState(ctx), vues: {}, version: 5 };
+  } else etat = { ...createState(ctx), vues: {}, version: 6 };
   lieLaBourse(etat);
   persist();
 
@@ -193,6 +219,13 @@ export function noteVictoireBoutique(arene, niveau) {
   const c = combatDeLaLigne(indexCourant());
   if (arene !== c.arene || niveau !== c.niveau) return;
   recordWin(etat, ctx);
+  change();
+}
+
+/** Un combat joue (gagne ou perdu) : les cartes du deck gagnent une partie jouee et ce deck devient le dernier deck joue (mode Auto, Cipher). */
+export function noteCombatBoutique(heros, cartes) {
+  if (!etat) return;
+  recordDeckPlayed(etat, { heroes: heros, cards: cartes });
   change();
 }
 

@@ -1,13 +1,16 @@
 // GÉNÉRÉ par scripts/gen-boutique.mjs depuis le noyau de la boutique : ne pas éditer ici.
 // Ouverture de boosters : rareté → héros pondéré par son tier → carte du héros.
 // Le pool = cartes des extensions débloquées, héros verrouillés COMPRIS : sinon un héros
-// verrouillé ne pourrait jamais sortir ses cartes, donc jamais se débloquer.
+// verrouillé ne pourrait jamais sortir ses cartes, donc jamais se débloquer. Une extension arrive en deux phases
+// (3 nov. 2026) : la phase A donne ses cartes de base, la phase B ajoute ses cartes switch (mythiques comprises).
+// Il y a un seul booster par extension, le même aux deux phases : `opts.extension` le choisit, et il pioche dans toutes les
+// cartes débloquées de cette extension. Sans extension, le pool est celui de toutes les extensions débloquées.
 // La pitié compte les boosters ouverts (jamais des jours) depuis la dernière carte de la rareté
 // objectif d'un héros du tier de tête. Le booster premium ne touche pas à ce compteur.
 
 import { addCopy, hasFeature } from '../state.js';
 import { pickCumulative } from '../rng.js';
-                                                                                                                            
+                                                                                                                                         
 import { checkHeroUnlock } from './heroUnlock.js';
 import { effectiveRef, instanceRef } from './pricing.js';
 import { objectiveRate } from './rates.js';
@@ -28,17 +31,22 @@ import { objectiveRate } from './rates.js';
                            
  
 
-const cache = new WeakMap                                          ();
+const cache = new WeakMap                                                          ();
 
 function tablesKey(state           )         {
-  let key = state.progression.extensions.join(',');
+  let key = `${state.progression.extensions.join(',')}/${state.progression.switchExtensions.join(',')}`;
   for (const hero in state.heroes) key += `|${state.heroes[hero]?.tier}`;
   return key;
 }
 
-function buildTables(state           , ctx     )             {
+/** Cette carte peut-elle sortir ? Sa phase doit être débloquée, et son extension être celle du booster s'il en a une. */
+function inPool(c         , state           , extension                         )          {
+  if (extension !== undefined && c.extension !== extension) return false;
+  return (c.isSwitch ? state.progression.switchExtensions : state.progression.extensions).includes(c.extension);
+}
+
+function buildTables(state           , ctx     , extension              )             {
   const { cfg, index } = ctx;
-  const extensions = new Set(state.progression.extensions);
   const tables                = [];
   let objective                     = null;
 
@@ -48,9 +56,7 @@ function buildTables(state           , ctx     )             {
     const heroCum           = [];
     let cum = 0;
     for (const [hero, cards] of index.cardsByHero) {
-      const pool = cards.filter(
-        (c) => c.rarity === r.id && extensions.has(c.extension) && (cfg.boosters.switchCardsDrop || !c.isSwitch),
-      );
+      const pool = cards.filter((c) => c.rarity === r.id && inPool(c, state, extension));
       if (pool.length === 0) continue;
       cum += index.tierWeight.get(state.heroes[hero]?.tier ?? cfg.tiers.defaultTier) ?? 0;
       heroes.push(hero);
@@ -88,12 +94,15 @@ function buildTables(state           , ctx     )             {
   return { rarities: tables, rarityCum, objective, topHeroIndexes };
 }
 
-export function getPackTables(state           , ctx     )             {
+export function getPackTables(state           , ctx     , extension              )             {
   const key = tablesKey(state);
-  const hit = cache.get(ctx);
+  const slot = extension ?? '';
+  let byExtension = cache.get(ctx);
+  if (!byExtension) cache.set(ctx, (byExtension = {}));
+  const hit = byExtension[slot];
   if (hit && hit.key === key) return hit.tables;
-  const tables = buildTables(state, ctx);
-  cache.set(ctx, { key, tables });
+  const tables = buildTables(state, ctx, extension);
+  byExtension[slot] = { key, tables };
   return tables;
 }
 
@@ -139,7 +148,14 @@ export function bulkEligible(state           , inst                             
 /** Options d'ouverture : `autoBulk: false` laisse les doubles en stock (le joueur choisit leur sort carte par carte, à l'ouverture). */
                               
                      
+                                                                                                                             
+                          
  
+
+/** Les extensions dont on peut ouvrir le booster : celles dont la phase A est débloquée. */
+export function openableExtensions(state           )                {
+  return [...state.progression.extensions];
+}
 
 /** Reçoit une carte tirée : découverte, héros, filtre de bulk. Seul un double peut partir au bulk. */
 function receiveCard(state           , ctx     , card         , pity         , autoBulk = true)             {
@@ -161,23 +177,32 @@ function receiveCard(state           , ctx     , card         , pity         , a
 
 export function openBooster(state           , ctx     , opts              = {})                   {
   if (state.boosters.stock <= 0) return { ok: false, reason: 'Aucun booster en stock.' };
-  const tables = getPackTables(state, ctx);
+  const extension = opts.extension;
+  if (extension !== undefined && !state.progression.extensions.includes(extension)) {
+    return { ok: false, reason: `Extension pas encore débloquée : ${extension}.` };
+  }
+  const tables = getPackTables(state, ctx, extension);
+  if (tables.rarities.length === 0) return { ok: false, reason: 'Aucune carte à tirer.' };
   const n = ctx.cfg.boosters.cardsPerBooster;
   const pityAt = ctx.cfg.targets.pityBoosters;
   const canForce = pityAt > 0 && tables.topHeroIndexes.length > 0;
   const opened           = [];
   let hit = false;
+  const pityBefore = extension === undefined ? state.boosters.pity : (state.boosters.pityByExtension[extension] ?? 0);
 
   state.boosters.stock--;
   state.boosters.opened++;
   for (let i = 0; i < n; i++) {
-    const force = canForce && !hit && i === n - 1 && state.boosters.pity + 1 >= pityAt;
+    const force = canForce && !hit && i === n - 1 && pityBefore + 1 >= pityAt;
     const card = force ? drawPity(tables, ctx) : drawCard(tables, ctx);
     if (isTopObjective(card, tables)) hit = true;
     receiveCard(state, ctx, card, force, opts.autoBulk ?? true);
     opened.push(card.id);
   }
-  state.boosters.pity = hit ? 0 : state.boosters.pity + 1;
+  // Sans mythique dans le pool (phase A seule), il n'y a rien à attendre : la pitié n'avance pas.
+  const pityAfter = hit ? 0 : tables.objective ? pityBefore + 1 : 0;
+  if (extension === undefined) state.boosters.pity = pityAfter;
+  else state.boosters.pityByExtension[extension] = pityAfter;
   return { ok: true, value: opened };
 }
 
@@ -189,8 +214,8 @@ function foilFactor(rarity          , ctx     )         {
 }
 
 /** Valeur espérée d'une carte tirée, en prix de référence effectifs, foils compris. */
-export function expectedCardValue(state           , ctx     )         {
-  const tables = getPackTables(state, ctx);
+export function expectedCardValue(state           , ctx     , extension              )         {
+  const tables = getPackTables(state, ctx, extension);
   let value = 0;
   for (const t of tables.rarities) value += t.rate * rarityMeanValue(t, state, ctx) * foilFactor(t.rarity, ctx);
   return value;
@@ -209,8 +234,8 @@ function rarityMeanValue(t             , state           , ctx     )         {
   return prev > 0 ? weighted / prev : 0;
 }
 
-export function expectedBoosterValue(state           , ctx     )         {
-  return expectedCardValue(state, ctx) * ctx.cfg.boosters.cardsPerBooster;
+export function expectedBoosterValue(state           , ctx     , extension              )         {
+  return expectedCardValue(state, ctx, extension) * ctx.cfg.boosters.cardsPerBooster;
 }
 
 /**
@@ -218,12 +243,12 @@ export function expectedBoosterValue(state           , ctx     )         {
  * TODO(design) : prix et limite du rachat, absents du design. Surveiller le « rendement du
  * rachat » de la simulation : au-dessus de 1, la boucle crée de l'or sans fin.
  */
-export function boosterShopPrice(state           , ctx     )         {
-  return Math.ceil(expectedBoosterValue(state, ctx) * ctx.cfg.shop.boosterPriceVsValue);
+export function boosterShopPrice(state           , ctx     , extension              )         {
+  return Math.ceil(expectedBoosterValue(state, ctx, extension) * ctx.cfg.shop.boosterPriceVsValue);
 }
 
-export function buyBooster(state           , ctx     )                 {
-  const price = boosterShopPrice(state, ctx);
+export function buyBooster(state           , ctx     , extension              )                 {
+  const price = boosterShopPrice(state, ctx, extension);
   if (state.gold < price) return { ok: false, reason: 'Or insuffisant.' };
   state.gold -= price;
   state.boosters.stock++;

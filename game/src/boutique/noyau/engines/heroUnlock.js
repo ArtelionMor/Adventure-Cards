@@ -1,8 +1,8 @@
 // GÉNÉRÉ par scripts/gen-boutique.mjs depuis le noyau de la boutique : ne pas éditer ici.
 // Déblocage et tierlist des héros.
 // Un héros se débloque quand toutes ses cartes de base ont été ouvertes, hors switch.
-// Une mythique du deck de base d'un héros est donc requise comme les autres cartes.
-// `heroes.unlockExcludedRarities` permet de mesurer l'inverse (scénario `mythique_bonus`).
+// Les mythiques sont des cartes switch (3 nov. 2026) : elles ne bloquent plus le déblocage d'un héros.
+// `heroes.unlockExcludedRarities` permet de mesurer l'inverse (scénario `mythic_bonus`).
 
                                                                                    
 

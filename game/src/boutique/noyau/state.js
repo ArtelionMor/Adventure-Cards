@@ -1,12 +1,11 @@
 // GÉNÉRÉ par scripts/gen-boutique.mjs depuis le noyau de la boutique : ne pas éditer ici.
 // État joueur et règles de possession.
 // Le premier exemplaire d'une carte occupe son emplacement de collection et ne se vend pas :
-// c'est ce qui garantit « on ne vend jamais la dernière copie ». TODO(design) : ce modèle
-// d'emplacement (un occupant par carte, le reste en stock) reste à confirmer.
+// c'est ce qui garantit « on ne vend jamais la dernière copie ». Tous les doubles se vendent, deck ou non.
 
 import { startProgression } from './engines/progression.js';
 import { createShop } from './engines/shop.js';
-                                                                                                
+                                                                                                          
 
 export function createState(ctx     )            {
   const { cfg, index } = ctx;
@@ -21,9 +20,10 @@ export function createState(ctx     )            {
     nextInstanceId: 1,
     instances: {},
     collection: {},
-    lockedByDeck: {},
+    plays: {},
+    lastDeck: null,
     heroes,
-    boosters: { stock: cfg.boosters.startStock, progressMs: 0, opened: 0, pity: 0, premium: {} },
+    boosters: { stock: cfg.boosters.startStock, progressMs: 0, opened: 0, pity: 0, pityByExtension: {}, premium: {} },
     showcase: [],
     auctions: [],
     bulkBox: [],
@@ -42,6 +42,7 @@ export function createState(ctx     )            {
       auctionSlots: 0,
       tables: 0,
       extensions: [],
+      switchExtensions: [],
       opponents: [],
       features: [],
     },
@@ -66,16 +67,17 @@ export function addCopy(state           , cardId        , finish        )       
 
 export function removeInstance(state           , id            )       {
   delete state.instances[id];
-  delete state.lockedByDeck[id];
 }
 
-/** Vendable = en stock et hors deck. L'occupant de la collection n'est jamais en stock. */
+/**
+ * Vendable = en stock. L'occupant de la collection n'est jamais en stock. Un double se vend toujours,
+ * même celui d'un deck utilisé : le deck se compose de cartes (une par emplacement de collection), pas d'exemplaires.
+ */
 export function checkSellable(state           , id            )         {
   const inst = state.instances[id];
   if (!inst) return { ok: false, reason: 'Exemplaire inconnu.' };
   if (inst.location === 'collection') return { ok: false, reason: 'Dernière copie : elle reste dans la collection.' };
   if (inst.location !== 'stock') return { ok: false, reason: 'Exemplaire déjà engagé dans un canal de vente.' };
-  if (state.lockedByDeck[id]) return { ok: false, reason: 'Exemplaire utilisé dans un deck.' };
   return { ok: true, value: undefined };
 }
 
@@ -93,16 +95,11 @@ export function swapCollectionOccupant(state           , cardId        , id     
   return { ok: true, value: undefined };
 }
 
-/** Le jeu de cartes fournit le deck courant. Une copie déjà en vente ne peut pas y entrer. */
-export function setDeck(state           , ids                       )         {
-  for (const id of ids) {
-    const inst = state.instances[id];
-    if (!inst) return { ok: false, reason: `Exemplaire inconnu : ${id}.` };
-    if (inst.location !== 'collection' && inst.location !== 'stock') {
-      return { ok: false, reason: `Exemplaire ${id} engagé dans un canal de vente.` };
-    }
-  }
-  state.lockedByDeck = {};
-  for (const id of ids) state.lockedByDeck[id] = true;
-  return { ok: true, value: undefined };
+/**
+ * Le jeu de cartes signale un combat joué : les cartes du deck gagnent une partie jouée, et ce deck devient « le dernier deck joué »
+ * (le mode Auto le rejoue, Cipher en duel aussi). `cards` : les cartes réellement dans le deck, une entrée par carte.
+ */
+export function recordDeckPlayed(state           , deck          )       {
+  for (const id of deck.cards) state.plays[id] = (state.plays[id] ?? 0) + 1;
+  state.lastDeck = { heroes: [...deck.heroes], cards: [...deck.cards] };
 }

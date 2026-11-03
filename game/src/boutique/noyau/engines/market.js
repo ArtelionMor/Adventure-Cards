@@ -4,8 +4,10 @@
 // reçoit la carte. C'est la soupape du déblocage : une carte qui ne sort pas se gagne ici.
 // Chaque lot a sa graine et ses concurrents agissent à des heures fixées d'avance : le découpage des ticks ne change rien.
 // Un lot peut être foil ou déjà gradé : son plafond suit alors la valeur de cette copie-là.
-// Seule une carte manquante se gagne : elle prend son emplacement de collection, donc elle ne se revend pas et ne se grade pas.
-// Sinon, grader une carte gagnée puis la revendre rapporterait à coup sûr (`validateConfig` borne aussi le plafond des concurrents).
+// On peut miser sur une carte déjà possédée (3 nov. 2026) : le joueur apprend ce que valent les cartes, les obtient par plusieurs moyens et
+// les revend avec une plus-value. Une carte manquante prend son emplacement de collection ; un double va au stock, vendable et gradable.
+// Aucun profit garanti : `validateConfig` exige que le prix le plus bas d'une victoire (la mise la plus basse que les concurrents laissent
+// passer) ne soit jamais sous le prix de revente garanti (règle `arbitrage-doublon`), et la simulation chiffre le reste.
 
 import { Rng } from '../rng.js';
 import { addCopy, hasFeature } from '../state.js';
@@ -22,7 +24,13 @@ const MIN = 60000;
 export function marketPrice(cardId        , state           , ctx     )         {
   const card = ctx.index.cardById.get(cardId);
   if (!card) throw new Error(`Carte inconnue : ${cardId}`);
-  return Math.ceil(effectiveRef(card, state, ctx) * maxBuyerMultiplier(card, state, ctx) * ctx.cfg.market.buyMultiplier);
+  const owned = state.collection[cardId] !== undefined;
+  return Math.ceil(effectiveRef(card, state, ctx) * maxBuyerMultiplier(card, state, ctx) * buyFactor(owned, ctx));
+}
+
+/** Le facteur de plafond d'un lot : celui du marché, plus celui des doubles. */
+function buyFactor(owned         , ctx     )         {
+  return ctx.cfg.market.buyMultiplier * (owned ? ctx.cfg.market.ownedBuyMultiplier : 1);
 }
 
 /** La prochaine mise possible : le prix d'ouverture tant que personne n'a misé, un cran au-dessus ensuite. */
@@ -63,13 +71,15 @@ function openLot(state           , card         , at        , ctx     , force   
   const company = companies[scratch.int(companies.length)];
   const grade = graded && company ? drawGrade(scratch, company) : null;
   const slab              = grade !== null && company ? { company: company.id, by: first + RIVALS_PER_LOT, atMs: at - scratch.int(90) * DAY } : null;
-  const top = Math.ceil(instanceRef({ cardId: card.id, finish, grade, slab }, state, ctx) * maxBuyerMultiplier(card, state, ctx) * ctx.cfg.market.buyMultiplier);
+  const owned = state.collection[card.id] !== undefined;
+  const top = Math.ceil(instanceRef({ cardId: card.id, finish, grade, slab }, state, ctx) * maxBuyerMultiplier(card, state, ctx) * buyFactor(owned, ctx));
   const hours = c.durationsHours[scratch.int(c.durationsHours.length)] ?? 1;
   const maxRival = Math.ceil(top * (c.rivalMaxMin + scratch.next() * (c.rivalMaxMax - c.rivalMaxMin)));
   const nextRivalMs = at + delay(c.rivalDelayMinutes);
   state.market.lots.push({
     id: state.market.nextLotId++,
     cardId: card.id,
+    owned,
     finish,
     grade,
     slab,
@@ -88,18 +98,25 @@ function openLot(state           , card         , at        , ctx     , force   
   });
 }
 
-function lotPool(state           , ctx     )            {
-  const pool            = [];
+/** Les cartes qui peuvent sortir en lot : manquantes d'un côté, déjà possédées de l'autre. Une carte switch attend la phase B de son extension. */
+function lotPools(state           , ctx     )                                           {
+  const missing            = [];
+  const owned            = [];
+  const { extensions, switchExtensions } = state.progression;
   for (const c of ctx.index.cardById.values()) {
-    if (!ctx.cfg.market.rarities.includes(c.rarity) || !state.progression.extensions.includes(c.extension)) continue;
-    if (state.collection[c.id] === undefined && !state.market.lots.some((l) => l.cardId === c.id)) pool.push(c);
+    if (!ctx.cfg.market.rarities.includes(c.rarity)) continue;
+    if (!(c.isSwitch ? switchExtensions : extensions).includes(c.extension)) continue;
+    if (state.market.lots.some((l) => l.cardId === c.id)) continue;
+    (state.collection[c.id] === undefined ? missing : owned).push(c);
   }
-  return pool;
+  return { missing, owned };
 }
 
 /** Sort un lot tout de suite, hors du rythme des tirages. Rend sa carte, ou null s'il n'y a plus rien à proposer. */
 export function openLotNow(state           , ctx     , force            = {})                {
-  const pool = lotPool(state, ctx).filter((c) => !force.rarity || c.rarity === force.rarity);
+  const pools = lotPools(state, ctx);
+  const byRarity = (l           )            => l.filter((c) => !force.rarity || c.rarity === force.rarity);
+  const pool = byRarity(pools.missing).length > 0 ? byRarity(pools.missing) : byRarity(pools.owned);
   scratch.state = state.market.rngState;
   const card = pool[scratch.int(pool.length)];
   if (card) openLot(state, card, state.nowMs, ctx, force);
@@ -108,11 +125,13 @@ export function openLotNow(state           , ctx     , force            = {})   
 }
 
 function drawLots(state           , at        , ctx     )       {
-  const { offersPerRefresh } = ctx.cfg.market;
-  const pool = lotPool(state, ctx);
+  const { offersPerRefresh, lot } = ctx.cfg.market;
+  const { missing, owned } = lotPools(state, ctx);
   scratch.state = state.market.rngState;
-  for (let i = 0; i < offersPerRefresh && pool.length > 0; i++) {
-    const [card] = pool.splice(scratch.int(pool.length), 1);
+  for (let i = 0; i < offersPerRefresh && missing.length + owned.length > 0; i++) {
+    // Une part des offres porte sur des cartes déjà possédées ; une liste vide laisse la place à l'autre.
+    const fromOwned = owned.length > 0 && (missing.length === 0 || scratch.next() < lot.ownedFraction);
+    const [card] = (fromOwned ? owned : missing).splice(scratch.int((fromOwned ? owned : missing).length), 1);
     if (card) openLot(state, card, at, ctx);
   }
   state.market.rngState = scratch.state;
@@ -144,12 +163,6 @@ function rivalActs(state           , lot           , at        , ctx     )      
 function closeLot(state           , lot           , ctx     )       {
   if (lot.holder !== 'player') {
     if (lot.engaged) ctx.on?.({ t: 'auctionLost', cardId: lot.cardId, price: lot.price });
-    return;
-  }
-  // La carte est sortie d'un booster entre-temps : un exemplaire gagné ne doit pas pouvoir se revendre, la mise revient.
-  if (state.collection[lot.cardId] !== undefined) {
-    state.gold += lot.stake;
-    ctx.on?.({ t: 'auctionLost', cardId: lot.cardId, price: lot.price });
     return;
   }
   const inst = state.instances[addCopy(state, lot.cardId, lot.finish).id];
@@ -200,7 +213,8 @@ export function placeBid(state           , lotId        , ctx     )             
   const lot = state.market.lots.find((l) => l.id === lotId);
   if (!lot || state.nowMs >= lot.endMs) return { ok: false, reason: 'Cette enchère est terminée.' };
   if (lot.holder === 'player') return { ok: false, reason: 'Tu es déjà en tête.' };
-  if (state.collection[lot.cardId] !== undefined) return { ok: false, reason: 'Tu as déjà cette carte.' };
+  // Un lot tarifé pour une carte manquante, dont la carte est sortie d'un booster depuis : son prix n'est plus celui d'un double.
+  if (!lot.owned && state.collection[lot.cardId] !== undefined) return { ok: false, reason: 'Tu as obtenu cette carte entre-temps.' };
   const price = nextBid(lot, ctx);
   if (state.gold < price) return { ok: false, reason: 'Or insuffisant.' };
   state.gold -= price;

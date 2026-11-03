@@ -1,8 +1,8 @@
 // GÉNÉRÉ par scripts/gen-boutique.mjs depuis le noyau de la boutique : ne pas éditer ici.
-// Progression : une échelle d'adversaires. On bat un adversaire `winsToAdvance` fois pour passer
-// au suivant ; après le dernier, le niveau monte et l'échelle reprend. Le jeu de cartes signale
+// Progression : une échelle d'adversaires. On bat un adversaire `winsToAdvance` fois (une seule, depuis le 3 nov. 2026 : chaque
+// adversaire battu débloque quelque chose) pour passer au suivant ; après le dernier, le niveau monte et l'échelle reprend. Le jeu de cartes signale
 // une victoire par `recordWin`, jouée à la main ou par son mode auto, qui existe déjà. Atteindre un
-// adversaire applique les paliers qui l'attendent : extensions, fonctions, gems,
+// adversaire applique les paliers qui l'attendent : extensions (phase A, puis phase B), fonctions, gems,
 // boosters premium.
 
                                                                    
@@ -18,6 +18,7 @@ function reachOpponent(state           , ctx     )       {
 function applyStep(state           , step                 )       {
   const p = state.progression;
   p.extensions.push(...step.extensions);
+  p.switchExtensions.push(...step.switchExtensions);
   p.features.push(...step.features);
   state.gems += step.gems;
   for (const [id, n] of Object.entries(step.premiumBoosters)) {

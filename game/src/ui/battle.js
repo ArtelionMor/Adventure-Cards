@@ -4,7 +4,7 @@ import { BALANCE } from '../config/balance.js';
 import { CHAR_BY_ID, CHARACTERS, characterDeck, resolveCard, pvDeLEquipe } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist, gagneXp, noteCombatArene, etatArene, signale } from '../state.js';
-import { noteVictoireBoutique, donneBoosterPremium } from '../boutique/partie.js';
+import { noteVictoireBoutique, noteCombatBoutique, donneBoosterPremium } from '../boutique/partie.js';
 import { t } from '../config/textes.js';
 import { coteEnnemi } from '../config/ennemis.js';
 import { relicMods } from '../config/relics.js';
@@ -1783,6 +1783,8 @@ function finish() {
   if (win) signale('victoire', { equipe: team().length });
   // LA LIGNE DE COMBATS : la victoire sur le combat courant fait avancer d'un cran (boutique/partie.js).
   if (win && ctx.arene) noteVictoireBoutique(ctx.arene, ctx.niveau);
+  // Les parties jouees par carte et le dernier deck joue (le mode Auto le rejoue) : un combat de l'equipe du joueur, gagne ou perdu (un defi de client aussi).
+  noteCombatBoutique(team(), buildPlayerSide().deck.map(c => c.id).filter(Boolean));
 
   // `onDone` est lu ici et non au moment du toucher : « Revoir le combat » ouvre un rejeu qui le remplace.
   const fini = onDone;
