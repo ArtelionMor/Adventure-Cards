@@ -241,7 +241,7 @@ export const TEXTES = {
   'deck.puissance': '+{n} power',
   // Les heros, le Power, l'amelioration en lot et l'offre d'un nouveau heros (refonte boutique, 3 nov. 2026).
   'deck.power': 'Power {n}',
-  'deck.lotBehind': 'Level up heroes behind',
+  'deck.lotBehind': 'Catching up with lesser heroes',
   'deck.lotAll': 'Level up all',
   'deck.lotPauvre': 'Not enough coins',
   'deck.lotVerrouille': 'Unlocks after {n} opponents beaten.',

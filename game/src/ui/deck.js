@@ -121,7 +121,12 @@ function evenementsDuLot() {
       const e = etapes[niv - 2];
       if (!e) continue;
       const avant = niveauxDesCartes(heros, niv - 1)[e.face][e.slot], apres = niveauxDesCartes(heros, niv)[e.face][e.slot];
-      evts.push({ id, niv, items: changementsDe(heros, e, avant, apres), gain: puissance(id, niv) - puissance(id, niv - 1) });
+      const items = changementsDe(heros, e, avant, apres);
+      const def = e.face === 'switch' ? heros.switches[e.slot] : heros.cards[e.slot];
+      const mini = (lv, cote) => `<div class="up-mini"><img src="${asset(resolveCard(def, lv).sprite || heros.sprite)}" alt="">${pastillesDe(items, cote)}</div>`;
+      // La petite indication posee sur la vignette : la carte d'avant, la carte d'apres, avec les chiffres qui changent (comme la case d'amelioration).
+      const flash = `<div class="up-flash">${mini(avant, 'avant')}<span class="up-fleche">${icone('Next', 16)}</span>${mini(apres, 'apres')}</div>`;
+      evts.push({ id, niv, items, flash, gain: puissance(id, niv) - puissance(id, niv - 1) });
     }
     prendAnimations(id);
   }
@@ -156,12 +161,15 @@ function joueLeLot(evts, bouton) {
     if (!n) return;
     vibre(fx.lotVibrationMs);
     const p = n.querySelector('.dk-pastille');
-    if (p) { p.textContent = e.niv; pop(p, { fort: 1.5, ms: 480 }); }
+    if (p) { p.textContent = e.niv; pop(p, { fort: 2.3, ms: 700 }); }
     secoue(n, { ms: 300, px: 6 });
     explose(n, { n: 14, ms: 650 });
     brille(n, { ms: 700 });
     pop(n, { fort: 1.1, ms: 420 });
-    changementGeant(n, e.items, { ms: 1100 });
+    const f = el(e.flash);
+    n.appendChild(f);
+    f.animate([{ transform: 'scale(.2)', opacity: 0 }, { transform: 'scale(1.25)', opacity: 1, offset: .2 }, { transform: 'scale(1)', opacity: 1, offset: .32 }, { transform: 'scale(1)', opacity: 1, offset: .82 }, { transform: 'scale(.8)', opacity: 0 }], { duration: fx.lotIndicationMs, easing: 'ease-out', fill: 'forwards' });
+    setTimeout(() => f.remove(), fx.lotIndicationMs + 60);
     texteQuiMonte(n, t('deck.puissance', { n: e.gain }), { classe: 'puissance' });
   }, fx.delaiMs + i * pas));
 }

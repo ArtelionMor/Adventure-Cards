@@ -1644,3 +1644,11 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 @keyframes dk-pulse { 0%, 100% { scale: 1; filter: brightness(1); } 50% { scale: 1.06; filter: brightness(1.12); } }
 .dk-upgrade:not(.pauvre):not(.max):not(.non), .dk-lot-bouton:not(.pauvre):not(.verrou):not(.non), .upg-bouton:not(.pauvre):not(.non) { animation: dk-pulse 1.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .dk-upgrade, .dk-lot-bouton, .upg-bouton { animation: none !important; } }
+
+/* L'indication posee sur la vignette d'un heros pendant l'amelioration en lot : la carte d'avant > la carte d'apres, avec leurs chiffres. */
+.dk-vig .up-flash { position: absolute; left: 50%; top: 44%; translate: -50% -50%; display: flex; align-items: center; gap: 3px; pointer-events: none; z-index: 6; }
+.dk-vig .up-flash .up-mini { width: 32px; height: 36px; border-width: 2px; border-radius: 6px; box-shadow: 0 2px 0 #2b1c1f; }
+.dk-vig .up-flash .up-b { min-width: 16px; height: 16px; font-size: 10px; border-width: 1.5px; -webkit-text-stroke: .6px #2b1c1f; }
+.dk-vig .up-flash .up-b.atk { left: -6px; bottom: -6px; } .dk-vig .up-flash .up-b.hp { right: -6px; bottom: -6px; }
+.dk-vig .up-flash .up-b.cost { right: -6px; top: -6px; } .dk-vig .up-flash .up-b.effet, .dk-vig .up-flash .up-b.cle { left: -6px; top: -6px; }
+.dk-vig .dk-pastille { z-index: 7; }
