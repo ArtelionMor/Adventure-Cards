@@ -11,11 +11,11 @@
 //     fait defiler ces etapes, la frise du bas les montre toutes, le bouton achete la prochaine.
 import { BALANCE } from '../config/balance.js';
 import { CHARACTERS, CHAR_BY_ID, resolveCard, etapesDe, niveauMax, niveauxDesCartes } from '../config/characters.js';
-import { keyLabel } from '../config/mechanics.js';
+import { keyLabel, TRIGGERS } from '../config/mechanics.js';
 import { FAMILLES, familleDe, rareteDe } from '../config/familles.js';
 import { t } from '../config/textes.js';
 import { cartesNouvelles, marqueVues, partie } from '../boutique/partie.js';
-import { vibre, secoue, explose, pastilleGeante, texteQuiMonte, piecesQuiVolent, pop, brille } from './upgrade-fx.js';
+import { vibre, secoue, explose, changementGeant, texteQuiMonte, piecesQuiVolent, pop, brille } from './upgrade-fx.js';
 import { visibilite, progresDecouverte, lotDebloque, lotVisible, lotPrevu, ameliorerEnLot, reperesLesArrivees, offreEnAttente, accepteOffre, refuseOffre, prendAnimations } from '../boutique/heros.js';
 import { save, persist, upgradeCost, upgradeChar, toggleSwitch, setTeamSlot, puissance, puissanceJoueur, signale, possede } from '../state.js';
 import { $, el, asset, toast, modal, closeModal, court } from './shell.js';
@@ -351,6 +351,48 @@ function celluleUpgrade(heros, corps) {
   return n;
 }
 
+const signeChg = n => (n > 0 ? '+' : '\u2212') + Math.abs(n);
+
+/** Le premier effet de la carte dont un montant a change entre deux niveaux : `{ op, avant, apres }`, ou null. */
+function effetQuiChange(avant, apres) {
+  for (const slot of Object.keys(TRIGGERS)) {
+    const a = avant[slot], b = apres[slot];
+    if (!Array.isArray(a) || !Array.isArray(b)) continue;
+    for (let i = 0; i < Math.min(a.length, b.length); i++) {
+      for (const k of ['v', 'x', 'n', 'atk', 'hp']) {
+        if (typeof a[i][k] === 'number' && typeof b[i][k] === 'number' && a[i][k] !== b[i][k]) return { op: b[i].op, avant: a[i][k], apres: b[i][k] };
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * CE QUI CHANGE, pour l'animation : un element par changement de l'etape — une attaque ou des PV de plus, un cout qui baisse, un mot-cle gagne, un
+ * effet qui grossit (son icone et « avant → apres »), un effet, une aura ou un statique qui arrive. `{ icone, texte }`.
+ */
+function changementsDe(heros, e, nivAvant, nivApres) {
+  const def = e.face === 'switch' ? heros.switches[e.slot] : heros.cards[e.slot];
+  const avant = resolveCard(def, nivAvant), apres = resolveCard(def, nivApres);
+  const montant = x => (typeof x.v === 'number' ? `${x.v}` : x.atk !== undefined || x.hp !== undefined ? `+${x.atk || 0}/+${x.hp || 0}` : typeof x.n === 'number' ? `${x.n}` : '');
+  const items = [];
+  for (const p of e.paliers) {
+    if (p.stats) {
+      if (p.stats.atk) items.push({ icone: 'Attack', texte: signeChg(p.stats.atk) });
+      if (p.stats.hp) items.push({ icone: 'Health', texte: signeChg(p.stats.hp) });
+    } else if (p.cost) items.push({ icone: 'Mana', texte: signeChg(p.cost) });
+    else if (p.key) items.push({ icone: iconeDeCle(p.key) || 'Buff', texte: keyLabel(p.key) });
+    else if (p.amp) {
+      const ch = effetQuiChange(avant, apres);
+      items.push(ch ? { icone: iconeDeOp(ch.op), texte: `${ch.avant} \u2192 ${ch.apres}` } : { icone: 'Buff', texte: signeChg(p.amp) });
+    } else if (p.extra) items.push({ icone: iconeDeOp(p.extra.op), texte: montant(p.extra) });
+    else if (p.aura) items.push({ icone: 'Aura', texte: '' });
+    else if (p.statique) items.push({ icone: 'Static', texte: '' });
+    else if (p.lesDeux) items.push({ icone: 'Choice', texte: '' });
+  }
+  return items.length ? items : [{ icone: 'Buff', texte: '' }];
+}
+
 /**
  * LA MONTEE DE NIVEAU, avec tout le jus (config : `BALANCE.ui.upgradeFx`) : le bouton s'ecrase, le telephone vibre, la fiche tremble, les pieces partent
  * vers la barre du haut ; puis la page se redessine et la carte amelioree EXPLOSE (flammes, etincelles, anneau), brille et gonfle, sa grosse pastille
@@ -363,6 +405,7 @@ function monteDeNiveau(id, corps, bouton) {
   const e = etapesDe(heros)[st.level - 1];
   const feuille = document.querySelector('#modal .upg-feuille') || document.querySelector('#modal .sheet');
   const gain = puissance(id, st.level + 1) - puissance(id);
+  const niveauAvant = niveauxDesCartes(heros, st.level)[e.face][e.slot];
   const r = upgradeChar(id);
   if (r !== 'ok') {
     bouton.classList.remove('non'); void bouton.offsetWidth; bouton.classList.add('non');
@@ -371,6 +414,7 @@ function monteDeNiveau(id, corps, bouton) {
     return;
   }
   const niveauCarte = niveauxDesCartes(heros, st.level)[e.face][e.slot];
+  const changements = changementsDe(heros, e, niveauAvant, niveauCarte);
   vibre(fx.vibration);
   secoue(feuille);
   bouton.animate([{ scale: 1 }, { scale: .9, offset: .25 }, { scale: 1.08, offset: .6 }, { scale: 1 }], { duration: 360, easing: 'ease-out' });
@@ -391,7 +435,7 @@ function monteDeNiveau(id, corps, bouton) {
       explose(paire);
       brille(paire);
       pop(paire, { fort: 1.1 });
-      pastilleGeante(paire, niveauCarte);
+      changementGeant(paire, changements);
       const capa = paire.querySelector('.dk-face.devant .dk-bande');
       if (capa) capa.animate([{ background: 'rgba(61,220,74,.0)' }, { background: 'rgba(61,220,74,.55)', offset: .3 }, { background: 'rgba(61,220,74,0)' }], { duration: 1200 });
     }

@@ -1,6 +1,7 @@
 // REVOIR UN COMBAT. Le journal graphique (ui/journal.js) sur un combat DEJA FINI, garde par
 // ui/combats.js : tout y est lisible — y compris ce que l'adversaire avait en main, puisqu'il n'y a
 // plus rien a cacher. On y arrive depuis l'ecran de resultat et depuis le Sac.
+import { t } from '../config/textes.js';
 import { $, el } from './shell.js';
 import { creeJournal } from './journal.js';
 import { chargeCombat } from './combats.js';
@@ -15,7 +16,7 @@ export function ouvreRevue(id) {
     evts: () => c.evts,
     heros: { p: { sprite: c.heros && c.heros.p }, e: { sprite: c.heros && c.heros.e } },
     revele: true,
-    titre: `${c.nom} · ${gagne ? 'victoire' : c.gagnant === 'draw' ? 'match nul' : 'défaite'}`,
+    titre: `${c.nom} · ${gagne ? t('ui.victoryLower') : c.gagnant === 'draw' ? t('ui.drawLower') : t('ui.defeatLower')}`,
     onFerme: () => fond.remove()
   });
   fond.appendChild(j.n);

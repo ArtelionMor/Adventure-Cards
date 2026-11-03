@@ -8,6 +8,7 @@
 // ⚠ Un coup qui tire au hasard (« choisis au hasard parmi… ») peut tomber autrement pour de
 // vrai : l'apercu en montre UN tirage. La cible, elle, est toujours celle que le joueur a
 // designee, donc le cas courant (un sort de degats sur une unite) est exact.
+import { t } from '../config/textes.js';
 import { cloneBattle, attack, playCard } from '../combat/engine.js';
 import { urlIcone } from './icones.js';
 
@@ -74,7 +75,7 @@ export function pilule(ap) {
       const bon = r.apres.atk + r.apres.hp >= r.avant.atk + r.avant.hp;
       l1 = `<span class="l1 ${bon ? 'bon' : 'mal'}">${r.avant.atk}/${r.avant.hp} → ${r.apres.atk}/${r.apres.hp}</span>`;
     } else if (r.apres.hp === r.avant.hp) {
-      l1 = `<span class="l1">${r.avant.bouclier && !r.apres.bouclier ? 'bouclier brisé' : 'sans effet'}</span>`;
+      l1 = `<span class="l1">${r.avant.bouclier && !r.apres.bouclier ? t('ui.shieldBroken') : t('ui.noEffect')}</span>`;
     } else {
       l1 = `<span class="l1 ${r.apres.hp > r.avant.hp ? 'bon' : 'mal'}">${r.avant.hp} → ${r.apres.hp}</span>`;
     }

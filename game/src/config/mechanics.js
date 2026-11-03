@@ -11,36 +11,36 @@ import { CHARACTER_DATA } from '../../data/characters.data.js';
 // `random` sert au bot : une cible tiree au sort vaut un peu moins qu'une cible choisie.
 // `allyOnly` : n'a de sens que porte par une unite (un sort n'est "lui-meme" de rien).
 export const TARGETS = {
-  enemyAny: { label: 'Une cible adverse (unite ou heros)', pick: true },
-  enemyUnit: { label: 'Une unite adverse', pick: true },
-  enemyHero: { label: 'Le heros adverse', pick: false },
-  allEnemyUnits: { label: 'Toutes les unites adverses', pick: false },
-  randomEnemyAny: { label: 'Un ennemi au hasard (unite ou heros)', pick: false, random: true },
-  randomEnemyUnit: { label: 'Une unite adverse au hasard', pick: false, random: true },
-  ownHero: { label: 'Ton heros', pick: false },
-  allyUnit: { label: 'Un de tes allies', pick: true },
-  allAllies: { label: 'Tous tes allies (hors porteur de l’effet)', pick: false },
-  randomAllyAny: { label: 'Un allie ou ton heros, au hasard', pick: false, random: true },
-  randomAllyUnit: { label: 'Un de tes allies au hasard', pick: false, random: true },
-  self: { label: 'Elle-meme', pick: false, allyOnly: true },
+  enemyAny: { label: 'An enemy target (unit or hero)', pick: true },
+  enemyUnit: { label: 'An enemy unit', pick: true },
+  enemyHero: { label: 'The enemy hero', pick: false },
+  allEnemyUnits: { label: 'All enemy units', pick: false },
+  randomEnemyAny: { label: 'A random enemy (unit or hero)', pick: false, random: true },
+  randomEnemyUnit: { label: 'A random enemy unit', pick: false, random: true },
+  ownHero: { label: 'Your hero', pick: false },
+  allyUnit: { label: 'One of your allies', pick: true },
+  allAllies: { label: 'All your allies (except the effect\u2019s owner)', pick: false },
+  randomAllyAny: { label: 'A random ally or your hero', pick: false, random: true },
+  randomAllyUnit: { label: 'A random ally of yours', pick: false, random: true },
+  self: { label: 'Itself', pick: false, allyOnly: true },
   // Lit le mot-cle « Type » du porteur : « Les allies Chien gagnent +1/+1 » se
   // dit avec cette cible, portee par un allie qui est lui-meme un Chien.
-  sameTypeAllies: { label: 'Tes autres allies du meme type', pick: false, allyOnly: true },
+  sameTypeAllies: { label: 'Your other allies of the same type', pick: false, allyOnly: true },
   // « LUI » : de quoi enchainer deux effets sur la MEME chose sans la redesigner.
   // « Invoque un jeton, LUI inflige 6 blessures » — pas besoin de savoir de quel cote
   // il est tombe. Renvoie les destinataires du dernier effet qui en avait (pioche,
   // armure et mana n'en ont pas : ils ne cassent pas la chaine).
-  previous: { label: 'Lui (ce que l’effet precedent a vise ou cree)', pick: false },
+  previous: { label: 'Him (what the previous effect targeted or created)', pick: false },
   // CIBLES A PARAMETRE. Le type est ecrit dans la cible elle-meme, « allyType:Chien »,
   // comme un mot-cle a parametre. Elles ne dependent pas du porteur : un sort peut
   // donc dire « les allies Chien gagnent +1/+1 ».
   allyType: {
-    label: 'Tes allies d’un type',
+    label: 'Your allies of a type',
     pick: false,
     params: [{ k: 'x', type: 'text', label: 'Type visé', def: 'Chien' }]
   },
   enemyType: {
-    label: 'Les unites adverses d’un type',
+    label: 'Enemy units of a type',
     pick: false,
     params: [{ k: 'x', type: 'text', label: 'Type visé', def: 'Chien' }]
   },
@@ -48,13 +48,13 @@ export const TARGETS = {
   // n'importe laquelle », « une unite du plateau devient une copie de... ». Toutes les
   // autres cibles obligent a choisir un cote avant de choisir une unite ; celles-ci non.
   // `anyUnit` se DESIGNE : c'est le joueur qui dit laquelle, des deux cotes.
-  anyUnit: { label: 'Une unite, alliee ou adverse', pick: true },
+  anyUnit: { label: 'Any unit, allied or enemy', pick: true },
   // « Toutes » veut dire toutes : le porteur de l'effet en est, contrairement a
   // « Tous tes allies ». C'est ce qu'on attend d'un balayage de plateau.
-  allUnits: { label: 'Toutes les unites des deux camps (porteur compris)', pick: false },
-  randomUnit: { label: 'Une unite au hasard, des deux camps', pick: false, random: true },
+  allUnits: { label: 'All units on both sides (owner included)', pick: false },
+  randomUnit: { label: 'A random unit, from either side', pick: false, random: true },
   anyType: {
-    label: 'Les unites d’un type, des deux camps',
+    label: 'Units of a type, from either side',
     pick: false,
     params: [{ k: 'x', type: 'text', label: 'Type visé', def: 'Chien' }]
   },
@@ -653,22 +653,22 @@ export const EFFECTS = {
 // Ajouter un moment ici veut dire l'ajouter aussi dans combat/engine.js.
 export const TRIGGERS = {
   play: {
-    label: 'A la pose',
+    label: 'On play',
     desc: "Quand la carte est jouee : cri de guerre pour un allie, effet du sort pour un sort.",
     allyOnly: false
   },
   death: {
-    label: "Rale d'agonie",
+    label: 'Deathrattle',
     desc: "Quand cette unite meurt, quelle qu'en soit la cause.",
     allyOnly: true
   },
   turnStart: {
-    label: 'Debut de ton tour',
+    label: 'At the start of your turn',
     desc: "Chaque tour, tant que l'unite est en jeu, juste apres la pioche.",
     allyOnly: true
   },
   turnEnd: {
-    label: 'Fin de ton tour',
+    label: 'At the end of your turn',
     desc: "Chaque tour, tant que l'unite est en jeu, avant de passer la main.",
     allyOnly: true
   }
@@ -857,7 +857,7 @@ export const EVENT_TRIGGERS = Object.keys(TRIGGERS).filter(slot => TRIGGERS[slot
 // l'unite est sur le plateau, et retire des qu'elle le quitte.
 export const AURA_SCOPES = {
   otherAllies: { label: 'Tes autres allies' },
-  sameTypeAllies: { label: 'Tes autres allies du meme type' },
+  sameTypeAllies: { label: 'Your other allies of the same type' },
   enemyUnits: { label: 'Les unites adverses' }
 };
 
@@ -1301,10 +1301,10 @@ export const cibleCompte = (e, k = 't') => {
 export const KEYWORDS = {
   // `transmissible` : Charogne (V3) donne a la creature qui devore les mots-cles de COMBAT des allies
   // qu'elle mange — ces six-la, et rien d'autre (ni types, ni effets, ni caracteristiques variables).
-  Taunt: { label: 'Provocation', desc: 'Doit etre attaquee avant le heros et les autres unites.', transmissible: true, implemented: true },
+  Taunt: { label: 'Taunt', desc: 'Doit etre attaquee avant le heros et les autres unites.', transmissible: true, implemented: true },
   Charge: { label: 'Charge', desc: 'Peut attaquer des le tour ou elle arrive.', transmissible: true, implemented: true },
-  Venin: { label: 'Venin', desc: 'Detruit toute unite qu’elle blesse.', transmissible: true, implemented: true },
-  Bouclier: { label: 'Bouclier', desc: 'Absorbe entierement la premiere perte de PV.', transmissible: true, implemented: true },
+  Venin: { label: 'Venom', desc: 'Detruit toute unite qu’elle blesse.', transmissible: true, implemented: true },
+  Bouclier: { label: 'Shield', desc: 'Absorbe entierement la premiere perte de PV.', transmissible: true, implemented: true },
   // Mot-cle A PARAMETRE : il s'ecrit « type:Chien » dans `keys`. Il ne fait rien tout
   // seul — c'est une etiquette que d'autres cartes vont chercher, via la cible
   // `sameTypeAllies` ou la portee d'aura du meme nom.
@@ -1325,7 +1325,7 @@ export const KEYWORDS = {
   // (cf. « LES TYPES D'UNE UNITE » pour la seule chose qu'un type recu d'une aura ne
   // change pas : la portee des auras elles-memes).
   type_tous: {
-    label: 'Type : tous',
+    label: 'Type: all',
     desc: 'Cette unite est de TOUS les types a la fois : elle repond a « les allies Chien », aux auras « meme type », aux compteurs et aux filtres par type, quel que soit le type demande.',
     implemented: true
   },
@@ -1333,7 +1333,7 @@ export const KEYWORDS = {
   // tient. Tout le reste de sa definition (cout, effets) est remplace par ce qu'elle
   // reflete — `reflete()` dans engine.js.
   miroir: {
-    label: 'Miroir',
+    label: 'Mirror',
     desc: 'En main, cette carte devient la carte que l’adversaire vient de jouer, avec 1 mana de moins, et change a chaque nouvelle carte qu’il joue. Elle arrive en main vierge et ne se joue pas tant qu’il n’a rien joue depuis.',
     implemented: true
   },
@@ -1341,7 +1341,7 @@ export const KEYWORDS = {
   // qui l'a jouee (`playCard`, source « defausse »). `surSort` : contrairement a presque
   // tous les mots-cles, un SORT peut la porter — et un palier la donner.
   reprise: {
-    label: 'Reprise',
+    label: 'Recast',
     desc: 'Ce sort peut etre relance depuis ta defausse, au cout normal, puis il est exile : il ne revient jamais. Une reprise est un sort lance comme les autres.',
     surSort: true,
     implemented: true
@@ -1351,19 +1351,19 @@ export const KEYWORDS = {
   // (`classee`) : ce qui sort d'une pile de fatigue y est deja. L'exil et le retour en pioche ne laissent rien.
   // `surSort` : un sort peut le porter (la validation `ex-libris-risque` surveille les gestions de masse).
   ex_libris: {
-    label: 'Ex-libris',
+    label: 'Ex Libris',
     desc: 'Quand cette carte arrive dans ta defausse — jouee, morte, meulee ou defaussee —, un exemplaire entre dans ta pile de fatigue. Une seule fois par carte.',
     surSort: true,
     implemented: true
   },
   elusif: {
-    label: 'Elusif',
+    label: 'Elusive',
     desc: 'Ne peut pas etre attaquee par les unites adverses. Les sorts et les effets, eux, l’atteignent toujours.',
     transmissible: true,
     implemented: true
   },
   passe_murailles: {
-    label: 'Passe-Murailles',
+    label: 'Flank',
     desc: 'Peut frapper le heros adverse meme si des unites ont Provocation.',
     transmissible: true,
     implemented: true
@@ -1373,7 +1373,7 @@ export const KEYWORDS = {
   // rien une fois l'unite posee. Sa valeur passe par le systeme de montants variables :
   // « 2 de moins » comme « X de plus, X = tes tours joues » s'ecrivent pareil.
   cout_x_de_moins_de_plus: {
-    label: 'Cout X de moins/de plus',
+    label: 'Cost X less/more',
     desc: 'Cette carte coute X mana de moins (ou de plus). X peut etre un nombre fixe ou un compteur. Un cout ne descend jamais sous 0.',
     params: [
       {
@@ -1394,7 +1394,7 @@ export const KEYWORDS = {
         si: ({ src }) => !!(COUNTERS[src] && COUNTERS[src].needsArg)
       }
     ],
-    text: (f) => `Cout ${describeAmount(costAmount(f))} de ${f.sens === 'plus' ? 'plus' : 'moins'}`,
+    text: (f) => `Costs ${describeAmount(costAmount(f))} ${f.sens === 'plus' ? 'more' : 'less'}`,
     implemented: true
   },
   // Mot-cle a PLUSIEURS parametres : « id:stat:compteur:valeur ».
@@ -1402,7 +1402,7 @@ export const KEYWORDS = {
   // C'est une valeur derivee de plus : refresh() la recalcule, exactement comme une
   // aura, donc elle monte et descend toute seule sans jamais toucher aux degats subis.
   characteristique_variable: {
-    label: 'Caractéristique variable',
+    label: 'Variable stat',
     desc: 'L’attaque et/ou la vie de cette unite valent ce que compte un compteur (tours joues, allies d’un type...). Les statistiques ecrites sur la carte sont alors ignorees ; les renforts recus en combat, eux, s’ajoutent.',
     params: [
       {
@@ -1620,7 +1620,7 @@ export function cardMatches(card, e, B) {
 export function describeTypeLu(e) {
   const d = TYPE_SOURCES[e.typeDe];
   if (!d) return `« ${e.argType || '?'} »`;
-  const chez = e.typeQui === 'adversaire' ? ' de l’adversaire' : e.typeQui === 'deux' ? ' des deux camps' : '';
+  const chez = e.typeQui === 'adversaire' ? ' of the opponent' : e.typeQui === 'deux' ? ' of both sides' : '';
   return d.label.toLowerCase().replace('celui ', '') + chez;
 }
 
@@ -1631,11 +1631,11 @@ export function describeTypeLu(e) {
  */
 export function describeFilter(e, aMoi = true) {
   const d = CARD_FILTERS[e.quoi || 'all'] || CARD_FILTERS.all;
-  if (d.sujet) return 'la carte concernée';
-  const cartes = aMoi ? 'tes cartes' : 'les cartes';
-  if (d.arg === 'type' && typeVariable(e)) return `${cartes} du type ${describeTypeLu(e)}`;
+  if (d.sujet) return 'the card concerned';
+  const cartes = aMoi ? 'your cards' : 'the cards';
+  if (d.arg === 'type' && typeVariable(e)) return `${cartes} of type ${describeTypeLu(e)}`;
   if (d.arg === 'type') return `${cartes} « ${e.argType || '?'} »`;
-  if (d.arg === 'key') return `${cartes} avec ${e.argKey ? keyLabel(e.argKey) : '?'}`;
+  if (d.arg === 'key') return `${cartes} with ${e.argKey ? keyLabel(e.argKey) : '?'}`;
   if (d.arg === 'card') return `« ${nomDeCarte(e.argCard)} »`;
   return (aMoi || !d.tout ? d.label : d.tout).toLowerCase();
 }
@@ -1647,10 +1647,10 @@ const paquetAMoi = e => !e.qui || e.qui === 'toi';
 export function describeAura(a) {
   if (!a) return '';
   const parts = [];
-  if (a.atk) parts.push((a.atk > 0 ? '+' : '') + a.atk + ' attaque');
-  if (a.hp) parts.push((a.hp > 0 ? '+' : '') + a.hp + ' vie');
+  if (a.atk) parts.push((a.atk > 0 ? '+' : '') + a.atk + ' attack');
+  if (a.hp) parts.push((a.hp > 0 ? '+' : '') + a.hp + ' health');
   // Une aura porte un mot-cle, ou plusieurs (un palier qui en ajoute un quand elle en avait deja un).
-  if (a.key) parts.push([].concat(a.key).filter(Boolean).map(keyLabel).join(' et '));
+  if (a.key) parts.push([].concat(a.key).filter(Boolean).map(keyLabel).join(' and '));
   const scope = (AURA_SCOPES[a.scope || 'otherAllies'] || {}).label || a.scope;
   return parts.join(', ') + ' → ' + scope.toLowerCase();
 }
@@ -1676,22 +1676,22 @@ const nomDeCarte = id => {
  * CARD_FILTERS, mais dit au singulier : c'est UNE carte qui apparait, pas un paquet.
  */
 export function describeCarteCreee(e) {
-  if (e.choix === 'lui') return 'une copie de la carte de Lui';
-  if (e.choix === 'fatigue') return 'une carte de ta pile de fatigue';
+  if (e.choix === 'lui') return 'a copy of Him\u2019s card';
+  if (e.choix === 'fatigue') return 'a card from your fatigue pile';
   if ((e.choix || 'precise') !== 'hasard') return `« ${nomDeCarte(e.carte)} »`;
   const quoi = e.quoi || 'all';
-  const nom = quoi === 'ally' ? 'un allie' : quoi === 'spell' ? 'un sort' : 'une carte';
-  const precision = quoi === 'ofType' && typeVariable(e) ? ` du type ${describeTypeLu(e)}`
+  const nom = quoi === 'ally' ? 'an ally' : quoi === 'spell' ? 'a spell' : 'a card';
+  const precision = quoi === 'ofType' && typeVariable(e) ? ` of type ${describeTypeLu(e)}`
     : quoi === 'ofType' ? ` « ${e.argType || '?'} »`
-    : quoi === 'withKey' ? ` avec ${e.argKey ? keyLabel(e.argKey) : '?'}` : '';
-  return `${nom}${precision} au hasard`;
+    : quoi === 'withKey' ? ` with ${e.argKey ? keyLabel(e.argKey) : '?'}` : '';
+  return `${nom}${precision} at random`;
 }
 
 /** « chez qui » en toutes lettres. Vide pour « toi » : « 2 cartes de ta pioche » se
  *  passe de precision, c'est le cas par defaut. */
-export const chezQui = e => e.qui === 'adversaire' ? ' de l’adversaire'
-  : e.qui === 'proprietaire' ? ' de son proprietaire'
-    : e.qui === 'hasard' ? ' d’un joueur au hasard' : '';
+export const chezQui = e => e.qui === 'adversaire' ? ' of the opponent'
+  : e.qui === 'proprietaire' ? ' of its owner'
+    : e.qui === 'hasard' ? ' of a random player' : '';
 
 /** « 2 sorts de la defausse », « l'unite ciblee », « 1 × Rongeur » : la partie
  *  « quelles cartes et d'ou » d'un deplacement, commune aux trois destinations. */
@@ -1699,16 +1699,16 @@ export function describeZone(e) {
   // La pile de fatigue (Annotation) : le « chez qui » dit de QUI elle est.
   if (e.d_ou === 'fatigue') {
     const n = e.n === undefined ? 1 : e.n;
-    const sa = e.qui === 'adversaire' ? 'la pile de fatigue de l’adversaire' : 'ta pile de fatigue';
-    return typeof n === 'number' && n >= 99 ? `toutes les cartes de ${sa}` : `${describeAmount(n)} × ${describeFilter(e, paquetAMoi(e))} de ${sa}`;
+    const sa = e.qui === 'adversaire' ? 'the enemy fatigue pile' : 'your fatigue pile';
+    return typeof n === 'number' && n >= 99 ? `all the cards in ${sa}` : `${describeAmount(n)} × ${describeFilter(e, paquetAMoi(e))} de ${sa}`;
   }
   const z = ZONES[e.d_ou] || ZONES.defausse;
   if (z.carte) return `${describeAmount(e.n === undefined ? 1 : e.n)} × ${describeCarteCreee(e)}`;
   if (z.cible) return targetLabel(e.t).toLowerCase();
   const chez = chezQui(e);
-  const zone = e.d_ou === 'main' ? 'la main' : e.d_ou === 'pioche' ? 'la pioche' : 'la defausse';
-  const ou = e.ordre === 'dessus' ? `du dessus de ${zone}` : `de ${zone}`;
-  const secours = e.fatigue ? ' (completees par la fatigue)' : '';
+  const zone = e.d_ou === 'main' ? 'the hand' : e.d_ou === 'pioche' ? 'the deck' : 'the discard pile';
+  const ou = e.ordre === 'dessus' ? `from the top of ${zone}` : `from ${zone}`;
+  const secours = e.fatigue ? ' (topped up from the fatigue pile)' : '';
   return `${describeAmount(e.n === undefined ? 1 : e.n)} × ${describeFilter(e, paquetAMoi(e))} ${ou}${chez}${secours}`;
 }
 
@@ -1722,14 +1722,14 @@ export function describeModele(e) {
   if (z.carte) return describeCarteCreee(e);
   if (z.cible) return targetLabel(e.tm).toLowerCase();
   const chez = chezQui(e);
-  const zone = e.d_ou === 'main' ? 'la main' : e.d_ou === 'pioche' ? 'la pioche' : 'la defausse';
-  const ou = e.ordre === 'dessus' ? `du dessus de ${zone}` : `de ${zone}`;
+  const zone = e.d_ou === 'main' ? 'the hand' : e.d_ou === 'pioche' ? 'the deck' : 'the discard pile';
+  const ou = e.ordre === 'dessus' ? `from the top of ${zone}` : `from ${zone}`;
   return `${describeFilter(e, paquetAMoi(e))} ${ou}${chez}`;
 }
 
 /** « et leur donne +2/+2 » — le renfort qu'un deplacement pose sur ses cartes. */
 const bonusDeplacement = e => (e.atk || e.hp)
-  ? ` et leur donne +${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)}` : '';
+  ? ` and give them +${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)}` : '';
 
 /** Une branche de « Choisir », ou « ? » tant qu'elle est vide. */
 const brancheTexte = v => listeEffets(v).map(describeEffect).join(', ') || '?';
@@ -1743,73 +1743,73 @@ const signe = v => (typeof v === 'number' && v < 0 ? '' : '+') + describeAmount(
 /** Texte lisible d'un effet, pour l'apercu du builder. */
 export function describeEffect(e) {
   const def = ALL_EFFECTS[e.op];
-  if (!def) return `⚠ mecanique inconnue « ${e.op} »`;
+  if (!def) return `⚠ unknown mechanic « ${e.op} »`;
   const t = e.t ? ` → ${targetLabel(e.t)}` : '';
   const n = k => describeAmount(e[k]);
   switch (e.op) {
-    case 'dmg': return `${n('v')} degats${t}`;
-    case 'detruit': return `detruit${t}`;
-    case 'heal': return `soigne ${n('v')}${t}`;
+    case 'dmg': return `${n('v')} damage${t}`;
+    case 'detruit': return `destroy${t}`;
+    case 'heal': return `heal ${n('v')}${t}`;
     // Un montant peut etre negatif (un affaiblissement) : on n'ecrit pas « +-2 ».
-    case 'buff': return `${signe(e.atk)}/${signe(e.hp)}${e.key ? ' et ' + e.key : ''}${t}`;
-    case 'draw': return `pioche ${n('v')}`;
-    case 'armor': return `${n('v')} armure`;
-    case 'mana': return `+${n('v')} mana ce tour`;
-    case 'mana_au_prochain_tour': return `+${n('x')} mana au prochain tour`;
-    case 'cree': return `cree ${describeAmount(e.n === undefined ? 1 : e.n)} × ${describeCarteCreee(e)} en main${(e.atk || e.hp) ? ` (+${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)})` : ''}`;
+    case 'buff': return `${signe(e.atk)}/${signe(e.hp)}${e.key ? ' and ' + e.key : ''}${t}`;
+    case 'draw': return `draw ${n('v')}`;
+    case 'armor': return `${n('v')} armor`;
+    case 'mana': return `+${n('v')} mana this turn`;
+    case 'mana_au_prochain_tour': return `+${n('x')} mana next turn`;
+    case 'cree': return `create ${describeAmount(e.n === undefined ? 1 : e.n)} × ${describeCarteCreee(e)} in hand${(e.atk || e.hp) ? ` (+${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)})` : ''}`;
     case 'melange_a_la_pioche': {
       // Une carte prise sur le PLATEAU retourne toujours chez son proprietaire : le
       // choix « chez qui » ne s'applique pas, et le texte ne doit pas mentir.
       // La carte retourne toujours chez SON proprietaire : le camp d'ou elle vient.
       // « Toi » et « l'adversaire » le nomment, les deux autres ne le savent qu'au
       // moment ou l'effet part — d'ou « sa pioche ».
-      const ou = (ZONES[e.d_ou] || {}).cible || !paquetAMoi(e) && e.qui !== 'adversaire' ? 'sa pioche'
-        : e.qui === 'adversaire' ? 'la pioche de l’adversaire' : 'ta pioche';
-      return `melange ${describeZone(e)} dans ${ou}${bonusDeplacement(e)}`;
+      const ou = (ZONES[e.d_ou] || {}).cible || !paquetAMoi(e) && e.qui !== 'adversaire' ? 'its deck'
+        : e.qui === 'adversaire' ? 'the enemy deck' : 'your deck';
+      return `shuffle ${describeZone(e)} into ${ou}${bonusDeplacement(e)}`;
     }
-    case 'renforce_les_cartes': return `+${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)} pour ${describeZone(e)}`;
-    case 'renvoie_en_main': return `renvoie ${describeZone(e)} en main${bonusDeplacement(e)}`;
-    case 'pose_sur_le_plateau': return `pose ${describeZone(e)} sur le plateau${bonusDeplacement(e)}`;
+    case 'renforce_les_cartes': return `+${describeAmount(e.atk || 0)}/+${describeAmount(e.hp || 0)} for ${describeZone(e)}`;
+    case 'renvoie_en_main': return `return ${describeZone(e)} to hand${bonusDeplacement(e)}`;
+    case 'pose_sur_le_plateau': return `put ${describeZone(e)} on the board${bonusDeplacement(e)}`;
     case 'met_a_la_defausse': {
       // Depuis la pioche, c'est une meule : on le dit comme on le dit en jeu.
       if (e.d_ou === 'pioche' && (e.quoi || 'all') === 'all') {
-        const paquet = e.qui === 'adversaire' ? 'la pioche de l’adversaire'
-          : e.qui === 'proprietaire' || e.qui === 'hasard' ? 'sa pioche' : 'ta pioche';
-        return `meule ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) ${e.ordre === 'hasard' ? 'au hasard dans' : 'du dessus de'} ${paquet}`;
+        const paquet = e.qui === 'adversaire' ? 'the enemy deck'
+          : e.qui === 'proprietaire' || e.qui === 'hasard' ? 'its deck' : 'your deck';
+        return `mill ${describeAmount(e.n === undefined ? 1 : e.n)} card(s) ${e.ordre === 'hasard' ? 'at random from' : 'from the top of'} ${paquet}`;
       }
-      return `met ${describeZone(e)} a la defausse`;
+      return `put ${describeZone(e)} in the discard pile`;
     }
     case 'exile': return `exile ${describeZone(e)}`;
     case 'charogne': {
-      const qui = e.t && e.t !== 'self' ? `${targetLabel(e.t).toLowerCase()} devore` : 'devore';
-      return `${qui} ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) de la defausse adverse (+1/+1 par carte)`;
+      const qui = e.t && e.t !== 'self' ? `${targetLabel(e.t).toLowerCase()} devours` : 'devour';
+      return `${qui} ${describeAmount(e.n === undefined ? 1 : e.n)} card(s) from the enemy discard pile (+1/+1 per card)`;
     }
-    case 'appat': return `fabrique ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) de la pile de fatigue adverse dans sa defausse`;
-    case 'enregistre': return `le Registre enregistre ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) au hasard de ta main`;
-    case 'donne_type_du_registre': return `${targetLabel(e.t || 'self').toLowerCase()} reçoit ${e.quoi === 'tous' ? 'chaque type' : 'un type'} du Registre`;
+    case 'appat': return `make ${describeAmount(e.n === undefined ? 1 : e.n)} card(s) from the enemy fatigue pile in their discard pile`;
+    case 'enregistre': return `the Register records ${describeAmount(e.n === undefined ? 1 : e.n)} random card(s) from your hand`;
+    case 'donne_type_du_registre': return `${targetLabel(e.t || 'self').toLowerCase()} gets ${e.quoi === 'tous' ? 'every type' : 'a type'} from the Register`;
     case 'relance_registre': return e.mode === 'hasard'
-      ? `relance gratuitement ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) du Registre au hasard`
-      : 'relance gratuitement, pour chaque type du Registre, une carte de ce type';
-    case 'piste': return `piste ${describeAmount(e.n === undefined ? 1 : e.n)} carte(s) de la main adverse`;
-    case 'toxine': return `pose ${describeAmount(e.v === undefined ? 1 : e.v)} Toxine(s)${t}`;
+      ? `recast ${describeAmount(e.n === undefined ? 1 : e.n)} random card(s) from the Register for free`
+      : 'recast for free one card of each type in the Register';
+    case 'piste': return `track ${describeAmount(e.n === undefined ? 1 : e.n)} card(s) from the enemy hand`;
+    case 'toxine': return `apply ${describeAmount(e.v === undefined ? 1 : e.v)} Toxin(s)${t}`;
     case 'contagion':
       // Sans Toxine de plus (v a 0), c'est la version « degats seuls » d'un palier de Contagion.
       return (+e.v || 0) === 0 && (+e.dmg || 0) > 0
-        ? `${describeAmount(e.dmg)} degat(s) a chaque unite adverse qui porte une Toxine`
-        : `+${describeAmount(e.v === undefined ? 1 : e.v)} Toxine${(+e.dmg || 0) > 0 ? ` et ${describeAmount(e.dmg)} degat(s)` : ''} sur chaque unite adverse qui en porte deja`;
-    case 'epidemie': return `pose ${describeAmount(e.v === undefined ? 2 : e.v)} Toxines sur chaque unite adverse, qui inflige chacune autant de degats que de Toxines a son controleur`;
-    case 'prendre_le_controle': return `prend le controle${t}`;
-    case 'switch': return `switche ${describeZone(e)}`;
+        ? `${describeAmount(e.dmg)} damage to each enemy unit with a Toxin`
+        : `+${describeAmount(e.v === undefined ? 1 : e.v)} Toxin${(+e.dmg || 0) > 0 ? ` and ${describeAmount(e.dmg)} damage` : ''} on each enemy unit that already has one`;
+    case 'epidemie': return `apply ${describeAmount(e.v === undefined ? 2 : e.v)} Toxins on each enemy unit, which each deal as much damage to its controller as it has Toxins`;
+    case 'prendre_le_controle': return `take control${t}`;
+    case 'switch': return `switch ${describeZone(e)}`;
     // Une branche vide ne dit rien plutot que « undefined » : la carte est en cours
     // d'ecriture, pas cassee.
-    case 'choisir': return `au choix : ${branchesDe(e).map(b => brancheTexte(e[b])).join(' OU ')}`;
+    case 'choisir': return `choose one: ${branchesDe(e).map(b => brancheTexte(e[b])).join(' OR ')}`;
     // Une branche est une liste : ses effets s'enchainent, comme sur un moment.
-    case 'copie': return `${targetLabel(e.t).toLowerCase()} devient une copie ${de(describeModele(e))}`;
-    case 'pioche_x': return `cherche ${describeAmount(e.n === undefined ? 1 : e.n)} × « ${e.carte || '?'} » dans ton deck`;
-    case 'pioche_une_carte_de_type': return `cherche ${describeAmount(e.n === undefined ? 1 : e.n)} ${e.type === 'spell' ? 'sort' : 'allie'}(s) dans ton deck`;
-    case 'reduit_le_cout_de': return `${describeAmount(e.v)} mana de moins pour ${(+e.n || 0) > 0 ? (e.n > 1 ? e.n + ' cartes parmi ' : 'une carte parmi ') : ''}${describeFilter(e)} en main`;
+    case 'copie': return `${targetLabel(e.t).toLowerCase()} becomes a copy of ${describeModele(e)}`;
+    case 'pioche_x': return `search your deck for ${describeAmount(e.n === undefined ? 1 : e.n)} × « ${e.carte || '?'} »`;
+    case 'pioche_une_carte_de_type': return `search your deck for ${describeAmount(e.n === undefined ? 1 : e.n)} ${e.type === 'spell' ? 'spell' : 'ally'}(s)`;
+    case 'reduit_le_cout_de': return `${describeAmount(e.v)} less mana for ${(+e.n || 0) > 0 ? (e.n > 1 ? e.n + ' cards among ' : 'one card among ') : ''}${describeFilter(e)} in hand`;
     case 'summon': {
-      if (!e.unit) return `invoque ${e.n || 1} × ?`;
+      if (!e.unit) return `summon ${e.n || 1} × ?`;
       // Un jeton peut porter mots-cles, moments et aura : le dire, sinon la carte
       // a l'air d'un simple tas de statistiques.
       const dons = [
@@ -1817,9 +1817,9 @@ export function describeEffect(e) {
         ...TOKEN_TRIGGERS.filter(slot => (e.unit[slot] || []).length).map(slot => TRIGGERS[slot].label),
         ...(e.unit.aura ? ['Aura'] : [])
       ];
-      return `invoque ${describeAmount(e.n === undefined ? 1 : e.n)} × ${e.unit.name} ${e.unit.atk}/${e.unit.hp}`
+      return `summon ${describeAmount(e.n === undefined ? 1 : e.n)} × ${e.unit.name} ${e.unit.atk}/${e.unit.hp}`
         + (dons.length ? ` (${dons.join(', ')})` : '');
     }
-    default: return def.implemented ? def.label : `⚠ ${def.label} (pas encore codee)`;
+    default: return def.implemented ? def.label : `⚠ ${def.label} (not coded yet)`;
   }
 }

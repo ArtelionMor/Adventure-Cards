@@ -11,6 +11,7 @@
 //   'on'  — eclairee : on peut la jouer d'un geste (un clic appelle `onChoix`) ;
 //   'off' — grisee : sans objet ici (pas le mot-cle, pas assez de mana...) ;
 //   'vue' — lue seulement : ni l'un ni l'autre, par exemple la defausse de l'adversaire.
+import { t } from '../config/textes.js';
 import { el, asset, modal, closeModal } from './shell.js';
 import { icone } from './icones.js';
 import { ligneDePictos } from './pictos.js';
@@ -21,7 +22,7 @@ function carteNode(x, gi) {
   // patte (le pistage) dit quelque chose. `dos` est l'image du dos (ui/battle.js) ; `true` sans image dessine un signe.
   if (x.dos) {
     const dessin = typeof x.dos === 'string' ? `<img src="${x.dos}" alt="">` : '<div class="nm">▤</div>';
-    return el(`<div class="zcard dos vue">${dessin}${x.pistee ? `<div class="patte" title="Pistée">${icone('Track', 16)}</div>` : ''}</div>`);
+    return el(`<div class="zcard dos vue">${dessin}${x.pistee ? `<div class="patte" title="${t('ui.tracked')}">${icone('Track', 16)}</div>` : ''}</div>`);
   }
   // `data-geste` : la carte se touche par les gestes de l'ecran de combat (ui/gestes.js) —
   // un tap la joue si elle est eclairee, un appui long la lit. `g` et `i` disent laquelle.
@@ -50,7 +51,7 @@ export function ouvreZone({ titre, aide, groupes, onClose }) {
   const box = el(`<div class="zone"><h3>${titre}</h3>${aide ? `<p class="muted">${aide}</p>` : ''}</div>`);
   groupes.forEach((g, gi) => {
     const sec = el(`<section class="zgrp"><h4>${g.titre} <span class="n">${g.cartes.length}</span></h4></section>`);
-    if (!g.cartes.length) sec.appendChild(el('<div class="src">Rien ici.</div>'));
+    if (!g.cartes.length) sec.appendChild(el(`<div class="src">${t('ui.nothingHere')}</div>`));
     const grille = el('<div class="zcards"></div>');
     for (const x of g.cartes) {
       grille.appendChild(carteNode(x, gi));
@@ -58,7 +59,7 @@ export function ouvreZone({ titre, aide, groupes, onClose }) {
     if (g.cartes.length) sec.appendChild(grille);
     box.appendChild(sec);
   });
-  const fermer = el('<button class="btn ghost">Fermer</button>');
+  const fermer = el(`<button class="btn ghost">${t('ui.close')}</button>`);
   fermer.onclick = closeModal;
   box.appendChild(fermer);
   return modal(box, onClose || (() => {}));

@@ -1601,3 +1601,25 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 .upg-grosse { display: grid; place-items: center; border-radius: 50%; background: #f04f63; color: #fff; border: 5px solid #2b1c1f; box-shadow: inset 4px 4px 0 rgba(255,255,255,.35), 0 6px 0 #2b1c1f, 0 0 26px rgba(255,120,60,.9); -webkit-text-stroke: 2px #2b1c1f; paint-order: stroke fill; }
 .upg-monte { font-size: 26px; color: #6ff03a; -webkit-text-stroke: 2px #2b1c1f; paint-order: stroke fill; text-shadow: 0 3px 0 rgba(0,0,0,.45); white-space: nowrap; }
 .upg-piece { border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6b0, #ffc928 55%, #d98a00); border: 2px solid #8a5400; }
+
+/* ---------- les boutons du resume d'un tirage (ui/packs.js, 3 nov. 2026) : gros, dores / verts / cremes, contour brun et ombre pleine ---------- */
+.pk-bas-ecran { gap: 10px; padding: 0 14px 18px; }
+.pk-b { position: relative; display: grid; place-items: center; align-content: center; gap: 0; min-height: 48px; padding: 8px 14px; font: inherit; font-size: 20px; line-height: 1.05; color: #fff; cursor: pointer; border: 3px solid #2b1c1f; border-radius: 16px; box-shadow: inset 0 4px 0 rgba(255,255,255,.45), inset 0 -5px 0 rgba(0,0,0,.18), 0 5px 0 #2b1c1f; text-shadow: 0 2px 0 rgba(0,0,0,.4); -webkit-text-stroke: 1px #2b1c1f; paint-order: stroke fill; transition: transform .07s, box-shadow .07s; }
+.pk-b span { display: block; }
+.pk-b small { font-size: 13px; opacity: .9; -webkit-text-stroke: 0; text-shadow: none; color: #5a3a00; }
+.pk-b:active:not(:disabled) { transform: translateY(4px); box-shadow: inset 0 4px 0 rgba(255,255,255,.45), inset 0 -5px 0 rgba(0,0,0,.18), 0 1px 0 #2b1c1f; }
+.pk-b-or { min-height: 64px; font-size: 26px; background: linear-gradient(180deg, #ffd84a, #ffa820); }
+.pk-b-vert { background: linear-gradient(180deg, #6fe64a, #2eae38); }
+.pk-b-creme { background: linear-gradient(180deg, #fff3d8, #f1d7a2); color: #2b1c1f; text-shadow: none; -webkit-text-stroke: 0; }
+.pk-b:disabled { filter: grayscale(.85); opacity: .6; cursor: default; }
+.pk-b-ligne { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
+
+/* Ce qui change, en grand (ui/upgrade-fx.js, `changementGeant`) : l'icone dans un rond, la valeur dessous. */
+.upg-chgs { display: flex; gap: 14px; align-items: flex-start; justify-content: center; pointer-events: none; }
+.upg-chg { display: grid; justify-items: center; gap: 4px; }
+.upg-chg .rond { display: grid; place-items: center; width: 104px; height: 104px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fffdf0, #ffe9b0 70%); border: 5px solid #2b1c1f; box-shadow: inset 4px 4px 0 rgba(255,255,255,.7), 0 6px 0 #2b1c1f, 0 0 30px rgba(255,170,60,.95); }
+.upg-chg .rond img.ico { width: 74px; height: 74px; }
+.upg-chg b { font-size: 34px; line-height: 1; color: #6ff03a; -webkit-text-stroke: 3px #2b1c1f; paint-order: stroke fill; text-shadow: 0 4px 0 rgba(0,0,0,.45); white-space: nowrap; max-width: 150px; text-align: center; }
+/* Les icones du jeu sont blanches : le rond de « ce qui change » est colore, l'icone cernee de brun. */
+.upg-chg .rond { background: radial-gradient(circle at 35% 30%, #ffc15a, #f0640a 72%); }
+.upg-chg .rond img.ico { filter: drop-shadow(2px 0 0 #2b1c1f) drop-shadow(-2px 0 0 #2b1c1f) drop-shadow(0 2px 0 #2b1c1f) drop-shadow(0 -2px 0 #2b1c1f); }

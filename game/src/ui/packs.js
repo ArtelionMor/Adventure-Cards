@@ -311,18 +311,20 @@ function montreResume(racine, tirage, { ferme, encore, tous, titre = t('packs.re
     ${carteHtml(x.cardId, x.finish)}${x.neuve ? `<em>${t('packs.nouvelle')}</em>` : ''}${x.sort === 'bulk' ? `<em class="b">${t('packs.bulk')}</em>` : ''}${x.sort === 'vitrine' ? `<em class="b">${t('packs.vitrine')}</em>` : ''}</div>`)));
   bas.before(grille);
   const reste = partie().boosters.stock;
-  const un = el(`<button class="btn">${t('packs.encore')}</button>`);
+  // Les trois actions (3 nov. 2026, boutons refaits) : un gros bouton dore « Open another », puis « Open all (N) » en vert et « Done » en creme, cote a cote.
+  const un = el(`<button class="pk-b pk-b-or"><span>${t('packs.encore')}</span><small>${reste} / ${partie().boosters.stock + 0 > 0 ? cfg.boosters.storageCap : cfg.boosters.storageCap}</small></button>`);
   un.disabled = reste <= 0;
   un.onclick = encore;
-  bas.appendChild(un);
+  const ligne = el('<div class="pk-b-ligne"></div>');
   if (reste >= 2) {
-    const b = el(`<button class="btn alt">${t('packs.ouvrirTous', { n: reste })}</button>`);
+    const b = el(`<button class="pk-b pk-b-vert"><span>${t('packs.ouvrirTous', { n: reste })}</span></button>`);
     b.onclick = tous;
-    bas.appendChild(b);
+    ligne.appendChild(b);
   }
-  const fini = el(`<button class="btn ghost">${t('packs.terminer')}</button>`);
+  const fini = el(`<button class="pk-b pk-b-creme"><span>${t('packs.terminer')}</span></button>`);
   fini.onclick = ferme;
-  bas.appendChild(fini);
+  ligne.appendChild(fini);
+  bas.append(un, ligne);
 }
 
 /**
@@ -397,7 +399,7 @@ function dessineCarrousel() {
     zone.appendChild(slide);
   });
   for (const [sens, glyphe] of [[-1, '‹'], [1, '›']]) {
-    const f = el(`<button class="pk-fleche ${sens < 0 ? 'g' : 'd'}" aria-label="${sens < 0 ? 'Précédent' : 'Suivant'}">${glyphe}</button>`);
+    const f = el(`<button class="pk-fleche ${sens < 0 ? 'g' : 'd'}" aria-label="${sens < 0 ? t('ui.previous') : t('ui.next')}">${glyphe}</button>`);
     f.onclick = () => va(courant + sens);
     zone.appendChild(f);
   }

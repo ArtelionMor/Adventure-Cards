@@ -91,8 +91,8 @@ function majBarre() {
 export function panneauStock(surChoix = null) {
   const S = partie();
   const stock = Object.values(S.instances).filter(i => i.location === 'stock').sort((a, b) => instanceRef(b, S, ctx) - instanceRef(a, S, ctx));
-  const box = el(`<div><div class="btq-ligne"><h3>${stock.length} doubles</h3><span class="muted">${Object.keys(S.collection).length} / ${ctx.index.cardById.size} découvertes · ${Object.keys(S.foilCollection).length} foils</span></div><div class="btq-grille"></div></div>`);
-  if (!stock.length) box.querySelector('.btq-grille').appendChild(el('<p class="muted">Ouvre des boosters : tes doubles arrivent ici.</p>'));
+  const box = el(`<div><div class="btq-ligne"><h3>${t('ui.doubles', { n: stock.length })}</h3><span class="muted">${t('ui.discovered', { a: Object.keys(S.collection).length, b: ctx.index.cardById.size, c: Object.keys(S.foilCollection).length })}</span></div><div class="btq-grille"></div></div>`);
+  if (!stock.length) box.querySelector('.btq-grille').appendChild(el(`<p class="muted">${t('ui.openBoostersForDoubles')}</p>`));
   for (const inst of stock) {
     const n = el(`<button class="btq-case-c">${carteHtml(inst.cardId, inst.finish, inst.grade)}<span>${court(Math.round(instanceRef(inst, S, ctx)))}</span></button>`);
     n.onclick = () => (surChoix ? surChoix(inst.id) : ficheCopie(inst.id));
@@ -158,13 +158,13 @@ function ficheCopie(id, displayId = null) {
     }
   } else box.querySelector('#fGrading').remove();
   if (inst.grade !== null) {
-    ajoute(`Casser la note · ${cfg.gems.sinks[cfg.grading.breakSink].cost} gems`, () => {
+    ajoute(t('ui.breakGrade', { n: cfg.gems.sinks[cfg.grading.breakSink].cost }), () => {
       const r = breakGrade(S, id, ctx);
       if (!r.ok) { toast(r.reason); return; }
       closeModal(); change(); ficheCopie(id);
     });
   }
-  if (betterCopyFor(inst.cardId, S, ctx) === id) ajoute('Exposer dans la collection', () => agit(swapCollectionOccupant(S, inst.cardId, id)));
+  if (betterCopyFor(inst.cardId, S, ctx) === id) ajoute(t('ui.showInCollection'), () => agit(swapCollectionOccupant(S, inst.cardId, id)));
   if (!checkSellable(S, id).ok) box.querySelector('#fVitrine').disabled = true;
   modal(box);
 }
@@ -269,14 +269,14 @@ function panneauEncheres() {
     <div class="btq-liste" id="lM"></div><div id="lP"></div>
     <h3>Tes enchères${S.progression.auctionSlots ? ` ${S.auctions.length}/${S.progression.auctionSlots}` : ''}</h3><div class="btq-liste" id="lE"></div></div>`);
   if (S.progression.auctionSlots <= 0) {
-    box.querySelector('#lE').appendChild(el('<p class="muted">Une estrade d’enchères arrive avec l’agrandissement de la boutique.</p>'));
+    box.querySelector('#lE').appendChild(el(`<p class="muted">${t('ui.auctionPodiumSoon')}</p>`));
   } else if (!S.auctions.length) box.querySelector('#lE').appendChild(el('<p class="muted">Mets une carte en vente depuis ton stock.</p>'));
   for (const a of S.auctions) {
     const inst = a.item.kind === 'card' ? S.instances[a.item.instanceId] : null;
     const reste = (a.stepsTotal - a.stepsDone) * cfg.auction.stepMinutes;
     box.querySelector('#lE').appendChild(el(`<div class="btq-rang">${inst ? carteHtml(inst.cardId, inst.finish, inst.grade) : '<b>Premium</b>'}<span>${or(a.price)}</span><em>${formatDuration(reste)}</em></div>`));
   }
-  if (!hasFeature(S, cfg.market.feature)) box.querySelector('#lM').appendChild(el('<p class="muted">Débloqué en avançant dans la ligne de combats.</p>'));
+  if (!hasFeature(S, cfg.market.feature)) box.querySelector('#lM').appendChild(el(`<p class="muted">${t('ui.unlockedByLine')}</p>`));
   else if (!S.market.lots.length) box.querySelector('#lM').appendChild(el(`<p class="muted">${t('encheres.rien')}</p>`));
   // Les lots ou l'on a mise d'abord, puis ceux qui finissent le plus tot.
   else for (const lot of [...S.market.lots].sort((a, b) => b.engaged - a.engaged || a.endMs - b.endMs)) box.querySelector('#lM').appendChild(carteDeLot(S, lot));
@@ -361,10 +361,10 @@ function prochainSet(S) {
 /** Agrandir d'un cote : ce que ca coute et ce que le niveau suivant offre, avant de payer. */
 function ouvreAgrandir(axe) {
   const S = partie();
-  if (!canExpand(S, cfg, axe)) { toast('La boutique ne peut plus grandir de ce côté.'); return; }
+  if (!canExpand(S, cfg, axe)) { toast(t('ui.cantGrow')); return; }
   const offre = prochainSet(S);
   const box = el(`<div class="btq-fiche"><h2>Agrandir la boutique</h2>
-    <p class="muted">Niveau ${shopLevel(S.shop, cfg) + 1} : ${offre || 'rien de plus'}</p>
+    <p class="muted">${t('ui.levelOffer', { n: shopLevel(S.shop, cfg) + 1, offer: offre || t('ui.nothingMore') })}</p>
     <button class="btn" id="aGo">Agrandir · ${or(expandCost(S, cfg))}</button></div>`);
   box.querySelector('#aGo').onclick = () => {
     const r = expandShop(S, ctx, axe);
@@ -379,12 +379,12 @@ function ouvreWidgetVitrine(displayId) {
   const S = partie();
   const stock = Object.values(S.instances).filter(i => i.location === 'stock').sort((a, b) => instanceRef(b, S, ctx) - instanceRef(a, S, ctx));
   const box = el(`<div class="btq-fiche btq-vitrine-w">
-    <div class="btq-ligne"><h3>${stock.length} doubles</h3><span class="muted">${Object.keys(S.collection).length} / ${ctx.index.cardById.size} découvertes · ${Object.keys(S.foilCollection).length} foils</span></div>
+    <div class="btq-ligne"><h3>${t('ui.doubles', { n: stock.length })}</h3><span class="muted">${t('ui.discovered', { a: Object.keys(S.collection).length, b: ctx.index.cardById.size, c: Object.keys(S.foilCollection).length })}</span></div>
     <div class="btq-rangee"></div>
     <div class="btq-detail"></div>
   </div>`);
   const rangee = box.querySelector('.btq-rangee'), detail = box.querySelector('.btq-detail');
-  if (!stock.length) { rangee.appendChild(el('<p class="muted">Ouvre des boosters : tes doubles arrivent ici.</p>')); modal(box); return; }
+  if (!stock.length) { rangee.appendChild(el(`<p class="muted">${t('ui.openBoostersForDoubles')}</p>`)); modal(box); return; }
 
   const choisit = inst => {
     for (const n of rangee.children) n.classList.toggle('on', n.dataset.id === inst.id);
@@ -434,14 +434,14 @@ function ouvreWidgetEstrade(i) {
     box.innerHTML = `<div class="btq-fiche-haut">${inst ? visuel(inst) : ''}
       <div><h2>${inst ? carteDef(inst.cardId).name : 'Booster premium'}</h2>
         <p>Mise actuelle ${or(a.price)}</p><p class="muted">Référence ${or(a.ref)} · plafond ${or(a.cap)}</p>
-        <p class="muted">${reste ? `Se termine dans ${formatDuration(reste)}` : 'Se termine'}</p></div></div>`;
+        <p class="muted">${reste ? t('ui.endsIn', { t: formatDuration(reste) }) : t('ui.ends')}</p></div></div>`;
     modal(box);
     return;
   }
   const stock = Object.values(S.instances).filter(x => x.location === 'stock').sort((p, q) => instanceRef(q, S, ctx) - instanceRef(p, S, ctx));
-  box.innerHTML = `<div class="btq-ligne"><h3>Mettre aux enchères</h3><span class="muted">${stock.length} doubles</span></div><div class="btq-rangee"></div><div class="btq-detail"></div>`;
+  box.innerHTML = `<div class="btq-ligne"><h3>${t('ui.putUpForAuction')}</h3><span class="muted">${t('ui.doubles', { n: stock.length })}</span></div><div class="btq-rangee"></div><div class="btq-detail"></div>`;
   const rangee = box.querySelector('.btq-rangee'), detail = box.querySelector('.btq-detail');
-  if (!stock.length) { rangee.appendChild(el('<p class="muted">Ouvre des boosters : tes doubles arrivent ici.</p>')); modal(box); return; }
+  if (!stock.length) { rangee.appendChild(el(`<p class="muted">${t('ui.openBoostersForDoubles')}</p>`)); modal(box); return; }
   const choisit = inst => {
     for (const n of rangee.children) n.classList.toggle('on', n.dataset.id === inst.id);
     const refMax = instanceRefMax(inst, S, ctx);
@@ -514,7 +514,7 @@ function surEvenement(e) {
   } else if (e.t === 'sale') {
     // Le noyau annonce la vente avant de retirer la carte : on lit l'etat juste apres.
     setTimeout(() => { if (racine?.isConnected) majBarre(); }, 0);
-  } else if (e.t === 'heroUnlocked') toast(`${e.hero} rejoint tes héros !`);
+  } else if (e.t === 'heroUnlocked') toast(t('ui.heroJoins', { hero: e.hero }));
 }
 
 export function renderBoutique() {
@@ -543,7 +543,7 @@ export function renderBoutique() {
       if (!r.ok) toast(r.reason); else change();
     },
     // La boite de bulk de la scene : combien de cartes elle garde, et quand elle sera vide.
-    bulk: () => { const S = partie(); toast(S.bulkBox.length ? `Bulk : ${S.bulkBox.length} cartes · ${cfg.bulk.salesPerHour} ventes par heure · vide dans ${formatDuration(bulkClearHours(S, ctx) * 60)}` : 'Le bulk est vide.'); },
+    bulk: () => { const S = partie(); toast(S.bulkBox.length ? t('ui.bulkInfo', { n: S.bulkBox.length, rate: cfg.bulk.salesPerHour, t: formatDuration(bulkClearHours(S, ctx) * 60) }) : t('ui.bulkEmpty')); },
     defi: ouvreDefi,
     deplace: (id, x, y, dir) => { const r = moveFurniture(partie(), id, x, y, dir, ctx); if (!r.ok) toast(r.reason); else change(); }
   });

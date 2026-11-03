@@ -1,6 +1,7 @@
 // LES SOUHAITS (2 nov. 2026) : la wishlist des heros, que le joueur classe en rangs (1 S, 3 A, 5 B…) pour favoriser leur sortie dans les
 // boosters. Ex-onglet « Heros » de la boutique, rangee derriere un bouton de l'ecran des Packs (le menu sera retravaille avec lui).
 // Aucune regle ici : les rangs, leurs places et leurs poids sont dans le noyau (`tiers`, `setHeroTier`, `heroPercents`).
+import { t } from '../config/textes.js';
 import { BOUTIQUE } from '../config/boutique.js';
 import { requiredCards } from '../boutique/noyau/engines/heroUnlock.js';
 import { heroPercents, setHeroTier } from '../boutique/noyau/engines/heroUnlock.js';
@@ -102,7 +103,7 @@ export function ouvreSouhaits() {
     const requises = requiredCards(choisi, ctx);
     const faites = requises.filter(c => S.collection[c.id] !== undefined).length;
     zone.innerHTML = `<div class="sh-fiche"><img src="${asset(spriteDeHeros(choisi))}" alt="">
-      <div><h3>${choisi}</h3><p class="muted">${h.unlocked ? `Niveau ${h.level}` : `Verrouillé : ${faites}/${requises.length} cartes`} · ${pct(p[choisi])} des tirages</p></div></div>
+      <div><h3>${choisi}</h3><p class="muted">${h.unlocked ? t('ui.levelN', { n: h.level }) : t('ui.lockedCards', { a: faites, b: requises.length })} · ${t('ui.pullsShare', { p: pct(p[choisi]) })}</p></div></div>
       <div class="sh-choix"></div><div class="sh-niv"></div>`;
     const choix = zone.querySelector('.sh-choix');
     for (const t of cfg.tiers.list) {
@@ -116,7 +117,7 @@ export function ouvreSouhaits() {
       choix.appendChild(b);
     }
     if (h.unlocked && h.level < cfg.heroes.maxLevel) {
-      const b = el(`<button class="btq-puce">Améliorer · ${court(upgradeCost(cfg, h.level))}</button>`);
+      const b = el(`<button class="btq-puce">${t('ui.upgradeFor', { n: court(upgradeCost(cfg, h.level)) })}</button>`);
       b.onclick = () => { const r = upgradeHero(S, choisi, ctx); if (!r.ok) toast(r.reason); else { change(); dessine(); } };
       zone.querySelector('.sh-niv').appendChild(b);
     }

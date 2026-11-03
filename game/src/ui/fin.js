@@ -5,6 +5,7 @@
 // l'ecran pendant la scene la termine d'un coup (jamais plus long que ce que le joueur veut).
 // Procedural et sans image : les dessins du game designer viendront remplacer les confettis et le titre.
 // Les durees sont dans `BALANCE.ui.fx.fin`.
+import { t } from '../config/textes.js';
 import { BALANCE } from '../config/balance.js';
 import { el } from './shell.js';
 
@@ -17,7 +18,7 @@ const COULEURS = ['#ffc46b', '#7fd6a6', '#6ec1ff', '#ff6f7f', '#d6a8ff'];
  */
 export function montreFin({ racine, issue, titre: titreFixe, classe = '', sousTitre, recompenses = [], notes = [], boutons = [], enchaine = null }) {
   const f = BALANCE.ui.fx.fin;
-  const titre = titreFixe || { victoire: 'Victoire', defaite: 'Défaite', nul: 'Match nul' }[issue];
+  const titre = titreFixe || { victoire: t('ui.victory'), defaite: t('ui.defeat'), nul: t('ui.draw') }[issue];
   const calque = el(`
     <div class="fin ${issue} ${classe}">
       <div class="fin-rayons"></div>
@@ -60,8 +61,8 @@ export function montreFin({ racine, issue, titre: titreFixe, classe = '', sousTi
 
   // Le fond se ferme sur le plateau, le titre s'abat.
   calque.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350 });
-  const t = calque.querySelector('.fin-titre');
-  t.animate(issue === 'victoire' ? [
+  const titreNode = calque.querySelector('.fin-titre');
+  titreNode.animate(issue === 'victoire' ? [
     { transform: 'scale(3.2)', opacity: 0 },
     { transform: 'scale(.92)', opacity: 1, offset: .55, easing: 'ease-in' },
     { transform: 'scale(1.06)', offset: .75 },

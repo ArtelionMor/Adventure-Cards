@@ -3,6 +3,7 @@
 // (rien ne depend de `requestAnimationFrame`, comme `effets.js`) sur une couche posee dans `<body>`, jamais touchable. Les reglages sont dans
 // `BALANCE.ui.upgradeFx` : durees, force du tremblement, motif de vibration, nombre d'etincelles.
 import { BALANCE } from '../config/balance.js';
+import { icone } from './icones.js';
 
 const F = () => BALANCE.ui.upgradeFx;
 const hasard = (a, b) => a + Math.random() * (b - a);
@@ -93,6 +94,37 @@ export function pastilleGeante(node, texte, { ms = F().pastilleMs } = {}) {
     { transform: 'scale(.4) translate(60%,-90%)', opacity: 0 }
   ], { duration: ms, easing: 'ease-out', fill: 'forwards' });
   finir(c, ms);
+}
+
+/**
+ * CE QUI CHANGE, EN GRAND (retour du game designer, 3 nov. 2026) : au centre de `node`, l'icone de chaque changement (une attaque de plus, un cout qui
+ * baisse, un effet qui grossit, un mot-cle gagne…) avec sa valeur, qui jaillissent l'une apres l'autre, tiennent un instant et s'envolent. `items` :
+ * `[{ icone: 'Attack', texte: '+1' }]` ; `texte` peut etre « 2 → 3 » (l'ancienne valeur, la nouvelle).
+ */
+export function changementGeant(node, items, { ms = F().changementMs } = {}) {
+  const { x, y } = centreDe(node);
+  const c = couche();
+  const rang = document.createElement('div');
+  rang.className = 'upg-chgs';
+  rang.style.cssText = `position:fixed;left:${x}px;top:${y}px;transform:translate(-50%,-50%)`;
+  c.appendChild(rang);
+  items.forEach((it, i) => {
+    const e = document.createElement('div');
+    e.className = 'upg-chg';
+    e.innerHTML = `<span class="rond">${icone(it.icone, 74)}</span>${it.texte ? `<b>${it.texte}</b>` : ''}`;
+    rang.appendChild(e);
+    e.animate([
+      { transform: 'scale(0) rotate(-30deg)', opacity: 0 },
+      { transform: 'scale(1.4) rotate(7deg)', opacity: 1, offset: .22 },
+      { transform: 'scale(.94) rotate(-3deg)', opacity: 1, offset: .38 },
+      { transform: 'scale(1.06) rotate(0)', opacity: 1, offset: .5 },
+      { transform: 'scale(1) rotate(0)', opacity: 1, offset: .8 },
+      { transform: 'scale(.45) translate(40%,-120%)', opacity: 0 }
+    ], { duration: ms, delay: i * 140, easing: 'ease-out', fill: 'forwards' });
+    // Le rond de l'icone bat une fois, comme un coeur : c'est lui qu'on doit lire.
+    e.querySelector('.rond').animate([{ scale: 1 }, { scale: 1.18, offset: .5 }, { scale: 1 }], { duration: 520, delay: i * 140 + ms * .25, easing: 'ease-in-out' });
+  });
+  finir(c, ms + items.length * 140);
 }
 
 /** Un petit texte qui monte et s'efface (« +10 Power »), depuis `node`. */

@@ -3,6 +3,7 @@
 // liste COMPLETE des echeances du jeu (heures absolues) a chaque changement et quand le jeu passe en arriere-plan. Echeances : la fin d'une
 // enchere ou le joueur a mise (10 minutes avant, et a la fin), le retour du grading, l'ouverture d'un tournoi. HTTPS (ou localhost) seulement ;
 // sur iPhone, le jeu doit etre ajoute a l'ecran d'accueil.
+import { t } from '../config/textes.js';
 import { ctx, ecoute, partie } from '../boutique/partie.js';
 import { carteDef } from './boutique.js';
 import { el, toast } from './shell.js';
@@ -32,17 +33,17 @@ function lesRappels() {
   const liste = [];
   for (const lot of S.market.lots) {
     if (!lot.engaged || lot.endMs <= S.nowMs) continue;
-    const nom = carteDef(lot.cardId)?.name ?? 'Une carte';
-    if (lot.endMs - WARN_MS > S.nowMs) liste.push({ id: `lot${lot.id}-10`, quand: base + lot.endMs - WARN_MS, titre: 'Enchère bientôt finie', corps: `${nom} : plus que ${ctx.cfg.market.lot.warnMinutes} minutes. Va voir où tu en es.`, tag: `lot${lot.id}` });
-    liste.push({ id: `lot${lot.id}-fin`, quand: base + lot.endMs, titre: 'Enchère terminée', corps: `${nom} : va voir si elle est à toi.`, tag: `lot${lot.id}` });
+    const nom = carteDef(lot.cardId)?.name ?? t('ui.aCard');
+    if (lot.endMs - WARN_MS > S.nowMs) liste.push({ id: `lot${lot.id}-10`, quand: base + lot.endMs - WARN_MS, titre: t('ui.notifLotSoonT'), corps: t('ui.notifLotSoon', { nom, n: ctx.cfg.market.lot.warnMinutes }), tag: `lot${lot.id}` });
+    liste.push({ id: `lot${lot.id}-fin`, quand: base + lot.endMs, titre: t('ui.notifLotEndT'), corps: t('ui.notifLotEnd', { nom }), tag: `lot${lot.id}` });
   }
   for (const g of S.gradingQueue) {
     if (g.doneMs <= S.nowMs) continue;
     const inst = S.instances[g.instanceId];
-    liste.push({ id: `grading${g.instanceId}`, quand: base + g.doneMs, titre: 'Grading terminé', corps: `${inst ? carteDef(inst.cardId)?.name : 'Ta carte'} revient du grading.`, tag: `grading${g.instanceId}` });
+    liste.push({ id: `grading${g.instanceId}`, quand: base + g.doneMs, titre: t('ui.notifGradeT'), corps: t('ui.notifGrade', { nom: inst ? carteDef(inst.cardId)?.name : t('ui.yourCard') }), tag: `grading${g.instanceId}` });
   }
-  const t = S.tournoi;
-  if (t?.etat === 'attente' && t.suivantMs > S.nowMs) liste.push({ id: `tournoi${Math.round(t.suivantMs)}`, quand: base + t.suivantMs, titre: 'Un tournoi s’ouvre', corps: 'Les inscriptions sont ouvertes au tableau des défis.', tag: 'tournoi' });
+  const tourn = S.tournoi;
+  if (tourn?.etat === 'attente' && tourn.suivantMs > S.nowMs) liste.push({ id: `tournoi${Math.round(tourn.suivantMs)}`, quand: base + tourn.suivantMs, titre: t('ui.notifTournamentT'), corps: t('ui.notifTournament'), tag: 'tournoi' });
   return liste;
 }
 
@@ -69,11 +70,11 @@ async function abonne() {
 
 /** Active les notifications (a appeler depuis un toucher : le navigateur demande la permission). Rend l'etat obtenu. */
 export async function activeNotifications() {
-  if (!prises()) { toast('Les notifications demandent une adresse https (ou localhost).'); return etatNotifications(); }
+  if (!prises()) { toast(t('ui.notifNeedHttps')); return etatNotifications(); }
   try {
     if (Notification.permission === 'default') await Notification.requestPermission();
     if (Notification.permission === 'granted') await abonne();
-    else toast('Notifications refusées : change-le dans les réglages du navigateur.');
+    else toast(t('ui.notifRefused'));
   } catch (e) { toast(`Notifications impossibles : ${e.message}`); }
   return etatNotifications();
 }
@@ -98,11 +99,11 @@ export function blocNotifs() {
   const box = el('<div class="nt"><b>Notifications</b><span class="muted"></span><div class="nt-b"></div></div>');
   const dessine = () => {
     const e = etatNotifications();
-    box.querySelector('span').textContent = { actif: 'Actives : fin d’enchère, grading, tournoi.', inactif: 'Pour être prévenu même jeu fermé.', refuse: 'Refusées par le navigateur.', indisponible: 'Il faut https (ou localhost), et l’appli sur l’écran d’accueil sur iPhone.' }[e];
+    box.querySelector('span').textContent = { actif: t('ui.notifActive'), inactif: t('ui.notifInactive'), refuse: t('ui.notifBlocked'), indisponible: t('ui.notifUnavailable') }[e];
     const b = box.querySelector('.nt-b');
     b.innerHTML = '';
     if (e === 'inactif') { const x = el('<button class="btn">Activer</button>'); x.onclick = async () => { await activeNotifications(); dessine(); }; b.appendChild(x); }
-    if (e === 'actif') { const x = el('<button class="btn ghost">Essayer</button>'); x.onclick = async () => { const r = await (await post('/api/jeu/push/test')).json().catch(() => ({})); toast(r.envoyees ? 'Notification envoyée : ferme le jeu et attends-la.' : `Rien envoyé (${(r.erreurs || [])[0] || 'pas d’abonné'})`); }; b.appendChild(x); }
+    if (e === 'actif') { const x = el(`<button class="btn ghost">${t('ui.try')}</button>`); x.onclick = async () => { const r = await (await post('/api/jeu/push/test')).json().catch(() => ({})); toast(r.envoyees ? t('ui.notifSent') : t('ui.notifNone', { why: (r.erreurs || [])[0] || t('ui.noSubscriber') })); }; b.appendChild(x); }
   };
   dessine();
   return box;

@@ -1,6 +1,7 @@
 // LA SCENE DE LA BOUTIQUE : la boutique vue en isometrie, dessinee sur un canvas (maquettes mockups/Card Shop). Le plan vient
 // du noyau (`state.shop`), les ventes aussi : ici, on ne decide que de la mise en scene. Le doigt deplace la vue, deux doigts
 // (ou la molette) zooment. Clients : les personnages Kenney (BOUTIQUE.profils), qui marchent de case en case.
+import { t } from '../config/textes.js';
 import { BOUTIQUE } from '../config/boutique.js';
 import { buyerMultiplier } from '../boutique/noyau/engines/buyers.js';
 import { buyerReaction } from '../boutique/noyau/engines/pricing.js';
@@ -586,7 +587,7 @@ function bulleEncheres(S) {
   const moi = lot.holder === 'player', z = cfg.shopLayout.auctionZone;
   const [cx, cy] = versEcran(z.x + z.w / 2, 0), y = cy - R.hauteurMur - 6;
   const reste = Math.max(0, Math.ceil((lot.endMs - S.nowMs) / 1000));
-  const texte = `${moi ? 'En tête' : 'Dépassé !'} · ${texteDePrix(lot.price)} · ${reste >= 3600 ? `${Math.floor(reste / 3600)} h` : `${Math.floor(reste / 60)}:${String(reste % 60).padStart(2, '0')}`}`;
+  const texte = `${moi ? t('ui.leadingShort') : t('ui.outbid')} · ${texteDePrix(lot.price)} · ${reste >= 3600 ? `${Math.floor(reste / 3600)} h` : `${Math.floor(reste / 60)}:${String(reste % 60).padStart(2, '0')}`}`;
   c2d.font = '800 14px sans-serif';
   const w = c2d.measureText(texte).width + 26;
   bulle(cx, y, w, 28, moi ? '#7be08a' : '#ff6b5e');
@@ -634,7 +635,7 @@ function dessineTableau(t) {
   c2d.fillStyle = '#5e3b28'; c2d.strokeStyle = '#2b1c1f'; c2d.lineWidth = 4;
   c2d.beginPath(); c2d.roundRect(x, y, W, H, 8); c2d.fill(); c2d.stroke();
   c2d.fillStyle = '#ffd76a'; c2d.font = '800 12px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle';
-  c2d.fillText('ENCHÈRES', cx, y + 13);
+  c2d.fillText(t('ui.auctionsCaps'), cx, y + 13);
   const a = S.auctions.length ? S.auctions[Math.floor(t / 4000) % S.auctions.length] : null;
   if (!a) {
     c2d.fillStyle = '#e8d5b5'; c2d.font = '700 10px sans-serif';

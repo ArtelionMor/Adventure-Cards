@@ -1,5 +1,6 @@
 // Sac : monnaies, objets a passifs, derniers combats, sauvegarde. Une fenetre ouverte depuis le Profil (31 octobre 2026 : son onglet
 // de la barre du bas est devenu les Packs).
+import { t } from '../config/textes.js';
 import { RELIC_BY_ID } from '../config/relics.js';
 import { BALANCE } from '../config/balance.js';
 import { save, resetSave, partyLevel } from '../state.js';
@@ -48,7 +49,7 @@ export function ouvreSac() {
   else {
     const list = el('<div class="cardlist"></div>');
     for (const c of combats) {
-      const issue = c.gagnant === 'p' ? 'Victoire' : c.gagnant === 'draw' ? 'Match nul' : 'Défaite';
+      const issue = c.gagnant === 'p' ? t('ui.victory') : c.gagnant === 'draw' ? t('ui.draw') : t('ui.defeat');
       const quand = new Date(c.t).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
       // Le code couleur dit l'issue : vert une victoire, rouge une defaite, gris un nul.
       const row = el(`<div class="gcard ${c.gagnant === 'p' ? 'victoire' : c.gagnant === 'draw' ? 'nul' : 'defaite'}">

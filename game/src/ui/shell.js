@@ -69,7 +69,7 @@ export function fmtTime(ms) {
 export const CURRENCY_NAME = {
   A: 'Fanions',        // gagnes en combat
   B: 'Sceaux',         // debloquent les cartes switch (collecte a trancher, cf. GDD)
-  C: 'Pièces',         // ameliorations des heros + progression path (la Ferme en rapporte)
+  C: 'Coins',         // ameliorations des heros + progression path (la Ferme en rapporte)
   G: 'Gemmes'          // affichees dans la barre du haut ; rien ne les depense encore
 };
 

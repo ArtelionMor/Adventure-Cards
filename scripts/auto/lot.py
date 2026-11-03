@@ -23,6 +23,17 @@ ESPECES = [
     (r"kitsune|fox|wolf|dog|cat|rabbit|mouse|goat|sloth|panda|duke", "tete, oreille_gauche, oreille_droite, corps, bras, jambes, queue, arme, cape, decor"),
 ]
 DEFAUT = "tete, corps, bras, jambes, queue, arme, cape, decor"
+# Les personnages qui ont quelque chose de particulier : leurs parties et une phrase de plus pour l'IA (« decor » reste IMMOBILE dans le fond)
+PARTICULIERS = {
+    "crapaud": ("tete, corps, bras, jambes, arme, cape, decor", ""),
+    "lapin-bagarreur": ("tete, oreille_gauche, oreille_droite, corps, bras, jambes, queue, arme, cape, decor", ""),
+    "opponent-octobot": ("tete, corps, bras, jambes, arme, cape, decor", "Les tentacules ou bras mécaniques (« Bras ») forment la partie « bras »."),
+    "baronne-de-la-mort": ("tete, chapeau, corps, decor_crane_gauche, decor_crane_droit, decor_ombre",
+                           "Les deux grandes piles de crânes, de chaque côté du personnage, ne font PAS partie du personnage : la pile à GAUCHE de l'image est « decor_crane_gauche », "
+                           "la pile à DROITE est « decor_crane_droit », et l'ombre au sol est « decor_ombre » ; elles ne bougent pas. Mets dans ces trois parties TOUS les crânes beiges, "
+                           "même les petits et ceux qui touchent la cape. Le grand chapeau noir surmonté d'un crâne et d'os est la partie « chapeau ». La tête de chat (avec ses oreilles) est « tete ». "
+                           "La cape noire, le foulard rouge, la ceinture, les sangles et le bas du personnage forment « corps »."),
+}
 
 
 def slug(nom):
@@ -109,9 +120,14 @@ def main():
     p.add_argument("--node", default="node")
     p.add_argument("--etape", default="tout", choices=["tout", "decoupe", "assemble"], help="decoupe : SAM + IA seulement ; assemble : rig-auto sur ce qui est decoupe ; tout : les deux")
     p.add_argument("--tous-les-rigs", action="store_true", help="candidats : tous les dossiers de game/data/rigs (les cartes aussi), pas seulement les Characters")
+    p.add_argument("--flou", default="0.0", help="la portée du fondu des poids entre os voisins (rig-auto --flou) : plus large = articulations plus douces, animations moins bridées par le validateur")
     p.add_argument("--nos", default="", help="ids dont les rigs sont NOS resultats d'une passe precedente : on les refait sans les croire « deja travailles »")
     p.add_argument("--refaire", action="store_true", help="avec --etape assemble : refait aussi ce qui est deja fait (depuis sa decoupe)")
     a = p.parse_args()
+    for champ in ("ids", "nos"):                        # « @fichier » : la liste est dans un fichier (une ligne de commande de tâche planifiée est courte)
+        v = getattr(a, champ, "") or ""
+        if v.startswith("@"):
+            setattr(a, champ, ",".join(x.strip() for x in open(v[1:], encoding="utf-8").read().replace("\n", ",").split(",") if x.strip()))
     os.makedirs(a.auto, exist_ok=True)
     f_etat, f_log, f_stop = (os.path.join(a.auto, n) for n in ("etat.json", "lot.log", "STOP"))
 
@@ -170,9 +186,9 @@ def main():
         sauve(ident)
         t0 = time.time()
         if not deja_decoupe:
-            log("%s : découpe (%s)" % (ident, parties_de(ident, origine_de(dossier))))
+            log("%s : découpe (%s)" % (ident, PARTICULIERS.get(ident, (parties_de(ident, origine_de(dossier)), ""))[0]))
             r1 = subprocess.run([a.python, os.path.join(a.depot, "scripts", "auto", "decoupe.py"), "--source", os.path.join(dossier, "source.png"),
-                                 "--sortie", sortie, "--parties", parties_de(ident, origine_de(dossier)), "--sam", a.sam, "--ia", a.ia, "--modele", a.modele, "--points", str(a.points)],
+                                 "--sortie", sortie, "--parties", PARTICULIERS.get(ident, (parties_de(ident, origine_de(dossier)), ""))[0], "--indice", PARTICULIERS.get(ident, ("", ""))[1], "--sam", a.sam, "--ia", a.ia, "--modele", a.modele, "--points", str(a.points)],
                                 capture_output=True, text=True, timeout=3600, encoding="utf-8", errors="replace")
             if r1.returncode != 0:
                 etat[ident].update({"statut": "echec", "etape": "découpe", "erreur": (r1.stdout + r1.stderr).strip()[-400:]})
@@ -181,11 +197,14 @@ def main():
             etat[ident].update({"statut": "decoupe_faite", "duree_decoupe": round(time.time() - t0)})
             if a.etape == "decoupe":
                 faits += 1; sauve(); continue
-        r2 = subprocess.run([a.node, os.path.join(a.depot, "scripts", "rig-auto.mjs"), ident, "--auto", sortie], capture_output=True, text=True,
+        r2 = subprocess.run([a.node, os.path.join(a.depot, "scripts", "rig-auto.mjs"), ident, "--auto", sortie, "--maille", "--flou", str(a.flou)], capture_output=True, text=True,
                             timeout=1800, encoding="utf-8", errors="replace", cwd=a.depot)
         if r2.returncode != 0:
             etat[ident].update({"statut": "echec", "etape": "assemblage", "erreur": (r2.stdout + r2.stderr).strip()[-400:]})
             log("%s : ÉCHEC assemblage : %s" % (ident, etat[ident]["erreur"][-160:])); sauve(); continue
+        r3 = subprocess.run([a.python, os.path.join(a.depot, "scripts", "auto", "finit.py"), ident, "--sortie", sortie, "--depot", a.depot, "--node", a.node],
+                            capture_output=True, text=True, timeout=900, encoding="utf-8", errors="replace")
+        log("%s : finition : %s" % (ident, (r3.stdout + r3.stderr).strip().replace("\n", " | ")[-200:]))
         ligne = r2.stdout.strip().splitlines()[-1]
         try:
             rapport = json.load(open(os.path.join(sortie, "rapport.json"), encoding="utf-8"))

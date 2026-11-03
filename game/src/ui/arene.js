@@ -63,7 +63,7 @@ function presentation(n, a, cb) {
       <div>
         <h2>${echappe(n.name)}</h2>
         <div class="ar-puces"><span class="ar-puce arch">${echappe(libelleArchetype(a))}</span><span class="ar-puce">${t('arene.niveau', { n: niveau })}</span></div>
-        <div class="muted">${echappe(a.role || '')} · ${ennemi.hp ?? '?'} PV · ${(ennemi.deck || []).length} cartes</div>
+        <div class="muted">${echappe(a.role || '')} · ${t('ui.fightCount', { hp: ennemi.hp ?? '?', n: (ennemi.deck || []).length })}</div>
       </div>
     </div>
     ${bloc(t('arene.question'), a.question)}
@@ -243,7 +243,7 @@ function dessineLigne() {
       <div class="lg-num">${t('ligne.combat', { n: i + 1 })} / ${total}</div>
       <h2>${echappe(n?.name || c.arene)}</h2>
       <div class="ar-puces"><span class="ar-puce arch">${a ? echappe(libelleArchetype(a)) : ''}</span><span class="ar-puce">${t('arene.niveau', { n: c.niveau })}</span></div>
-      <div class="lg-stats">${ennemi.hp ?? '?'} PV · ${(ennemi.deck || []).length} cartes${c.puissance ? ` · ${t('ligne.puissance', { r: c.puissance })}` : ''}</div>
+      <div class="lg-stats">${t('ui.fightCount', { hp: ennemi.hp ?? '?', n: (ennemi.deck || []).length })}${c.puissance ? ` · ${t('ligne.puissance', { r: c.puissance })}` : ''}</div>
       ${a?.signature ? `<div class="lg-sig">${icone(a.signature.icone, 22)}<span>${echappe(a.signature.texte)}</span></div>` : ''}
       ${i === cur ? bulleTeliau() : ''}
       <button class="btn lg-go" ${avenir || !n ? 'disabled' : ''}>${avenir ? t('ligne.verrou') : i < cur ? t('ligne.rejouer') : t('ligne.jouer')}</button>

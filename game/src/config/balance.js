@@ -119,7 +119,7 @@ export const BALANCE = {
     // la vibration du telephone (motifs en ms : vibre, pause, vibre…), l'explosion (etincelles, duree), la grosse pastille du niveau, le texte qui monte, les
     // pieces qui partent vers la barre du haut. `haptique` a false coupe toute vibration.
     haptique: true,
-    upgradeFx: { shakeMs: 460, shakePx: 10, vibration: [20, 30, 50, 40, 110], vibrationRefus: [35, 40, 35], etincelles: 26, explosionMs: 800, pastilleMs: 1150, texteMs: 1100, pieces: 7, piecesMs: 800, delaiMs: 140 },
+    upgradeFx: { shakeMs: 460, shakePx: 10, vibration: [20, 30, 50, 40, 110], vibrationRefus: [35, 40, 35], etincelles: 26, explosionMs: 800, pastilleMs: 1150, changementMs: 1500, texteMs: 1100, pieces: 7, piecesMs: 800, delaiMs: 140 },
     echangeCarteMs: 520,    // l'ecran Deck : le temps qu'une carte passe devant l'autre (switch)
 
     // LES EFFETS DU COMBAT (ui/effets.js) : du ressenti, pas des regles. Tous les temps sont en

@@ -150,19 +150,19 @@ export const BOUTIQUE = {
   // (facultatif) : 0 (il deteste) a 1 (il adore) par zone — la couleur —, sinon 0 / 0,5 / 1 selon les deux zones hautes. PHRASES PROVISOIRES.
   avisClients: {
     Timmy: {
-      qui: 'Veut des gros tours qui racontent une histoire. (A COMPLETER : qui est cet acheteur)',
-      axes: [{ id: 'cout', nom: 'Coût' }, { id: 'rarete', nom: 'Rareté' }],
-      phrases: { 'haut-haut': 'Énorme ET rare : la carte d\'un tour de légende !', 'haut-bas': 'Un gros coût, mais banale… ça peut faire du bruit.', 'bas-haut': 'Rare, mais toute petite : pas de spectacle.', 'bas-bas': 'Petite et commune : rien à raconter.' }
+      qui: 'Wants big turns that tell a story.',
+      axes: [{ id: 'cout', nom: 'Cost' }, { id: 'rarete', nom: 'Rarity' }],
+      phrases: { 'haut-haut': 'Huge AND rare: the card of a legendary turn!', 'haut-bas': 'Big cost, but plain… it might still make some noise.', 'bas-haut': 'Rare, but tiny: no spectacle.', 'bas-bas': 'Small and common: nothing to tell.' }
     },
     Jenna: {
-      qui: 'Cherche les cartes qui feront un combo. (A COMPLETER : qui est cet acheteur)',
-      axes: [{ id: 'meta', nom: 'Performance', seuil: 0.5 }, { id: 'cout', nom: 'Coût' }],
-      phrases: { 'haut-haut': 'Trop évidente, mais costaude : pas pour mes combos.', 'haut-bas': 'Efficace et légère : une pièce de plus pour mon moteur.', 'bas-haut': 'Délaissée par la méta et chère : un défi pour moi !', 'bas-bas': 'Personne n\'en veut… moi, je lui trouve un usage.' }
+      qui: 'Looks for cards that will make a combo.',
+      axes: [{ id: 'meta', nom: 'Performance', seuil: 0.5 }, { id: 'cout', nom: 'Cost' }],
+      phrases: { 'haut-haut': 'Too obvious, but sturdy: not for my combos.', 'haut-bas': 'Efficient and light: one more piece for my engine.', 'bas-haut': 'Ignored by the meta and pricey: a challenge for me!', 'bas-bas': 'Nobody wants it… I’ll find a use for it.' }
     },
     Spike: {
-      qui: 'Joue pour gagner, achete ce qui performe. (A COMPLETER : qui est cet acheteur)',
-      axes: [{ id: 'meta', nom: 'Performance' }, { id: 'rarete', nom: 'Rareté' }],
-      phrases: { 'haut-haut': 'Forte ET rare : je la prends au prix fort.', 'haut-bas': 'Forte et facile à trouver : je la veux en plusieurs exemplaires.', 'bas-haut': 'Rare, mais faible : je laisse aux collectionneurs.', 'bas-bas': 'Faible et commune : aucun intérêt.' }
+      qui: 'Plays to win, buys what performs.',
+      axes: [{ id: 'meta', nom: 'Performance' }, { id: 'rarete', nom: 'Rarity' }],
+      phrases: { 'haut-haut': 'Strong AND rare: I’ll pay full price.', 'haut-bas': 'Strong and easy to find: I want several copies.', 'bas-haut': 'Rare, but weak: I leave it to collectors.', 'bas-bas': 'Weak and common: no interest.' }
     }
 ,
     Ada: {

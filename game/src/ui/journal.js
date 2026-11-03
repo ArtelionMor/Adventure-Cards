@@ -15,6 +15,7 @@
 // cree dans sa main (`revele: false`). Une fois le combat fini, tout se lit.
 import { TRIGGERS } from '../config/mechanics.js';
 import { el, asset } from './shell.js';
+import { t } from '../config/textes.js';
 import { icone } from './icones.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -64,17 +65,17 @@ function panneau(r, { avant, apres, mort, bouclier }) {
 
 // ------------------------------------------------------------ une ligne par evenement
 const MODES = {
-  melange: ['Shuffle', 'Remélange dans la pioche'], renvoi: ['Return', 'Renvoi en main'],
-  pose: ['Summon', 'Pose sur le plateau'], meule: ['Mill', 'Meule'], defausse: ['Discard', 'Défausse'],
-  exil: ['Exile', 'Exil'], cree: ['Create', 'Création'],
+  melange: ['Shuffle', t('jr.shuffle')], renvoi: ['Return', t('jr.return')],
+  pose: ['Summon', t('jr.put')], meule: ['Mill', t('jr.mill')], defausse: ['Discard', t('jr.discard')],
+  exil: ['Exile', t('jr.exile')], cree: ['Create', t('jr.create')],
   // L'appât fabrique des cartes dans la défausse ADVERSE, qui est publique : jamais « une carte » cachée.
-  appat: ['Create', 'Appât']
+  appat: ['Create', t('jr.bait')]
 };
 
 /** Le moment (« Râle d'agonie », « Début de ton tour »...) d'un declencheur, et son icone. */
 function momentDe(e) {
-  const t = TRIGGERS[e.moment];
-  const label = t ? t.label : e.moment;
+  const trig = TRIGGERS[e.moment];
+  const label = trig ? trig.label : e.moment;
   const ic = e.moment === 'death' ? 'Deathrattle' : e.moment === 'turnStart' ? 'TurnStart' : e.moment === 'turnEnd' ? 'TurnEnd' : 'Trigger';
   return [ic, label];
 }
@@ -88,27 +89,27 @@ function ligneDe(e, ctx) {
   const cache = !ctx.revele && e.camp === 'e';
   switch (e.t) {
     case 'degats': {
-      const src = e.src ? nom(e.src) : 'Un effet';
+      const src = e.src ? nom(e.src) : t('jr.anEffect');
       const puces = [];
-      if (e.venin) puces.push('<span class="puce">Venin</span>');
-      if (e.armure) puces.push(`<span class="puce">${e.armure} absorbé par l'armure</span>`);
+      if (e.venin) puces.push(`<span class="puce">${t('jr.venom')}</span>`);
+      if (e.armure) puces.push(`<span class="puce">${t('jr.absorbed', { n: e.armure })}</span>`);
       if (e.bonus) puces.push(`<span class="puce plus">${sgn(e.bonus)}${e.via ? ' · ' + e.via.map(x => esc(x.nom)).join(', ') : ''}</span>`);
       if (e.x) puces.push(`<span class="puce">X = ${esc(e.x)}</span>`);
       let txt;
-      if (e.annule) txt = `${src} vise ${nom(e.cible)} : dégâts annulés`;
-      else if (e.bouclier) txt = `${nom(e.cible)} encaisse ${pl(e.n, 'dégât')} avec son bouclier`;
-      else txt = `${src} ${e.riposte ? 'riposte' : 'inflige'} <span class="mal">${e.perdu}</span> à ${nom(e.cible)} <small>${e.avant} → ${e.apres}</small>`;
+      if (e.annule) txt = t('jr.cancelled', { src, target: nom(e.cible) });
+      else if (e.bouclier) txt = t('jr.shieldTakes', { target: nom(e.cible), n: e.n });
+      else txt = t(e.riposte ? 'jr.counters' : 'jr.deals', { src, n: e.perdu, target: nom(e.cible), from: e.avant, to: e.apres });
       return [e.riposte ? 'Counter' : 'Damage', txt + puces.join('')];
     }
     case 'soin': {
       // Un soin qui ne soigne rien (deja au maximum) se dit discretement : le taire laisserait croire qu'il n'a pas eu lieu.
-      if (!e.soigne && !e.bonus) return ['Heal', `<small>${nom(e.cible)} est déjà au maximum</small>`];
+      if (!e.soigne && !e.bonus) return ['Heal', t('jr.alreadyFull', { target: nom(e.cible) })];
       const src = e.src && e.src.nom !== e.cible.nom ? `${nom(e.src)} · ` : '';
-      return ['Heal', `${src}${nom(e.cible)} <span class="bien">+${e.soigne}</span> PV <small>${e.avant} → ${e.apres}</small>${e.bonus ? `<span class="puce plus">${sgn(e.bonus)}</span>` : ''}`];
+      return ['Heal', t('jr.healed', { src, target: nom(e.cible), n: e.soigne, from: e.avant, to: e.apres }) + (e.bonus ? `<span class="puce plus">${sgn(e.bonus)}</span>` : '')];
     }
     case 'renfort': {
       const neg = e.atk < 0 || e.hp < 0;
-      const cle = e.cle ? ` et gagne <span class="puce">${esc(e.cle)}</span>` : '';
+      const cle = e.cle ? t('jr.andGains', { key: esc(e.cle) }) : '';
       return [neg ? 'Debuff' : 'Buff', `${nom(e.cible)} <span class="${neg ? 'mal' : 'bien'}">${sgn(e.atk)}/${sgn(e.hp)}</span>${cle}${e.src ? ` <small>(${esc(e.src.nom)})</small>` : ''}`];
     }
     case 'renfortCartes':
@@ -117,70 +118,70 @@ function ligneDe(e, ctx) {
     // defausse est publique : on le dit des deux cotes.
     // LE REGISTRE (V3) : un ou plusieurs types y entrent pour la premiere fois (« Tous » = une carte « Type : tous »).
     case 'registre':
-      return ['Registry', `Registre : ${e.nouveaux.map(esc).join(', ')} <small>(${miniCarte(e.carte)} · ${e.total} type${e.total > 1 ? 's' : ''})</small>`];
+      return ['Registry', t('jr.register', { new: e.nouveaux.map(esc).join(', '), card: miniCarte(e.carte), n: e.total, s: e.total > 1 ? 's' : '' })];
     case 'classe':
-      return ['Fatigue', `${miniCarte(e.carte)} entre dans ${e.camp === 'p' ? 'ta' : 'sa'} pile de fatigue <small>(Ex-libris · ${e.pile})</small>`];
+      return ['Fatigue', t('jr.fatigueIn', { card: miniCarte(e.carte), whose: e.camp === 'p' ? t('jr.your') : t('jr.their'), n: e.pile })];
     case 'invoque': {
-      const par = e.via === 'jeton' && e.src ? ` <small>(${esc(e.src.nom)})</small>` : e.via === 'pose' ? ' <small>(posé sur le plateau)</small>' : '';
-      return ['Summon', `${miniUnite(e.unite)} arrive${par}`];
+      const par = e.via === 'jeton' && e.src ? ` <small>(${esc(e.src.nom)})</small>` : e.via === 'pose' ? t('jr.putOnBoard') : '';
+      return ['Summon', t('jr.arrives', { unit: miniUnite(e.unite), by: par })];
     }
     case 'meurt':
-      return ['Dead', `${nom(e.unite)} meurt${e.unite.jeton ? ' <small>(jeton)</small>' : ''}`];
+      return ['Dead', t('jr.dies', { unit: nom(e.unite), token: e.unite.jeton ? t('jr.token') : '' })];
     case 'detruit':
-      return ['Destroy', `${nom(e.cible)} est détruit${e.src ? ` <small>(${esc(e.src.nom)})</small>` : ''}`];
+      return ['Destroy', t('jr.destroyed', { target: nom(e.cible), by: e.src ? ` <small>(${esc(e.src.nom)})</small>` : '' })];
     case 'declenche': {
       const [ic, label] = momentDe(e);
       return [ic, `${esc(label)} · ${nom(e.src)}`];
     }
     case 'choix':
-      return ['Trigger', `Choix : ${esc(e.texte)}`];
+      return ['Trigger', t('jr.choice', { text: esc(e.texte) })];
     case 'pioche': {
-      if (e.perdue) return ['Discard', `Main pleine : ${cache ? carteCachee(1) : miniCarte(e.carte)} part à la défausse`];
-      if (e.fatigue) return ['Fatigue', `Pile de fatigue · ${cache ? carteCachee(1) : miniCarte(e.carte)}`];
-      return ['Draw', `${e.cherchee ? 'Pioche ciblée' : 'Pioche'} · ${cache ? carteCachee(1) : miniCarte(e.carte)}`];
+      if (e.perdue) return ['Discard', t('jr.handFull', { card: cache ? carteCachee(1) : miniCarte(e.carte) })];
+      if (e.fatigue) return ['Fatigue', t('jr.fatiguePile', { card: cache ? carteCachee(1) : miniCarte(e.carte) })];
+      return ['Draw', t(e.cherchee ? 'jr.targetedDraw' : 'jr.draw', { card: cache ? carteCachee(1) : miniCarte(e.carte) })];
     }
     case 'aVide':
-      return ['Fatigue', e.fatigue ? 'Plus de pioche : on tire dans la pile de fatigue' : 'Plus aucune carte à piocher'];
+      return ['Fatigue', e.fatigue ? t('jr.drawFatigue') : t('jr.drawNone')];
     // Le pistage (V3) : des cartes de la main adverse sont marquees. En direct, on ne dit pas LESQUELLES
     // quand c'est l'adversaire qui en porte (on ne les voit pas) ; on dit combien.
     case 'piste': {
       const secret = !ctx.revele && e.camp === 'e';
-      return ['Track', `Pistage · ${secret ? `${e.cartes.length} carte${e.cartes.length > 1 ? 's' : ''} de sa main` : cartes(e.cartes)}`];
+      return ['Track', t('jr.tracking', { what: secret ? t('jr.cardsFromHand', { n: e.cartes.length, s: e.cartes.length > 1 ? 's' : '' }) : cartes(e.cartes) })];
     }
     // La Toxine (V3) : des marqueurs se posent, puis sautent quand l'unite qui les porte meurt. Leur tic, lui,
     // est un `degats` ordinaire (marque `toxine: true`).
     case 'toxine':
-      return ['Venom', `${e.contagion ? 'Contagion' : e.epidemie ? 'Épidémie' : 'Toxine'} ×${e.v} sur ${e.cibles.map(miniUnite).join(' ')}`];
+      return ['Venom', t('jr.toxinOn', { kind: e.contagion ? t('jr.contagion') : e.epidemie ? t('jr.epidemic') : t('jr.toxin'), v: e.v, targets: e.cibles.map(miniUnite).join(' ') })];
     case 'toxineSaut':
-      return ['Venom', `${e.n} Toxine${e.n > 1 ? 's' : ''} de ${miniUnite(e.de)} ${e.vers ? `sautent sur ${miniUnite(e.vers)}` : 'disparaissent'}`];
+      return ['Venom', t('jr.toxinJump', { n: e.n, s: e.n > 1 ? 's' : '', from: miniUnite(e.de), what: e.vers ? t('jr.jumpTo', { to: miniUnite(e.vers) }) : t('jr.vanish') })];
     case 'deplace': {
       const [ic, label] = MODES[e.mode] || ['Trigger', e.mode];
       const secret = !ctx.revele && e.camp === 'e' && (e.mode === 'cree' || (e.mode === 'renvoi' && e.de === 'main'));
       return [ic, `${label} · ${secret ? carteCachee(e.cartes.length) : cartes(e.cartes)}`];
     }
     case 'transforme': {
-      if (e.mode === 'copie') return ['Copy', `${esc(e.de.join(', '))} devient une copie de ${miniCarte(e.modele)}`];
-      if (e.paires) return ['Switch', `Switch : ${esc(e.paires.join(', '))}`];
-      return ['Switch', `${esc(e.de)} devient ${e.unite ? miniUnite(e.unite) : miniCarte(e.sort)}`];
+      if (e.mode === 'copie') return ['Copy', t('jr.copyOf', { from: esc(e.de.join(', ')), model: miniCarte(e.modele) })];
+      if (e.paires) return ['Switch', t('jr.switchPairs', { pairs: esc(e.paires.join(', ')) })];
+      return ['Switch', t('jr.becomes', { from: esc(e.de), what: e.unite ? miniUnite(e.unite) : miniCarte(e.sort) })];
     }
     case 'controle':
-      return ['Control', `Prend le contrôle de ${e.unites.map(miniUnite).join(' ')}`];
+      return ['Control', t('jr.takesControl', { units: e.unites.map(miniUnite).join(' ') })];
     case 'cout':
-      return ['Mana', `${cartes(e.cartes)} ${e.cartes.length > 1 ? 'coûtent' : 'coûte'} ${e.v} de moins`];
+      return ['Mana', t('jr.costsLess', { cards: cartes(e.cartes), s: e.cartes.length > 1 ? '' : 's', v: e.v })];
     case 'mana':
-      return ['Mana', `Mana <span class="${e.v >= 0 ? 'bien' : 'mal'}">${sgn(e.v)}</span>${e.promis ? ' <small>(au prochain tour)</small>' : e.statique ? ' <small>(effet statique)</small>' : ''}`];
+      return ['Mana', `${t('jr.mana')} <span class="${e.v >= 0 ? 'bien' : 'mal'}">${sgn(e.v)}</span>${e.promis ? t('jr.nextTurn') : e.statique ? t('jr.static') : ''}`];
     case 'armure':
-      return ['Armor', `Armure <span class="bien">${sgn(e.v)}</span>`];
+      return ['Armor', `${t('jr.armor')} <span class="bien">${sgn(e.v)}</span>`];
     case 'miroir':
-      return ['Mirror', `Un Miroir devient ${cache ? carteCachee(1) : miniCarte(e.carte)}`];
+      return ['Mirror', t('jr.mirror', { card: cache ? carteCachee(1) : miniCarte(e.carte) })];
     case 'joue':
-      return ['Trigger', `Joue ${miniCarte(e.carte, e.paye)}`];
+      return ['Trigger', t('jr.plays', { card: miniCarte(e.carte, e.paye) })];
     case 'attaque':
-      return ['Swords', `${miniRef(e.src)} attaque ${miniRef(e.cible)}`];
+      return ['Swords', t('jr.attacks', { a: miniRef(e.src), b: miniRef(e.cible) })];
     case 'tour':
-      return ['TurnStart', `Tour de ${nom(e)}`];
+      return ['TurnStart', t('jr.turnOf', { who: nom(e) })];
     case 'fin':
-      return ['Victory', 'Fin du combat'];
+      return ['Victory', t('jr.endFight')];
     default:
       return ['Trigger', `<small>[${esc(e.t)}]</small>`];
   }
@@ -210,8 +211,8 @@ function sceneAttaque(i, ctx) {
   const sauf = new Set([coup, rip].filter(Boolean).map(e => e.i));
   const sous = (ctx.enfants.get(i) || []).filter(j => !sauf.has(j));
   const puces = coup ? [
-    coup.venin ? '<span class="puce">Venin</span>' : '',
-    coup.armure ? `<span class="puce">${coup.armure} absorbé par l'armure</span>` : ''
+    coup.venin ? `<span class="puce">${t('jr.venom')}</span>` : '',
+    coup.armure ? `<span class="puce">${t('jr.absorbed', { n: coup.armure })}</span>` : ''
   ].join('') : '';
   return `<div class="jr-duel">${gauche}<div class="jr-mid">${icone('Swords', 40)}${puces}</div>${droite}</div>${
     sous.length ? `<div class="jr-sous">${sous.map(j => noeud(j, ctx)).join('')}</div>` : ''}`;
@@ -230,7 +231,7 @@ function sceneTour(i, ctx) {
   const e = ctx.L[i];
   const n = Math.ceil(e.tour / 2);
   const sous = ctx.enfants.get(i) || [];
-  return `<div class="jr-tour">${sprite(e.camp === 'p' ? ctx.heros.p : ctx.heros.e)}<span>Tour ${n} · ${esc(e.nom)}</span><small>${e.mana} mana</small></div>${
+  return `<div class="jr-tour">${sprite(e.camp === 'p' ? ctx.heros.p : ctx.heros.e)}<span>${t('bt.turn', { n })} · ${esc(e.nom)}</span><small>${e.mana} ${t('jr.mana')}</small></div>${
     sous.length ? `<div class="jr-sous">${sous.map(j => noeud(j, ctx)).join('')}</div>` : ''}`;
 }
 
@@ -239,7 +240,7 @@ function sceneFin(i, ctx) {
   const gagne = e.gagnant === 'p';
   const nul = e.gagnant === 'draw';
   return `<div class="jr-fin ${gagne ? 'gagne' : nul ? 'nul' : 'perdu'}">${icone(gagne ? 'Victory' : 'Defeat', 36)}<span>${
-    gagne ? 'Victoire' : nul ? 'Match nul' : 'Défaite'}</span><small>${e.pv.p} PV contre ${e.pv.e} PV</small></div>`;
+    gagne ? t('jr.victory') : nul ? t('jr.draw2') : t('jr.defeat')}</span><small>${t('jr.hpVs', { a: e.pv.p, b: e.pv.e })}</small></div>`;
 }
 
 /** La MAIN DE DEPART : les pioches d'avant le premier tour, d'un camp, en une seule scene. */
@@ -247,7 +248,7 @@ function sceneDepart(i, ctx) {
   const e = ctx.L[i];
   const liste = ctx.departs[e.camp].map(j => ctx.L[j]);
   const cache = !ctx.revele && e.camp === 'e';
-  return `<div class="jr-joue">${icone('Draw', 22)}<span>Main de départ</span>${cache ? carteCachee(liste.length) : liste.map(x => miniCarte(x.carte)).join(' ')}</div>`;
+  return `<div class="jr-joue">${icone('Draw', 22)}<span>${t('jr.startHand')}</span>${cache ? carteCachee(liste.length) : liste.map(x => miniCarte(x.carte)).join(' ')}</div>`;
 }
 
 /** La scene d'une RACINE (un evenement sans cause) et de tout ce qui en decoule. */
@@ -273,14 +274,14 @@ function scene(i, ctx) {
  *   onFerme   appele quand on le ferme (la croix) — `ferme()` le declenche aussi.
  * Rend { n, ouvre, ferme, bascule, ouvert, maj, nonLus, extra }.
  */
-export function creeJournal({ evts, heros = {}, revele = false, titre = 'Journal du combat', onFerme = null, ferme = true }) {
+export function creeJournal({ evts, heros = {}, revele = false, titre = t('jr.title'), onFerme = null, ferme = true }) {
   const n = el(`
     <div class="jr hidden">
       <div class="jr-tete">
         <h4>${esc(titre)}</h4>
-        <div class="jr-onglets"><button data-f="all" class="on">Tous</button><button data-f="p">Toi</button><button data-f="e">Adversaire</button></div>
+        <div class="jr-onglets"><button data-f="all" class="on">${t('jr.all')}</button><button data-f="p">${t('jr.you')}</button><button data-f="e">${t('jr.opponent')}</button></div>
         <span class="jr-extra"></span>
-        ${ferme ? `<button class="jr-x" aria-label="Fermer le journal">${icone('Close', 22)}</button>` : ''}
+        ${ferme ? `<button class="jr-x" aria-label="${t('jr.close')}">${icone('Close', 22)}</button>` : ''}
       </div>
       <div class="jr-corps f-all"></div>
     </div>`);

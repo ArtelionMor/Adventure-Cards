@@ -1,6 +1,7 @@
 // LE CARRE DE MISE (2 nov. 2026) : un petit panneau posé sur le bord de l'ecran, partout sauf sur l'ecran des encheres, pour surencherir sans y
 // aller. Il montre les lots ou le joueur est engage (depasse d'abord) puis quelques autres lots ou il peut miser ; il se reduit en une pastille
 // (le choix est retenu). Aucune regle : miser passe par `placeBid` du noyau.
+import { t } from '../config/textes.js';
 import { BOUTIQUE } from '../config/boutique.js';
 import { nextBid, placeBid } from './../boutique/noyau/engines/market.js';
 import { change, ctx, ecoute, partie } from '../boutique/partie.js';
@@ -45,19 +46,19 @@ export function installeEncheresMini({ ecranCourant }) {
     signature = sig;
     noeud.className = `em ${reduit ? 'reduit' : ''} ${depasses ? 'alerte' : ''}`;
     if (reduit) {
-      noeud.innerHTML = `<button class="em-pastille" aria-label="Enchères">${icone('Farm', 26)}${depasses ? `<i>${depasses}</i>` : ''}</button>`;
+      noeud.innerHTML = `<button class="em-pastille" aria-label="${t('ui.auctions')}">${icone('Farm', 26)}${depasses ? `<i>${depasses}</i>` : ''}</button>`;
       noeud.querySelector('button').onclick = () => { reduit = false; sauve(); signature = ''; dessine(); };
       return;
     }
-    noeud.innerHTML = `<header><b>Enchères</b><button class="em-reduit" aria-label="Réduire">–</button></header><div class="em-liste"></div>`;
+    noeud.innerHTML = `<header><b>${t('ui.auctions')}</b><button class="em-reduit" aria-label="${t('ui.collapse')}">–</button></header><div class="em-liste"></div>`;
     noeud.querySelector('.em-reduit').onclick = () => { reduit = true; sauve(); signature = ''; dessine(); };
     for (const lot of lots) {
       const c = carteDef(lot.cardId), prix = nextBid(lot, ctx), moi = lot.holder === 'player';
       const ligne = el(`<div class="em-lot ${moi ? 'tete' : ''} ${estDepasse(lot) ? 'depasse' : ''}">
         <img src="${asset(spriteDeCarte(lot.cardId))}" alt="${c.name}">
         <div><span class="em-t">${mmss(lot.endMs - S.nowMs)}</span>
-        ${moi ? `<div class="em-etat">En tête · ${court(lot.price)}</div>`
-          : `<button class="em-miser ${S.gold < prix ? 'pauvre' : ''}">${lot.engaged ? 'Surenchérir' : 'Miser'} · ${court(prix)}</button>`}</div></div>`);
+        ${moi ? `<div class="em-etat">${t('ui.leading', { p: court(lot.price) })}</div>`
+          : `<button class="em-miser ${S.gold < prix ? 'pauvre' : ''}">${lot.engaged ? t('ui.raise') : t('ui.bid')} · ${court(prix)}</button>`}</div></div>`);
       const b = ligne.querySelector('button');
       if (b) b.onclick = () => { const r = placeBid(partie(), lot.id, ctx); if (!r.ok) toast(r.reason); else { change(); demandeNotifs(); } };
       noeud.querySelector('.em-liste').appendChild(ligne);

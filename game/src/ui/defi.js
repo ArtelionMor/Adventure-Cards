@@ -1,6 +1,7 @@
 // Le DEFI d'un client de la boutique (scene : `boutique-scene.js`, config : `BOUTIQUE.defi`, tirage : `config/defi.js`).
 // Le joueur touche la bulle d'un client assis seul : sa fiche montre l'équipe qu'il aligne ; « Relever » lance le duel (combat normal,
 // `openBattle` avec un nœud `defi`), la victoire donne un booster premium (`battle.js`, `finish`). Le client repart après le duel.
+import { t } from '../config/textes.js';
 import { BOUTIQUE } from '../config/boutique.js';
 import { CHAR_BY_ID } from '../config/characters.js';
 import { equipeDefi } from '../config/defi.js';
@@ -36,7 +37,7 @@ export function ouvreDefi(c) {
   </div>`);
   box.querySelector('[data-k="non"]').onclick = closeModal;
   box.querySelector('[data-k="go"]').onclick = () => {
-    if (tailleDuDeck() < tailleMinDuDeck()) { toast('Ton équipe est trop petite pour ce duel.'); return; }
+    if (tailleDuDeck() < tailleMinDuDeck()) { toast(t('ui.teamTooSmall')); return; }
     closeModal();
     c.defiEnCours = true;
     openBattle({ id: 'defi', defi: e, niveau: e.total }, () => finDefi(c));

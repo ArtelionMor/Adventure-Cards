@@ -41,3 +41,12 @@ Gardien des Rayons, Complice, Maléfice, Jeune Caméléon.
 - Les noms anglais des cartes : colonne `name_en` de `~boutique_cartes`.
 - L'archétype « Contrôle » s'écrit `Control` dans le noyau ; s'il est écrit en dur sur des cartes du Builder, le renommer.
 - Les textes figés des cartes se régénèrent dans le Builder : ajouté ici au lot 6.
+
+## Lot 6 — passage à l'anglais : ce qui reste dans les DONNÉES (à faire dans le Card Builder, ou dans la Sheet)
+Le code de l'interface est en anglais ; ce qui vient des **données** ne l'est pas encore, et se lit à l'écran :
+- **Les noms de cartes** (colonne `name_en` de `~boutique_cartes`, 210 cartes) : « Lapereau Farceur », « Souris – Souriceau », « Corbeau Espion », « Chiot de Garde »…
+- **Les noms d'adversaires** (« Souris chapardeuses », « Chat de ruelle »…) et les **noms des héros accentués** (« Félix » / Felix, « Athéna » / Athena) ; les descriptions (`role`) des héros.
+- **Les types de créature** (« Type : Souris », « Type : Chien »…) : valeurs du mot-clé `type:` sur chaque carte — table dans `~boutique_glossaire` (Souris → Mouse, Chien → Dog…).
+- **Les textes figés des cartes** (cri de guerre, râle…) : ils se régénèrent d'après `describeEffect` (déjà en anglais pour les effets les plus courants) ; une carte dont le texte est écrit à la main dans le Builder reste française.
+- **Les fiches d'arène** (`role`, `question`, `reponse`, `punit`, `signature`) : onglet `encounters` de la Sheet et `config/arenes.js` ; les libellés « Aggro · Turbo » viennent de la même source.
+- **Les identifiants de rareté et d'archétype** dans les cartes du jeu (`characters.data.js`) ne sont pas touchés.

@@ -416,17 +416,17 @@ function clipsBruts() {
   const nom = q => q.nom;
   // les DEPLACEMENTS (rebond, elan, recul) vont a la racine « sol » dont tout suit, jamais au corps seul — le validateur y
   // verrait un corps qui s'ecarte de son parent ; seules les ROTATIONS sont sur les os
-  idle.pistes.sol = { y: K([0, 0], [2.6, 3 * s], [4.2, 0]) };
-  idle.pistes[nom(corps)] = { rot: K([0, -0.3], [3, 0.4]) };
-  marche.pistes.sol = { y: K([0, 0], [0.3, -9 * s], [0.6, 0], [0.9, -9 * s]) };
-  marche.pistes[nom(corps)] = { rot: K([0, -1], [0.6, 1]) };
+  idle.pistes.sol = { y: K([0, 0], [2.6, 5 * s], [4.2, 0]) };
+  idle.pistes[nom(corps)] = { rot: K([0, -0.6], [3, 0.8]) };
+  marche.pistes.sol = { y: K([0, 0], [0.3, -14 * s], [0.6, 0], [0.9, -14 * s]), x: K([0, -6 * s], [0.6, 6 * s]) };
+  marche.pistes[nom(corps)] = { rot: K([0, -2.2], [0.6, 2.2]) };
   coup.pistes.sol = { y: K([0, 0], [0.25, -10 * s], [0.42, 26 * s], [0.6, 26 * s], [1.1, 0]) };
   coup.pistes[nom(corps)] = { rot: K([0, 0], [0.25, -1.5], [0.42, 1.5], [0.6, 1.5], [1.1, 0]) };
   degats.pistes.sol = { y: K([0, 0], [0.1, -18 * s], [0.3, -6 * s], [0.8, 0]), x: K([0, 0], [0.1, 12 * s], [0.35, 3 * s], [0.8, 0]) };
   degats.pistes[nom(corps)] = { rot: K([0, 0], [0.1, -2], [0.4, 0.6], [0.8, 0]) };
   for (const q of par('tete')) {
-    sin(idle, nom(q), 1.2, 3, 0.1);
-    marche.pistes[nom(q)] = { rot: K([0, 1], [0.6, -1]) };
+    sin(idle, nom(q), 1.8, 3, 0.1);
+    marche.pistes[nom(q)] = { rot: K([0, 2], [0.6, -2]) };
     coup.pistes[nom(q)] = { rot: K([0, 0], [0.25, -2], [0.42, 3], [0.6, 3], [1.1, 0]) };
     degats.pistes[nom(q)] = { rot: K([0, 0], [0.1, -5], [0.4, 1.5], [0.8, 0]) };
   }
@@ -455,7 +455,7 @@ function clipsBruts() {
   }
   i = 0;
   for (const q of par('jambe')) { marche.pistes[nom(q)] = { rot: K([0, 5 * (i % 2 ? -1 : 1)], [0.6, -5 * (i % 2 ? -1 : 1)]) }; i++; }
-  for (const q of par('accessoire')) { sin(idle, nom(q), 1.2, 6, 0.2); sin(marche, nom(q), 3, 1.2, 0.3); }
+  for (const q of par('accessoire')) { sin(idle, nom(q), 2, 6, 0.2); sin(marche, nom(q), 4.5, 1.2, 0.3); }
   // une grosse partie (la queue qui fait 30 % du personnage) balaie bien plus large qu'une petite : on la fait tourner moins
   for (const q of parties) {
     const f = Math.min(1, 0.15 / (q.n / total));

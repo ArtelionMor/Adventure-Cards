@@ -70,7 +70,15 @@ def lis_json(texte):
     a, b = t.find("{"), t.rfind("}")
     if a < 0 or b <= a:
         raise ValueError("reponse sans JSON : " + t[:120])
-    brut = json.loads(t[a:b + 1])
+    corps_json = t[a:b + 1]
+    try:
+        brut = json.loads(corps_json)
+    except Exception:
+        # un modele oublie une virgule ou en laisse une de trop : on repare les cas courants avant d'abandonner
+        r = re.sub(r",\s*([\]}])", r"\1", corps_json)                 # virgule finale
+        r = re.sub(r"([\]\d])\s*\n\s*\"", lambda m: m.group(1) + ",\n\"", r)   # virgule manquante entre deux entrees
+        r = re.sub(r"(\d)\s+(\d)", r"\1, \2", r)                          # virgule manquante entre deux numeros
+        brut = json.loads(r)
     out = {}
     for nom, ids in brut.items():
         liste = []
@@ -86,7 +94,7 @@ def lis_json(texte):
     return out
 
 
-def demande_ia(ia, modele, image_b64, parties):
+def demande_ia(ia, modele, image_b64, parties, indice=""):
     consigne = ("Cette image montre un personnage de jeu découpé en régions colorées NUMÉROTÉES. "
                 "Pour chaque partie ci-dessous, donne la liste des NUMÉROS des régions qui la composent (toutes celles qui en font partie, y compris les petites). "
                 "Parties : " + ", ".join(parties) + ". Une région ne va que dans une seule partie ; omets une partie qui n'existe pas. "
@@ -94,6 +102,11 @@ def demande_ia(ia, modele, image_b64, parties):
     if "decor" in parties:
         consigne += (" La partie « decor » regroupe tout ce qui N'EST PAS le personnage : sol, herbe, rochers, ombre portée, fumée, "
                      "bâtiments ou objets d'arrière-plan.")
+    consigne += (" Règles : un objet tenu (marteau, bâton, pancarte, livre, épée…) et la main qui le tient forment UNE SEULE partie, jamais deux ; "
+                 "un accessoire porté sur la tête (chapeau, casque, lunettes) fait partie de « tete » ; aucune partie n'est en miettes : "
+                 "un petit morceau isolé va dans la plus grande partie voisine ; une région ne va que dans une seule partie.")
+    if indice:
+        consigne += " " + indice
     corps = {"model": modele, "stream": True, "think": False, "options": {"temperature": 0.1, "num_ctx": 8192},
              "messages": [{"role": "user", "content": consigne, "images": [image_b64]}]}
     texte = ""
@@ -131,6 +144,79 @@ def etiquettes(regions, groupes, alpha, W, H, etend=9999):
     return etiq
 
 
+def cranes_vers_decor(etiq, noms, im, aire_min=600):
+    """Les crânes (beiges) restés dans « corps » vont au décor immobile : la pile de GAUCHE ou de DROITE selon leur place.
+    L'IA classe par régions numérotées et confond un crâne qui touche la cape avec elle ; ici on regarde la COULEUR :
+    des composantes beiges d'au moins `aire_min` pixels (la ceinture, les boutons sont plus petits et plus sombres),
+    leurs orbites (trous) et leur trait noir sur 4 px. Ne s'applique que s'il y a une partie « decor_crane_gauche/droit »."""
+    import cv2
+    zg = next((i for i, n in enumerate(noms) if n == "decor_crane_gauche"), None)
+    zd = next((i for i, n in enumerate(noms) if n == "decor_crane_droit"), None)
+    zc = next((i for i, n in enumerate(noms) if n == "corps"), None)
+    if zc is None or (zg is None and zd is None):
+        return 0
+    rgb = np.array(im.convert("RGB")).astype(int)
+    R, G, B = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    os_ = (R > 170) & (G > 150) & (B > 115) & (R - B < 120)
+    decors = [z for z in (zg, zd) if z is not None]
+    masque = (os_ & (etiq >= 0) & ~np.isin(etiq, decors)).astype(np.uint8)   # tout ce qui est beige et pas déjà au décor
+    n, comp, stats, cent = cv2.connectedComponentsWithStats(masque, connectivity=8)
+    H, W = etiq.shape
+    deplaces = 0
+    for i in range(1, n):
+        if stats[i, cv2.CC_STAT_AREA] < aire_min:
+            continue
+        if cent[i][1] < 0.56 * etiq.shape[0]:
+            continue                                           # un crâne en haut (celui du chapeau) n'est pas une pile
+        c = (comp == i).astype(np.uint8)
+        c = cv2.morphologyEx(c, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))
+        remplie = c.copy()
+        h, w = c.shape
+        fond = np.zeros((h + 2, w + 2), np.uint8)
+        inv = (1 - c).astype(np.uint8)
+        cv2.floodFill(inv, fond, (0, 0), 2)
+        remplie[inv == 1] = 1                                  # les orbites : entourées d'os, jamais jointes au fond
+        remplie = cv2.dilate(remplie, np.ones((9, 9), np.uint8))
+        cible = zg if (cent[i][0] < W / 2 and zg is not None) or zd is None else zd
+        prend = (remplie > 0) & (etiq >= 0) & ~np.isin(etiq, decors)
+        etiq[prend] = cible
+        deplaces += int(prend.sum())
+    # ce qu'une tête ou un chapeau a pris tout en bas (l'ombre d'un crâne, un bout de pile) n'est pas à eux : la tête finit au foulard
+    zt = [i for i, n in enumerate(noms) if n in ("tete", "chapeau")]
+    if zt:
+        bas = np.zeros_like(etiq, dtype=bool); bas[int(0.6 * H):, :] = True
+        a_rendre = bas & np.isin(etiq, zt)
+        ys, xs = np.nonzero(a_rendre)
+        for y, x in zip(ys, xs):
+            etiq[y, x] = zg if (x < W / 2 and zg is not None) or zd is None else zd
+        deplaces += int(a_rendre.sum())
+    deplaces += nettoie_corps(etiq, zc, decors, zg, zd)
+    return deplaces
+
+
+def nettoie_corps(etiq, zc, decors, zg, zd, rayon=6):
+    """Retire de « corps » ce qui n'est pas son cœur : ses franges et ses brins (le reste d'un crâne, un lambeau de trait) vont à la pile voisine.
+    Le cœur = la plus grosse composante de « corps » ouvert (9 px) ; on le regonfle de `rayon` px dans « corps » (les bords et le trait
+    reviennent), le reste s'en va. Un brin attaché au cœur par un fil mince n'est jamais regonflé au-delà de `rayon` px."""
+    import cv2
+    H, W = etiq.shape
+    corps = (etiq == zc).astype(np.uint8)
+    ouvert = cv2.morphologyEx(corps, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9)))
+    n, comp, stats, _ = cv2.connectedComponentsWithStats(ouvert, connectivity=8)
+    if n < 2:
+        return 0
+    coeur = (comp == 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))).astype(np.uint8)
+    garde = coeur.copy()
+    noyau = np.ones((3, 3), np.uint8)
+    for _ in range(rayon):
+        garde = cv2.dilate(garde, noyau) & corps
+    reste = (corps > 0) & (garde == 0)
+    ys, xs = np.nonzero(reste)
+    for y, x in zip(ys, xs):
+        etiq[y, x] = zg if (x < W / 2 and zg is not None) or zd is None else zd
+    return int(reste.sum())
+
+
 def main():
     # sans console (tache cachee de Windows), Python ecrit en cp1252 et plante sur le moindre accent
     for flux in (sys.stdout, sys.stderr):
@@ -147,6 +233,7 @@ def main():
     p.add_argument("--modele", default="qwen3.5:27b")
     p.add_argument("--repli", default="qwen3.5:9b")
     p.add_argument("--points", type=int, default=64)
+    p.add_argument("--indice", default="", help="une phrase de plus pour l'IA (ce que ce personnage a de particulier)")
     a = p.parse_args()
     os.makedirs(a.sortie, exist_ok=True)
     parties = [x.strip() for x in a.parties.split(",") if x.strip()]
@@ -168,7 +255,7 @@ def main():
     for modele in (a.modele, a.modele, a.repli):
         t = time.time()
         try:
-            classement = lis_json(demande_ia(a.ia, modele, image_b64, parties))
+            classement = lis_json(demande_ia(a.ia, modele, image_b64, parties, a.indice))
             rapport["modele_utilise"] = modele
             rapport["duree_ia"] = round(time.time() - t, 1)
             break
@@ -185,6 +272,7 @@ def main():
     noms = list(classement)
     groupes = [classement[n] for n in noms]
     etiq = etiquettes(regions, groupes, alpha, W, H)
+    rapport["cranes_vers_decor"] = cranes_vers_decor(etiq, noms, im)
     total = int(alpha.sum())
     parts = []
     for z, n in enumerate(noms):

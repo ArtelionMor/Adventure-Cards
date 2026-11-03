@@ -6,6 +6,7 @@
 // La mise en forme suit la maquette « Combat Screen Zoom on a card » (19 octobre 2026) : ce que la carte FAIT s'ecrit
 // « icones : texte » (vert pour un effet, jaune pour un mot-cle) ; ce qui la MODIFIE s'ecrit sous le portrait de sa
 // source, le nom de la source en titre et le changement dessous (vert s'il l'aide, rouge s'il la desservit).
+import { t } from '../config/textes.js';
 import { TRIGGERS, keyLabel, momentLabel, describeEffect, describeAura, describeStatic, typesOf } from '../config/mechanics.js';
 import { couleurDuType } from '../config/familles.js';
 import { icone } from './icones.js';
@@ -101,7 +102,7 @@ export function teteFiche({ nom, sprite, cout, coutBase, sort, atk, hp, maxHp, p
   return el(`
     <div class="fi-tete">
       <div class="fi-carte${sort ? ' spell' : ''}${adverse ? ' adverse' : ''}">
-        ${cout != null ? `<div class="cost" ${coutBase != null && coutBase !== cout ? `title="coût de base ${coutBase}"` : ''}>${cout}</div>` : ''}
+        ${cout != null ? `<div class="cost" ${coutBase != null && coutBase !== cout ? `title="${t('ui.baseCostTitle', { n: coutBase })}"` : ''}>${cout}</div>` : ''}
         ${sprite ? `<img src="${asset(sprite)}" alt="">` : ''}
       </div>
       <div class="fi-id">
@@ -314,7 +315,7 @@ export function lignesDeRenforts(B, u, camp, dAtk, dHp) {
   let somA = 0, somH = 0;
   for (const e of B.evts || []) {
     if (e.t !== 'renfort' || !e.cible || e.cible.uid !== u.uid || e.cible.camp !== camp) continue;
-    const nom = e.src ? e.src.nom : 'un effet';
+    const nom = e.src ? e.src.nom : t('ui.anEffect');
     const cle = `${nom}|${e.atk}|${e.hp}|${e.cle || ''}`;
     const g = groupes.get(cle) || { nom, sprite: e.src ? e.src.sprite : null, atk: e.atk || 0, hp: e.hp || 0, cle: e.cle, n: 0 };
     g.n++;
@@ -325,7 +326,7 @@ export function lignesDeRenforts(B, u, camp, dAtk, dHp) {
   for (const g of groupes.values()) {
     const chiffres = g.atk || g.hp;
     const atk = g.atk * g.n, hp = g.hp * g.n;
-    const texte = [chiffres ? `${signe(atk)}/${signe(hp)} : ${atk + hp >= 0 ? 'renfort' : 'affaiblissement'}` : '', g.cle ? `gagne ${keyLabel(g.cle)}` : '']
+    const texte = [chiffres ? `${signe(atk)}/${signe(hp)} : ${atk + hp >= 0 ? t('ui.buffNote') : t('ui.debuffNote')}` : '', g.cle ? t('ui.gains', { k: keyLabel(g.cle) }) : '']
       .filter(Boolean).join(' · ');
     out.push(ligneSource({ sprite: g.sprite, ico: g.cle && iconeDeCle(g.cle) ? iconeDeCle(g.cle) : 'Buff', titre: g.nom + fois(g.n), texte, ton: atk + hp < 0 ? 'mal' : 'bon' }));
   }

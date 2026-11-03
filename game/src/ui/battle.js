@@ -699,8 +699,8 @@ function majCarte(n, c, i) {
   if (n._sig !== sig) {
     n._sig = sig;
     n.innerHTML = `
-      <div class="cost" ${cout !== c.cost ? `title="coût de base ${c.cost}" style="color:var(--accent2)"` : ''}>${cout}</div>
-      ${c.pistee ? `<div class="patte" title="Pistée par l’adversaire">${icone('Track', 16)}</div>` : ''}
+      <div class="cost" ${cout !== c.cost ? `title="${t('bt.baseCost', { n: c.cost })}" style="color:var(--accent2)"` : ''}>${cout}</div>
+      ${c.pistee ? `<div class="patte" title="${t('bt.tracked')}">${icone('Track', 16)}</div>` : ''}
       ${c.sprite ? `<img src="${asset(c.sprite)}" alt="">` : ''}
       <div class="nm">${c.name}</div>
       ${pics}
@@ -721,7 +721,7 @@ export const DOS_DE_CARTE = 'Graphical Assets/CardBack/CardBack Cozy.png';
 
 /** Une pioche (des dos empiles, le nombre dessus) ou une defausse (la derniere carte, le nombre dessus). */
 function pileNode(quoi, camp) {
-  const n = el(`<button class="bt-pile ${quoi} ${camp} bt-ctrl" aria-label="${quoi === 'pioche' ? 'Pioche' : 'Défausse'}"><span class="bt-face"></span><b></b><em class="bt-rep hidden"></em></button>`);
+  const n = el(`<button class="bt-pile ${quoi} ${camp} bt-ctrl" aria-label="${quoi === 'pioche' ? t('bt.draw') : t('bt.discard')}"><span class="bt-face"></span><b></b><em class="bt-rep hidden"></em></button>`);
   return { n, face: n.querySelector('.bt-face'), nb: n.querySelector('b'), rep: n.querySelector('.bt-rep') };
 }
 
@@ -813,25 +813,25 @@ function ouvreMenu() {
   enPause = true;
   clearTimeout(timer);
   const box = el(`<div class="bt-menu">
-    <h3>Menu</h3>
+    <h3>${t('bt.menu')}</h3>
     <p class="bt-tour"></p>
-    <button class="btn" data-k="fermer">Reprendre</button>
+    <button class="btn" data-k="fermer">${t('bt.resume')}</button>
     <button class="btn ghost" data-k="vitesse"></button>
-    <button class="btn ghost" data-k="zone">Défausse et Registre</button>
-    <button class="btn ghost" data-k="journal">Journal du combat</button>
-    <button class="btn rouge" data-k="abandon">${rejeu ? 'Quitter le rejeu' : 'Abandonner'}</button>
+    <button class="btn ghost" data-k="zone">${t('ui.discardRegister')}</button>
+    <button class="btn ghost" data-k="journal">${t('bt.battleLog')}</button>
+    <button class="btn rouge" data-k="abandon">${rejeu ? t('bt.quitReplay') : t('bt.forfeit')}</button>
   </div>`);
   const tour = box.querySelector('.bt-tour');
-  tour.textContent = `Tour ${Math.ceil(B.turnNo / 2)}`;
+  tour.textContent = t('bt.turn', { n: Math.ceil(B.turnNo / 2) });
   const vit = box.querySelector('[data-k="vitesse"]');
-  const ditVitesse = () => { vit.textContent = `Vitesse x${fx.vitesse}`; };
+  const ditVitesse = () => { vit.textContent = t('ui.speed', { n: fx.vitesse }); };
   ditVitesse();
   vit.onclick = () => { fx.cycleVitesse(!!rejeu); ditVitesse(); majBarre(); };
   box.querySelector('[data-k="journal"]').onclick = () => { closeModal(); coque.journal.bascule(); render(); };
   const ab = box.querySelector('[data-k="abandon"]');
   ab.onclick = () => {
     if (rejeu) { closeModal(); quitteRejeu(); return; }
-    if (!ab.classList.contains('sur')) { ab.classList.add('sur'); ab.textContent = 'Toucher encore pour abandonner'; return; }
+    if (!ab.classList.contains('sur')) { ab.classList.add('sur'); ab.textContent = t('bt.tapAgain'); return; }
     abandonne();
   };
   // Cinq touchers sur « Tour N » ouvrent le panneau de triche.
@@ -865,7 +865,7 @@ function abandonne() {
 
 /** Le journal en TEXTE, telechargeable : c'est l'outil du game designer, plus celui du joueur. */
 function telechargeTexte() {
-  const texte = [`${B.p.name} contre ${B.e.name} — tour ${B.turnNo}`,
+  const texte = [t('bt.versus', { a: B.p.name, b: B.e.name, n: B.turnNo }),
     `PV ${B.p.hp}/${B.p.maxHp} contre ${B.e.hp}/${B.e.maxHp}`, ''].concat(B.log).join('\n');
   telecharge('﻿' + texte, `combat-${B.e.name.replace(/\s+/g, '-')}.txt`, 'text/plain;charset=utf-8');
 }
@@ -892,7 +892,7 @@ function monteLaCoque(root) {
   c.heroE = heroNode('e');
   c.piocheE = pileNode('pioche', 'e');
   c.defE = pileNode('defausse', 'e');
-  c.eventail = el('<button class="bt-eventail bt-ctrl" aria-label="Main adverse"></button>');
+  c.eventail = el(`<button class="bt-eventail bt-ctrl" aria-label="${t('bt.theirHandLabel')}"></button>`);
   const piles = el('<div class="bt-piles e"></div>');
   piles.append(c.piocheE.n, c.defE.n);
   c.haut.append(piles, c.heroE.n, c.heroE.hors, c.eventail, c.heroE.mana);
@@ -914,7 +914,7 @@ function monteLaCoque(root) {
   });
   // Enregistrement en cours : le joueur doit le SAVOIR, une partie ne s'enregistre pas
   // dans son dos. Le point rouge reste dans l'en-tete du journal.
-  if (B.journal) c.journal.extra(el('<span class="rec" title="Ce combat est enregistré (journal de décisions)">⏺</span>'));
+  if (B.journal) c.journal.extra(el(`<span class="rec" title="${t('bt.recorded')}">⏺</span>`));
   root.appendChild(c.journal.n);
 
   c.boardP = plateauNode('boardP');
@@ -945,22 +945,22 @@ function monteLaCoque(root) {
 
   // --- les onglets des bords : Menu, Registre, Log a gauche ; Fin de tour et la vitesse a droite
   const gauche = el(`<div class="bt-onglets g">
-      <button class="bt-onglet bt-ctrl" id="menuBtn">Menu</button>
-      <button class="bt-onglet bt-ctrl" id="registreBtn">Registre</button>
-      <button class="bt-onglet bt-ctrl" id="logBtn">Log<b class="bdg hidden"></b></button>
+      <button class="bt-onglet bt-ctrl" id="menuBtn">${t('bt.menu')}</button>
+      <button class="bt-onglet bt-ctrl" id="registreBtn">${t('bt.register2')}</button>
+      <button class="bt-onglet bt-ctrl" id="logBtn">${t('bt.log')}<b class="bdg hidden"></b></button>
     </div>`);
   const droite = el(`<div class="bt-onglets d">
-      <button class="bt-onglet fintour bt-ctrl" id="endTurn"><span>Fin de tour</span>${icone('TurnEnd', 22)}</button>
-      <button class="vitesse bt-ctrl" id="vitesse" aria-label="Vitesse du combat"></button>
+      <button class="bt-onglet fintour bt-ctrl" id="endTurn"><span>${t('bt.endTurn')}</span>${icone('TurnEnd', 22)}</button>
+      <button class="vitesse bt-ctrl" id="vitesse" aria-label="${t('bt.speed')}"></button>
     </div>`);
   root.append(gauche, droite);
   c.vit = droite.querySelector('#vitesse');
   c.vit.onclick = () => { fx.cycleVitesse(!!rejeu); majBarre(); };
   // LE REJEU : « Fin de tour » devient « Quitter », et deux fleches sur les cotes sautent au tour precedent / suivant.
   if (rejeu) {
-    droite.querySelector('#endTurn').innerHTML = `<span>Quitter</span>${icone('Close', 22)}`;
-    const prec = el(`<button class="bt-rejeu prec bt-ctrl" aria-label="Tour précédent">${icone('Previous', 30)}</button>`);
-    const suiv = el(`<button class="bt-rejeu suiv bt-ctrl" aria-label="Tour suivant">${icone('Next', 30)}</button>`);
+    droite.querySelector('#endTurn').innerHTML = `<span>${t('bt.leave')}</span>${icone('Close', 22)}`;
+    const prec = el(`<button class="bt-rejeu prec bt-ctrl" aria-label="${t('bt.prevTurn')}">${icone('Previous', 30)}</button>`);
+    const suiv = el(`<button class="bt-rejeu suiv bt-ctrl" aria-label="${t('bt.nextTurn')}">${icone('Next', 30)}</button>`);
     prec.onclick = () => { const d = rejeu.donnees; allerAuTour(toursJoues(d, rejeu.etat.i) - 1); };
     suiv.onclick = () => { const d = rejeu.donnees; allerAuTour(toursJoues(d, rejeu.etat.i) + 1); };
     root.append(prec, suiv);
@@ -1010,9 +1010,9 @@ function majBarre() {
   const nbReprises = !auto && B.turn === 'p' && !B.over ? reprisesPossibles(B, 'p').length : 0;
   // Verrouille (BALANCE.heros.auto) : le bouton est grise et porte un cadenas ; le toucher dit quand il se debloque.
   const verrou = !rejeu && !autoDebloque();
-  const chip = rejeu ? (rejeu.pause ? `Lecture ${icone('Auto', 18)}` : `Pause ${icone('Pause', 18)}`)
+  const chip = rejeu ? (rejeu.pause ? `${t('bt.replayLabel')} ${icone('Auto', 18)}` : `${t('bt.pause')} ${icone('Pause', 18)}`)
     : verrou ? `Auto ${icone('Lock', 18)}`
-    : auto ? `Auto ${icone('Auto', 18)}` : `Manuel ${icone('Manual', 18)}`;
+    : auto ? `Auto ${icone('Auto', 18)}` : `${t('bt.manual')} ${icone('Manual', 18)}`;
   if (c.sigChip !== chip) { c.sigChip = chip; c.chip.innerHTML = chip; }
   c.chip.classList.toggle('on', auto && !verrou);
   c.chip.classList.toggle('verrou', verrou);
@@ -1027,8 +1027,8 @@ function majBarre() {
   c.def.classList.toggle('pret', !!nbReprises);
   c.fin.disabled = !rejeu && !(B.turn === 'p' && !auto);
   if (c.tourRejeu) {
-    const d = rejeu.donnees, t = toursJoues(d, rejeu.etat.i), n = toursJoues(d, d.actions.length);
-    c.tourRejeu.textContent = `Rejeu · tour ${Math.min(n, t) + 1} / ${n + 1}`;
+    const d = rejeu.donnees, tj = toursJoues(d, rejeu.etat.i), n = toursJoues(d, d.actions.length);
+    c.tourRejeu.textContent = t('bt.replayTurn', { a: Math.min(n, tj) + 1, b: n + 1 });
   }
   // Le badge de l'onglet du journal : combien de scenes depuis la derniere fois qu'on l'a ouvert.
   // Le journal ouvert prend toute la largeur : les onglets des bords se retirent (ils cachaient « Tous »). Il se ferme
@@ -1199,12 +1199,12 @@ function majFocus() {
   if (selCard !== null) {
     const carte = carteChoisie();
     cibles = legalTargets(B, 'p', carte, selChoix);
-    texte = `${carte.name} : choisis une cible`;
+    texte = t('bt.pickTarget', { name: carte.name });
     if (selZone === 'main') acteur = c.main._n.get(carte);
   } else {
     const u = B.p.board.find(x => x.uid === selUnit);
     cibles = attackableTargets(B, 'p', u);
-    texte = `${u.name} attaque : choisis une cible`;
+    texte = t('bt.attackPick', { name: u.name });
     acteur = noeudDe('p', u.uid);
   }
   if (acteur) acteur.classList.add('lit', 'acteur');
@@ -1213,7 +1213,7 @@ function majFocus() {
     if (n) n.classList.add('lit');
   }
   // Pendant une visee au doigt, le trait et la cible disent tout : pas de bandeau.
-  c.bandeau.textContent = tir ? '' : 'Choisis une cible';
+  c.bandeau.textContent = tir ? '' : t('bt.pickTargetShort');
   c.bandeau.classList.toggle('hidden', !!tir);
 }
 
@@ -1239,7 +1239,7 @@ function demandeChoix(card, done) {
   let choisi = null;
   for (const e of card.play || []) eachSubEffect(e, x => { if (!choisi && x.op === 'choisir') choisi = x; });
   if (!choisi) { done(null); return; }
-  const box = el(`<div><h3 style="margin:0 0 4px">${card.name}</h3><p class="muted" style="margin:0">Choisis un effet.</p></div>`);
+  const box = el(`<div><h3 style="margin:0 0 4px">${card.name}</h3><p class="muted" style="margin:0">${t('bt.pickEffect')}</p></div>`);
   let boutons = 0;
   // Une branche est une LISTE d'effets (l'ancienne forme, un effet seul, se lit
   // pareil) : le bouton les dit tous, a la suite. Deux ou trois choix (`branchesDe`).
@@ -1262,8 +1262,8 @@ function demandeChoix(card, done) {
 /** Pourquoi une carte ne se joue pas maintenant, dit au joueur. */
 function raisonCarte(c, zone) {
   const cout = cardCost(c, B, 'p', zone);
-  if (B.p.mana < cout) return `Pas assez de mana (${cout} requis, ${B.p.mana} disponible${B.p.mana > 1 ? 's' : ''}).`;
-  return 'Cette carte ne peut pas être jouée maintenant.';
+  if (B.p.mana < cout) return t('bt.noMana', { cost: cout, have: B.p.mana });
+  return t('bt.cantPlay');
 }
 
 function onCardClick(i, zone = 'main') {
@@ -1293,9 +1293,9 @@ function onCardClick(i, zone = 'main') {
 
 /** Pourquoi cette unite n'attaque pas maintenant, ou '' si elle peut. */
 function raisonUnite(u) {
-  if (u.atk <= 0) return `${u.name} n'a pas d'attaque.`;
-  if (u.attackedThisTurn) return `${u.name} a déjà attaqué ce tour.`;
-  if (!u.canAttack) return `${u.name} vient d'arriver : elle n'est pas encore prête.`;
+  if (u.atk <= 0) return t('bt.noAttack', { name: u.name });
+  if (u.attackedThisTurn) return t('bt.attacked', { name: u.name });
+  if (!u.canAttack) return t('bt.justArrived', { name: u.name });
   if (!attackableTargets(B, 'p', u).length) return `${u.name} n'a aucune cible possible.`;
   return '';
 }
@@ -1350,7 +1350,7 @@ function reprendLaMain() {
   reinitSelection();
   render();
   loop();
-  toast('Tu reprends la main (mode Manuel).');
+  toast(t('bt.handBack'));
   return true;
 }
 
@@ -1572,38 +1572,38 @@ function renderZone() {
     if (!monTour) return { carte, i, cout, etat: 'vue', note: reprise ? '↺ Reprise' : '' };
     if (!reprise) return { carte, i, cout, etat: 'off' };
     const ok = canPlay(B, 'p', carte, 'defausse');
-    return { carte, i, cout, etat: ok ? 'on' : 'off', note: ok ? '↺ relancer' : (B.p.mana < cout ? '↺ pas assez de mana' : '↺ pas maintenant') };
+    return { carte, i, cout, etat: ok ? 'on' : 'off', note: ok ? t('bt.recast') : (B.p.mana < cout ? t('bt.recastMana') : t('bt.recastLater')) };
   });
   // `camp` n'est pas lu par la fenetre : c'est la lecture (appui long) qui en a besoin, pour
   // afficher le cout de la carte du bon cote.
-  const groupes = [{ titre: 'Ta défausse', camp: 'p', cartes: moi }];
-  if (B.p.exile.length) groupes.push({ titre: 'Ton exil', camp: 'p', cartes: lecturePile(B.p.exile) });
+  const groupes = [{ titre: t('bt.yourDiscard'), camp: 'p', cartes: moi }];
+  if (B.p.exile.length) groupes.push({ titre: t('bt.yourExile'), camp: 'p', cartes: lecturePile(B.p.exile) });
   // TA PILE DE FATIGUE (V3, Ex-libris) : ce que tu tirerais, la pioche finie. Les cartes a Ex-libris sont
   // eclairees — ce sont celles que ta defausse y a rangees —, le reste est grise. Lecture seule : un tap n'y
   // joue rien (seul le groupe 0, ta defausse, se joue).
   const maPile = pileDeFatigue(B, 'p');
   if (maPile.length) {
-    groupes.push({ titre: 'Ta pile de fatigue', camp: 'p',
+    groupes.push({ titre: t('bt.yourFatigue'), camp: 'p',
       cartes: maPile.map((carte, i) => ({ carte, i, etat: hasKey(carte.keys, 'ex_libris') ? 'on' : 'off' })) });
   }
-  groupes.push({ titre: 'Défausse adverse', camp: 'e', cartes: lecturePile(B.e.discard) });
+  groupes.push({ titre: t('bt.theirDiscard'), camp: 'e', cartes: lecturePile(B.e.discard) });
   // LA MAIN ADVERSE, DE DOS (V3, pistage) : on ne lit jamais ce qu'elle contient — seulement quelles places
   // portent la patte. Rien d'autre ne passe a la fenetre : ni nom, ni cout, ni mot-cle.
   if (B.e.hand.some(c => c.pistee)) {
-    groupes.push({ titre: 'Main adverse (de dos)', camp: 'e',
+    groupes.push({ titre: t('bt.theirHand'), camp: 'e',
       cartes: B.e.hand.map((c, i) => ({ carte: { name: '?', type: 'ally' }, i, etat: 'vue', dos: asset(DOS_DE_CARTE), pistee: !!c.pistee })) });
   }
   // LE REGISTRE (V3) : les cartes jouees par les deux camps, la plus recente d'abord. Les types nommes se lisent dans
   // l'aide ; une carte « Type : tous » porte sa pastille.
   const R = B.registre;
   if (R && R.cartes.length) {
-    groupes.push({ titre: `Le Registre (${R.types.length + R.tous.length} type${R.types.length + R.tous.length > 1 ? 's' : ''})`, camp: 'p',
+    groupes.push({ titre: t('bt.register', { n: R.types.length + R.tous.length, s: R.types.length + R.tous.length > 1 ? 's' : '' }), camp: 'p',
       cartes: recentes(R.cartes).map(i => ({ carte: R.cartes[i], i, etat: 'vue', note: hasKey(R.cartes[i].keys, 'type_tous') ? '∞ Type : tous' : '' })) });
   }
   const aReprise = B.p.discard.some(c => c.type !== 'ally' && hasKey(c.keys, 'reprise'));
   const aideReprise = !aReprise ? ''
-    : monTour ? 'Touche un sort éclairé pour le relancer : il coûte son prix, puis il est exilé.'
-      : 'Les sorts à Reprise se relancent à ton tour, en mode manuel.';
+    : monTour ? t('bt.recastHelp')
+      : t('bt.recastHelpLater');
   const aideRegistre = R && (R.types.length || R.tous.length)
     ? `Registre : ${[...R.types, ...(R.tous.length ? [`Tous ×${R.tous.length}`] : [])].join(', ')}.` : '';
   const aide = [aideReprise, aideRegistre].filter(Boolean).join(' ');
@@ -1616,7 +1616,7 @@ function renderZone() {
   const ancien = $('#modal .sheet');
   const y = ancien ? ancien.scrollTop : 0;
   const sheet = ouvreZone({
-    titre: 'Défausse', aide, groupes,
+    titre: t('bt.discard'), aide, groupes,
     onClose: () => { zoneOuverte = false; zoneSig = null; zoneGroupes = []; }
   });
   sheet.scrollTop = y;
@@ -1653,7 +1653,7 @@ function inspectNode(u, side) {
   mods.push(...lignesDeRenforts(B, u, side, dAtk, dHp));
   if (u.variable) {
     const c = COUNTERS[u.variable.src];
-    const quoi = u.variable.stat === 'both' ? 'attaque et vie' : u.variable.stat === 'hp' ? 'vie' : 'attaque';
+    const quoi = u.variable.stat === 'both' ? t('bt.attackAndHealth') : u.variable.stat === 'hp' ? t('bt.health') : t('bt.attack');
     const dit = (c ? c.label.toLowerCase() : u.variable.src) + (c && c.needsArg ? ` « ${u.variable.arg || '?'} »` : '');
     mods.push(ligneSource({ ico: 'Static', titre: `Variable : ${dit}`, texte: `${quoi} = ${u.variable.x}` }));
   }
@@ -1673,7 +1673,7 @@ function inspectNode(u, side) {
   }
   // LA TOXINE (V3) : ce que sa Toxine lui prendra au debut de SON prochain tour (le Bouclier absorbe le premier).
   if (u.tox > 0) {
-    const perdra = u.shield ? 'son bouclier absorbera le premier tour' : `perdra ${u.tox} PV au début de son tour${u.hp <= u.tox ? ' — et en mourra' : ''}`;
+    const perdra = u.shield ? t('bt.shieldWillAbsorb') : `${t('bt.willLose', { n: u.tox })}${u.hp <= u.tox ? t('bt.andDie') : ''}`;
     mods.push(ligneSource({ ico: 'Venom', titre: `Toxine ×${u.tox}`, texte: perdra, ton: 'mal' }));
   }
   if (mods.length) {
@@ -1693,10 +1693,10 @@ function ficheCarte(c, camp) {
   if (c.pistee) {
     box.appendChild(el('<hr class="fi-trait">'));
     const n = el('<section class="fi-mods"></section>');
-    n.appendChild(ligneSource({ ico: 'Track', titre: 'Pistée', texte: 'coûte plus cher', ton: 'mal' }));
+    n.appendChild(ligneSource({ ico: 'Track', titre: t('bt.trackedTitle'), texte: t('bt.costsMore'), ton: 'mal' }));
     for (const u of B[camp === 'p' ? 'e' : 'p'].board) {
       for (const e of [...(u.on_pistee_foe || []), ...(u.on_pistee_any || [])]) {
-        n.appendChild(ligneSource({ sprite: u.sprite, titre: u.name, texte: `si tu la joues : ${describeEffect(e)}`, ton: 'mal' }));
+        n.appendChild(ligneSource({ sprite: u.sprite, titre: u.name, texte: t('bt.ifYouPlay', { effect: describeEffect(e) }), ton: 'mal' }));
       }
     }
     box.appendChild(n);
@@ -1758,7 +1758,7 @@ function finish() {
       // Un match de tournoi ne paie rien : le gain vient a la fin du tournoi (`boutique/tournoi.js`).
       if (defi.recompense.n > 0) {
         donneBoosterPremium(defi.recompense.booster, defi.recompense.n);
-        recompenses.push({ label: 'Booster premium', n: defi.recompense.n });
+        recompenses.push({ label: t('bt.premium'), n: defi.recompense.n });
       }
       // Le duel facile de Teliau paie aussi des pieces (config/teliau.js).
       if (defi.recompense.pieces) {
@@ -1768,20 +1768,20 @@ function finish() {
     } else {
       gain('A', r.A);
       gain('B', r.B);
-      recompenses.push({ label: 'Fanions', n: r.A }, { label: 'Sceaux', n: r.B });
+      recompenses.push({ label: t('bt.pennants'), n: r.A }, { label: t('bt.seals'), n: r.B });
     }
     // L'XP du PROFIL DU JOUEUR (config/profil.js) : un niveau atteint donne ses recompenses tout de suite.
     if (r.xp) {
       const p = gagneXp(r.xp);
       recompenses.push({ label: 'XP', n: r.xp });
-      for (const n of p.niveaux) notes.push(`Niveau du joueur ${n} !`);
+      for (const n of p.niveaux) notes.push(t('bt.playerLevel', { n }));
       notes.push(...p.notes);
     }
     // Un boss peut annoncer un heros qui n'existe plus (le Grand Mechant Loup annonce `fox`, devenu
     // `cameleon`) : sans cette garde la victoire plantait avant l'ecran de fin.
     if (ctx.unlocks && save.chars[ctx.unlocks] && CHAR_BY_ID[ctx.unlocks]) {
       save.chars[ctx.unlocks].bossBeaten = true;
-      notes.push(`${CHAR_BY_ID[ctx.unlocks].name} peut désormais être acheté avec des Fanions.`);
+      notes.push(t('bt.bossBeaten', { name: CHAR_BY_ID[ctx.unlocks].name }));
     }
     if (!defi) save.world.cleared[ctx.id] = true;
     persist();
@@ -1790,7 +1790,7 @@ function finish() {
   if (ctx.arene) {
     const avant = etatArene(ctx.arene).niveau;
     const a = noteCombatArene(ctx.arene, win, ctx.niveau);
-    if (a.niveau > avant) notes.push(`L'arène passe au niveau ${a.niveau}.`);
+    if (a.niveau > avant) notes.push(t('bt.arenaLevel', { n: a.niveau }));
   }
   // Le FIL DE QUETES (state.js) : une victoire compte pour « gagne un combat », et une arene battue se relit toute seule.
   if (win) signale('victoire', { equipe: team().length });
@@ -1814,19 +1814,19 @@ function finish() {
   const enchaine = win && ctx.enchaine;
   // Perdre ne coute rien : on relance tout de suite la meme rencontre (la victoire, elle, paie
   // des recompenses — la rejouer en boucle est une question d'economie, pas d'interface).
-  if (!win && !(defi && defi.recompense.n === 0)) boutons.push({ texte: 'Réessayer', primaire: true, onClick: () => { const n = ctx, d = onDone; B = null; openBattle(n, d); } });
-  boutons.push({ texte: enchaine ? t('ligne.suivant') : win ? 'Continuer' : 'Retour', primaire: win, onClick: () => ferme() });
+  if (!win && !(defi && defi.recompense.n === 0)) boutons.push({ texte: t('bt.retry'), primaire: true, onClick: () => { const n = ctx, d = onDone; B = null; openBattle(n, d); } });
+  boutons.push({ texte: enchaine ? t('ligne.suivant') : win ? t('bt.continue') : t('bt.back'), primaire: win, onClick: () => ferme() });
   if (enchaine) boutons.push({ texte: t('ligne.arreter'), onClick: () => ferme(false) });
   // « Revoir le combat » le REJOUE devant le joueur ; « Continuer » au bout du rejeu reprend ou celui-ci s'arretait.
   // Le journal de DECISIONS (outil du game designer) n'est plus ici : `AC.triche.decisions()`, 5 touchers sur « Tour N ».
-  if (idRecit) boutons.push({ texte: 'Revoir le combat', onClick: () => lanceRejeu(idRecit, ferme) });
+  if (idRecit) boutons.push({ texte: t('bt.review'), onClick: () => lanceRejeu(idRecit, ferme) });
 
   // L'ecran de fin se pose par-dessus le plateau, qui reste visible derriere.
   const root = $('#battle');
   root.classList.remove('spot');
   montreFin({
     racine: root, issue: win ? 'victoire' : (B.abandon || B.winner === 'e' ? 'defaite' : 'nul'),
-    sousTitre: win ? `${enc.name} est vaincu.` : B.abandon ? 'Tu as abandonné.' : `${enc.name} tient bon. Reviens plus fort.`,
+    sousTitre: win ? t('bt.defeated', { name: enc.name }) : B.abandon ? t('bt.forfeited') : t('bt.holdsOn', { name: enc.name }),
     recompenses, notes, boutons, enchaine: enchaine ? () => ferme() : null
   });
 }
@@ -1895,11 +1895,11 @@ function finRejeu() {
   const w = B.over ? B.winner : null;
   montreFin({
     racine: root, issue: w === 'p' ? 'victoire' : w === 'e' || !w ? 'defaite' : 'nul',
-    sousTitre: rejeu.etat.derive ? 'Les cartes ont changé depuis : ce rejeu n’est plus fidèle.' : !w ? 'Tu avais abandonné.' : 'Fin du combat rejoué.',
+    sousTitre: rejeu.etat.derive ? t('bt.replayChanged') : !w ? t('bt.replayForfeited') : t('bt.replayEnd'),
     recompenses: [], notes: [],
     boutons: [
-      { texte: 'Continuer', primaire: true, onClick: quitteRejeu },
-      { texte: 'Revoir encore', onClick: () => allerAuTour(0) }
+      { texte: t('bt.continue'), primaire: true, onClick: quitteRejeu },
+      { texte: t('bt.reviewAgain'), onClick: () => allerAuTour(0) }
     ]
   });
 }
