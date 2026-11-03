@@ -243,6 +243,8 @@ export const TEXTES = {
   'deck.power': 'Power {n}',
   'deck.lotBehind': 'Catching up with lesser heroes',
   'deck.lotAll': 'Level up all',
+  'deck.lotFini': 'All heroes at max level',
+  'deck.lotFiniToast': 'Every hero you own is at max level.',
   'deck.lotPauvre': 'Not enough coins',
   'deck.lotVerrouille': 'Unlocks after {n} opponents beaten.',
   'deck.lotFait': '{n} levels gained',

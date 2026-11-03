@@ -87,15 +87,18 @@ export function renderDeck() {
 /** Le bouton flottant des ameliorations en lot (maquette « Level Up / Deck Screen »). */
 function boutonDuLot() {
   const verrou = !lotDebloque();
-  const { mode, cout } = lotPrevu();
-  const pauvre = save.cur.C < cout || cout <= 0;
-  const b = el(`<div class="dk-lot"><button class="dk-lot-bouton ${verrou ? 'verrou' : pauvre ? 'pauvre' : ''}" data-mode="${mode}">
-    <span class="dk-lot-texte">${t(mode === 'behind' ? 'deck.lotBehind' : 'deck.lotAll')}</span>
-    <span class="dk-lot-prix">${verrou ? icone('Lock', 26) : `${icone('Buff', 26)}<b>${court(cout)}</b>${icone('Coin', 26)}`}</span>
+  const { mode, cout, cibles } = lotPrevu();
+  // Tous les heros au niveau max : plus rien a monter, le bouton le dit (sans prix) au lieu d'un « 0 » et d'un « pas assez de pieces ».
+  const fini = !verrou && !cibles.length;
+  const pauvre = fini || save.cur.C < cout || cout <= 0;
+  const b = el(`<div class="dk-lot"><button class="dk-lot-bouton ${verrou ? 'verrou' : fini ? 'fini' : pauvre ? 'pauvre' : ''}" data-mode="${mode}">
+    <span class="dk-lot-texte">${t(fini ? 'deck.lotFini' : mode === 'behind' ? 'deck.lotBehind' : 'deck.lotAll')}</span>
+    ${fini ? '' : `<span class="dk-lot-prix">${verrou ? icone('Lock', 26) : `${icone('Buff', 26)}<b>${court(cout)}</b>${icone('Coin', 26)}`}</span>`}
   </button></div>`);
   const bouton = b.querySelector('button');
   bouton.onclick = () => {
     if (verrou) { toast(t('deck.lotVerrouille', { n: BALANCE.heros.lot.apresVictoires })); return; }
+    if (fini) { toast(t('deck.lotFiniToast')); return; }
     const r = ameliorerEnLot();
     if (!r.montees) { bouton.classList.remove('non'); void bouton.offsetWidth; bouton.classList.add('non'); toast(t('deck.lotPauvre')); return; }
     // Les montees se jouent ICI, sur la grille (et plus a l'ouverture de la fiche) : on releve ce qui change avant de redessiner.

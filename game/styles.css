@@ -1652,3 +1652,4 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 .dk-vig .up-flash .up-b.atk { left: -6px; bottom: -6px; } .dk-vig .up-flash .up-b.hp { right: -6px; bottom: -6px; }
 .dk-vig .up-flash .up-b.cost { right: -6px; top: -6px; } .dk-vig .up-flash .up-b.effet, .dk-vig .up-flash .up-b.cle { left: -6px; top: -6px; }
 .dk-vig .dk-pastille { z-index: 7; }
+.dk-lot-bouton.fini { background: #ffe9b0; color: #2b1c1f; text-shadow: none; cursor: default; animation: none !important; padding-block: 18px; }
