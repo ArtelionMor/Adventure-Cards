@@ -1623,3 +1623,19 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 /* Les icones du jeu sont blanches : le rond de « ce qui change » est colore, l'icone cernee de brun. */
 .upg-chg .rond { background: radial-gradient(circle at 35% 30%, #ffc15a, #f0640a 72%); }
 .upg-chg .rond img.ico { filter: drop-shadow(2px 0 0 #2b1c1f) drop-shadow(-2px 0 0 #2b1c1f) drop-shadow(0 2px 0 #2b1c1f) drop-shadow(0 -2px 0 #2b1c1f); }
+
+/* ---------- ce qui change, par couleur et par coin (maquettes « Level Up », 3 nov. 2026) ---------- */
+.up-niv, .up-nouv { display: none; }
+.up-b { position: absolute; min-width: 24px; height: 24px; padding: 0 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 1px; border-radius: 50%; border: 2px solid #2b1c1f; color: #fff; font-style: normal; font-size: 15px; line-height: 1; -webkit-text-stroke: 1px #2b1c1f; paint-order: stroke fill; }
+.up-b b { font-weight: inherit; }
+.up-b.atk { left: -9px; bottom: -9px; background: #ffb92a; }
+.up-b.hp { right: -9px; bottom: -9px; background: #ef4a5f; }
+.up-b.cost { right: -9px; top: -9px; background: #2f8bff; }
+.up-b.effet, .up-b.cle { left: -9px; top: -9px; background: #3ddc4a; }
+.up-b.effet img.ico { width: 12px; height: 12px; }
+.upg-chg .rond.k-atk { background: radial-gradient(circle at 35% 30%, #ffe08a, #f0a010 72%); }
+.upg-chg .rond.k-hp { background: radial-gradient(circle at 35% 30%, #ff9aa8, #e0243e 72%); }
+.upg-chg .rond.k-cost { background: radial-gradient(circle at 35% 30%, #9cc8ff, #1f6fe0 72%); }
+.upg-chg .rond.k-effet, .upg-chg .rond.k-cle { background: radial-gradient(circle at 35% 30%, #a5f58a, #26b836 72%); }
+.upg-chg b.k-atk { color: #ffc93a; } .upg-chg b.k-hp { color: #ff5a6e; } .upg-chg b.k-cost { color: #5aa5ff; } .upg-chg b.k-effet, .upg-chg b.k-cle { color: #6ff03a; }
+.upg-chg b s { font-size: 22px; opacity: .75; text-decoration-thickness: 3px; }

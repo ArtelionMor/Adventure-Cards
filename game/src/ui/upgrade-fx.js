@@ -111,7 +111,8 @@ export function changementGeant(node, items, { ms = F().changementMs } = {}) {
   items.forEach((it, i) => {
     const e = document.createElement('div');
     e.className = 'upg-chg';
-    e.innerHTML = `<span class="rond">${icone(it.icone, 74)}</span>${it.texte ? `<b>${it.texte}</b>` : ''}`;
+    const dit = it.apres !== undefined ? (it.avant !== undefined ? `<s>${it.avant}</s> \u2192 ${it.apres}` : `${it.apres}`) : (it.texte || '');
+    e.innerHTML = `<span class="rond k-${it.kind || 'cle'}">${icone(it.icone, 74)}</span>${dit ? `<b class="k-${it.kind || 'cle'}">${dit}</b>` : ''}`;
     rang.appendChild(e);
     e.animate([
       { transform: 'scale(0) rotate(-30deg)', opacity: 0 },

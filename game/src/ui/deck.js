@@ -338,12 +338,13 @@ function celluleUpgrade(heros, corps) {
   const def = e.face === 'switch' ? heros.switches[e.slot] : heros.cards[e.slot];
   const cout = upgradeCost(heros.id);
   const gain = puissance(heros.id, st.level + 1) - puissance(heros.id);
-  const mini = (lv, nouveau) => {
+  const items = changementsDe(heros, e, avant, apres);
+  const mini = (lv, cote) => {
     const c = resolveCard(def, lv);
-    return `<div class="up-mini"><img src="${asset(c.sprite || heros.sprite)}" alt="">${nouveau ? `<i class="up-nouv">${icone(iconeDePalier(e.paliers[0]), 16)}</i>` : ''}<b class="up-niv">${lv}</b></div>`;
+    return `<div class="up-mini"><img src="${asset(c.sprite || heros.sprite)}" alt="">${pastillesDe(items, cote)}</div>`;
   };
   const n = el(`<button class="dk-upgrade ${save.cur.C < cout ? 'pauvre' : ''}">
-    <div class="up-cartes">${mini(avant, false)}<span class="up-fleche">${icone('Next', 24)}</span>${mini(apres, true)}</div>
+    <div class="up-cartes">${mini(avant, 'avant')}<span class="up-fleche">${icone('Next', 24)}</span>${mini(apres, 'apres')}</div>
     <div class="up-prix">${icone('Buff', 30)}<b>${court(cout)}</b>${icone('Coin', 28)}</div>
     <div class="up-power">${t('deck.puissance', { n: gain })}</div>
   </button>`);
@@ -368,29 +369,43 @@ function effetQuiChange(avant, apres) {
 }
 
 /**
- * CE QUI CHANGE, pour l'animation : un element par changement de l'etape — une attaque ou des PV de plus, un cout qui baisse, un mot-cle gagne, un
- * effet qui grossit (son icone et « avant → apres »), un effet, une aura ou un statique qui arrive. `{ icone, texte }`.
+ * CE QUI CHANGE, une entree par changement de l'etape (maquettes « Level Up », 3 nov. 2026). Un chiffre qui grossit se dit « avant → apres » dans SA
+ * couleur et SON coin de la carte : `atk` jaune en bas a gauche, `hp` rouge en bas a droite, `cost` bleu en haut a droite, `effet` vert en haut a
+ * gauche avec l'icone de l'effet (degats, soin, renfort, unite invoquee). Sans chiffre (mot-cle gagne, aura, statique, choix), `cle` : l'icone seule.
+ * `{ kind, icone, avant, apres, texte }`.
  */
 function changementsDe(heros, e, nivAvant, nivApres) {
   const def = e.face === 'switch' ? heros.switches[e.slot] : heros.cards[e.slot];
   const avant = resolveCard(def, nivAvant), apres = resolveCard(def, nivApres);
-  const montant = x => (typeof x.v === 'number' ? `${x.v}` : x.atk !== undefined || x.hp !== undefined ? `+${x.atk || 0}/+${x.hp || 0}` : typeof x.n === 'number' ? `${x.n}` : '');
   const items = [];
+  const chiffre = (kind, icone, a, b) => { if (a !== b) items.push({ kind, icone, avant: a, apres: b }); };
+  chiffre('atk', 'Attack', avant.atk, apres.atk);
+  chiffre('hp', 'Health', avant.hp, apres.hp);
+  chiffre('cost', 'Mana', avant.cost, apres.cost);
   for (const p of e.paliers) {
-    if (p.stats) {
-      if (p.stats.atk) items.push({ icone: 'Attack', texte: signeChg(p.stats.atk) });
-      if (p.stats.hp) items.push({ icone: 'Health', texte: signeChg(p.stats.hp) });
-    } else if (p.cost) items.push({ icone: 'Mana', texte: signeChg(p.cost) });
-    else if (p.key) items.push({ icone: iconeDeCle(p.key) || 'Buff', texte: keyLabel(p.key) });
-    else if (p.amp) {
+    if (p.amp) {
       const ch = effetQuiChange(avant, apres);
-      items.push(ch ? { icone: iconeDeOp(ch.op), texte: `${ch.avant} \u2192 ${ch.apres}` } : { icone: 'Buff', texte: signeChg(p.amp) });
-    } else if (p.extra) items.push({ icone: iconeDeOp(p.extra.op), texte: montant(p.extra) });
-    else if (p.aura) items.push({ icone: 'Aura', texte: '' });
-    else if (p.statique) items.push({ icone: 'Static', texte: '' });
-    else if (p.lesDeux) items.push({ icone: 'Choice', texte: '' });
+      if (ch) items.push({ kind: 'effet', icone: iconeDeOp(ch.op), avant: ch.avant, apres: ch.apres });
+      else items.push({ kind: 'cle', icone: 'Buff', texte: '+' + p.amp });
+    } else if (p.extra) {
+      const x = p.extra, v = typeof x.v === 'number' ? x.v : typeof x.n === 'number' ? x.n : null;
+      items.push(v !== null ? { kind: 'effet', icone: iconeDeOp(x.op), apres: v } : { kind: 'cle', icone: iconeDeOp(x.op), texte: '' });
+    } else if (p.key) items.push({ kind: 'cle', icone: iconeDeCle(p.key) || 'Buff', texte: keyLabel(p.key) });
+    else if (p.aura) items.push({ kind: 'cle', icone: 'Aura', texte: '' });
+    else if (p.statique) items.push({ kind: 'cle', icone: 'Static', texte: '' });
+    else if (p.lesDeux) items.push({ kind: 'cle', icone: 'Choice', texte: '' });
   }
-  return items.length ? items : [{ icone: 'Buff', texte: '' }];
+  return items.length ? items : [{ kind: 'cle', icone: 'Buff', texte: '' }];
+}
+
+/** Les pastilles de couleur d'une des deux miniatures de la case d'amelioration (`cote` : 'avant' ou 'apres'). */
+function pastillesDe(items, cote) {
+  return items.map(it => {
+    const v = it[cote];
+    if (it.kind === 'cle') return cote === 'apres' ? `<i class="up-b cle">${icone(it.icone, 16)}</i>` : '';
+    if (v === undefined) return cote === 'apres' ? `<i class="up-b ${it.kind}">${it.icone ? icone(it.icone, 12) : ''}</i>` : '';
+    return `<i class="up-b ${it.kind}">${it.kind === 'effet' ? icone(it.icone, 12) : ''}<b>${v}</b></i>`;
+  }).join('');
 }
 
 /**
