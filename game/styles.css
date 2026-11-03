@@ -1528,3 +1528,10 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 .dk-offre p { margin: 0; }
 /* Un chiffre qui change a cette etape : en vert (la fiche d'amelioration ne montre que ce qui change). */
 .upg-etape .change { color: #3ddc4a; text-shadow: 0 0 6px rgba(61,220,74,.6); }
+
+/* L'ecran Deck prend toute la largeur (3 nov. 2026, « il y a trop de marge ») : le panneau de la collection n'est plus plafonne a la
+   maquette (340 px) et ses vignettes se repartissent la largeur (trois par ligne sur un telephone, davantage sur un ecran large). */
+#screen-deck .deck { padding-left: 6px; padding-right: 6px; }
+#screen-deck .dk-coll { max-width: none; }
+#screen-deck .dk-coll .dk-grille { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 12px 10px; justify-content: stretch; }
+#screen-deck .dk-coll .dk-vig { width: 100%; height: auto; aspect-ratio: 92 / 106; }
