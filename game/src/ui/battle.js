@@ -1008,10 +1008,14 @@ function majBarre() {
   // Des sorts a REPRISE a relancer maintenant : la defausse le dit, sinon on ne penserait pas a l'ouvrir. A ton tour
   // et en mode manuel seulement — sinon rien ne se joue d'un toucher.
   const nbReprises = !auto && B.turn === 'p' && !B.over ? reprisesPossibles(B, 'p').length : 0;
+  // Verrouille (BALANCE.heros.auto) : le bouton est grise et porte un cadenas ; le toucher dit quand il se debloque.
+  const verrou = !rejeu && !autoDebloque();
   const chip = rejeu ? (rejeu.pause ? `Lecture ${icone('Auto', 18)}` : `Pause ${icone('Pause', 18)}`)
+    : verrou ? `Auto ${icone('Lock', 18)}`
     : auto ? `Auto ${icone('Auto', 18)}` : `Manuel ${icone('Manual', 18)}`;
   if (c.sigChip !== chip) { c.sigChip = chip; c.chip.innerHTML = chip; }
-  c.chip.classList.toggle('on', auto);
+  c.chip.classList.toggle('on', auto && !verrou);
+  c.chip.classList.toggle('verrou', verrou);
   c.vit.textContent = `x${fx.vitesse}`;
   majPile(c.piocheP, 'pioche', B.p, 'p');
   majPile(c.defP, 'defausse', B.p, 'p');

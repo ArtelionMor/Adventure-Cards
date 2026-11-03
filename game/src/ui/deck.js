@@ -15,7 +15,7 @@ import { keyLabel } from '../config/mechanics.js';
 import { FAMILLES, familleDe, rareteDe } from '../config/familles.js';
 import { t } from '../config/textes.js';
 import { cartesNouvelles, marqueVues } from '../boutique/partie.js';
-import { visibilite, progresDecouverte, lotDebloque, lotPrevu, ameliorerEnLot, reperesLesArrivees, offreEnAttente, accepteOffre, refuseOffre, prendAnimations } from '../boutique/heros.js';
+import { visibilite, progresDecouverte, lotDebloque, lotVisible, lotPrevu, ameliorerEnLot, reperesLesArrivees, offreEnAttente, accepteOffre, refuseOffre, prendAnimations } from '../boutique/heros.js';
 import { save, persist, upgradeCost, upgradeChar, toggleSwitch, setTeamSlot, puissance, puissanceJoueur, signale, possede } from '../state.js';
 import { $, el, asset, toast, modal, closeModal, court } from './shell.js';
 import { icone } from './icones.js';
@@ -78,21 +78,23 @@ export function renderDeck() {
   coll.appendChild(grille);
   wrap.appendChild(coll);
   // Le bouton flottant : un seul, « Level up heroes behind », qui devient « Level up all » quand plus personne n'est en retard.
-  if (lotDebloque()) wrap.appendChild(boutonDuLot());
+  if (lotVisible()) wrap.appendChild(boutonDuLot());
   root.appendChild(wrap);
   proposeLOffre();
 }
 
 /** Le bouton flottant des ameliorations en lot (maquette « Level Up / Deck Screen »). */
 function boutonDuLot() {
+  const verrou = !lotDebloque();
   const { mode, cout } = lotPrevu();
   const pauvre = save.cur.C < cout || cout <= 0;
-  const b = el(`<div class="dk-lot"><button class="dk-lot-bouton ${pauvre ? 'pauvre' : ''}" data-mode="${mode}">
+  const b = el(`<div class="dk-lot"><button class="dk-lot-bouton ${verrou ? 'verrou' : pauvre ? 'pauvre' : ''}" data-mode="${mode}">
     <span class="dk-lot-texte">${t(mode === 'behind' ? 'deck.lotBehind' : 'deck.lotAll')}</span>
-    <span class="dk-lot-prix">${icone('Buff', 26)}<b>${court(cout)}</b>${icone('Coin', 26)}</span>
+    <span class="dk-lot-prix">${verrou ? icone('Lock', 26) : `${icone('Buff', 26)}<b>${court(cout)}</b>${icone('Coin', 26)}`}</span>
   </button></div>`);
   const bouton = b.querySelector('button');
   bouton.onclick = () => {
+    if (verrou) { toast(t('deck.lotVerrouille', { n: BALANCE.heros.lot.apresVictoires })); return; }
     const r = ameliorerEnLot();
     if (!r.montees) { bouton.classList.remove('non'); void bouton.offsetWidth; bouton.classList.add('non'); toast(t('deck.lotPauvre')); return; }
     refreshTop(); renderDeck();

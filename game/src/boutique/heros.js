@@ -69,6 +69,9 @@ export function coutJusquA(id, niveau) {
 /** Le lot est-il débloqué ? (la ligne de combats a avancé assez ; le tutoriel d'abord). */
 export const lotDebloque = () => !!partie() && tutorielFini() && indexCourant() >= BALANCE.heros.lot.apresVictoires;
 
+/** Le bouton flottant se montre (grisé) dès la fin du tutoriel, avant d'être débloqué. */
+export const lotVisible = () => !!partie() && tutorielFini();
+
 /** « behind » tant qu'un héros est en retard, « all » ensuite : le bouton flottant n'a qu'un texte à la fois. */
 export const modeDuLot = () => (enRetard().length ? 'behind' : 'all');
 

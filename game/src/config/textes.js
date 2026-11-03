@@ -18,6 +18,7 @@ export const TEXTES = {
   'deck.lotBehind': 'Level up heroes behind',
   'deck.lotAll': 'Level up all',
   'deck.lotPauvre': 'Not enough coins',
+  'deck.lotVerrouille': 'Unlocks after {n} opponents beaten.',
   'deck.lotFait': '{n} levels gained',
   'deck.decouvertes': '{n}/{m} cards discovered',
   'deck.decouvrir': 'Open boosters to discover this hero\u2019s cards.',
