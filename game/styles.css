@@ -1639,3 +1639,8 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 .upg-chg .rond.k-effet, .upg-chg .rond.k-cle { background: radial-gradient(circle at 35% 30%, #a5f58a, #26b836 72%); }
 .upg-chg b.k-atk { color: #ffc93a; } .upg-chg b.k-hp { color: #ff5a6e; } .upg-chg b.k-cost { color: #5aa5ff; } .upg-chg b.k-effet, .upg-chg b.k-cle { color: #6ff03a; }
 .upg-chg b s { font-size: 22px; opacity: .75; text-decoration-thickness: 3px; }
+
+/* ---------- le bouton qu'on peut toucher pulse (3 nov. 2026) : sur `scale`, que les animations de clic (WAAPI) reprennent sans conflit ---------- */
+@keyframes dk-pulse { 0%, 100% { scale: 1; filter: brightness(1); } 50% { scale: 1.06; filter: brightness(1.12); } }
+.dk-upgrade:not(.pauvre):not(.max):not(.non), .dk-lot-bouton:not(.pauvre):not(.verrou):not(.non), .upg-bouton:not(.pauvre):not(.non) { animation: dk-pulse 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .dk-upgrade, .dk-lot-bouton, .upg-bouton { animation: none !important; } }

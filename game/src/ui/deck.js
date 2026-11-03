@@ -16,7 +16,7 @@ import { FAMILLES, familleDe, rareteDe } from '../config/familles.js';
 import { t } from '../config/textes.js';
 import { cartesNouvelles, marqueVues, partie } from '../boutique/partie.js';
 import { vibre, secoue, explose, changementGeant, texteQuiMonte, piecesQuiVolent, pop, brille } from './upgrade-fx.js';
-import { visibilite, progresDecouverte, lotDebloque, lotVisible, lotPrevu, ameliorerEnLot, reperesLesArrivees, offreEnAttente, accepteOffre, refuseOffre, prendAnimations } from '../boutique/heros.js';
+import { visibilite, progresDecouverte, lotDebloque, lotVisible, lotPrevu, ameliorerEnLot, reperesLesArrivees, offreEnAttente, accepteOffre, refuseOffre, prendAnimations, animationsEnAttente } from '../boutique/heros.js';
 import { save, persist, upgradeCost, upgradeChar, toggleSwitch, setTeamSlot, puissance, puissanceJoueur, signale, possede } from '../state.js';
 import { $, el, asset, toast, modal, closeModal, court } from './shell.js';
 import { icone, urlIcone } from './icones.js';
@@ -98,10 +98,72 @@ function boutonDuLot() {
     if (verrou) { toast(t('deck.lotVerrouille', { n: BALANCE.heros.lot.apresVictoires })); return; }
     const r = ameliorerEnLot();
     if (!r.montees) { bouton.classList.remove('non'); void bouton.offsetWidth; bouton.classList.add('non'); toast(t('deck.lotPauvre')); return; }
+    // Les montees se jouent ICI, sur la grille (et plus a l'ouverture de la fiche) : on releve ce qui change avant de redessiner.
+    const evts = evenementsDuLot();
     refreshTop(); renderDeck();
+    joueLeLot(evts, bouton);
     toast(t('deck.lotFait', { n: r.montees }));
   };
   return b;
+}
+
+/**
+ * Les montees du lot qui vient d'etre fait, une entree par niveau gagne : `{ id, niv, items }` (`items` : ce qui change, cf. `changementsDe`).
+ * Prises dans la file des animations de `boutique/heros.js`, qu'on vide : elles se jouent sur la grille, pas a l'ouverture de la fiche.
+ */
+function evenementsDuLot() {
+  const evts = [];
+  for (const id of Object.keys(save.animations || {})) {
+    const heros = CHAR_BY_ID[id];
+    if (!heros) continue;
+    const etapes = etapesDe(heros);
+    for (const niv of animationsEnAttente(id)) {
+      const e = etapes[niv - 2];
+      if (!e) continue;
+      const avant = niveauxDesCartes(heros, niv - 1)[e.face][e.slot], apres = niveauxDesCartes(heros, niv)[e.face][e.slot];
+      evts.push({ id, niv, items: changementsDe(heros, e, avant, apres), gain: puissance(id, niv) - puissance(id, niv - 1) });
+    }
+    prendAnimations(id);
+  }
+  return evts;
+}
+
+/**
+ * Joue le lot : un « boum » par heros ameliore, DESYNCHRONISES (le premier au bout de `delaiMs`, puis un tous les `lotPasMs`, serres si ils sont trop
+ * nombreux) pour qu'on entende « boum, boum, boum » et non un seul « BOUM ». Les heros montent en tournee : tous au niveau +1, puis tous +1…
+ * La pastille de chaque heros compte ses niveaux au fil des explosions. Rien ne bloque : un toucher ailleurs reste possible.
+ */
+function joueLeLot(evts, bouton) {
+  if (!evts.length) return;
+  const fx = BALANCE.ui.upgradeFx;
+  const ordre = [];
+  for (let tour = 0; ; tour++) {
+    const ce = evts.filter(e => evts.filter(x => x.id === e.id).indexOf(e) === tour);
+    if (!ce.length) break;
+    ordre.push(...ce);
+  }
+  const pas = Math.min(fx.lotPasMs, fx.lotTotalMaxMs / ordre.length);
+  const vig = id => document.querySelector(`#screen-deck .dk-vig[data-id="${id}"]`);
+  // Chaque pastille repart du niveau d'avant le lot.
+  const premier = {};
+  for (const e of ordre) if (!(e.id in premier)) { premier[e.id] = e.niv; const p = vig(e.id)?.querySelector('.dk-pastille'); if (p) p.textContent = e.niv - 1; }
+  const barre = document.querySelector('#topbar');
+  const src = document.querySelector('#screen-deck .dk-lot-bouton') || bouton;
+  if (barre && src) piecesQuiVolent(src, barre, { src: urlIcone('Coin') });
+  vibre(fx.vibration);
+  ordre.forEach((e, i) => setTimeout(() => {
+    const n = vig(e.id);
+    if (!n) return;
+    vibre(fx.lotVibrationMs);
+    const p = n.querySelector('.dk-pastille');
+    if (p) { p.textContent = e.niv; pop(p, { fort: 1.5, ms: 480 }); }
+    secoue(n, { ms: 300, px: 6 });
+    explose(n, { n: 14, ms: 650 });
+    brille(n, { ms: 700 });
+    pop(n, { fort: 1.1, ms: 420 });
+    changementGeant(n, e.items, { ms: 1100 });
+    texteQuiMonte(n, t('deck.puissance', { n: e.gain }), { classe: 'puissance' });
+  }, fx.delaiMs + i * pas));
 }
 
 /** L'offre d'un heros qui arrive : le mettre au niveau de reference contre des pieces (une a la fois). */
@@ -149,7 +211,7 @@ function vignette(c, conseilles = [], equipe = true) {
   const f = familleDe(c);
   const dans = equipe && save.team.includes(c.id);
   const a = possede(c.id);
-  return el(`<div class="dk-vig ${a ? '' : 'verrou'} ${conseilles.includes(c.id) ? 'conseille' : ''}" style="--fond:${f.fond};--rar:${rareteDe(c)}">
+  return el(`<div class="dk-vig ${a ? '' : 'verrou'} ${conseilles.includes(c.id) ? 'conseille' : ''}" data-id="${c.id}" style="--fond:${f.fond};--rar:${rareteDe(c)}">
     <img src="${asset(c.sprite)}" alt="">
     <div class="nm">${a ? c.name : t('deck.verrouille')}</div>
     <span class="dk-pastille">${a ? st.level : (p => `${p.n}/${p.sur}`)(progresDecouverte(c.id))}</span>
