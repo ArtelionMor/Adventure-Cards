@@ -66,12 +66,20 @@ function ecrisLigne(mesures) {
     lignes.push({ arene, niveau, puissance });
   }
   const corps = lignes.map(l => `  { arene: '${l.arene}', niveau: ${l.niveau}, puissance: ${l.puissance} }`).join(',\n');
+  const courbesJs = arenes.map(r => `  ${r}: ${JSON.stringify(courbes[r].map(x => +x.toFixed(2)))}`).join(',\n');
   writeFileSync('game/src/config/ligne.js', `// LA LIGNE DE COMBATS, combat par combat (refonte boutique, lot 3, 3 nov. 2026) : l'adversaire, son NIVEAU, et le POWER REQUIS — celui
 // d'un trio qui le bat une fois sur deux. GENERE par \`node scripts/calibre-power.mjs --ligne\` d'apres des parties jouees (voir
 // docs/PLAN-REFONTE-BOUTIQUE.md) : les reglages de la rampe sont \`BALANCE.ligne\`. Une ligne vide retombe sur \`BALANCE.ligne\` seul.
 export const LIGNE = [
 ${corps}
 ];
+
+// LES COURBES MESUREES : par adversaire, le niveau de HEROS (du jeu) qui le bat une fois sur deux, pour chaque niveau d'adversaire de NIVEAUX.
+// Le jeu s'en sert pour remplacer un adversaire trop dur (boutique/teliau.js).
+export const NIVEAUX = ${JSON.stringify(mesures.ennemis)};
+export const COURBES = {
+${courbesJs}
+};
 `);
   return lignes;
 }

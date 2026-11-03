@@ -235,6 +235,17 @@ export function indexCourant() {
  * l'adversaire est celui de `meta.opponents` et son niveau monte d'un cran a chaque tour de la liste.
  */
 export function combatDeLaLigne(i) {
+  const base = combatDeBase(i);
+  const r = remplacementDe(i);
+  return r ? { ...base, ...r, remplace: true } : base;
+}
+
+// Teliau peut remplacer l'adversaire d'un combat (boutique/teliau.js) : il branche ici ce qu'il sait.
+let remplacementDe = () => null;
+export const brancheRemplacement = f => { remplacementDe = f; };
+
+/** Le combat n° `i` tel que la ligne le donne, sans remplacement. */
+export function combatDeBase(i) {
   const w = parAdversaire(), n = nbAdversaires();
   const parPalier = n * w;
   const palier = Math.floor(i / parPalier) + 1;

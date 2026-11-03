@@ -6,6 +6,7 @@ import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist, gagneXp, noteCombatArene, etatArene, signale } from '../state.js';
 import { noteVictoireBoutique, noteCombatBoutique, donneBoosterPremium } from '../boutique/partie.js';
 import { autoDebloque } from '../boutique/heros.js';
+import { noteDefaiteLigne } from '../boutique/teliau.js';
 import { t } from '../config/textes.js';
 import { coteEnnemi } from '../config/ennemis.js';
 import { relicMods } from '../config/relics.js';
@@ -1755,6 +1756,11 @@ function finish() {
         donneBoosterPremium(defi.recompense.booster, defi.recompense.n);
         recompenses.push({ label: 'Booster premium', n: defi.recompense.n });
       }
+      // Le duel facile de Teliau paie aussi des pieces (config/teliau.js).
+      if (defi.recompense.pieces) {
+        gain('C', defi.recompense.pieces);
+        recompenses.push({ label: 'Coins', n: defi.recompense.pieces });
+      }
     } else {
       gain('A', r.A);
       gain('B', r.B);
@@ -1786,6 +1792,7 @@ function finish() {
   if (win) signale('victoire', { equipe: team().length });
   // LA LIGNE DE COMBATS : la victoire sur le combat courant fait avancer d'un cran (boutique/partie.js).
   if (win && ctx.arene) noteVictoireBoutique(ctx.arene, ctx.niveau);
+  if (!win && ctx.arene) noteDefaiteLigne(ctx.arene, ctx.niveau);
   // Les parties jouees par carte et le dernier deck joue (le mode Auto le rejoue) : un combat de l'equipe du joueur, gagne ou perdu (un defi de client aussi).
   noteCombatBoutique(team(), buildPlayerSide().deck.map(c => c.id).filter(Boolean));
 

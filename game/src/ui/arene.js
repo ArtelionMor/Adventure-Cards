@@ -22,6 +22,8 @@ import {
 import { CONFIG } from '../boutique/noyau/donnees.js';
 import { combatDeLaLigne, indexCourant, longueurLigne, partie } from '../boutique/partie.js';
 import { autoDebloque } from '../boutique/heros.js';
+import { aides, equipeDuelFacile, noteDuelLance, remplaceLAdversaire } from '../boutique/teliau.js';
+import { TELIAU } from '../config/teliau.js';
 import { $, el, asset, toast, modal, closeModal } from './shell.js';
 import { panneauEquipe } from './deck.js';
 import { icone } from './icones.js';
@@ -178,6 +180,41 @@ function combatSuivant() {
   openBattle({ ...n, niveau: c.niveau, enchaine: true }, g => (g ? combatSuivant() : renderArene()));
 }
 
+/** Teliau, quand le joueur est bloque sur le combat courant : un duel facile tres recompense, et/ou un autre adversaire. */
+function bulleTeliau() {
+  const l = aides();
+  if (!l.length) return '';
+  const duel = l.find(a => a.id === 'duel'), swap = l.find(a => a.id === 'remplace');
+  return `<div class="tl-bulle">
+    <img class="tl-tete" src="${asset('Graphical Assets/Clients/Clients Thumbnails/Thumbnail Teliau.png')}" alt="">
+    <div class="tl-texte"><b>${t('teliau.nom')}</b><span>${t('teliau.bloque')}</span></div>
+    <div class="tl-boutons">
+      ${duel ? `<button class="btn" data-tl="duel">${t('teliau.duel')}</button>` : ''}
+      ${swap ? `<button class="btn alt" data-tl="remplace">${t('teliau.remplace')}</button>` : ''}
+    </div>
+    ${swap ? `<small>${t('teliau.remplaceTexte', { nom: echappe(ENCOUNTERS[swap.remplacement.arene]?.name ?? swap.remplacement.arene), n: swap.remplacement.niveau })}</small>` : ''}
+  </div>`;
+}
+
+/** Le duel facile de Teliau : son equipe, la recompense, « Relever ». */
+function ouvreDuelTeliau() {
+  const e = equipeDuelFacile();
+  const box = el(`<div class="defi">
+    <h3 style="margin:0 0 10px;text-align:center">${TELIAU.nom}</h3>
+    <div style="display:flex;gap:8px;justify-content:center">${e.heros.map(h => `<div style="flex:1;min-width:0;text-align:center;font-size:13px"><img src="${asset(CHAR_BY_ID[h.id].sprite)}" alt="" style="width:100%;max-width:92px;height:92px;object-fit:contain"><br><b>${echappe(CHAR_BY_ID[h.id].name)}</b><br>lv ${h.niveau}</div>`).join('')}</div>
+    <p style="text-align:center;margin:10px 0">${t('teliau.duelPrix', { pieces: e.recompense.pieces })}</p>
+    <div class="ar-boutons"><button class="btn ghost" data-k="non">${t('arene.fermer')}</button><button class="btn" data-k="go">${t('teliau.duel')}</button></div>
+  </div>`);
+  box.querySelector('[data-k="non"]').onclick = closeModal;
+  box.querySelector('[data-k="go"]').onclick = () => {
+    if (tailleDuDeck() < tailleMinDuDeck()) { toast(t('teliau.equipePetite')); return; }
+    closeModal();
+    noteDuelLance();
+    openBattle({ id: 'defi', defi: e, niveau: e.total }, () => renderArene());
+  };
+  modal(box).classList.add('dk-feuille', 'ar-feuille');
+}
+
 /** Le mode Auto joue le dernier deck joue : les heros du dernier combat reprennent leur place (ceux qu'on possede encore). */
 function remetLeDernierDeck() {
   const dernier = partie()?.lastDeck?.heroes;
@@ -208,9 +245,12 @@ function dessineLigne() {
       <div class="ar-puces"><span class="ar-puce arch">${a ? echappe(libelleArchetype(a)) : ''}</span><span class="ar-puce">${t('arene.niveau', { n: c.niveau })}</span></div>
       <div class="lg-stats">${ennemi.hp ?? '?'} PV · ${(ennemi.deck || []).length} cartes${c.puissance ? ` · ${t('ligne.puissance', { r: c.puissance })}` : ''}</div>
       ${a?.signature ? `<div class="lg-sig">${icone(a.signature.icone, 22)}<span>${echappe(a.signature.texte)}</span></div>` : ''}
+      ${i === cur ? bulleTeliau() : ''}
       <button class="btn lg-go" ${avenir || !n ? 'disabled' : ''}>${avenir ? t('ligne.verrou') : i < cur ? t('ligne.rejouer') : t('ligne.jouer')}</button>
     </div>
   </div>`);
+  ecran.querySelector('[data-tl="duel"]')?.addEventListener('click', ouvreDuelTeliau);
+  ecran.querySelector('[data-tl="remplace"]')?.addEventListener('click', () => { remplaceLAdversaire(); toast(t('teliau.remplaceFait')); renderArene(); });
   const points = ecran.querySelector('.lg-points');
   // Du plus loin au plus proche : le premier combat est en bas, on monte.
   for (let k = Math.min(total - 1, cur + APRES); k >= Math.max(0, cur - AVANT); k--) points.appendChild(point(k, cur));

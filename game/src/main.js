@@ -15,6 +15,7 @@ import { openBattle } from './ui/battle.js';
 import { installeQuetes } from './ui/quetes.js';
 import { installeEncheresMini } from './ui/encheres-mini.js';
 import { installeIntroClients } from './ui/client-intro.js';
+import { installeTeliau } from './boutique/teliau.js';
 import { installeNotifications } from './ui/notifs.js';
 import { installeLectureCartes } from './ui/lecture-cartes.js';
 import { installeTriche } from './ui/triche.js';
@@ -132,6 +133,7 @@ function boot() {
   majMini = installeEncheresMini({ ecranCourant: () => current }).maj;
   majMini();
   installeIntroClients();
+  installeTeliau();
   installeNotifications();
   installeLectureCartes();
   installeQuetes({ go, rafraichit: () => go(current) });

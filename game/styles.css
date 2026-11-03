@@ -1552,3 +1552,15 @@ img.ico[data-ico="Watch"] { width: calc(var(--s, 20px) * 1.6) !important; }
 .cl-intro.carte .cl-carte { display: block; animation: cl-carte .35s ease-out both; }
 @keyframes cl-zoom { from { transform: scale(.2) rotate(-12deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
 @keyframes cl-carte { from { transform: translateY(24px) scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---------- Teliau, l'aide du joueur bloque (boutique/teliau.js, lot 5) ---------- */
+.tl-bulle { display: grid; grid-template-columns: 56px 1fr; gap: 6px 10px; align-items: center; margin: 8px 0; padding: 10px; background: #fff3d8; color: #2b1c1f; border: 3px solid #170b12; border-radius: 12px; box-shadow: 0 4px 0 #170b12; }
+.tl-bulle .tl-tete { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid #170b12; background: #fff; }
+.tl-texte { display: grid; }
+.tl-texte b { color: #c0392b; }
+.tl-boutons { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; }
+.tl-boutons .btn { flex: 1 1 120px; }
+.tl-bulle small { grid-column: 1 / -1; opacity: .75; }
+.tl-prix { flex: 1 0 100%; display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 6px 8px; border-radius: 10px; background: #fff3d8; color: #2b1c1f; border: 2px solid #170b12; font-size: 14px; }
+.tl-prix img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #170b12; }
+#fAvis, .btq-visages { flex-wrap: wrap; }

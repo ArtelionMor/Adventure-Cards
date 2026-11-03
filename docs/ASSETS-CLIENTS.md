@@ -39,8 +39,8 @@ Timmy, Jenna (dossier `Jena/`), Spike, Ada, Barnaby, Boris, Cipher, Brock, Rook,
 | **Richie** | pose « loupe » (examine un foil) | foils et rares |
 | Tous | une pose **assise en train de jouer** (carte jouée sur la table, `sit` + `show`) | les deux clients qui jouent à une table de jeu |
 
-### 5. Teliau (lot 5, pour mémoire)
-Bulle d'aide : portrait expressif (conseil, inquiet, encourageant), pose « fait signe », icône dans la barre.
+### 5. Teliau (lot 5)
+La bulle utilise aujourd'hui `Thumbnail Teliau.png`. À produire : portraits expressifs (conseille, inquiet, encourageant, joueur), pose « fait signe », icône pour la barre, et son visage en duel (cercle de l'adversaire).
 
 ## Ce que le jeu fera du reste
 Les dix têtes sont déjà branchées (`BOUTIQUE.profils`, `tetes`), les poses de scène aussi ; un client sans asset retombe sur sa vignette. Rien de
