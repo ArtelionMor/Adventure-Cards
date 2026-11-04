@@ -453,3 +453,27 @@ objet, et un retour en arrière recrée tous les objets (`cloneBattle`) — chaq
 gagnerait un identifiant neuf et le fichier deviendrait illisible. Il faudra soit
 rattacher les identifiants après restauration, soit n'enregistrer qu'une ligne sans
 retour arrière.
+
+---
+
+# Famille E — La lecture de position du bot
+
+*Mission bot du 4 nov. 2026 (`docs/BOT-CONTEXTE.md` §6). Ces fiches sont aussi des tests : `scripts/test-ai.mjs`, section « La lecture de position » (`BOT_NIVEAU=normal` les rejoue avec le bot de référence : S1, S2, S5 et S6 y échouent, c'est voulu). Niveau 1, cartes à leurs valeurs imprimées.*
+
+## S1 — Aggro : visage ou échange ?
+Deux Toutou enragés 2/1 prêts, l'adversaire à 6 PV avec une seule Ombre Feutrée 2/2 sans Provocation. **Attendu :** les deux attaques vont au héros (4 maintenant, létal au tour suivant). **Contre-exemple :** un Toutou échange contre l'Ombre Feutrée (1 pour 1). ⚠ Le Chien de Berger a Provocation : on ne peut pas le contourner, il ne convient pas à cette fiche. Le bot de référence prend l'échange.
+
+## S2 — Aggro : garder le sort de retrait
+Griffure en main, deux Toutou prêts, un Têtard Glouton 1/1 en face qui ne gêne personne. **Attendu :** ne pas jouer Griffure sur lui. **Contre-exemple :** Griffure sur le Têtard. Le bot de référence la gaspille.
+
+## S3 — Contrôle et PV (à recueillir)
+**Pas de fiche.** Il faut un cas concret du game designer (idéalement un journal `?journal=1`) : quelle carte, quelle cible, quel moment. Hypothèse : avant d'avoir stabilisé, le PV est une ressource critique ; après, tout part au visage. ⚠ Aucune carte actuelle ne coûte de PV à celui qui la joue (pas d'effet `dmg` sur `ownHero`) : le réglage `prixPv` est en place mais n'a rien à régler pour l'instant. Une fiche vide (`aRecueillir`) tient la place dans `situations.js`.
+
+## S4 — Combo (Félix)
+Attend la phase 3 (Mage de l'étincelle et recherche de séquence).
+
+## S5 / S5b — Médor : Retrouvailles
+Retrouvailles payable, plateaux vides. **S5 :** un seul allié dans la défausse → la **retenir**. **S5b :** cinq alliés → la jouer. Le bot de référence la joue dans les deux cas.
+
+## S6 / S6b — Corax : Volée de Corbeaux
+**S6 :** un seul gros corps (Chef de Bataillon) en face → la **retenir** (2 dégâts ne le tuent pas). **S6b :** trois Lapereaux → la jouer. Le bot de référence la joue aussi dans le vide.
