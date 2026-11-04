@@ -62,7 +62,7 @@ export const SIGNATURES = {
   dog_shield: { lancer: ['notes', { couleur: C.orange, n: 4, grosses: true }], vers: 'allies', renfort: ['montee', { symbole: 'Charge', couleur: C.orange, n: 2 }], entree: ['convocation', { couleur: C.orange }] },
   dog_bark: { lancer: ['aboiement', { couleur: C.or, n: 3 }], vers: 'allies', entree: ['convocation', { couleur: C.or, lourd: true }] },
   // ---- Felix (Chat, Mille coupures) : rose et violet, griffes, etoiles de magie, cartes
-  cat_claw: { entree: ['griffures', { couleur: C.rose, n: 2 }], attaque: [['trainee', { couleur: C.rose }]],
+  cat_claw: { entree: ['griffures', { couleur: C.rose, n: 2 }],   // plus de Charge (4 nov. 2026) : plus de traînée
     declenche: { regle: { lancer: ['etoiles', { couleur: C.rose, n: 4 }], vers: 'ennemi', arrivee: ['griffures', { couleur: C.rose, n: 1 }] } } },
   cat_alley: { entree: ['fumee', { couleur: '#9aa0b8' }], attaque: [['fantome', { couleur: '#9ad0ff' }], ['trainee', { couleur: '#ccd6ff' }]],
     declenche: { regle: { lancer: ['cartes', { couleur: C.rose, n: 1 }], vers: 'main' } } },

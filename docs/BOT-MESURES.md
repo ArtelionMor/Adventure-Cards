@@ -56,9 +56,9 @@ Ablations (50 parties par sens, ± 2,3 — à lire avec prudence) : `echange` du
 
 Bancs après la phase 2 : `test-triggers` 782, `test-ai` 59, `test-rejeu` 242, `test-evenements` 2 689, `test-partage` 108, `test-situations` 415 — tous verts. `simulate.mjs` : 231 s, aucun blocage ; il joue `normal` (inchangé), la courbe ne bouge pas au bruit près.
 
-## Phase 3 — bloquée
+## Phase 3 — débloquée le 4 nov. 2026
 
-Condition d'entrée **non remplie** : *Mage de l'étincelle* (`cat_claw`) cible toujours `randomEnemyAny` (héros **ou** unités) et garde **Charge**. Rien n'a été commencé (ni recherche de séquence, ni note de dix lignes, ni fiche S4).
+*Mise à jour : le game designer a autorisé la retouche, et le Mage de l'étincelle (`cat_claw`) frappe maintenant le **héros adverse** (`enemyHero`) et n'a plus Charge (texte et signature VFX suivent). La condition d'entrée est remplie ; rien n'est commencé.* Condition d'entrée **qui n'était pas remplie** : *Mage de l'étincelle* (`cat_claw`) cible toujours `randomEnemyAny` (héros **ou** unités) et garde **Charge**. Rien n'a été commencé (ni recherche de séquence, ni note de dix lignes, ni fiche S4).
 
 ## Balayage des coefficients (14 400 parties par réglage, `lecture` contre `normal`, ± 0,8)
 

@@ -6282,10 +6282,9 @@ export const CHARACTER_DATA = {
           "atk": 2,
           "hp": 2,
           "keys": [
-            "Charge",
             "type:Chat"
           ],
-          "text": "Dès que vous lancez un sort, inflige une blessure à un adversaire",
+          "text": "Dès que vous lancez un sort, inflige une blessure au héros adverse",
           "play": [],
           "tiers": [
             {
@@ -6307,7 +6306,7 @@ export const CHARACTER_DATA = {
           "on_spell_self": [
             {
               "op": "dmg",
-              "t": "randomEnemyAny",
+              "t": "enemyHero",
               "v": 1
             }
           ],
