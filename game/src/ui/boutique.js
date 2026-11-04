@@ -477,6 +477,45 @@ function ouvreWidgetEstrade(i) {
   modal(box);
 }
 
+/**
+ * LE POSTE DE GRADING (le meuble de la scene) : les cartes en cours (avec le temps qui reste), puis tes doubles non gradees ; en choisir une propose les
+ * entreprises (leur note moyenne, ce que vaut la note, le prix). Une carte gradee est unique : elle revient avec sa note, son boitier.
+ */
+function ouvreWidgetGrading() {
+  const S = partie();
+  const box = el('<div class="btq-fiche btq-vitrine-w"></div>');
+  if (!hasFeature(S, cfg.grading.feature)) { box.innerHTML = `<h3>${t('grading.poste')}</h3><p class="muted">${t('grading.verrou')}</p>`; modal(box); return; }
+  const enCours = S.gradingQueue.map(j => `<li>${carteDef(S.instances[j.instanceId]?.cardId ?? '')?.name ?? '?'} · ${formatDuration(Math.max(0, (j.doneMs - S.nowMs) / 60000))}</li>`).join('');
+  const stock = Object.values(S.instances).filter(x => x.location === 'stock' && x.grade === null).sort((p, q) => instanceRef(q, S, ctx) - instanceRef(p, S, ctx));
+  box.innerHTML = `<div class="btq-ligne"><h3>${t('grading.poste')}</h3><span class="muted">${t('ui.doubles', { n: stock.length })}</span></div>
+    ${enCours ? `<p class="muted">${t('grading.enCours')}</p><ul class="btq-liste">${enCours}</ul>` : ''}
+    <div class="btq-rangee"></div><div class="btq-detail"></div>`;
+  const rangee = box.querySelector('.btq-rangee'), detail = box.querySelector('.btq-detail');
+  if (!stock.length) { rangee.appendChild(el(`<p class="muted">${t('grading.rien')}</p>`)); modal(box); return; }
+  const choisit = inst => {
+    for (const n of rangee.children) n.classList.toggle('on', n.dataset.id === inst.id);
+    const prix = ctx.index.rarityById.get(carteDef(inst.cardId).rarity).gradingCost;
+    detail.innerHTML = `<p class="btq-nomc"><b>${carteDef(inst.cardId).name}</b> <span class="muted">${t('grading.prix', { n: or(prix) })}</span></p><div class="btq-entreprises"></div>`;
+    for (const e of cfg.grading.companies) {
+      const b = el(`<button class="btq-entreprise"><img src="${asset(BOUTIQUE.logosGrading[e.id])}" alt=""><span><b>${e.name}</b><em>${t('grading.loi', { n: e.mean, v: e.noteValue })}</em></span><span class="btq-prix">${or(prix)}</span></button>`);
+      b.onclick = () => {
+        const r = gradeCard(S, inst.id, ctx, e.id);
+        if (!r.ok) { toast(r.reason); return; }
+        closeModal(); change();
+        toast(t('grading.parti', { d: formatDuration(cfg.grading.minutes) }));
+      };
+      detail.querySelector('.btq-entreprises').appendChild(b);
+    }
+  };
+  for (const { inst, n: copies } of empile(stock)) {
+    const n = el(`<button class="btq-case-c" data-id="${inst.id}">${carteHtml(inst.cardId, inst.finish, inst.grade)}${nombreDe(copies)}<span>${court(Math.round(instanceRef(inst, S, ctx)))}</span></button>`);
+    n.onclick = () => choisit(inst);
+    rangee.appendChild(n);
+  }
+  choisit(stock[0]);
+  modal(box);
+}
+
 /** Tous les visages de clients, chacun avec ce qu'il penserait de ce prix (son profil décide). */
 function visagesHtml(inst, prix) {
   const S = partie();
@@ -547,6 +586,7 @@ export function renderBoutique() {
   lanceScene($('#btqCanvas'), {
     visuelCarte: id => SPRITES.get(id),
     estrade: ouvreWidgetEstrade,
+    grading: ouvreWidgetGrading,
     tournoi: ouvreTournoi,
     vitrine: (l, v) => { if (l) ficheVitrine(l.instanceId); else ouvreWidgetVitrine(v.id); },
     encheres: ouvreWidgetEncheres,

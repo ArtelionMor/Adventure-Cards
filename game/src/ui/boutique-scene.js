@@ -499,7 +499,7 @@ function dessineMeuble(it, alpha = 1) {
   if (v.fichier) dessineFichier(im, cx, cy, TW * (f.w + f.h) / 2 * v.echelle);
   else if (v.plat) c2d.drawImage(im, cx - w / 2, cy - h / 2, w, h);
   else c2d.drawImage(im, cx - w / 2, cy + TH * 0.22 - h, w, h);
-  if (v.badge && def.effect !== 'estrade' && def.effect !== 'defis') { c2d.font = '22px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle'; c2d.fillText(v.badge, cx, cy - (v.dessus || 70)); }
+  if (v.badge && def.effect !== 'estrade' && def.effect !== 'defis' && def.effect !== 'posteGrading') { c2d.font = '22px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle'; c2d.fillText(v.badge, cx, cy - (v.dessus || 70)); }
   c2d.restore();
 }
 
@@ -576,6 +576,17 @@ function bullePlus(it) {
 /** Les estrades, dans l'ordre : la n-ieme porte la n-ieme enchere en cours (le noyau ne les lie pas autrement). */
 const estrades = S => S.shop.items.filter(i => defDe(i.type)?.effect === 'estrade');
 const hautEstrade = it => versEcran(it.x + 0.5, it.y + 0.5)[1] - (BOUTIQUE.meubles[it.type].dessus || 70) - 6;
+
+/** Les postes de grading : une bulle (l'etoile, et le nombre de cartes en cours) qui ouvre le widget de grading. */
+const postes = S => S.shop.items.filter(i => defDe(i.type)?.effect === 'posteGrading');
+function bullePoste(it, S) {
+  const [cx] = versEcran(it.x + 0.5, it.y + 0.5), y = hautEstrade(it);
+  const n = S.gradingQueue.length;
+  const w = n ? 58 : 38;
+  bulle(cx, y, w, 34, '#e7f53a');
+  c2d.font = '20px sans-serif'; c2d.textAlign = 'center'; c2d.textBaseline = 'middle'; c2d.fillStyle = '#2b1c1f';
+  c2d.fillText(n ? `⭐ ${n}` : '⭐', cx, y - 16);
+}
 
 /** La bulle d'une estrade : un marteau quand elle est libre, le prix qui monte quand une enchere y passe. */
 function bulleEstrade(it, a) {
@@ -779,6 +790,7 @@ function dessine(t) {
     else bullePlus(it);
   }
   estrades(S).forEach((it, i) => bulleEstrade(it, S.auctions[i]));
+  for (const it of postes(S)) bullePoste(it, S);
   for (const it of s.items) if (defDe(it.type)?.effect === 'defis') bulleTournoi(it, t);
   bulleEncheres(S);
   const tourne = posTourner();
@@ -904,6 +916,9 @@ function touche(sx, sy) {
     if (defDe(v.type)?.effect !== 'defis') continue;
     const [bx] = versEcran(v.x + 0.5, v.y + 0.5), by = versEcran(v.x + 0.5, v.y + 0.5)[1] - (BOUTIQUE.meubles[v.type].dessus || 70) - 4;
     if (surBulle(mx, my, bx, by)) { actions.tournoi?.(); return; }
+  }
+  for (const p of postes(S)) {
+    if (surBulle(mx, my, versEcran(p.x + 0.5, p.y + 0.5)[0], hautEstrade(p))) { actions.grading?.(p); return; }
   }
   const es = estrades(S);
   for (let i = 0; i < es.length; i++) {
