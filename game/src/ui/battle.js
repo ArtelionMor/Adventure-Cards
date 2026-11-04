@@ -491,7 +491,8 @@ function loop() {
     const k = B.turn;
     // L'adversaire peut jouer a un autre niveau que le pilote automatique du joueur :
     // c'est le champ `ia` de la rencontre (GAME CONFIG), un boss a le droit d'etre dur.
-    const niveau = k === 'e' ? (ENCOUNTERS[ctx.enemy] || {}).ia : undefined;
+    // Le pilote automatique du JOUEUR joue `BALANCE.ai.auto` (le niveau `recherche`, decision du 4 nov. 2026).
+    const niveau = k === 'e' ? (ENCOUNTERS[ctx.enemy] || {}).ia : BALANCE.ai.auto;
     const a = botAction(B, k, niveau);
     if (!joueLeCoup(B, k, a, 'bot', niveau || null)) joueLeCoup(B, k, { type: 'end' }, 'bot', niveau || null);
     render();

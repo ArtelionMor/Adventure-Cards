@@ -73,6 +73,10 @@ export const BALANCE = {
   // a etat egal le bot est deterministe, donc reproductible en test.
   ai: {
     defaut: 'normal',
+    // Le niveau du PILOTE AUTOMATIQUE DU JOUEUR (le bouton Auto du combat, l'enchainement des combats) : `recherche`
+    // depuis le 4 nov. 2026 (61,9 % contre `normal`, docs/BOT-MESURES.md ; ~7 ms par decision). Les adversaires gardent
+    // le niveau de leur rencontre (`ia`, sinon `defaut`). Mettre `null` pour revenir a `defaut`.
+    auto: 'recherche',
     // LE BANC DE FORCE (scripts/bench-bot.mjs) : les trios de reference (des trios, jamais de solo : cf. CLAUDE.md racine),
     // le niveau des cartes, et les parties par paire de decks et par sens (le banc joue chaque paire dans les deux
     // sens : 2 x parties). Un trio par archetype dominant, plus des melanges.
