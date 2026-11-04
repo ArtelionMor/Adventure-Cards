@@ -78,3 +78,24 @@ Fait avec le Mac en renfort (`--surcharge` voyage dans le contexte des tâches).
 **S7** (même carte, deux matchups) : fiches S7a / S7b écrites avec Griffure (`cat_pounce`) ; S7a passe, **S7b échoue** (`normal` comme `lecture`) : le bot développe avant de retirer, et un Chiot de Garde vaut plus que la menace d'un Lapin Nain. `retraitAvantCorps` a été essayé pour ça : sans effet, laissé à 0. S8, S9, S10 : fiches vides.
 
 **Le Mac** (`teliaus-macbook-pro`, 12 cœurs) sert de renfort depuis le 4 nov. : copie du code dans `~/ac-renfort`, `caffeinate -i node scripts/renfort.mjs`, déclaré dans `~/.adventure-card/calcul.json`. Le même banc de 5 400 parties passe de plusieurs minutes à quelques secondes. Après toute modification du code mesuré, il faut le réenvoyer (voir la mémoire du projet).
+
+## La recherche courte (niveau `recherche`) — essai du 4 nov. 2026, à la demande du game designer
+
+**Principe.** Pour chaque coup possible (jusqu'à `recherche.maxCoups`), le bot copie le combat, joue le coup, joue **le reste de son tour** avec le bot `lecture`, puis **note la position avant de passer** : avance en PV (armure comprise), en corps, en cartes en main, plus l'écart des deux horloges de `lectureDePosition` (`noteDePosition`). Il garde le coup le mieux noté (à égalité, le moins cher). Il **ne joue jamais le tour adverse** : pas besoin de sa main ni de sa pioche. Ce n'est ni le Monte-Carlo (qui clone le vrai combat et finit la partie) ni la troncature des rollouts abandonnée ; la mission interdisait de rebrancher celle-ci, c'est donc un essai demandé explicitement. Fuite connue et mineure : pendant le tour imaginé, une pioche ou une création *de mon propre côté* lit l'ordre réel de ma pioche.
+
+**Résultat : le premier vrai gain.** `node scripts/bench-bot.mjs recherche normal --parties 150` (5 400 parties, ± 1,3, Mac en renfort) :
+
+| Contre | Moyenne de `recherche` |
+|---|---|
+| `normal` (poids de départ) | 60,3 % (chaque deck de 59,7 à 60,9 %) |
+| `normal` (poids retenus) | **61,9 %** |
+| `lecture` (100 parties/sens) | 62,0 % |
+| `normal`, **cinq trios jamais utilisés pour régler** | **57,6 % ± 1,9** (de 53,6 à 61,8 %) |
+
+**Coût : 7 ms par décision** (contre 0,2 ms pour `normal`), soit ≈ 0,7 s de réflexion par combat sur ce PC — sans importance en jeu, mais à remesurer sur un téléphone avant de l'y brancher.
+
+**Balayage des poids de la note** (100 à 150 parties/sens, ± 1,6 à 1,3) : sans terme d'horloge 57,9 % contre 60,2 % avec (**c'est `lectureDePosition` qui rapporte**, +2 points) ; PV 0,3 → 61,7 % / 1,4 → 56,9 % ; corps 0,5 → 57,2 % / 1,8 → 61,6 % ; main 0 → 58,4 % / 1,2 → 59,6 %. Combinaisons : 59,4 à 61,2 % (le plateau est dans le bruit). Retenus : PV 0,3, corps 1,8, main 1, horloge 8.
+
+**Les fiches S2, S5, S6 échouent au niveau `recherche`** (`BOT_NIVEAU=recherche node scripts/test-ai.mjs`) : elle joue Griffure sur le Têtard, Retrouvailles avec un seul allié, la Volée dans le vide — et gagne pourtant plus que `lecture`, qui les passe. Ces fiches écrivent l'intention du game designer, la note mesure autre chose : **à trancher ensemble** (soit les fiches sont trop strictes, soit la note de position ne voit pas le coût d'opportunité de garder une carte).
+
+**Pas branché au jeu** (`BALANCE.ai.defaut` reste `normal`). Rejeu vérifié avec ce niveau (242 tests). Le niveau `recherche` pourrait servir le mode Auto du joueur et les adversaires les plus forts.

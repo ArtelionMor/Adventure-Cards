@@ -1074,6 +1074,59 @@ function estime(B, k) {
   return 1 / (1 + Math.exp(-avance / 8));
 }
 
+// ------------------------------------------------------------- recherche courte
+/**
+ * LA NOTE D'UNE POSITION pour `k`, entre 0 et 1, lue AVANT que le tour finisse (la main adverse ne sert pas, l'horloge
+ * adverse vient de son plateau) : l'avance en PV, en corps et en cartes, plus l'ecart des deux horloges de
+ * `lectureDePosition`. 1 / 0 si le combat est fini.
+ */
+function noteDePosition(C, k) {
+  if (C.over) return C.winner === k ? 1 : C.winner === 'draw' ? 0.5 : 0;
+  const R = BALANCE.ai.recherche, me = C[k], them = C[foe(k)];
+  const corps = s => s.board.reduce((a, u) => a + (u.atk || 0) * 1.1 + (u.hp || 0) * 0.7, 0);
+  const pos = lectureDePosition(C, k);
+  const horloge = 1 / (1 + pos.monHorloge) - 1 / (1 + pos.saHorloge);
+  const avance = ((me.hp + (me.armor || 0)) - (them.hp + (them.armor || 0))) * R.poidsPv
+    + (corps(me) - corps(them)) * R.poidsCorps + (me.hand.length - them.hand.length) * R.poidsMain + horloge * R.poidsHorloge;
+  return 1 / (1 + Math.exp(-avance / R.echelle));
+}
+
+/**
+ * LA RECHERCHE COURTE. Pour chaque coup possible : une copie, le coup, puis la fin du tour jouee par le bot a regles
+ * (`lecture`), jusqu'a ce qu'il veuille passer — la position obtenue est notee AVANT de passer (on ne joue pas la
+ * pioche ni le tour de l'adversaire). Le meilleur coup l'emporte ; a egalite, le moins cher.
+ */
+function coupRecherche(B, k, jeu) {
+  const R = BALANCE.ai.recherche;
+  const coups = coupsPossibles(B, k).slice(0, R.maxCoups);
+  if (coups.length === 1) return { a: coups[0], evalues: [{ coup: coups[0] }] };
+  const bas = { ...jeu, recherche: false };
+  const evalues = coups.map(coup => ({ coup, note: 0 }));
+  enSondage++;
+  const avant = positionCourante;
+  try {
+    for (const e of evalues) {
+      const C = cloneBattle(B);
+      applique(C, k, e.coup);
+      let garde = 0;
+      while (!C.over && C.turn === k && garde++ < R.maxActions) {
+        positionCourante = bas.lecture ? lectureDePosition(C, k) : null;
+        const a = avecChoix(C, k, decide(C, k, bas));
+        if (!a || a.type === 'end') break;
+        applique(C, k, a);
+      }
+      e.note = noteDePosition(C, k);
+    }
+  } finally { enSondage--; positionCourante = avant; }
+  const cout = a => (a.type === 'play' ? Math.max(0, cardCost(carteDuCoup(B, k, a), B, k, a.zone)) : 0);
+  let best = evalues[0];
+  for (const e of evalues) {
+    const ecart = e.note - best.note;
+    if (ecart > 1e-9 || (ecart > -1e-9 && cout(e.coup) < cout(best.coup))) best = e;
+  }
+  return { a: best.coup, evalues: evalues.map(e => ({ coup: e.coup, victoires: e.note })) };
+}
+
 /**
  * Joue la partie imaginee et rend ce qu'elle vaut pour `k`, entre 0 et 1 (1 = gagnee,
  * 0.5 = nulle). `jeu.troncature` arrete apres N tours et ESTIME au lieu de finir.
@@ -1246,6 +1299,15 @@ function noteLaDecision(B, k, a, evalues) {
  */
 export function botAction(B, k, opts) {
   const jeu = reglages(B, opts);
+  // LA RECHERCHE COURTE (niveau `recherche`) : lue puis cherchee sur la position courante.
+  if (jeu.recherche && !B.over) {
+    positionCourante = jeu.lecture && BALANCE.ai.lecture.actif ? lectureDePosition(B, k) : null;
+    try {
+      const { a, evalues } = coupRecherche(B, k, jeu);
+      noteLaDecision(B, k, a, evalues);
+      return a;
+    } finally { positionCourante = null; }
+  }
   // Le bot qui cherche ne passe pas par les priorites : il les remplace.
   if (jeu.rollouts > 0 && !B.over) {
     const { a, evalues } = coupCherche(B, k, jeu);

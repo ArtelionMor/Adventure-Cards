@@ -114,7 +114,23 @@ export const BALANCE = {
       // laisse a 0 faute de gain demontre (la fiche S7b, qui l'attend, ne passe pas non plus : le corps vaut plus que la menace).
       controle: { visage: { instable: 1, stable: 1.8 }, echange: 1, prixPv: { instable: 1.6, stable: 0.4 }, retraitAvantCorps: 0 }
     },
+    // LA RECHERCHE COURTE (niveau `recherche`, essai du 4 nov. 2026) : pour chaque coup possible, le bot joue le RESTE DE
+    // SON TOUR avec le bot `lecture`, puis note la position qu'il obtient AVANT de finir le tour. Elle ne joue jamais le tour
+    // adverse : elle n'a donc pas besoin de la main ni de la pioche de l'adversaire (le Monte-Carlo, lui, clone le vrai
+    // combat). La note est `lectureDePosition` + l'avance en PV, en corps et en main ; ses poids sont a mesurer (bench-bot).
+    recherche: {
+      maxCoups: 20,        // candidats essayes par decision (le budget : chacun coute un tour de bot)
+      maxActions: 40,      // actions jouees au plus pour finir un tour imagine
+      poidsPv: 0.3,        // un PV d'avance (armure comprise)
+      poidsCorps: 1.8,     // un point de corps (attaque x 1,1 + PV x 0,7) d'avance sur le plateau
+      poidsMain: 1,        // une carte de plus en main
+      poidsHorloge: 8,     // l'ecart d'horloges : 1/(1+ma) - 1/(1+sa), de -1 a +1
+      // Poids RETENUS apres balayage (14 balayages de 100 a 150 parties par sens, docs/BOT-MESURES.md) : le terme d'horloge
+      // vaut +2 points (0 -> 57,9 %, 8 -> 60,2 %) ; moins de PV et plus de corps font mieux (plateau ~ 59-61 %, dans le bruit).
+      echelle: 8           // la note devient une probabilite : 1 / (1 + exp(-avance / echelle))
+    },
     niveaux: {
+      recherche: { misplay: 0, malin: true, lecture: true, recherche: true },   // `lecture` + la recherche courte
       lecture: { misplay: 0, malin: true, lecture: true },   // `normal` + la lecture de position (mission bot)
       naif: { misplay: 0, malin: false },
       simple: { misplay: 0, malin: false },   // le bot d'origine du GDD
