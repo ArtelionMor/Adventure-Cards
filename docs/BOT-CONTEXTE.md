@@ -354,6 +354,15 @@ vraies cartes) :
   dépenser le carburant.
 - **S5 — Retrouvailles (Médor).** Défausse avec 1 allié contre 5 alliés : *attendu :* retenir, puis jouer.
 - **S6 — Volée de Corbeaux (Corax).** Face à 3 petits corps contre 1 gros : *attendu :* jouer, puis retenir.
+- **S7 — Même carte, deux matchups (dictée du 4 nov., §10.1).** Un sort polyvalent (dégâts sur n'importe quelle cible)
+  dans la main de **la même** équipe, d'abord face à un adversaire plus lent aux gros corps (*attendu :* poser ses
+  créatures, **garder le sort pour le visage** au moment où les gros corps bloquent), puis face à un adversaire qui gagne
+  en occupant le plateau avec des créatures solides (*attendu :* **le sort part sur les créatures**). Mêmes cartes,
+  usage opposé. Les deux decks réels sont à choisir avec le game designer. ❓
+- **S8 à S10 — à recueillir (§10), ne pas écrire tant que le game designer n'a pas répondu :** S8 *attente adverse*
+  (mana inutilisé + cartes en main : ne pas surétendre), S9 *fenêtre de réponse* (carte de contre retenue jusqu'à
+  la veille de l'exécution adverse ; phase 3 seulement), S10 *vague unique* (plateau posé, aucune vague derrière :
+  visage plutôt que trade, **seulement si l'horloge le permet**).
 
 ## 7. Dépendances hors du bot (à traiter par le game designer avant ou en parallèle)
 
@@ -403,3 +412,113 @@ tire à `Math.random` : la recherche de séquence doit rester déterministe sous
 - **Q3 — Contrôle et PV :** un cas concret (S3).
 - **Q4 — Griffure dans le deck de Félix ?** (§5.5)
 - **Q5 — Hypothèse Bulle :** concentrer ou répartir les renforts selon le retrait montré par l'adversaire ? (§5.7)
+
+## 10. Compléments du 4 novembre 2026 (deux dictées) — HYPOTHÈSES, rien ici n'est à coder sans accord
+
+Même règle que l'en-tête : ce sont des idées du game designer, **challengées** ci-dessous, pas des ordres. Ce qui est
+déjà couvert par le modèle (§3) n'est pas redit.
+
+### 10.1 Ce que ça confirme (aucun ajout)
+
+- La lecture du matchup vient **avant** la tactique, et le rôle de chacun se lit sur les **horloges** (§3.2), pas sur
+  l'archétype. Burn est le beatdown face à un Réanimator plus lent, mais devient le contrôle face à un deck « Winnie
+  White » qui gagne par le plateau. **Même deck, rôle opposé selon le matchup.**
+- **Une carte n'a pas une fonction fixe.** Le même sort de 3 dégâts va au visage contre un deck lent aux gros corps, et
+  sur les créatures contre un deck de plateau. Conséquence pour le code : « retrait ou visage ? » vient de la
+  **posture**, jamais d'une étiquette posée sur la carte. → fiche **S7**.
+- Le **tour de résolution** (criticité) de chaque deck est la grandeur centrale : déjà le vocabulaire du §2.
+
+### 10.2 Lire la main de l'adversaire à ses signaux (nouveau)
+
+*Dit :* du mana laissé inutilisé avec des cartes en main = une grosse carte chère ou une pièce de combo ; un trade
+avantageux refusé = il veut garder son unité pour la renforcer plus tard ; il me laisse développer alors qu'il pourrait
+interagir = il a probablement un balayage (une « colère »).
+
+*Challenge :*
+- C'est de l'**inférence sur des faits publics** (mana dépensé, taille de la main, trades pris ou refusés) : compatible
+  avec le §4, pas de la triche. Mais un modèle de croyance complet sur les cartes en main est un gros chantier pour un
+  gain incertain.
+- **Version minimale proposée :** un seul signal, `attenteAdverse` = nombre de tours consécutifs où l'adversaire avait
+  du mana inutilisé **et** des cartes en main. Effet unique : relever le **risque de retournement**, donc freiner la
+  surextension (poser une vague de plus quand une seule suffit). Le bot ne devine aucune carte précise.
+- Risque : si l'adversaire est lui-même un bot qui joue mal, ce signal est du bruit, pas un bluff. Il ne vaut quelque
+  chose que contre un adversaire qui joue bien : à valider **bot contre bot**, pas sur le seul ressenti.
+- ❓ **Q6 :** ce raisonnement est-il pour tous les niveaux de bot, ou seulement les plus forts (et le mode Auto du joueur) ?
+
+### 10.3 La fenêtre de réponse (nouveau, lié au plan Combo)
+
+*Dit :* la Chouette qui renchérit d'1 mana toutes les cartes de la main adverse existe pour casser Neuf Vies + les
+Éclairs. Elle ne se joue pas « dès qu'elle est jouable » : on la **garde pour le tour qui suit Neuf Vies**, avant que
+l'adversaire ne dépense son mana en Éclairs. Si le combo déraille, l'adversaire a perdu son tour de combo et la partie.
+
+*Challenge :*
+- C'est exactement le rôle `techContre` du §3.1, avec une **condition de moment** : jouer la carte de contre **quand
+  l'adversaire a installé son moteur et n'a pas encore exécuté**, pas avant, pas après.
+- Ce que le bot peut observer sans tricher : le moteur adverse est en jeu et **la taille de sa main a bondi d'un
+  coup** (Neuf Vies met des cartes en main : leur nombre est public, leur contenu non). Il ne devine donc pas qu'il y a
+  des Éclairs : il voit « il a installé quelque chose et sa main gonfle ».
+- Il faut que le bot **retienne** la carte de contre pendant la partie, alors que la règle générale est de développer.
+  Même difficulté que « retenir le carburant » (§3.4) : ne pas la coder avant la phase 3 et l'accord sur la note de
+  retenue.
+- Pas d'identifiant de carte : la carte se reconnaît à son **effet** (renchérit la main adverse), pas à son nom.
+- ❓ **Q7 :** « je joue contre un chat » est une connaissance d'archétype (§4.2) : OK. Le bot doit-il aussi connaître la
+  **liste des cartes** du deck adverse (Éclairs, Neuf Vies) ? C'est le point le plus lourd du §4 : décision à prendre
+  avant S9.
+
+### 10.4 Le contexte de la partie : adversaire plus fort ou plus faible (nouveau)
+
+*Dit :* on ne joue pas pareil si l'adversaire est beaucoup plus fort que nous : la différence est la quantité de chaos
+qu'on met en place.
+
+*Challenge :* il faut une estimation de **qui est favori**, et on n'en a pas de fiable (c'est l'absence de fonction
+d'évaluation qui a fait échouer la troncature des rollouts). Et pour un adversaire PvE, chercher la variance quand il
+perd rend le jeu moins lisible pour le joueur. **Backlog, hors mission.** ❓ **Q8 :** voulu pour les adversaires, pour le
+mode Auto du joueur, ou pour les deux ?
+
+### 10.5 Les « lignes théoriques » (nouveau)
+
+*Dit :* retirer très tôt les ressources de l'adversaire (« arrêter le ruisseau avant la cascade ») ; l'épuisement
+(consommer tout pour qu'il n'ait plus la carte en main). Ce sont des stratégies à mettre en place quand on a repéré un
+motif, **conséquences** de la lecture du matchup.
+
+*Challenge :* ce ne sont pas des modes à part. La première est une **posture** (retenue de retrait basse tôt contre un
+moteur) ; la seconde est déjà le plan de fatigue d'Athéna (§5.8). Aucun code propre à prévoir.
+❓ **Q9 :** « Boltzberg », dans la dictée, est illisible : quelle ligne de Magic est visée ? Je ne devine pas.
+
+### 10.6 La vague et ce qu'il reste « sous le capot » (nouveau)
+
+*Dit :* ses cartes en jeu sont ses ressources quand la main est vide ; il faut savoir s'il en arrive d'autres. Le deck
+lapin pose une seule vague ; face à un balayage, aucune seconde vague : inutile de trader, aller chercher les PV. Face à
+Hulotte et ses Ex-libris, l'adversaire aura une autre vague.
+
+*Challenge :*
+- Vrai **seulement si l'horloge le permet** : si le plateau adverse écrase le mien et qu'il stabilise à plus de PV, aller
+  au visage perd la course. « Lapin = visage » ne doit **jamais** être codé comme règle ; c'est une conséquence de
+  l'horloge, avec la notion de **réserve** ajoutée à la lecture : cartes en main + menaces encore dans le paquet,
+  pour moi, et pour lui **si** on lui connaît sa liste de cartes (Q7).
+- L'horloge du §3.2 compte déjà « planche prête **et à venir** » : on **étend** ce calcul avec la réserve, on n'ajoute
+  pas un système.
+- Fiche **S10** à écrire en deux versions : course gagnable (aller au visage) et course perdue (trader).
+
+### 10.7 Réanimator contre Burn (rien à coder, un cas de test)
+
+*Dit :* Réanimator est par nature plus lent que Burn ; ses petites créatures du début ne doivent pas être gardées pour
+rien, car quand les gros corps arrivent seuls les sorts passent au-dessus.
+❓ **Q10 :** dans la phrase sur « poser une créature ou envoyer le sort au visage », le joueur décrit-il Burn (qui garde
+ses sorts pour passer au-dessus des gros corps) ? C'est ma lecture, retranscrite dans S7 ; à confirmer.
+
+### 10.8 Principes de conception de cartes (pas du bot : backlog)
+
+- **Masse critique :** un archétype n'existe que s'il a assez de cartes de chaque rôle. Burn : assez de dégâts directs.
+  Réanimator : trois masses (gros corps qui valent d'être réanimés, mise au cimetière pas chère, réanimation pas chère).
+  Un archétype qui s'auto-réanime est toxique (« Dredge »). C'est probablement la cause de Séléné « combo non visible »
+  et de l'identité absente de Corax : **un contrôle des rôles par deck** (combien de cartes de chaque rôle) serait un
+  diagnostic utile, après le bot.
+- **Cartes mortes :** pas de sideboard dans le jeu, donc pas de carte trop situationnelle dans le deck principal.
+- **Flexibilité tactique rare :** le game designer doute qu'on puisse en donner beaucoup dans le jeu ; le bot n'a donc
+  pas à chercher le « coup d'esthète » (finir un gros corps avec un sort pensé pour le visage) avant le reste.
+
+## 11. Questions ouvertes ajoutées (Q6 à Q10)
+
+Q6 niveaux concernés par la lecture de signaux · Q7 liste de cartes adverse connue du bot ? · Q8 « chaos » pour qui ? ·
+Q9 « Boltzberg » · Q10 lecture du paragraphe Burn/Réanimator.

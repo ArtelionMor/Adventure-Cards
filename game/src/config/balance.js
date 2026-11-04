@@ -109,7 +109,10 @@ export const BALANCE = {
     //    Un beatdown les convertit (bas) ; un controle les garde avant de s'etre stabilise (haut), les depense apres.
     postures: {
       beatdown: { visage: 1.6, echange: 0.5, prixPv: 0.5 },
-      controle: { visage: { instable: 1, stable: 1.8 }, echange: 1, prixPv: { instable: 1.6, stable: 0.4 } }
+      // `retraitAvantCorps` : un controle compare un retrait qui TUE a l'allie qu'il allait poser, au lieu de developper
+      // d'office (multiplie la menace otee ; 0 = jamais, comme le bot d'avant). MESURE (14 400 parties) : neutre a 0, 1 et 2 ;
+      // laisse a 0 faute de gain demontre (la fiche S7b, qui l'attend, ne passe pas non plus : le corps vaut plus que la menace).
+      controle: { visage: { instable: 1, stable: 1.8 }, echange: 1, prixPv: { instable: 1.6, stable: 0.4 }, retraitAvantCorps: 0 }
     },
     niveaux: {
       lecture: { misplay: 0, malin: true, lecture: true },   // `normal` + la lecture de position (mission bot)

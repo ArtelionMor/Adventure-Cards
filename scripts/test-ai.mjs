@@ -576,5 +576,18 @@ choisit('S5b', c => c === 'Retrouvailles', 'S5 Médor : joue Retrouvailles avec 
 choisit('S6', c => c !== 'Volée de Corbeaux', 'S6 Corax : retient la Volée face à un seul gros corps');
 choisit('S6b', c => c === 'Volée de Corbeaux', 'S6 Corax : joue la Volée face à trois petits corps');
 
+// S7 (même carte, deux matchups) : fiches PROPOSÉES, à valider par le game designer — affichées, pas comptées.
+const informe = (id, attendu, nom) => {
+  const N = 20; let ok = 0;
+  for (let i = 0; i < N; i++) {
+    const B = sitDe(id)(); const a = botAction(B, 'p', NIVEAU);
+    const c = a.type === 'play' ? B.p.hand[a.index].name + (a.target && a.target.uid !== 'hero' ? ' (créature)' : '') : coup(B, a);
+    if (attendu(c)) ok++;
+  }
+  console.log('  info ' + nom + `  (${Math.round(100 * ok / N)} % ; à valider, non compté)`);
+};
+informe('S7a', c => c === 'Chiot de Garde', 'S7a adversaire lent : pose le Chiot et garde Griffure');
+informe('S7b', c => c === 'Griffure (créature)', 'S7b adversaire de plateau : Griffure sur une créature');
+
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);

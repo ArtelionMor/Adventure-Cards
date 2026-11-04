@@ -303,6 +303,46 @@ export const SITUATIONS = [
     niveau: 1, tour: 10, qui: 'p',
     p: { heros: ['crow', 'dog', 'frog'], pv: 20, mana: 4, tours: 6, main: ['crow_murder'], plateau: [] },
     e: { heros: ['dog'], pv: 20, mana: 6, tours: 6, plateau: ['lap1_lapereau', 'lap1_lapereau', 'lap1_lapereau'] }
+  },
+  {
+    id: 'S7a', famille: 'E', titre: 'Même sort, adversaire lent : poser, garder Griffure',
+    question: 'Griffure (2 dégâts, n’importe quelle cible, 1 mana) et un Chiot de Garde (2 mana) en main, 2 mana : un seul des deux. Face à Athéna + Hulotte + Médor, qui gagne par de gros corps lents (une Chouette Érudite 3/5 en jeu), adversaire à 12 PV.',
+    regarde: 'Attendu : POSER le Chiot de Garde et garder Griffure — pour le visage, au moment où les gros corps bloquent (2 dégâts ne tuent pas une 3/5). Contre-exemple : Griffure sur la Chouette. ⚠ Même équipe, mêmes cartes, que S7b : seul le matchup change. Choix des decks et de la carte à valider à la relecture (propositions du 4 nov. 2026).',
+    niveau: 1, tour: 8, qui: 'p', aValider: true,
+    p: { heros: ['cat', 'dog', 'frog'], pv: 20, mana: 2, tours: 6, main: ['cat_pounce', 'dog_pup'], plateau: ['dog_bite'] },
+    e: { heros: ['owl', 'owl3', 'dog'], pv: 12, mana: 6, tours: 6, plateau: ['owl_scholar'] }
+  },
+  {
+    id: 'S7b', famille: 'E', titre: 'Même sort, adversaire de plateau : Griffure sur les créatures',
+    question: 'La même main (Griffure + Chiot de Garde), la même équipe, 2 mana — mais face à Caramel + Pompon + Séléné, qui gagne en occupant le plateau (deux Lapins Nains et un Lapin de Grange en jeu), adversaire à 20 PV : son horloge est plus rapide que la mienne.',
+    regarde: 'Attendu : Griffure PART SUR UNE CRÉATURE (les Lapins Nains ont 2 PV : un 1 pour 1 qui ralentit sa course). Contre-exemple : poser le Chiot et laisser le plateau adverse grossir. Le bot actuel pose toujours son allié d’abord (étape « se développer » avant « freiner ») : ce test échoue aujourd’hui, y compris au niveau `lecture`. Décision à prendre à la relecture.',
+    niveau: 1, tour: 8, qui: 'p', aValider: true,
+    p: { heros: ['cat', 'dog', 'frog'], pv: 20, mana: 2, tours: 6, main: ['cat_pounce', 'dog_pup'], plateau: ['dog_bite'] },
+    e: { heros: ['lapin2', 'lapin1', 'lapin3'], pv: 20, mana: 6, tours: 6, plateau: ['lap2_nain', 'lap2_nain', 'lap2_grange'] }
+  },
+  {
+    id: 'S8', famille: 'E', titre: 'Attente adverse (à recueillir)',
+    question: 'À RECUEILLIR (BOT-CONTEXTE §10.2, Q6) : mana inutilisé + cartes en main chez l’adversaire — ne pas surétendre. Attend la réponse du game designer.',
+    regarde: 'Aucune fiche tant que Q6 n’a pas de réponse. Ne rien coder.',
+    niveau: 1, tour: 1, qui: 'p', aRecueillir: true,
+    p: { heros: ['owl'], tours: 1 },
+    e: { pnj: 'frogboss', mana: 0, tours: 0 }
+  },
+  {
+    id: 'S9', famille: 'E', titre: 'Fenêtre de réponse (à recueillir, phase 3)',
+    question: 'À RECUEILLIR (BOT-CONTEXTE §10.3, Q7) : carte de contre retenue jusqu’à la veille de l’exécution adverse. Phase 3 seulement.',
+    regarde: 'Aucune fiche tant que Q7 n’a pas de réponse. Ne rien coder.',
+    niveau: 1, tour: 1, qui: 'p', aRecueillir: true,
+    p: { heros: ['owl'], tours: 1 },
+    e: { pnj: 'frogboss', mana: 0, tours: 0 }
+  },
+  {
+    id: 'S10', famille: 'E', titre: 'Vague unique (à recueillir)',
+    question: 'À RECUEILLIR (BOT-CONTEXTE §10.6) : plateau posé, aucune vague derrière : visage plutôt que trade, SEULEMENT si l’horloge le permet. À écrire en deux versions (course gagnable / perdue).',
+    regarde: 'Aucune fiche tant que le game designer n’a pas validé l’extension de l’horloge (réserve). Ne rien coder.',
+    niveau: 1, tour: 1, qui: 'p', aRecueillir: true,
+    p: { heros: ['owl'], tours: 1 },
+    e: { pnj: 'frogboss', mana: 0, tours: 0 }
   }
 ];
 

@@ -70,6 +70,11 @@ possible**. Symptômes à faire disparaître :
 Elles doivent **échouer** avant ta modification (montre-le) et passer après. **S3** attend un cas concret de ma
 part : n'invente pas de fiche, pose une fiche « à recueillir » dans le fichier. **S4** (combo) attend la phase 3.
 
+**S7** (même carte, deux matchups, `BOT-CONTEXTE.md` §6 et §10.1) : propose-moi dans ton rapport de phase 1 les **deux
+paires de decks réels** et la carte polyvalente que tu retiens (vérifie ses identifiants) ; écris la fiche avec ton
+choix, il sera validé ou changé à la relecture. **S8, S9, S10** attendent mes réponses (Q6 à Q10) : fiches « à recueillir »
+seulement. La section 10 du document est un ensemble d'**hypothèses** : tu n'en codes aucune sans mon accord écrit.
+
 ## Phase 2 — Lecture de position et postures (Aggro / Contrôle)
 
 1. Écris `lectureDePosition(B, k)` → `{ monHorloge, saHorloge, role, stabilise }` (définitions : `BOT-CONTEXTE.md`

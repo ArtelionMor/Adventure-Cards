@@ -59,3 +59,22 @@ Bancs après la phase 2 : `test-triggers` 782, `test-ai` 59, `test-rejeu` 242, `
 ## Phase 3 — bloquée
 
 Condition d'entrée **non remplie** : *Mage de l'étincelle* (`cat_claw`) cible toujours `randomEnemyAny` (héros **ou** unités) et garde **Charge**. Rien n'a été commencé (ni recherche de séquence, ni note de dix lignes, ni fiche S4).
+
+## Balayage des coefficients (14 400 parties par réglage, `lecture` contre `normal`, ± 0,8)
+
+Fait avec le Mac en renfort (`--surcharge` voyage dans le contexte des tâches). Réglage de départ (visage 1,6, échange 0,5, stabilise 5) : **49,4 %**.
+
+| Changement | Moyenne |
+|---|---|
+| beatdown `visage` 1,3 / 2,2 | 49,1 % / 49,9 % |
+| beatdown `echange` 0,25 / 1 | 50,2 % / 50,5 % |
+| contrôle `visage.stable` 1,2 / 2,6 | 49,4 % / 49,1 % |
+| contrôle `visage.instable` 0,7 | 49,8 % |
+| `stabilise` 3 / 8 | 49,8 % / 49,6 % |
+| `retraitAvantCorps` 0 / 2 | 49,8 % / 49,7 % |
+
+**Conclusion : aucun réglage de ces coefficients ne bouge la force du bot** sur les six trios de référence (tout reste entre 49,1 et 50,5 %). Les trois branchements de la mission corrigent les symptômes des fiches S1, S2, S5, S6 sans changer le taux de victoire : les défauts qui coûtent des parties sont ailleurs (ou ces trios ne les exposent pas). Pour mémoire, le Monte-Carlo bat le bot à règles 9 fois sur 10 (`BALANCE.ai`) : la marge existe, mais elle vient de la recherche, pas de coefficients. Pistes (hors mission, non commencées) : `lectureDePosition` comme fonction d'évaluation d'une recherche courte ; mesurer sur des trios choisis pour exposer Aggro / Contrôle / Combo.
+
+**S7** (même carte, deux matchups) : fiches S7a / S7b écrites avec Griffure (`cat_pounce`) ; S7a passe, **S7b échoue** (`normal` comme `lecture`) : le bot développe avant de retirer, et un Chiot de Garde vaut plus que la menace d'un Lapin Nain. `retraitAvantCorps` a été essayé pour ça : sans effet, laissé à 0. S8, S9, S10 : fiches vides.
+
+**Le Mac** (`teliaus-macbook-pro`, 12 cœurs) sert de renfort depuis le 4 nov. : copie du code dans `~/ac-renfort`, `caffeinate -i node scripts/renfort.mjs`, déclaré dans `~/.adventure-card/calcul.json`. Le même banc de 5 400 parties passe de plusieurs minutes à quelques secondes. Après toute modification du code mesuré, il faut le réenvoyer (voir la mémoire du projet).

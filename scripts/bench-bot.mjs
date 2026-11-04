@@ -4,6 +4,7 @@
 //   node scripts/bench-bot.mjs lecture normal           le niveau A contre le niveau B
 //   node scripts/bench-bot.mjs lecture normal --parties 100   parties par paire de decks ET par sens (defaut : BALANCE.ai.bench)
 //   node scripts/bench-bot.mjs ... --json f.json        ecrit aussi le resultat (JSON)
+//   node scripts/bench-bot.mjs ... --surcharge '{"postures":{"beatdown":{"visage":2}}}'   change BALANCE.ai le temps d'un essai (ablation, balayage)
 //   node scripts/bench-bot.mjs ... --trios dog,crow,frog;cat,owl,dog   d'autres trios (separes par « ; »)
 //
 // COMMENT ON JUGE. Pour chaque paire de decks (D, O), A joue D contre B qui joue O, PUIS A joue O contre B qui joue D :
@@ -42,7 +43,7 @@ const par = trios.map(() => ({ v: 0, d: 0 }));
 let V = 0, D = 0, ms = 0, decisions = 0, tours = 0, nParties = 0;
 await enParallele(taches, new URL('./lib/taches-bench-bot.mjs', import.meta.url), {
   jobs: nombreDeJobs(), unite: 'lots',
-  contexte: { trios, niveau: cfg.niveau },
+  contexte: { trios, niveau: cfg.niveau, surcharge: arg('--surcharge') ? JSON.parse(arg('--surcharge')) : null },
   surResultat: (k, r) => {
     for (const x of new Set([r.i, r.j])) { par[x].v += r.victoiresA; par[x].d += r.decisives; }
     V += r.victoiresA; D += r.decisives; ms += r.ms; decisions += r.decisions; tours += r.tours; nParties += r.parties;

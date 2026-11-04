@@ -477,3 +477,12 @@ Retrouvailles payable, plateaux vides. **S5 :** un seul allié dans la défausse
 
 ## S6 / S6b — Corax : Volée de Corbeaux
 **S6 :** un seul gros corps (Chef de Bataillon) en face → la **retenir** (2 dégâts ne le tuent pas). **S6b :** trois Lapereaux → la jouer. Le bot de référence la joue aussi dans le vide.
+
+## S7a / S7b — Même carte, deux matchups (propositions à valider)
+**La carte :** Griffure (`cat_pounce`, 2 dégâts à n'importe quelle cible, 1 mana) — la seule carte du jeu aux dégâts « n'importe quelle cible » qui ne dépende pas d'un compteur (Tempête de Patounes, Coup de Patte, Coup de Langue sont les autres `enemyAny`). **L'équipe :** Félix + Médor + Bulle, main Griffure + Chiot de Garde, 2 mana (un seul des deux), un Toutou prêt.
+- **S7a — vs Athéna + Hulotte + Médor** (adversaire lent, gros corps : une Chouette Érudite 3/5) : poser le Chiot, **garder Griffure** pour le visage.
+- **S7b — vs Caramel + Pompon + Séléné** (adversaire de plateau : deux Lapins Nains, un Lapin de Grange, horloge plus rapide que la mienne) : **Griffure sur une créature**.
+**État :** S7a passe (le bot pose son allié). **S7b échoue aujourd'hui, `normal` comme `lecture`** : l'étape « se développer » passe avant « freiner l'adversaire ». Marquées `aValider` : le test les affiche sans les compter. Choix des decks et de la carte à confirmer à la relecture.
+
+## S8, S9, S10 — à recueillir
+Fiches vides (`aRecueillir`) : S8 attente adverse (Q6), S9 fenêtre de réponse (Q7, phase 3), S10 vague unique (deux versions, course gagnable / perdue). Rien n'est codé.

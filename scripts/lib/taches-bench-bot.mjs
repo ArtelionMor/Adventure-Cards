@@ -10,8 +10,9 @@ let camps = [];
 /** Fusion profonde (pour l'ablation : BENCH_SURCHARGE='{"lecture":{"timing":{"remplissage":0}}}' change BALANCE.ai le temps d'un essai ; les workers heritent de l'environnement). */
 const fusionne = (cible, src) => { for (const [k, v] of Object.entries(src)) { if (v && typeof v === 'object' && !Array.isArray(v) && cible[k] && typeof cible[k] === 'object') fusionne(cible[k], v); else cible[k] = v; } };
 
-export function prepare({ trios, niveau }) {
-  if (process.env.BENCH_SURCHARGE) fusionne(BALANCE.ai, JSON.parse(process.env.BENCH_SURCHARGE));
+export function prepare({ trios, niveau, surcharge }) {
+  // `surcharge` (JSON, voyage avec le contexte : les renforts la recoivent aussi) change BALANCE.ai le temps d'un essai.
+  if (surcharge) fusionne(BALANCE.ai, surcharge);
   camps = trios.map(ids => campMelange(ids, niveau));
 }
 

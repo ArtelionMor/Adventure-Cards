@@ -932,6 +932,25 @@ function faitAttendre(B, k, card, pos) {
   return !pression;
 }
 
+/**
+ * Le meilleur retrait ciblant UNE unite adverse qu'il tue pour de bon : { x, cible, valeur } ou null. La valeur est celle
+ * de la menace otee (`unitThreat`). Utilise par un controle pour decider entre developper et nettoyer.
+ */
+function meilleurRetraitPresse(B, k, playable) {
+  let best = null;
+  for (const x of playable) {
+    if (!estUnRetrait(x.c) || !needsTarget(x.c)) continue;
+    const dmg = (x.c.play || []).filter(e => e.op === 'dmg').reduce((a, e) => a + amountValue(e.v, B, k, null), 0);
+    const detruit = (x.c.play || []).some(e => e.op === 'detruit');
+    for (const u of B[foe(k)].board) {
+      if (!detruit && u.hp > dmg) continue;
+      const valeur = unitThreat(B, k, u);
+      if (!best || valeur > best.valeur) best = { x, cible: u, valeur };
+    }
+  }
+  return best;
+}
+
 /** Un sort qui ne fait que des degats ou detruire : un « retrait » (il ne se joue que s'il ote quelque chose). */
 const estUnRetrait = card => (card.play || []).length > 0 && (card.play || []).every(e => ['dmg', 'detruit'].includes(e.op));
 
@@ -1340,6 +1359,12 @@ function decide(B, k, jeu) {
     // Un corps sur le plateau vaut un peu plus que sa valeur brute : il attaque des
     // le tour suivant et force l'adversaire a s'en occuper. D'ou la prime de tempo.
     const valeurAllie = cardValue(B, k, allies[0].c) * 1.15;
+    // LECTURE : un CONTROLE (plus lent que l'adversaire) compare le retrait au corps qu'il allait poser, au lieu de
+    // developper d'office : tuer l'unite qui le presse vaut parfois plus qu'un allie de plus (postures.retraitAvantCorps).
+    if (pos && pos.role === 'controle' && BALANCE.ai.postures.controle.retraitAvantCorps) {
+      const retrait = meilleurRetraitPresse(B, k, playable);
+      if (retrait && retrait.valeur * BALANCE.ai.postures.controle.retraitAvantCorps > valeurAllie) return jouer(retrait.x, { side: foe(k), uid: retrait.cible.uid });
+    }
     if (!utile || valeurAllie >= cardValue(B, k, utile.c)) {
       return jouer(allies[0], pickTarget(B, k, allies[0].c));
     }
