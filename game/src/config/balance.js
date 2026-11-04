@@ -125,7 +125,13 @@ export const BALANCE = {
     // budget, pas une boucle. Le resultat ne depend pas du hasard du vrai combat : chaque coup est rejoue sur une copie.
     sequence: {
       actif: true,
-      minSorts: 2,        // la PORTE : on ne cherche que si au moins ce nombre de sorts sont jouables (un combo en veut plusieurs)
+      // LA RETENUE (point 2, note validee le 4 nov. 2026) : sur le tour SUIVANT de lui seul (mana +1, unites pretes, un tour de
+      // plus ; ni pioche ni tour adverse), le bot compare « je joue ce coup » (A) et « je ne joue rien » (B) : si B trouve une
+      // suite gagnante et pas A, il RETIENT ce coup ; si c'est A et pas B, il l'INSTALLE. Aucune carte nommee.
+      attente: false,     // interrupteur de la retenue. DESACTIVEE : mesuree neutre a legerement negative (lecture 51,9 -> 50,8 %, recherche 60,9 -> 60,4 %, ± 1,1) pour un cout x4 (10 -> 37 ms par decision). Le code est la, teste, a rallumer si les cartes changent
+      noeudsAttente: 60,  // coups essayes au plus par recherche du tour suivant (une par candidat, plus une pour B)
+      patience: 2,        // on ne retient que si l'horloge adverse est SUPERIEURE a ce nombre de tours (sinon on meurt avant le combo)
+      minSorts: 2,        // la PORTE (ou un seul sort qui fabrique des cartes) : on ne cherche que si au moins ce nombre de sorts sont jouables (un combo en veut plusieurs)
       noeuds: 100,        // coups essayes au plus par recherche (chacun = une copie du combat). MESURE (10 000 parties par valeur) : 100 -> 8,8 ms par decision, 300 -> 19 ms, 1000 -> 38 ms, pour la meme force
       profondeur: 14      // longueur maximale de la suite
     },

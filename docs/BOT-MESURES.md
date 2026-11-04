@@ -123,7 +123,22 @@ Toutes ces mesures ont tourné sur **mon-mien (chef, 8 cœurs) + le Mac (12 cœu
 
 Bancs (sur mon-mien) : `test-triggers` 782, `test-ai` 63, `test-rejeu` 242, `test-evenements` 2 680, `test-partage` 108, `test-situations` 501, `test-vfx` 3 368, `test-pv` : verts.
 
-## Phase 3, point 2 — la note de retenue (À VALIDER : rien n'est codé)
+## Phase 3, point 2 — la retenue, implémentée (accord du 4 nov. 2026) puis **désactivée par défaut**
+
+`attenteDuCombo` + `monTourSuivant` (`ai.js`), réglée par `BALANCE.ai.sequence` (`attente`, `noeudsAttente` 60, `patience` 2) : pour chaque carte jouable, deux copies passées à **mon** tour suivant (mana +1, unités prêtes, un tour de plus ; ni pioche ni tour adverse) — A = je la joue, B = je ne joue rien ; `sequenceGagnante` dans chacune. B gagne et pas A : **retenue** ; A et pas B : **installée**. On ne retient que si l'horloge adverse est > `patience` tours. Aucune carte nommée. Le début et la fin de tour (déclencheurs) ne sont pas joués dans la copie : approximation assumée.
+
+**Mesure** (mon-mien + Mac, 300 parties par sens, 7 500 parties par ligne, ± 1,1) :
+
+| Niveau contre `normal` | Retenue éteinte | Retenue allumée | Temps/décision |
+|---|---|---|---|
+| `lecture` | 51,9 % | 50,8 % | 9,8 → 37,2 ms |
+| `recherche` | 60,9 % | 60,4 % | 14,3 → 41,8 ms |
+
+La part des parties à moteur où une suite est trouvée ne bouge pas (27 → 27 %, 47 → 49 %). **Aucun gain, un coût ×4** : `attente` est donc **éteinte par défaut** (le code reste, testé).
+
+**S4b** : la chaîne est prête au tour suivant pour `lecture` et `recherche` — mais aussi pour `normal` : dans cette position, lancer Neuf Vies tout de suite et poser le moteur d'abord gagnent tous deux au tour suivant (les Griffures créées restent en main), donc la retenue n'a rien à interdire. Un test qui sépare vraiment les niveaux demande une position où dépenser une carte détruit la chaîne : à trouver avec le game designer (cas réel d'une partie perdue).
+
+### La note validée (pour mémoire)
 
 **Question :** comment le bot décide de *ne pas dépenser* un carburant (Griffure) tant que la chaîne n'est pas prête, sans règle par carte ?
 1. Il a déjà le moyen de répondre « puis-je gagner CE tour ? » : `sequenceGagnante`. On le pose une deuxième fois, sur le tour d'**après**.
@@ -139,3 +154,6 @@ Bancs (sur mon-mien) : `test-triggers` 782, `test-ai` 63, `test-rejeu` 242, `tes
 
 ## Idées d'entraînement du game designer (4 nov. 2026) — backlog, rien n'est codé
 Les exercices d'un mentor de TCG compétitif : (a) il s'arrête dans la partie et demande à l'entraîné de **deviner sa main** (1 à 4 cartes) ; (b) on **rejoue le tour avec une autre pioche** (« que ferais-tu si tu avais pioché ça plutôt que ça ? ») ; (c) l'entraîné **demande une carte** (« quelle carte voudrais-tu piocher ? », « quelles cartes te donneraient un avantage ? »). Liens : (a) est la lecture des signaux de BOT-CONTEXTE §10.2 (S8) — à valider *bot contre bot* ; (b) et (c) demandent seulement de copier le combat et de remplacer la carte du dessus de la pioche, ce que `cloneBattle` et la recherche du bot savent déjà faire : « quelle carte me donnerait un avantage » = essayer chaque carte du deck comme prochaine pioche et classer par la note de la recherche. Peut être un outil de test pour le bot, un mode entraînement pour le joueur, ou les deux : à décider avec toi.
+
+**Correction de la porte (même jour).** La porte de la recherche (« ≥ 2 sorts jouables ») se fermait quand il ne restait que Neuf Vies en main, alors que ce sort crée neuf Griffures : le test S4b de `recherche` échouait pour cette raison, pas faute de budget. Elle s'ouvre maintenant aussi pour **un sort qui fabrique des cartes** (effet `cree`, sans nom de carte). Remesuré (300 parties/sens, 7 500 parties, retenue éteinte) : `lecture` **50,9 %** (9,2 ms/décision), `recherche` **61,7 %** (13,8 ms) contre `normal`, ± 1,1 ; suite gagnante trouvée dans 26 % (`lecture`) et 47 % (`recherche`) des parties à moteur.
+

@@ -353,10 +353,10 @@ export const SITUATIONS = [
     e: { heros: ['owl'], pv: 20, mana: 6, tours: 8, plateau: [] }
   },
   {
-    id: 'S4b', famille: 'E', titre: 'Félix : installer avant d’exécuter (à valider)',
+    id: 'S4b', famille: 'E', titre: 'Félix : installer avant d’exécuter',
     question: 'La même main (Neuf Vies, deux Griffures), 6 mana — mais SANS moteur sur le plateau (ni Mage ni Ombre Feutrée).',
-    regarde: 'Attendu : installer d’abord (poser le Mage et l’Ombre Feutrée, 5 mana), ne PAS dépenser Neuf Vies ni les Griffures une par une. Le bot actuel joue Neuf Vies puis passe, à tous les niveaux : c’est le point « retenir » de la phase 3, qui attend l’accord du game designer sur la note de retenue.',
-    niveau: 1, tour: 9, qui: 'p', aValider: true,
+    regarde: 'Attendu : installer d’abord (poser le Mage et l’Ombre Feutrée, 5 mana), ne PAS dépenser Neuf Vies ni les Griffures une par une. Avant la retenue (phase 3, point 2), le bot jouait Neuf Vies puis passait, à tous les niveaux ; elle compare, sur le tour suivant, « je joue ce coup » et « je ne joue rien ».',
+    niveau: 1, tour: 9, qui: 'p',
     p: { heros: ['cat', 'dog', 'frog'], pv: 20, mana: 6, tours: 8, main: ['cat_nine', 'cat_pounce', 'cat_pounce', 'cat_claw', 'cat_shadow'], plateau: [] },
     e: { heros: ['owl'], pv: 20, mana: 6, tours: 8, plateau: [] }
   }

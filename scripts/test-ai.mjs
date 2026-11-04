@@ -3,8 +3,8 @@
 // Le bot joue volontairement au hasard une fois sur huit (GDD), donc chaque decision
 // est prise 300 fois et on regarde la tendance, pas un coup isole.
 //   node scripts/test-ai.mjs
-import { createBattle } from '../game/src/combat/engine.js';
-import { botAction, coupsPossibles } from '../game/src/combat/ai.js';
+import { createBattle, cloneBattle } from '../game/src/combat/engine.js';
+import { botAction, coupsPossibles, sequenceGagnante, monTourSuivant } from '../game/src/combat/ai.js';
 // Monter une position, c'est jouer des cartes — et une action passe par joue(), ici
 // comme ailleurs (cf. le banc du partage). Journal eteint, c'est un appel de plus.
 import { joue } from '../game/src/combat/journal.js';
@@ -616,9 +616,20 @@ for (const niveau of ['lecture', 'recherche']) {
   ok ? pass++ : fail++;
 }
 nine.cost = coutNeuf;
+// S4b : installer avant d'exécuter — à la fin de son tour, le bot doit avoir une CHAÎNE GAGNANTE PRÊTE pour le suivant (moteur posé,
+// Neuf Vies et Griffures gardés ou créés pour la suite), sans rien gâcher une carte à la fois. Pas de nom de carte dans la mesure :
+// on passe à son tour suivant sur une copie et on cherche une suite gagnante.
+for (const niveau of ['lecture', 'recherche']) {
+  const B = sitDe('S4b')(); const coups = tourEntier(B, niveau);
+  const C = cloneBattle(B); monTourSuivant(C, 'p');
+  const prete = !B.over && !!sequenceGagnante(C, 'p', { compte: false });
+  console.log((prete ? '  ok   ' : '  FAIL ') + `S4b ${niveau} : une chaîne gagnante est prête pour le tour suivant (${coups.join(' > ') || 'rien'})`);
+  prete ? pass++ : fail++;
+}
 {
-  const B = sitDe('S4b')(); const coups = tourEntier(B, NIVEAU);
-  console.log('  info S4b installer avant d’exécuter : joue ' + (coups.join(' > ') || '(rien)') + ' (attendu : le moteur d’abord ; à valider, non compté)');
+  const B = sitDe('S4b')(); const coups = tourEntier(B, 'normal');
+  const C = cloneBattle(B); monTourSuivant(C, 'p');
+  console.log('  info S4b normal (référence, non compté) : ' + (coups.join(' > ') || 'rien') + ' ; chaîne prête au tour suivant : ' + (!B.over && !!sequenceGagnante(C, 'p', { compte: false })));
 }
 
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);

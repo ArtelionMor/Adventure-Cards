@@ -471,7 +471,7 @@ Griffure en main, deux Toutou prêts, un Têtard Glouton 1/1 en face qui ne gên
 
 ## S4a / S4b — Combo (Félix)
 **S4a (exécuter) :** Mage de l'étincelle + Ombre Feutrée en jeu, Neuf Vies et deux Griffures en main, 6 mana, 8 tours joués, adversaire à 20 PV : le tour doit finir par sa mort. Le test refait la position avec Neuf Vies à 40 de base : plus de mort, **sans toucher au bot** (il lit les cartes). Passe pour tous les niveaux dès que `normal` joue tout ce qu'il peut ; il vaut surtout comme garde-fou de la recherche de séquence (`BALANCE.ai.sequence`).
-**S4b (installer, à valider) :** la même main **sans** moteur sur le plateau (le Mage et l'Ombre Feutrée en main) : attendu, poser le moteur d'abord et ne pas dépenser le carburant. **Échoue à tous les niveaux** (il joue Neuf Vies puis passe) : c'est le point « retenir », en attente de l'accord sur la note de retenue.
+**S4b (installer avant d'exécuter) :** la même main **sans** moteur sur le plateau (le Mage et l'Ombre Feutrée en main) : le bot pose le moteur d'abord et ne dépense ni Neuf Vies ni les Griffures une par une. Passe pour `lecture` et `recherche` depuis la retenue (phase 3, point 2) ; `normal` joue encore Neuf Vies puis passe.
 
 ## S5 / S5b — Médor : Retrouvailles
 Retrouvailles payable, plateaux vides. **S5 :** un seul allié dans la défausse → la **retenir**. **S5b :** cinq alliés → la jouer. Le bot de référence la joue dans les deux cas.

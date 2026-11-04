@@ -9,7 +9,7 @@
 // part meme si l'unite meurt ; une aura compte pour ce qu'elle multiplie ; un
 // declencheur de tour compte plusieurs fois parce qu'il se repete.
 import { BALANCE } from '../config/balance.js';
-import { canPlay, legalTargets, attackableTargets, needsTarget, needsChoice, cloneBattle, playCard, attack, endTurn, placeEnMain, carteDuCoup, nbFatigue, pileDeFatigue } from './engine.js';
+import { canPlay, legalTargets, attackableTargets, needsTarget, needsChoice, cloneBattle, playCard, attack, endTurn, placeEnMain, carteDuCoup, nbFatigue, pileDeFatigue, refresh } from './engine.js';
 import { cibleCompte, branchesDe, choixDeLaCarte, TRIGGERS, TARGETS, STATICS, ZONES, EVENTS, KEYWORDS, EFFETS_QUI_CHAINENT, hasKey, keyId, keyFields, counterValue, amountValue, cardCost, cardMatches, staticFields, targetId, targetArg, partageType, estDuType, eachSubEffect, listeEffets, typeVariable } from '../config/mechanics.js';
 import { cardById, switchOf } from '../config/npcs.js';
 
@@ -936,17 +936,32 @@ function coupsDeSequence(C, k) {
  * Le bot ne triche pas : il rejoue SES coups ; ce qu'il tire au hasard (pioche, cibles tirees) est tire sur la copie, et il
  * recommence la recherche a chaque decision.
  */
-export function sequenceGagnante(B, k) {
+/**
+ * LA PORTE de la recherche de sequence (peu chere, sans nom de carte) : assez de sorts jouables (`sequence.minSorts`), OU un sort
+ * jouable qui FABRIQUE des cartes (l'effet `cree`) — un seul sort suffit quand il remplit la main de sorts (le combo a un
+ * moteur de cartes, pas deux sorts en main).
+ */
+function porteOuverte(B, k, S) {
+  const sorts = B[k].hand.filter(c => c.type === 'spell' && canPlay(B, k, c));
+  if (sorts.length >= S.minSorts) return true;
+  return sorts.some(c => {
+    let cree = false;
+    for (const e of c.play || []) { if (e.op === 'cree') cree = true; eachSubEffect([e], y => { if (y.op === 'cree') cree = true; }); }
+    return cree;
+  });
+}
+
+export function sequenceGagnante(B, k, { budget = null, compte = true } = {}) {
   const S = BALANCE.ai.sequence;
   if (!S.actif || B.over) return null;
-  const sorts = B[k].hand.filter(c => c.type === 'spell' && canPlay(B, k, c)).length;
-  if (sorts < S.minSorts) return null;
-  compteursSequence.recherches++;
+  if (!porteOuverte(B, k, S)) return null;
+  const maxNoeuds = budget || S.noeuds;
+  if (compte) compteursSequence.recherches++;
   let noeuds = 0;
   const cherche = (C, prof) => {
     if (prof >= S.profondeur) return null;
     for (const a of coupsDeSequence(C, k)) {
-      if (noeuds >= S.noeuds) return null;
+      if (noeuds >= maxNoeuds) return null;
       noeuds++;
       const D = cloneBattle(C);
       const ok = a.type === 'play' ? playCard(D, k, a.index, a.target, a.choix, a.zone) : attack(D, k, a.uid, a.target);
@@ -958,10 +973,60 @@ export function sequenceGagnante(B, k) {
     return null;
   };
   const suite = cherche(B, 0);
-  compteursSequence.noeuds += noeuds;
+  if (compte) compteursSequence.noeuds += noeuds;
   if (!suite) return null;
-  compteursSequence.trouvees++;
+  if (compte) compteursSequence.trouvees++;
   return suite[0];
+}
+
+/**
+ * MON TOUR SUIVANT, sur une copie, sans le jouer vraiment : ce que fait `commenceTour` du moteur pour moi, moins ce que je ne
+ * peux pas savoir — ni pioche (je ne connais pas l'ordre de ma pioche), ni tour de l'adversaire (sa main est cachee). Le mana
+ * monte d'un cran, mes unites sont pretes, mon compteur de tours avance (un cout « moins un par tour joue » baisse), les
+ * compteurs du tour repartent a zero. Le debut de tour (declencheurs) et la fin du tour present ne sont pas joues.
+ */
+export function monTourSuivant(C, k) {
+  const s = C[k];
+  s.turns++;
+  s.maxMana = Math.min(s.maxMana + 1, s.manaCap);
+  s.mana = s.maxMana + (s.nextMana || 0);
+  s.nextMana = 0;
+  s.tempMana = 0; s.spellsTurn = 0; s.recycle = 0; s.fatigue = 0; s.jouees = 0; s.attaques = 0; s.piochees = 0; s.plafondPioche = false;
+  for (const u of s.board) { u.canAttack = true; u.attackedThisTurn = false; }
+  refresh(C);
+}
+
+/**
+ * LA RETENUE ET L'INSTALLATION DU COMBO (note du 4 nov. 2026, docs/BOT-MESURES.md). Pour chaque carte jouable, deux copies passees
+ * a mon tour suivant : A (je la joue maintenant) et B (je ne joue rien). Une suite gagnante au tour suivant dans B et pas dans A :
+ * la carte est RETENUE (la dépenser détruit le combo). Dans A et pas dans B : elle est a INSTALLER (la poser crée le combo).
+ * Rend { retenus: Set de cles, installer: { x, cible } ou null }, ou null si rien a dire. On ne retient que si l'adversaire n'est
+ * pas sur le point de gagner (`sequence.patience`).
+ */
+export function attenteDuCombo(B, k, playable) {
+  const S = BALANCE.ai.sequence;
+  if (!S.attente) return null;
+  if (!porteOuverte(B, k, S)) return null;
+  const pos = lectureDePosition(B, k);
+  if (pos.saHorloge <= S.patience) return null;
+  const budget = { budget: S.noeudsAttente, compte: false };
+  const prochain = C => { monTourSuivant(C, k); return !!sequenceGagnante(C, k, budget); };
+  const base = cloneBattle(B);
+  const bOk = prochain(base);
+  const cle = x => `${x.zone}|${x.c.name}`;
+  const vus = new Set(), retenus = new Set();
+  let installer = null;
+  for (const x of playable) {
+    if (vus.has(cle(x))) continue;
+    vus.add(cle(x));
+    const cible = pickTarget(B, k, x.c);
+    const A = cloneBattle(B);
+    if (!playCard(A, k, x.i, cible, undefined, x.zone) || A.over || A.turn !== k) continue;
+    const aOk = prochain(A);
+    if (bOk && !aOk) retenus.add(cle(x));
+    else if (!bOk && aOk && !installer) installer = { x, cible };
+  }
+  return { retenus, installer, bOk };
 }
 
 /** Combien de tours gagne MON horloge si cette unite adverse disparait (0 : elle ne gene pas mon plan). */
@@ -1165,9 +1230,12 @@ function noteDePosition(C, k) {
  * (`lecture`), jusqu'a ce qu'il veuille passer — la position obtenue est notee AVANT de passer (on ne joue pas la
  * pioche ni le tour de l'adversaire). Le meilleur coup l'emporte ; a egalite, le moins cher.
  */
-function coupRecherche(B, k, jeu) {
+function coupRecherche(B, k, jeu, retenus = null) {
   const R = BALANCE.ai.recherche;
-  const coups = coupsPossibles(B, k).slice(0, R.maxCoups);
+  // Les cartes RETENUES (le combo du tour suivant) ne sont pas essayees : ni jouees, ni comptees dans les candidats.
+  const nomDuCoup = a => { const c = a.type === 'play' ? carteDuCoup(B, k, a) : null; return c ? `${a.zone || 'main'}|${c.name}` : null; };
+  const coups = coupsPossibles(B, k).filter(a => !(retenus && retenus.size && retenus.has(nomDuCoup(a)))).slice(0, R.maxCoups);
+  if (!coups.length) return { a: { type: 'end' }, evalues: [{ coup: { type: 'end' } }] };
   if (coups.length === 1) return { a: coups[0], evalues: [{ coup: coups[0] }] };
   const bas = { ...jeu, recherche: false, sequence: false };
   const evalues = coups.map(coup => ({ coup, note: 0 }));
@@ -1374,7 +1442,16 @@ export function botAction(B, k, opts) {
     try {
       const s = jeu.sequence ? sequenceGagnante(B, k) : null;
       if (s) { noteLaDecision(B, k, s, null); return s; }
-      const { a, evalues } = coupRecherche(B, k, jeu);
+      let att = null;
+      if (jeu.sequence) {
+        const jouables = [
+          ...B[k].hand.map((c, i) => ({ c, i, zone: 'main' })).filter(x => canPlay(B, k, x.c)),
+          ...B[k].discard.map((c, i) => ({ c, i, zone: 'defausse' })).filter(x => canPlay(B, k, x.c, 'defausse'))
+        ];
+        att = attenteDuCombo(B, k, jouables);
+        if (att && att.installer) { const a = jouer(att.installer.x, att.installer.cible); noteLaDecision(B, k, a, null); return a; }
+      }
+      const { a, evalues } = coupRecherche(B, k, jeu, att && att.retenus);
       noteLaDecision(B, k, a, evalues);
       return a;
     } finally { positionCourante = null; }
@@ -1455,6 +1532,12 @@ function decide(B, k, jeu) {
   if (jeu.sequence) {
     const s = sequenceGagnante(B, k);
     if (s) return s;
+    // 1 ter. pas de victoire ce tour : retenir ce qui détruirait le combo du tour suivant, installer ce qui le crée.
+    const att = attenteDuCombo(B, k, playable);
+    if (att) {
+      if (att.installer) return jouer(att.installer.x, att.installer.cible);
+      if (att.retenus.size) playable = playable.filter(x => !att.retenus.has(`${x.zone}|${x.c.name}`));
+    }
   }
 
   // --- coup au hasard occasionnel ------------------------------------------
