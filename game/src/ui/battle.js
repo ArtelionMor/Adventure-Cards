@@ -1,7 +1,7 @@
 // Ecran de combat. Le mode auto est l'etat par defaut : le jeu est idle d'abord,
 // le mode manuel est une reprise en main volontaire (GDD).
 import { BALANCE } from '../config/balance.js';
-import { CHAR_BY_ID, CHARACTERS, characterDeck, resolveCard, pvDeLEquipe } from '../config/characters.js';
+import { CHAR_BY_ID, CHARACTERS, characterDeck, resolveCard, pvDeLEquipe, avecPvDeNiveau } from '../config/characters.js';
 import { ENCOUNTERS } from '../config/world.js';
 import { save, team, gain, persist, gagneXp, noteCombatArene, etatArene, signale } from '../state.js';
 import { noteVictoireBoutique, noteCombatBoutique, donneBoosterPremium } from '../boutique/partie.js';
@@ -130,7 +130,7 @@ export function buildPlayerSide() {
   return {
     name: chars.map(c => c.name).join(' & '),
     sprite: chars[0].sprite,
-    hp: pvDeLEquipe(chars) + m.hp,
+    hp: pvDeLEquipe(ids.map(id => avecPvDeNiveau(CHAR_BY_ID[id], save.chars[id].level))) + m.hp,
     mana: Math.max(...chars.map(c => c.stats.mana)) + m.mana,
     hand: Math.max(...chars.map(c => c.stats.hand)) + m.hand,
     startArmor: m.armor,
@@ -146,7 +146,7 @@ function buildDefiSide(defi) {
     name: defi.nom,
     // Dans le cercle de l'adversaire : le VISAGE du client qui te defie (pas le portrait de l'un de ses heros).
     sprite: defi.tete ? `Graphical Assets/Clients/Clients Thumbnails/Thumbnail ${defi.nom}.png` : chars[0].sprite,
-    hp: pvDeLEquipe(chars),
+    hp: pvDeLEquipe(defi.heros.map(h => avecPvDeNiveau(CHAR_BY_ID[h.id], h.niveau))),
     mana: Math.max(...chars.map(c => c.stats.mana)),
     hand: Math.max(...chars.map(c => c.stats.hand)),
     startArmor: 0,

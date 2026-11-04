@@ -123,7 +123,11 @@ export async function apercu() {
   const jeu = etatDuJeu();
   const plan = [
     ...planifie(jeu.racine, lue.onglets.animations || []).map(({ objet, ...p }) => ({ onglet: 'animations', ...p })),
-    ...planifieHeros(jeu.donnees, lue.onglets.heroes || [], jeu.sprites).map(({ cible, chemin, ...p }) => ({ onglet: 'heroes', ...p })),
+    // `baisse` : la case de la feuille fait PERDRE des PV au heros par rapport au builder (le piege du 4 nov. 2026 :
+    // 18 cases `PV_Max: 20` ecrasaient des PV de 24 a 32 ; l'equipe jouait a 20 PV au lieu de 44).
+    ...planifieHeros(jeu.donnees, lue.onglets.heroes || [], jeu.sprites).map(({ cible, chemin, ...p }) => ({
+      onglet: 'heroes', ...p, baisse: p.etat === 'change' && /\.(PV_Max)$/.test(p.id) && typeof p.avant === 'number' && p.apres < p.avant
+    })),
     ...planifieRencontres(jeu.noeuds, lue.onglets.encounters || []).map(({ points, ...p }) => ({ onglet: 'encounters', ...p })),
     // Le tutoriel : seules les lignes invalides sont dites (elles sont ecartees, le reste remplace la valeur du code).
     ...verifieQuetes(lue.onglets.quests || [], { heros: new Set(jeu.donnees.characters.map(c => c.id)) })

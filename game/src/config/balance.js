@@ -66,13 +66,26 @@ export const BALANCE = {
   // mana bien depense (sac a dos sur la main), meilleure attaque du plateau entier,
   // retraits gardes pour ce qui en vaut la peine. L'eteindre rend le bot naif.
   //   Un combat peut demander un niveau precis : createBattle(p, e, { ia: 'dur' }).
+  //
+  // MISPLAY A 0 PARTOUT (decision du 4 nov. 2026, docs/BOT-CONTEXTE.md §1) : mesure CONSERVATOIRE, pas un abandon.
+  // Le mecanisme reste dans ai.js (`decide()`, tirage `Math.random() < misplay`) ; on remettra les valeurs d'origine
+  // (naif 0.25, simple 0.12, normal 0.08, dur 0.03) si et seulement si le bot est juge trop fort. Effet de bord utile :
+  // a etat egal le bot est deterministe, donc reproductible en test.
   ai: {
     defaut: 'normal',
+    // LE BANC DE FORCE (scripts/bench-bot.mjs) : les trios de reference (des trios, jamais de solo : cf. CLAUDE.md racine),
+    // le niveau des cartes, et les parties par paire de decks et par sens (le banc joue chaque paire dans les deux
+    // sens : 2 x parties). Un trio par archetype dominant, plus des melanges.
+    bench: {
+      trios: [['dog', 'crow', 'frog'], ['cat', 'owl', 'dog'], ['frog', 'crow', 'cat'], ['owl', 'cat', 'crow'], ['dog', 'frog', 'owl'], ['cat', 'crow', 'cameleon']],
+      niveau: 10,
+      parties: 100
+    },
     niveaux: {
-      naif: { misplay: 0.25, malin: false },
-      simple: { misplay: 0.12, malin: false },   // le bot d'origine du GDD
-      normal: { misplay: 0.08, malin: true },
-      dur: { misplay: 0.03, malin: true },
+      naif: { misplay: 0, malin: false },
+      simple: { misplay: 0, malin: false },   // le bot d'origine du GDD
+      normal: { misplay: 0, malin: true },
+      dur: { misplay: 0, malin: true },
       // Le seul qui CHERCHE au lieu de suivre des regles : pour chaque coup possible
       // il finit la partie `rollouts` fois et garde celui qui gagne le plus souvent.
       // Environ 50 ms par decision : confortable en jeu, trop lent pour une grosse
@@ -306,6 +319,11 @@ export const BALANCE = {
   heros: {
     // Le POWER remplace le niveau comme chiffre visible : 10 x la somme des niveaux des heros possedes (decision du 3 nov.).
     power: { parNiveau: 10 },
+    // Les LIGNES D'AMELIORATION du joueur (onglet `progress_profile` de la feuille, un profil par archetype du heros :
+    // progress_profile_aggro / _control / _combo, `_base` si l'archetype n'en a pas). Ce que vaut UN point de `value` :
+    // `health_up` = `pvParHealthUp` PV en plus pour le heros (il entre dans `pvDeLEquipe` par le surplus au-dessus de
+    // `combat.pvBase`). Les autres lignes (mana, armure, main de depart) ne sont PAS branchees (decision a prendre).
+    ameliorations: { pvParHealthUp: 1 },
     // Le NIVEAU DE REFERENCE : le niveau du `rang`-ieme meilleur heros (3 = celui d'un trio). Un heros sous ce niveau est « en retard ».
     reference: { rang: 3 },
     // L'amelioration EN LOT se debloque quand la ligne de combats a avance de `apresVictoires` adversaires (le bouton flottant du Deck).

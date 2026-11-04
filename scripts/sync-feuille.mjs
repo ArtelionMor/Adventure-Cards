@@ -25,6 +25,13 @@ function ecrit(a) {
     console.log(`\n« ${o} » : ${l.length} valeur(s), ${ch} change(nt), ${l.filter(p => p.etat === 'identique').length} identique(s)`);
   }
   for (const p of change) console.log(`  ~ ${p.id.padEnd(20)} ${JSON.stringify(p.avant)} -> ${JSON.stringify(p.apres)}${p.nom ? '   (' + p.nom + ')' : ''}`);
+  const baisses = change.filter(p => p.baisse);
+  if (baisses.length) {
+    console.log(`
+⚠ ATTENTION : ${baisses.length} case(s) de la feuille BAISSENT les PV d'un heros par rapport au Card Builder :`);
+    for (const p of baisses) console.log(`    ${p.id.padEnd(20)} builder ${p.avant} -> feuille ${p.apres}  (${p.avant - p.apres} PV en moins)`);
+    console.log('  Videz ces cases (le builder garde la main) ou mettez-y les vraies valeurs.');
+  }
   for (const p of invalides) console.log(`  ! ${p.id.padEnd(20)} IGNOREE : ${p.raison} (valeur lue : ${JSON.stringify(p.apres)})`);
   for (const p of inconnus) console.log(`  ? ${p.id.padEnd(20)} IGNOREE : ${p.raison}`);
   for (const id of a.retires) console.log(`  - ${id.padEnd(20)} n'est plus dans la feuille : retombe sur la valeur de balance.js (ou du builder)`);

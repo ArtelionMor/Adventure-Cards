@@ -2,7 +2,7 @@
 // ameliorations : celui que compte le Power, pas un palier de carte) contre un adversaire de la ligne a son niveau d'arene. Le trio
 // se monte comme en jeu (`characterDeck`, cartes de base), la partie se joue comme `taches-courbe.mjs` : le joueur commence, le bot
 // joue son niveau, l'adversaire le sien. Jouable dans un worker de `scripts/lib/pool.mjs` ; le resultat voyage en JSON.
-import { CHAR_BY_ID, characterDeck, pvDeLEquipe } from '../../game/src/config/characters.js';
+import { CHAR_BY_ID, characterDeck, pvDeLEquipe, avecPvDeNiveau } from '../../game/src/config/characters.js';
 import { ENCOUNTERS } from '../../game/src/config/world.js';
 import { coteEnnemi } from '../../game/src/config/ennemis.js';
 import { createBattle } from '../../game/src/combat/engine.js';
@@ -15,7 +15,7 @@ function cotePuissance(equipe, niveau) {
   return {
     name: chars.map(c => c.name).join('&'),
     sprite: chars[0].sprite,
-    hp: pvDeLEquipe(chars),
+    hp: pvDeLEquipe(chars.map(c => avecPvDeNiveau(c, niveau))),
     mana: Math.max(...chars.map(c => c.stats.mana)),
     hand: Math.max(...chars.map(c => c.stats.hand)),
     deck: equipe.flatMap(id => characterDeck(id, save))

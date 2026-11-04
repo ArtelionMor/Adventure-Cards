@@ -192,6 +192,34 @@ export function niveauDePalier(heros, niveau) {
 /** Le niveau (nouveau) d'un heros qui avait l'ancien niveau `L` : toutes les etapes de palier <= L faites. */
 export const niveauDepuisAncien = (heros, L) => 1 + etapesDe(heros).filter(e => e.lvl <= L).length;
 
+// ------------------------------------------------------------------ les lignes d'amelioration du joueur
+// Onglet `progress_profile` de la feuille : { id, level, upgrade, value }, un profil par archetype du heros
+// (`progress_profile_aggro` / `_control` / `_combo`, `_base` en repli). Un heros de niveau N a recu toutes les lignes
+// dont `level` <= N (comme un ennemi, config/ennemis.js `cumulJusqua`). Seul `health_up` est branche pour l'instant.
+
+/** Le profil de progression d'un heros : celui de son archetype s'il a des lignes dans la feuille, `base` sinon. */
+export function profilDeHeros(heros) {
+  const lignes = FEUILLE.progress_profile || [];
+  const propre = `progress_profile_${String(heros.archetype || '').toLowerCase()}`;
+  const id = lignes.some(l => l.id === propre) ? propre : 'progress_profile_base';
+  return lignes.filter(l => l.id === id).map(l => ({ level: Number(l.level), upgrade: String(l.upgrade), value: Number(l.value) }))
+    .filter(l => Number.isFinite(l.level) && Number.isFinite(l.value));
+}
+
+/** Les points cumules de chaque amelioration d'un heros de niveau `niveau` (en unites de la feuille, pas encore en PV). */
+export function ameliorationsDuHeros(heros, niveau) {
+  const a = {};
+  for (const l of profilDeHeros(heros)) if (l.level <= niveau) a[l.upgrade] = (a[l.upgrade] || 0) + l.value;
+  return a;
+}
+
+/** Les PV d'un heros de niveau `niveau` : ceux du builder (ou de la feuille) + ses `health_up`. */
+export const pvDuHeros = (heros, niveau) =>
+  heros.stats.hp + (ameliorationsDuHeros(heros, niveau).health_up || 0) * BALANCE.heros.ameliorations.pvParHealthUp;
+
+/** Le heros tel qu'il entre en combat a ce niveau (ses PV ameliores) : a donner a `pvDeLEquipe`. */
+export const avecPvDeNiveau = (heros, niveau) => ({ ...heros, stats: { ...heros.stats, hp: pvDuHeros(heros, niveau) } });
+
 /** Les PV d'une equipe de heros : la base (BALANCE.combat.pvBase) + le surplus de chacun au-dessus de cette base. */
 export const pvDeLEquipe = chars => BALANCE.combat.pvBase + chars.reduce((a, c) => a + Math.max(0, c.stats.hp - BALANCE.combat.pvBase), 0);
 

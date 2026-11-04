@@ -13,7 +13,7 @@
 // Toutes les fonctions acceptent des DONNEES en parametre (`data`) : la page
 // d'equilibrage travaille sur le brouillon du builder, pas sur le fichier du jeu.
 import { CHARACTER_DATA } from '../../data/characters.data.js';
-import { resolveCard, pvDeLEquipe } from '../config/characters.js';
+import { resolveCard, pvDeLEquipe, avecPvDeNiveau, niveauDepuisAncien } from '../config/characters.js';
 import { npcSide } from '../config/npcs.js';
 import { createBattle } from '../combat/engine.js';
 import { botAction } from '../combat/ai.js';
@@ -46,7 +46,7 @@ export function campPerso(ids, level, cote = 'cards', data = CHARACTER_DATA) {
   const cartes = chars.flatMap(ch => (ch[cote] || ch.cards || []).filter(Boolean)
     .map(c => ({ ...resolveCard(c, level), sprite: c.sprite || ch.sprite })));
   return campDeCartes(chars.map(c => c.name).join('&'), {
-    hp: pvDeLEquipe(chars),
+    hp: pvDeLEquipe(chars.map(c => avecPvDeNiveau(c, niveauDepuisAncien(c, level)))),
     mana: Math.max(...chars.map(c => c.stats.mana)),
     hand: Math.max(...chars.map(c => c.stats.hand))
   }, cartes, chars[0].sprite);
@@ -79,7 +79,7 @@ export function campMelange(ids, level, data = CHARACTER_DATA) {
       return pris;
     });
     return campDeCartes(chars.map(c => c.name).join('&'), {
-      hp: pvDeLEquipe(chars),
+      hp: pvDeLEquipe(chars.map(c => avecPvDeNiveau(c, niveauDepuisAncien(c, level)))),
       mana: Math.max(...chars.map(c => c.stats.mana)),
       hand: Math.max(...chars.map(c => c.stats.hand))
     }, cartes, chars[0].sprite);
