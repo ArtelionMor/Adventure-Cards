@@ -81,7 +81,38 @@ export const BALANCE = {
       niveau: 10,
       parties: 100
     },
+    // LA LECTURE DE POSITION (mission bot, docs/BOT-CONTEXTE.md §3.2-3.3) : le bot compte, pour chaque camp, en combien de
+    // tours il tuerait le heros d'en face avec ce qui se voit (son HORLOGE), en deduit son ROLE (le plus rapide pousse :
+    // `beatdown` ; l'autre gagne du temps : `controle`) et regle ses coefficients par la POSTURE. Allumee par le niveau
+    // `lecture` (une copie de `normal` + `lecture: true`) ; `normal` et `dur` restent les references de mesure.
+    // Le bot ne lit JAMAIS la main ni la pioche adverses : l'horloge adverse vient de son seul plateau.
+    lecture: {
+      actif: true,            // interrupteur general : faux = `lecture` joue exactement comme `normal`
+      stabilise: 5,           // l'adversaire est « sous controle » quand son horloge est d'au moins ce nombre de tours
+      horlogeMax: 99,         // l'horloge d'un camp qui n'a aucun degat : « jamais »
+      // Un retrait ne vaut le coup, pour un beatdown, que s'il RETARDE son horloge : au moins ce nombre de tours gagnes
+      // en l'otant (une Provocation qui bloque, typiquement). Une unite qui ne gene pas son plan n'est pas une menace.
+      gainMinTours: 0.5,
+      // Les cartes « de timing » (reanimer, renvoyer en main depuis sa defausse) valent ce que la defausse contient :
+      // on les RETIENT tant que la defausse n'a pas rempli `remplissage` de ce que la carte peut rendre, sauf si on est
+      // sous pression (horloge adverse <= `pression` tours ET aucun corps chez soi : il faut un plateau, vite).
+      timing: { remplissage: 0.6, pression: 3 }
+    },
+    // Les POSTURES : les coefficients que la lecture applique. Valeurs de depart RAISONNEES, a mesurer (bench-bot) :
+    //  - `visage` : poids d'un coup au heros face a un echange (1 = le bot d'avant). Un beatdown pousse ; un controle
+    //    garde 1 tant que l'adversaire n'est pas sous controle (il prend ses echanges), puis tout part au visage
+    //    (« sacrifier ce qui ne sert plus », le tour de resolution est atteint).
+    //  - `echange` : un beatdown ne gagne RIEN a tuer une unite qui ne retarde pas son horloge (0 = rien) ; un controle
+    //    valorise l'echange comme avant (1). MESURE (bench-bot, 50 parties/sens) : a 0 le beatdown perd (47,4 % contre `normal`) — tuer une
+    //    unite qui ne gene pas reste utile (elle frappera, elle porte des effets) ; a 0,5 le bot est a l'equilibre ou mieux.
+    //  - `prixPv` : ce que vaut un PV pour les cartes qui coutent des PV a celui qui les joue (multiplie leur cout).
+    //    Un beatdown les convertit (bas) ; un controle les garde avant de s'etre stabilise (haut), les depense apres.
+    postures: {
+      beatdown: { visage: 1.6, echange: 0.5, prixPv: 0.5 },
+      controle: { visage: { instable: 1, stable: 1.8 }, echange: 1, prixPv: { instable: 1.6, stable: 0.4 } }
+    },
     niveaux: {
+      lecture: { misplay: 0, malin: true, lecture: true },   // `normal` + la lecture de position (mission bot)
       naif: { misplay: 0, malin: false },
       simple: { misplay: 0, malin: false },   // le bot d'origine du GDD
       normal: { misplay: 0, malin: true },

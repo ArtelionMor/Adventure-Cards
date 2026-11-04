@@ -285,6 +285,8 @@ function effectValue(e, ctx) {
       // Se blesser soi-meme ou blesser un allie est un cout, pas un gain : le bot
       // doit prendre une carte pareille pour ce qu'elle est.
       if (['self', 'randomAllyUnit', 'randomAllyAny'].includes(e.t)) return -v;
+      // LECTURE : ses propres PV sont une ressource dont le prix depend du role (postures.prixPv).
+      if (e.t === 'ownHero' && positionCourante) return -v * posture('prixPv');
       // « Les autres du meme type que Lui » : on ne sait pas encore qui sera touche,
       // ca depend de ce que l'effet d'avant a vise. Au mieux le reste du plateau, et
       // rien du tout quand il n'y a personne d'autre.
@@ -841,6 +843,98 @@ function meilleurPaquet(B, k, playable) {
   return table[mana].choix;
 }
 
+// ------------------------------------------------------------- lecture de position
+// docs/BOT-CONTEXTE.md §3.2 : AUCUN identifiant de carte ici, que des chiffres lus sur le plateau et les cartes en main.
+// Fonctions PURES (elles ne modifient pas B) : reutilisables comme fonction d'evaluation par une recherche.
+
+/**
+ * Les degats par tour que `s` peut porter au heros de `t`, et ce qu'il peut y jeter une seule fois (sort de degats
+ * direct). Le plateau compte en entier (« prete et a venir ») ; pour LE CAMP QUI CALCULE (`voit`), on y ajoute les
+ * allies de sa main payables avec son mana (les moins chers d'abord) et ses sorts de degats au heros. Le camp d'en
+ * face n'est jamais lu que sur son plateau : sa main est cachee. Chaque Provocation d'en face absorbe l'attaquant le
+ * plus fort. `sans` : une unite du camp `t` a faire comme si elle n'etait plus la.
+ */
+function cadence(B, s, t, voit, sans = null) {
+  const moi = B[s], lui = B[t];
+  let atks = moi.board.map(u => u.atk || 0);
+  let unique = 0;
+  if (voit) {
+    let mana = Math.max(0, moi.mana);
+    const main = moi.hand.filter(c => canPlay(B, s, c))
+      .map(c => ({ c, cout: Math.max(0, cardCost(c, B, s, 'main')) })).sort((a, b) => a.cout - b.cout);
+    for (const x of main) {
+      if (x.cout > mana) continue;
+      mana -= x.cout;
+      if (x.c.type === 'ally') atks.push(x.c.atk || 0); else unique += directDamage(B, s, x.c);
+    }
+  }
+  const bloqueurs = lui.board.filter(u => u.uid !== sans && hasKey(u.keys, 'Taunt')).length;
+  atks = atks.sort((a, b) => b - a).slice(bloqueurs);
+  return { parTour: atks.reduce((a, x) => a + x, 0), unique };
+}
+
+/** Combien de tours (fractionnaire) pour que `s` amene le heros de `t` a 0 ; `horlogeMax` si jamais. */
+function horloge(B, s, t, voit, sans = null) {
+  const max = BALANCE.ai.lecture.horlogeMax;
+  const { parTour, unique } = cadence(B, s, t, voit, sans);
+  const reste = B[t].hp + (B[t].armor || 0) - unique;
+  if (reste <= 0) return 0;
+  return parTour > 0 ? Math.min(max, reste / parTour) : max;
+}
+
+/**
+ * LA LECTURE DE POSITION : { monHorloge, saHorloge, role, stabilise } du point de vue de `k`.
+ * `role` : 'beatdown' (j'ai une horloge et je suis au moins aussi rapide) ou 'controle' (je gagne du temps).
+ * `stabilise` : l'adversaire est assez lent pour que je puisse arreter de me proteger.
+ */
+export function lectureDePosition(B, k) {
+  const L = BALANCE.ai.lecture;
+  const monHorloge = horloge(B, k, foe(k), true);
+  const saHorloge = horloge(B, foe(k), k, false);
+  const role = monHorloge < L.horlogeMax && monHorloge <= saHorloge ? 'beatdown' : 'controle';
+  return { monHorloge, saHorloge, role, stabilise: saHorloge >= L.stabilise };
+}
+
+/** Combien de tours gagne MON horloge si cette unite adverse disparait (0 : elle ne gene pas mon plan). */
+function retardeMonHorloge(B, k, u) {
+  return Math.max(0, horloge(B, k, foe(k), true) - horloge(B, k, foe(k), true, u.uid));
+}
+
+/** La position lue par le coup en cours (posee par `botAction` pour le niveau `lecture`, nulle sinon). */
+let positionCourante = null;
+
+/** Le coefficient de posture `nom` dans la position courante (1 = le bot d'avant, sans lecture). */
+function posture(nom) {
+  const pos = positionCourante;
+  if (!pos) return 1;
+  const v = BALANCE.ai.postures[pos.role][nom];
+  return typeof v === 'object' ? (pos.stabilise ? v.stable : v.instable) : v;
+}
+
+/**
+ * Une carte « de timing » doit-elle attendre ? Celles qui ramenent des cartes de SA defausse valent ce que celle-ci
+ * contient : la jouer pour un seul allie, c'est perdre la carte. Hors pression, on la retient tant que la defausse n'a
+ * pas rempli la part de ce que la carte peut rendre (`lecture.timing.remplissage`).
+ */
+function faitAttendre(B, k, card, pos) {
+  const T = BALANCE.ai.lecture.timing;
+  let capacite = 0;
+  const voit = e => {
+    if (['pose_sur_le_plateau', 'renvoie_en_main'].includes(e.op) && e.d_ou === 'defausse' && e.qui !== 'adversaire') {
+      capacite = Math.max(capacite, amountValue(e.n === undefined ? 1 : e.n, B, k, card));
+    }
+  };
+  for (const e of card.play || []) { voit(e); eachSubEffect([e], voit); }
+  if (!capacite) return false;
+  const allies = B[k].discard.filter(c => c.type === 'ally').length;
+  if (allies >= Math.ceil(capacite * T.remplissage)) return false;
+  const pression = pos.saHorloge <= T.pression && B[k].board.length === 0;
+  return !pression;
+}
+
+/** Un sort qui ne fait que des degats ou detruire : un « retrait » (il ne se joue que s'il ote quelque chose). */
+const estUnRetrait = card => (card.play || []).length > 0 && (card.play || []).every(e => ['dmg', 'detruit'].includes(e.op));
+
 /**
  * La meilleure attaque du plateau ENTIER, pas la premiere trouvee : on compare
  * chaque (attaquant, cible) une bonne fois. Tuer une grosse menace sans mourir vaut
@@ -855,7 +949,8 @@ function meilleureAttaque(B, k, ready) {
     for (const t of attackableTargets(B, k, u)) {
       let note;
       if (t.uid === 'hero') {
-        note = u.atk;
+        // LECTURE : un beatdown pousse au visage, un controle stabilise l'y envoie aussi (postures.visage).
+        note = u.atk * posture('visage');
       } else {
         const d = them.board.find(x => x.uid === t.uid);
         if (!d) continue;
@@ -863,7 +958,9 @@ function meilleureAttaque(B, k, ready) {
         const meurt = u.hp <= d.atk;
         // Ce qu'on gagne : la menace enlevee, ou juste des degats sur un gros corps. Une unite que sa Toxine
         // va tuer toute seule ne rapporte rien : on frappe ailleurs.
-        const gain = meurtDuTic(d) ? 0 : tue ? unitThreat(B, k, d) : u.atk * 0.35;
+        let gain = meurtDuTic(d) ? 0 : tue ? unitThreat(B, k, d) : u.atk * 0.35;
+        // LECTURE : tuer une unite qui ne retarde pas MON horloge ne rapporte rien a un beatdown (postures.echange).
+        if (positionCourante && retardeMonHorloge(B, k, d) < BALANCE.ai.lecture.gainMinTours) gain *= posture('echange');
         // Ce qu'on perd : notre unite — moins son rale, qui partira quand meme. Condamnee par sa propre
         // Toxine, elle ne coute plus rien : autant qu'elle serve.
         const perte = meurt && !meurtDuTic(u) ? (u.atk * 1.3 + u.hp * 0.35) - effectsValue(u.death, ctx) * 0.9 : 0;
@@ -1114,6 +1211,8 @@ function noteLaDecision(B, k, a, evalues) {
     // Le combat lui-meme : l'ecouteur peut ainsi ecrire la decision DANS le journal
     // de la partie, a sa place chronologique, juste avant le coup joue.
     b: B,
+    // Le bot dit COMMENT il a lu la position (niveau `lecture`) : horloges, role, stabilise.
+    lecture: positionCourante || undefined,
     tour: B.turnNo, camp: k, nom: B[k].name,
     critere: liste.some(n => n.victoires !== undefined) ? 'victoires' : 'valeur',
     choisi: iChoisi >= 0 ? candidats[iChoisi] : { ...decrisCoup(B, k, a), coup: a },
@@ -1134,9 +1233,13 @@ export function botAction(B, k, opts) {
     noteLaDecision(B, k, a, evalues);
     return a;
   }
-  const a = avecChoix(B, k, decide(B, k, jeu));
-  noteLaDecision(B, k, a, null);
-  return a;
+  // LECTURE DE POSITION (niveau `lecture`) : lue UNE fois, avant de decider ; les fonctions de valeur la consultent.
+  positionCourante = jeu.lecture && BALANCE.ai.lecture.actif && !B.over ? lectureDePosition(B, k) : null;
+  try {
+    const a = avecChoix(B, k, decide(B, k, jeu));
+    noteLaDecision(B, k, a, null);
+    return a;
+  } finally { positionCourante = null; }
 }
 
 /**
@@ -1162,12 +1265,17 @@ function decide(B, k, jeu) {
   const me = B[k], them = B[foe(k)];
   const ready = me.board.filter(u => u.canAttack && u.atk > 0);
   const taunts = them.board.filter(u => hasKey(u.keys, 'Taunt'));
-  const playable = [
+  let playable = [
     ...me.hand.map((c, i) => ({ c, i, zone: 'main' })).filter(x => canPlay(B, k, x.c)),
     // LA REPRISE : un sort de la defausse se joue comme une carte de la main, sans carte a
     // depenser — il n'y a donc aucune raison de le traiter a part.
     ...me.discard.map((c, i) => ({ c, i, zone: 'defausse' })).filter(x => canPlay(B, k, x.c, 'defausse'))
   ];
+  const pos = positionCourante;
+  const L = BALANCE.ai.lecture;
+  const beatdown = !!pos && pos.role === 'beatdown';
+  // LECTURE : une carte « de timing » (reanimation) attend que sa defausse soit assez pleine : elle n'est proposee a aucune etape.
+  if (pos) playable = playable.filter(x => !faitAttendre(B, k, x.c, pos));
 
   // --- 1. victoire immediate -----------------------------------------------
   // Qui peut vraiment toucher le heros : une provocation arrete la plupart des
@@ -1243,11 +1351,13 @@ function decide(B, k, jeu) {
   for (const x of playable) {
     const dmg = (x.c.play || []).filter(e => e.op === 'dmg').reduce((a, e) => a + amountValue(e.v, B, k, null), 0);
     if (!dmg) continue;
-    const kill = them.board.filter(u => u.hp <= dmg)
-      .sort((a, b) => unitThreat(B, k, b) - unitThreat(B, k, a))[0];
+    // LECTURE : un beatdown ne retire que ce qui retarde son horloge (la plus genante d'abord).
+    const retard = u => (beatdown ? retardeMonHorloge(B, k, u) : unitThreat(B, k, u));
+    const kill = them.board.filter(u => u.hp <= dmg && (!beatdown || retard(u) >= L.gainMinTours))
+      .sort((a, b) => retard(b) - retard(a))[0];
     // Un bot malin garde son gros retrait : bruler 6 degats sur un 1/1 est un cadeau.
     // Sans menace qui en vaille la peine, la carte reste en main pour le tour suivant.
-    const vautLeCoup = !jeu.malin || !kill || unitThreat(B, k, kill) >= dmg * 0.8;
+    const vautLeCoup = !jeu.malin || !kill || beatdown || unitThreat(B, k, kill) >= dmg * 0.8;
     if (kill && vautLeCoup) return jouer(x, { side: foe(k), uid: kill.uid });
     if ((x.c.play || []).some(e => e.t === 'allEnemyUnits') && them.board.length >= 2) {
       return jouer(x, null);
@@ -1259,6 +1369,7 @@ function decide(B, k, jeu) {
   for (const x of playable) {
     if (!(x.c.play || []).some(e => e.op === 'detruit')) continue;
     if (!them.board.length || cardValue(B, k, x.c) <= 0) continue;
+    if (beatdown && !them.board.some(u => retardeMonHorloge(B, k, u) >= L.gainMinTours)) continue;
     return jouer(x, pickTarget(B, k, x.c));
   }
   // Attaques. Le bot malin compare TOUTES les paires (attaquant, cible) avant de
@@ -1316,6 +1427,8 @@ function randomAction(B, k, playable, ready) {
   const pool = [];
   for (const x of playable) {
     if (cardValue(B, k, x.c) <= 0) continue;
+    // LECTURE : un retrait ne se joue pas « au hasard » : il a eu sa chance a l'etape 3, et s'il n'ote rien il reste en main.
+    if (positionCourante && estUnRetrait(x.c)) continue;
     pool.push(jouer(x, pickTarget(B, k, x.c)));
   }
   for (const u of ready) {

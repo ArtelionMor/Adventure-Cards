@@ -8,6 +8,7 @@ import { botAction, coupsPossibles } from '../game/src/combat/ai.js';
 // Monter une position, c'est jouer des cartes — et une action passe par joue(), ici
 // comme ailleurs (cf. le banc du partage). Journal eteint, c'est un appel de plus.
 import { joue } from '../game/src/combat/journal.js';
+import { monteSituation, situationParId } from '../game/src/tools/situation.js';
 // La pile de fatigue est une donnee de jeu : les tests de l'appat la remplissent puis la revident.
 import { CHARACTER_DATA } from '../game/data/characters.data.js';
 CHARACTER_DATA.fatigue = [];
@@ -542,6 +543,38 @@ tendance('un Specimen (X = types du Registre) passe devant un petit corps quand 
     return B;
   },
   (B, a) => carteJouee(B, a) === 'Specimen');
+
+// LA LECTURE DE POSITION (mission bot du 4 nov. 2026 ; fiches S1, S2, S5, S6 de docs/SITUATIONS-A-TESTER.md, famille E de
+// game/data/situations.js). Le niveau d'IA testé est `lecture` ; `BOT_NIVEAU=normal node scripts/test-ai.mjs` rejoue ces
+// fiches avec le bot de référence (elles doivent y ÉCHOUER : c'est la preuve que le test voit le défaut).
+console.log('\nLa lecture de position (fiches S1, S2, S5, S6)');
+const NIVEAU = process.env.BOT_NIVEAU || 'lecture';
+const sitDe = id => () => { const m = monteSituation(situationParId(id)); return m.B || m; };
+const coup = (B, a) => {
+  if (!a || a.type === 'end') return 'passe';
+  if (a.type === 'attack') return a.target.uid === 'hero' ? 'visage' : 'echange';
+  const c = B.p.hand[a.index];
+  return c ? c.name : '?';
+};
+const choisit = (id, attendu, nom) => {
+  const N = 20;
+  let ok = 0; const vus = {};
+  for (let i = 0; i < N; i++) {
+    const B = sitDe(id)();
+    const c = coup(B, botAction(B, 'p', NIVEAU));
+    vus[c] = (vus[c] || 0) + 1;
+    if (attendu(c)) ok++;
+  }
+  const reussi = ok / N >= SEUIL;
+  console.log((reussi ? '  ok   ' : '  FAIL ') + nom + `  (${Math.round(100 * ok / N)} % ; vu : ${JSON.stringify(vus)})`);
+  reussi ? pass++ : fail++;
+};
+choisit('S1', c => c === 'visage', 'S1 Aggro : les deux Toutou vont au visage, pas dans un échange avec l’Ombre Feutrée');
+choisit('S2', c => c !== 'Griffure', 'S2 Aggro : garde Griffure pour ce qui retarde son plan');
+choisit('S5', c => c !== 'Retrouvailles', 'S5 Médor : retient Retrouvailles avec un seul allié dans la défausse');
+choisit('S5b', c => c === 'Retrouvailles', 'S5 Médor : joue Retrouvailles avec cinq alliés');
+choisit('S6', c => c !== 'Volée de Corbeaux', 'S6 Corax : retient la Volée face à un seul gros corps');
+choisit('S6b', c => c === 'Volée de Corbeaux', 'S6 Corax : joue la Volée face à trois petits corps');
 
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);

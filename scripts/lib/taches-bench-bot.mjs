@@ -1,12 +1,17 @@
 // UNE TACHE DU BANC DE FORCE DU BOT (scripts/bench-bot.mjs) : un lot de parties entre deux decks, ou le niveau d'IA A
 // joue l'un et le niveau B l'autre. Jouable dans un worker de scripts/lib/pool.mjs ; le resultat est du JSON pur.
+import { BALANCE } from '../../game/src/config/balance.js';
 import { campMelange } from '../../game/src/tools/arene.js';
 import { createBattle } from '../../game/src/combat/engine.js';
 import { botAction } from '../../game/src/combat/ai.js';
 import { joue as joueLeCoup } from '../../game/src/combat/journal.js';
 
 let camps = [];
+/** Fusion profonde (pour l'ablation : BENCH_SURCHARGE='{"lecture":{"timing":{"remplissage":0}}}' change BALANCE.ai le temps d'un essai ; les workers heritent de l'environnement). */
+const fusionne = (cible, src) => { for (const [k, v] of Object.entries(src)) { if (v && typeof v === 'object' && !Array.isArray(v) && cible[k] && typeof cible[k] === 'object') fusionne(cible[k], v); else cible[k] = v; } };
+
 export function prepare({ trios, niveau }) {
+  if (process.env.BENCH_SURCHARGE) fusionne(BALANCE.ai, JSON.parse(process.env.BENCH_SURCHARGE));
   camps = trios.map(ids => campMelange(ids, niveau));
 }
 

@@ -25,7 +25,7 @@
 | Banc | Ce qu'il garde | À lancer quand |
 |---|---|---|
 | `test-triggers.mjs` | **779 tests** du moteur : moments, auras, mécaniques, couture builder → moteur | tout changement de `game/src/combat/` ou du registre |
-| `test-ai.mjs` | 53 : le bot valorise-t-il ces mécaniques | idem |
+| `test-ai.mjs` | 59 (53 + les fiches S1, S2, S5, S6 ; `BOT_NIVEAU=normal` les rejoue avec le bot de référence : 4 y échouent) : le bot valorise-t-il ces mécaniques | idem |
 | `test-evenements.mjs` | ≈ 3 900 : le récit en données ne change pas la partie et est complet | tout changement d'`engine.js` |
 | `test-partage.mjs` | 60 : les outils passent par la file commune ; une action passe par `joue()` | tout nouvel outil ou nouvelle boucle de partie |
 | `test-journal.mjs` | ≈ 3 700 : le journal de décisions est relisible ⚠ **instable** (≈ 1 passage sur 3 échoue sur 2 vérifications aléatoires : un coup sur une carte *fabriquée*, un combat de plus de 400 lignes) | après `journal.js` |

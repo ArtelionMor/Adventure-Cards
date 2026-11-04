@@ -242,6 +242,67 @@ export const SITUATIONS = [
     niveau: 8, tour: 1, qui: 'p',
     p: { heros: ['owl', 'crow'], tours: 1 },
     e: { pnj: 'octo1', mana: 0, tours: 0 }
+  },
+
+  // ---------------------------------------------------------------- famille E
+  // La LECTURE DE POSITION du bot (mission bot du 4 nov. 2026, docs/BOT-CONTEXTE.md §6) : jouer son role.
+  // Ces fiches sont aussi des tests (scripts/test-ai.mjs, section « Lecture de position »). Niveau 1 : les
+  // cartes sont a leurs valeurs imprimees, les chiffres du texte sont ceux du plateau.
+  {
+    id: 'S1', famille: 'E', titre: 'Aggro : visage ou échange ?',
+    question: 'Deux Toutou enragés 2/1 prêts, l’adversaire à 6 PV avec une seule Ombre Feutrée 2/2 (sans Provocation) : les deux au visage font 4 maintenant et le létal arrive au tour suivant ; un Toutou qui échange contre elle meurt avec elle (1 pour 1).',
+    regarde: 'L’Ombre Feutrée ne retarde pas mon plan : elle ne bloque rien (pas de Provocation). Attendu : les attaques vont au HÉROS. Contre-exemple : un Toutou attaque l’Ombre Feutrée — un échange qui coûte une attaque de la course. Le bot actuel prend l’échange.',
+    niveau: 1, tour: 8, qui: 'p',
+    p: { heros: ['dog', 'crow', 'frog'], pv: 20, mana: 3, tours: 6, main: [], plateau: ['dog_bite', 'dog_bite'] },
+    e: { heros: ['cat'], pv: 6, mana: 6, tours: 6, plateau: ['cat_shadow'] }
+  },
+  {
+    id: 'S2', famille: 'E', titre: 'Aggro : garder le sort de retrait',
+    question: 'Griffure (2 dégâts à une unité, 1 mana) en main, deux Toutou enragés prêts, et en face un seul Têtard Glouton 1/1 qui ne gêne personne. Griffure sur le Têtard, ou la garder ?',
+    regarde: 'L’Aggro garde ses sorts de retrait pour ce qui retarde SON plan (un bloqueur, une Provocation). Attendu : ne pas jouer Griffure sur cette unité (la garder ; ou la jouer au visage s’il le pouvait). Contre-exemple : Griffure sur le Têtard. Le bot actuel la gaspille.',
+    niveau: 1, tour: 8, qui: 'p',
+    p: { heros: ['dog', 'cat', 'frog'], pv: 20, mana: 3, tours: 6, main: ['cat_pounce'], plateau: ['dog_bite', 'dog_bite'] },
+    e: { heros: ['dog'], pv: 12, mana: 6, tours: 6, plateau: ['frog_tad'] }
+  },
+  {
+    id: 'S3', famille: 'E', titre: 'Contrôle et PV (à recueillir)',
+    question: 'À RECUEILLIR auprès du game designer (BOT-CONTEXTE §6, Q3) : un cas concret — idéalement un journal `?journal=1` — où un Contrôle dépense des PV pour infliger des dégâts au lieu de pousser dans la tête de l’adversaire. Quelle carte, quelle cible, quel moment.',
+    regarde: 'Aucune fiche tant que le cas n’est pas donné : ne rien inventer. Hypothèse de travail : avant d’avoir stabilisé, le PV est une ressource critique ; après, tout part au visage.',
+    niveau: 1, tour: 1, qui: 'p', aRecueillir: true,
+    p: { heros: ['owl'], tours: 1 },
+    e: { pnj: 'frogboss', mana: 0, tours: 0 }
+  },
+  {
+    id: 'S5', famille: 'E', titre: 'Médor : retenir Retrouvailles',
+    question: 'Retrouvailles (6 mana, réanime 5 alliés de la défausse) payable, plateau vide des deux côtés. Défausse : UN seul allié (Chiot de Garde), puis CINQ.',
+    regarde: 'La valeur d’un sort de réanimation dépend du nombre et de la qualité des alliés de la défausse. Attendu : avec 1 allié, la RETENIR (on perd la carte pour un Chiot) ; avec 5, la jouer. Le bot actuel la joue dans les deux cas.',
+    niveau: 1, tour: 10, qui: 'p',
+    p: { heros: ['dog', 'crow', 'frog'], pv: 20, mana: 6, tours: 6, main: ['dog_lick'], plateau: [], defausse: ['dog_pup'] },
+    e: { heros: ['dog'], pv: 20, mana: 6, tours: 6, plateau: [] }
+  },
+  {
+    id: 'S5b', famille: 'E', titre: 'Médor : jouer Retrouvailles (5 alliés)',
+    question: 'La même position que S5, avec CINQ Chiots de Garde dans la défausse.',
+    regarde: 'Attendu : jouer Retrouvailles. C’est la moitié « puis jouer » de S5.',
+    niveau: 1, tour: 10, qui: 'p',
+    p: { heros: ['dog', 'crow', 'frog'], pv: 20, mana: 6, tours: 6, main: ['dog_lick'], plateau: [], defausse: ['dog_pup', 'dog_pup', 'dog_pup', 'dog_pup', 'dog_pup'] },
+    e: { heros: ['dog'], pv: 20, mana: 6, tours: 6, plateau: [] }
+  },
+  {
+    id: 'S6', famille: 'E', titre: 'Corax : retenir la Volée de Corbeaux',
+    question: 'Volée de Corbeaux (4 mana, 2 dégâts à toutes les unités adverses) contre UN gros corps, le Chef de Bataillon (3 PV ou plus).',
+    regarde: 'Excellente contre les petits corps, inutile ailleurs : voulu. Attendu : la RETENIR face à un gros corps (2 dégâts ne le tuent pas). Le bot actuel la joue dans le vide.',
+    niveau: 1, tour: 10, qui: 'p',
+    p: { heros: ['crow', 'dog', 'frog'], pv: 20, mana: 4, tours: 6, main: ['crow_murder'], plateau: [] },
+    e: { heros: ['dog'], pv: 20, mana: 6, tours: 6, plateau: ['dog_alpha'] }
+  },
+  {
+    id: 'S6b', famille: 'E', titre: 'Corax : jouer la Volée de Corbeaux (3 petits corps)',
+    question: 'La même Volée de Corbeaux contre TROIS Lapereaux 1/1.',
+    regarde: 'Attendu : la jouer (un sort, trois unités). C’est la moitié « d’abord jouer » de S6.',
+    niveau: 1, tour: 10, qui: 'p',
+    p: { heros: ['crow', 'dog', 'frog'], pv: 20, mana: 4, tours: 6, main: ['crow_murder'], plateau: [] },
+    e: { heros: ['dog'], pv: 20, mana: 6, tours: 6, plateau: ['lap1_lapereau', 'lap1_lapereau', 'lap1_lapereau'] }
   }
 ];
 
@@ -249,5 +310,6 @@ export const FAMILLES = {
   A: 'Les décisions où le bot est probablement faux',
   B: 'Les mécaniques dont le piège ne se voit qu’en jouant',
   C: 'Les murs de la courbe',
-  D: 'Les archétypes'
+  D: 'Les archétypes',
+  E: 'La lecture de position du bot (tests de la mission bot)'
 };

@@ -9,7 +9,7 @@
 | Fichier | Rôle | Points d'entrée |
 |---|---|---|
 | `engine.js` | **Le moteur.** État d'un combat (`B`), tours, jouer une carte, attaquer, effets, ciblage, morts, auras, événements « quand X alors Y ». | `createBattle`, `playCard`, `attack`, `endTurn`, `beginTurn`, `canPlay`, `needsTarget`, `needsChoice`, `legalTargets`, `attackableTargets`, `cloneBattle`, `refresh`, `depose`, `aurasSur`, `reprisesPossibles`, `carteDuCoup` |
-| `ai.js` | **Le bot** (niveaux `naif` … `dur`, `montecarlo`) : choisit un coup par valeur ; sait dire pourquoi (`ecouteLesChoix`). | `botAction`, `coupsPossibles`, `evalue`, `meilleureBranche`, `ecouteLesChoix` |
+| `ai.js` | **Le bot** (niveaux `naif` … `dur`, `montecarlo`) : choisit un coup par valeur ; sait dire pourquoi (`ecouteLesChoix`). | `botAction`, `coupsPossibles`, `evalue`, `meilleureBranche`, `ecouteLesChoix`, `lectureDePosition` |
 | `journal.js` | **Journal de décisions** (JSONL, un fichier par combat) + **`joue()`, l'unique point d'entrée d'une action** (jeu, arène, scripts). | `joue`, `ouvreJournal`, `fermeJournal`, `nomDeFichier`, `texteJournal`, `VERSION` |
 | `evenements.js` | **Le récit en données** (`B.evts`) : qui a fait quoi, avant/après, et la cause. Éteint par défaut. | `ouvreEvenements`, `evt`, `avec`, `refCarte`, `refUnite`, `refHeros`, `refSource`, `refCible`, `noteCoup`, `coupDe` |
 | `rejeu.js` | **Revoir un combat en le rejouant** (21 oct. 2026) : un combat se rejoue à l'identique avec son départ (les deux camps), une **graine** (`hasard`, mulberry32) et la liste de ses actions. La graine ne remplace `Math.random` que pendant `createBattle` (`sousGraine`) et pendant l'action elle-même (`joue(…, rng)`) : le bot qui réfléchit, l'aperçu et les animations gardent le vrai hasard. Les unités s'enregistrent par leur **place** sur le plateau (`versPositions`/`depuisPositions`) : leur identifiant vient d'un compteur global que l'aperçu fait avancer. Banc : `node scripts/test-rejeu.mjs`. | `hasard`, `sousGraine`, `enregistre`, `joueEtNote`, `rejoue`, `pas`, `debutDuTour`, `toursJoues`, `versPositions`, `depuisPositions` |
@@ -777,6 +777,13 @@ Découverte pour créer un Miroir qui rejouera Découverte ne sert à rien — c
 boucle sans gain que le bot doit savoir refuser, et qu'on ne règle **pas** par un plafond
 (cf. « Philosophie de design »).
 
+
+## La lecture de position  (mission bot, 4 nov. 2026 — `docs/BOT-CONTEXTE.md`, mesures `docs/BOT-MESURES.md`)
+Niveau d'IA **`lecture`** (= `normal` + `lecture: true`, `BALANCE.ai.niveaux`) ; `normal` et `dur` restent les références de mesure. **Pas encore branché au jeu** (les rencontres jouent `normal`) : le brancher est une décision du game designer. `misplay` est à **0 partout** (mesure conservatoire).
+- `lectureDePosition(B, k)` (exportée, **pure**) → `{ monHorloge, saHorloge, role, stabilise }`. L'**horloge** = tours (fractionnaires) pour tuer le héros d'en face avec ce qui se voit : plateau, allies payables de **sa** main et sorts de dégâts au héros (jamais la main adverse), chaque Provocation d'en face absorbe l'attaquant le plus fort, armure comprise. `role` : `beatdown` (j'ai une horloge et suis au moins aussi rapide) ou `controle` ; `stabilise` : l'horloge adverse est ≥ `lecture.stabilise`.
+- Posée une fois par `botAction` dans `positionCourante` (nulle hors niveau `lecture`, remise à null en sortie) ; les fonctions de valeur la lisent par `posture(nom)` (`BALANCE.ai.postures`). Le mouchard reçoit `lecture` : le bot dit comment il a lu.
+- **Trois branchements seulement** : `meilleureAttaque` (poids du visage `visage`, gain d'un échange multiplié par `echange` quand l'unité ne retarde pas `retardeMonHorloge`), la retenue des sorts de retrait (un beatdown ne retire que ce qui retarde son horloge ; un retrait n'est jamais joué « au hasard » en dernier recours), le prix des PV (`dmg` sur `ownHero`, `prixPv` — **aucune carte actuelle n'en coûte**, S3 reste à recueillir). Plus `faitAttendre` : une carte qui ramène des cartes de SA défausse attend qu'elle soit remplie à `timing.remplissage`, sauf pression.
+- **Aucun identifiant de carte dans `ai.js`.** Banc de force : `scripts/bench-bot.mjs`. Fiches : S1, S2, S5, S6 (famille E de `situations.js`, `test-ai.mjs`).
 
 ## Le journal de décisions de combat
 `game/src/combat/journal.js` enregistre un combat de façon qu'on puisse, **pour chaque
