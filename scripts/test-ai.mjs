@@ -589,5 +589,37 @@ const informe = (id, attendu, nom) => {
 informe('S7a', c => c === 'Chiot de Garde', 'S7a adversaire lent : pose le Chiot et garde Griffure');
 informe('S7b', c => c === 'Griffure (créature)', 'S7b adversaire de plateau : Griffure sur une créature');
 
+// S4 (le combo de Félix) : la recherche de séquence gagnante (`BALANCE.ai.sequence`) joue le tour entier.
+console.log('\nLe combo (S4) : exécuter');
+const tourEntier = (B, niveau) => {
+  const coups = []; let n = 0;
+  while (!B.over && B.turn === 'p' && n++ < 60) {
+    const a = botAction(B, 'p', niveau);
+    if (!a || a.type === 'end') break;
+    coups.push(a.type === 'play' ? B.p.hand[a.index].name : a.type);
+    if (!joue(B, 'p', a, 'bot', niveau)) break;
+  }
+  return coups;
+};
+const gagneCeTour = (niveau) => { const B = sitDe('S4a')(); tourEntier(B, niveau); return B.over && B.winner === 'p'; };
+const nine = CHARACTER_DATA.characters.find(c => c.id === 'cat').cards.find(c => c.id === 'cat_nine');
+for (const niveau of ['lecture', 'recherche']) {
+  const ok = gagneCeTour(niveau);
+  console.log((ok ? '  ok   ' : '  FAIL ') + `S4a ${niveau} : le tour finit par la mort de l’adversaire`);
+  ok ? pass++ : fail++;
+}
+// La recherche lit les cartes : Neuf Vies à 40 de base n'est plus payable, la chaîne ne part plus — sans toucher au bot.
+const coutNeuf = nine.cost; nine.cost = 40;
+for (const niveau of ['lecture', 'recherche']) {
+  const ok = !gagneCeTour(niveau);
+  console.log((ok ? '  ok   ' : '  FAIL ') + `S4a ${niveau} : Neuf Vies à 40 de base, la chaîne ne part plus (le bot suit la carte)`);
+  ok ? pass++ : fail++;
+}
+nine.cost = coutNeuf;
+{
+  const B = sitDe('S4b')(); const coups = tourEntier(B, NIVEAU);
+  console.log('  info S4b installer avant d’exécuter : joue ' + (coups.join(' > ') || '(rien)') + ' (attendu : le moteur d’abord ; à valider, non compté)');
+}
+
 console.log(`\n${pass} test(s) passe(s), ${fail} echec(s).`);
 process.exit(fail ? 1 : 0);

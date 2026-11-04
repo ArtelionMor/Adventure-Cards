@@ -4,7 +4,7 @@
 //   node scripts/bench-bot.mjs lecture normal           le niveau A contre le niveau B
 //   node scripts/bench-bot.mjs lecture normal --parties 100   parties par paire de decks ET par sens (defaut : BALANCE.ai.bench)
 //   node scripts/bench-bot.mjs ... --json f.json        ecrit aussi le resultat (JSON)
-//   node scripts/bench-bot.mjs ... --surcharge '{"postures":{"beatdown":{"visage":2}}}'   change BALANCE.ai le temps d'un essai (ablation, balayage)
+//   node scripts/bench-bot.mjs ... --surcharge '{"postures":{"beatdown":{"visage":2}}}'   change BALANCE.ai le temps d'un essai (ablation, balayage) ; la cle `cartes` change des champs de cartes en memoire, jamais dans les donnees : '{"cartes":{"cat_nine":{"cost":10}}}'
 //   node scripts/bench-bot.mjs ... --trios dog,crow,frog;cat,owl,dog   d'autres trios (separes par « ; »)
 //
 // COMMENT ON JUGE. Pour chaque paire de decks (D, O), A joue D contre B qui joue O, PUIS A joue O contre B qui joue D :
@@ -40,13 +40,14 @@ for (let i = 0; i < trios.length; i++) for (let j = i; j < trios.length; j++) {
 console.log(`Banc de force : « ${niveauA} » (A) contre « ${niveauB} » (B), ${trios.length} trios, ${parties} parties par paire et par sens, niveau ${cfg.niveau}, ${taches.length} lots.`);
 
 const par = trios.map(() => ({ v: 0, d: 0 }));
-let V = 0, D = 0, ms = 0, decisions = 0, tours = 0, nParties = 0;
+let V = 0, D = 0, ms = 0, decisions = 0, tours = 0, nParties = 0, moteurA = 0, moteurSeqA = 0, moteurVictoiresA = 0;
 await enParallele(taches, new URL('./lib/taches-bench-bot.mjs', import.meta.url), {
   jobs: nombreDeJobs(), unite: 'lots',
   contexte: { trios, niveau: cfg.niveau, surcharge: arg('--surcharge') ? JSON.parse(arg('--surcharge')) : null },
   surResultat: (k, r) => {
     for (const x of new Set([r.i, r.j])) { par[x].v += r.victoiresA; par[x].d += r.decisives; }
     V += r.victoiresA; D += r.decisives; ms += r.ms; decisions += r.decisions; tours += r.tours; nParties += r.parties;
+    moteurA += r.moteurA; moteurSeqA += r.moteurSeqA; moteurVictoiresA += r.moteurVictoiresA;
   }
 });
 
@@ -56,6 +57,7 @@ trios.forEach((t, i) => console.log('  ' + nom(t).padEnd(36) + pct(par[i].v, par
 const moyenne = pct(V, D);
 console.log(`\nMOYENNE : ${moyenne}  (${D} parties decisives sur ${nParties})`);
 console.log(`Longueur moyenne : ${(tours / nParties).toFixed(1)} tours · ${(ms / decisions).toFixed(3)} ms par decision (${decisions} decisions)`);
+if (moteurA) console.log(`Combo : le moteur de Félix (Mage de l'étincelle) est en jeu chez A dans ${moteurA} parties (${pct(moteurVictoiresA, moteurA)} de victoires) ; une séquence gagnante a été trouvée dans ${moteurSeqA} d'entre elles (${(100 * moteurSeqA / moteurA).toFixed(1)} %).`);
 if (arg('--json')) {
   const out = { niveauA, niveauB, parties, niveau: cfg.niveau, trios, moyenne: { victoires: V, decisives: D, taux: V / D, demi: wilson(V / D, D).demi },
     parDeck: trios.map((t, i) => ({ trio: t, nom: nom(t), victoires: par[i].v, decisives: par[i].d, taux: par[i].v / par[i].d, demi: wilson(par[i].v / par[i].d, par[i].d).demi })),

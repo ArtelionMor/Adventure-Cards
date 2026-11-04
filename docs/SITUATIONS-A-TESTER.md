@@ -469,8 +469,9 @@ Griffure en main, deux Toutou prêts, un Têtard Glouton 1/1 en face qui ne gên
 ## S3 — Contrôle et PV (à recueillir)
 **Pas de fiche.** Il faut un cas concret du game designer (idéalement un journal `?journal=1`) : quelle carte, quelle cible, quel moment. Hypothèse : avant d'avoir stabilisé, le PV est une ressource critique ; après, tout part au visage. ⚠ Aucune carte actuelle ne coûte de PV à celui qui la joue (pas d'effet `dmg` sur `ownHero`) : le réglage `prixPv` est en place mais n'a rien à régler pour l'instant. Une fiche vide (`aRecueillir`) tient la place dans `situations.js`.
 
-## S4 — Combo (Félix)
-Attend la phase 3 (Mage de l'étincelle et recherche de séquence).
+## S4a / S4b — Combo (Félix)
+**S4a (exécuter) :** Mage de l'étincelle + Ombre Feutrée en jeu, Neuf Vies et deux Griffures en main, 6 mana, 8 tours joués, adversaire à 20 PV : le tour doit finir par sa mort. Le test refait la position avec Neuf Vies à 40 de base : plus de mort, **sans toucher au bot** (il lit les cartes). Passe pour tous les niveaux dès que `normal` joue tout ce qu'il peut ; il vaut surtout comme garde-fou de la recherche de séquence (`BALANCE.ai.sequence`).
+**S4b (installer, à valider) :** la même main **sans** moteur sur le plateau (le Mage et l'Ombre Feutrée en main) : attendu, poser le moteur d'abord et ne pas dépenser le carburant. **Échoue à tous les niveaux** (il joue Neuf Vies puis passe) : c'est le point « retenir », en attente de l'accord sur la note de retenue.
 
 ## S5 / S5b — Médor : Retrouvailles
 Retrouvailles payable, plateaux vides. **S5 :** un seul allié dans la défausse → la **retenir**. **S5b :** cinq alliés → la jouer. Le bot de référence la joue dans les deux cas.

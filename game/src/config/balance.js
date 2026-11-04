@@ -118,6 +118,17 @@ export const BALANCE = {
       // laisse a 0 faute de gain demontre (la fiche S7b, qui l'attend, ne passe pas non plus : le corps vaut plus que la menace).
       controle: { visage: { instable: 1, stable: 1.8 }, echange: 1, prixPv: { instable: 1.6, stable: 0.4 }, retraitAvantCorps: 0 }
     },
+    // LA SEQUENCE GAGNANTE (phase 3 de la mission bot, docs/BOT-CONTEXTE.md §3.4) : avant de jouer, le bot cherche, sur des
+    // COPIES du combat, une suite de coups de son tour qui tue le heros adverse (ordre des cartes et cibles). Il ne connait
+    // aucune carte : il essaie. Allumee par le drapeau `sequence` d'un niveau (`lecture`, `recherche` ; pas `normal`/`dur`).
+    // Le budget est la seule borne (pas de plafond « X fois par tour ») : une carte qui se rejoue sans fin trouve la fin du
+    // budget, pas une boucle. Le resultat ne depend pas du hasard du vrai combat : chaque coup est rejoue sur une copie.
+    sequence: {
+      actif: true,
+      minSorts: 2,        // la PORTE : on ne cherche que si au moins ce nombre de sorts sont jouables (un combo en veut plusieurs)
+      noeuds: 100,        // coups essayes au plus par recherche (chacun = une copie du combat). MESURE (10 000 parties par valeur) : 100 -> 8,8 ms par decision, 300 -> 19 ms, 1000 -> 38 ms, pour la meme force
+      profondeur: 14      // longueur maximale de la suite
+    },
     // LA RECHERCHE COURTE (niveau `recherche`, essai du 4 nov. 2026) : pour chaque coup possible, le bot joue le RESTE DE
     // SON TOUR avec le bot `lecture`, puis note la position qu'il obtient AVANT de finir le tour. Elle ne joue jamais le tour
     // adverse : elle n'a donc pas besoin de la main ni de la pioche de l'adversaire (le Monte-Carlo, lui, clone le vrai
@@ -134,8 +145,8 @@ export const BALANCE = {
       echelle: 8           // la note devient une probabilite : 1 / (1 + exp(-avance / echelle))
     },
     niveaux: {
-      recherche: { misplay: 0, malin: true, lecture: true, recherche: true },   // `lecture` + la recherche courte
-      lecture: { misplay: 0, malin: true, lecture: true },   // `normal` + la lecture de position (mission bot)
+      recherche: { misplay: 0, malin: true, lecture: true, recherche: true, sequence: true },   // `lecture` + la recherche courte
+      lecture: { misplay: 0, malin: true, lecture: true, sequence: true },   // `normal` + la lecture de position (mission bot)
       naif: { misplay: 0, malin: false },
       simple: { misplay: 0, malin: false },   // le bot d'origine du GDD
       normal: { misplay: 0, malin: true },

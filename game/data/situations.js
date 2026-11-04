@@ -343,6 +343,22 @@ export const SITUATIONS = [
     niveau: 1, tour: 1, qui: 'p', aRecueillir: true,
     p: { heros: ['owl'], tours: 1 },
     e: { pnj: 'frogboss', mana: 0, tours: 0 }
+  },
+  {
+    id: 'S4a', famille: 'E', titre: 'Félix : exécuter le combo',
+    question: 'Mage de l’étincelle (une blessure au héros adverse par sort) et Ombre Feutrée (sorts −1) en jeu ; Neuf Vies, deux Griffures en main ; 6 mana, 8 tours joués : Neuf Vies coûte 15 − 8 − 1 = 6 et crée 8 Griffures à 0 mana. L’adversaire est à 20 PV, sans rien en jeu.',
+    regarde: 'Attendu : le tour finit par la mort de l’adversaire (chaque sort fait 2 + 1 au visage, la chaîne en vaut ~30). Le bot ne connaît aucune de ces cartes : il doit TROUVER la suite. Le test refait aussi la position avec Neuf Vies à 40 de base : la chaîne n’est plus payable, et rien ne change dans le bot — preuve qu’il lit les cartes et pas une habitude.',
+    niveau: 1, tour: 9, qui: 'p',
+    p: { heros: ['cat', 'dog', 'frog'], pv: 20, mana: 6, tours: 8, main: ['cat_nine', 'cat_pounce', 'cat_pounce'], plateau: ['cat_claw', 'cat_shadow'] },
+    e: { heros: ['owl'], pv: 20, mana: 6, tours: 8, plateau: [] }
+  },
+  {
+    id: 'S4b', famille: 'E', titre: 'Félix : installer avant d’exécuter (à valider)',
+    question: 'La même main (Neuf Vies, deux Griffures), 6 mana — mais SANS moteur sur le plateau (ni Mage ni Ombre Feutrée).',
+    regarde: 'Attendu : installer d’abord (poser le Mage et l’Ombre Feutrée, 5 mana), ne PAS dépenser Neuf Vies ni les Griffures une par une. Le bot actuel joue Neuf Vies puis passe, à tous les niveaux : c’est le point « retenir » de la phase 3, qui attend l’accord du game designer sur la note de retenue.',
+    niveau: 1, tour: 9, qui: 'p', aValider: true,
+    p: { heros: ['cat', 'dog', 'frog'], pv: 20, mana: 6, tours: 8, main: ['cat_nine', 'cat_pounce', 'cat_pounce', 'cat_claw', 'cat_shadow'], plateau: [] },
+    e: { heros: ['owl'], pv: 20, mana: 6, tours: 8, plateau: [] }
   }
 ];
 

@@ -895,6 +895,75 @@ export function lectureDePosition(B, k) {
   return { monHorloge, saHorloge, role, stabilise: saHorloge >= L.stabilise };
 }
 
+// ------------------------------------------------------------- la sequence gagnante
+/** Combien de fois la recherche a trouve une suite gagnante, et combien de coups elle a essayes (mesure, jamais lu par le bot). */
+export const compteursSequence = { recherches: 0, trouvees: 0, noeuds: 0 };
+
+/**
+ * Les coups qu'on essaie dans la recherche de sequence : jouer une carte, ou frapper — pas passer (on cherche a GAGNER ce tour).
+ * Deux elagages, sans connaitre aucune carte : (1) deux coups identiques (meme carte, meme cible, meme choix) ne sont essayes qu'une
+ * fois ; (2) une carte qui peut viser le heros adverse n'est pas essayee sur une unite adverse sans Provocation (on cherche le visage).
+ * Cheap d'abord (les cartes les moins cheres, puis les attaques) : c'est l'ordre dans lequel un combo se deroule.
+ */
+function coupsDeSequence(C, k) {
+  const vus = new Set(), parCarte = new Map();
+  const tous = coupsPossibles(C, k).filter(a => a && a.type !== 'end');
+  const nomDe = a => (a.type === 'play' ? (carteDuCoup(C, k, a) || {}).name : null);
+  for (const a of tous) {
+    if (a.type !== 'play') continue;
+    const n = nomDe(a);
+    if (a.target && a.target.side === foe(k) && a.target.uid === 'hero') parCarte.set(n, true);
+  }
+  const prises = C[foe(k)].board.filter(u => hasKey(u.keys, 'Taunt')).map(u => u.uid);
+  const sortie = [];
+  for (const a of tous) {
+    if (a.type === 'play') {
+      const n = nomDe(a);
+      if (parCarte.get(n) && a.target && a.target.side === foe(k) && a.target.uid !== 'hero' && !prises.includes(a.target.uid)) continue;
+      const cle = `p|${n}|${a.zone || 'main'}|${a.target ? a.target.side + a.target.uid : ''}|${a.choix || ''}`;
+      if (vus.has(cle)) continue;
+      vus.add(cle);
+    } else if (a.target && a.target.uid !== 'hero' && !prises.includes(a.target.uid)) continue;
+    sortie.push(a);
+  }
+  const cout = a => (a.type === 'play' ? Math.max(0, cardCost(carteDuCoup(C, k, a), C, k, a.zone)) : 99);
+  return sortie.sort((x, y) => cout(x) - cout(y));
+}
+
+/**
+ * LA SEQUENCE GAGNANTE du tour : le premier coup d'une suite qui tue le heros adverse, ou null. Recherche en profondeur, sur des
+ * copies (`cloneBattle`), bornee par `BALANCE.ai.sequence`. La PORTE : assez de sorts jouables, sinon on ne cherche pas.
+ * Le bot ne triche pas : il rejoue SES coups ; ce qu'il tire au hasard (pioche, cibles tirees) est tire sur la copie, et il
+ * recommence la recherche a chaque decision.
+ */
+export function sequenceGagnante(B, k) {
+  const S = BALANCE.ai.sequence;
+  if (!S.actif || B.over) return null;
+  const sorts = B[k].hand.filter(c => c.type === 'spell' && canPlay(B, k, c)).length;
+  if (sorts < S.minSorts) return null;
+  compteursSequence.recherches++;
+  let noeuds = 0;
+  const cherche = (C, prof) => {
+    if (prof >= S.profondeur) return null;
+    for (const a of coupsDeSequence(C, k)) {
+      if (noeuds >= S.noeuds) return null;
+      noeuds++;
+      const D = cloneBattle(C);
+      const ok = a.type === 'play' ? playCard(D, k, a.index, a.target, a.choix, a.zone) : attack(D, k, a.uid, a.target);
+      if (!ok || D.turn !== k && !D.over) continue;
+      if (D.over) { if (D.winner === k) return [a]; continue; }
+      const suite = cherche(D, prof + 1);
+      if (suite) return [a, ...suite];
+    }
+    return null;
+  };
+  const suite = cherche(B, 0);
+  compteursSequence.noeuds += noeuds;
+  if (!suite) return null;
+  compteursSequence.trouvees++;
+  return suite[0];
+}
+
 /** Combien de tours gagne MON horloge si cette unite adverse disparait (0 : elle ne gene pas mon plan). */
 function retardeMonHorloge(B, k, u) {
   return Math.max(0, horloge(B, k, foe(k), true) - horloge(B, k, foe(k), true, u.uid));
@@ -1100,7 +1169,7 @@ function coupRecherche(B, k, jeu) {
   const R = BALANCE.ai.recherche;
   const coups = coupsPossibles(B, k).slice(0, R.maxCoups);
   if (coups.length === 1) return { a: coups[0], evalues: [{ coup: coups[0] }] };
-  const bas = { ...jeu, recherche: false };
+  const bas = { ...jeu, recherche: false, sequence: false };
   const evalues = coups.map(coup => ({ coup, note: 0 }));
   enSondage++;
   const avant = positionCourante;
@@ -1303,6 +1372,8 @@ export function botAction(B, k, opts) {
   if (jeu.recherche && !B.over) {
     positionCourante = jeu.lecture && BALANCE.ai.lecture.actif ? lectureDePosition(B, k) : null;
     try {
+      const s = jeu.sequence ? sequenceGagnante(B, k) : null;
+      if (s) { noteLaDecision(B, k, s, null); return s; }
       const { a, evalues } = coupRecherche(B, k, jeu);
       noteLaDecision(B, k, a, evalues);
       return a;
@@ -1378,6 +1449,12 @@ function decide(B, k, jeu) {
     }
     const frappeur = ready.find(u => attackableTargets(B, k, u).some(t => t.uid === 'hero'));
     if (frappeur) return { type: 'attack', uid: frappeur.uid, target: { side: foe(k), uid: 'hero' } };
+  }
+
+  // --- 1 bis. une sequence qui gagne ce tour (le combo) -------------------------
+  if (jeu.sequence) {
+    const s = sequenceGagnante(B, k);
+    if (s) return s;
   }
 
   // --- coup au hasard occasionnel ------------------------------------------

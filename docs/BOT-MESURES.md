@@ -99,3 +99,43 @@ Fait avec le Mac en renfort (`--surcharge` voyage dans le contexte des tâches).
 **Les fiches S2, S5, S6 échouent au niveau `recherche`** (`BOT_NIVEAU=recherche node scripts/test-ai.mjs`) : elle joue Griffure sur le Têtard, Retrouvailles avec un seul allié, la Volée dans le vide — et gagne pourtant plus que `lecture`, qui les passe. Ces fiches écrivent l'intention du game designer, la note mesure autre chose : **à trancher ensemble** (soit les fiches sont trop strictes, soit la note de position ne voit pas le coût d'opportunité de garder une carte).
 
 **Branché sur le pilote automatique du joueur le 4 nov. 2026** (`BALANCE.ai.auto = 'recherche'`, lu par `ui/battle.js`) ; les adversaires gardent le niveau de leur rencontre (`ia`, sinon `defaut` = `normal`). Vérifié dans le navigateur : un combat entier en 90 décisions, 2 ms en moyenne par décision. Rejeu vérifié avec ce niveau (242 tests). Le niveau `recherche` pourrait servir le mode Auto du joueur et les adversaires les plus forts.
+
+## Phase 3 — point 1 : la recherche de séquence gagnante (faite) et ses mesures
+
+`sequenceGagnante(B, k)` (`ai.js`) : recherche en profondeur, sur des copies du combat, d'une suite de coups de MON tour qui tue le héros adverse. Aucun nom de carte : elle essaie. **La porte** : au moins `sequence.minSorts` (2) sorts jouables. **Le budget** : `sequence.noeuds` (100) coups essayés, profondeur 14. Deux élagages : deux coups identiques ne sont essayés qu'une fois, et une carte qui peut viser le héros n'est pas essayée sur une unité sans Provocation. Elle remplace rien : elle passe **avant** le reste dans `decide()` et dans `recherche`. Activée par le drapeau `sequence` des niveaux `lecture` et `recherche` (pas `normal` ni `dur`).
+
+Toutes ces mesures ont tourné sur **mon-mien (chef, 8 cœurs) + le Mac (12 cœurs)**, pas sur le PC de travail.
+
+| `lecture` contre `normal`, 5 trios dont 3 avec Félix, 400 parties/sens (10 000 parties, ± 1,0) | Moyenne | Temps/décision | Parties « moteur en jeu » où une suite est trouvée |
+|---|---|---|---|
+| sans la recherche | 50,5 % | 0,11 ms | — |
+| 100 nœuds | 51,1 % | 8,8 ms | 27,6 % |
+| 300 nœuds | 50,8 % | 18,8 ms | 28,7 % |
+| 1 000 nœuds | 51,2 % | 37,7 ms | 30,7 % |
+
+**Lecture : la recherche ne change pas le taux de victoire de `lecture` contre `normal`** (écarts de 0,3 à 0,7 point, dans le bruit de ± 1,0) ; plus de budget ne rapporte rien. ⚠ Un premier essai à 200 parties/sens donnait 53,4 % contre 48,9 % : c'était du **bruit**, il ne faut pas décider sur 200 parties par sens. Retenu : 100 nœuds.
+
+`recherche` contre `normal` (200 parties/sens, ± 1,4) : **59,9 %** sans la séquence, **62,1 %** avec (+2,2, à la limite du bruit), 12,8 ms par décision ; une suite est trouvée dans 47 % des parties où le Mage est en jeu. Les 5 000 parties de la ligne « poids retenus » plus haut (61,9 %) ont été jouées **avant** la séquence.
+
+**S4a (exécuter)** passe pour `lecture` et `recherche`. Le test refait la position avec Neuf Vies à 40 de base : plus de victoire ce tour-là, sans toucher au bot. Sur des parties entières (3 trios, 150 parties/sens, coût de base de Neuf Vies changé **en mémoire** par `--surcharge` `cartes`, jamais dans les données) : suite trouvée dans **38 %** des parties à moteur quand Neuf Vies coûte 8, **21 %** à 15, 25 % à 30, 20 % à 40 (± 6). La chaîne suit le coût quand il baisse ; quand il monte, le plancher d'environ 20 % vient des autres létaux que la recherche trouve (ce ne sont pas tous des Neuf Vies).
+
+**Ce qui n'est PAS fait :** le point 2 (retenir) attend ton accord sur la note ci-dessous ; **S4b** (installer avant d'exécuter) échoue donc à tous les niveaux, comme prévu.
+
+Bancs (sur mon-mien) : `test-triggers` 782, `test-ai` 63, `test-rejeu` 242, `test-evenements` 2 680, `test-partage` 108, `test-situations` 501, `test-vfx` 3 368, `test-pv` : verts.
+
+## Phase 3, point 2 — la note de retenue (À VALIDER : rien n'est codé)
+
+**Question :** comment le bot décide de *ne pas dépenser* un carburant (Griffure) tant que la chaîne n'est pas prête, sans règle par carte ?
+1. Il a déjà le moyen de répondre « puis-je gagner CE tour ? » : `sequenceGagnante`. On le pose une deuxième fois, sur le tour d'**après**.
+2. Pour chaque coup non létal qu'il envisage (jouer une carte, surtout un sort), on fabrique deux copies : **A** = le coup joué, puis fin de tour ; **B** = rien joué, fin de tour.
+3. Dans chacune on passe au tour suivant **de lui seulement** : mana au maximum +1, ses unités prêtes, sa main telle quelle. Il ne pioche pas (il ne connaît pas l'ordre de sa pioche) et l'adversaire ne joue pas (sa main est cachée).
+4. On lance `sequenceGagnante` dans A et dans B. **Retenir** = B trouve une suite gagnante et pas A : dépenser ce coup détruit le combo. **Installer** = c'est A qui en trouve une et pas B : poser le moteur (Mage, Ombre Feutrée) crée le combo du tour suivant.
+5. Rien ne cite une carte : Griffure est retenue parce que, dépensée, la chaîne de Neuf Vies ne tue plus ; le Mage est posé parce que, sans lui, elle ne tue pas.
+6. Si ni A ni B ne trouve de suite : le bot joue comme avant (aucun changement hors combo).
+7. **Coût :** deux recherches de plus, seulement quand la porte de `BALANCE.ai.sequence` est ouverte (≥ 2 sorts jouables) ; budget propre dans la config (`sequence.nœudsAttente`).
+8. **Risque honnête :** on suppose que l'adversaire ne gêne pas d'ici là. Un moteur qu'il détruit entre-temps fait perdre un tour : on le règle par un seuil (`sequence.patience` : ne retenir que si l'adversaire n'a pas de pression, lue sur son horloge) — pas par un plafond de tours.
+9. **Mesure prévue :** S4b (installer avant d'exécuter), la part des parties où le moteur est en jeu et où la chaîne part (aujourd'hui 24 à 32 %), et le coût de Neuf Vies changé dans une copie des données pour l'essai.
+10. **Arrêt volontaire :** je n'implémente pas sans ton accord (consigne de la mission).
+
+## Idées d'entraînement du game designer (4 nov. 2026) — backlog, rien n'est codé
+Les exercices d'un mentor de TCG compétitif : (a) il s'arrête dans la partie et demande à l'entraîné de **deviner sa main** (1 à 4 cartes) ; (b) on **rejoue le tour avec une autre pioche** (« que ferais-tu si tu avais pioché ça plutôt que ça ? ») ; (c) l'entraîné **demande une carte** (« quelle carte voudrais-tu piocher ? », « quelles cartes te donneraient un avantage ? »). Liens : (a) est la lecture des signaux de BOT-CONTEXTE §10.2 (S8) — à valider *bot contre bot* ; (b) et (c) demandent seulement de copier le combat et de remplacer la carte du dessus de la pioche, ce que `cloneBattle` et la recherche du bot savent déjà faire : « quelle carte me donnerait un avantage » = essayer chaque carte du deck comme prochaine pioche et classer par la note de la recherche. Peut être un outil de test pour le bot, un mode entraînement pour le joueur, ou les deux : à décider avec toi.
