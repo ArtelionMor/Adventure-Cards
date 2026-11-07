@@ -64,10 +64,10 @@
       "image": "calques/tete.png",
       "de": "tout",
       "ordre": 3,
-      "x": 764,
-      "y": 179,
-      "largeur": 174,
-      "hauteur": 92,
+      "x": 765,
+      "y": 213,
+      "largeur": 122,
+      "hauteur": 57,
       "os": "tete"
     },
     {
@@ -75,9 +75,9 @@
       "image": "calques/corps.png",
       "de": "tout",
       "ordre": 2,
-      "x": 23,
+      "x": 21,
       "y": 93,
-      "largeur": 972,
+      "largeur": 974,
       "hauteur": 779,
       "os": "corps"
     },
@@ -86,10 +86,10 @@
       "image": "calques/jambes.png",
       "de": "tout",
       "ordre": 1,
-      "x": 21,
-      "y": 558,
-      "largeur": 952,
-      "hauteur": 314,
+      "x": 38,
+      "y": 563,
+      "largeur": 905,
+      "hauteur": 309,
       "os": "jambes"
     }
   ],
